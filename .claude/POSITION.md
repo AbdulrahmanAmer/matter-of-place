@@ -154,3 +154,17 @@ NEXT
 - Deliverables on disk: launch/film/matter-of-place-launch.mp4 (round 1), preview-720p-round1.mp4, contact-sheet.png,
   engine in launch/engine/, deck v0 in launch/03-partner-deck/.
 - NEXT when unpaused: resume the session with the round-2/3 instruction; then partner video v1 on the engine; deck v1.
+
+## 2026-09-30 — planning pass complete, visual pass merged
+
+DONE
+- Architecture v1 (workspace/06-architecture), 25-screen admin spec (07-admin-platform), 20 slice plans + PLAN.md +
+  ASSUMED.md (05-plans), diagrams: architecture, admin-screens, plans-a/b/c (03-diagrams). Written by Sonnet workers
+  from the Fable-authored specs (S42); every plan checked for the eight sections; cross-plan conflicts settled in ASSUMED §A.
+- PR #2 visual pass merged (26 defects found, 22 fixed; check/build/render gate green, re-verified by orchestrator in a worktree).
+- GOTCHAS renumbered (unique up to P-029; next P-030), lint in render.mjs, single-file render mode, workers read the bank first.
+- main @ 46b8c4a pushed.
+
+OPEN
+- Q13–Q16 for the CEO (PROJECT-STATE). Stage: 3 (BUILD). Next slice by PLAN.md order: B1b (repo and delivery).
+- Diagram images from the final clean render to commit once it finishes.

@@ -33,3 +33,6 @@ dist-ssr
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Supabase CLI scratch
+supabase/.temp/
