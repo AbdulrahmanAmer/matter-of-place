@@ -7,3 +7,5 @@ producer-run*.log
 01-launch-film/*.mp4
 02-partner-presentation/*.mp4
 01-launch-film/media-cache/
+~$*
+*.log
