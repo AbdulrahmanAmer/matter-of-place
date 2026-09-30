@@ -40,9 +40,18 @@ DONE (later in the same session)
   which Mermaid rejects; replaced with `style <id> stroke-dasharray`. `workspace/03-diagrams/render.mjs` renders every
   block to PNG + SVG in `workspace/03-diagrams/img/` (operator needs pictures, not Mermaid source).
 
+DONE (operator asked "what did you skip": gotcha bank + app-folder CLAUDE.md)
+- `GOTCHAS.md` at root: 9 path entries (G-001…G-009) + 7 process entries (P-001…P-007), template and rules.
+- `.claude/hooks/gotcha-guard.mjs` registered as PreToolUse (Edit|Write|MultiEdit|NotebookEdit) in `.claude/settings.json`.
+  Watched-fail tested: routeTree.gen.ts → deny; src/lib/seo.ts → additionalContext; workspace/README.md → silent;
+  path outside root → silent; garbage stdin → silent, exit 0.
+- `Matter Of Place Codebase/CLAUDE.md` pointer (the real one is at the workspace root, which Claude Code loads anyway).
+- `.claude/skills/mop-work` (project context loader) + copies of `design-from-references`, `motion`,
+  `parallel-execution`, `codebase-index` from the agent-os skills pack.
+
 BLOCKED / WAITING ON OPERATOR
 - Decisions D1–D12 in PROJECT-STATE.md (deploy target, API placement, email, payments, social platforms, audit cadence).
-- Operator asked for an opinion on a GOTCHAS.md bank before it is built; answer given in chat 2026-09-30, not yet built.
+- Scheduling `mop-auditor` needs a live URL and API credentials (Search Console, GA4, Meta, Resend); not before slice B1.
 
 NEXT
 - Operator reads workspace/02-tech-stack/tech-stack.md and answers the decisions; then STAGE → 2 (system design) and

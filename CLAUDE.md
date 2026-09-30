@@ -13,6 +13,12 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
   (run it after any diagram edit; send the PNGs with SendUserFile).
 - `PROJECT-STATE.md` — agent-os stage + decisions. Stage 0 denies writes under `src/`; the operator advances the line.
 - `.claude/POSITION.md` — position file, injected on compact/resume. Append a block when a unit of work closes.
+- `GOTCHAS.md` — the bank of things that already broke or cost time. `.claude/hooks/gotcha-guard.mjs` pushes matching
+  entries before every Edit/Write (`block` denies, `warn` injects). Add an entry the same day something wastes 30+ minutes;
+  keep it under 40 live entries; every entry carries a proof command.
+- `.claude/skills/` — `mop-work` (load project state first), `design-from-references`, `motion`, `parallel-execution`,
+  `codebase-index`. Global skills used here: seo-*, ai-seo, schema-markup, programmatic-seo, social-content,
+  content-strategy, email-sequence, copywriting, launch-strategy, analytics-tracking, design-tournament, supabase.
 - `.mcp.json` — codebase-memory graph (project `E-Matter Of Place-Matter Of Place Codebase`). Use it for code questions;
   grep for copy/config.
 
