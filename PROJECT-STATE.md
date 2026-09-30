@@ -75,6 +75,10 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
 - 2026-09-30 CEO approved the free-first stack (S7–S21). tech-stack.md, completion-map.md, big-diagram.md rewritten to it.
   Remaining questions Q1–Q12 asked in session.
 - 2026-09-30 Q1–Q12 answered (S22–S33); admin-as-operating-system and automations-as-settings recorded (S34).
+- 2026-10-01 Owner setup progress: Zoho Mail organisation + admin@matterofplace.com live; matterofplace.com zone on Cloudflare (Free) with
+  nameservers switched at Namecheap and the zone hardened (Full strict, HTTPS forced, TLS 1.2 minimum, Bot Fight Mode, speed
+  recommendations). Cloudflare API token, R2, Turnstile deferred to their slices. Passwords for the next accounts generated into
+  creds/ (git-ignored). Next: Supabase sign-up, then B1b.
 - 2026-09-30 STAGE 0 → 3 on the CEO's instruction to start the Lovable cleanup (slice B1) now. Stage 1 and 2 gates are
   carried as work inside B9 (creative direction from rendered options) and P1 (plan file); they are not skipped, they are
   sequenced behind B1 because B1 touches only tooling and the removal of the preset.

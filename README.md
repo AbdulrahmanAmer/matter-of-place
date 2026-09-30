@@ -3,9 +3,11 @@
 A selective real-estate media platform for exceptional residential property in California, New York and Florida.
 We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: matterofplace.com (not live yet).
 
-**Where we are (30 Sept 2026):** the website exists and looks right. Nothing behind it exists yet: no database, no admin,
-no email, no invoices, no social posting, no newsletter. Every decision is made, the whole build is planned to the file
-level, and production starts with slice B1b. This page is the map; the folders hold the detail.
+**Where we are (1 Oct 2026):** the website exists and looks right (visual pass merged). Every decision is made and the
+whole build is planned to the file level (21 slices). Company email is live (admin@matterofplace.com on Zoho Mail) and
+the domain runs on Cloudflare with the zone hardened (Full strict TLS, HTTPS forced, bot protection, speed settings).
+Nothing behind the site is built yet: no database, no admin, no invoices, no social posting, no newsletter. Production
+starts with slice B1b (repo and delivery). This page is the map; the folders hold the detail.
 
 ## The whole system in one picture
 Solid boxes exist today; dashed boxes are what we build.
@@ -71,12 +73,13 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 ## Accounts and inputs we still need (owner side)
 | Need | Status | Used by |
 |---|---|---|
-| matterofplace.com | bought at Namecheap; move DNS to Cloudflare next session | everything |
-| Cloudflare | account exists; add zone, API token, R2 bucket, email routing for admin@matterofplace.com | wave 1 |
-| Supabase (database) | create next session | wave 2 |
-| Resend (email) | create next session | wave 3 |
-| Sentry (errors) | create next session | wave 1 |
-| Google: GA4, Search Console | create next session | wave 6 |
+| matterofplace.com | done: registered at Namecheap, DNS on Cloudflare nameservers | everything |
+| Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened. Left for wave 1: API token, R2 bucket (needs a card on file) | wave 1 |
+| Company email | done: Zoho Mail free plan, admin@matterofplace.com sends and receives; SPF, DKIM, DMARC set | everything |
+| Supabase (database) | next: sign up with admin@matterofplace.com | wave 2 |
+| Resend (email) | sign up with admin@matterofplace.com when wave 3 starts | wave 3 |
+| Sentry (errors) | sign up with admin@matterofplace.com when wave 1 starts | wave 1 |
+| Google: GA4, Search Console | sign up with admin@matterofplace.com when wave 6 starts | wave 6 |
 | Meta Business + Instagram Business | Dave's; access when we reach wave 5 | wave 5 |
 | Legal entity name and address | deferred until the lawyer confirms; invoices are blocked until set | wave 4 |
 | Instagram handle | when Dave creates it | wave 5 |

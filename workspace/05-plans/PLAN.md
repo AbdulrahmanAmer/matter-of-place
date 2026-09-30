@@ -9,7 +9,7 @@ Owner agent is `mop-builder` unless noted. A slice is closed only when its verif
 | Wave | Slices | Why together |
 |---|---|---|
 | 0 | V1 visual pass | merged as PR #2 on 2026-09-30 |
-| 1 | B1b repo and delivery | everything deploys through it |
+| 1 | B1b repo and delivery | everything deploys through it; prerequisites A1 (Cloudflare zone) and A11 (email) are done, A6 (Sentry) and A8 (GitHub secrets) remain |
 | 2 | B2 database → B3 API → B3b coming-soon → B4 tests | the spine; nothing else persists without it |
 | 3 | B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B8 job system · B17 website essentials | the day-to-day operating system, and the public surface made compliant |
 | 4 | B6 money box · B8b automation console · B16 legal identity | close the loop from accept to invoice to activate; automations become settings |

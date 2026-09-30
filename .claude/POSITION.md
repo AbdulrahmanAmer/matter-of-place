@@ -210,3 +210,10 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
 - Deferred to the slice that needs them, because each is a secret or needs a card: API token for Actions (B1b, CEO copies
   it into creds/), R2 bucket (needs a payment method on file; free tier), Turnstile widget + secret (B3), rate-limit rule on
   /api/public/* (B3), Dave as a member (when he has a Cloudflare login), usage alerts (B14 gauges cover it).
+
+## WHERE WE ARE — 2026-10-01 (read this first after a compaction)
+- Planning: complete. 21 slices in workspace/05-plans (PLAN.md order), architecture, 25-screen admin spec, 32 diagrams as pictures, gotcha bank at P-033.
+- Code: main @ latest, Lovable removed, visual pass merged, check/build green. No backend built.
+- Accounts: Zoho Mail (admin@matterofplace.com) live; Cloudflare zone live and hardened; domain at Namecheap on Cloudflare nameservers.
+  Not yet: Supabase, Resend, Sentry, Google, Meta (partner). Passwords pre-generated in creds/accounts.txt (git-ignored).
+- Next action: CEO signs up for Supabase with admin@; then B1b (needs Cloudflare API token → creds/, Sentry account, GitHub secrets).
