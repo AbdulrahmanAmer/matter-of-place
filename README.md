@@ -40,6 +40,17 @@ Eight waves, in order. Each wave is a folder of plans a builder can execute with
 ![Admin navigation](workspace/03-diagrams/img/admin-screens-1.png)
 ![Automations as settings](workspace/03-diagrams/img/admin-os-2.png)
 
+## The automations
+Every trigger and what it fires. Recipes are settings we edit in the admin, not code; a human approves generated
+assets before anything posts (first 60 days), and every change is versioned.
+
+![Every trigger and its steps](workspace/03-diagrams/img/automations-1.png)
+![The clocks](workspace/03-diagrams/img/automations-2.png)
+
+More: [job lifecycle](workspace/03-diagrams/img/architecture-3.png) · [publish pipeline](workspace/03-diagrams/img/plans-c-1.png) ·
+[recipe engine](workspace/03-diagrams/img/plans-b-3.png) · [weekly audit loop](workspace/03-diagrams/img/big-diagram-3.png) ·
+[who can change what](workspace/03-diagrams/img/automations-3.png)
+
 ## The database (designed, not yet created)
 Every table, column, permission and trigger is specified in [workspace/06-architecture/architecture.md](workspace/06-architecture/architecture.md) §3,
 and the migration files are listed in order in [workspace/05-plans/B2.md](workspace/05-plans/B2.md). Groups: catalog
