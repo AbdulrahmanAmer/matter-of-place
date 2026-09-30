@@ -8,13 +8,13 @@ Owner agent is `mop-builder` unless noted. A slice is closed only when its verif
 ## Order (dependencies from `03-diagrams/completion-map.md` §2)
 | Wave | Slices | Why together |
 |---|---|---|
-| 0 | V1 visual pass (branch `fix/visual-pass`, PR open) | independent of backend |
+| 0 | V1 visual pass | merged as PR #2 on 2026-09-30 |
 | 1 | B1b repo and delivery | everything deploys through it |
 | 2 | B2 database → B3 API → B3b coming-soon → B4 tests | the spine; nothing else persists without it |
 | 3 | B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B8 job system | the day-to-day operating system |
 | 4 | B6 money box · B8b automation console · B16 legal identity | close the loop from accept to invoice to activate; automations become settings |
 | 5 | B9 creative system (designer first) → B10 social · B11 newsletter · B12 reel | listings become content |
-| 6 | B13 SEO/AEO/GEO · B14 audit robot · B15 Omnikom handoff | be found, be measured, hand off |
+| 6 | B13 SEO/AEO/GEO → B14 audit robot (needs B13 checks) · B15 Omnikom handoff | be found, be measured, hand off |
 | 7 | H1 HARDEN | gate before launch |
 | 8 | L1 LAUNCH | DNS, production, first real property, watch week |
 
@@ -30,7 +30,7 @@ B13.md · B14.md · B15.md · B16.md · H1.md · L1.md · ASSUMED.md
 
 | Slice | Status | Closed on | Proof |
 |---|---|---|---|
-| V1 | in progress (PR) | | |
+| V1 | closed | 2026-09-30 | PR #2 merged; check, build, render gate green; 22 of 26 defects fixed |
 | B1b | not started | | |
 | B2 | not started | | |
 | B3 | not started | | |
