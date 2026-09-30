@@ -1,0 +1,158 @@
+# B8b — Automation console
+
+Lane: Operate the business · Stage: 3 BUILD · Owner agent: mop-builder (mop-designer for the editor layouts, screens 17 to 21) · Depends on: B8 steps 1 to 8 (jobs, events, `enqueue_job`, step registry, runner with stubs), B2 (`audit_log`, `user_roles`, generated types); steps 6 to 10 also need B7 steps 1 to 3 (actor, authz, audit, `src/admin/ui`), B8 steps 9 and 10 (screen 16 patterns) and B5 (template render, preview, test send) · Unblocks: B5 (the `email_templates` table and the `send_email` params schema), B7 (`decline_reasons` for screen 4), B9 to B12 (each fills in its step under a params schema that already exists), B11 (digest schedule), B14 (audit schedule)
+
+Landing order for batch B (all six plans agree): B8 steps 1 to 8, then B8b steps 1 to 5, then B5, then B16 (any time after B2), then B7 steps 1 to 10, then B6, then B7 rest, B8 steps 9 to 10, B8b steps 6 to 10.
+
+## Goal and observed exit
+Automations are settings, not code (S34, S38). Five tables hold what happens on each event, every email, every decline reason, every channel switch and every clock. A fixed catalog of 14 step types stays in code with a Zod parameter schema each. The planner turns an event into jobs by reading the recipe at trigger time, so an edit applies to the next event with no deploy. Every change is a revision with a named actor. An admin, or an agent with the `automation` scope, edits all of it from `/admin › Automation` (screens 17 to 21) or through `/api/admin/automation/*`.
+Observed exit (completion map B8b): "an admin switches a step off, publishes, and the dry-run and the real run both skip it". Proven in two parts. Part 1 (after step 5, no UI): `bun run scripts/automation-smoke.ts` on `mop-dev` disables step `notify_admin_received` in `submission.received`, runs the planner in dry-run mode, then emits a real `submission.received` event and lets the runner fan out; both outputs list the step as skipped with reason `step_disabled` and no job row exists for it. Part 2 (after step 10, needs B5 and B7): the same switch from screen 17 by a session and by an agent key, then a submission from `/submit`, and `tests/e2e/automation-exit.spec.ts` sees the skip in the dry-run panel and no `notify_admin` job in screen 16.
+
+## Contract (inputs, outputs, invariants, events emitted, permissions)
+Inputs
+- An `events` row (B8). The planner never reads anything but the event, the recipe row and the step specs.
+- Admin edits through the `automation` group of architecture 4.2: `recipes` get and put, `templates` get, put and preview (B5 owns render and preview), `reasons`, `channel-settings`, `schedule-settings`, `dry-run`, `revisions` and restore. Handlers are thin; each maps to one function in `src/server/automation/service.ts`.
+
+Outputs
+- Five tables of architecture 3.5 plus `automation_revisions`, exactly as named (`decline_reasons` is created by B2 and altered here): `automation_recipes`, `email_templates`, `decline_reasons`, `channel_settings`, `schedule_settings`.
+- Jobs with the envelope pinned in B8: `payload = { params, data }`, `idempotency_key = event_id:step_id`, `heavy` from the step spec, `status = waiting_approval` when the step requires approval, else `queued` plus a pgmq send. `recipe_id` and `step_id` are set.
+- Dry-run result `{ trigger, recipe_enabled, planned: [{ step_id, type, heavy, status, params, idempotency_key }], skipped: [{ step_id, type, reason }], warnings: [...] }`. It inserts nothing and takes no lock.
+
+The 14 step types (architecture 5), with `heavy` and the params each schema accepts (all optional with defaults unless stated; later slices extend a schema only with optional fields, so stored recipes keep validating):
+| type | heavy | params | implemented by |
+|---|---|---|---|
+| `send_email` | no | `template` (required, key of `email_templates`), `attach` (`invoice_pdf`), `to` (`submitter`, `inquirer`, `subscriber`, `admins`; default from the trigger) | B5 |
+| `notify_admin` | no | `template` (default `admin_notify`), `headline` (text with variables) | B5 |
+| `bump_catalog_version` | no | `flip_coming_soon` (boolean, default true; architecture 10) | B8b, step 4 |
+| `purge_cache` | no | `scope` (`catalog`, `property`, `all`; default `catalog`) | B3 or B13 (needs a Cloudflare token, see risks) |
+| `render_variants` | yes | `sizes` (subset of thumb, card, hero, og, carousel; default all five) | B9 |
+| `render_cover` | yes | none | B9 |
+| `render_carousel` | yes | `max_slides` (3 to 10, default 7, ASSUMED) | B9 |
+| `render_story` | yes | none | B9 |
+| `render_reel` | yes | `duration_seconds` (8 to 30, default 12, ASSUMED) | B12 |
+| `write_captions` | no | `alt_text` (boolean, default true) | B9 (Haiku, S20) |
+| `build_newsletter_block` | yes | none | B11 |
+| `post_meta` | no | `channels` (`from_settings` or a list of `instagram`, `facebook`; default `from_settings`), `respect_window` (default true) | B10 |
+| `queue_digest` | no | `mode` (`enqueue` or `build_issue`; default `enqueue`). ASSUMED: architecture 5 says `digest.due` → "build issue draft" and that is not a catalog name, so it is `queue_digest` with `mode: build_issue` | B11 |
+| `webhook_omnikom` | no | `kind` (`inquiry`, `attribution`; default `inquiry`) | B15 |
+
+Invariants
+1. Step specs live in one file, `src/server/automation/step-specs.ts`: `{ type, label, description, heavy, paramsSchema, fields }`. The step modules of B8 import their `paramsSchema` and `heavy` from it, so the recipe editor, the planner and the runner cannot disagree. A step type exists only if it is in that file; admins cannot add one (S34, no workflow engine).
+2. A step is `implemented` when `getStep(type)` in B8's registry returns a module. The planner skips an unimplemented step with reason `not_implemented` instead of creating a job that would die; the same skip is shown in dry-run and in real fan-out. When B9 lands `render_cover`, the seeded recipe starts using it with no migration.
+3. Real fan-out and dry-run call the same pure function `planEvent`. Dry-run cannot drift from the real run because there is no second code path. Watched-fail below.
+4. Fan-out is idempotent (B8 invariant 1: `insert ... on conflict (idempotency_key) do nothing`). Jobs are inserted first and `events.processed_at` is set last, so a crash re-plans and inserts nothing new. A per-event `fanoutEvent` after commit and the runner's sweep may overlap safely.
+5. The recipe is read when the event is planned, params are snapshotted into `payload.params`. Editing a recipe never changes a job already created.
+6. Jobs created from one event have no dependency between them (there is no dependency column). A step that needs another's output must return `{ status: "retry_at", at, reason }` (B8 invariant 3) until it exists. Stated for B9 to B12 in their plans.
+7. Every write to the five tables writes one `automation_revisions` row by trigger, with the actor set in the same transaction (`set_config('mop.actor_id', ..., true)` inside the SQL function). A direct edit in Supabase Studio is still recorded, with a null actor and note `direct`.
+8. Recipes are never created or deleted by admins: one row per event type exists from the seed (14 rows), so any event can gain steps without code. `trigger` cannot be edited.
+9. Save-time validation (server): step ids unique per recipe (slug, at most 40 chars), at most 20 steps, `step_type` in the catalog, params parse with that step's schema, `conditions.tiers` within `Feature|Reach|Campaign`, `conditions.markets` within `california|new-york|florida`, `send_email.template` and `notify_admin.template` name an existing `email_templates` row. Errors carry a JSON path so the form shows them inline (screen 17 state "invalid").
+10. Effective approval mode for a channel (S23): `manual` unless the tier's mode is `auto` and `auto_after` is set and today is on or after it. Pure function `effectiveApprovalMode(settings, tier, today)` in `src/domain/automation.ts`; B10 calls it. A null `auto_after` means never automatic.
+11. Schedules driven by the runner: `digest`, `prune`, `keepwarm`. `audit`, `reconcile` and `backup` are external clocks (the auditor routine and GitHub Actions, S27, architecture 7); their rows are stored, shown with an "external clock" badge and editable, and the runner ignores them. ASSUMED; an external clock can read its row through `GET /api/admin/automation/schedule-settings` with an agent key.
+12. `digest` cadence is every 14 days (S25) and cron cannot express that, so ASSUMED new column `schedule_settings.interval_days int null`: the runner fires when `cron` matches and at least `interval_days` days passed since `last_run_at`. This adds a column to architecture 3.5; update the architecture in the same commit (G-004).
+
+Events emitted: none new. The runner-driven `digest` schedule emits the existing `digest.due`; `prune` enqueues the system job of B8 with key `prune:<UTC date>`; `keepwarm` records `last_run_at` only (the tick itself is the activity).
+
+Permissions (admin-screens 17 to 21, architecture 3.7, S38)
+| Action | Roles |
+|---|---|
+| list, get anything in the group | all six roles |
+| put recipe, put email template, put channel settings, put schedule settings, dry-run | chief_editor, media_ops, admin |
+| put and reorder decline reasons | chief_editor, managing_editor, admin |
+| restore a revision | chief_editor, admin |
+| agents | same routes and roles through bearer key with scope `automation` (S38: the CTO session adjusts automations through this API) |
+| agent guardrail (ASSUMED) | an agent gets 403 `human_only` when it sets any `approval_mode` value to `auto` or changes `auto_after`: that is a trust decision (S23) and architecture 6 says approval can require a human |
+
+## Files (create / change; one line each: path — what it contains)
+Create
+- `supabase/migrations/<ts>_automation.sql` — `automation_recipes`, `email_templates`, `channel_settings`, `schedule_settings`, `automation_revisions`, alterations to `decline_reasons`, triggers (`updated_at`, `version` bump on recipes and templates, `record_automation_revision`), RLS, SQL functions `automation_put_recipe`, `automation_put_template`, `automation_put_reason`, `automation_put_channel`, `automation_put_schedule`, `automation_restore_revision`, `recipe_id` foreign key on `jobs`.
+- `supabase/migrations/<ts>_automation_seed.sql` — configuration seeds (see Data changes), idempotent, safe in production.
+- `supabase/migrations/<ts>_automation_schedules.sql` — `cron.unschedule('prune')` so the runner drives it from `schedule_settings`; leaves `job-runner` and `health` of B8.
+- `src/domain/events.ts` — `eventTypes` (the 14), `EventType`, `eventPayloadSchemas` per type (Zod; optional top-level `tier` and `market` are what conditions read), `tiers`, `marketSlugs`.
+- `src/domain/automation.ts` — Zod `stepSchema`, `recipeSchema`, `conditionsSchema`, `declineReasonSchema`, `channelSettingsSchema`, `scheduleSettingsSchema`, `emailTemplateSchema` re-export from B5, `effectiveApprovalMode`, labels for the screens.
+- `src/server/automation/step-specs.ts` — the 14 specs with `fields` descriptors for the schema-driven form (kind `text|number|select|multiselect|boolean`, options, default).
+- `src/server/automation/catalog.ts` — `listStepSpecs()`, `getSpec(type)`, `isImplemented(type)` (asks B8's `getStep`).
+- `src/server/automation/plan.ts` — pure `planEvent(recipe, event, ctx)`, `matchesConditions`, `PlannedJob`, `SkipReason` (`recipe_disabled|step_disabled|condition|not_implemented|invalid_params`).
+- `src/server/automation/fanout.ts` — REPLACES B8's stub: `fanoutPendingEvents(db, limit)` and `fanoutEvent(db, eventId)`.
+- `src/server/automation/dry-run.ts` — `dryRun(db, { trigger, entity_id?, payload? })`, `warnings` (template missing or disabled, step not implemented, recipe disabled, payload fails the event schema).
+- `src/server/automation/sample-payloads.ts` — `samplePayloadFor(trigger, entityId)`: builds the payload the real event would carry from a real row (submission, payment, property, asset, inquiry, subscriber).
+- `src/server/automation/service.ts` — `getRecipes`, `putRecipe`, `getReasons`, `putReason`, `reorderReasons`, `getChannelSettings`, `putChannelSettings`, `getScheduleSettings`, `putScheduleSettings`, `listRevisions`, `restoreRevision`; each: actor, authz, Zod, RPC, audit.
+- `src/server/jobs/scheduler.ts` — REPLACES B8's stub: `runDueSchedules(db, now)` for `digest`, `prune`, `keepwarm`.
+- `src/server/automation/cron.ts` — `nextRun(cron, from)` using `cron-parser`; `isDue(row, now)` including `interval_days`.
+- `src/server/jobs/steps/bump-catalog-version.ts` — the one step B8b implements (updates `settings.catalog_version`; when `flip_coming_soon` and the property's market has `coming_soon = true`, sets it false and writes the audit row).
+- `src/server/jobs/steps/*.ts` for the other 12 types — ASSUMED: NOT created here. Each owning slice creates its file and appends one import line to `steps/index.ts`, so `isImplemented` turns true by itself.
+- `src/routes/api/admin/automation.recipes.ts`, `automation.recipes.$trigger.ts`, `automation.templates.ts` (list), `automation.templates.preview.ts` (POST, calls B5 `previewTemplate`), `automation.templates.$key.ts` (get, put), `automation.templates.$key.test.ts` (POST send test to self, calls B5 `sendTestEmail`), `automation.reasons.ts`, `automation.reasons.$id.ts`, `automation.channel-settings.ts`, `automation.channel-settings.$channel.ts`, `automation.schedule-settings.ts`, `automation.schedule-settings.$key.ts`, `automation.dry-run.ts`, `automation.revisions.ts`, `automation.revisions.$id.restore.ts` — thin handlers.
+- `src/routes/admin/automation.recipes.tsx`, `automation.emails.tsx`, `automation.reasons.tsx`, `automation.settings.tsx`, `automation.revisions.tsx` — screens 17 to 21, `head()` via `pageHead()` with `noindex`.
+- `src/admin/automation/` — `RecipeList.tsx`, `RecipeEditor.tsx`, `StepCard.tsx`, `ParamsForm.tsx` (renders `fields`), `ConditionsField.tsx`, `DryRunPanel.tsx`, `EmailTemplateEditor.tsx`, `BlocksEditor.tsx`, `TemplatePreview.tsx`, `VariablesList.tsx`, `ReasonsTable.tsx`, `ChannelSettingsForm.tsx`, `ScheduleSettingsForm.tsx`, `RevisionsTable.tsx`, `automation-api.ts` (typed fetch wrappers; the admin equivalent of `services`), and one `*.test.tsx` per screen.
+- `src/styles/admin/automation.css` — tokens only (added to `src/styles/admin/index.css`, the one entry `src/routes/admin.tsx` imports; B7 step 3).
+- `scripts/automation-smoke.ts` — the part 1 proof command.
+- `tests/unit/automation/plan.test.ts`, `catalog.test.ts`, `cron.test.ts`, `approval.test.ts`, `service.test.ts`; `tests/db/automation.db.test.ts`; `tests/e2e/automation-exit.spec.ts`.
+Change
+- `src/server/lib/permissions/automation.ts` (new group file, steps 6 onward) and one import line in `permissions/index.ts` (B7): the permission table above as action ids `automation.recipes_put`, `automation.templates_put`, `automation.reasons_put`, `automation.channels_put`, `automation.schedules_put`, `automation.dry_run`, `automation.revisions_restore`, with `humanOnly` on the `auto` approval change.
+- `src/server/jobs/steps/index.ts` — append the `bump-catalog-version` import (one line).
+- `.env.example` — no new names.
+- Architecture `06-architecture/architecture.md` 3.5 — add `schedule_settings.interval_days` and the recipe seeds of this plan (same commit as the migration).
+
+## Data changes (migrations, enums, RLS, seeds)
+`<ts>_automation.sql`
+- `automation_recipes`: `id uuid pk`, `trigger text unique not null` with a check against the 14 event types, `name text not null`, `enabled boolean default true`, `version int default 1`, `steps jsonb not null default '[]'` (check `jsonb_typeof = 'array'`), `created_at`, `updated_at`. Foreign key `jobs.recipe_id references automation_recipes(id) on delete set null` is added here (B8 left it open).
+- `email_templates`: `id uuid pk`, `key text unique not null`, `subject text not null`, `preheader text not null default ''`, `body jsonb not null` (blocks of B5), `variables text[] not null default '{}'`, `enabled boolean default true`, `version int default 1`, `created_at`, `updated_at`. Content is seeded by B5, not here.
+- `decline_reasons`: created by B2 (`20261001090400_intake.sql`: `id`, `code unique`, `label`, `email_paragraph`, `sort`, `enabled`) because `submissions.decline_reason_id` references it. This slice only ALTERS it: `created_at` and `updated_at` if absent, the `updated_at` and revision triggers, RLS, put function. B2 states the same.
+- `channel_settings`: `id`, `channel text unique` check in `instagram|facebook|pinterest|linkedin|newsletter`, `enabled`, `posting_window jsonb` `{ days, from, to, tz }`, `approval_mode jsonb` `{ Feature, Reach, Campaign }` each `manual|auto`, `auto_after date`, `credentials_ref text` (the NAME of a secret, never a value), timestamps.
+- `schedule_settings`: `id`, `key text unique` check in `digest|audit|keepwarm|prune|reconcile|backup`, `cron text`, `interval_days int null` (ASSUMED, invariant 12), `enabled`, `last_run_at`, `next_run_at`, timestamps.
+- `automation_revisions`: `id`, `table_name`, `row_id`, `before jsonb`, `after jsonb`, `actor_id`, `actor_kind`, `at`, `note`. Index `(table_name, row_id, at desc)`.
+- Trigger `record_automation_revision()` on the five tables (insert, update, delete); it reads `mop.actor_id`, `mop.actor_kind`, `mop.note` from `current_setting(..., true)`.
+- RLS on all six (policies use B2's helper `role_in(...)`): `select` for every role in `user_roles`; insert and update for `chief_editor`, `media_ops`, `admin` (decline_reasons: `chief_editor`, `managing_editor`, `admin`); no delete policy on any of them; `automation_revisions` insert-only by trigger. Functions are `security definer`, execute revoked from `anon` and `authenticated`, granted to `service_role`.
+`<ts>_automation_seed.sql` (`on conflict do nothing`; production carries it because it is configuration, not content; ASSUMED reading of architecture 7 "Seed: none")
+- 14 recipe rows, one per event type. Steps, exactly as architecture 5, ids in brackets:
+  - `submission.received`: `send_email` template `received` [`send_received`]; `notify_admin` [`notify_admin_received`].
+  - `submission.declined`: `send_email` template `declined` [`send_declined`].
+  - `submission.accepted`: `send_email` template `accepted` [`send_accepted`].
+  - `submission.awaiting_assets`: `send_email` template `awaiting_assets` [`send_awaiting_assets`]. ASSUMED addition: architecture 5 lists no recipe for this event, which would leave the `awaiting_assets` email unsent.
+  - `invoice.issued`: `send_email` template `invoice`, `attach: invoice_pdf` [`send_invoice`].
+  - `payment.marked`: `notify_admin` [`notify_admin_payment`].
+  - `property.published`: `bump_catalog_version`, `purge_cache`, `render_variants`, `render_cover`, `render_carousel`, `render_story`, `write_captions`, `build_newsletter_block`, then `render_reel` with `conditions.tiers = ["Campaign"]`, then `send_email` template `standalone` with `conditions.tiers = ["Campaign"]` and `requires_approval = true` (S24: reel and standalone email only for Campaign).
+  - `property.unpublished`: `bump_catalog_version`, `purge_cache`. ASSUMED addition: otherwise an unpublished property stays cached.
+  - `asset.approved`: `post_meta` (`channels: from_settings`), `queue_digest` (`mode: enqueue`).
+  - `digest.due`: `queue_digest` (`mode: build_issue`), `notify_admin`.
+  - `inquiry.received`: `send_email` template `inquiry_ack` (architecture writes it as `ack`), `notify_admin`, `webhook_omnikom`.
+  - `submission.activated`, `asset.rejected`, `subscriber.confirmed`: empty `steps`, `enabled = true` (admins may add steps).
+- `decline_reasons` (ASSUMED copy, calm, no em dashes, no promise; the CEO reviews before launch): `not_a_fit` "Not the right fit for the editorial standard", `outside_markets` "Outside California, New York and Florida", `new_development` "New development", `insufficient_material` "Not enough material to review", `rights_unclear` "Photography rights not confirmed", `other` "Other, see note". Each `email_paragraph` is two sentences, never mentions price or merit of the owner, and `other` is empty so the admin's note carries the message. Editorial standard wording follows `src/data/exposure.ts` (`editorialQualities`, "Others are not charged").
+- `channel_settings`: `instagram` and `facebook` enabled, `pinterest` and `linkedin` disabled (S22: month two), `newsletter` enabled. `posting_window` `{ days: [1,2,3,4,5], from: "09:00", to: "18:00", tz: "America/New_York" }` (ASSUMED). `approval_mode` `{ Feature: "auto", Reach: "manual", Campaign: "manual" }` with `auto_after` null, which by invariant 10 means manual everywhere until an admin sets launch date plus 60 days (S23: after 60 days Feature goes automatic, Campaign keeps a human; Reach is unspecified, so manual is ASSUMED). `credentials_ref`: `META_PAGE_TOKEN` for the two Meta channels.
+- `schedule_settings`: `digest` `cron 0 14 * * 2`, `interval_days 14` (ASSUMED Tuesday 14:00 UTC), `audit` `0 13 * * 6` (Saturday, S27, UTC ASSUMED), `keepwarm` `0 6 * * *`, `prune` `30 3 * * *`, `reconcile` `0 5 * * *`, `backup` `0 2 * * *`. `digest` starts `enabled = false` until the first issue is ready (B11); the rest true.
+`<ts>_automation_schedules.sql`: unschedule the fixed `prune` pg_cron job of B8; the runner now drives it. Generated types regenerate (`bun run gen:types`).
+
+## Steps (ordered; each fits half a day; each ends with the command that proves it)
+1. Migration `automation.sql`: five tables, revisions table, triggers, RLS, put functions, `jobs.recipe_id` foreign key. Proof: `supabase db reset` exits 0, `bun run gen:types && bun run check` green, then `bunx vitest run tests/db/automation.db.test.ts` (update writes one revision with the actor from the function argument, direct SQL update writes one with a null actor, `version` increments, a `commercial` session cannot update).
+2. Domain and specs: `events.ts`, `automation.ts`, `step-specs.ts`, `catalog.ts`. Proof: `bunx vitest run tests/unit/automation/catalog.test.ts` (14 types exactly as architecture 5, every spec's defaults parse, every schema key has a `fields` entry, `isImplemented("send_email")` false before B5).
+3. Planner `plan.ts`. Proof: `bunx vitest run tests/unit/automation/plan.test.ts` (order kept, `event_id:step_id` keys, condition on tier and market, approval gives `waiting_approval`, disabled step and disabled recipe skip, unimplemented skip, invalid params skip, payload envelope shape).
+4. `fanout.ts`, `scheduler.ts`, `cron.ts`, `bump-catalog-version.ts`, the seed and schedules migrations. Proof: `bunx vitest run tests/unit/automation/cron.test.ts tests/db/automation.db.test.ts` then `supabase db reset` and `select trigger, jsonb_array_length(steps) from automation_recipes order by trigger;` prints 14 rows with the counts of the seed list above.
+5. `dry-run.ts`, `sample-payloads.ts`, `scripts/automation-smoke.ts` (part 1 of the exit). Proof: `bun run scripts/automation-smoke.ts` on `mop-dev` prints `dry-run skipped notify_admin_received (step_disabled)`, `real run skipped notify_admin_received (step_disabled)`, `jobs for step: 0` and exits 0.
+   (Steps 6 to 10 wait for B5 and B7 steps 1 to 10 and B8 steps 9 to 10.)
+6. `service.ts` plus the 13 API routes, agent scope `automation`, the `human_only` guardrail, audit rows. Proof: `bunx vitest run tests/unit/automation/service.test.ts` (commercial 403 on put, chief_editor 200 plus one revision plus one audit row, agent key with scope 200 and `actor_kind = agent`, agent without scope 403, agent setting `auto` 403 `human_only`, invalid params 422 with JSON path).
+7. Screen 17: `RecipeList`, `RecipeEditor`, `StepCard`, `ParamsForm`, `ConditionsField`, `DryRunPanel`. Proof: `bunx vitest run src/admin/automation/recipes` and `bun run check`.
+8. Screen 18 on B5's render and preview: `EmailTemplateEditor`, `BlocksEditor`, `TemplatePreview`, `VariablesList`, send test to me. Proof: `bunx vitest run src/admin/automation/emails` (missing variable warning shown, preview equals B5 `renderTemplate` output for the same variables).
+9. Screens 19 and 20: `ReasonsTable` (add, edit, reorder), `ChannelSettingsForm`, `ScheduleSettingsForm` (external-clock badge, cadence text "every 14 days"). Proof: `bunx vitest run src/admin/automation/settings` and `bun run check`.
+10. Screen 21 (`RevisionsTable`, diff, restore) and the exit test. Proof: `bunx playwright test tests/e2e/automation-exit.spec.ts` (session switches `notify_admin_received` off, dry-run panel lists it skipped, a submission from `/submit` produces `send_email` and no `notify_admin` job, restore brings it back).
+
+## Verification (commands and expected output; watched-fail for every new test)
+- `bun run check` then `bun run build` in `Matter Of Place Codebase`: both exit 0.
+- `supabase db reset`: exits 0; seed rows present; running the seed migration body twice changes nothing (`select count(*) from automation_revisions` unchanged after a second apply).
+- `bun run scripts/automation-smoke.ts` on `mop-dev`: exit 0 with the three lines of step 5.
+- Watched-fail list, each done once and reverted: (a) make `dryRun` call a copy of the planner that ignores `enabled`, the dry-run equals real-run test must go red; (b) remove the condition filter in `planEvent`, the Campaign-only reel test must go red; (c) drop `on conflict do nothing` reliance by inserting twice in `fanout.ts`, the double fan-out test must go red; (d) remove the revision trigger, the revision test must go red; (e) delete the `human_only` check, the agent guardrail test must go red; (f) add a key to a `paramsSchema` without a `fields` entry, `catalog.test.ts` must go red; (g) skip `interval_days` in `isDue`, the digest cadence test must go red; (h) mark `send_email` implemented without a module, the not_implemented skip test must go red.
+- No em dashes and no hex colours: `grep -n "#[0-9a-fA-F]\{3,6\}" src/styles/admin/automation.css` prints nothing.
+- Copy check: `grep -rn "—" supabase/migrations/*automation_seed.sql` prints nothing (seeded reason paragraphs carry no em dash).
+
+## Risks and gotchas (link GOTCHAS ids)
+- G-004: recipe, reason, channel and schedule fields are snake_case in the domain, the API and the columns; change all together. `interval_days` is a spec change to architecture 3.5.
+- G-011 and P-009: no new paid feature. `cron-parser` is a small dependency and runs in Deno through an `npm:` specifier; confirm with `deno check` in CI (UNPROVEN until step 4).
+- G-006: `credentials_ref` stores a secret NAME only; screen 20 shows connected or expired and never a value.
+- G-007: `automation.css` uses tokens only; the admin status colours (danger, warning, success) are added to `tokens.css` by B7 step 3, not here.
+- Steps have no dependency column; the seeded `property.published` fans out renders in parallel. B9 to B12 must return `retry_at` until prerequisites exist (invariant 6). UNPROVEN until B9.
+- `purge_cache` needs a Cloudflare API token and zone id in the Edge Function secrets; the token is listed for Actions only in tech-stack 4. ASSUMED that catalog reads keyed by `catalog_version` (tech-stack 1, Cache) make purge a nicety for HTML pages; B3 or B13 decides. Until then the step is unimplemented and skipped.
+- `write_captions` uses Haiku (S20); an `ANTHROPIC_API_KEY` secret is not in tech-stack 4. ASSUMED to be added by B9.
+- Two drivers for `prune` would double-run it; step 4 unschedules the pg_cron entry in the same migration set as the runner change.
+- Runner-driven schedules fire only while the runner ticks; a paused Supabase project (P-009, 7 idle days) misses them; the Cloudflare keep-warm cron is the guard (B1).
+- Recipe steps that name `standalone` (Campaign email) point to a template B5 seeds disabled and B11 completes; a disabled template means `send_email` returns skipped (B5), so the seed never fails.
+
+## Out of scope
+Implementations of the 12 other step types, new step types, a general workflow engine, per-step retry settings in the UI, visual flow diagrams in the app, Slack or Telegram alerts, the audit robot and backup workflows themselves, email template content and rendering (B5), screen 16 (B8), role management (B7 screen 23).

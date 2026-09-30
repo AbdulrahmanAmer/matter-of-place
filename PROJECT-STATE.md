@@ -8,8 +8,13 @@ enforcement: deny
 
 ## OPEN DECISIONS
 
-None. Q1–Q12 were answered by the CEO in session on 2026-09-30 (S22–S33). Stage 0 gate: met once the owner inputs
-below are supplied or explicitly deferred.
+From the plan pass (`workspace/05-plans/ASSUMED.md` §B):
+### Q13. Coming-soon pages: keep illustrative market/region photographs on production with the tag, or type only? — UNDECIDED (recommended: keep, tagged)
+### Q14. AI crawlers: allow retrieval bots, refuse training bots? — UNDECIDED (recommended: yes)
+### Q15. Review decline-reason and email copy now, or after the first build in the admin editor? — UNDECIDED (recommended: after)
+### Q16. Agent daily decision cap 25 and no agent auto-approval of channels for 60 days? — UNDECIDED (recommended: keep)
+
+Q1–Q12 were answered by the CEO in session on 2026-09-30 (S22–S33).
 
 Owner inputs (not decisions): Omnikom legal entity name + registered address, contact email + phone, Instagram handle,
 first editors' emails and roles, Meta Business access, Namecheap purchase of matterofplace.com, invoice template details

@@ -28,14 +28,15 @@ function lint(file, md) {
       if (kind.startsWith("flowchart") || kind.startsWith("graph")) {
         if (/\[\/(?!")/.test(l) && !/\["/.test(l)) problems.push(`${where}: label starting with '/' opens a trapezoid; quote it: id["/path"]`);
         if (/^\s*subgraph\b.*:::/.test(l)) problems.push(`${where}: ':::class' is not allowed on a subgraph; use 'style <id> ...'`);
-        if (/^\s*subgraph\s+\w+\s*\[[^\]"]*[\/:()][^\]]*\]/.test(l)) problems.push(`${where}: quote subgraph labels that contain / : or ( → subgraph ID["label"]`);
+        if (/^\s*subgraph\s+\w+\s*\[\//.test(l)) problems.push(`${where}: quote a subgraph label that starts with '/' → subgraph ID["/label"]`);
       }
     });
   });
   return problems;
 }
 
-for (const file of readdirSync(here).filter((f) => f.endsWith(".md"))) {
+const only = process.argv[2] ? basename(process.argv[2]) : null; // optional: render one file (GOTCHAS P-020)
+for (const file of readdirSync(here).filter((f) => f.endsWith(".md") && (!only || f === only))) {
   const md = readFileSync(join(here, file), "utf8");
   const blocks = (md.match(/```mermaid\n/g) || []).length;
   if (!blocks) continue;

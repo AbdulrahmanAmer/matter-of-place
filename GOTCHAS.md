@@ -7,6 +7,7 @@ before every Edit or Write and pushes the matching entries into the session (sev
 they are read by `mop-work` at session start.
 
 Rules for the bank itself
+- Numbers are unique and never reused: before adding, `grep -c "^## P-" GOTCHAS.md` and take the next free number (P-030 is next as of 2026-09-30). Duplicates from parallel workers get renumbered by the orchestrator, never silently merged.
 - Add an entry the same day something wastes more than 30 minutes or breaks after a push. Do not wait for a retro.
 - Keep it under 40 live entries. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
   injected (the mechanism enforces it, the prose just documents it).
@@ -57,7 +58,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-004 · Field names live in three files and must change together
-- paths: Matter Of Place Codebase/src/domain/**, Matter Of Place Codebase/docs/database/schema.sql
+- paths: Matter Of Place Codebase/src/domain/**, Matter Of Place Codebase/supabase/migrations/**
 - severity: warn
 - symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error.
 - cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
@@ -80,7 +81,7 @@ Entry template
 - symptom: a key committed as `VITE_SOMETHING_SECRET` is visible in the built JS.
 - cause: Vite inlines every `VITE_*` value at build time.
 - rule: secrets go in `wrangler secret put` (server side) only; `VITE_*` is for public URLs and flags. The global `secret-scan` hook also checks writes.
-- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, INSTAGRAM_URL.
+- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, INSTAGRAM_URL, TURNSTILE_SITE_KEY (public site key; the secret stays server side).
 - added: 2026-09-30
 
 ## G-007 · Styling is tokens only: no hex, no utility classes
@@ -226,6 +227,12 @@ Entry template
 - proof: `Get-CimInstance Win32_Process | ? { $_.CommandLine -like '*claude*-p*' }` → the producer PID while the notification claims completion.
 - added: 2026-09-30
 
+## P-018 · Pressing stop (interrupt) in the desktop app kills every in-session subagent
+- symptom: four Sonnet workers vanished from the Background tasks pane after the CEO interrupted a reply; their transcript files stayed at 0 bytes and their last output was timestamped at the interrupt. Only detached processes (the dev server, headless `claude -p`) survived. The tree was left on the branch one worker had created.
+- rule: after any interrupt, check the tasks pane and the workers' output folders before assuming they run; relaunch with "resume: skip files that already exist"; then `git branch --show-current` and return to main before committing. Long, expensive fan-outs go headless (P-014/P-017 pattern) when the operator is likely to type mid-run.
+- proof: `find workspace/05-plans -newermt "<interrupt time>"` → empty; tasks pane shows only the dev server.
+- added: 2026-09-30
+
 ## P-017 · A headless `claude -p` worker that ends its turn kills its own background renders
 - symptom: the v2 producer replied "Round-2 render and gate are running, I'll continue when it reports" and exited; `launch/film/frames` was empty, no Chrome workers, no round-2 MP4, no REPORT.md. Its JSON said 10 turns / 3 minutes for an 80-minute job.
 - cause: in `-p` mode the process exits when the model stops; child processes it started in the background die with it. Nothing "reports back" to a process that no longer exists.
@@ -251,26 +258,57 @@ Entry template
 - proof: `MSYS_NO_PATHCONV=1 node "D:/Omincom/website work and agents output/V2 Pipeline/tools/render-gate.mjs" http://localhost:8080 / /properties` → `"pass": true`, exit 0.
 - added: 2026-09-30
 
-## P-016 · `git worktree add <path> main` fails while `main` is checked out in the workspace
+## P-023 · `git worktree add <path> main` fails while `main` is checked out in the workspace
 - symptom: `fatal: 'main' is already used by worktree at 'E:/Matter Of Place'` when making the read-only site snapshot for product shots.
 - rule: snapshot `main` with `git worktree add --detach "E:/Matter Of Place/launch/.site-main" main`; remove it with `git worktree remove` when done.
 - proof: `git worktree list` → `.../launch/.site-main  <sha> (detached HEAD)`.
 - added: 2026-09-30
 
-## P-017 · The motion gate's "no sustained pitch" check fails on the allowed noise beds unless the mix has broadband content
+## P-024 · The motion gate's "no sustained pitch" check fails on the allowed noise beds unless the mix has broadband content
 - symptom: room tone (brown LP 120) measured flatness 0.04, wind (pink BP 300-1200) 0.13, digital silence 0; the gate needs >= 0.15 over every 1.5 s. A mix that passed at render level (0.158) failed after normalisation (0.130): at low level AAC's own noise was filling the empty bins.
 - rule: always measure flatness on the loudness-normalised, AAC-encoded mix (`node launch/engine/encode.mjs <dir> --audio-only` then `node launch/engine/probe.mjs flat <dir>/audio-norm.wav`). Give every narrow bed a broadband layer (leaf rustle on wind, foam on water, haze on city), keep the LF rumble low (it adds loudness nobody hears and kills flatness), and keep an air floor under the silence beats (15 dB lower, never digital zero).
 - proof: `node launch/engine/probe.mjs flat launch/film/audio-norm.wav` → `min flatness 0.152 (gate >= 0.15); windows under: 0`.
 - added: 2026-09-30
 
-## P-018 · The motion gate counts type holds on flat fields and eased-out camera moves as static
+## P-025 · The motion gate counts type holds on flat fields and eased-out camera moves as static
 - symptom: first full render 65 % coverage, 4.7 s static run; a single 100 px word on Ivory drifting 38 px/s measured 0.12 mean luma diff per frame against the 0.35 threshold (two words 0.31).
 - rule: camera moves on photographs run at constant speed (`ease: "none"`) and are still moving on the cut; type holds sit over moving photography or drift; no one-word hold on a flat field longer than ~0.8 s; an end card needs a moving photograph under it. `node launch/engine/probe.mjs motion <mp4>` lists every static run >= 0.5 s with timecodes.
 - proof: `node launch/tools/motion-gate.mjs launch/film/matter-of-place-launch.mp4` → `GATE PASSED`, longest static run 0.90 s.
 - added: 2026-09-30
 
-## P-019 · This ffmpeg build has no glob input; Node ESM needs file:// URLs for absolute Windows paths
+## P-026 · This ffmpeg build has no glob input; Node ESM needs file:// URLs for absolute Windows paths
 - symptom: `-pattern_type glob` → "globbing is not supported by this libavformat build"; `import "E:/..."` → `ERR_UNSUPPORTED_ESM_URL_SCHEME`.
 - rule: tile stills with `node launch/engine/sheet.mjs <out.jpg> <cols> <width> <img...>`; import by bare package name from inside `launch/` or via `pathToFileURL(path).href`.
 - proof: `node launch/engine/sheet.mjs out.jpg 3 640 a.png b.png` → prints `out.jpg`.
+- added: 2026-09-30
+
+## P-027 · A foreground Bash call over 120 s is moved to the background with its whole `&&` chain
+- symptom: `node overflow.mjs | tail` and a later `node states.mjs; python sheet.py` returned "moved to the background"; the sheets I read next did not exist yet.
+- rule: pass `timeout: 600000` for browser sweeps, or wait with `until [ -f <output> ]; do sleep 3; done` (Monitor is disabled in subagents) before reading anything the chain produces.
+- proof: `until [ -f scratchpad/am1.png ]; do sleep 3; done; echo ready` → ready.
+- added: 2026-09-30
+
+## P-021 · Full-page screenshots misplace `position: fixed` UI and hide real defects
+- symptom: the phone sticky action bar and the desktop Ask button appeared mid-page over the fact row and Save/Share in `before/*.png`, and a footer line covered by the bar at page end was invisible.
+- rule: judge fixed UI (header, sticky bar, concierge, overlays, dialogs) only from viewport shots (`workspace/08-visual-pass/states.mjs`); measure overlap with `getBoundingClientRect` (`sticky.mjs`).
+- proof: `node workspace/08-visual-pass/sticky.mjs` → `before {"footerBottomLineBottom":804,"barTop":788}`, `after {...748...}`.
+- added: 2026-09-30
+
+## P-022 · A branch left by a killed run can be stale
+- symptom: `fix/visual-pass` pointed two commits behind `main`; `git checkout` refused because the orchestrator's uncommitted GOTCHAS.md differed between the two.
+- rule: `git branch -f <branch> main` when the branch has no commits of its own, then checkout carries the dirty files across.
+- proof: `git log --oneline -1 fix/visual-pass` equals `git log --oneline -1 main`.
+- added: 2026-09-30
+
+
+## P-028 · Free private GitHub repos have no branch protection
+- symptom: `gh api -X PUT repos/.../branches/main/protection` → HTTP 403 "Upgrade to GitHub Pro or make this repository public".
+- rule: protection of `main` is a CI rule, not a GitHub setting, until the plan changes: `deploy.yml` runs only after `ci.yml` passes on the same SHA, and nobody force-pushes (G-009). Plan B1b step 9 records this as BLOCKED.
+- proof: the 403 above, observed 2026-09-30.
+- added: 2026-09-30
+
+## P-029 · Concurrent diagram renders collide
+- symptom: two workers running `render.mjs` at once → puppeteer launch errors and `EBUSY` on the bunx cache; "5 failures" that had nothing to do with the diagrams.
+- rule: `render.mjs <file.md>` renders one file (added 2026-09-30); a worker renders only its own file and confirms the `img/` files exist; the orchestrator runs the full render once, alone, at the end.
+- proof: `node workspace/03-diagrams/render.mjs plans-a.md` → "done" with 0 failures while nothing else renders.
 - added: 2026-09-30

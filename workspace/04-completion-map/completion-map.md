@@ -14,7 +14,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |
 | A5 | Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
 | A6 | Sentry account (free) | sentry.io | B1 |
-| A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B12 |
+| A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
 | A8 | GitHub: branch protection on `main`, Actions secrets from tech-stack §4 | github.com | B1 |
 | A9 | Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
 | A10 | Lovable: disconnect, or accept it never syncs this repo | lovable.dev | B1 |
@@ -51,7 +51,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 |---|---|---|
 | B9 | Creative system: `mop-designer` produces rendered options for carousel, story, OG cover, newsletter block, standalone email, reel storyboard; winners become React templates in `src/templates` [designer → builder] | PNGs for one property match the chosen design |
 | B10 | Social publishing: Meta app, publish carousel/story on approval, pull metrics into `campaign_reports` [builder] | a test post appears on the Instagram account |
-| B11 | Newsletter automation: weekly digest assembled from published properties and stories, standalone property email for Campaign tier, sent through Broadcasts on approval [builder] | broadcast delivered to a test audience |
+| B11 | Newsletter automation: digest every 14 days (S25) assembled from published properties and stories, standalone property email for Campaign tier, sent through Broadcasts on approval [builder] | broadcast delivered to a test audience |
 | B12 | Reel: ffmpeg template in Actions, poster + MP4 to R2, attached to the dossier and to the Instagram job for Campaign tier [designer → builder] | MP4 renders with wordmark and captions |
 
 **Be found**
