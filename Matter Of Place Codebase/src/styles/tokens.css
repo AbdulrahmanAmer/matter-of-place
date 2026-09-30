@@ -8,7 +8,7 @@
  * Body and secondary text use `--muted-foreground`.
  *
  * Breakpoints used across the stylesheet (max-width unless stated):
- *   1100px  header navigation collapses into the menu
+ *   1280px  header navigation collapses into the menu
  *    900px  two-column layouts stack
  *    800px  footer and guide tables stack
  *    700px  phone: heroes, grids, spacing
