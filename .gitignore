@@ -14,3 +14,6 @@ dist/
 # os / editor
 .DS_Store
 Thumbs.db
+
+# never commit credentials
+creds/

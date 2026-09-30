@@ -8,7 +8,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 
 | # | Setup | Where | Needed by |
 |---|---|---|---|
-| A1 | DONE: domain bought at Namecheap, Cloudflare account exists. NEXT SESSION: add the zone, point nameservers, API token; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
+| A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported. Remaining: API token, R2 bucket; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
 | A2 | Supabase organisation; two projects: `mop-dev`, `mop-prod` (free) | supabase.com | B2 |
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |

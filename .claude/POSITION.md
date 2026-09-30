@@ -180,3 +180,26 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
 2. Sentry account (free) with admin@; Supabase org + `mop-dev` project; Resend account (domain records into Cloudflare).
 3. GitHub Actions secrets; then run slice B1b from workspace/05-plans/B1b.md with mop-builder; orchestrator re-verifies.
 4. Then B2 → B3 → B3b → B4 per PLAN.md.
+
+## 2026-10-01 — Email live on matterofplace.com (Zoho Mail free plan)
+
+- Zoho organisation "Matter of Place" created by the CEO (login via his Gmail), domain verified by TXT, super admin
+  mailbox admin@matterofplace.com created. Free plan: 5 users, 5 GB each, web + Zoho app only (no IMAP).
+- Namecheap Advanced DNS (DNS still at Namecheap): TXT @ zoho-verification, TXT @ SPF `v=spf1 include:zohomail.com ~all`,
+  TXT _dmarc `v=DMARC1; p=none; rua=mailto:admin@matterofplace.com; fo=1`, TXT zmail._domainkey (DKIM), Mail Settings =
+  Custom MX: mx.zoho.com 10, mx2.zoho.com 20, mx3.zoho.com 50. Public resolvers show MX, SPF, DMARC; DKIM propagating.
+- Zoho DNS Mapping: MX green, SPF green, DKIM pending (re-click "Verify all records" later).
+- When DNS moves to Cloudflare (L1/A1): re-create these seven records there before changing nameservers.
+- creds/accounts.txt: generated passwords for Cloudflare, Supabase, Resend, Sentry (git-ignored, plain text; CEO to move
+  into a password manager). Accounts NOT created by the CTO session (policy); CEO signs up, CTO drives after sign-in.
+- Chrome note: opening mailadmin.zoho.com/cpanel/home.do while signed in as another Zoho org logged that org out.
+
+## 2026-10-01 — Cloudflare zone live for matterofplace.com (A1 done)
+
+- Cloudflare account owned by admin@matterofplace.com (created by the CEO). Zone added on the Free plan, AI crawl policy
+  Allow for search/agent/training (S44), DNS imported automatically: 3 MX + 4 TXT (zoho-verification, SPF, DMARC, DKIM).
+- Nameservers changed at Namecheap (Custom DNS): abdullah.ns.cloudflare.com, laila.ns.cloudflare.com. Google DNS already
+  answers with them. No A/CNAME for apex or www yet (site not deployed; B1b creates the Worker route).
+- Still to do in Cloudflare when B1b starts: API token (Workers + R2), R2 bucket, SSL/TLS Full (strict), Always HTTPS,
+  Turnstile widget, rate-limit rule, WAF managed ruleset (B17/H1).
+- Next accounts with admin@: Supabase (B2), Resend (B5), Sentry (B1b), Google GA4/Search Console (B13).
