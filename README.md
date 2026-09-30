@@ -25,7 +25,7 @@ Eight waves, in order. Each wave is a folder of plans a builder can execute with
 |---|---|---|
 | 1 | Repo and delivery: deploy pipeline, previews per change, error monitoring | the site deploys itself on every merge |
 | 2 | Database, API, coming-soon mode, tests | forms save real records; empty markets say "coming soon" with a signup |
-| 3 | Email, admin workspace, job system | we review submissions, decline or accept with one click, emails go out by themselves |
+| 3 | Email, admin workspace, job system, website essentials | we review submissions with one click, emails go out by themselves; headers, consent, accessibility, feeds, icons and error pages meet a professional bar |
 | 4 | Money box, automation console, legal identity | invoices from a template; automations adjustable from the admin without a developer |
 | 5 | Creative system, social posting, newsletter, reel | a published property becomes a carousel, story, newsletter block and, for Campaign, a reel |
 | 6 | SEO / AEO / GEO, weekly audit robot, Omnikom handoff | found by search and AI answer engines; a Saturday report with fixes |
@@ -90,7 +90,7 @@ Full ledger: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [
 | `workspace/02-tech-stack/` | the approved stack and the rule for adding anything |
 | `workspace/03-diagrams/img/` | every diagram as a picture |
 | `workspace/04-completion-map/` | the road, in words |
-| `workspace/05-plans/` | 20 build slices to file level, PLAN.md order, ASSUMED.md decisions |
+| `workspace/05-plans/` | 21 build slices to file level, PLAN.md order, ASSUMED.md decisions, check-plans.mjs consistency check |
 | `workspace/06-architecture/` | the engineering architecture |
 | `workspace/07-admin-platform/` | the 25 admin screens |
 | `workspace/08-visual-pass/` | the site visual audit and fixes (merged) |

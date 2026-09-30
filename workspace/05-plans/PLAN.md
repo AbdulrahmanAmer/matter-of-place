@@ -11,7 +11,7 @@ Owner agent is `mop-builder` unless noted. A slice is closed only when its verif
 | 0 | V1 visual pass | merged as PR #2 on 2026-09-30 |
 | 1 | B1b repo and delivery | everything deploys through it |
 | 2 | B2 database → B3 API → B3b coming-soon → B4 tests | the spine; nothing else persists without it |
-| 3 | B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B8 job system | the day-to-day operating system |
+| 3 | B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B8 job system · B17 website essentials | the day-to-day operating system, and the public surface made compliant |
 | 4 | B6 money box · B8b automation console · B16 legal identity | close the loop from accept to invoice to activate; automations become settings |
 | 5 | B9 creative system (designer first) → B10 social · B11 newsletter · B12 reel | listings become content |
 | 6 | B13 SEO/AEO/GEO → B14 audit robot (needs B13 checks) · B15 Omnikom handoff | be found, be measured, hand off |
@@ -20,11 +20,12 @@ Owner agent is `mop-builder` unless noted. A slice is closed only when its verif
 
 ## Slice files
 B1b.md · B2.md · B3.md · B3b.md · B4.md · B5.md · B6.md · B7.md · B8.md · B8b.md · B9.md · B10.md · B11.md · B12.md ·
-B13.md · B14.md · B15.md · B16.md · H1.md · L1.md · ASSUMED.md
+B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md · check-plans.mjs
 
 ## Rules for working the plan
 - One slice per builder session; a builder reads GOTCHAS.md, CLAUDE.md, the slice file and the two spec documents, nothing else first.
 - Every new test is watched-fail before it counts. Every slice ends with `bun run check`, `bun run build` and its own proof.
+- `node workspace/05-plans/check-plans.mjs` must print OK before any plan change is committed (P-031).
 - Cross-slice conflicts are settled in ASSUMED.md §A; a builder who finds a new one stops and writes it there.
 - The orchestrator re-runs the slice's verification before marking it closed here:
 
@@ -49,5 +50,6 @@ B13.md · B14.md · B15.md · B16.md · H1.md · L1.md · ASSUMED.md
 | B14 | not started | | |
 | B15 | not started | | |
 | B16 | not started | | |
+| B17 | not started | | |
 | H1 | not started | | |
 | L1 | not started | | |

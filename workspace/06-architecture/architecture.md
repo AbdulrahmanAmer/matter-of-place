@@ -108,7 +108,7 @@ Admin additions from the plan pass: `auth` (sign-in link), `me`, `dashboard`, `n
 4. Failures: `attempts++`, exponential `run_after`, `dead` after `max_attempts`; dead jobs appear red in `/admin › Jobs` with a retry button. Every transition is a `job_events` row (or `jobs.result` history) for the timeline in the UI.
 5. Dry-run: given a trigger and a sample payload, returns the list of jobs the engine would create, without inserting.
 
-Step catalog (code; grows only by PR): `send_email`, `render_variants`, `render_cover`, `render_carousel`, `render_story`, `render_reel`, `write_captions`, `build_newsletter_block`, `post_meta`, `queue_digest`, `notify_admin`, `webhook_omnikom`, `bump_catalog_version`, `purge_cache`.
+Step catalog (code; grows only by PR; `workspace/05-plans/check-plans.mjs` enforces it): `send_email`, `render_variants`, `render_cover`, `render_carousel`, `render_story`, `render_reel`, `write_captions`, `build_newsletter_block`, `post_meta`, `queue_digest`, `notify_admin`, `webhook_omnikom`, `bump_catalog_version`, `purge_cache`, `render_og_static` (manual-only: OG covers for non-property pages, B9). Fifteen step types.
 
 Default recipes (seeded, editable): `submission.received` → send_email(received), notify_admin; `submission.declined` → send_email(declined, reason); `submission.accepted` → send_email(accepted); `invoice.issued` → send_email(invoice); `payment.marked` → notify_admin; `property.published` → bump_catalog_version, purge_cache, render_variants, render_cover, render_carousel, render_story, write_captions, build_newsletter_block, [tier Campaign] render_reel, [tier Campaign] send_email(standalone, requires_approval); `asset.approved` → post_meta (per channel_settings), queue_digest; `digest.due` → build issue draft, notify_admin; `inquiry.received` → send_email(ack), notify_admin, webhook_omnikom.
 
@@ -147,3 +147,6 @@ Tables added by this section: `subject_requests`, `slug_history`, `redirects`, `
 
 ## 11. Coming-soon mode (S30)
 `markets.coming_soon` and `settings.coming_soon_global`. When true for a market, its pages and cards render the empty state: what Matter of Place is, "No property is listed in <market> yet", a one-field signup with the market preselected (`subscribers.markets`). The home edit shows the three market cards only. `properties` list hides that market. Editors flip the flag per market in `/admin › Markets` when the first property is published there; the recipe `property.published` does it automatically if `markets.coming_soon` is true.
+
+## 12. Website essentials and compliance
+Headers, consent, accessibility, identity files, feeds, error pages, fonts, delivery and mail hygiene are specified as invariants in `workspace/05-plans/B17.md` (26 invariants, each a test). CSP ships report-only first and is enforced after a clean week; consent is opt-in for analytics for everyone with Global Privacy Control honoured; fonts are self-hosted; the only third parties are Turnstile and, after consent, GA4.

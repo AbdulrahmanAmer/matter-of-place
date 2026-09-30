@@ -318,3 +318,36 @@ Entry template
 - rule: before the first build of every wave, sweep the plans against this checklist: legal and privacy, rights and takedown, data integrity and retention, security and rotation, operations and incidents, delivery quality gates, growth plumbing. Fold findings into the documents themselves (architecture §10 now holds them); no side registers.
 - proof: `grep -c "Gap additions" workspace/05-plans/*.md` → 0 once integrated; architecture.md has §10.
 - added: 2026-09-30
+
+## G-013 · Warm Grey on Ivory fails AA contrast for body text
+- paths: Matter Of Place Codebase/src/styles/tokens.css, Matter Of Place Codebase/src/styles/base.css
+- severity: warn
+- symptom: `--muted-foreground` (#8B877F) on `--ivory` (#F5F2EB) is about 3.6:1; WCAG 2.2 AA needs 4.5:1 for normal text.
+- rule: Warm Grey is for large text (≥ 24 px or 19 px bold) and metadata only; body copy on Ivory uses Mineral Grey (#575751, about 7:1) or an adjusted token. `scripts/contrast.mjs` (B17 step 5) checks every token pair.
+- proof: `node scripts/contrast.mjs` → all pairs ≥ 4.5 once B17 lands.
+- added: 2026-10-01
+
+## G-014 · No third-party request before consent: the Google Fonts link in the root route must go
+- paths: Matter Of Place Codebase/src/routes/__root.tsx
+- severity: warn
+- symptom: `fonts.googleapis.com` is requested on first paint for every visitor, which sends EU visitors' IPs to Google before any consent (GDPR) and adds a render-blocking third party.
+- rule: fonts are self-hosted WOFF2 subsets (B17 step 2); the only third parties are Turnstile (necessary) and GA4 after consent. `grep -c fonts.googleapis` on the rendered home page must be 0.
+- proof: `curl -s http://127.0.0.1:8080/ | grep -c fonts.googleapis` → 0 after B17.
+- added: 2026-10-01
+
+## P-031 · Plans invent names: every event, step and table in a plan must be a catalog name
+- enforced-by: `node workspace/05-plans/check-plans.mjs` (run before committing any plan; add it to the H1 checklist).
+- symptom: the plan review found `subscriber.confirmation_pending` (no recipe would ever fire the confirm email), a confirm email sent outside the recipe engine, a 14-row recipe seed against a 17-event catalog, and a wave listing a slice beside the one it depends on.
+- rule: architecture 3.6 is the only event list; the 14 step types are the only steps; the seed covers every event; new names go into the architecture first, then into plans. The script fails the check on any of these.
+- proof: `node workspace/05-plans/check-plans.mjs` → "check-plans: OK".
+- added: 2026-10-01
+
+## P-032 · Windows console is cp1252: a Python print with `→` or `›` raises UnicodeEncodeError after the file was already written
+- rule: set `PYTHONIOENCODING=utf-8` in the command or print ASCII only; when a script prints after writing, a crash in the print does not undo the write, so re-check the file rather than re-running the edit.
+- proof: the B5 edit landed although the confirmation print crashed (2026-10-01).
+- added: 2026-10-01
+
+## P-033 · `git push` can fail with "Could not resolve host: github.com" for a few seconds
+- rule: the commit is already local; retry the push once before diagnosing the network; never re-run the commit.
+- proof: push failed then succeeded 20 s later with the same commit (05222b0).
+- added: 2026-10-01
