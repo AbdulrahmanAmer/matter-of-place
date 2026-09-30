@@ -9,7 +9,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | # | Setup | Where | Needed by |
 |---|---|---|---|
 | A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported. Remaining: API token, R2 bucket; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
-| A2 | Supabase organisation; two projects: `mop-dev`, `mop-prod` (free) | supabase.com | B2 |
+| A2 | DONE for dev 2026-10-01: org "Matter Of Place", project `mop-dev` (us-east-1, ref hbokkmpgpqhrnemgsqra); `mop-prod` at launch | supabase.com | B2 |
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A11 | DONE 2026-10-01: company email on Zoho Mail (admin@matterofplace.com), MX/SPF/DKIM/DMARC live, records now served by Cloudflare | zoho.com | everything |
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |
