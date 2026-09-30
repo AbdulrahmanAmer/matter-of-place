@@ -9,7 +9,7 @@
 .page-intro h1 {
   font-size: clamp(64px, 9vw, 140px);
   line-height: 0.95;
-  margin: 18px 0 20px;
+  margin: 18px 0 30px;
 }
 
 .intro-text {
@@ -155,7 +155,7 @@
 
 /* FAQ page */
 .faq-page {
-  max-width: 900px;
+  max-width: 1000px;
   padding-bottom: 110px;
 }
 
@@ -178,6 +178,7 @@
   font-size: clamp(60px, 10vw, 140px);
   line-height: 0.95;
   margin: 16px 0 20px;
+  text-wrap: balance;
 }
 
 .not-found p {

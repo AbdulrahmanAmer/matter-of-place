@@ -203,7 +203,8 @@
 
 /* Exposure */
 .exposure-body {
-  padding-top: 32px;
+  max-width: 1000px;
+  padding: 32px var(--container-pad) 96px;
 }
 
 .exposure-heading {
@@ -255,9 +256,35 @@
   border-top: 1px solid var(--border);
 }
 
+@media (min-width: 901px) {
+  .exposure-products {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .exposure-products .fp-label {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+  }
+
+  .exposure-products .fp-card {
+    margin: 0;
+  }
+
+  .exposure-body .steps-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px 32px;
+  }
+}
+
 @media (max-width: 700px) {
   .fp {
     padding-top: 80px;
+  }
+
+  .exposure-body {
+    padding-top: 32px;
   }
 
   .fp-card-head h3,
