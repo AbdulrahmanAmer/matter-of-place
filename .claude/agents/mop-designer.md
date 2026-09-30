@@ -40,7 +40,9 @@ reader.
    Remotion spec). Real property data from `src/data/*` for mocks; label illustrative content as such.
 4. Check it against the guardrails above and the three tests; list anything you bent and why.
 5. Verify what can be verified: if it is code, run `bun run check` in the codebase; if it is a page, render it.
-6. Return: file paths, the three-line idea, the guardrail check, and one line `MEMORY: <lesson>`.
+6. If anything cost you more than a few minutes (a tool that failed, a wrong assumption, a rework), add it to
+   `E:\Matter Of Place\GOTCHAS.md` yourself, with a proof line, before you report.
+7. Return: file paths, the three-line idea, the guardrail check, and one line `MEMORY: <lesson>`.
 
 Keep output tight. No mood-board essays. Do not touch files outside the paths in your brief. Never edit
 `src/routeTree.gen.ts`. Respect the agent-os stage in `PROJECT-STATE.md`; if it forbids the write, deliver in

@@ -88,8 +88,8 @@ Matter Of Place Codebase/
   supabase/functions/    light job runner, keep-warm, digest assembly
   scripts/               seed, image variants, render-social, render-reel, publish-meta
   tests/                 vitest + playwright
-  .github/workflows/     ci.yml, deploy.yml, render.yml (repository_dispatch)
   wrangler.toml
+E:\Matter Of Place\.github\workflows\   ci.yml, deploy.yml, render.yml — at the REPO root, not under the app (GitHub only reads it there; GOTCHAS G-012)
 ```
 
 ## 4. Environments and secrets

@@ -25,4 +25,5 @@ Workers: `mop-designer` (Sonnet, creative director), `mop-builder` (Sonnet, one 
 
 Before saying done: run the gate yourself (`bun run check` and `bun run build` in the codebase for code; `node
 workspace/03-diagrams/render.mjs` for diagrams, then send the PNGs), append a block to `.claude/POSITION.md`, and add a
-GOTCHAS entry for anything that cost time it should not have.
+GOTCHAS entry for anything that cost time it should not have. The bank is maintained without being asked: if a turn
+contained a failed tool call, a wrong assumption or a rework, the entry is written in that turn and the reply says so.

@@ -37,22 +37,23 @@ Entry template
 - proof: `bun run build` regenerates it; `git diff --stat src/routeTree.gen.ts` after a build is the only legitimate diff.
 - added: 2026-09-30
 
-## G-002 · Vite config must not add plugins the Lovable preset already includes
+## G-002 · Vite config is plain and explicit; Start's plugin already generates the route tree
 - paths: Matter Of Place Codebase/vite.config.ts
 - severity: warn
-- symptom: duplicate-plugin crash ("plugin already registered") or a broken dev server.
-- cause: `@lovable.dev/vite-tanstack-config` already registers tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro, env injection and the `@` alias.
-- rule: pass extra config through `defineConfig({ vite: { ... } })`; never import those plugins yourself. When we leave the Lovable preset, replace the whole file in one move and re-run `bun run build`.
-- proof: `bun run build` → "built in" with no plugin warnings.
-- added: 2026-09-30
+- symptom: duplicate-plugin crash ("plugin already registered"), two route generators fighting, or a build that silently targets Node instead of Cloudflare.
+- cause: `@tanstack/react-start/plugin/vite` bundles the router generator; the Cloudflare target exists only because `nitro({ preset: "cloudflare-module" })` is added on build; nitro invents a worker name from the git remote when none is pinned.
+- rule: every plugin is listed once in `vite.config.ts` (tsConfigPaths, tanstackStart, nitro on build, viteReact); never add `@tanstack/router-plugin` yourself; keep `cloudflare.wrangler.name` pinned to `matter-of-place`. The file is the whole config; there is no preset behind it any more (2026-09-30).
+- proof: `bun run build` → "built in"; `.output/nitro.json` preset `cloudflare-module`; `.output/server/wrangler.json` name `matter-of-place`.
+- added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-003 · Page titles: pass the bare title, `pageHead` adds the suffix
 - paths: Matter Of Place Codebase/src/lib/seo.ts, Matter Of Place Codebase/src/routes/index.tsx
 - severity: warn
 - symptom: home `<title>` renders "Matter of Place | Exceptional property. Properly considered. | Matter of Place".
 - cause: `pageHead` only skips the " | Matter of Place" suffix when the title already ends with it; the home route passes a title that starts with the brand instead.
-- rule: routes pass titles without the brand; the home route is the one exception and must be handled inside `pageHead` (fix pending, stage 0 forbids src edits).
+- rule: routes pass titles without the brand; `pageHead` skips the suffix when the title is the brand, starts with "Matter of Place | " or already ends with the suffix (fixed 2026-09-30, slice B1a).
 - proof: `curl -s http://localhost:8080/ | grep -o "<title>[^<]*"` → exactly one "Matter of Place".
+- enforced-by: tests/unit/seo.test.ts (`bun run test`, part of `bun run check`)
 - added: 2026-09-30
 
 ## G-004 · Field names live in three files and must change together
@@ -85,7 +86,7 @@ Entry template
 ## G-007 · Styling is tokens only: no hex, no utility classes
 - paths: Matter Of Place Codebase/src/styles/**, Matter Of Place Codebase/src/components/**
 - severity: warn
-- symptom: a colour drifts from the palette or a Tailwind class does nothing (Tailwind is installed but no stylesheet imports it).
+- symptom: a colour drifts from the palette or a utility class does nothing (Tailwind was removed on 2026-09-30; it was never imported).
 - cause: ADR 0003; the palette lives in `src/styles/tokens.css` and `--muted` is a surface, `--muted-foreground` is text.
 - rule: new colour or spacing goes into `tokens.css` first, then is referenced by `var(--...)`; sections set vertical padding only, `.section-wrap` owns width.
 - proof: `grep -rn "#[0-9a-fA-F]\{6\}" src/components src/styles --include=*.tsx --include=*.css | grep -v tokens.css` → no hits.
@@ -125,6 +126,15 @@ Entry template
 - cause: each of those is a monthly bill; the approved stack is free tier first.
 - rule: free-tier limits are in GOTCHAS P-009; if a limit is hit, record the measurement and add a decision to PROJECT-STATE.md before adding the binding.
 - proof: `grep -n "queues\|browser\|images\|durable" wrangler.toml` → no hits.
+- added: 2026-09-30
+
+## G-012 · GitHub Actions reads workflows only at the repository root, which is the workspace folder
+- paths: Matter Of Place Codebase/.github/**
+- severity: block
+- symptom: a workflow written under `Matter Of Place Codebase/.github/workflows/` never runs; tech-stack §3 draws the folder under the app, which is where a builder would put it.
+- cause: the git root is `E:\Matter Of Place` (workspace + app in one repo); GitHub ignores nested `.github` folders.
+- rule: workflows live in `.github/workflows/` at the repo root and set `working-directory: Matter Of Place Codebase` per job; never create `.github` under the app. Correct tech-stack §3 when it is next edited.
+- proof: `git rev-parse --show-toplevel` → `E:/Matter Of Place`; `ls .github/workflows` at the root → README.md (workflows arrive with B1b).
 - added: 2026-09-30
 
 ---
@@ -181,7 +191,48 @@ Entry template
 - proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON.
 - added: 2026-09-30
 
+## P-010 · New agent definitions and `fork` are not available mid-session
+- symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
+- cause: agent definitions are read at session start; the context-inheriting `fork` type is not in this Claude Code build.
+- rule: a specific model + effort for a worker in the same session = headless `claude -p --model <id> --effort <level> --dangerously-skip-permissions --output-format json` with the brief piped on stdin (`cat brief.md | claude -p …`), run in the background with `CLAUDE_SYNC_SKIP=1 CLAUDE_LEARN_SKIP=1`. "All my context" for a worker = the brief lists the files to read (CLAUDE.md, PROJECT-STATE, POSITION, GOTCHAS, tech-stack); it cannot inherit the transcript.
+- proof: `ls launch/producer-run.json` exists after the headless producer starts; in-session `Agent` with the new type fails until restart.
+- added: 2026-09-30
+
+## P-011 · Two workers, one working tree: a branching agent moves the whole tree
+- symptom: `git branch --show-current` → `chore/remove-lovable` while the orchestrator still has uncommitted doc changes on "main"; anything committed now lands on the worker's branch, and `git add -A` by the worker sweeps the orchestrator's files into its PR.
+- rule: commit and push main work BEFORE spawning any agent that branches; while a branching worker runs, check the branch before every commit and never commit off `main`; never `git stash` or checkout under a running worker. Two branching workers at once need `git worktree` each.
+- proof: `git branch --show-current` → `main` before a commit on main.
+- added: 2026-09-30
+
+## P-012 · Mermaid quirks that broke renders this session (extends P-004)
+- `;` inside a sequence-diagram message ends the statement ("Expecting … got 'NEWLINE'"): use a comma.
+- `[/` at the start of a node or subgraph label opens a trapezoid shape ("got 'TRAPSTART'"): quote the label, `subgraph ADMIN["/admin › Automation"]`.
+- `:::class` on a `subgraph` line is invalid: use `style <id> …`.
+- rule: run `node workspace/03-diagrams/render.mjs` before claiming a diagram is done; a failure prints the parser's line number, which counts from the block's first line.
+- proof: `render.mjs` → "done → …/img" with no "failure".
+- added: 2026-09-30
+
+## P-013 · The shell's working directory drifts between calls
+- symptom: the harness reported "Primary working directory" changing five times in one session after `cd` inside Bash commands; a later relative path pointed at the wrong folder.
+- rule: use absolute paths in every Bash command; never rely on the cwd from a previous call; `cd` only inside a single `cd … && …` chain.
+- proof: no command in the session log depends on an inherited cwd.
+- added: 2026-09-30
+
+## P-014 · A background Bash call "completes" at its 10-minute ceiling while the headless child keeps running
+- symptom: the task notification said the producer command completed with exit 0 and its JSON output file was empty; `Get-CimInstance Win32_Process` showed `claude.exe -p …` and six Chrome renderers still alive.
+- cause: the Bash tool's max timeout is 600000 ms; the wrapper shell is reaped, the detached child is not; `--output-format json` writes only at the very end.
+- rule: for any headless `claude -p` run, treat the tool notification as meaningless; watch the output file with an `until [ -s file ]` loop (re-armed every 10 minutes) or use `--output-format stream-json` and tail progress. Before relaunching anything, check the process list.
+- proof: `Get-CimInstance Win32_Process | ? { $_.CommandLine -like '*claude*-p*' }` → the producer PID while the notification claims completion.
+- added: 2026-09-30
+
 ## P-007 · Plugins are installed at project scope on purpose
 - rule: `claude plugin install <name>@claude-plugins-official --scope project`; global installs load into every other project's context and burn tokens there.
 - proof: `.claude/settings.json` → `enabledPlugins` lists them; `~/.claude/settings.json` does not.
+- added: 2026-09-30
+
+## P-015 · The Bash tool's Git Bash rewrites `/route` arguments into `C:/Program Files/Git/route`
+- symptom: `render-gate.mjs http://localhost:8080 / /properties` reported routes `C:/Program` and `Files/Git/properties`; every route failed with "Cannot navigate to invalid URL" although the site was fine.
+- cause: MSYS path conversion turns any argument that starts with `/` into a Windows path before Node sees it.
+- rule: prefix the command with `MSYS_NO_PATHCONV=1` and pass the script by its drive path (`D:/...`; `/d/...` is then no longer converted either), or run the gate from PowerShell.
+- proof: `MSYS_NO_PATHCONV=1 node "D:/Omincom/website work and agents output/V2 Pipeline/tools/render-gate.mjs" http://localhost:8080 / /properties` → `"pass": true`, exit 0.
 - added: 2026-09-30

@@ -33,6 +33,10 @@ impact, propose the smallest change that moves the number, and never touch the b
 - Brand guard: reject any fix that adds noise, popups, gimmicks, keyword stuffing, or copy outside the editorial voice.
 - Respect `PROJECT-STATE.md`; you propose patches as diffs or PR-ready branches only when the stage allows builds.
 
+## Bank what bit you
+Any data source that failed, quota that surprised you, or check that gave a false result goes into
+`E:\Matter Of Place\GOTCHAS.md` as a process entry with proof, in the same run, without being asked.
+
 ## Output
 `workspace/audits/YYYY-MM-DD.md` with: summary (5 lines), scorecard table, ranked findings, proposed changes,
 what was not measured and why. Reply with the path, the top three actions, and one line `MEMORY: <lesson>`.

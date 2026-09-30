@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Matter of Place — for partners</title>
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+  .panel { position: absolute; top: 80px; bottom: 80px; width: 800px; padding: 80px 80px 56px; display: flex; flex-direction: column; color: var(--obsidian); }
+  .panel.right { right: 80px; }
+  .panel.left { left: 80px; }
+  .panel.bone { background: var(--bone); }
+  .panel.ivory { background: var(--ivory); }
+
+  .eyebrow { display: flex; align-items: center; gap: 18px; font-family: var(--sans); font-weight: 500; font-size: 14px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mineral); }
+  .tag { border: 1px solid var(--obsidian); color: var(--obsidian); padding: 6px 10px 5px 12px; font-size: 12px; letter-spacing: 0.22em; }
+  h2 { margin-top: 28px; font-family: var(--serif); font-weight: 400; font-size: 58px; line-height: 1.08; letter-spacing: -0.005em; }
+  .lede { margin-top: 26px; font-family: var(--sans); font-weight: 300; font-size: 21px; line-height: 1.62; color: var(--mineral); max-width: 600px; }
+  .lede + .lede { margin-top: 14px; }
+  .serif-line { margin-top: 30px; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 30px; line-height: 1.3; }
+
+  .price-row { margin-top: 28px; display: flex; align-items: baseline; justify-content: space-between; }
+  .price-row h2 { margin-top: 0; }
+  .price { font-family: var(--serif); font-weight: 400; font-size: 52px; }
+  .sub { margin-top: 10px; font-family: var(--serif); font-style: italic; font-size: 25px; line-height: 1.3; color: var(--mineral); }
+  .sub + .note { margin-top: 10px; }
+
+  ul.items { list-style: none; margin-top: 30px; font-family: var(--sans); font-weight: 300; font-size: 18px; line-height: 1.35; }
+  ul.items li { padding: 8px 0 8px; border-top: 1px solid var(--sandstone); }
+  ul.items li:last-child { border-bottom: 1px solid var(--sandstone); }
+  .note { margin-top: 18px; font-family: var(--sans); font-weight: 400; font-size: 15px; letter-spacing: 0.04em; color: var(--mineral); }
+
+  .qualities { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; font-family: var(--serif); font-size: 36px; line-height: 1; }
+  .qualities div { padding: 16px 0; border-top: 1px solid var(--sandstone); }
+
+  .steps { margin-top: 34px; font-family: var(--sans); }
+  .steps .row { display: grid; grid-template-columns: 52px 250px 1fr; align-items: baseline; padding: 13px 0; border-top: 1px solid var(--sandstone); }
+  .steps .row:last-child { border-bottom: 1px solid var(--sandstone); }
+  .steps .n { font-size: 13px; font-weight: 400; letter-spacing: 0.14em; color: var(--warm-grey); }
+  .steps .name { font-family: var(--serif); font-size: 29px; }
+  .steps .t { font-weight: 300; font-size: 17px; line-height: 1.4; color: var(--mineral); }
+
+  .terms { margin-top: 34px; font-family: var(--sans); }
+  .terms .row { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--sandstone); }
+  .terms .row:last-child { border-bottom: 1px solid var(--sandstone); }
+  .terms .k { font-size: 13px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mineral); }
+  .terms .v { font-family: var(--serif); font-size: 30px; }
+  .formats { margin-top: 28px; font-family: var(--sans); font-weight: 300; font-size: 19px; line-height: 1.7; }
+
+  .nots { margin-top: 34px; list-style: none; font-family: var(--serif); font-size: 32px; line-height: 1.2; }
+  .nots li { padding: 16px 0; border-top: 1px solid var(--sandstone); }
+  .nots li:last-child { border-bottom: 1px solid var(--sandstone); }
+
+  .url-big { margin-top: 40px; font-family: var(--serif); font-size: 50px; }
+  .url-big::after { content: ""; display: block; width: 100%; height: 1px; background: var(--obsidian); margin-top: 14px; }
+
+  .brandmark { display: flex; flex-direction: column; align-items: flex-start; }
+  .brandmark svg { width: 44px; height: 49px; color: var(--obsidian); }
+  .brandmark .wordmark { margin-top: 26px; font-size: 26px; }
+
+  .folio { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--sans); font-weight: 400; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--warm-grey); }
+
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .endcard svg { width: 58px; height: 65px; color: var(--bone); }
+  .endcard .wordmark { color: var(--bone); font-size: 36px; padding-left: 0.24em; margin-top: 40px; }
+  .endcard .url { margin-top: 44px; font-family: var(--sans); font-weight: 300; font-size: 22px; letter-spacing: 0.16em; padding-left: 0.16em; color: var(--sandstone); }
+  .endcard .omni { position: absolute; bottom: 96px; left: 0; right: 0; text-align: center; font-family: var(--sans); font-weight: 400; font-size: 14px; letter-spacing: 0.28em; padding-left: 0.28em; text-transform: uppercase; color: var(--warm-grey); }
+</style>
+</head>
+<body data-duration="210">
+<div id="film"></div>
+
+<script src="../shared/exposure.js"></script>
+<script>
+// Builds the slides from exposure.ts data, then assigns every data-in / data-out before engine.js reads them.
+(() => {
+  const X = window.EXPOSURE;
+  const A = "../../Matter Of Place Codebase/src/assets/";
+  const EMBLEM = `<svg viewBox="0 0 68 76" fill="none" aria-hidden="true"><path d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/><path d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/></svg>`;
+  const WORDMARK = `<div class="wordmark">MΛTTER <small>OF</small> PLΛCE</div>`;
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const items = (list) => `<ul class="items">${list.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  const product = (id) => X.offerings.find((o) => o.id === id);
+
+  // Stagger groups: h = eyebrow and heading, b = body, l = lists and notes (seconds after slide start).
+  const AT = { h: 1.2, b: 2.2, l: 3.0 };
+  const g = (k, html) => `<div data-at="${AT[k]}">${html}</div>`;
+
+  const productSlide = (id, img, side, tone) => {
+    const p = product(id);
+    const eyebrow = `<div class="eyebrow">Property exposure${p.recommended ? '<span class="tag">Recommended</span>' : ""}</div>`;
+    const sub = `<div class="sub">${esc(p.line)}</div>` + (p.note ? `<div class="note">${esc(p.note)}</div>` : "");
+    const extra = id === "reach" ? `<div class="note">Programmatic media spend is billed separately.</div>` : "";
+    return {
+      hold: id === "five-features" ? 19 : 22, img, side, tone,
+      html: g("h", eyebrow + `<div class="price-row"><h2>${esc(p.name)}</h2><div class="price">${esc(p.price)}</div></div>`) +
+        g("b", sub) + g("l", items(p.items) + extra),
+    };
+  };
+
+  const P = X.programmatic;
+  const slides = [
+    { hold: 12, img: "tiburon.jpg", side: "right", tone: "bone",
+      html: g("h", `<div class="brandmark">${EMBLEM}${WORDMARK}</div>`) +
+        g("b", `<div class="eyebrow" style="margin-top:64px">For partners</div><h2>An introduction for the first agents and brokerages invited into Matter of Place.</h2>`) },
+    { hold: 18, img: "manhattan.jpg", side: "left", tone: "ivory",
+      html: g("h", `<div class="eyebrow">Who we are</div><h2>A selective real-estate media platform.</h2>`) +
+        g("b", `<p class="lede">We select, present and distribute exceptional existing residential property, through a disciplined editorial lens.</p>`) +
+        g("l", `<p class="serif-line">California · New York · Florida</p><p class="lede">Existing residential only. Not a brokerage, not a listing marketplace, not a lead service.</p>`) },
+    { hold: 17, img: "gallery/ca-stair.jpg", side: "right", tone: "bone",
+      html: g("h", `<div class="eyebrow">The editorial standard</div><h2>What we look for.</h2>`) +
+        g("l", `<div class="qualities">${X.editorialQualities.map((q) => `<div>${esc(q)}</div>`).join("")}</div>`) +
+        g("l", `<p class="serif-line">Price is not on the list.</p>`) },
+    { hold: 26, img: "gallery/city-room.jpg", side: "left", tone: "ivory",
+      html: g("h", `<div class="eyebrow">How selection works</div><h2>Six steps, in this order.</h2>`) +
+        g("l", `<div class="steps">${X.selectionSteps.map((s, i) => `<div class="row"><span class="n">0${i + 1}</span><span class="name">${esc(s.name)}</span><span class="t">${esc(s.text)}</span></div>`).join("")}</div>`) +
+        g("l", `<p class="lede">Payment never overrides editorial review. Declined properties are not charged.</p>`) },
+    productSlide("feature", "la-jolla.jpg", "right", "bone"),
+    productSlide("reach", "gallery/fl-pavilion.jpg", "left", "ivory"),
+    productSlide("campaign", "gallery/coast-terrace.jpg", "right", "bone"),
+    productSlide("five-features", "brooklyn.jpg", "left", "ivory"),
+    { hold: 22, img: "naples.jpg", side: "right", tone: "bone",
+      html: g("h", `<div class="eyebrow">Precision distribution</div><h2>Beyond the post.</h2>`) +
+        g("b", `<p class="lede">Selected campaigns can extend beyond our owned audience through targeted programmatic media.</p>`) +
+        g("l", `<div class="terms"><div class="row"><span class="k">Media from</span><span class="v">${P.minimum}</span></div><div class="row"><span class="k">Management</span><span class="v">${esc(P.managementFee)}</span></div><div class="row"><span class="k">Minimum management fee</span><span class="v">${P.minimumFee}</span></div></div>` +
+          `<p class="formats">${P.formats.map(esc).join(" · ")}</p><p class="note">Channel selection varies by campaign. Media budgets are separate from editorial product fees.</p>`) },
+    { hold: 17, img: "gallery/desert-colonnade.jpg", side: "left", tone: "ivory",
+      html: g("h", `<div class="eyebrow">What we do not do</div><h2>Clear from the start.</h2>`) +
+        g("l", `<ul class="nots"><li>No guaranteed buyers, leads or sales.</li><li>No new developments.</li><li>No markets outside California, New York and Florida.</li><li>No acceptance for payment alone.</li></ul>`) +
+        g("l", `<p class="lede">We provide editorial exposure and media distribution, not transaction guarantees.</p>`) },
+    { hold: 15, img: "mill-valley.jpg", side: "right", tone: "bone",
+      html: g("h", `<div class="eyebrow">How to submit</div><h2>Send us the property and its story.</h2>`) +
+        g("b", `<div class="url-big">matterofplace.com/submit</div>`) +
+        g("l", `<p class="lede" style="margin-top:34px">We review every submission and reply.</p><p class="lede">California, New York and Florida. Existing residential property.</p>`) },
+    { hold: 13, end: true },
+  ];
+
+  const film = document.getElementById("film");
+  const total = slides.length;
+  let t = 0.6;
+  slides.forEach((s, i) => {
+    const tin = t, tout = +(t + s.hold).toFixed(2);
+    const sec = document.createElement("section");
+    sec.className = "shot";
+    sec.dataset.in = tin; sec.dataset.out = tout;
+    if (s.end) {
+      sec.dataset.fo = "1.8";
+      sec.innerHTML = `<div class="center endcard"><div data-at="1.2" style="display:flex;flex-direction:column;align-items:center">${EMBLEM}${WORDMARK}</div><div class="url" data-at="2.4">matterofplace.com</div></div><div class="endcard"><div class="omni" data-at="3.2">A product of Omnikom</div></div>`;
+      sec.dataset.out = +(tout - 0.9).toFixed(2);
+    } else {
+      sec.innerHTML = `<div class="photo" data-bg="${A + s.img}" data-in="${tin}" data-out="${tout}" data-fi="0" data-fo="0" data-drift="1.02"></div>` +
+        `<div class="panel ${s.side} ${s.tone}">${s.html}<div class="folio" data-at="1.2"><span>Matter of Place · For partners</span><span>${String(i + 1).padStart(2, "0")} / ${total}</span></div></div>`;
+    }
+    for (const el of sec.querySelectorAll("[data-at]")) {
+      el.dataset.in = +(tin + parseFloat(el.dataset.at)).toFixed(2);
+      el.dataset.fi = "0.8"; el.dataset.fo = "0";
+    }
+    film.appendChild(sec);
+    t = tout - 1.5;
+  });
+  document.body.dataset.duration = 210;
+})();
+</script>
+<script src="../shared/engine.js"></script>
+</body>
+</html>

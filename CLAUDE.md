@@ -14,8 +14,11 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
 - `PROJECT-STATE.md` — agent-os stage + decisions. Stage 0 denies writes under `src/`; the operator advances the line.
 - `.claude/POSITION.md` — position file, injected on compact/resume. Append a block when a unit of work closes.
 - `GOTCHAS.md` — the bank of things that already broke or cost time. `.claude/hooks/gotcha-guard.mjs` pushes matching
-  entries before every Edit/Write (`block` denies, `warn` injects). Add an entry the same day something wastes 30+ minutes;
-  keep it under 40 live entries; every entry carries a proof command.
+  entries before every Edit/Write (`block` denies, `warn` injects). **Maintain it without being asked**: the moment a tool
+  error, a failed approach, a wrong assumption or a rework costs more than a few minutes, add the entry in the same turn
+  (path-scoped G-entry if a file is involved, P-entry if it is process or tooling), with the proof command, and say in one
+  line of the reply that the bank grew. Before ending any turn in which something went wrong, ask "is this in the bank?"
+  Keep it under 40 live path entries; retire an entry when a test or hook enforces it (`enforced-by:`).
 - `.claude/skills/` — `mop-work` (load project state first), `design-from-references`, `motion`, `parallel-execution`,
   `codebase-index`. Global skills used here: seo-*, ai-seo, schema-markup, programmatic-seo, social-content,
   content-strategy, email-sequence, copywriting, launch-strategy, analytics-tracking, design-tournament, supabase.
@@ -35,6 +38,9 @@ The admin portal is the operating system: automations are recipes in the databas
 (fixed step catalog in code, parameters and toggles as data, dry-run, revisions). Never hard-code a pipeline.
 Every kind of change has one path (tech-stack.md §5: page, API route, admin action, table, job type, email, event,
 role, channel). Follow the path or stop and add one; never bolt on.
+Video and sound: no music ever (S36), sound design synthesized in code only; motion engine is GSAP + Three.js with
+frame capture (S37), direction lives in `launch/MOTION-BIBLE.md`, quality is gated by `launch/tools/motion-gate.mjs`
+plus a fresh-eyes review. "Quiet" means palette, type and copy, never a static screen.
 
 ## Commands (run inside `Matter Of Place Codebase/`, bun is installed)
 ```

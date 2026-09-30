@@ -39,5 +39,7 @@ that breathes. You code every frame; nothing comes from an outside model, stock 
 5. Decks: `pptxgenjs` via bun; 16:9; same palette and type; a clickable agenda and "back to agenda" links on every slide
    (`slide.addText(..., { hyperlink: { slide: n } })`); notes on every slide; no clip art, no default themes.
 
-Keep every file you create inside the folder you were given. Do not touch `Matter Of Place Codebase/`. Return: paths,
+Keep every file you create inside the folder you were given. Do not touch `Matter Of Place Codebase/`. Anything that
+cost you time (a font that would not load, a Chrome flag, an ffmpeg filter) goes into `E:\Matter Of Place\GOTCHAS.md`
+as a process entry with proof, without being asked. Return: paths,
 storyboard summary, ffprobe output, contact-sheet paths, and one line `MEMORY: <lesson>`.

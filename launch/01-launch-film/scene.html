@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Matter of Place — launch film</title>
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .emblem { width: 92px; height: 103px; color: var(--bone); }
+  .brand .wordmark { color: var(--bone); font-size: 40px; padding-left: 0.24em; margin-top: 54px; }
+
+  .place { position: absolute; left: 120px; bottom: 104px; font-family: var(--serif); font-weight: 400; font-size: 46px; letter-spacing: 0.01em; color: var(--bone); }
+
+  .idea { color: var(--obsidian); font-family: var(--serif); font-weight: 400; font-size: 76px; line-height: 1.25; text-align: center; }
+  .idea p + p { margin-top: 26px; }
+
+  .caps { font-family: var(--sans); font-weight: 300; text-transform: uppercase; letter-spacing: 0.32em; padding-left: 0.32em; }
+  .markets { color: var(--bone); font-size: 34px; }
+  .markets .dot { margin: 0 0.9em; }
+
+  .words { display: flex; gap: 92px; font-family: var(--serif); font-weight: 400; font-size: 72px; color: var(--obsidian); }
+
+  .line { color: var(--bone); font-family: var(--serif); font-weight: 400; font-size: 84px; line-height: 1.2; text-align: center; }
+
+  .endcard .emblem { width: 58px; height: 65px; }
+  .endcard .wordmark { color: var(--bone); font-size: 36px; padding-left: 0.24em; margin-top: 40px; }
+  .endcard .url { margin-top: 44px; font-family: var(--sans); font-weight: 300; font-size: 22px; letter-spacing: 0.16em; padding-left: 0.16em; color: var(--sandstone); }
+  .endcard .omni { position: absolute; bottom: 96px; left: 0; right: 0; text-align: center; font-family: var(--sans); font-weight: 400; font-size: 14px; letter-spacing: 0.28em; padding-left: 0.28em; text-transform: uppercase; color: var(--warm-grey); }
+</style>
+</head>
+<body data-duration="75">
+
+<!-- 1. Silence and a single photograph -->
+<div class="shot" data-in="0.6" data-out="8.0" data-fi="2.0" data-fo="1.6">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/gallery/ca-terrace.jpg" data-in="0.6" data-out="8.0" data-fi="0" data-fo="0" data-drift="1.02"></div>
+</div>
+
+<!-- 2. The threshold emblem, then the name -->
+<div class="shot" data-in="7.6" data-out="17.4" data-fi="0" data-fo="1.6">
+  <div class="center brand">
+    <svg class="emblem" viewBox="0 0 68 76" fill="none" aria-hidden="true">
+      <g data-in="9.0" data-fi="1.2" data-fo="0"><path d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/></g>
+      <g data-in="8.0" data-fi="1.2" data-fo="0"><path d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/></g>
+    </svg>
+    <div class="wordmark" data-in="11.4" data-fi="0.8" data-fo="0">MΛTTER <small>OF</small> PLΛCE</div>
+  </div>
+</div>
+
+<!-- 3-8. Places -->
+<div class="shot" data-in="16.6" data-out="22.6" data-fi="1.5" data-fo="1.5">
+  <img class="photo" alt="" data-seq="media-cache/tiburon/%03d.jpg" data-seq-start="16.6" data-seq-count="144" data-seq-fps="24">
+  <div class="scrim" style="opacity:.14"></div>
+  <div class="place" data-in="18.0" data-fi="0.8" data-fo="0">Tiburon, California</div>
+</div>
+<div class="shot" data-in="21.1" data-out="27.0">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/hamptons.jpg" data-in="21.1" data-out="27.0" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.16"></div>
+  <div class="place" data-in="22.4" data-fi="0.8" data-fo="0">Sagaponack, New York</div>
+</div>
+<div class="shot" data-in="25.5" data-out="31.4">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/los-altos.jpg" data-in="25.5" data-out="31.4" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.16"></div>
+  <div class="place" data-in="26.8" data-fi="0.8" data-fo="0">Los Altos Hills, California</div>
+</div>
+<div class="shot" data-in="29.9" data-out="35.8">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/palm-beach.jpg" data-in="29.9" data-out="35.8" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.18"></div>
+  <div class="place" data-in="31.2" data-fi="0.8" data-fo="0">Palm Beach, Florida</div>
+</div>
+<div class="shot" data-in="34.3" data-out="40.2">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/hudson-valley.jpg" data-in="34.3" data-out="40.2" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.16"></div>
+  <div class="place" data-in="35.6" data-fi="0.8" data-fo="0">Rhinebeck, New York</div>
+</div>
+<div class="shot" data-in="38.7" data-out="44.6">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/miami.jpg" data-in="38.7" data-out="44.6" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.18"></div>
+  <div class="place" data-in="40.0" data-fi="0.8" data-fo="0">Miami Beach, Florida</div>
+</div>
+
+<!-- 9. The idea -->
+<div class="shot field-bone" data-in="43.1" data-out="51.6">
+  <div class="center idea">
+    <p data-in="44.4" data-fi="0.8" data-fo="0">A property is more than an asset.</p>
+    <p data-in="46.8" data-fi="0.8" data-fo="0">Place matters.</p>
+  </div>
+</div>
+
+<!-- 10. Three markets -->
+<div class="shot" data-in="50.1" data-out="56.6">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/gallery/desert-court.jpg" data-in="50.1" data-out="56.6" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.45"></div>
+  <div class="center"><div class="caps markets" data-in="51.4" data-fi="0.8" data-fo="0">California<span class="dot">·</span>New York<span class="dot">·</span>Florida</div></div>
+</div>
+
+<!-- 11. Four words -->
+<div class="shot field-ivory" data-in="55.1" data-out="63.8">
+  <div class="center"><div class="words">
+    <span data-in="56.4" data-fi="0.8" data-fo="0">Selected.</span>
+    <span data-in="57.9" data-fi="0.8" data-fo="0">Edited.</span>
+    <span data-in="59.4" data-fi="0.8" data-fo="0">Published.</span>
+    <span data-in="60.9" data-fi="0.8" data-fo="0">Distributed.</span>
+  </div></div>
+</div>
+
+<!-- 12. The line -->
+<div class="shot" data-in="62.3" data-out="69.2">
+  <div class="photo" data-bg="../../Matter Of Place Codebase/src/assets/gallery/ca-living.jpg" data-in="62.3" data-out="69.2" data-fi="0" data-fo="0" data-drift="1.02"></div>
+  <div class="scrim" style="opacity:.56"></div>
+  <div class="center line" data-in="63.6" data-fi="0.8" data-fo="0">Exceptional property.<br>Properly considered.</div>
+</div>
+
+<!-- 13. End card -->
+<div class="shot endcard" data-in="67.7" data-out="74.2" data-fi="1.5" data-fo="1.8">
+  <div class="center">
+    <div data-in="68.9" data-fi="0.8" data-fo="0" style="display:flex;flex-direction:column;align-items:center">
+      <svg class="emblem" viewBox="0 0 68 76" fill="none" aria-hidden="true">
+        <path d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/>
+        <path d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/>
+      </svg>
+      <div class="wordmark">MΛTTER <small>OF</small> PLΛCE</div>
+    </div>
+    <div class="url" data-in="70.2" data-fi="0.8" data-fo="0">matterofplace.com</div>
+  </div>
+  <div class="omni" data-in="71.0" data-fi="0.8" data-fo="0">A product of Omnikom</div>
+</div>
+
+<script src="../shared/engine.js"></script>
+</body>
+</html>

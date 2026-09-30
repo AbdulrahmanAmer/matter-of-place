@@ -1,0 +1,10 @@
+{
+  "name": "mop-launch",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jszip": "^3.10.2",
+    "pptxgenjs": "^4.0.1",
+    "puppeteer-core": "^25.12.0"
+  }
+}

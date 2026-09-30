@@ -29,7 +29,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-  subgraph ADMIN[/admin › Automation]
+  subgraph ADMIN["/admin › Automation"]
     R[Recipes: one per trigger<br/>ordered steps, on/off,<br/>requires approval, conditions by tier or market]
     T[Email templates<br/>with preview]
     D[Decline reasons]

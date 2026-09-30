@@ -77,3 +77,45 @@ BLOCKED / WAITING ON OPERATOR
 NEXT
 - Operator reads workspace/02-tech-stack/tech-stack.md and answers the decisions; then STAGE → 2 (system design) and
   we write the sliced plan from the completion map.
+
+## 2026-09-30 — B1a: Lovable removed, plain TanStack Start (branch chore/remove-lovable, PR #1 https://github.com/AbdulrahmanAmer/matter-of-place/pull/1)
+
+DONE
+- vite.config.ts is plain: tsConfigPaths, tanstackStart (import protection for `**/server/**`), nitro
+  `cloudflare-module` on build with the worker name pinned to `matter-of-place`, viteReact. Ported from the preset
+  source: VITE_* define for every bundle, lightningcss, `@` alias, React/Query dedupe, optimizeDeps, port 8080.
+  Dropped on purpose: devtools injection, editor telemetry plugins, sandbox assets proxy, 1 s watch debounce.
+- Removed: @lovable.dev/vite-tanstack-config, tailwindcss, @tailwindcss/vite, @tanstack/router-plugin (still resolves
+  1.168.23 transitively through Start); `.lovable/`; `src/lib/lovable-error-reporting.ts` and its import in
+  route-error.tsx; `src/server.ts`, `src/start.ts`, `src/lib/error-capture.ts`, `src/lib/error-page.ts` (tested: the
+  standard entry answers a loader throw with HTTP 500 `text/html` inside the site shell; Start adds the CSRF
+  middleware itself, createStartHandler.js:21); LOVABLE block in AGENTS.md; bunfig excludes; `.lovable`/`.workspace`
+  in .prettierignore. Added vitest ^5.0.2; `bun run test` is part of `bun run check`; tsconfig types + node, tests/.
+- G-003 fixed inside `pageHead`; first test `tests/unit/seo.test.ts` (watched-fail: 2 of 4 red before the fix, 4 green
+  after). GOTCHAS: G-002 rewritten, G-003 `enforced-by`, G-007 wording, G-012 and P-015 added (left uncommitted in the
+  working tree for the orchestrator to commit on main, see P-011).
+- Skeleton READMEs: src/server, src/db, src/admin, src/templates, supabase/migrations, supabase/functions, scripts,
+  tests; `.github/workflows/README.md` at the REPO ROOT, not under the app (G-012). `docs/HOW-TO-ADD.md` carries the
+  tech-stack §5 table; docs/README.md has the sketch banner; README says Vite 8 with bun and npm; ADR 0003, deploy
+  doc and frontend.md no longer describe removed things.
+- Verified on the final tree: `bun install` ok; `bun run check` exit 0; `bun run build` exit 0 emitting
+  .output/server/index.mjs, .output/public, .output/server/wrangler.json (name matter-of-place, cloudflare-module,
+  nodejs_compat); dev sweep 19 routes 200 and 4 redirects 301; render gate 6 routes pass, 0 console errors;
+  `grep -rci lovable` in the app = one file (docs/brief/recalibration.md:1, off-limits this slice).
+
+FOUND (not fixed; follow-ups)
+- A loader error renders TanStack's default red error box, not `RouteError`: `router.tsx` sets no
+  `defaultErrorComponent`. One line; belongs with B1b or Harden.
+- Under the standard entry the dev server prints no stack for a loader error; Sentry (B1b) is where that lands.
+- Vite 8 warns that vite-tsconfig-paths can be replaced by `resolve.tsconfigPaths: true` (one dependency fewer).
+- docs/brief/recalibration.md line 1241 still says "Lovable"; edit after the producer process is done with docs/brief.
+- tech-stack §3 draws `.github/workflows/` under the app; it only works at the repo root (G-012). Fix the spec line.
+- The app-folder CLAUDE.md was failing `prettier --check` on main already; formatted in this branch so the gate is green.
+
+UNPROVEN
+- Each intermediate commit was not re-gated on its own; the gate ran on the final tree only.
+
+NEXT
+- Operator reviews and merges the PR; the working tree is back on `main` (node_modules reflects the branch's
+  package.json until `bun install` runs on main). Then B1b: wrangler.toml, CI, deploy workflow, preview per PR, Sentry,
+  security headers.

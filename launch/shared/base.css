@@ -1,0 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&family=Urbanist:wght@300;500&display=block");
+
+:root {
+  --obsidian: #11110f;
+  --bone: #eeeae1;
+  --ivory: #f5f2eb;
+  --sandstone: #c9c0b2;
+  --mineral: #575751;
+  --warm-grey: #8b877f;
+  --sans: "Jost", sans-serif;
+  --serif: "Cormorant Garamond", Georgia, serif;
+  --ui: "Urbanist", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--obsidian); }
+body { position: relative; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; font-variant-numeric: lining-nums; }
+
+/* A shot fills the frame; photographs inside it are cover-cropped. */
+.shot { position: absolute; inset: 0; overflow: hidden; opacity: 0; visibility: hidden; }
+.photo { position: absolute; inset: 0; background-size: cover; background-position: center; transform-origin: 50% 50%; will-change: transform; }
+img.photo { width: 100%; height: 100%; object-fit: cover; }
+.scrim { position: absolute; inset: 0; background: var(--obsidian); }
+.field-bone { background: var(--bone); }
+.field-ivory { background: var(--ivory); }
+.field-obsidian { background: var(--obsidian); }
+[data-in] { opacity: 0; visibility: hidden; }
+
+/* Brand wordmark: ported from .brand-horizontal in src/styles/base.css */
+.wordmark { font-family: var(--sans); font-weight: 300; letter-spacing: 0.24em; line-height: 1.05; white-space: nowrap; }
+.wordmark small { font-size: 0.58em; margin: 0 0.18em; }

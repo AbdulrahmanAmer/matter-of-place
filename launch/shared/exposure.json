@@ -1,0 +1,158 @@
+{
+  "offerings": [
+    {
+      "id": "feature",
+      "name": "The Feature",
+      "price": "$295",
+      "line": "Editorial presence.",
+      "items": [
+        "Dedicated Matter of Place property page",
+        "Professionally edited editorial narrative",
+        "Architecture, design and location context",
+        "Curated image sequencing",
+        "Matter of Place social carousel",
+        "Collaborator invitation where applicable",
+        "Agent or brokerage attribution",
+        "Direct inquiry routing",
+        "Search-indexable permanent URL",
+        "Placement in the California, New York or Florida collection"
+      ],
+      "cta": "Submit a Property"
+    },
+    {
+      "id": "reach",
+      "name": "The Reach",
+      "price": "$695",
+      "line": "Editorial presence, expanded through precision distribution.",
+      "recommended": true,
+      "items": [
+        "Everything in The Feature",
+        "Matter of Place Stories",
+        "Newsletter inclusion",
+        "Priority editorial scheduling",
+        "Homepage or market-page rotation",
+        "Additional social distribution",
+        "Programmatic campaign planning",
+        "Audience-targeting setup",
+        "Campaign reporting framework",
+        "Option to add programmatic media spend"
+      ],
+      "cta": "Expand the Reach"
+    },
+    {
+      "id": "campaign",
+      "name": "The Campaign",
+      "price": "$1,495",
+      "line": "A deeper, multi-channel property campaign.",
+      "note": "Recommended media investment: $500 to $2,500+",
+      "items": [
+        "Everything in The Reach",
+        "Deeper editorial research and an expanded property story",
+        "Multi-post editorial treatment",
+        "Short-form video or reel from supplied assets",
+        "Standalone property email",
+        "Priority homepage positioning",
+        "A 10 to 14 day campaign window",
+        "Multiple creative variants where appropriate",
+        "Programmatic media and retargeting strategy",
+        "Campaign optimization and post-campaign reporting"
+      ],
+      "cta": "Build a Campaign"
+    },
+    {
+      "id": "five-features",
+      "name": "Five Features",
+      "price": "$1,250",
+      "line": "For agents, teams and brokerages with several qualifying properties.",
+      "note": "$250 per property",
+      "items": [
+        "Five Feature credits",
+        "No expiration during the initial launch period",
+        "Submit properties individually",
+        "Every property remains subject to editorial approval",
+        "Declined properties do not use a credit",
+        "Distribution upgrades available per property"
+      ],
+      "cta": "Secure Five Features"
+    }
+  ],
+  "programmatic": {
+    "minimum": "$250",
+    "managementFee": "15% of media spend",
+    "minimumFee": "$100",
+    "formats": [
+      "Premium display",
+      "Native",
+      "Online video",
+      "Retargeting",
+      "CTV",
+      "Select DOOH"
+    ]
+  },
+  "selectionSteps": [
+    {
+      "name": "Submission",
+      "text": "You send the property and its story."
+    },
+    {
+      "name": "Editorial review",
+      "text": "We read it against our editorial standard."
+    },
+    {
+      "name": "Acceptance",
+      "text": "Selected properties are confirmed. Others are not charged."
+    },
+    {
+      "name": "Exposure",
+      "text": "You choose the product that suits the property."
+    },
+    {
+      "name": "Publication",
+      "text": "The property receives its permanent place."
+    },
+    {
+      "name": "Distribution",
+      "text": "The story travels through owned and paid channels."
+    }
+  ],
+  "editorialQualities": [
+    "Architecture",
+    "Design",
+    "Originality",
+    "Materiality",
+    "Setting",
+    "History",
+    "Craft",
+    "Sense of place"
+  ],
+  "exposureFaq": [
+    {
+      "q": "Does paying guarantee acceptance?",
+      "a": "No. Every property is subject to the Matter of Place editorial standard."
+    },
+    {
+      "q": "Do you guarantee buyers or leads?",
+      "a": "No. Matter of Place provides editorial exposure and media distribution, not transaction guarantees."
+    },
+    {
+      "q": "Can I submit properties outside California, New York or Florida?",
+      "a": "Not currently."
+    },
+    {
+      "q": "Do you work with new developments?",
+      "a": "Not currently. Matter of Place is focused on existing residential property."
+    },
+    {
+      "q": "Is paid media included?",
+      "a": "No. Programmatic media budgets are separate from editorial product fees."
+    },
+    {
+      "q": "Can agents purchase multiple Features?",
+      "a": "Yes. Five Feature credits are available for $1,250."
+    },
+    {
+      "q": "Can a property remain discreet?",
+      "a": "Yes. Sensitive property details can be handled discreetly where appropriate."
+    }
+  ]
+}
