@@ -1,0 +1,15 @@
+import { createRequire } from "node:module";
+const require = createRequire("E:/Matter Of Place/launch/package.json");
+const puppeteer = require("puppeteer-core");
+const b = await puppeteer.launch({ executablePath: "C:/Users/DELL/.cache/puppeteer/chrome/win64-154.0.8037.57/chrome-win64/chrome.exe", headless: true });
+const p = await b.newPage(); await p.setViewport({ width: 390, height: 844 });
+await p.goto("http://127.0.0.1:8080/property/oak-hill-residence", { waitUntil: "networkidle0" });
+await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await new Promise(r=>setTimeout(r,500));
+await p.screenshot({ path: "after/states/m-page-end.png" });
+const bottomGap = await p.evaluate(() => { const f=document.querySelector(".footer-bottom").getBoundingClientRect(); return {footerBottomLineBottom: Math.round(f.bottom), barTop: Math.round(document.querySelector(".sticky-actions").getBoundingClientRect().top)}; });
+console.log("after", JSON.stringify(bottomGap));
+await p.addStyleTag({ content: ".site-footer{padding-bottom:40px !important}" });
+await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await new Promise(r=>setTimeout(r,300));
+await p.screenshot({ path: "before/states/m-page-end.png" });
+console.log("before", JSON.stringify(await p.evaluate(() => { const f=document.querySelector(".footer-bottom").getBoundingClientRect(); return {footerBottomLineBottom: Math.round(f.bottom), barTop: Math.round(document.querySelector(".sticky-actions").getBoundingClientRect().top)}; })));
+await b.close();

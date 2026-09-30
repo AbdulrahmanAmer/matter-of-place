@@ -86,8 +86,8 @@
 
 .region-tabs {
   display: flex;
-  gap: 28px;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  gap: 12px 28px;
   padding: 24px 0;
   margin-bottom: 45px;
   border-bottom: 1px solid var(--border);
@@ -126,6 +126,15 @@
 }
 
 @media (max-width: 700px) {
+  .collection {
+    padding-bottom: 70px;
+  }
+
+  .filter-bar select {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 0;
+  }
+
   .quick-filters select {
     flex: 1 1 calc(50% - 10px);
   }

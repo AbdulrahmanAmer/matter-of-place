@@ -29,7 +29,7 @@ function ExposurePage() {
         text="Editorial presentation, carried further through owned and precision-distribution channels."
       />
       <div className="fp exposure-body">
-        <section className="fp-block" aria-labelledby="products">
+        <section className="fp-block exposure-products" aria-labelledby="products">
           <p className="fp-label" id="products">
             Products · USD
           </p>
@@ -94,7 +94,7 @@ function ExposurePage() {
           </p>
           <div className="fp-faq">
             {exposureFaq.map((item) => (
-              <details className="fp-fold" key={item.q}>
+              <details key={item.q}>
                 <summary>
                   {item.q} <span aria-hidden="true">+</span>
                 </summary>

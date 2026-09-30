@@ -17,14 +17,14 @@ export function PropertyCard({ property }: { property: Property }) {
         <ContentTag />
       </div>
       <div className="property-card-info">
-        <div>
+        <div className="property-card-meta">
           <span className="eyebrow">
             {property.city.toUpperCase()}, {property.state.toUpperCase()}
           </span>
-          <h3>{property.title}</h3>
-          <span className="property-card-style">{property.style}</span>
+          <span className="price">{formatPrice(property)}</span>
         </div>
-        <span className="price">{formatPrice(property)}</span>
+        <h3>{property.title}</h3>
+        <span className="property-card-style">{property.style}</span>
       </div>
     </Link>
   );

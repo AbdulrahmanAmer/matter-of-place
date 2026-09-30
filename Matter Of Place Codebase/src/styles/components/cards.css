@@ -45,23 +45,27 @@
 }
 
 .property-card-info {
+  padding-top: 20px;
+}
+
+.property-card-meta {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 20px;
-  padding-top: 20px;
 }
 
 .property-card-info h3 {
   font-size: clamp(25px, 2.5vw, 37px);
   line-height: 1.1;
   margin-top: 11px;
+  text-wrap: balance;
 }
 
 .price {
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.05em;
-  margin-top: 1px;
 }
 
 /* Market */
@@ -120,6 +124,7 @@
 .market-card p {
   font-size: 12px;
   letter-spacing: 0.07em;
+  text-wrap: balance;
 }
 
 @media (min-width: 701px) {

@@ -27,7 +27,8 @@
   background: linear-gradient(
     to bottom,
     color-mix(in oklab, var(--foreground) 48%, transparent),
-    transparent 42%,
+    transparent 22%,
+    color-mix(in oklab, var(--foreground) 40%, transparent) 50%,
     color-mix(in oklab, var(--foreground) 84%, transparent)
   );
 }
@@ -109,6 +110,12 @@
   font-size: clamp(56px, 7vw, 108px);
   line-height: 0.96;
   margin: 14px 0;
+}
+
+/* The eyebrow sits mid-photo, where sky and stone can be as bright as the type. */
+.hero .eyebrow,
+.image-hero .eyebrow {
+  text-shadow: 0 0 14px color-mix(in oklab, var(--foreground) 70%, transparent);
 }
 
 .image-hero p:not(.eyebrow) {

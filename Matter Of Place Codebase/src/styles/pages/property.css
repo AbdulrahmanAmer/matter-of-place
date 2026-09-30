@@ -45,7 +45,7 @@
 .representation-section h2 {
   font-size: clamp(38px, 4vw, 56px);
   line-height: 1;
-  margin: 10px 0 18px;
+  margin: 10px 0 24px;
 }
 
 .representation-grid {
@@ -83,6 +83,12 @@
 
 .related-properties {
   padding-top: 100px;
+}
+
+@media (min-width: 901px) {
+  .related-properties .property-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Square social cover */
@@ -173,5 +179,10 @@
 
   .share-cover {
     padding: 20px;
+  }
+
+  .share-cover-section {
+    padding-top: 80px;
+    padding-bottom: 80px;
   }
 }

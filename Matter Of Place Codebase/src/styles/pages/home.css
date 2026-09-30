@@ -42,6 +42,7 @@
 .steps-list li {
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .steps-list span {
@@ -124,7 +125,6 @@
 
 /* Natural-language home finder (Properties page) */
 .home-finder {
-  max-width: 900px;
   padding-top: 10px;
   padding-bottom: 70px;
   margin-bottom: 60px;
@@ -141,7 +141,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: end;
+  align-items: stretch;
+  max-width: 900px;
 }
 
 .home-finder textarea {
@@ -159,6 +160,7 @@
 }
 
 .finder-examples {
+  max-width: 900px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

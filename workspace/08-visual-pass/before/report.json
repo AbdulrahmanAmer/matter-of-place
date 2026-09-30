@@ -1,0 +1,334 @@
+[
+ {
+  "r": "/",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Matter of Place | Exceptional property. Properly considered.",
+  "errs": []
+ },
+ {
+  "r": "/properties",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Properties | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/property/oak-hill-residence",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "A residence shaped around the landscape. Los Altos Hills | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/property/tiburon-waterline",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "A hillside residence framed by water and light. Tiburon | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/markets",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Markets | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "California | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california/guide",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "California guide | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california/bay-area",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Bay Area, California | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/stories",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Stories | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/stories/shade-as-a-material",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Shade as a material | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/editorial-standard",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Editorial Standard | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/submit",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Submit a Property | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/exposure",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Property Exposure | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/about",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "About | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/contact",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Contact | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/faq",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "FAQ | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/legal",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Legal | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/does-not-exist",
+  "w": 1440,
+  "sw": 1440,
+  "dw": 1440,
+  "bad": [],
+  "title": "Market unavailable | Matter of Place",
+  "errs": [
+   "Failed to load resource: the server responded with a status of 404 ()"
+  ]
+ },
+ {
+  "r": "/",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Matter of Place | Exceptional property. Properly considered.",
+  "errs": []
+ },
+ {
+  "r": "/properties",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Properties | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/property/oak-hill-residence",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "A residence shaped around the landscape. Los Altos Hills | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/property/tiburon-waterline",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "A hillside residence framed by water and light. Tiburon | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/markets",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Markets | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [
+   "A. r=472"
+  ],
+  "title": "California | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california/guide",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "California guide | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/california/bay-area",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [
+   "A. r=472"
+  ],
+  "title": "Bay Area, California | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/stories",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Stories | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/stories/shade-as-a-material",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Shade as a material | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/editorial-standard",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Editorial Standard | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/submit",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Submit a Property | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/exposure",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Property Exposure | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/about",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "About | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/contact",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Contact | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/faq",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "FAQ | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/legal",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Legal | Matter of Place",
+  "errs": []
+ },
+ {
+  "r": "/does-not-exist",
+  "w": 390,
+  "sw": 390,
+  "dw": 390,
+  "bad": [],
+  "title": "Market unavailable | Matter of Place",
+  "errs": [
+   "Failed to load resource: the server responded with a status of 404 ()"
+  ]
+ }
+]
