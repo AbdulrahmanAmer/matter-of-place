@@ -22,6 +22,20 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
 - `.mcp.json` — codebase-memory graph (project `E-Matter Of Place-Matter Of Place Codebase`). Use it for code questions;
   grep for copy/config.
 
+## The approved stack (2026-09-30) — build only this; details in workspace/02-tech-stack/tech-stack.md
+One Cloudflare Worker (site + `/api/*` + `/admin`), Supabase (Postgres via versioned migrations + generated types, Auth
+magic links, private uploads bucket, pgmq + pg_cron jobs), R2 for photos with variants made once at publish, GitHub
+Actions for CI, deploys and heavy renders (images, ffmpeg reels), Resend (email + Place Notes), Stripe links after
+acceptance, Meta Graph API direct, Sentry, GA4 + Search Console, Turnstile. Free tier first; no paid feature without a
+settled decision. `Matter Of Place Codebase/docs/**` is the Lovable sketch: read for intent, never build from it.
+Launch is coming-soon: production shows no illustrative property, ever; an empty collection becomes a per-market interest
+signup. Payments are manual invoices from `/admin` (Stripe later, same table). Legal identity is Omnikom's entity.
+Audit robot runs Saturday mornings. Social at launch: Instagram + Facebook only, human approval for 60 days.
+The admin portal is the operating system: automations are recipes in the database edited from `/admin › Automation`
+(fixed step catalog in code, parameters and toggles as data, dry-run, revisions). Never hard-code a pipeline.
+Every kind of change has one path (tech-stack.md §5: page, API route, admin action, table, job type, email, event,
+role, channel). Follow the path or stop and add one; never bolt on.
+
 ## Commands (run inside `Matter Of Place Codebase/`, bun is installed)
 ```
 bun run check     # typecheck + lint + prettier

@@ -39,6 +39,10 @@ redirects `/pricing`→`/exposure`, `/place-notes`→`/stories`, `/markets/*`→
 4. Two images in `src/assets` unreferenced, one gallery image unused (content-inventory.md §7).
 
 ## 3. What the docs already specify but nothing implements
+Status update 2026-09-30: the CEO judged these docs an MVP sketch, not production engineering. The approved spec is now
+`workspace/02-tech-stack/tech-stack.md` (versioned migrations instead of one schema.sql, generated types instead of
+hand-synced field names, per-role permissions, a job system, tests, observability, admin from day one, free tier only).
+The table below records what the sketch contains; build from the spec.
 | Piece | Spec location | Status |
 |---|---|---|
 | API (6 catalog reads, 4 writes, search, concierge, error shape, rate limits) | docs/architecture/services.md | NOT BUILT |

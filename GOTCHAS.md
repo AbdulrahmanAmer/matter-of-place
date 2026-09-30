@@ -109,9 +109,36 @@ Entry template
 - proof: `git log --oneline origin/main` is a strict prefix of `git log --oneline main`.
 - added: 2026-09-30
 
+## G-010 · The codebase `docs/` folder is the Lovable sketch, not the spec
+- paths: Matter Of Place Codebase/docs/**
+- severity: warn
+- symptom: an agent implements `schema.sql`, Cloudflare Queues or request-time image resizing "because the docs say so".
+- cause: those docs were written for an MVP; the CEO-approved spec (2026-09-30) is `workspace/02-tech-stack/tech-stack.md`.
+- rule: read `docs/` for intent only. Schema comes from `supabase/migrations`, jobs from pgmq + GitHub Actions, images from variants made at publish. Update or delete a docs page when the built thing diverges; never the other way round.
+- proof: `grep -rn "Cloudflare Queues\|cdn-cgi/image" src supabase` → no hits in built code.
+- added: 2026-09-30
+
+## G-011 · No paid platform feature without a settled decision
+- paths: Matter Of Place Codebase/wrangler.toml, Matter Of Place Codebase/src/server/**, Matter Of Place Codebase/supabase/**
+- severity: warn
+- symptom: a binding for Queues, Browser Rendering, Images, Durable Objects, or a Supabase Pro-only feature appears in config.
+- cause: each of those is a monthly bill; the approved stack is free tier first.
+- rule: free-tier limits are in GOTCHAS P-009; if a limit is hit, record the measurement and add a decision to PROJECT-STATE.md before adding the binding.
+- proof: `grep -n "queues\|browser\|images\|durable" wrangler.toml` → no hits.
+- added: 2026-09-30
+
 ---
 
 # Process and tooling gotchas (no paths; loaded by `mop-work`, not injected)
+
+## P-009 · Free-tier limits we are designing inside (measured 2026-09; re-check quarterly)
+- Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; R2 10 GB, zero egress; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
+- Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
+- Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
+- GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes).
+- Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare Web Analytics: free.
+- rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
+- added: 2026-09-30
 
 ## P-001 · agent-os stage 0 refuses `src/**` even though the app is one folder down
 - symptom: an Edit under `Matter Of Place Codebase/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".

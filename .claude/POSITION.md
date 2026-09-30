@@ -49,9 +49,30 @@ DONE (operator asked "what did you skip": gotcha bank + app-folder CLAUDE.md)
 - `.claude/skills/mop-work` (project context loader) + copies of `design-from-references`, `motion`,
   `parallel-execution`, `codebase-index` from the agent-os skills pack.
 
+## 2026-09-30 (later) — stack approved, Q1–Q12 answered, stage 3, two workers running
+
+DONE
+- CEO approved the free-first stack; Q1–Q12 answered; S7–S35 in PROJECT-STATE.md. tech-stack.md (spec + §5 extension
+  paths), completion-map.md (A1–A10 setup, B1–B16 slices), big-diagram.md, admin-os.md, completion-map diagrams rewritten.
+- STAGE 0 → 3 on CEO instruction (cleanup now). Logged in PROJECT-STATE.
+- `.claude/agents/mop-producer.md` (Opus, medium) written; NOT registered until a session restart (agent types load at start).
+  `fork` agent type does not exist in this build.
+
+RUNNING (check task notifications; if this block is being read after a compaction, they may have finished)
+- Cleaner: in-session Fable agent, branch `chore/remove-lovable`, opens a PR, does not merge. Scope = B1a (Lovable removal,
+  plain Vite, G-003 title fix + first Vitest, skeleton folders, HOW-TO-ADD.md).
+- Producer: headless `claude -p --model claude-opus-5-5 --effort medium` with `launch/PRODUCER-BRIEF.md` on stdin;
+  log `launch/producer-run.json` / `.err`. Deliverables: launch/01-launch-film, 02-partner-presentation, 03-partner-deck.
+- Diagram render: `node workspace/03-diagrams/render.mjs` (big-diagram, completion-map, admin-os).
+
+HAZARD
+- Two workers share one working tree. The cleaner switches branches; commit main docs before it branches, and never
+  commit while `git branch --show-current` is not `main`.
+
 BLOCKED / WAITING ON OPERATOR
-- Decisions D1–D12 in PROJECT-STATE.md (deploy target, API placement, email, payments, social platforms, audit cadence).
-- Scheduling `mop-auditor` needs a live URL and API credentials (Search Console, GA4, Meta, Resend); not before slice B1.
+- Owner inputs: Omnikom entity + address, contact email/phone, Instagram handle, editors, Meta access, Namecheap purchase,
+  invoice template details.
+- Scheduling `mop-auditor` needs a live URL and API credentials; not before slice B1.
 
 NEXT
 - Operator reads workspace/02-tech-stack/tech-stack.md and answers the decisions; then STAGE → 2 (system design) and

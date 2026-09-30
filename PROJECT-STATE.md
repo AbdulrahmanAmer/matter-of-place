@@ -3,42 +3,66 @@
 > agent-os reads this file at session start and loads only the current stage's contract.
 > Append to the log, never rewrite it. Only the operator advances the STAGE line.
 
-STAGE: 0
+STAGE: 3
 enforcement: deny
 
 ## OPEN DECISIONS
 
-Full context for each in `workspace/02-tech-stack/tech-stack.md` §B. "Recommended" is Claude's proposal, not a decision.
+None. Q1–Q12 were answered by the CEO in session on 2026-09-30 (S22–S33). Stage 0 gate: met once the owner inputs
+below are supplied or explicitly deferred.
 
-### D1. Deploy target: Cloudflare Workers (recommended) / Netlify / Lovable hosting — UNDECIDED
-### D2. API placement: same Worker via server routes (recommended) / separate Hono Worker — UNDECIDED
-### D3. Photography storage: R2 + resizing (recommended) / Supabase Storage — UNDECIDED
-### D4. Email provider: Resend (recommended) / Loops / Mailchimp — UNDECIDED
-### D5. Payments: Stripe Checkout after editorial acceptance (recommended); which legal entity — UNDECIDED
-### D6. Analytics: GA4 + first-party events (recommended); PostHog optional — UNDECIDED
-### D7. Error monitoring: Sentry (recommended) / Cloudflare logs only — UNDECIDED
-### D8. Admin: Supabase Studio first then /admin (recommended) / /admin before launch — UNDECIDED
-### D9. Assets generated on publish at launch: OG + carousel + story + newsletter block (recommended); reel + email for Campaign tier — UNDECIDED
-### D10. Social platforms at launch: Instagram + Facebook Page (recommended); Pinterest/LinkedIn month two; human approval first 60 days — UNDECIDED
-### D11. AI budget: Haiku captions/alt text, Sonnet templates, rule-based concierge and search at launch (recommended) — UNDECIDED
-### D12. Audit cadence and host: weekly cloud routine, patches as PRs (recommended) — UNDECIDED
-### D13. Repo — SETTLED 2026-09-30: private repo https://github.com/AbdulrahmanAmer/matter-of-place, root = this folder, branch main
-
-Owner inputs (not decisions): contact email + phone, registered entity + address, Instagram URL, domain registrar,
-Meta Business Manager access.
+Owner inputs (not decisions): Omnikom legal entity name + registered address, contact email + phone, Instagram handle,
+first editors' emails and roles, Meta Business access, Namecheap purchase of matterofplace.com, invoice template details
+(bank/payment methods to list).
 
 ## SETTLED DECISIONS
 
 | # | decision | date | why |
 |---|---|---|---|
 | S1 | Frontend stays as built: TanStack Start + plain CSS tokens; no redesign | 2026-09-30 | recalibration brief and ADR 0003; build verified green |
-| S2 | Database is Supabase Postgres with `docs/database/schema.sql` | 2026-09-30 | ADR 0004; schema already encodes the editorial gate |
+| S2 | ~~Database is Supabase Postgres with `docs/database/schema.sql`~~ → superseded by S8 | 2026-09-30 | the schema.sql is a sketch; migrations are the source |
 | S3 | Markets CA/NY/FL, existing residential only, four products at $295/$695/$1,495/$1,250 | 2026-09-30 | recalibration brief; already in `src/data/exposure.ts` |
 | S4 | Workers are Sonnet at medium or lower, Haiku for extraction; Fable orchestrates only | 2026-09-30 | operator requirement: least tokens |
 | S5 | Version control: private GitHub repo `AbdulrahmanAmer/matter-of-place`, root = workspace folder, `main` protected later | 2026-09-30 | operator asked for a private repo; one repo keeps maps, agents and code together |
 | S6 | Every diagram ships as PNG + SVG in `workspace/03-diagrams/img/` via `render.mjs`, never Mermaid source alone | 2026-09-30 | operator reads pictures, not code |
+| S7 | Hosting: one Cloudflare Worker (site + `/api/*` + `/admin`), free tier; Lovable Vite preset removed for plain Vite | 2026-09-30 | CEO approved the free-first stack |
+| S8 | Database: Supabase free tier, versioned migrations via CLI, TypeScript types generated from the schema, Zod for input only | 2026-09-30 | replaces hand-synced field names and the single schema.sql |
+| S9 | Permissions: RLS per role (chief_editor, managing_editor, visual_editor, media_ops, commercial); only editorial roles accept/decline/publish | 2026-09-30 | the docs let every editor do everything |
+| S10 | Editor auth: Supabase Auth magic links | 2026-09-30 | free, no passwords to manage |
+| S11 | Photography: R2 originals + variants generated once at publish; no request-time resizing | 2026-09-30 | zero egress, no transformation bill |
+| S12 | Jobs: `jobs` table + pgmq + pg_cron for light work; GitHub Actions for heavy renders (images, PNG covers, ffmpeg reels) | 2026-09-30 | free; replaces Cloudflare Queues and Browser Rendering |
+| S13 | Email: Resend for transactional and Place Notes, double opt-in, own domain | 2026-09-30 | one provider, free to 3,000/month |
+| S14 | Payments: Stripe, links after editorial acceptance, signed idempotent webhooks | 2026-09-30 | acceptance before payment is a brand rule |
+| S15 | Social: Meta Graph API direct, one Business account; no scheduler subscription | 2026-09-30 | fewest accounts |
+| S16 | Bots and abuse: Turnstile on every form, one edge rate-limit rule, per-endpoint limits in the API | 2026-09-30 | free |
+| S17 | Observability: Sentry free tier, Workers logs, request IDs, daily health job; analytics GA4 + Search Console + Cloudflare + first-party events | 2026-09-30 | a requirement, not a phase |
+| S18 | Admin: `/admin` inside the site from day one (queue, dossier editor, media, publish, approvals); Studio for emergencies only | 2026-09-30 | the business cannot run from Studio |
+| S19 | Tests: Vitest contracts + state machine, Playwright every route desktop/phone/a11y, on every PR | 2026-09-30 | "set once, never touch" needs a test, not a promise |
+| S20 | AI usage: Sonnet designs templates once; Haiku writes captions and alt text; nothing else uses a model at launch | 2026-09-30 | least tokens |
+| S21 | Cost rule: free tier first; a paid feature needs a measured limit and a settled decision (GOTCHAS G-011, P-009) | 2026-09-30 | CEO: keep it free where we can |
+| S22 | Q1 Social at launch: Instagram + Facebook Page only; Pinterest and LinkedIn in month two | 2026-09-30 | one Meta account, one API |
+| S23 | Q2 Generated posts need Media Ops approval for the first 60 days; then Feature-tier posts go automatically, Campaign posts keep a human | 2026-09-30 | trust the templates before trusting the robot |
+| S24 | Q3 Per published property: cover, carousel, story, newsletter block; reel and standalone email only for Campaign tier | 2026-09-30 | video effort only where paid for |
+| S25 | Q4 Place Notes goes out every two weeks | 2026-09-30 | curated issues, free email tier lasts |
+| S26 | Q5 Admin roles from day one: chief_editor, managing_editor, visual_editor, media_ops, commercial (read-only) | 2026-09-30 | permission rules never reworked |
+| S27 | Q6 Audit robot: weekly, **Saturday morning**, cloud schedule, fixes as PRs, never deploys itself | 2026-09-30 | CEO reads it over the weekend |
+| S28 | Q7 Lovable disconnected for good; GitHub is the only source | 2026-09-30 | no sync risk, no preset lock-in |
+| S29 | Q8 Domain bought at Namecheap, DNS moved to Cloudflare; hosting set up from there | 2026-09-30 | CEO's choice of registrar |
+| S30 | Q9 **Launch is coming-soon**: no listings on the live site until real ones are accepted. Every collection (home edit, market pages, properties) has a graceful empty state that says what is real, says "coming soon", and offers a signup for the market the visitor cares about. Illustrative content never shows on production | 2026-09-30 | honesty with viewers; build the interest list before the inventory |
+| S31 | Q10 Concierge is rule-based over dossier data at launch; no model | 2026-09-30 | zero cost, zero hallucination |
+| S32 | Q11 **Payments are manual for now**: agent submits → automatic email "we will review and be in touch" → admin workspace shows the request → decline sends a templated email with a reason chosen/typed by the admin → accept → invoice from a template (CEO + CTO design it), preferred payment method collected, admin marks paid and activates the agent in the ecosystem. Stripe stays a later slice behind the same state machine | 2026-09-30 | phone-and-invoice is how the first clients will be closed |
+| S33 | Q12 Legal entity is Omnikom's: Matter of Place is a product of Omnikom. Legal page, footer line, terms and privacy are rewritten to say so; entity name and address are owner inputs | 2026-09-30 | CEO: "a product by Omnikom at the end of the day" |
+| S35 | **Built to be extended.** Every kind of change has one documented path (tech-stack §6): a page, an API route, an admin action, a table or column, a job type, an email template, an analytics event, a role. Each path names the files touched in order and the test that proves it. Feature code lives in feature folders; shared code is imported, never copied; migrations and generated types are the only way shapes change; a PR checklist enforces the path | 2026-09-30 | CEO: adding a button, a page or a behaviour must integrate the right way every time |
+| S34 | **The admin portal is the operating system, and automations are settings, not code.** Every pipeline (what happens on submit, decline, accept, invoice, publish, approve, fortnightly digest) is a recipe stored in the database: ordered steps drawn from a fixed catalog of job types, each with parameters, an on/off switch and an approval gate. Admins edit recipes, email templates, decline reasons, per-tier asset lists, posting windows and channel toggles from an Automation section in `/admin`, with validation, versioning and a "who changed what" trail. No general workflow engine; a fixed step catalog that grows only through code | 2026-09-30 | CEO: one-click, headache-free operations; pipelines adjustable from the console |
 
 ## LOG - newest at the bottom, append only
 
 - 2026-09-30 Step zero complete: workspace, plugins, agents, graph index, site index, content inventory, map of what we
   have, tech-stack draft, big diagram draft, completion map draft. Build/typecheck/lint verified green. See .claude/POSITION.md.
+- 2026-09-30 Private repo created; diagrams rendered to PNG; GOTCHAS bank + hook; mop-work skill.
+- 2026-09-30 CEO approved the free-first stack (S7–S21). tech-stack.md, completion-map.md, big-diagram.md rewritten to it.
+  Remaining questions Q1–Q12 asked in session.
+- 2026-09-30 Q1–Q12 answered (S22–S33); admin-as-operating-system and automations-as-settings recorded (S34).
+- 2026-09-30 STAGE 0 → 3 on the CEO's instruction to start the Lovable cleanup (slice B1) now. Stage 1 and 2 gates are
+  carried as work inside B9 (creative direction from rendered options) and P1 (plan file); they are not skipped, they are
+  sequenced behind B1 because B1 touches only tooling and the removal of the preset.
