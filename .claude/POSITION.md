@@ -119,3 +119,27 @@ NEXT
 - Operator reviews and merges the PR; the working tree is back on `main` (node_modules reflects the branch's
   package.json until `bun install` runs on main). Then B1b: wrangler.toml, CI, deploy workflow, preview per PR, Sentry,
   security headers.
+
+## 2026-09-30 (evening) — cleanup PR open, v0 film rejected, v2 producer at Opus high running
+
+DONE
+- PR #1 `chore/remove-lovable` open (https://github.com/AbdulrahmanAmer/matter-of-place/pull/1): plain Vite, Lovable
+  code gone, G-003 fixed with the first Vitest test, skeleton folders, HOW-TO-ADD.md. Cleaner's gate: check/build green,
+  19 pages 200, 4 redirects 301, render gate 0 console errors. Orchestrator re-verification running in a scratch worktree.
+- v0 producer (Opus medium, 44 min, $4): launch film 75 s silent slideshow → REJECTED by CEO; deck v0 (14 slides,
+  interactive) delivered; partner video v0 render was still running when the process ended (MP4 absent).
+- S36 no music (sound design only, synthesized), S37 motion engine GSAP + Three.js + frame capture; MOTION-BIBLE.md,
+  REVIEW-RUBRIC.md, tools/motion-gate.mjs (v0 fails: 33.8 % motion, 0 cuts, no audio). PRODUCER-BRIEF-v2.md.
+- main @ d98d67c pushed. GOTCHAS now 30+ entries incl. cleaner's G-012 (workflows at repo root), P-015.
+
+RUNNING
+- Producer v2: headless `claude -p --model claude-opus-5-5 --effort high`, brief v2, output `launch/producer-run-v2.json`
+  (watch with `until [ -s file ]`, P-014). Deliverable `launch/film/matter-of-place-launch.mp4` + engine in `launch/engine/`.
+  It uses a git worktree of main at `launch/.site-main` on port 8090 for product shots.
+- PR #1 verification in scratch worktree `scratchpad/pr1` (install, check, build, lovable grep). Merge after it passes.
+
+NEXT
+- Merge PR #1 (`gh pr merge 1 --merge`), pull main, re-index the code graph, note follow-ups from the cleaner
+  (router defaultErrorComponent, Sentry in B1b, `resolve.tsconfigPaths`).
+- When the v2 film passes gate + review: send MP4 + contact sheet to CEO; then partner video v1 on the same engine;
+  then deck v1 in the new grammar.
