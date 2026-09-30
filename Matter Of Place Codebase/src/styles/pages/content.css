@@ -1,0 +1,220 @@
+/* Copy-led pages: intro, About, Legal, Contact, Place Notes, FAQ, Submit, Not found. */
+
+.page-intro {
+  max-width: var(--container);
+  margin: auto;
+  padding: 110px var(--container-pad) 88px;
+}
+
+.page-intro h1 {
+  font-size: clamp(64px, 9vw, 140px);
+  line-height: 0.95;
+  margin: 18px 0 20px;
+}
+
+.intro-text {
+  max-width: 620px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+
+/* Reading column */
+.copy-page,
+.submit-page {
+  max-width: 1000px;
+  margin: auto;
+  padding: 0 var(--container-pad) 130px;
+}
+
+.copy-page h2 {
+  font-size: clamp(38px, 5vw, 65px);
+  margin: 30px 0 16px;
+}
+
+.copy-page p {
+  max-width: 62ch;
+  margin-bottom: 1.2rem;
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+
+.section-block {
+  margin-top: 40px;
+  padding: 50px 0 20px;
+  border-top: 1px solid var(--border);
+}
+
+.submit-page h2 {
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 1.05;
+}
+
+/* About */
+.about-intro {
+  margin-top: 1rem;
+}
+
+.about-belief {
+  display: grid;
+  gap: 0.6rem;
+  margin: 2.5rem 0;
+}
+
+.copy-page .about-belief p {
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.25;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.about-footer {
+  margin-top: 4rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.about-footer .text-link {
+  margin-top: 2rem;
+}
+
+/* Contact */
+.contact-layout {
+  max-width: var(--container);
+  margin: auto;
+  padding: 0 var(--container-pad) 130px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.contact-form {
+  display: grid;
+  gap: 22px;
+}
+
+.contact-form .eyebrow {
+  margin-bottom: 14px;
+}
+
+.contact-meta {
+  display: grid;
+  gap: 34px;
+  align-content: start;
+}
+
+.contact-meta h3 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+
+.contact-meta p {
+  max-width: 420px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+
+.contact-meta-link {
+  margin-top: 14px;
+}
+
+.contact-details {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.contact-details a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Place Notes */
+.story-body {
+  padding-top: clamp(56px, 7vw, 96px);
+  padding-bottom: clamp(56px, 7vw, 96px);
+}
+
+.story-deck {
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.35;
+}
+
+.standard-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 24px;
+  padding: 40px 0;
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.2;
+}
+
+/* FAQ page */
+.faq-page {
+  max-width: 900px;
+  padding-bottom: 110px;
+}
+
+.faq-more {
+  margin-top: 36px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+/* Not found and route errors */
+.not-found {
+  min-height: 70svh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 80px var(--container-pad);
+}
+
+.not-found h1 {
+  font-size: clamp(60px, 10vw, 140px);
+  line-height: 0.95;
+  margin: 16px 0 20px;
+}
+
+.not-found p {
+  max-width: 460px;
+  margin: 0 auto 30px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+
+.not-found-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+}
+
+@media (max-width: 900px) {
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .standard-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .page-intro {
+    padding-top: 75px;
+    padding-bottom: 55px;
+  }
+
+  .page-intro h1 {
+    font-size: clamp(61px, 14vw, 90px);
+  }
+
+  .contact-layout {
+    padding-bottom: 90px;
+  }
+}

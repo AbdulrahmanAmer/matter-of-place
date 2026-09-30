@@ -1,0 +1,29 @@
+/*
+ * Matter of Place stylesheet entry.
+ *
+ * Plain CSS, organised by responsibility. Every colour, font and measure is a
+ * token from `styles/tokens.css`; components never hard-code a hex value.
+ * Order matters: tokens and base first, then layout, components, pages, motion.
+ */
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+
+@import "./styles/layout/header.css";
+@import "./styles/layout/overlays.css";
+@import "./styles/layout/footer.css";
+
+@import "./styles/components/hero.css";
+@import "./styles/components/cards.css";
+@import "./styles/components/sections.css";
+@import "./styles/components/forms.css";
+@import "./styles/components/filters.css";
+@import "./styles/components/dialogs.css";
+@import "./styles/components/gallery.css";
+
+@import "./styles/pages/home.css";
+@import "./styles/pages/markets.css";
+@import "./styles/pages/property.css";
+@import "./styles/pages/pricing.css";
+@import "./styles/pages/content.css";
+
+@import "./styles/motion.css";

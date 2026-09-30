@@ -1,0 +1,108 @@
+/* Dossier gallery: full-width landscapes, paired portraits, one film. */
+
+.dossier-gallery {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.dossier-gallery figure {
+  position: relative;
+  background: var(--muted);
+}
+
+.dossier-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-full img {
+  aspect-ratio: 16 / 10;
+}
+
+.gallery-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.gallery-pair img {
+  aspect-ratio: 4 / 5;
+}
+
+.dossier-gallery figcaption {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  padding: 6px 10px;
+  background: color-mix(in oklab, var(--background) 82%, transparent);
+  color: var(--foreground);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gallery-film figure {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.gallery-film video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--foreground);
+}
+
+.film-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: color-mix(in oklab, var(--foreground) 22%, transparent);
+  color: var(--primary-foreground);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: background 0.3s;
+}
+
+.film-play:hover,
+.film-play:focus-visible {
+  background: color-mix(in oklab, var(--foreground) 36%, transparent);
+  outline: none;
+}
+
+.film-play-ring {
+  width: 64px;
+  height: 64px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+}
+
+.film-play-ring svg {
+  margin-left: 3px;
+}
+
+.gallery-film.is-playing figcaption {
+  bottom: auto;
+  top: 16px;
+}
+
+@media (max-width: 700px) {
+  .dossier-gallery {
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .gallery-pair {
+    grid-template-columns: 1fr;
+  }
+}

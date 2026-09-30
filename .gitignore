@@ -1,0 +1,16 @@
+# dependencies and builds
+node_modules/
+.output/
+.wrangler/
+dist/
+
+# secrets and local config
+.env
+.env.*
+!.env.example
+*.local
+.claude/settings.local.json
+
+# os / editor
+.DS_Store
+Thumbs.db

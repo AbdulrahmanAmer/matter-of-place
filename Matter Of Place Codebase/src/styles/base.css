@@ -1,0 +1,259 @@
+/* Reset, typography and the primitives every page shares. */
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 350;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+textarea {
+  resize: vertical;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+  text-indent: 0;
+}
+
+summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Page grid */
+.section-wrap,
+.hf-inner {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+/* Brand wordmark (share cover) */
+.brand-horizontal,
+.brand-stacked {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: 0.24em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.brand-horizontal {
+  font-size: 15px;
+}
+
+.brand-horizontal small {
+  font-size: 0.58em;
+  margin: 0 0.18em;
+}
+
+.brand-stacked {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 29px;
+}
+
+.brand-stacked small {
+  font-size: 11px;
+}
+
+/* Links and buttons */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 9px;
+  width: fit-content;
+  transition: gap 0.2s;
+}
+
+.text-link:hover {
+  gap: 20px;
+}
+
+.icon-button {
+  display: inline-flex;
+  padding: 6px;
+}
+
+.pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.pill-button:hover {
+  border-color: var(--foreground);
+}
+
+.pill-button.on {
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 26px;
+  background: var(--foreground);
+  color: var(--background);
+  border: 1px solid var(--foreground);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: opacity 0.2s;
+}
+
+.button.ghost {
+  background: none;
+  color: var(--foreground);
+}
+
+.button:disabled {
+  opacity: 0.35;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.breadcrumb a {
+  transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+  color: var(--foreground);
+}
+
+.breadcrumb span {
+  color: var(--accent);
+}
+
+.breadcrumb .crumb-current {
+  color: var(--muted-foreground);
+}
+
+/* Label over photography marking content as illustrative */
+.content-tag {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 1;
+  padding: 7px 10px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  font-weight: 500;
+}

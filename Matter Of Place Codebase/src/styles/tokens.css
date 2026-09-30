@@ -1,0 +1,42 @@
+/*
+ * Design tokens.
+ *
+ * Palette (brand brief): Obsidian #11110F, Warm Ivory #F5F2EB, Bone #EEEAE1,
+ * Sandstone #C9C0B2, Mineral Grey #575751.
+ *
+ * `--muted` is a surface (image and loading backgrounds), never a text colour.
+ * Body and secondary text use `--muted-foreground`.
+ *
+ * Breakpoints used across the stylesheet (max-width unless stated):
+ *   1100px  header navigation collapses into the menu
+ *    900px  two-column layouts stack
+ *    800px  footer and guide tables stack
+ *    700px  phone: heroes, grids, spacing
+ */
+:root {
+  --background: #f5f2eb;
+  --foreground: #11110f;
+  --secondary: #eeeae1;
+  --muted: #eeeae1;
+  --muted-foreground: #575751;
+  --accent: #c9c0b2;
+  --border: #c9c0b2;
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+
+  --font-sans: "Jost", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-ui: "Urbanist", sans-serif;
+  --font-ui-alt: "Epilogue", sans-serif;
+
+  /* Page grid: every section, the header and the footer share these two. */
+  --container: 1500px;
+  --container-pad: clamp(24px, 5vw, 86px);
+  --header-h: 84px;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --header-h: 70px;
+  }
+}

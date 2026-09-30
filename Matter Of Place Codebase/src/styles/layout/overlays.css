@@ -1,0 +1,78 @@
+/* Full-screen menu (phones and tablets) and the site search overlay. */
+
+.menu-panel {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  z-index: 45;
+  padding: 40px 24px;
+  background: var(--background);
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  font-family: var(--font-ui);
+}
+
+.menu-panel nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+
+.menu-panel nav a,
+.menu-panel nav button {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.menu-tagline {
+  font-family: var(--font-ui-alt);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in oklab, var(--foreground) 60%, transparent);
+  animation: fadeIn 0.2s ease;
+}
+
+.search-panel {
+  background: var(--background);
+  color: var(--foreground);
+  padding: 40px var(--container-pad) 70px;
+}
+
+.search-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-panel form {
+  display: flex;
+  border-bottom: 1px solid var(--foreground);
+  margin-top: 45px;
+}
+
+.search-panel input {
+  width: 100%;
+  outline: none;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 5vw, 60px);
+}
+
+.search-panel p {
+  color: var(--muted-foreground);
+  margin-top: 18px;
+}

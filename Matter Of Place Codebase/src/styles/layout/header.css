@@ -1,0 +1,156 @@
+/* Fixed header: three-column grid, brand centred, transparent over the home hero. */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-ui);
+}
+
+.site-header-overlay {
+  background: transparent;
+  border-bottom-color: color-mix(in oklab, var(--primary-foreground) 25%, transparent);
+  color: var(--primary-foreground);
+}
+
+.site-header-overlay::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 -28px 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--foreground) 26%, transparent),
+    transparent
+  );
+}
+
+.header-grid {
+  height: var(--header-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Non-home pages reserve the header's height so content starts below it. */
+.header-spacer {
+  height: calc(var(--header-h) + 1px);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 1.6vw, 28px);
+}
+
+.header-nav-left {
+  grid-column: 1;
+}
+
+.header-nav-right {
+  grid-column: 3;
+  justify-content: flex-end;
+}
+
+.header-nav a {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 6px 0;
+  border-bottom: 1px solid transparent;
+  transition:
+    opacity 0.2s,
+    border-color 0.2s;
+}
+
+.header-nav a:hover {
+  opacity: 0.6;
+}
+
+.header-nav a.active {
+  border-color: currentColor;
+}
+
+.header-brand {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+}
+
+.header-emblem {
+  width: 24px;
+  height: 28px;
+}
+
+.hf-wordmark {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.header-nav a.header-cta {
+  padding: 9px 14px;
+  border: 1px solid currentColor;
+}
+
+.header-nav a.header-cta.active {
+  border-color: currentColor;
+}
+
+.header-search,
+.header-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.header-search:hover,
+.header-toggle:hover {
+  background: color-mix(in oklab, currentColor 10%, transparent);
+}
+
+.header-toggle,
+.header-search-mobile {
+  display: none;
+}
+
+@media (max-width: 1280px) {
+  .header-nav {
+    display: none;
+  }
+
+  .header-toggle,
+  .header-search-mobile {
+    display: inline-flex;
+  }
+
+  .header-toggle {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .header-search-mobile {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .hf-wordmark {
+    display: none;
+  }
+}

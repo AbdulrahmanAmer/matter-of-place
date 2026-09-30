@@ -1,0 +1,218 @@
+/* Home: featured grid, dark markets band, professionals strip, home finder. */
+
+.featured {
+  padding-bottom: 130px;
+}
+
+.markets-feature {
+  background: var(--foreground);
+  color: var(--primary-foreground);
+  padding: 106px 0 120px;
+}
+
+.professionals-strip {
+  background: var(--secondary);
+  padding: 100px 0;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+
+.home-idea {
+  padding-top: 90px;
+  padding-bottom: 90px;
+  border-top: 1px solid var(--border);
+}
+
+.home-steps {
+  padding-bottom: 110px;
+}
+
+/* Numbered steps, used on Home and Property Exposure */
+.steps-list {
+  display: grid;
+  gap: 28px;
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+}
+
+.steps-list li {
+  display: grid;
+  gap: 8px;
+}
+
+.steps-list span {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--muted-foreground);
+}
+
+.steps-list strong {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.steps-list p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+
+.steps-row {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.offer-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.offer-row .fp-card {
+  margin: 0;
+}
+
+.home-submit {
+  background: var(--foreground);
+  color: var(--primary-foreground);
+  padding: 120px 0;
+  text-align: center;
+}
+
+.home-submit h2 {
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1;
+}
+
+.home-submit p {
+  max-width: 480px;
+  margin: 20px auto 36px;
+  line-height: 1.7;
+  opacity: 0.8;
+}
+
+.home-submit .button {
+  background: var(--primary-foreground);
+  color: var(--foreground);
+  border-color: var(--primary-foreground);
+}
+
+@media (max-width: 900px) {
+  .steps-row,
+  .offer-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .steps-row,
+  .offer-row {
+    grid-template-columns: 1fr;
+  }
+
+  .home-submit {
+    padding: 80px 0;
+  }
+}
+
+/* Natural-language home finder (Properties page) */
+.home-finder {
+  max-width: 900px;
+  padding-top: 10px;
+  padding-bottom: 70px;
+  margin-bottom: 60px;
+  border-bottom: 1px solid var(--border);
+}
+
+.home-finder h2 {
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.05;
+  margin: 14px 0 26px;
+}
+
+.home-finder form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.home-finder textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  font-size: 16px;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+
+.home-finder textarea:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+.finder-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 10px;
+}
+
+.finder-examples button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.finder-examples button:hover {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.finder-results {
+  margin-top: 40px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.finder-reasons {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 36px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.finder-reasons strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+@media (max-width: 700px) {
+  .featured {
+    padding-bottom: 80px;
+  }
+
+  .markets-feature {
+    padding: 80px 0;
+  }
+
+  .professionals-strip {
+    padding: 70px 0;
+  }
+
+  .home-finder form {
+    grid-template-columns: 1fr;
+  }
+}
