@@ -98,6 +98,7 @@ h3 {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: 0;
+  line-height: 1.1;
 }
 
 .eyebrow {

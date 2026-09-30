@@ -162,6 +162,11 @@
     color: var(--primary-foreground);
   }
 
+  /* Keep the last footer line clear of the fixed bar. */
+  body:has(.sticky-actions) .site-footer {
+    padding-bottom: 96px;
+  }
+
   .sticky-actions button {
     flex: 1;
     height: 100%;

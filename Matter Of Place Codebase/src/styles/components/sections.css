@@ -41,6 +41,7 @@
 .story-layout h2 {
   font-size: clamp(45px, 5vw, 76px);
   line-height: 1;
+  margin-bottom: 24px;
 }
 
 .story-layout .prose {
