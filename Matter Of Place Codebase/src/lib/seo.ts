@@ -30,7 +30,13 @@ export function pageHead({
   jsonLd,
   noindex,
 }: PageHeadInput) {
-  const fullTitle = title.endsWith(suffix) ? title : `${title}${suffix}`;
+  // The brand appears exactly once. Routes pass bare titles; the home route passes a title
+  // that starts with the brand, and the root passes the brand alone (GOTCHAS G-003).
+  const hasBrand =
+    title === siteConfig.name ||
+    title.startsWith(`${siteConfig.name} | `) ||
+    title.endsWith(suffix);
+  const fullTitle = hasBrand ? title : `${title}${suffix}`;
   return {
     meta: [
       { title: fullTitle },
