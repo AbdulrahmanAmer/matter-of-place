@@ -51,6 +51,13 @@ More: [job lifecycle](workspace/03-diagrams/img/architecture-3.png) · [publish 
 [recipe engine](workspace/03-diagrams/img/plans-b-3.png) · [weekly audit loop](workspace/03-diagrams/img/big-diagram-3.png) ·
 [who can change what](workspace/03-diagrams/img/automations-3.png)
 
+## Website essentials
+What every professional site must serve, and how consent and headers work here (plan B17).
+
+![Headers by route class](workspace/03-diagrams/img/essentials-1.png)
+![Consent flow](workspace/03-diagrams/img/essentials-2.png)
+![The files every site serves](workspace/03-diagrams/img/essentials-3.png)
+
 ## The database (designed, not yet created)
 Every table, column, permission and trigger is specified in [workspace/06-architecture/architecture.md](workspace/06-architecture/architecture.md) §3,
 and the migration files are listed in order in [workspace/05-plans/B2.md](workspace/05-plans/B2.md). Groups: catalog
