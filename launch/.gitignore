@@ -9,3 +9,7 @@ producer-run*.log
 01-launch-film/media-cache/
 ~$*
 *.log
+*.wav
+film/stills/
+film/product/
+film/media/

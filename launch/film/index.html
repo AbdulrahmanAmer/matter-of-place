@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Matter of Place, launch film</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400&display=block">
+<style>
+  :root { --obsidian: #11110f; --bone: #eeeae1; --ivory: #f5f2eb; --sandstone: #c9c0b2; --mineral: #575751; --warm-grey: #8b877f;
+    --serif: "Cormorant Garamond", Georgia, serif; --sans: "Jost", sans-serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--obsidian); }
+  body { position: relative; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; font-kerning: normal; }
+
+  .shot { position: absolute; inset: 0; overflow: hidden; visibility: hidden; }
+  .rig { position: absolute; inset: 0; overflow: hidden; }
+  .plane { position: absolute; inset: -6.5%; background-size: cover; background-position: center; will-change: transform, filter; }
+  .scrim { position: absolute; inset: 0; background: var(--obsidian); pointer-events: none; }
+  .fill { position: absolute; inset: 0; }
+  .ivory { background: var(--ivory); }
+  .obsidian { background: var(--obsidian); }
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* M1 mask lines */
+  .m1 .ln { display: block; overflow: hidden; padding: 0.04em 0.06em 0.16em; margin-bottom: -0.16em; }
+  .m1 .ln > span { display: inline-block; will-change: transform; }
+  .serif { font-family: var(--serif); font-weight: 400; }
+  .caps { font-family: var(--sans); font-weight: 300; text-transform: uppercase; white-space: nowrap; }
+  /* M3 two stacked weights */
+  .w { position: relative; display: inline-block; }
+  .w .w5 { position: absolute; left: 0; top: 0; font-weight: 500; opacity: 0; }
+
+  .rule { position: absolute; height: 1px; background: var(--sandstone); transform-origin: 50% 50%; }
+  .sweep { position: absolute; top: -60%; left: 0; width: 760px; height: 220%; pointer-events: none;
+    background: linear-gradient(90deg, rgba(238,234,225,0) 0%, rgba(238,234,225,.55) 50%, rgba(238,234,225,0) 100%); }
+  .half { position: absolute; inset: 0; overflow: hidden; }
+  .seq { position: absolute; inset: -3%; width: 106%; height: 106%; object-fit: cover; will-change: transform; }
+
+  /* product stage */
+  .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 50% 45%; }
+  .screen { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 50% 50%; will-change: transform, filter; }
+  .screen img.frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cursor { position: absolute; left: 0; top: 0; width: 30px; height: 30px; will-change: transform; }
+
+  .emblem path { will-change: transform; }
+  .wordmark { font-family: var(--sans); font-weight: 300; letter-spacing: 0.24em; white-space: nowrap; color: var(--bone); }
+  .wordmark small { font-size: 0.58em; margin: 0 0.12em; }
+  .wordmark .ch { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.05em; }
+  .wordmark .ch > span { display: inline-block; }
+
+  .tile { position: absolute; width: 480px; height: 270px; background-size: cover; background-position: center; will-change: transform; }
+</style>
+</head>
+<body>
+
+<!-- B1 · Obsidian, a Sandstone rule draws, a light passes -->
+<section class="shot" id="b1">
+  <div class="sweep" id="b1-sweep"></div>
+  <div class="rule" id="b1-rule" style="left:410px; width:1100px; top:540px;"></div>
+</section>
+
+<!-- B2 · the terrace at dusk; the rule opens into it -->
+<section class="shot" id="b2">
+  <div class="rig" id="b2-rig"></div>
+  <div class="obsidian" id="b2-top" style="position:absolute; left:0; right:0; top:0; height:540px;"><div class="rule" style="left:410px; width:1100px; bottom:0;"></div></div>
+  <div class="obsidian" id="b2-bot" style="position:absolute; left:0; right:0; bottom:0; height:540px;"><div class="rule" style="left:410px; width:1100px; top:0;"></div></div>
+</section>
+
+<!-- B3 · A property is more than an asset. -->
+<section class="shot" id="b3">
+  <div class="rig" id="b3-rig"></div>
+  <div class="scrim" style="opacity:.38"></div>
+  <div class="m1 serif" id="b3-text" style="position:absolute; left:150px; bottom:170px; font-size:112px; line-height:1.02; color:var(--bone);">
+    <span class="ln"><span>A property is</span></span>
+    <span class="ln"><span class="w"><span class="w4">more than an asset.</span><span class="w5">more than an asset.</span></span></span>
+  </div>
+</section>
+
+<!-- B4 · M13 -->
+<section class="shot obsidian" id="b4"></section>
+
+<!-- B5 · triplet: Tiburon water · Manhattan · Palm Beach loggia (M9 between) -->
+<section class="shot" id="b5c"><div class="rig" id="b5c-rig"></div></section>
+<section class="shot" id="b5b"><div class="half" id="b5b-l"></div><div class="half" id="b5b-r"></div></section>
+<section class="shot" id="b5a">
+  <div class="half" id="b5a-l"><img class="seq" id="b5a-seq-l" alt=""></div>
+  <div class="half" id="b5a-r"><img class="seq" id="b5a-seq-r" alt=""></div>
+</section>
+
+<!-- B6 · Place matters. then the place names -->
+<section class="shot obsidian" id="b6">
+  <div class="rig" id="b6-f1"></div><div class="rig" id="b6-f2"></div><div class="rig" id="b6-f3"></div>
+  <div class="scrim" id="b6-scrim" style="opacity:.5"></div>
+  <div class="sweep" id="b6-sweep"></div>
+  <div class="center">
+    <div class="m1 serif" id="b6-text" style="font-size:168px; line-height:1; color:var(--bone);"><span class="ln"><span>Place matters.</span></span></div>
+    <div style="position:relative; height:60px; width:1600px; margin-top:54px;">
+      <div class="caps" id="b6-n1" style="position:absolute; inset:0; text-align:center; font-size:36px; font-weight:400; color:var(--bone);">Tiburon</div>
+      <div class="caps" id="b6-n2" style="position:absolute; inset:0; text-align:center; font-size:36px; font-weight:400; color:var(--bone);">West Village</div>
+      <div class="caps" id="b6-n3" style="position:absolute; inset:0; text-align:center; font-size:36px; font-weight:400; color:var(--bone);">Palm Beach</div>
+      <div class="caps" id="b6-all" style="position:absolute; inset:0; text-align:center; font-size:36px; font-weight:400; color:var(--sandstone);">Tiburon &nbsp;·&nbsp; West Village &nbsp;·&nbsp; Palm Beach</div>
+    </div>
+  </div>
+</section>
+
+<!-- B7 · the threshold assembles, the wordmark masks in -->
+<section class="shot obsidian" id="b7">
+  <div class="fill" id="b7-cam" style="transform-origin:50% 50%;">
+    <svg class="emblem" id="b7-emblem" viewBox="0 0 68 76" style="position:absolute; left:810px; top:250px; width:300px; height:335px; color:var(--bone); overflow:visible;" fill="none">
+      <path id="b7-back" d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/>
+      <path id="b7-front" d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/>
+    </svg>
+    <div class="wordmark" id="b7-word" style="position:absolute; left:0; right:0; top:680px; text-align:center; font-size:64px; padding-left:0.24em;"></div>
+  </div>
+</section>
+
+<!-- B8 · the product -->
+<section class="shot obsidian" id="b8">
+  <div class="stage"><div class="screen" id="b8-screen"><img class="frame" id="b8-img" alt="">
+    <svg class="cursor" id="b8-cursor" viewBox="0 0 30 30"><path d="M4 2 L4 24 L10 18.5 L14 27 L17.5 25.5 L13.6 17.2 L21 17.2 Z" fill="#11110f" stroke="#f5f2eb" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </div></div>
+</section>
+
+<!-- B9 · three rooms, then nine properties; one grows to the frame -->
+<section class="shot" id="b9a"><div class="rig" id="b9a-rig"></div></section>
+<section class="shot" id="b9b"><div class="rig" id="b9b-rig"></div></section>
+<section class="shot" id="b9c"><div class="rig" id="b9c-rig"></div></section>
+<section class="shot ivory" id="b9">
+  <div class="fill" id="b9-grid" style="transform-origin:50% 50%;"></div>
+  <div class="fill" id="b9-grow" style="transform-origin:50% 50%;"><div class="rig" id="b9-rig"></div></div>
+</section>
+
+<!-- B10 · Selected. Edited. Published. Distributed. -->
+<section class="shot ivory" id="b10">
+  <div class="center"><div id="b10-row" style="display:flex; gap:44px; white-space:nowrap;"></div></div>
+</section>
+
+<!-- B11 · California · New York · Florida over a crane -->
+<section class="shot" id="b11">
+  <div class="rig" id="b11-rig"></div>
+  <div class="scrim" style="opacity:.42"></div>
+  <div class="caps" id="b11-text" style="position:absolute; left:0; right:0; top:236px; text-align:center; font-size:52px; font-weight:400; color:var(--bone);">California &nbsp;·&nbsp; New York &nbsp;·&nbsp; Florida</div>
+  <div class="rule" id="b11-rule" style="left:760px; width:400px; top:326px;"></div>
+</section>
+
+<!-- B12 · Exceptional property. Properly considered. -->
+<section class="shot obsidian" id="b12">
+  <div class="sweep" id="b12-sweep"></div>
+  <div class="center">
+    <div class="m1 serif" id="b12-text" style="font-size:124px; line-height:1.04; color:var(--bone); text-align:center;">
+      <span class="ln"><span>Exceptional property.</span></span>
+      <span class="ln"><span>Properly considered.</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- B13 · the lock -->
+<section class="shot obsidian" id="b13">
+  <div class="rig" id="b13-rig"></div>
+  <div class="scrim" style="opacity:.6"></div>
+  <div class="fill" id="b13-text">
+  <div class="fill" id="b13-cam" style="transform-origin:50% 46%;">
+    <svg class="emblem" viewBox="0 0 68 76" style="position:absolute; left:908px; top:300px; width:104px; height:116px; color:var(--bone); overflow:visible;" fill="none">
+      <path id="b13-back" d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/>
+      <path id="b13-front" d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/>
+    </svg>
+    <div class="wordmark" id="b13-word" style="position:absolute; left:0; right:0; top:470px; text-align:center; font-size:72px; padding-left:0.24em;"></div>
+    <div class="caps" id="b13-url" style="position:absolute; left:0; right:0; top:612px; text-align:center; font-size:26px; color:var(--sandstone);">matterofplace.com</div>
+    <div class="rule" id="b13-rule" style="left:890px; width:140px; top:680px;"></div>
+    <div class="caps" id="b13-omni" style="position:absolute; left:0; right:0; top:890px; text-align:center; font-size:16px; font-weight:400; color:var(--warm-grey);">A product of Omnikom</div>
+  </div>
+  </div>
+</section>
+
+<section class="shot obsidian" id="end"></section>
+
+<script type="module" src="./scene.js"></script>
+</body>
+</html>

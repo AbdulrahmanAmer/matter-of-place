@@ -1,0 +1,12 @@
+PASS  format 1920x1080                           1920x1080
+PASS  30 fps h264                                30.00 h264
+PASS  duration 60-80s                            72.6s
+PASS  motion coverage >= 85%                     90.9%
+PASS  longest static run <= 1.0s                 0.90s
+PASS  cuts 12-30                                 16
+PASS  avg shot 2.0-5.5s                          4.27s
+PASS  audio present                              yes
+PASS  loudness -18 +/-1.5 LUFS                   -18.12 LUFS
+PASS  true peak <= -1 dBTP                       -1.69 dBTP
+PASS  no sustained pitch (min flatness >= 0.15)  0.152
+GATE PASSED

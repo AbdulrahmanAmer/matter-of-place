@@ -143,3 +143,14 @@ NEXT
   (router defaultErrorComponent, Sentry in B1b, `resolve.tsconfigPaths`).
 - When the v2 film passes gate + review: send MP4 + contact sheet to CEO; then partner video v1 on the same engine;
   then deck v1 in the new grammar.
+
+## 2026-09-30 — video production PAUSED by CEO
+
+- Round 1 of the v2 launch film is done and gated (GATE PASSED, 72.6 s, 16 cuts, -18.12 LUFS); reviewer verdict
+  ANOTHER ROUND with fixes listed in launch/film/reviews/round-1.md. Rounds 2–3 were resumed then stopped by the CEO.
+- Producer session id for a later resume: ea3fa9fa-7767-4c67-865e-04b4d1cf9acd (`claude -p --resume`, effort high).
+  Brief for the resume is in the transcript and in P-017; re-issue it verbatim when production restarts.
+- Snapshot worktree launch/.site-main removed; v0 frames deleted; launch/film/frames empty.
+- Deliverables on disk: launch/film/matter-of-place-launch.mp4 (round 1), preview-720p-round1.mp4, contact-sheet.png,
+  engine in launch/engine/, deck v0 in launch/03-partner-deck/.
+- NEXT when unpaused: resume the session with the round-2/3 instruction; then partner video v1 on the engine; deck v1.
