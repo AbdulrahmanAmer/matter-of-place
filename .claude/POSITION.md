@@ -203,3 +203,10 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
 - Still to do in Cloudflare when B1b starts: API token (Workers + R2), R2 bucket, SSL/TLS Full (strict), Always HTTPS,
   Turnstile widget, rate-limit rule, WAF managed ruleset (B17/H1).
 - Next accounts with admin@: Supabase (B2), Resend (B5), Sentry (B1b), Google GA4/Search Console (B13).
+- Cloudflare zone hardening done 2026-10-01 from the dashboard: SSL Full (strict), Always Use HTTPS, minimum TLS 1.2,
+  TLS 1.3, Automatic HTTPS Rewrites, Opportunistic Encryption, Bot Fight Mode on, managed WAF ruleset (always active on
+  Free), Browser Integrity Check on, Speed recommendations all enabled (RUM web analytics, Speed Brain, 0-RTT, HTTP/2,
+  HTTP/3, Early Hints). HSTS deliberately NOT enabled until the site serves (L1 step 10).
+- Deferred to the slice that needs them, because each is a secret or needs a card: API token for Actions (B1b, CEO copies
+  it into creds/), R2 bucket (needs a payment method on file; free tier), Turnstile widget + secret (B3), rate-limit rule on
+  /api/public/* (B3), Dave as a member (when he has a Cloudflare login), usage alerts (B14 gauges cover it).
