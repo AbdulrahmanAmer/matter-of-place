@@ -45,7 +45,7 @@ flowchart TB
   M[pg_cron every minute] --> R[job runner: pop light jobs, dispatch heavy to GitHub Actions]
   D14[every 14 days] --> DG[digest.due → Place Notes draft → approve → send]
   SAT[Saturday morning, cloud routine] --> AU[mop-auditor: measure, report, patch PR]
-  DAY[daily] --> HE[health job: queues, channels, quotas, Resend bounces] & PR[prune analytics_events older than 13 months] & BK[backup: pg_dump to R2, 30 days kept]
+  DAY[daily] --> HE[health job: queues, channels, quotas, Resend bounces, uptime] & PR[retention: analytics 13 months, declined photos 90 days, inquiries anonymised 24 months, done jobs 30 days] & BK[backup: pg_dump to R2, 30 days kept] & TK[meta token refresh, alert 7 days before expiry]
   H6[every 6 hours] --> RC[reconcile: uploads marked, post metrics pulled, tokens checked]
   D3[every 3 days] --> KW[keep-warm read so the free Supabase project never pauses]
   WIN[posting windows per channel] --> PM[post_meta waits for the window before publishing]

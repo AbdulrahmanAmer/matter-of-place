@@ -81,7 +81,7 @@ Entry template
 - symptom: a key committed as `VITE_SOMETHING_SECRET` is visible in the built JS.
 - cause: Vite inlines every `VITE_*` value at build time.
 - rule: secrets go in `wrangler secret put` (server side) only; `VITE_*` is for public URLs and flags. The global `secret-scan` hook also checks writes.
-- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, INSTAGRAM_URL, TURNSTILE_SITE_KEY (public site key; the secret stays server side).
+- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, INSTAGRAM_URL, TURNSTILE_SITE_KEY, GA4_MEASUREMENT_ID (all public by nature; every secret stays server side).
 - added: 2026-09-30
 
 ## G-007 · Styling is tokens only: no hex, no utility classes
@@ -311,4 +311,10 @@ Entry template
 - symptom: two workers running `render.mjs` at once → puppeteer launch errors and `EBUSY` on the bunx cache; "5 failures" that had nothing to do with the diagrams.
 - rule: `render.mjs <file.md>` renders one file (added 2026-09-30); a worker renders only its own file and confirms the `img/` files exist; the orchestrator runs the full render once, alone, at the end.
 - proof: `node workspace/03-diagrams/render.mjs plans-a.md` → "done" with 0 failures while nothing else renders.
+- added: 2026-09-30
+
+## P-030 · A first planning pass misses the boring lanes: legal, privacy, rights, retention, rotation, concurrency
+- symptom: 20 plans and an architecture written in one day covered product and pipeline but not CCPA, consent, EXIF GPS in uploaded photos, optimistic locking, slug immutability, retention, secret rotation, incident runbook, cost alerts, dependency updates, performance budgets. 47 gaps found in a one-hour sweep (24 launch-blocking).
+- rule: before the first build of every wave, sweep the plans against this checklist: legal and privacy, rights and takedown, data integrity and retention, security and rotation, operations and incidents, delivery quality gates, growth plumbing. Fold findings into the documents themselves (architecture §10 now holds them); no side registers.
+- proof: `grep -c "Gap additions" workspace/05-plans/*.md` → 0 once integrated; architecture.md has §10.
 - added: 2026-09-30

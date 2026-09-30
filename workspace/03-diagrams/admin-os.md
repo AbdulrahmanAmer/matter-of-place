@@ -17,7 +17,10 @@ stateDiagram-v2
   AwaitingAssets --> Accepted: assets arrive
   Accepted --> InvoiceIssued: Issue invoice from template
   InvoiceIssued --> Scheduled: Mark paid + activate agent
+  Scheduled --> AgentReview: optional signed preview link to the agent
+  AgentReview --> Scheduled: agent approves or edits requested
   Scheduled --> Published: editor writes dossier, Publish
+  Published --> TakenDown: takedown request, 410 Gone, posts withdrawn
   Published --> AssetsPending: recipe runs: variants, cover, carousel, story, newsletter block, captions
   AssetsPending --> DistributionActive: Media Ops approves
   DistributionActive --> Completed: posts live, digest sent, metrics pulled

@@ -59,6 +59,10 @@ erDiagram
   channel_settings ||--o{ automation_revisions : history
   schedule_settings ||--o{ automation_revisions : history
   subscribers }o--o{ markets : interested_in
+  properties ||--o{ slug_history : renamed
+  redirects
+  subject_requests
+  retention_policies
 
   submissions {
     uuid id PK
