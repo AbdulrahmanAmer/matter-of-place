@@ -22,7 +22,7 @@ flowchart LR
 ## Site
 
 1. Build: `npm run build` produces `.output/` with `server/index.mjs` and `public/`.
-2. `wrangler.toml` (add at the repository root when leaving the Lovable preview):
+2. `wrangler.toml` (add at the app root; the build also emits `.output/server/wrangler.json` from nitro):
 
    ```toml
    name = "matter-of-place"
@@ -41,7 +41,7 @@ flowchart LR
 3. Deploy: `npx wrangler deploy`.
 4. Cache headers for HTML: `public, s-maxage=300, stale-while-revalidate=86400` (set in the Worker response or with a Cache Rule on the zone). Assets under `/assets/*` and `/media/*`: `immutable, max-age=31536000`.
 
-`src/server.ts` wraps the SSR handler with error reporting and CSRF checks that suit the Lovable preview; keep or simplify it, it is standard TanStack Start.
+The server entry is TanStack Start's standard one (there is no `src/server.ts`). Start installs CSRF protection for server functions by default, and a loader that throws renders a 500 page inside the site shell.
 
 ## API
 

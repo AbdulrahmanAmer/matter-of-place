@@ -5,6 +5,7 @@ gotcha bank, worker agents). Claude Code loads that file automatically when a se
 so nobody thinks the app has no instructions.
 
 Rules that apply to every edit in this folder:
+
 - `AGENTS.md` (same folder) holds the code conventions. Read it before touching `src/`.
 - `../GOTCHAS.md` holds the things that already broke or cost time; a hook pushes the relevant entries when you edit a protected file.
 - `../PROJECT-STATE.md` holds the agent-os stage. Stage 0 refuses writes under `src/`; the operator advances it.

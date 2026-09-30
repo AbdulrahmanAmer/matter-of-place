@@ -1,16 +1,3 @@
-<!-- LOVABLE:BEGIN -->
-
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-
-<!-- LOVABLE:END -->
-
 Architecture lives in `docs/` (start at `docs/README.md`). Rules to keep while editing:
 
 - Pages and components read and write only through `services` (`src/services/index.ts`, catalog via `src/lib/queries.ts`); never import `src/data/*` from routes, except pricing and FAQ copy. One variable (`VITE_API_BASE_URL`) switches the site to the API.
