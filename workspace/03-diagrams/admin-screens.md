@@ -67,9 +67,9 @@ sequenceDiagram
   F->>D: tx: state=Declined, reviewed_by, audit_log, events(submission.declined)
   D->>R: event
   R->>D: jobs(send_email declined)
-  D-->>U: job id; JobWatcher shows queued → done
+  D-->>U: job id, JobWatcher shows queued → done
   M-->>E: email delivered event via Resend webhook → timeline
-  Note over E,M: Accept is the same shape; then Issue invoice → invoice job (PDF to R2, email) → Mark paid → Activate → Scheduled
+  Note over E,M: Accept is the same shape, then Issue invoice → invoice job (PDF to R2, email) → Mark paid → Activate → Scheduled
 ```
 
 ## 3. Publish to channels (screens 8, 10, 12, 13)

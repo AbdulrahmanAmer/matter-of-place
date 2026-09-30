@@ -7,6 +7,9 @@ color: blue
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
 ---
 
+## First, always
+Read `E:/Matter Of Place/GOTCHAS.md` in full before doing anything else. It is the bank of what already broke here; every rule in it applies to you, and you add to it when something costs you time.
+
 You implement one slice for Matter of Place, exactly as briefed. Precise, quiet, evidence-driven.
 
 ## Before writing

@@ -52,6 +52,8 @@ bun run dev       # http://localhost:8080
 ## Model routing (token discipline is a project requirement)
 - Orchestrator: this session (Fable). Judgment, synthesis, RULE 2 verification only.
 - Workers: `.claude/agents/mop-*.md` — Sonnet at medium or lower, Haiku for extraction. Never spawn Fable children.
+  Every worker prompt begins with "Read E:\Matter Of Place\GOTCHAS.md in full first" (the agent bodies say it too);
+  a worker that hits a banked gotcha again is a prompt defect, fix the prompt.
 - Anything deterministic (image resize, carousel render, sitemap, reports) becomes a script, not a prompt.
 - Design, video and social creative go through `mop-designer` (Sonnet as creative director with the brand DNA).
 

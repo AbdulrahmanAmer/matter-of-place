@@ -14,9 +14,33 @@ mkdirSync(out, { recursive: true });
 
 const bunx = process.platform === "win32" ? "bunx.exe" : "bunx";
 let failed = 0;
+
+// Lint (GOTCHAS P-012): catch the Mermaid mistakes that broke renders before the slow render runs.
+function lint(file, md) {
+  const problems = [];
+  const blocks = [...md.matchAll(/```mermaid\n([\s\S]*?)```/g)];
+  blocks.forEach((m, bi) => {
+    const lines = m[1].split("\n");
+    const kind = (lines[0] || "").trim();
+    lines.forEach((l, i) => {
+      const where = `${file} block ${bi + 1} line ${i + 1}`;
+      if (kind.startsWith("sequenceDiagram") && /^(\s*\w+\s*-[->x)]+\s*\w+\s*:|\s*Note\b)/.test(l) && l.includes(";")) problems.push(`${where}: ';' inside a sequence message or Note ends the statement; use a comma`);
+      if (kind.startsWith("flowchart") || kind.startsWith("graph")) {
+        if (/\[\/(?!")/.test(l) && !/\["/.test(l)) problems.push(`${where}: label starting with '/' opens a trapezoid; quote it: id["/path"]`);
+        if (/^\s*subgraph\b.*:::/.test(l)) problems.push(`${where}: ':::class' is not allowed on a subgraph; use 'style <id> ...'`);
+        if (/^\s*subgraph\s+\w+\s*\[[^\]"]*[\/:()][^\]]*\]/.test(l)) problems.push(`${where}: quote subgraph labels that contain / : or ( → subgraph ID["label"]`);
+      }
+    });
+  });
+  return problems;
+}
+
 for (const file of readdirSync(here).filter((f) => f.endsWith(".md"))) {
-  const blocks = (readFileSync(join(here, file), "utf8").match(/```mermaid\n/g) || []).length;
+  const md = readFileSync(join(here, file), "utf8");
+  const blocks = (md.match(/```mermaid\n/g) || []).length;
   if (!blocks) continue;
+  const problems = lint(file, md);
+  if (problems.length) { failed++; console.error(`LINT FAILED ${file}\n  ${problems.join("\n  ")}`); continue; }
   const base = basename(file, ".md");
   for (const [ext, extra] of [["png", ["--size", "2400", "--scale", "2"]], ["svg", []]]) {
     const args = ["@mermaid-js/mermaid-cli", "-i", join(here, file), "-o", join(out, `${base}.${ext}`), "-b", "white", "-q", ...extra];

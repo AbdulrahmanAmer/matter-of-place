@@ -205,7 +205,8 @@ Entry template
 - added: 2026-09-30
 
 ## P-012 · Mermaid quirks that broke renders this session (extends P-004)
-- `;` inside a sequence-diagram message ends the statement ("Expecting … got 'NEWLINE'"): use a comma.
+- enforced-by: `workspace/03-diagrams/render.mjs` lint (fails before rendering and prints file, block and line).
+- `;` inside a sequence-diagram message **or a `Note` line** ends the statement ("Expecting … got 'NEWLINE'"): use a comma. Happened three times on 2026-09-30 (big-diagram, admin-screens ×2).
 - `[/` at the start of a node or subgraph label opens a trapezoid shape ("got 'TRAPSTART'"): quote the label, `subgraph ADMIN["/admin › Automation"]`.
 - `:::class` on a `subgraph` line is invalid: use `style <id> …`.
 - rule: run `node workspace/03-diagrams/render.mjs` before claiming a diagram is done; a failure prints the parser's line number, which counts from the block's first line.
