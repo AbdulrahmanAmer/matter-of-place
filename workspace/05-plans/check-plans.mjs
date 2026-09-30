@@ -27,7 +27,7 @@ for (const f of plans) {
   for (const m of s.matchAll(/`((?:submission|invoice|payment|property|asset|digest|inquiry|subscriber|health)\.[a-z_]+)`/g))
     if (!events.has(m[1]) && !allow.has(m[1]) && !/\.(ts|tsx|json|spec|test|fixture|example|pdf|sql|mjs)$/.test(m[1])) errors.push(`${f}: event \`${m[1]}\` is not in the catalog (${events.size} events)`);
   for (const m of s.matchAll(/(\[?)`((?:render|post|queue|notify|webhook|bump|purge)_[a-z_]+)`/g))
-    if (m[1] !== "[" && !steps.has(m[2]) && !/_(error|receipts|at|by|id|status|count|add)$/.test(m[2])) errors.push(`${f}: step \`${m[2]}\` is not in the step catalog`);
+    if (m[1] !== "[" && !steps.has(m[2]) && ![...steps].some((st) => m[2].startsWith(st + "_")) && !/_(error|receipts|at|by|id|status|count|add)$/.test(m[2])) errors.push(`${f}: step \`${m[2]}\` is not in the step catalog`);
   const filesSec = (s.split(/^## Files/m)[1] || "").split(/^## /m)[0];
   for (const m of filesSec.matchAll(/`((?:src|supabase|scripts|tests|\.github|docs|wrangler|public)[^`\s]*\.[a-z]+)`[^\n]*/g))
     if (/\b(create|new)\b/i.test(m[0]) && !/\b(change|edit|extend|modify|update|add)\b/i.test(m[0])) (created[m[1]] ??= new Set()).add(f);
