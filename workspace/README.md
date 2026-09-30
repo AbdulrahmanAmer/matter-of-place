@@ -7,7 +7,8 @@
 | `01-site-index/content-inventory.md` | Properties, markets, stories, products, FAQ, domain types, assets |
 | `01-site-index/appendix-data-copy.md` | Verbatim market and story data |
 | `02-tech-stack/tech-stack.md` | Recommended stack and decisions D1–D13 |
-| `03-diagrams/big-diagram.md` | System map, publish-a-listing sequence, audit loop, notebook tree (Mermaid) |
+| `03-diagrams/img/*.png` | **The diagrams as pictures** (system map, publish-a-listing sequence, audit loop, notebook tree) |
+| `03-diagrams/big-diagram.md` | Mermaid source for those pictures; `render.mjs` regenerates `img/` |
 | `04-completion-map/completion-map.md` | Stages and candidate build slices to production |
 | `audits/` | Weekly reports from `mop-auditor` (created on first run) |
 

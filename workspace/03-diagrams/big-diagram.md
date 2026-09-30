@@ -1,7 +1,15 @@
 # The big diagram — Matter of Place end to end (DRAFT)
 
-Mermaid; renders on GitHub and in most markdown viewers. Solid boxes exist today; dashed boxes are not built.
-Sub-diagrams follow for the three flows the notebook page asks about: publish a listing, generate everything, audit and upgrade.
+**Pictures (open these, not the code):**
+- [img/big-diagram-1.png](img/big-diagram-1.png) — the whole system map
+- [img/big-diagram-2.png](img/big-diagram-2.png) — how an admin deploys a listing, step by step
+- [img/big-diagram-3.png](img/big-diagram-3.png) — the weekly audit and upgrade loop
+- [img/big-diagram-4.png](img/big-diagram-4.png) — the notebook page as a tree
+
+SVG versions sit next to each PNG. After editing any diagram below, run `node render.mjs` in this folder to refresh the pictures.
+
+Solid boxes exist today; dashed boxes are not built. Sub-diagrams cover the three flows the notebook page asks
+about: publish a listing, generate everything, audit and upgrade.
 
 ## 1. System map
 
@@ -28,7 +36,7 @@ flowchart TB
     store[(Storage: submissions bucket, signed uploads)]
   end
 
-  subgraph GEN[Content generation: scripts first, AI only for words]:::todo
+  subgraph GEN[Content generation: scripts first, AI only for words]
     og[OG image]
     car[IG carousel 1080x1350]
     story[IG story 1080x1920]
@@ -38,14 +46,14 @@ flowchart TB
     approve{Editor approval}
   end
 
-  subgraph OUT[Distribution]:::todo
+  subgraph OUT[Distribution]
     ig[Instagram + Facebook: Meta Graph API]
     pin[Pinterest / LinkedIn: month two]
     resend[Resend: Place Notes broadcast + transactional]
     prog[Programmatic media: display, native, OLV, CTV, DOOH]
   end
 
-  subgraph MONEY[Commercial]:::todo
+  subgraph MONEY[Commercial]
     stripe[Stripe Checkout after acceptance + webhook]
     omni[Omnikom handoff webhook: inquiries, attribution]
   end
@@ -80,6 +88,9 @@ flowchart TB
   prog -.->|campaign tier only| OUT
 
   classDef todo stroke-dasharray: 5 5;
+  style GEN stroke-dasharray: 5 5
+  style OUT stroke-dasharray: 5 5
+  style MONEY stroke-dasharray: 5 5
 ```
 
 ## 2. How an admin deploys a listing (the question on the notebook page)

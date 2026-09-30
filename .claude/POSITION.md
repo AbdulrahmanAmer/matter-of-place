@@ -31,9 +31,18 @@ FOUND (not fixed — stage 0 forbids src edits)
   do not render. Owner input.
 - README says Vite 7; package.json pins vite 8.1.5.
 
+DONE (later in the same session)
+- Git: repo root is `E:\Matter Of Place` (workspace + codebase). `.gitattributes` forces LF; `core.autocrlf false`.
+  Initial commit 8dd6f26. Private GitHub repo https://github.com/AbdulrahmanAmer/matter-of-place, branch main, pushed.
+  D13 is therefore answered: this is the repo. Lovable is NOT connected to it; if Lovable's GitHub sync is wanted later,
+  Lovable needs the app at a repo root, which this layout does not give it (decide then).
+- Diagrams: all 4 Mermaid blocks parse (checked in the browser with mermaid@11). Diagram 1 had `:::todo` on subgraphs,
+  which Mermaid rejects; replaced with `style <id> stroke-dasharray`. `workspace/03-diagrams/render.mjs` renders every
+  block to PNG + SVG in `workspace/03-diagrams/img/` (operator needs pictures, not Mermaid source).
+
 BLOCKED / WAITING ON OPERATOR
-- No `.git` in the codebase folder and no GitHub remote known → CI, deploys from git, code review plugins on PRs.
-- Decisions D1–D13 in PROJECT-STATE.md (deploy target, API placement, email, payments, social platforms, audit cadence, domain).
+- Decisions D1–D12 in PROJECT-STATE.md (deploy target, API placement, email, payments, social platforms, audit cadence).
+- Operator asked for an opinion on a GOTCHAS.md bank before it is built; answer given in chat 2026-09-30, not yet built.
 
 NEXT
 - Operator reads workspace/02-tech-stack/tech-stack.md and answers the decisions; then STAGE → 2 (system design) and

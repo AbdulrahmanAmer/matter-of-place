@@ -9,6 +9,8 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
   `AGENTS.md` holds the code conventions; read it before any edit under `src/`. `docs/` there is the architecture
   (API contract, data model, schema.sql, caching, deploy). `npm run check` must pass.
 - `workspace/` — our maps: `01-site-index` (pages, wording, content), `02-tech-stack`, `03-diagrams`, `04-completion-map`.
+  The operator reads pictures, not Mermaid: every diagram ships as PNG + SVG in `03-diagrams/img/` via `node render.mjs`
+  (run it after any diagram edit; send the PNGs with SendUserFile).
 - `PROJECT-STATE.md` — agent-os stage + decisions. Stage 0 denies writes under `src/`; the operator advances the line.
 - `.claude/POSITION.md` — position file, injected on compact/resume. Append a block when a unit of work closes.
 - `.mcp.json` — codebase-memory graph (project `E-Matter Of Place-Matter Of Place Codebase`). Use it for code questions;
