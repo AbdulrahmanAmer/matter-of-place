@@ -10,7 +10,7 @@ The brand is a quiet editorial publication with a five-colour palette and two ty
 
 Styling is plain CSS organised by responsibility under `src/styles/`: tokens, base reset and typography, layout (header, overlays, footer), components, pages, motion. All colour, font and grid values are custom properties in `tokens.css`. Components carry semantic class names.
 
-`tailwindcss` and `@tailwindcss/vite` remain installed only because the Lovable Vite preset lists them as peer dependencies; no stylesheet imports Tailwind. They can be removed together with that preset when the project moves to a plain Vite config.
+`tailwindcss` and `@tailwindcss/vite` were removed on 2026-09-30 together with the Vite preset that had listed them as peer dependencies; no stylesheet ever imported Tailwind.
 
 ## Consequences
 

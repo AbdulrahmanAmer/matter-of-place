@@ -9,13 +9,14 @@ This repository is the complete frontend: every screen, the content model, the w
 - React 19, TanStack Start (SSR) and TanStack Router, TanStack Query for reads
 - TypeScript in strict mode, Zod for the write contracts shared with the API
 - Plain CSS with design tokens (no utility framework)
-- Vite 7, built for Cloudflare Workers through Nitro
+- Vite 8 (plain config), built for Cloudflare Workers through Nitro
+- Vitest for unit tests
 
 ## Getting started
 
 ```bash
-npm install
-npm run dev           # http://localhost:8080
+bun install            # or: npm install
+bun run dev            # or: npm run dev  ->  http://localhost:8080
 ```
 
 Optional: point the site at an API.
@@ -28,15 +29,18 @@ Without `VITE_API_BASE_URL` the site serves the content in `src/data/`, and ever
 
 ## Scripts
 
-| Command                                   | Purpose                                   |
-| ----------------------------------------- | ----------------------------------------- |
-| `npm run dev`                             | development server                        |
-| `npm run build`                           | production build into `.output/`          |
-| `npm run preview`                         | serve the production build                |
-| `npm run typecheck`                       | TypeScript, no emit                       |
-| `npm run lint` / `npm run lint:fix`       | ESLint (with Prettier as a rule)          |
-| `npm run format` / `npm run format:check` | Prettier                                  |
-| `npm run check`                           | typecheck, lint and format check together |
+Every `npm run <script>` below also works as `bun run <script>`.
+
+| Command                                   | Purpose                                 |
+| ----------------------------------------- | --------------------------------------- |
+| `npm run dev`                             | development server                      |
+| `npm run build`                           | production build into `.output/`        |
+| `npm run preview`                         | serve the production build              |
+| `npm run typecheck`                       | TypeScript, no emit                     |
+| `npm run lint` / `npm run lint:fix`       | ESLint (with Prettier as a rule)        |
+| `npm run format` / `npm run format:check` | Prettier                                |
+| `npm run test`                            | Vitest unit tests (`tests/unit`)        |
+| `npm run check`                           | typecheck, lint, format check and tests |
 
 ## Project layout
 
@@ -50,10 +54,11 @@ src/hooks       filters, modal, async action, view tracking, scroll
 src/components  brand, layout, site, forms, filters, property, search
 src/routes      one file per URL
 src/styles      tokens, base, layout, components, pages, motion
+tests           vitest unit tests (playwright later)
 docs            architecture, API contract, database schema, deployment, decisions
 ```
 
-Full map and conventions: [docs/architecture/frontend.md](docs/architecture/frontend.md).
+Full map and conventions: [docs/architecture/frontend.md](docs/architecture/frontend.md). How every kind of change is added: [docs/HOW-TO-ADD.md](docs/HOW-TO-ADD.md).
 
 ## Documentation
 

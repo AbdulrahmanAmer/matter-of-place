@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
-import { reportLovableError } from "../../lib/lovable-error-reporting";
 
 /** Rendered by the root route when a page fails to load or render. */
 export function RouteError({ error, reset }: ErrorComponentProps) {
@@ -8,7 +7,6 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
 
   useEffect(() => {
     console.error(error);
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (

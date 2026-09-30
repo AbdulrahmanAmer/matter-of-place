@@ -1,3 +1,5 @@
+> These docs are the MVP sketch. The approved spec is `../../workspace/02-tech-stack/tech-stack.md`: read the sketch for intent, build from the spec.
+
 # Matter of Place documentation
 
 Everything a developer needs to run the frontend, build the backend it expects, and deploy the pair on Cloudflare with a Supabase database.

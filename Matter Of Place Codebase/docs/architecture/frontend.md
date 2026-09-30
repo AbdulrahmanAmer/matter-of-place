@@ -6,7 +6,7 @@
 src/
   env.d.ts                     typed VITE_* variables
   router.tsx                   router factory with the QueryClient context
-  start.ts, server.ts          TanStack Start entry points (SSR error wrapper)
+  (no start.ts / server.ts)    TanStack Start default entries; CSRF middleware installed by Start
   styles.css                   stylesheet entry: imports styles/*
   config/site.ts               name, URLs, contact and legal details (rendered only when present)
   domain/                      types + Zod contracts, no runtime dependencies besides zod
