@@ -168,3 +168,15 @@ DONE
 OPEN
 - Q13–Q16 for the CEO (PROJECT-STATE). Stage: 3 (BUILD). Next slice by PLAN.md order: B1b (repo and delivery).
 - Diagram images from the final clean render to commit once it finishes.
+
+## 2026-09-30 — all questions answered; production starts next session with B1b
+
+- Q13–Q16 → S43–S46. Owner inputs → S47 (Cloudflare exists, domain at Namecheap, Meta via partner, rest to be created
+  with the CEO typing credentials; admin@matterofplace.com via Email Routing; entity, phone, Instagram, payment methods deferred).
+- Overrides applied: B3b coming-soon = type only, no photographs; B13 robots = allow all AI crawlers.
+
+NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types credentials and card details):
+1. Cloudflare: add zone matterofplace.com, change Namecheap nameservers, Email Routing admin@ → CEO Gmail, API token (Workers + R2), R2 bucket.
+2. Sentry account (free) with admin@; Supabase org + `mop-dev` project; Resend account (domain records into Cloudflare).
+3. GitHub Actions secrets; then run slice B1b from workspace/05-plans/B1b.md with mop-builder; orchestrator re-verifies.
+4. Then B2 → B3 → B3b → B4 per PLAN.md.

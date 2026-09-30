@@ -8,13 +8,8 @@ enforcement: deny
 
 ## OPEN DECISIONS
 
-From the plan pass (`workspace/05-plans/ASSUMED.md` §B):
-### Q13. Coming-soon pages: keep illustrative market/region photographs on production with the tag, or type only? — UNDECIDED (recommended: keep, tagged)
-### Q14. AI crawlers: allow retrieval bots, refuse training bots? — UNDECIDED (recommended: yes)
-### Q15. Review decline-reason and email copy now, or after the first build in the admin editor? — UNDECIDED (recommended: after)
-### Q16. Agent daily decision cap 25 and no agent auto-approval of channels for 60 days? — UNDECIDED (recommended: keep)
-
-Q1–Q12 were answered by the CEO in session on 2026-09-30 (S22–S33).
+None. Q1–Q16 answered by the CEO on 2026-09-30 (S22–S33, S43–S46). Owner inputs status in S47.
+Stage 0 gate met; stage 2 gate met (PLAN.md read and sliced); STAGE stays 3 (BUILD). Production starts next session with B1b.
 
 Owner inputs (not decisions): Omnikom legal entity name + registered address, contact email + phone, Instagram handle,
 first editors' emails and roles, Meta Business access, Namecheap purchase of matterofplace.com, invoice template details
@@ -62,6 +57,11 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
 | S37 | **Motion engine for all video**: GSAP (choreography, split text, SVG draw) + Three.js (layered photographs, camera moves, light) + Web Audio/Tone.js for sound synthesis only, captured frame by frame in headless Chrome, encoded with ffmpeg. Launch-grade work runs Opus at high effort through a render → gate → fresh-eyes review loop (three rounds minimum). Restraint applies to palette, type and copy, not to motion | 2026-09-30 | CEO: v0 film looked like a slideshow; Anthropic-launch level wanted, all native code |
 | S38 | **Agents as staff.** The admin platform is operable by AI agents until humans are hired: every admin action exists as an authenticated server function with the same role checks, so an agent account (role + `actor_kind = agent`) can review, decide, write dossiers, approve assets and adjust automations through the same paths humans use; every action is audited with the actor; automations are adjustable by the CTO session on request at any time. Planning, specs and architecture for this are written by the orchestrator itself, no worker agents (CEO 2026-09-30) | 2026-09-30 | CEO: end-to-end automations adjustable freely; hire AI agents to work the portal until humans exist |
 | S42 | Usage split: Fable keeps judgment (decisions, architecture, review, verification) at medium effort; Sonnet 5.5 workers at medium write the bulk (slice plans, diagrams, visual fixes) from the written architecture and screen specs; every worker result is re-verified by the orchestrator. Supersedes the "no worker agents" clause of S38 | 2026-09-30 | CEO: weekly usage; Sonnet is about a third of the cost per token |
+| S43 | Q13 Coming-soon pages show **no illustrative photographs**: type only on Bone/Ivory, the market name, the coming-soon statement and the interest signup. Illustrative imagery never reaches production (overrides ASSUMED A9's photo note; B3b updated) | 2026-09-30 | CEO: "coming soon is more trustworthy" |
+| S44 | Q14 AI crawlers: **allow everything** in robots (retrieval and training bots); B13's AI-policy step becomes "no AI-specific disallow rules" | 2026-09-30 | CEO choice |
+| S45 | Q15 Decline reasons and email templates are reviewed after the first build, in the admin editor with previews | 2026-09-30 | CEO |
+| S46 | Q16 Agent guardrails kept for the first 60 days: 25 decisions/day per agent, agents cannot switch a channel to automatic | 2026-09-30 | CEO |
+| S47 | Owner inputs status: Cloudflare account exists; matterofplace.com bought at Namecheap; Meta Business is the partner's (access on request); Supabase, Resend, Sentry, Google accounts do not exist yet and the CTO drives the browser to create the dev ones with the CEO typing credentials; owner email will be admin@matterofplace.com via Cloudflare Email Routing; legal entity DEFERRED (placeholder until the lawyer confirms; invoicing blocked until set, A4); no public phone, email only; Instagram handle DEFERRED (partner creates); first admin user = the CEO as admin + chief_editor, agents fill other roles; invoice payment methods DEFERRED to admin Settings | 2026-09-30 | CEO answers, round 2–4 |
 | S39 | Video production paused (CEO). Round-1 launch film kept; resume id in POSITION.md | 2026-09-30 | back to architecture and the site |
 | S40 | Visual pass on the site: fix and polish inside the current identity (misalignments, spacing, type scale, component consistency, weak sections), desktop and phone; no redesign | 2026-09-30 | CEO answer Q-visual |
 | S41 | Plan depth: every slice to file level (contract, files, data changes, verification); every admin screen as a written spec (purpose, elements, actions, states, permissions) plus flow diagrams; no HTML wireframes for now | 2026-09-30 | CEO answer Q-plan |

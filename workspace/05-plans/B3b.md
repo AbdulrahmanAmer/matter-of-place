@@ -1,5 +1,7 @@
 # B3b — Coming-soon mode
 
+
+> **CEO override 2026-09-30 (S43):** coming-soon pages show NO illustrative photographs. Type only on Bone/Ivory: market name, the coming-soon statement, the interest signup. Hide market and region images while `coming_soon` is true. Any step below that keeps photographs on production is superseded.
 Lane: Foundation · Stage: 3 BUILD · Owner agent: mop-designer for step 1 (layout decisions and copy, no HTML wireframes, S41), then mop-builder for steps 2 to 10 · Depends on: B2 (`markets.coming_soon`, `settings`, `subscribers.markets`, seed), B3 (live catalog, `visibility.ts` pass-through, `subscriberSchema.markets`, `Market.comingSoon`, `analyticsEvents`) · Unblocks: B4 (coming-soon e2e project), B5 (market-interest confirmation copy), B7 (screen 15 toggle and interest count, screen 24 global switch), B13 (SEO for empty pages), Stage 5 launch
 
 Landing order for batch A: B3b starts after B3 step 5 (steps 1 to 3 need only the contract) and finishes after B3 step 12.

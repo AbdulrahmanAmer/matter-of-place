@@ -8,15 +8,15 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 
 | # | Setup | Where | Needed by |
 |---|---|---|---|
-| A1 | Buy `matterofplace.com` at Namecheap; Cloudflare account; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
+| A1 | DONE: domain bought at Namecheap, Cloudflare account exists. NEXT SESSION: add the zone, point nameservers, API token; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
 | A2 | Supabase organisation; two projects: `mop-dev`, `mop-prod` (free) | supabase.com | B2 |
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |
-| A5 | Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
+| A5 | Via the CEO's partner (access on request): Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
 | A6 | Sentry account (free) | sentry.io | B1 |
 | A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
 | A8 | GitHub: branch protection on `main`, Actions secrets from tech-stack §4 | github.com | B1 |
-| A9 | Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
+| A9 | DEFERRED (S47): legal entity placeholder, email only (no phone), Instagram after the partner creates it, CEO is admin + chief_editor. Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
 | A10 | Lovable: disconnect, or accept it never syncs this repo | lovable.dev | B1 |
 
 ## Part B — Build slices, in order (owner agent in brackets; each ends with something observed)

@@ -29,13 +29,13 @@ written). Section B: needs the CEO. Section C: unproven until built (each plan h
 | A20 | Backups encrypted with `age`; restore rehearsal on local Postgres; DMARC starts at `p=none` | H1 |
 | A21 | Omnikom endpoint contract v1 as drafted; step 7 BLOCKED until Omnikom supplies URL and secret | B15 |
 
-## B. Needs the CEO (answer in chat; I record them in PROJECT-STATE)
-| # | Question | Recommendation |
+## B. Answered by the CEO (2026-09-30; recorded as S43–S46)
+| # | Question | Answer |
 |---|---|---|
-| Q13 | Coming-soon pages: keep the illustrative market and region photographs on production with the "illustrative imagery" tag, or show only type on Bone until real photography exists? | Keep photographs, tagged: the pages must still feel like the publication |
-| Q14 | AI crawlers: allow retrieval bots (search and answer engines) and refuse training bots in robots.txt? | Yes; it protects the archive while staying citable |
-| Q15 | Decline-reason list and the email/template copy drafted in B5 and B8b: review now or after the first build? | After the first build, in the admin editor, so you review rendered emails not markdown |
-| Q16 | Daily agent decision cap 25 and agents never auto-approve channels: keep? | Keep for the first 60 days |
+| Q13 | Coming-soon pages with or without illustrative photographs? | **Without.** Type only; no illustrative imagery on production. B3b's viewer statement becomes the coming-soon statement; market/region photos are hidden while `coming_soon` is true. |
+| Q14 | AI crawler policy? | **Allow everything.** B13 drops the AI-specific disallow rules. |
+| Q15 | Review email copy now or after build? | After the first build, in the admin editor. |
+| Q16 | Agent cap and no auto-switching of channels? | Keep both for 60 days. |
 
 ## C. Unproven until built (each plan measures it in a named step)
 Worker 10 ms CPU limit for SSR and admin (B1b, B3, H1) · `pg_dump` via session pooler and restore (B1b, H1) · Actions
