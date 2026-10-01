@@ -495,3 +495,15 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Operator asked "did you finish everything we need to setup in resend tho?". Checked against the plans: no. Added: full-access key `mop-dev-full` now in `.env` as `RESEND_API_KEY` (the sending-only key cannot reach audiences, broadcasts, contacts, domains or webhooks: ruling H28), and the dev webhook (id 0a3d4d33-f723-4912-ba64-cf8bd262e7a0, seven events, enabled) with its signing secret in `.env` as `RESEND_WEBHOOK_SECRET`. Facts in ASSUMED E17.
 - Left for the build, by design: Supabase function secrets and `PREVIEW_WORKER_SECRETS_JSON` (B5 steps 5, 6), Auth SMTP (B5 step 8), production key and webhook (L1). The unused sending-only key `mop-dev` is still in the dashboard.
 - AFTER THE FOLD: bring B5 (steps 5, 6: no longer BLOCKED on setup A3; key scope per H28), B11 step 8, completion-map A3, `ready.mjs` and PLAN.md in line with E17 and H28.
+
+## 2026-10-02 02:40 EDT · Mail setup complete on both sides; two new requirements from the operator (S55, S56)
+- Resend: three verified domains (root, `notify`, `notes`), ruling H29 (automatic mail from `notify`, bulk from `notes`,
+  reply_to `hello@`), full-access dev key and dev webhook (E17, E18, H28).
+- Zoho: aliases `hello@`, `privacy@`, `billing@`, `security@` on the `admin@` mailbox (E19).
+- Google DMARC report of 30 September read: 2 messages from Zoho, DKIM and SPF pass. Nothing to fix.
+- NEW SCOPE (S55), checked missing from the plans: (1) homeowners as submitters (the form demanded a brokerage), (2) one
+  person record per submitter with a People list and a profile page in the admin. To do right after the fold workflow
+  returns (its last agent is the only writer under workspace/ until then): one Opus integrator designs both into B2, B3,
+  B5, B7, the site index and admin-screens, with trace items; it can run while B1b builds (B1b does not touch them).
+- Also to fold after the workflow returns: H28, H29, E17 to E19 into B5, B11, B16, B17, L1, completion-map A3,
+  `ready.mjs` (Resend no longer a WAIT) and PLAN.md's list of operator inputs.
