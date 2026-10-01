@@ -414,3 +414,10 @@ Entry template
 - rule: stop a background `wrangler dev` by its parent. In PowerShell: find `node.exe` or `bun.exe` whose command line contains `wrangler` and the port, stop those, then stop any `workerd`. Filter by process name so the command does not match and kill its own shell (that happened once in this project with a pattern match on the command line). Confirm with `Get-NetTCPConnection -LocalPort <port> -State Listen`.
 - proof: after stopping two `node.exe` parents, `listeners on 8799: 0` and `workerd left: 0`.
 - added: 2026-10-01
+
+## P-043 · "Is the how documented for every automation" was answered from memory; the check found two steps with no code file
+- symptom: the operator asked whether the plans say, in code terms, what makes each automation work. An audit of the 17 step types against the plans found that no plan named the step module for `render_variants` (B8b said B9 owns it, B9 said B2 owns it, B2 only had the image library) or for `render_og_static` (script named, step module not). Two more owners were ambiguous (`purge_cache` "B3 or B13", `build_newsletter_block` B11 in the table but B9 in the files). The project had been declared ready to build.
+- cause: `check-plans.mjs` verified that step names were in the catalog, not that each catalog step had an implementing file in some plan. Ownership stated in two plans was never cross-checked.
+- rule: an automation is documented when four things are named in a plan: the event that starts it, the recipe row (B8b seed), the step's code file `src/server/jobs/steps/<name>.ts`, and a proof command. `check-plans.mjs` now fails when a catalog step has no file named in any plan. Answer "is X covered" questions by running a check, not by describing the design.
+- proof: `node workspace/05-plans/check-plans.mjs` prints OK; deleting the `render-variants.ts` line from B9.md makes it print `no plan names the code file of step render_variants`.
+- added: 2026-10-01

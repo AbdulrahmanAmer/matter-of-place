@@ -35,6 +35,9 @@ for (const f of plans) {
 const seed = readFileSync(join(here, "B8b.md"), "utf8");
 for (const e of events) if (!seed.includes("`" + e + "`")) errors.push(`B8b.md: recipe seed has no row for \`${e}\``);
 for (const [p, fs] of Object.entries(created)) if (fs.size > 1) warnings.push(`created by more than one plan: ${p} ← ${[...fs].join(", ")}`);
+// every catalog step must have its code file named in a plan (GOTCHAS P-043): steps/<kebab-name>.ts
+const allPlans = plans.map((f) => readFileSync(join(here, f), "utf8")).join("\n");
+for (const st of steps) if (!allPlans.includes(st.replace(/_/g, "-") + ".ts")) errors.push(`no plan names the code file of step \`${st}\` (steps/${st.replace(/_/g, "-")}.ts)`);
 
 for (const w of warnings) console.log("WARN  " + w);
 for (const e of errors) console.log("ERROR " + e);

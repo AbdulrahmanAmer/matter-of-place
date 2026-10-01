@@ -24,14 +24,14 @@ The 17 step types (architecture 5), with `heavy` and the params each schema acce
 | `send_email` | no | `template` (required, key of `email_templates`), `attach` (`invoice_pdf`), `to` (`submitter`, `inquirer`, `subscriber`, `admins`; default from the trigger) | B5 |
 | `notify_admin` | no | `template` (default `admin_notify`), `headline` (text with variables) | B5 |
 | `bump_catalog_version` | no | `flip_coming_soon` (boolean, default true; architecture 10) | B8b, step 4 |
-| `purge_cache` | no | `scope` (`catalog`, `property`, `all`; default `catalog`) | B3 or B13 (needs a Cloudflare token, see risks) |
+| `purge_cache` | no | `scope` (`catalog`, `property`, `all`; default `catalog`) | B13 (needs a Cloudflare token, see risks) |
 | `render_variants` | yes | `sizes` (subset of thumb, card, hero, og, carousel; default all five) | B9 |
 | `render_cover` | yes | none | B9 |
 | `render_carousel` | yes | `max_slides` (3 to 10, default 7, ASSUMED) | B9 |
 | `render_story` | yes | none | B9 |
 | `render_reel` | yes | `duration_seconds` (8 to 30, default 12, ASSUMED) | B12 |
 | `write_captions` | no | `alt_text` (boolean, default true) | B9 (Haiku, S20) |
-| `build_newsletter_block` | yes | none | B11 |
+| `build_newsletter_block` | yes | none | B9 (the block; B11 consumes it) |
 | `post_meta` | no | `channels` (`from_settings` or a list of `instagram`, `facebook`; default `from_settings`; Instagram now, Facebook when its row is enabled), `respect_window` (default true) | B10 |
 | `post_x` | no | `respect_window` (default true) | B10 |
 | `post_linkedin` | no | `respect_window` (default true) | B10 |

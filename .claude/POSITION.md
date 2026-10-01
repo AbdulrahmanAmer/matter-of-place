@@ -345,3 +345,16 @@ task ends with GitHub, this file and the gotcha bank updated (now a rule in CLAU
 - UNPROVEN until the slice that first runs it (F26 g): `wrangler dev --test-scheduled` on the Nitro build, whether the
   local cache follows `--persist-to`, the hit ratio on the real domain, CPU under real traffic, R2 keys.
 - 2026-10-01 after the merge of PR #5: `ready.mjs --full` on main ends `READY TO BUILD: yes (37 pass, 0 fail, 11 waiting on the operator)`. Leftover local `wrangler dev` on port 8799 stopped (GOTCHAS P-042). Nothing running, no stash, tree clean.
+
+## 2026-10-01 · Audit: is the code-level "how" of every automation in the plans? Two gaps found and closed
+Operator asked what makes the automations possible in code and whether that is documented for all of them.
+- The engine is five pieces, all in the plans: the `events` table and the functions that write to it (B2, B3, B6, B7);
+  the recipe rows per event (B8b seed, all 17 events, enforced by the checker); the fan-out that turns an event into
+  job rows (B8, B8b); the job runner (Supabase Edge Function on pg_cron, `src/server/jobs/runner.ts`, B8) with heavy
+  work in `render.yml` and a signed callback; and one step module per step type under `src/server/jobs/steps/`.
+- Audit result before the fix: 15 of 17 step types had a named code file. Missing: `render_variants` and
+  `render_og_static`. Fixed in B9 (files and step 8), owners made single in B8b (`purge_cache` is B13,
+  `build_newsletter_block` is B9), stale count in B8 corrected. Now 17 of 17: B5 (2), B9 (7), B10 (3), B11 (1),
+  B12 (1), B13 (1), B15 (1), B8b (1).
+- `check-plans.mjs` now fails when a catalog step has no code file named in any plan (watched-fail done).
+- Nothing was run or built; plan documents only. None of this code exists yet: it is specified, not implemented.
