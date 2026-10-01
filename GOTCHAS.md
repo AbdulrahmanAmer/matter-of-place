@@ -379,3 +379,10 @@ Entry template
 - rule: for any full-access token the agent prepares everything around it (the `.env` marker, the page open, the name to type) and the operator presses the create button and pastes the value into `.env`. Narrow tokens derived from one the operator already issued (for example `mop-github-actions` minted with `mop-admin`) went through. Do not look for another route to the denied action.
 - proof: `.env` holds the marker `SUPABASE_ACCESS_TOKEN=PASTE_SUPABASE_ACCESS_TOKEN_HERE` until the operator fills it; `grep -c PASTE_SUPABASE .env`.
 - added: 2026-10-01
+
+## P-038 · Never Docker on this machine: no `supabase start`, no Docker Desktop (S50)
+- symptom: a readiness command that launched Docker Desktop was stopped by the operator: "never use docker use my laptop".
+- cause: the plans assumed the Supabase local stack (B2 named Docker Desktop as a dependency). The operator's laptop is his working machine and Docker is not allowed on it.
+- rule: nothing starts Docker here. Schema goes to `mop-dev` with `supabase db push`; types come from `supabase gen types typescript --project-id`; Edge Functions deploy with `--use-api`; config with `supabase config push`; ad hoc SQL through the Supabase connector. Tests that need a clean database use a throwaway cluster from the native PostgreSQL 18 (`initdb` in a temp folder) or a scratch schema on `mop-dev`; tests that need pg_cron, pgmq or pg_net run on `mop-dev` only. A plan step that says Docker is a plan defect: fix the plan first.
+- proof: `grep -n -i "docker\|supabase start\|db reset" workspace/05-plans/*.md` shows only lines that say Docker is not used.
+- added: 2026-10-01

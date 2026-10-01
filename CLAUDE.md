@@ -42,6 +42,10 @@ Video and sound: no music ever (S36), sound design synthesized in code only; mot
 frame capture (S37), direction lives in `launch/MOTION-BIBLE.md`, quality is gated by `launch/tools/motion-gate.mjs`
 plus a fresh-eyes review. "Quiet" means palette, type and copy, never a static screen.
 
+**No Docker on this machine, ever (S50).** No `supabase start`, no Docker Desktop. The database is the cloud project
+`mop-dev` (`supabase db push`, `gen types --project-id`, `functions deploy --use-api`) plus the native PostgreSQL 18 for
+throwaway tests. R2 is off until the operator turns it on; nothing may assume a bucket exists.
+
 ## Commands (run inside `Matter Of Place Codebase/`, bun is installed)
 ```
 bun run check     # typecheck + lint + prettier
