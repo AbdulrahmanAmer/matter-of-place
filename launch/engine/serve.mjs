@@ -1,6 +1,6 @@
 // Tiny static server for scenes. ES modules do not load from file://, so every scene is served over http.
 // Root is the workspace folder, so a scene can reference /launch/node_modules/... and the codebase's assets
-// (/Matter%20Of%20Place%20Codebase/src/assets/...) by absolute URL.
+// (/app/src/assets/...) by absolute URL.
 // CLI: node launch/engine/serve.mjs [port]   ·   API: const { url, close } = await serve({ port })
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";

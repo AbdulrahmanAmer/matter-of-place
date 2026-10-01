@@ -20,6 +20,44 @@ Waves 3 and 4 interleave. The landing order is line 5 of B5, B6, B7, B8, B8b and
 | 7 | H1 HARDEN | gate before launch |
 | 8 | L1 LAUNCH | DNS, production, first real property, watch week |
 
+## 48-hour full build (S54, deadline 2026-10-04 00:00 EDT)
+The operator set the date on 2026-10-02 00:00 EDT and the scope a few minutes later: "we are not cutting anything we
+are getting it all built in 48 hours you will be orchestrating this". Every slice of this plan is in scope: B1b to B17,
+H1 and L1, 237 steps. Nothing is deferred to "after launch". A launch cut the CTO wrote first was withdrawn the same
+hour (GOTCHAS P-047).
+
+237 steps do not fit in 48 hours one after another, so the build runs in lanes. Steps inside a slice stay in order;
+slices that do not depend on each other run side by side, each lane in its own git worktree and branch, each landing on
+`main` through CI. What already makes this safe: one writer at a time on `mop-dev` (G34, the advisory lock), the
+shared-file order B3, B3b, B5, B17, B16 (G33, applied when lanes merge), and the landing order of line 5 of the wave 3
+and 4 plans.
+
+| Phase | Lanes (each is one builder session at a time, reviewed by a fresh context) |
+|---|---|
+| 0 Spine, one lane | B1b, then B2, then B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the lanes open) |
+| 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
+| 2 One lane | H1 on everything, then L1: `mop-prod`, production secrets, deploy, matterofplace.com routed to the Worker |
+
+The orchestrator (this session) dispatches, re-runs each slice's proof itself, merges, and keeps the table at the end of
+this file. A lane that fails the same step twice is recorded BLOCKED with what would unblock it and the lane moves to
+its next slice that does not depend on it.
+
+Actions minutes (ruling H6, B1b invariant 14): before each phase the orchestrator sums the month's run durations from
+`gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and records the minutes in `.claude/POSITION.md`;
+at 70 percent of 2,000 it runs `gh variable set CI_HEAVY --body off`. Merges go only through
+`node workspace/05-plans/merge-gate.mjs <pr>` once B1b step 5b has written it (RUNBOOK step 3).
+
+Built is not the same as switched on. Every step that calls an outside account is built and tested against its stub,
+and goes live the hour the operator supplies the account; the table under "Start readiness" names each one. In order of
+how much they hold back (Resend is done: ASSUMED E17 to E20; GitHub Pro was declined: H5): R2 switched on (needs a payment method), the legal entity and
+payment facts, the Anthropic API key, the X app, the LinkedIn page and app, Meta access through the partner, the Google
+accounts, a fine-grained GitHub token for render dispatch, the Sentry auth token, the Omnikom endpoint.
+
+Facts measured on 2026-10-02: the zone `matterofplace.com` is active on Cloudflare and public DNS answers with
+Cloudflare's nameservers, so the domain needs no waiting time; Supabase holds one project (`mop-dev`), so `mop-prod`
+fits the free plan. UNPROVEN: that 237 steps fit in the time, and that three lanes merge cleanly. The first measured
+pace is B1b; the orchestrator reports it when B1b closes.
+
 ## Start readiness (2026-10-01)
 Gate: `node workspace/05-plans/ready.mjs --full` must end with `READY TO BUILD: yes`. Procedure: `RUNBOOK.md`. One slice
 is run with `Workflow({ name: "build-slice", args: { slice: "<id>" } })`.
@@ -32,15 +70,15 @@ names what they wait on; every other step runs. The plans were audited in both d
 
 | Slice | Steps with a waiting part | On what |
 |---|---|---|
-| B1b | 7 of 11 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
-| B2 | 3 of 14 | mop-prod (created at launch), R2 switched on |
-| B3 | 4 of 13 | Resend account |
+| B1b | 7 of 15 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
+| B2 | 3 of 15 | mop-prod (created at launch), R2 switched on |
+| B3 | 4 of 18 | Resend account |
 | B3b | 2 of 10 | mop-prod (created at launch) |
 | B4 | 1 of 10 | see the plan |
 | B5 | 6 of 10 | Resend account, mop-prod (created at launch) |
 | B6 | 4 of 9 | legal entity and payment facts, Resend account |
-| B7 | 8 of 18 | Resend account, R2 switched on |
-| B8 | 1 of 12 | R2 switched on, mop-prod (created at launch), GitHub dispatch token |
+| B7 | 8 of 19 | Resend account, R2 switched on |
+| B8 | 2 of 14 | GitHub dispatch token |
 | B8b | none of 11 | none |
 | B9 | 5 of 11 | CEO creative pick, R2 switched on, GitHub dispatch token, Anthropic API key, LinkedIn page and app, Meta app (partner) |
 | B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Resend account, Anthropic API key, GitHub dispatch token |
@@ -51,10 +89,10 @@ names what they wait on; every other step runs. The plans were audited in both d
 | B15 | 3 of 7 | Omnikom endpoint, mop-prod (created at launch) |
 | B16 | none of 8 | none |
 | B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend account |
-| H1 | 4 of 10 | R2 switched on |
+| H1 | 4 of 11 | R2 switched on |
 | L1 | 2 of 11 | Google accounts |
 
-What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (11 slices have a waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google
+What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (10 slices have a waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google
 accounts and ask the partner for Meta access, create an Anthropic API key and a fine-grained GitHub token for render
 dispatch. `mop-prod`, the custom domain and the creative pick come up inside their own slices.
 

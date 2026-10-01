@@ -7,16 +7,16 @@ No outside models, no stock, no recordings, no music (S36: music is not permitte
 
 Read first, in this order, and do not skip: `E:\Matter Of Place\launch\MOTION-BIBLE.md` (the direction, vocabulary,
 beat sheet, sound rules, gate, loop), `E:\Matter Of Place\launch\REVIEW-RUBRIC.md`, `E:\Matter Of Place\CLAUDE.md`,
-`E:\Matter Of Place\Matter Of Place Codebase\src\styles\tokens.css`, `src\components\brand\emblem.tsx` and `wordmark.tsx`
+`E:\Matter Of Place\app\src\styles\tokens.css`, `src\components\brand\emblem.tsx` and `wordmark.tsx`
 (port to SVG exactly; the v0 port in `launch/01-launch-film/scene.html` is usable), `src\data\properties.ts` and
 `src\data\markets.ts` (place names and hero image files only; no prices, no addresses in the film).
 Photography: `src\assets\*.jpg`, `src\assets\gallery\*.jpg`. Film clip: `public\media\tiburon-waterline.mp4` (may be used as one shot).
 
 ## Where you work
 `E:\Matter Of Place\launch\film\` (create). Reusable engine in `launch\engine\` (create) so later reels and the partner
-video use it. Do not modify `Matter Of Place Codebase\` (another worker is refactoring it on a branch right now). For
+video use it. Do not modify `app\` (another worker is refactoring it on a branch right now). For
 product shots, make a read-only snapshot of `main`: `git -C "E:/Matter Of Place" worktree add "E:/Matter Of Place/launch/.site-main" main`,
-then `bun install` and `bun run dev --port 8090` inside `launch/.site-main/Matter Of Place Codebase`. Add `.site-main/`
+then `bun install` and `bun run dev --port 8090` inside `launch/.site-main/app`. Add `.site-main/`
 to `launch/.gitignore`. Remove the worktree when done (`git worktree remove`).
 
 ## Toolchain

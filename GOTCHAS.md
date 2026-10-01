@@ -30,7 +30,7 @@ Entry template
 ---
 
 ## G-001 · Generated route tree must never be edited by hand
-- paths: Matter Of Place Codebase/src/routeTree.gen.ts
+- paths: app/src/routeTree.gen.ts
 - severity: block
 - symptom: hand edits vanish on the next `vite dev` or build, and routing silently diverges from the files on disk.
 - cause: `@tanstack/router-plugin` regenerates this file from `src/routes/*`.
@@ -39,7 +39,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-002 · Vite config is plain and explicit; Start's plugin already generates the route tree
-- paths: Matter Of Place Codebase/vite.config.ts
+- paths: app/vite.config.ts
 - severity: warn
 - symptom: duplicate-plugin crash ("plugin already registered"), two route generators fighting, or a build that silently targets Node instead of Cloudflare.
 - cause: `@tanstack/react-start/plugin/vite` bundles the router generator; the Cloudflare target exists only because `nitro({ preset: "cloudflare-module" })` is added on build; nitro invents a worker name from the git remote when none is pinned.
@@ -48,7 +48,7 @@ Entry template
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-003 · Page titles: pass the bare title, `pageHead` adds the suffix
-- paths: Matter Of Place Codebase/src/lib/seo.ts, Matter Of Place Codebase/src/routes/index.tsx
+- paths: app/src/lib/seo.ts, app/src/routes/index.tsx, app/src/routes/_site.index.tsx
 - severity: warn
 - symptom: home `<title>` renders "Matter of Place | Exceptional property. Properly considered. | Matter of Place".
 - cause: `pageHead` only skips the " | Matter of Place" suffix when the title already ends with it; the home route passes a title that starts with the brand instead.
@@ -58,7 +58,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-004 · Field names live in three files and must change together
-- paths: Matter Of Place Codebase/src/domain/**, Matter Of Place Codebase/supabase/migrations/**
+- paths: app/src/domain/**, app/supabase/migrations/**
 - severity: warn
 - symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error.
 - cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
@@ -67,7 +67,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-005 · Routes never import bundled data directly
-- paths: Matter Of Place Codebase/src/routes/**
+- paths: app/src/routes/**
 - severity: warn
 - symptom: a page keeps showing illustrative content after the API goes live because it bypassed the service boundary.
 - cause: importing `src/data/*` in a route hard-wires local mode.
@@ -76,7 +76,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-006 · `VITE_*` variables ship to the browser
-- paths: Matter Of Place Codebase/.env.example, Matter Of Place Codebase/src/env.d.ts, Matter Of Place Codebase/src/config/site.ts
+- paths: app/.env.example, app/src/env.d.ts, app/src/config/site.ts
 - severity: warn
 - symptom: a key committed as `VITE_SOMETHING_SECRET` is visible in the built JS.
 - cause: Vite inlines every `VITE_*` value at build time.
@@ -85,7 +85,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-007 · Styling is tokens only: no hex, no utility classes
-- paths: Matter Of Place Codebase/src/styles/**, Matter Of Place Codebase/src/components/**
+- paths: app/src/styles/**, app/src/components/**
 - severity: warn
 - symptom: a colour drifts from the palette or a utility class does nothing (Tailwind was removed on 2026-09-30; it was never imported).
 - cause: ADR 0003; the palette lives in `src/styles/tokens.css` and `--muted` is a surface, `--muted-foreground` is text.
@@ -112,7 +112,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-010 · The codebase `docs/` folder is the Lovable sketch, not the spec
-- paths: Matter Of Place Codebase/docs/**
+- paths: app/docs/**
 - severity: warn
 - symptom: an agent implements `schema.sql`, Cloudflare Queues or request-time image resizing "because the docs say so".
 - cause: those docs were written for an MVP; the CEO-approved spec (2026-09-30) is `workspace/02-tech-stack/tech-stack.md`.
@@ -121,7 +121,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-011 · No paid platform feature without a settled decision
-- paths: Matter Of Place Codebase/wrangler.toml, Matter Of Place Codebase/src/server/**, Matter Of Place Codebase/supabase/**
+- paths: app/wrangler.toml, app/src/server/**, app/supabase/**
 - severity: warn
 - symptom: a binding for Queues, Browser Rendering, Images, Durable Objects, or a Supabase Pro-only feature appears in config.
 - cause: each of those is a monthly bill; the approved stack is free tier first.
@@ -130,11 +130,11 @@ Entry template
 - added: 2026-09-30
 
 ## G-012 · GitHub Actions reads workflows only at the repository root, which is the workspace folder
-- paths: Matter Of Place Codebase/.github/**
+- paths: app/.github/**
 - severity: block
-- symptom: a workflow written under `Matter Of Place Codebase/.github/workflows/` never runs; tech-stack §3 draws the folder under the app, which is where a builder would put it.
+- symptom: a workflow written under `app/.github/workflows/` never runs; tech-stack §3 draws the folder under the app, which is where a builder would put it.
 - cause: the git root is `E:\Matter Of Place` (workspace + app in one repo); GitHub ignores nested `.github` folders.
-- rule: workflows live in `.github/workflows/` at the repo root and set `working-directory: Matter Of Place Codebase` per job; never create `.github` under the app. Correct tech-stack §3 when it is next edited.
+- rule: workflows live in `.github/workflows/` at the repo root and set `working-directory: app` per job; never create `.github` under the app. Correct tech-stack §3 when it is next edited.
 - proof: `git rev-parse --show-toplevel` → `E:/Matter Of Place`; `ls .github/workflows` at the root → README.md (workflows arrive with B1b).
 - added: 2026-09-30
 
@@ -144,17 +144,18 @@ Entry template
 
 ## P-009 · Free-tier limits we are designing inside (measured 2026-09; re-check quarterly)
 - Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; R2 10 GB, zero egress; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
+- Workers free: at most 50 outbound subrequests per invocation (vendor documentation, UNPROVEN here); every Supabase RPC, Storage call and Turnstile call counts (JOB-03, E2E-02, PERF-07). A per-photograph loop inside an admin request breaks at about 22 photographs, so such loops run as jobs (B7's `copy_submission_media`); B3 signs at most 20 upload URLs per request; a render callback's `onResult` makes a fixed number of calls whatever the photo count (B9 `render_variants`: `apply_media_variants`, one Storage remove, `clear_media_staging`). Proof once built: `bunx vitest run tests/unit/subrequest-budget.test.ts`.
 - Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
 - Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
-- GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes).
+- GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes). Once B9 step 10 runs, the billed minutes of one 40-photograph `render_variants` run are written here (JOB-08); until then UNPROVEN.
 - Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
 - added: 2026-09-30
 
 ## P-001 · agent-os stage 0 refuses `src/**` even though the app is one folder down
-- symptom: an Edit under `Matter Of Place Codebase/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".
+- symptom: an Edit under `app/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".
 - rule: it is a sequencing gate. Put the finding in POSITION.md or GOTCHAS.md, and ask the operator to advance the STAGE line in PROJECT-STATE.md when the stage gate is met. Do not work around it in `workspace/`.
-- proof: `python ~/.agent-os/scripts/agent_os.py check "Matter Of Place Codebase/src/routes/index.tsx"` → denied.
+- proof: `python ~/.agent-os/scripts/agent_os.py check "app/src/routes/index.tsx"` → denied.
 - added: 2026-09-30
 
 ## P-002 · `npx` on this machine can fail with `ECOMPROMISED Lock compromised`
@@ -320,7 +321,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-013 · Warm Grey on Ivory fails AA contrast for body text
-- paths: Matter Of Place Codebase/src/styles/tokens.css, Matter Of Place Codebase/src/styles/base.css
+- paths: app/src/styles/tokens.css, app/src/styles/base.css
 - severity: warn
 - symptom: `--muted-foreground` (#8B877F) on `--ivory` (#F5F2EB) is about 3.6:1; WCAG 2.2 AA needs 4.5:1 for normal text.
 - rule: Warm Grey is for large text (≥ 24 px or 19 px bold) and metadata only; body copy on Ivory uses Mineral Grey (#575751, about 7:1) or an adjusted token. `scripts/contrast.mjs` (B17 step 5) checks every token pair.
@@ -328,7 +329,7 @@ Entry template
 - added: 2026-10-01
 
 ## G-014 · No third-party request before consent: the Google Fonts link in the root route must go
-- paths: Matter Of Place Codebase/src/routes/__root.tsx
+- paths: app/src/routes/__root.tsx
 - severity: warn
 - symptom: `fonts.googleapis.com` is requested on first paint for every visitor, which sends EU visitors' IPs to Google before any consent (GDPR) and adds a render-blocking third party.
 - rule: fonts are self-hosted WOFF2 subsets (B17 step 2); the only third parties are Turnstile (necessary) and GA4 after consent. `grep -c fonts.googleapis` on the rendered home page must be 0.
@@ -388,7 +389,7 @@ Entry template
 - added: 2026-10-01
 
 ## P-039 · "Unused" is a claim about the whole repository, not the app folder: `launch/` reads images from `src/assets`
-- symptom: a cleanup deleted four images that no file under the app imported. A fresh reviewer found that `launch/03-partner-deck/build.mjs` and `launch/02-partner-presentation/scene.html` read `gallery/desert-colonnade.jpg` straight from `Matter Of Place Codebase/src/assets/`, and the film storyboard names two more. A finder and a verifier had both grepped the app folder only.
+- symptom: a cleanup deleted four images that no file under the app imported. A fresh reviewer found that `launch/03-partner-deck/build.mjs` and `launch/02-partner-presentation/scene.html` read `gallery/desert-colonnade.jpg` straight from `app/src/assets/`, and the film storyboard names two more. A finder and a verifier had both grepped the app folder only.
 - cause: the app's asset folder is also the asset source for the launch deck, presentation and film. A search scoped to the app cannot see those users.
 - rule: before deleting any asset, run `git grep -l -I "<basename>" -- .` from the repo root. A hit under `launch/` or `workspace/` is a user. Only `tribeca.jpg` was unused everywhere.
 - proof: `git grep -l -I "desert-colonnade" -- . ':!workspace/01-site-index'` lists three files under `launch/`.
@@ -442,3 +443,31 @@ Entry template
 - rule: wait with a bounded loop that checks a condition (`for i in $(seq 1 50); do <check> && break; sleep 10; done`) and keep it under nine minutes; read progress from the workflow's `journal.jsonl` (count `started` and `result` lines by label). Render diagrams when no fan-out is running. The post-write hook reports "Illegal return statement" on a workflow script because the script body is not a module: verify such a script by wrapping it in an async function, not with `node --check`.
 - proof: this session's polls; `new Function(... 'return (async()=>{' + script + '})')` parses the workflow script that `node --check` rejects.
 - added: 2026-10-01
+
+## P-047 · A deadline was answered with a smaller scope, recorded as decided
+- symptom: the operator set a 48-hour go-live; the orchestrator wrote a "launch cut" into PROJECT-STATE S54 and PLAN.md that deferred social, newsletter, reels, the money box and the audit robot. The operator: "we are not cutting anything we are getting it all built in 48 hours". The records had to be rewritten and pushed again.
+- cause: time pressure was treated as a reason to shrink the work instead of changing how it runs; a CTO recommendation was written down as a decision.
+- rule: scope belongs to the operator. Under a deadline the first move is orchestration (parallel lanes, worktrees, more workers), never a cut. A cut may be recommended in one sentence; it is recorded only after the operator says yes. State what is UNPROVEN about fitting the time.
+- proof: `grep -c "48-hour full build" workspace/05-plans/PLAN.md` prints 1 and `grep -c "launch cut" workspace/05-plans/PLAN.md` prints 1 (the line that says it was withdrawn).
+- added: 2026-10-02
+
+## P-048 · `gh api` with a leading slash under Git Bash, and the billing API
+- symptom: `gh api /users/<login>/settings/billing/usage` answered `invalid API endpoint: "C:/Program Files/Git/users/..."`; without the slash it answered HTTP 404 "This API operation needs the user scope".
+- cause: Git Bash rewrites an argument that starts with `/` into a Windows path; the billing endpoints need the `user` scope, which this `gh` login does not have and only the operator can add (`gh auth refresh -s user` is interactive).
+- rule: write `gh api` endpoints without the leading slash. Measure Actions minutes from the repository API instead: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and sum the run durations (ASSUMED section H, ruling DO-08).
+- proof: both outputs above, 2026-10-02.
+- added: 2026-10-02
+
+## P-049 · `grep -r` from the repository root runs into node_modules and times out
+- symptom: a `grep -rl ... .` at the root did not finish inside the two-minute tool limit and was moved to the background.
+- cause: `app/node_modules` and `launch/node_modules` hold tens of thousands of files; `--include` does not stop the directory walk.
+- rule: search tracked files with `git grep -I` (or the Grep tool). Never `grep -r` from the root.
+- proof: `git grep -c "08-visual-pass"` returns at once.
+- added: 2026-10-02
+
+## P-050 · Parallel lanes and one shared mop-dev: an unmerged migration from one lane breaks every other lane's push
+- symptom (E2E-06, measured in the review, not yet hit): the Supabase CLI refuses a `db push` when the remote holds a version the branch lacks ("Remote migration versions not found in local migrations directory") or when a local file sorts before the newest remote one ("Found local migration files to be inserted before the last migration on remote database"), and an edited migration that is already applied is skipped silently, so the schema drifts.
+- cause: three S54 lanes pushing migrations and job-runner builds from their own branches into the one shared `mop-dev`.
+- rule: only `main` reaches `mop-dev` (ASSUMED ruling H1): the post-merge `dev` job of `deploy.yml` runs `bun run db:push` and deploys the job runner; the per-PR proof is the CI `db` job on an ephemeral stack. Rebase on `origin/main` before any push. Never run `--include-all` or `migration repair` without the orchestrator. B2's `scripts/db-push.mjs` and B1b's `scripts/check-migrations.mjs` enforce it once built.
+- proof: `grep -c "group: mop-dev" .github/workflows/ci.yml` prints 0 (B1b); `bunx vitest run tests/unit/db-push-guard.test.ts` passes (B2).
+- added: 2026-10-02

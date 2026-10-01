@@ -4,7 +4,7 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as X from "../../Matter Of Place Codebase/src/data/exposure.ts";
+import * as X from "../../app/src/data/exposure.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const data = {

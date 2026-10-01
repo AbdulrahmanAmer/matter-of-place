@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 execFileSync("bun", [join(here, "../shared/extract-exposure.mjs")], { stdio: "inherit" });
 const X = JSON.parse(readFileSync(join(here, "../shared/exposure.json"), "utf8"));
-const A = join(here, "../../Matter Of Place Codebase/src/assets/").replace(/\\/g, "/");
+const A = join(here, "../../app/src/assets/").replace(/\\/g, "/");
 
 const C = { obsidian: "11110F", bone: "EEEAE1", ivory: "F5F2EB", sandstone: "C9C0B2", mineral: "575751", warm: "8B877F" };
 const SERIF = "Cormorant Garamond";

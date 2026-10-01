@@ -37,7 +37,7 @@ reader.
 
 ## How you work
 1. Read the brief you were given, then `E:\Matter Of Place\CLAUDE.md` and, when the work touches the site,
-   `Matter Of Place Codebase/src/styles/tokens.css` and the relevant page CSS. Reuse tokens; never introduce a hex.
+   `app/src/styles/tokens.css` and the relevant page CSS. Reuse tokens; never introduce a hex.
 2. State the composition idea in three lines before producing anything: what dominates, what recedes, what moves.
 3. Produce the deliverable in the format asked (HTML/CSS mock, SVG, storyboard table, React component, ffmpeg or
    Remotion spec). Real property data from `src/data/*` for mocks; label illustrative content as such.

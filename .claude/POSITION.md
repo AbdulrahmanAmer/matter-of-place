@@ -14,9 +14,9 @@ DONE
   code-review, pr-review-toolkit, feature-dev, claude-md-management, commit-commands, hookify, cloudflare, resend,
   playwright, typescript-lsp, session-report, context7, skill-creator. agent-os was already installed globally.
 - agent-os: `PROJECT-STATE.md` at STAGE 0, enforcement deny. Verified the gate denies
-  `Matter Of Place Codebase/src/**` and `package.json`, allows `workspace/**`.
+  `app/src/**` and `package.json`, allows `workspace/**`.
 - codebase-memory: `.mcp.json` registered (loads next session); CLI index done: 2322 nodes / 8418 edges,
-  project name `E-Matter Of Place-Matter Of Place Codebase`.
+  project name `E-Matter Of Place-app`.
 - workspace/01-site-index: pages-and-wording.md (20 URLs + chrome + forms + strings + 21 events),
   content-inventory.md (16 properties, 3 markets/12 regions, 6 stories, 4 products, FAQ, types, 31 images, 1 video),
   appendix-data-copy.md.
@@ -45,7 +45,7 @@ DONE (operator asked "what did you skip": gotcha bank + app-folder CLAUDE.md)
 - `.claude/hooks/gotcha-guard.mjs` registered as PreToolUse (Edit|Write|MultiEdit|NotebookEdit) in `.claude/settings.json`.
   Watched-fail tested: routeTree.gen.ts → deny; src/lib/seo.ts → additionalContext; workspace/README.md → silent;
   path outside root → silent; garbage stdin → silent, exit 0.
-- `Matter Of Place Codebase/CLAUDE.md` pointer (the real one is at the workspace root, which Claude Code loads anyway).
+- `app/CLAUDE.md` pointer (the real one is at the workspace root, which Claude Code loads anyway).
 - `.claude/skills/mop-work` (project context loader) + copies of `design-from-references`, `motion`,
   `parallel-execution`, `codebase-index` from the agent-os skills pack.
 
@@ -393,3 +393,117 @@ gate that checked accounts and syntax, not whether the documents could be built 
   subscribers of that market only (G15); commercial role stays read-only everywhere (G22, G27); no staff upload of
   representative photographs at launch (G56).
 - NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.
+
+## 2026-10-02 · LOOP IN PROGRESS: production-grade engineering review (operator's /loop, self-paced)
+Operator's instruction (verbatim intent): have the workflows bring the whole project to the highest production level
+(code to be written, frontends, database structure, workers, deployment, logic, cross-wiring, how each part is
+actually built) so AI workers can be trusted to build production-correct, slop-free code. Opus 5.5 at high effort.
+Branch: `chore/zero-blockers` (pushed at 15e7687; later work uncommitted on it).
+Two background workflows are running; both resume from their journals if this session is compacted:
+1. `traceability-audit` (run id `wf_13d412c3-82e`, script in the session's workflows/scripts folder): the zero-blocker
+   consistency loop. Rounds so far: 1,152 · 1,191 · 306 · 150 · 99 · 42 · 33 · 23 · 20 · 11 · round 11 at 5 with one
+   auditor pending. From round 7 one integrator fixes all findings together; from round 10 it self-checks. It stops
+   when a round finds zero (hard stop at round 14). After each integrator result run
+   `node <scratchpad>/trace/record-decisions.mjs <round>` to append its decisions to ASSUMED section G (now G1 to G71).
+2. `engineering-review` (run id `wf_ab396430-d17`): READ-ONLY. Twelve lenses (database, api, frontend, jobs,
+   integrations, security, delivery-ops, testing, code-standards, performance-cost, domain-logic, end-to-end), each
+   review challenged by a second reviewer. Returns verified findings (critical, major, minor) and enforceable
+   standards per lens.
+NEXT, in this order: (a) when the review returns, the CTO rules on each finding (accept, reject, or operator
+decision when it changes cost or a settled decision) and writes the rulings as ASSUMED section H; (b) apply them with
+one integrator per group of documents, then re-run the consistency loop until a round is clean; (c) write the
+builders' standards (one document plus the mechanical checks in B1b and B4: lint rules, compiler flags, boundary
+test, banned-pattern check) and upgrade `.claude/workflows/build-slice.js` so the fresh reviewer runs that checklist;
+(d) rebuild `trace.json` from the last clean round, regenerate the PLAN.md readiness table, re-render diagrams that
+changed, `ready.mjs --full`, PR, merge, position and gotchas. Nothing is built or run in this loop.
+
+## 2026-10-02 00:10 EDT · DEADLINE SET: live by 2026-10-04 00:00 EDT (S54)
+Operator, verbatim: "after you are done with this please make sure to udpate everything on github and archieve
+everything that needs to be archieved or deleted we need to be ready to output the website admin panel db all in 48
+hours so that is the time line for going live end to end".
+- Recorded: PROJECT-STATE S54, PLAN.md "48-hour launch cut" (ten rows, landing order, shrink order), project memory
+  `go-live-deadline-2026-10-04.md`.
+- Measured this turn: zone `matterofplace.com` status `active` on Cloudflare, public NS = abdullah / laila
+  .ns.cloudflare.com (no DNS wait). Supabase projects: only `mop-dev` (ACTIVE_HEALTHY), so `mop-prod` fits the free plan.
+- TIME BOX for the review loops (CTO): round 12 is the LAST audit round of `wf_13d412c3-82e`; its integrator fixes what
+  it finds and the loop is stopped there even if not zero (remaining findings go to ASSUMED as known, each owned by the
+  slice that builds it). From the engineering review (`wf_ab396430-d17`) only critical and major findings are ruled on
+  and applied before the build; minor ones become the builders' standards checklist. Target: branch merged and
+  `build-slice` started on B1b by 2026-10-02 04:00 EDT.
+- After the loop closes (operator's instruction): push everything, archive or delete what is stale, then build in the
+  order of PLAN.md "48-hour launch cut": B1b, B2, B3, B3b, B4, B8 1 to 8, B8b 1 to 5, B5 1 to 4a, B16, B17, B7 1 to 10,
+  H1 rows that apply, L1 production steps.
+- UNPROVEN: that about a hundred plan steps fit in 48 hours. First measured pace = B1b; report it and re-cut if needed.
+- WAITING ON OPERATOR (affects the date): Resend account and `RESEND_API_KEY`; legal entity facts (B16).
+
+## 2026-10-02 00:40 EDT · SCOPE CORRECTED BY THE OPERATOR: full build in 48 hours, no cut (S54 rewritten)
+Operator, verbatim: "what? no we have 48 hours yes but we are noting deferring anything we are building it all my
+friend end to end we are not cutting anything we are getting it all built in 48 hours you will be orchestrating this".
+- The "launch cut" block above is WITHDRAWN. Scope = every slice of PLAN.md (B1b to B17, H1, L1; 237 steps), live by
+  2026-10-04 00:00 EDT. PLAN.md section "48-hour full build" holds the lanes: spine B1b, B2, B3 in one lane; then three
+  lanes (Public: B3b, B4, B17, B16, B13, B15 · Operations: B8 1-8, B8b 1-5, B5, B7 1-10, B6, B7 11-16, B8 9-10,
+  B8b 6-10 · Content: B9, B10, B11, B12, B14); then H1 and L1. Each lane in its own git worktree, landing through CI.
+- Rule banked: GOTCHAS P-047 and memory `scope-is-the-operators` (never cut scope on my own).
+- Review time-box stands: round 12 is the last audit round of `wf_13d412c3-82e` (stop the workflow after its
+  integrator); engineering review `wf_ab396430-d17`: critical and major findings applied to slices before they start,
+  the rest becomes the builders' checklist. B1b starts as soon as round 12's integrator is done; it does not wait for
+  the engineering review.
+- NEXT: (1) `.claude/workflows/build-slice.js` must take a lane (worktree and branch) so three run side by side;
+  (2) start B1b; (3) after B3, open the three lanes.
+- Archive done so far: raw visual-pass shots out of the tree (commit f857351). Still to do at merge: delete the six
+  merged remote branches (build-readiness, caching-contract, lovable-leftovers-favicon, remove-lovable, traceability,
+  fix/visual-pass) and chore/zero-blockers after its PR merges.
+- UNPROVEN: 237 steps in 48 hours; three lanes merging cleanly. WAITING ON OPERATOR for live switches only (built on
+  stubs meanwhile): Resend, R2, legal entity, Anthropic key, X, LinkedIn, Meta, Google, GitHub dispatch token, Sentry
+  auth token, Omnikom endpoint.
+
+## 2026-10-02 01:05 EDT · Review loops CLOSED; findings being folded into the plans; app folder renamed
+- Zero-blocker audit loop `wf_13d412c3-82e` STOPPED after round 12 (time box, S54). It did NOT reach zero: rounds
+  ended 11 · 5 · 16 findings; round 12's integrator applied 14, 1 not reproduced; decisions recorded as G72, G73.
+  No round 13 result exists, so what round 12's fixes disturbed is UNPROVEN. `check-plans: OK` at every commit.
+- Engineering review `wf_ab396430-d17` DONE: 155 findings (14 critical, 82 major, 59 minor), 137 raw standards.
+  Rulings: ASSUMED section H (27 rows, H1 to H27; every critical and major accepted unless a row changes it; minor not
+  applied). Full text per slice: `workspace/05-plans/review/<slice>.md`, index `review/README.md`,
+  `review/standards-raw.json`.
+- RUNNING: workflow `fold-engineering-review` (run id `wf_38d40906-2cd`, task `w3bh9yj06`): seven Opus writers, one
+  per group of plan files, fold the findings into the plans; an eighth writes `workspace/05-plans/STANDARDS.md`
+  (folder map, rules, mechanical gates, reviewer checklist); a ninth applies cross-file handoffs, adds trace items and
+  runs `check-plans.mjs --require-trace`. When it returns: verify the check myself, `readiness-table.mjs --write`,
+  `ready.mjs --full`, commit, PR `chore/zero-blockers` to main, merge, delete the merged remote branches, then start
+  `Workflow({ name: "build-slice", args: { slice: "B1b" } })` in the main tree (the spine is one lane).
+- Folder cleanup (operator: "properly put anything in it's own folder ... clean and clear no unnecesary things"):
+  the app folder is now `app/` (was "Matter Of Place Codebase"; commit ddc0b4d, 163 references, `bun run check` and
+  `bun run build` pass from the new path); every runbook is `docs/runbooks/<name>.md`; the folder map and the layout
+  check (`scripts/check-layout.mjs`, in `bun run check`) come with STANDARDS.md and B1b. The codebase-memory graph
+  still indexes the old path: re-index `E:/Matter Of Place/app` before using it.
+- `.claude/workflows/build-slice.js`: takes `root` and `base` for lanes; builders and the fresh reviewer are bound
+  to STANDARDS.md and section H.
+- Phase 0 is now B1b, B2, B3, B4 steps 1 to 8 (ruling T-02). Database rule: ruling DB-01 in section H (only main
+  reaches mop-dev once lanes open; a CI `db` job on an ephemeral Supabase stack on the GitHub runner; S50 covers the
+  laptop only). Actions minutes: measure from the repository runs API (P-048).
+- OPERATOR SHOULD KNOW (CTO rulings he may overrule): Docker allowed on GitHub's runners only; raw analytics kept 90
+  days (aggregates 13 months); no second Cloudflare account for previews (risk recorded); GitHub Pro (4 USD a month)
+  recommended, not assumed; largest stored photo 4000 px; agent publishes capped at 5 a day.
+
+## 2026-10-02 01:52 EDT · Resend done (setup A3); GitHub Pro declined
+- Operator: "the Github is a recommendation not that necessary resend you can go get that done end to end for me", then signed up himself and sent the onboarding link.
+- Resend: domain `matterofplace.com` Verified (us-east-1, return path `send`); three DNS records written to Cloudflare through the API; key `mop-dev` (sending only) copied from the dashboard to `.env` as `RESEND_API_KEY` through the clipboard, never displayed. Facts: ASSUMED E17. GitHub Pro: ASSUMED H5 (declined, B1b step 9 stays BLOCKED).
+- AFTER THE FOLD RETURNS: B5 step 5 and the readiness table still say Resend is missing (their writers own those files right now): bring B5, completion-map A3, `ready.mjs` WAIT list and PLAN.md in line with E17, then `readiness-table.mjs --write`.
+- Still to do for Resend inside the build: webhook registration (B5 step 6, needs the deployed endpoint), Supabase function secret (B5 step 5), production key (L1).
+
+## 2026-10-02 02:05 EDT · Resend completed as far as it can be before the build
+- Operator asked "did you finish everything we need to setup in resend tho?". Checked against the plans: no. Added: full-access key `mop-dev-full` now in `.env` as `RESEND_API_KEY` (the sending-only key cannot reach audiences, broadcasts, contacts, domains or webhooks: ruling H28), and the dev webhook (id 0a3d4d33-f723-4912-ba64-cf8bd262e7a0, seven events, enabled) with its signing secret in `.env` as `RESEND_WEBHOOK_SECRET`. Facts in ASSUMED E17.
+- Left for the build, by design: Supabase function secrets and `PREVIEW_WORKER_SECRETS_JSON` (B5 steps 5, 6), Auth SMTP (B5 step 8), production key and webhook (L1). The unused sending-only key `mop-dev` is still in the dashboard.
+- AFTER THE FOLD: bring B5 (steps 5, 6: no longer BLOCKED on setup A3; key scope per H28), B11 step 8, completion-map A3, `ready.mjs` and PLAN.md in line with E17 and H28.
+
+## 2026-10-02 02:40 EDT · Mail setup complete on both sides; two new requirements from the operator (S55, S56)
+- Resend: three verified domains (root, `notify`, `notes`), ruling H29 (automatic mail from `notify`, bulk from `notes`,
+  reply_to `hello@`), full-access dev key and dev webhook (E17, E18, H28).
+- Zoho: aliases `hello@`, `privacy@`, `billing@`, `security@` on the `admin@` mailbox (E19).
+- Google DMARC report of 30 September read: 2 messages from Zoho, DKIM and SPF pass. Nothing to fix.
+- NEW SCOPE (S55), checked missing from the plans: (1) homeowners as submitters (the form demanded a brokerage), (2) one
+  person record per submitter with a People list and a profile page in the admin. To do right after the fold workflow
+  returns (its last agent is the only writer under workspace/ until then): one Opus integrator designs both into B2, B3,
+  B5, B7, the site index and admin-screens, with trace items; it can run while B1b builds (B1b does not touch them).
+- Also to fold after the workflow returns: H28, H29, E17 to E19 into B5, B11, B16, B17, L1, completion-map A3,
+  `ready.mjs` (Resend no longer a WAIT) and PLAN.md's list of operator inputs.

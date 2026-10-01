@@ -1,0 +1,824 @@
+[
+ {
+  "lens": "integrations",
+  "rule": "Server code calls `fetch` only from the provider adapter files: one client per provider. The allow-list is resend-client.ts, newsletter/resend.ts, channels/meta.ts, channels/x.ts, channels/linkedin.ts, channels/oauth-tokens.ts, assets/captions.ts, omnikom/client.ts, jobs/dispatch.ts, lib/sentry.ts, lib/turnstile.ts and system/health/providers.ts. Every such call passes a `signal`.",
+  "why": "One file per provider owns its errors, version and limits. Without this, a second ad hoc client drifts from the first. This replaces the original proposal of a single provider-fetch.ts, which would have rewritten adapters the plans already name.",
+  "enforcedBy": "ESLint `no-restricted-globals` for `fetch` on files `src/server/**`, with a flat-config override that turns it off for the listed files (eslint.config.js already uses tseslint.config, so overrides work). Plus `no-restricted-syntax` with the selector `CallExpression[callee.name='fetch'][arguments.length<2]` inside those files. `bun run check` runs both in CI."
+ },
+ {
+  "lens": "integrations",
+  "rule": "A quota or plan-limit answer maps to `retry_at` at the provider's own reset time (Retry-After, x-rate-limit-reset, the Resend error name, the Graph throttle codes 4, 17, 32, 613), never to a fixed guess. Short per-second limits may throw and use B8's backoff, which B10's planRetry already relies on.",
+  "why": "A fixed guess either hammers the provider for a day or waits a day for a one-second limit.",
+  "enforcedBy": "Each adapter exports its error table (RESEND_ERRORS, META_ERRORS, X_ERRORS, LINKEDIN_ERRORS). tests/unit/providers/error-tables.test.ts imports them and fails when a table has no 429 row or when a 429 row resolves to neither retry_at nor a throw."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Every outbound side effect (send, post, broadcast, webhook, dispatch) records a provider-side dedupe handle before the call: an Idempotency-Key, a delivery id, a container id, an uploaded media id or URN, or a broadcast id. Recovery after a crash matches on that handle, never on free text. When the handle cannot be resolved, the outcome is outcome_unknown and a human decides. It is never re-sent automatically.",
+  "why": "Duplicate public posts and duplicate mail are the failures a brand cannot take back.",
+  "enforcedBy": "Add `sideEffect: true` to the specs in src/server/automation/step-specs.ts (B8b). tests/unit/jobs/external-steps.test.ts iterates those specs and fails when a step has no entry in tests/unit/jobs/crash-cases.ts. That map holds, per step, a run where the provider mock succeeds and the finish RPC throws, then a rerun; the test asserts exactly one provider mutation."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Every retry_at carries a reason from the closed RetryReason union, and the runner enforces RETRY_AT_LIMITS per reason.",
+  "why": "A job may wait without consuming attempts, but never forever and never silently.",
+  "enforcedBy": "TypeScript: StepResult's `reason` is typed RetryReason, so `bun run check` (tsc) rejects a free string. The ceiling is covered by runner.test.ts and the waiting_jobs check by the health db test."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Every provider response an adapter reads is parsed with a Zod schema in the adapter's schemas file, using passthrough and only the fields we read. Every recorded fixture under tests/fixtures/<provider>/ carries `source` and `recorded_at` and must parse with its schema.",
+  "why": "When a provider renames a field, the result is a named contract error at the first changed response and in CI, not a TypeError deep in a step.",
+  "enforcedBy": "tests/unit/providers/fixtures-schema.test.ts globs every fixture file, maps it to its schema through a fixture-to-schema table, and fails on a parse error or on a fixture with no mapping. zod ^3.25 is already a dependency."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Every provider credential with an expiry or a version date has a health check (provider_<name>) that makes one authenticated read and records validity and expiry, and skips when the credential is absent.",
+  "why": "Expiry, revocation and model retirement must turn red before a real send or post fails.",
+  "enforcedBy": "tests/unit/jobs/health-providers.test.ts asserts that the exported PROVIDER_CHECKS of src/server/jobs/system/health/providers.ts covers every name in a constant EXPIRING_CREDENTIALS (GITHUB_DISPATCH_TOKEN, ANTHROPIC model, RESEND domain, LINKEDIN version, META token)."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Inbound webhooks verify the signature over the raw bytes with a constant-time compare and refuse timestamps more than 300 s old. A replay has no second effect, and a failed effect leaves the event re-appliable on the provider's retry.",
+  "why": "Replay, ordering and partial-failure bugs in webhooks lose data silently.",
+  "enforcedBy": "tests/unit/hooks-contract.test.ts runs one shared contract suite (bad signature 401, stale timestamp 401, replay applied once, effect failure followed by a retry applied once) against each handler in a registry that lists Resend (B3) and the render callback (B8). It fails when a file under src/routes/api/hooks/ is missing from the registry."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Provider tokens and keys are read only through readVar (src/server/lib/runtime-env.ts), env.ts or get_vault_secret inside an adapter. No other module under src/server reads process.env or Deno.env.",
+  "why": "Each credential is read in one place, so a token cannot leak into settings, logs or job payloads.",
+  "enforcedBy": "ESLint `no-restricted-properties` with `{ object: 'process', property: 'env' }` and `{ object: 'Deno', property: 'env' }` on `src/server/**`, with an override for runtime-env.ts and env.ts. The existing CI grep for META_, X_ACCESS and LINKEDIN_ in .output/public stays."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Catalog event payloads (the events table) hold only ids, enums, slugs and sealed tokens, never an email address, name, phone or message. Personal data is fetched by id inside the step.",
+  "why": "Keeps personal data out of events and job_events, so retention and deletion stay tractable. Narrowed from the original: job data for staff test sends (actor_email) and the stored Omnikom body are deliberate and scrubbed by B15 and retention.",
+  "enforcedBy": "tests/unit/events-payload.test.ts walks the Zod payload schema of every CatalogEventType in src/server/lib/events.ts and fails on a field that is not uuid, enum, slug or sealed_token."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Each environment has its own Resend API key, webhook endpoint and signing secret, and its own daily_cap share. Production function secrets never equal dev values.",
+  "why": "Prevents quota, reputation and personal-data leaks between environments (INT-02).",
+  "enforcedBy": "The L1 preflight (scripts/launch/preflight.mjs) compares the SHA-256 digests that `supabase secrets list` prints for mop-dev and mop-prod, and fails on a match. Watched-fail with a preflight-bad fixture whose two lists share a digest."
+ },
+ {
+  "lens": "integrations",
+  "rule": "Each provider runbook states the auth method, the token lifetime and refresh path, measured quota numbers with source and date, the dedupe handle, the personal data sent, the dry-run behaviour, and how a failure at 3 a.m. shows up.",
+  "why": "Operating knowledge that cannot be tested must still exist, in one place per provider.",
+  "enforcedBy": "H1's scripts/harden/runbook-lint.mjs gains one OUTLINES entry per provider runbook with these seven headings, and fails when one is missing (H1 already fails a runbook that lacks a required heading)."
+ },
+ {
+  "lens": "api",
+  "rule": "Every handler under `src/routes/api/admin/**` is built with `defineAdminRoute({ method, action, input, output, bodyLimitBytes })` and has exactly one action. Every handler under `src/routes/api/public/**` calls only `handlePublic`. Route files never import `actor`, `authz`, `csrf` or `@supabase/supabase-js` directly.",
+  "why": "Authorization, CSRF, recent-auth, the size cap and error mapping then come from one place and do not depend on each AI worker remembering them in about 75 files.",
+  "enforcedBy": "`tests/unit/admin-routes-parity.test.ts` (every handler carries the wrapper's tag, every action is in the matrix, every matrix action has a route), the existing `routes-parity.test.ts`, and an ESLint flat-config block with `files: [\"src/routes/api/**\"]` and `no-restricted-imports` `patterns` for `**/server/lib/actor`, `**/server/lib/authz`, `**/server/lib/csrf` and `@supabase/supabase-js`. That block must repeat the existing `server-only` path entry, because a later block's options replace the earlier block's for the same rule."
+ },
+ {
+  "lens": "api",
+  "rule": "Each authorization flag (roles, `humanOnly`, `recentAuth`) lives only in its matrix entry in `src/server/lib/permissions/<group>.ts`. Services never call `requireRecentAuth` or check roles themselves.",
+  "why": "A rule stated in two places drifts, and a single matrix can be tested against the fixture in both directions.",
+  "enforcedBy": "`tests/unit/authz.matrix.test.ts` (fixture equals registry, including the `recentAuth` and `humanOnly` columns), plus `tests/unit/authz-single-source.test.ts`, which reads every `src/server/**/*.ts` outside `src/server/lib/` and fails on `requireRecentAuth(` or `roles.includes(`. It is a Vitest file so that it runs inside `bun run check` on Windows and in CI."
+ },
+ {
+  "lens": "api",
+  "rule": "Every error code a caller can receive is a key of `errorCodes` in `src/server/lib/error-codes.ts`. SQL raises the code as its exact message, and `fromRpcError` is the only translator from SQL or PostgREST errors to HTTP. A dependency outage (database, Auth/JWKS, Storage) answers 503 with `Retry-After`, never 401 or 500.",
+  "why": "An unmapped code becomes a 500 that agents retry and Sentry counts, and callers must be able to tell \"fix your input\" from \"try later\".",
+  "enforcedBy": "`tests/unit/error-codes.test.ts` (extracts every `raise exception '<code>'` and `message = '<code>'` from `supabase/migrations/*.sql` and fails on a code not in the registry), `AppError` typed `code: keyof typeof errorCodes` (`tsc`), and `admin-errors.test.ts` with one case per SQLSTATE branch and a rejected fetch that gives 503."
+ },
+ {
+  "lens": "api",
+  "rule": "Every non-2xx body has the shape `{ error: { code, message, issues?, requestId } }`, and every response carries `x-request-id`.",
+  "why": "Agents and the admin UI parse one error shape.",
+  "enforcedBy": "`errors.test.ts` and `admin-errors.test.ts`, and B3's `scripts/api-smoke.mjs` validating every non-2xx body against `errorBodySchema`."
+ },
+ {
+  "lens": "api",
+  "rule": "Every admin list pages through `keysetPage` from `src/server/lib/paginate.ts`, with an opaque cursor whose last sort key is the unique id, and returns `{ items, next_cursor }`. `limit` defaults to 50, and a value above 50 is 422.",
+  "why": "One mechanism means no skipped or repeated rows and the same behaviour on every screen and for every agent.",
+  "enforcedBy": "`tests/unit/paginate.test.ts` (tied timestamps walk without loss), `admin-pagination.test.ts` extended to every list route in the admin registry, and ESLint `no-restricted-syntax` with selector `CallExpression[callee.property.name='range']` in `src/server/**` (offset paging through supabase-js `.range`)."
+ },
+ {
+  "lens": "api",
+  "rule": "Every anonymous or bearer-key route declares its limits: at least one memory limit and one DB limit. Every form-backed anonymous write, including the staff sign-in link, also verifies Turnstile (S16).",
+  "why": "Free-tier quotas (100k Worker requests a day, 100 Resend mails a day) are shared with the public site, so one abusive or looping caller can take everything down.",
+  "enforcedBy": "`routes-parity.test.ts` and `admin-routes-parity.test.ts` fail on an anonymous or bearer row with an empty `limits`, and H1's `turnstile-coverage.test.ts` is extended to `auth/send-link`."
+ },
+ {
+  "lens": "api",
+  "rule": "Every outbound call from request code has an explicit timeout: database calls through `db.ts`'s wrapped fetch (2 s reads, 12 s writes), and every other call through `fetchWithTimeout` in `src/server/lib/http.ts`. `service_role` carries `lock_timeout = 3s` and `statement_timeout = 10s`.",
+  "why": "A hung dependency or lock wait must become a fast 503, not a hung request that invites repeated clicks.",
+  "enforcedBy": "ESLint `no-restricted-globals` naming `fetch` for `src/server/**`, with an override block that turns it off for `src/server/lib/db.ts`, `src/server/lib/http.ts` and B1b's Sentry sender. `tests/unit/db.test.ts` checks that a stalled fake answers 503 within the budget. `tests/db/function-config.db.test.ts` reads `current_setting('lock_timeout')` and `current_setting('statement_timeout')` through an RPC as `service_role`."
+ },
+ {
+  "lens": "api",
+  "rule": "Admin POSTs that enqueue a job or send something outside the system accept an `Idempotency-Key` header, which becomes the `enqueue_job` key. `adminFetch` sends one key per user action and reuses it on retry. Public intake writes return the existing row for an identical submission within 10 minutes.",
+  "why": "Agents retry after timeouts, and a lost response must not send a lead or an email twice.",
+  "enforcedBy": "`tests/db/admin.db.test.ts` (same key twice gives one job and the same id), `tests/db/jobs.db.test.ts` (repeat inquiry within 10 minutes gives one row and one event), and `admin-fetch.test.ts` (a retry reuses the header value)."
+ },
+ {
+  "lens": "api",
+  "rule": "Session-authenticated writes check `X-MOP-CSRF` against HMAC(`CSRF_SECRET`, `session_id`), and refuse an `Origin` that is present and not the request origin. `GET /api/admin/me` re-issues `mop_csrf` when it is missing. Bearer requests skip both checks.",
+  "why": "A double-submit token issued only at sign-in breaks after a browser restart, and binding it to the session costs nothing.",
+  "enforcedBy": "`tests/unit/csrf.test.ts` (missing cookie re-issued on `me`, another session's token refused, token survives refresh, cross-origin `Origin` refused) and a watched-fail item in B7: make `verifyCsrf` ignore the session id, and the other-session case must go red."
+ },
+ {
+  "lens": "api",
+  "rule": "Auth email links use `{{ .TokenHash }}` and point at `/admin/auth/confirm`. The confirm page changes nothing on GET, and only a POST to `/api/admin/auth/verify` calls `verifyOtp`. No code calls `exchangeCodeForSession`.",
+  "why": "Mail scanners prefetch links, staff open links on another device, and invites cannot complete a server-side PKCE exchange.",
+  "enforcedBy": "`tests/unit/auth-verify.test.ts` (a GET makes zero Auth calls), the `admin-signin.spec.ts` case that opens a `generateLink` hashed token in a new browser context, and `tests/unit/auth-templates.test.ts`, which fails when `supabase/templates/*.html` contains `ConfirmationURL` or any file under `src/` contains `exchangeCodeForSession`."
+ },
+ {
+  "lens": "api",
+  "rule": "Every admin route declares an `output` Zod schema, which the wrapper checks in test mode, and every admin response carries `x-mop-release`. `contracts/admin-api.json` is regenerated from the registry and committed.",
+  "why": "Open tabs, agents and the B14 routine are not redeployed with the Worker, and a migration must not change the wire shape silently.",
+  "enforcedBy": "`ci.yml` step `bun run contract:check` (regenerate, then `git diff --exit-code contracts/`), output parsing in `defineAdminRoute` under the test mode, and `admin-fetch.test.ts` (a release mismatch raises the notice). Expand-then-contract is a reviewer checklist line."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Every outside `fetch(` made by a step, a channel adapter or the email and newsletter modules passes an init object with `signal: ctx.signal`. The runner limits each step with `AbortSignal.timeout(spec.timeoutMs)`.",
+  "why": "A hung provider call must not hold the tick until the platform kills the isolate (JOB-02).",
+  "enforcedBy": "ESLint `no-restricted-syntax` in an `eslint.config.js` override for `src/server/{jobs,channels,email,newsletter}/**`, selector `CallExpression[callee.name='fetch'][arguments.length<2]`, plus the `runner.test.ts` case where a never-resolving step is aborted at `timeoutMs` with one attempt used."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Each entry in `step-specs.ts` declares `timeoutMs`, `heavyTimeoutS` for heavy steps, and `sideEffect: 'none' | 'idempotency_key' | 'begin_row' | 'remote_lookup' | 'sql_guard'`. Every step whose `sideEffect` is not `none` has a test titled `<type> runs twice without a second outside effect`.",
+  "why": "Delivery is at least once. The only protection against duplicate emails, posts and webhooks is an explicit per-step mechanism, proved by running the step twice.",
+  "enforcedBy": "`tests/unit/automation/catalog.test.ts` asserts the fields on every spec. `scripts/check-steps.mjs`, run in `ci.yml`, greps `tests/**` for each type's `runs twice` title and exits 1 when one is missing."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Only `src/server/jobs/claim.ts` calls the lifecycle RPCs `claim_job`, `finish_job`, `fail_job` and `requeue_job`. Steps, system handlers and `onResult` return a `StepResult` or call a named SQL function.",
+  "why": "One writer keeps the state machine, the claim fence and the timeline consistent. Direct table writes are already banned by B3's `readpath.test.ts` case `table writes` over all of `src/server`.",
+  "enforcedBy": "A `ci.yml` step: `! grep -rnE \"rpc\\(\\s*['\\\"](claim_job|finish_job|fail_job|requeue_job)\" src/server --include=*.ts | grep -v src/server/jobs/claim.ts`. The existing `readpath.test.ts` case covers table writes."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Every job state transition after a claim is an SQL function fenced by the claim token in `jobs.locked_by`. A call with another token returns false and changes nothing, and callbacks are matched on `(job_id, claim)`.",
+  "why": "This stops a late finisher, a reaped run's callback, or a callback from before a manual retry from overwriting newer work (JOB-02).",
+  "enforcedBy": "`tests/db/jobs.db.test.ts` cases for `finish_job`, `fail_job` and `requeue_job` with a wrong claim, plus the `render-hook.test.ts` `stale_claim` case. Each has a watched-fail that removes the `locked_by` predicate."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Steps and the planner read time only from `ctx.now` or a `now` argument. `new Date()` with no argument and `Date.now()` are banned in `src/server/jobs/steps/**`, `src/server/automation/plan.ts` and `src/server/automation/cron.ts`.",
+  "why": "One clock per decision keeps tests deterministic.",
+  "enforcedBy": "ESLint `no-restricted-syntax` override for those paths with selectors `NewExpression[callee.name='Date'][arguments.length=0]` and `CallExpression[callee.object.name='Date'][callee.property.name='now']`."
+ },
+ {
+  "lens": "jobs",
+  "rule": "A `retry_at` reason is a member of the closed `WaitReason` union exported from `src/server/jobs/types.ts`.",
+  "why": "A free-text wait reason cannot be counted or alerted on. A closed list lets the `long_waits` health check and screen 16 group waits (JOB-10).",
+  "enforcedBy": "The TypeScript type of `StepResult.retry_at.reason`, checked by `tsc` in `bun run check`."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Step params schemas change only by adding optional fields. Every params object that was ever seeded or stored must still parse.",
+  "why": "Queued jobs and stored recipes hold snapshot params (B8b invariant 5). A tightened schema kills them at run time.",
+  "enforcedBy": "`tests/unit/automation/params-compat.test.ts` parses every `tests/fixtures/params-history/<type>/*.json` with the current schema. Deleting a fixture is refused by the H1 reviewer checklist line."
+ },
+ {
+  "lens": "jobs",
+  "rule": "A callback or hook handler that runs in the Worker makes a number of database and Storage calls that does not depend on payload size, at most 6. Work that touches each row runs in one SQL function call.",
+  "why": "The Workers free plan allows 50 subrequests per request (JOB-03).",
+  "enforcedBy": "`render-hook.test.ts` and B9's `steps.test.ts` run a 40-item result through B4's `countingDb` (`tests/fixtures/db-counter.ts`) and assert the bound."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Every table or queue that grows per tick, per job or per wait has a `retention_policies` row, including `cron_history`, `job_wait_events`, `jobs_done`, `jobs_dead` and `events_processed`. The runner deletes pgmq messages and never archives them.",
+  "why": "The free database is 500 MB, and housekeeping tables are what fill it silently (JOB-10).",
+  "enforcedBy": "`tests/db/retention.db.test.ts` asserts each key exists, by key (G43), and that `retention_delete_rows` removes an aged row for each. A `ci.yml` grep `! grep -rn \"job_queue_archive\\|pgmq.archive\" src/server supabase/migrations` guards the queue."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Every step type in `step-specs.ts`, every system type and every seeded `step_type` resolves in `getStep`. The job runner is deployed by every production and preview deploy with no path filter.",
+  "why": "This prevents steps silently skipped as `not_implemented` and preview proofs that run against another commit's runner (JOB-06).",
+  "enforcedBy": "`tests/unit/automation/registry-complete.test.ts`, plus a `hygiene.test.ts` assertion (B1b reads the workflows as text) that `deploy.yml` contains `functions deploy job-runner` in the `production` and `preview-db` jobs and no `supabase/functions src/server` diff condition."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Reviewer checklist: each new step's plan entry answers \"if the process dies after the outside call and before `finish_job`, what does the second run do?\" and names the test that proves it.",
+  "why": "At-least-once delivery is safe only when this is answered per step, and a type system cannot check the answer.",
+  "enforcedBy": "H1 reviewer checklist line, checked on every PR that adds a file under `src/server/jobs/steps/`."
+ },
+ {
+  "lens": "jobs",
+  "rule": "Reviewer checklist: a change to the recipe seed or to `criticalSteps` says which money, legal or lead flow it touches, and the dry-run output for one sample payload is pasted in the PR.",
+  "why": "Recipes are data that an edit can break without any code failing (JOB-12).",
+  "enforcedBy": "H1 reviewer checklist line for PRs touching `*_automation_seed.sql` or `src/domain/automation.ts`."
+ },
+ {
+  "lens": "frontend",
+  "rule": "A public route's server render depends only on the path and the catalog version. It never reads search params, cookies, request headers, Date.now() or the browser locale. Search params apply after hydration.",
+  "why": "Page HTML is cached under a key without the query string or cookies, so any other input poisons the cache for every visitor and breaks hydration.",
+  "enforcedBy": "B17's byte-identical HTML case (invariant 29, today run on / only per B17.md:126), widened to every route in staticRoutes plus one dynamic route per type, each fetched with ?q=zzz&utm_source=x, with a mop_consent cookie, with Sec-GPC: 1 and with Accept-Language: fr, asserting byte-identical HTML."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Live builds contain no module from src/data, src/admin or src/domain/admin-* in any chunk a public route can reach, and each public route's first-load JavaScript is at most 150 KB gzip.",
+  "why": "Keeps fictional listings and admin code out of production pages and makes the budget deterministic before deploy instead of after.",
+  "enforcedBy": "scripts/bundle-check.mjs over the Vite client manifest (build.manifest: true), run in ci.yml after the live build; watched-fail by restoring the static import of ./local/catalog in src/services/index.ts."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Type-aware lint is on for the promise rules: @typescript-eslint/no-floating-promises, no-misused-promises and switch-exhaustiveness-check are errors. no-unused-vars stays off because tsconfig's noUnusedLocals and noUnusedParameters already cover it, and the strict tsconfig flags stay.",
+  "why": "A dropped promise in an event handler (save, publish, upload) fails silently, which is exactly the autosave and upload failure mode.",
+  "enforcedBy": "eslint.config.js with languageOptions.parserOptions.projectService: true and those three rules, run by bun run check."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Public-only side effects (Header, Footer, ConsentNotice, Ga4Loader, web vitals, service-worker registration and the public stylesheet) mount only in the pathless public layout src/routes/_site.tsx, never in __root.tsx.",
+  "why": "The admin must not send its paths to GA4 or track(), and must not inherit public chrome or CSS.",
+  "enforcedBy": "tests/e2e/admin-signin.spec.ts: /admin/sign-in has no .site-header and no cookie notice, and makes no googletagmanager.com request with consent pre-granted."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Admin data access goes through <feature>-queries.ts. Query keys come from adminKeys, every write is a useMutation that invalidates its feature, the dashboard and the entity timeline, and components never import *-api.ts.",
+  "why": "Lists stay correct after decisions, the retry policy lives in one place, and a 401 or sign-out can clear the cache.",
+  "enforcedBy": "An ESLint no-restricted-imports override for files src/admin/**/*.tsx with patterns ['**/*-api'] (it must repeat the global server-only path entry, because a flat-config override replaces the rule's options); src/admin/query.test.ts for the retry and invalidation defaults."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Every admin modal and drawer is the shared Dialog built on native <dialog>.showModal(); no admin element sets role=\"dialog\" by hand.",
+  "why": "The browser provides focus containment, an inert background, Escape and the top layer, so no hand-written focus trap is needed in the admin.",
+  "enforcedBy": "ESLint no-restricted-syntax with selector JSXAttribute[name.name='role'][value.value='dialog'] in an override for src/admin/**, excluding src/admin/ui/Dialog.tsx."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Every editor action that sends expected_version (publish, unpublish, rank, related, features, route leave) first awaits the autosave queue's flush() and sends the version it resolves; at most one autosave PATCH is in flight.",
+  "why": "Without it an editor's own pending save turns into a 409 and the published page misses the last edits.",
+  "enforcedBy": "src/admin/properties/use-autosave.test.ts (sequential v and v+1 case, type-then-publish case), with the in-flight guard as its watched-fail."
+ },
+ {
+  "lens": "frontend",
+  "rule": "axe with tags wcag2a, wcag2aa, wcag21a, wcag21aa and wcag22aa reports zero serious or critical violations on every public route outside the baseline (emptied by B17) and on every admin screen in the nav registry.",
+  "why": "B17 promises WCAG 2.2 AA for the public site, and the admin's hand-built primitives need at least an automated floor.",
+  "enforcedBy": "B4 tests/e2e/sweep.spec.ts (tag list widened) and tests/e2e/admin-a11y.spec.ts in B7's admin Playwright project, both in CI."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Colour and z-index values are referenced only through var(--token) outside the token files, and admin selectors use the a- prefix.",
+  "why": "It replaces G-007's six-digit-hex grep with a check that also catches short hex, rgb(), hsl() and named colours, and keeps ten admin slices on one scale.",
+  "enforcedBy": "stylelint as lint:css inside bun run check: core color-no-hex and color-named 'never', plugin rule scale-unlimited/declaration-strict-value (package stylelint-declaration-strict-value) for color, background-color, border-color, fill, stroke and z-index, and selector-class-pattern '^a-' for src/styles/admin/**."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Code that renders in the browser formats numbers, money and dates only through src/lib/format.ts and src/domain/market-time.ts, always with an explicit timeZone.",
+  "why": "Server (UTC) and client (local) formatting otherwise disagree during hydration.",
+  "enforcedBy": "ESLint no-restricted-syntax for CallExpression[callee.property.name=/^toLocale(Date|Time)?String$/] and NewExpression[callee.object.name='Intl'] in files outside src/lib/format.ts, src/domain/market-time.ts and src/server/**."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Every route error boundary and the global window error and unhandledrejection listeners report through reportClientError, which carries route, release and requestId.",
+  "why": "Client-side failures, especially in the client-rendered admin, must reach Sentry with enough context to debug.",
+  "enforcedBy": "tests/unit/report-error.test.ts (dedupe and cap) plus an e2e case in which a malformed loader response produces exactly one /api/public/client-error beacon."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Reviewer checklist: every screen and component that loads or sends data renders all four states (loading, empty, error with the request id, success), and every destructive or external action (decline, publish, unpublish, revoke, delete) goes through a confirm dialog whose button stays disabled while pending.",
+  "why": "Missing states are the most common symptom of AI-built UI that only looks finished, and these actions send email or change public pages.",
+  "enforcedBy": "A checklist line in .github/pull_request_template.md (created by B1b)."
+ },
+ {
+  "lens": "frontend",
+  "rule": "Reviewer checklist: drag interactions have Move up and Move down buttons, drop zones have a file input, and single-key admin shortcuts only open a dialog and never send a request.",
+  "why": "axe and lint cannot check these, and a stray keypress must never decline a submission or publish a page.",
+  "enforcedBy": "A checklist line in .github/pull_request_template.md (created by B1b), plus the use-hotkeys unit test that 'd' opens DeclineDialog and makes no fetch."
+ },
+ {
+  "lens": "database",
+  "rule": "Every migration file starts with a `-- down:` or `-- irreversible: <reason>` header followed by `set lock_timeout = '5s';`. A file already on origin/main is never edited, renamed or deleted, and every new file's 14-digit version is greater than the highest version on origin/main.",
+  "why": "Rollbacks are forward-only. A migration waiting on a lock must fail fast. Edited or out-of-order files are what break `supabase db push` on a shared database, and they force `--include-all`.",
+  "enforcedBy": "Extend the existing `tests/db/migration-headers.test.ts` to check the header and the `set lock_timeout` line in the first 30 lines. Add a `ci.yml` step `migration-order`: it fails when `git diff --diff-filter=MDR --name-only origin/main...HEAD -- supabase/migrations` is non-empty, or when a new file's prefix is not greater than the largest on origin/main."
+ },
+ {
+  "lens": "database",
+  "rule": "Destructive DDL never ships in a single release. Dropping a table or column, renaming, changing a column's type, or adding a NOT NULL column without a default is allowed only in a migration headed `-- contract-of: <expand version>`, where that version is already on origin/main. Function and trigger drops stay allowed.",
+  "why": "Production runs `db push` before the Worker deploy, and `wrangler rollback` restores the previous Worker against the newer schema.",
+  "enforcedBy": "A regex pass in `tests/db/migration-headers.test.ts` over the comment-stripped SQL (patterns in DB-08). The `contract-of` version is checked against `git ls-tree origin/main supabase/migrations`."
+ },
+ {
+  "lens": "database",
+  "rule": "mop-dev only ever holds main's migrations. A branch's migrations are applied and tested in CI against a throwaway Supabase Postgres container, and `src/db/types.ts` is generated from that container.",
+  "why": "Three lanes share one dev database. A branch migration on mop-dev blocks every other lane's push, and B2's reset guard refuses to clear it.",
+  "enforcedBy": "The `ci.yml` `migrations` job: a `supabase/postgres` 17.x service container, `supabase db push --db-url ... --include-all` run twice with an emptied `public` in between, `vitest --project db`, then `supabase gen types typescript --db-url` and `git diff --exit-code src/db/types.ts`. `scripts/db-push.mjs` refuses `--linked` pushes to mop-dev from a branch whose migration files differ from origin/main. Pending the operator's confirmation that S50 covers the laptop only."
+ },
+ {
+  "lens": "database",
+  "rule": "Every table in `public` has RLS enabled. Every view is created with `security_invoker = true`. Every function has `search_path=''`, and execute is granted only to service_role apart from the `authenticatedFunctions` allow-list. anon holds no table, sequence, view or function privilege. authenticated holds exactly the grants listed in `tests/db/rls-matrix.ts` (kept as defence in depth, ASSUMED G43).",
+  "why": "The service role is the only real database client, so a forgotten grant must fail closed, and a grant must exist only together with its policy.",
+  "enforcedBy": "Catalog cases in the existing `tests/db/rls.db.test.ts` over `pg_class.relrowsecurity`, `pg_class.reloptions` (`security_invoker=true` for every `relkind = 'v'`), `pg_proc.proconfig`, `has_function_privilege` and `has_table_privilege` for anon and authenticated, compared with `rls-matrix.ts` and naming the offender."
+ },
+ {
+  "lens": "database",
+  "rule": "Every admin write function audits through `write_audit`. `write_audit` refuses a non-null actor whose stored `user_roles.actor_kind` differs from the kind passed in, who is disabled, or who lacks a role allowed for the action in `action_roles`, or who is an agent on a human-only action.",
+  "why": "The Worker holds the service key, so the human-approval gate (S23) and the agent cap must not depend on a value each call site types.",
+  "enforcedBy": "`tests/db/actor.db.test.ts`. Catalog case: every `public` function with a `p_actor` argument has a `prosrc` containing `write_audit(`, apart from an allow-list of read functions. Behaviour cases: a kind mismatch and a wrong role raise 42501. `tests/unit/action-roles.sync.test.ts` compares the seeded `action_roles` rows with the `authz.ts` matrix."
+ },
+ {
+  "lens": "database",
+  "rule": "Every foreign key states its delete action explicitly as cascade, set null or restrict, recorded per constraint in `schema-manifest.ts`, and has an index whose leading column is the FK column.",
+  "why": "An implicit `no action` hides what happens to people's data when an auth user or a parent row goes. An unindexed FK makes cascades and set-null scan the child table.",
+  "enforcedBy": "`tests/db/fk.db.test.ts` over `pg_constraint` (contype `f`). `confdeltype` must equal the manifest entry, and some `pg_index` must have `indkey[0] = conkey[1]` on `conrelid`. Each failure names the constraint."
+ },
+ {
+  "lens": "database",
+  "rule": "Column types are fixed: time is `timestamptz`, never `timestamp`; money is `numeric(12,2)` with a currency check; no `real`, `double precision`, `money` or `serial`; ids are `uuid default gen_random_uuid()` or `bigint generated always as identity`.",
+  "why": "Time-zone and rounding bugs are cheapest to stop at the column.",
+  "enforcedBy": "`tests/db/types.db.test.ts` over `information_schema.columns` for `public`. Forbidden `data_type` values are absent, no `column_default` matches `nextval(`, and every money column named in the manifest has `numeric_precision` 12 and `numeric_scale` 2."
+ },
+ {
+  "lens": "database",
+  "rule": "Every state column (submissions, properties, stories, payments, assets, jobs, social_posts, newsletter_issues) is an enum or a check constraint. It changes only through its owning function, which takes `for update` and raises `wrong_state`, or through a transition trigger. Its allowed transitions are listed once in `src/domain/*` and compared with the database.",
+  "why": "State machines enforced only in TypeScript, or written differently in each function, are where double-approve and double-post bugs come from.",
+  "enforcedBy": "A table-driven transition test per state column in `tests/db/transitions.db.test.ts`. It runs the full from-by-to matrix through the owning functions and compares the result with the TypeScript transition map, as B2 already does for submissions."
+ },
+ {
+  "lens": "database",
+  "rule": "Every table in `versionedTables` (properties, stories, markets, automation_recipes, email_templates, newsletter_issues) has `version int not null default 1` bumped by trigger. Every save, put or update function on those tables takes `p_expected_version` and raises SQLSTATE 40001 `version_conflict`. Columns only the system writes (`systemPropertyColumns`) do not bump the version.",
+  "why": "Agents and humans edit the same automations, templates, newsletters and stories. Last-write-wins loses work silently, and system writes must not cause false conflicts.",
+  "enforcedBy": "`tests/db/concurrency.db.test.ts`. Catalog case over `versionedTables` and `versionedFunctions` in `schema-manifest.ts`. One stale-version case per function raises 40001. A hero-image trigger write followed by `save_property` with the earlier version succeeds."
+ },
+ {
+  "lens": "database",
+  "rule": "Every table in `public` either has a `retention_policies` row or is in the `keptForever` list. Every column holding personal data has a `pii_columns` row, and `write_audit` never stores those values. The retention job sheds the oldest analytics partitions while the database is above 80% of 500 MB.",
+  "why": "The free database goes read-only at 500 MB, and a CCPA deletion must reach every copy of personal data.",
+  "enforcedBy": "Catalog cases in `tests/db/retention.db.test.ts` (policy or allow-list for every table) and `tests/db/audit-pii.db.test.ts` (name-pattern columns are covered, and audit rows hold no plaintext). The shedding branch is covered in `tests/unit/jobs/retention.test.ts`, and the 70% warning by B14's `usage_gauges` in `health.test.ts`."
+ },
+ {
+  "lens": "database",
+  "rule": "Every SQL function body lives in exactly one file, `supabase/sql/functions/<name>.sql`. A migration that changes a function is generated from that file with `bun run db:fn <name>` and is never hand-copied from an earlier migration.",
+  "why": "Several slices in parallel lanes re-body the same functions. A hand-copied stale body silently drops earlier fixes, and `supabase db diff` is not available here.",
+  "enforcedBy": "`tests/db/function-source.db.test.ts` compares each file's dollar-quoted body with `pg_proc.prosrc` on the migrated database, and fails on a difference or on a non-extension `public` function with no file."
+ },
+ {
+  "lens": "database",
+  "rule": "Reviewer checklist: every invariant that spans several rows (counts, caps, the last admin, gapless numbers, one open draft) names in the function's comment the lock or unique index that serialises it. Every new list or job query names the index that serves its filter and order.",
+  "why": "Write skew and missing indexes do not show up in single-connection rollback tests or on a 16-row dev seed.",
+  "enforcedBy": "A reviewer checklist line in `.github/pull_request_template.md` (created by B1b) under 'table or column' and 'job type'. Not mechanical."
+ },
+ {
+  "lens": "security",
+  "rule": "No raw HTML sink outside src/lib/seo.ts. `dangerouslySetInnerHTML`, `.innerHTML =` and head-script `children` built from data go only through `serializeJsonForScript`. Everything else reaches the DOM as React text.",
+  "why": "Cached public HTML is shared by every visitor and shares the admin origin. One unescaped sink becomes stored XSS.",
+  "enforcedBy": "ESLint core `no-restricted-syntax` (eslint-plugin-react is not installed, so not react/no-danger) with the selectors `JSXAttribute[name.name='dangerouslySetInnerHTML']`, `AssignmentExpression[left.property.name='innerHTML']` and `Property[key.name='children'] > CallExpression[callee.object.name='JSON'][callee.property.name='stringify']`, and an override for src/lib/seo.ts. Also tests/unit/csp-inline.test.ts with the hostile fixture."
+ },
+ {
+  "lens": "security",
+  "rule": "The CSP hash list contains only scripts the framework emitted (TanStack's `class=\"$tsr\"`) or exact app scripts from src/server/lib/csp-allowlist.ts. JSON data blocks are never hashed, and script-src has no wildcard host.",
+  "why": "Hashing whatever appears in the rendered page turns the policy into an allow-list for injected code.",
+  "enforcedBy": "tests/unit/csp-inline.test.ts: the hostile fixture yields the same hash set as a clean fixture. The headers test asserts that script-src contains no `*.`."
+ },
+ {
+  "lens": "security",
+  "rule": "Every URL field a user supplies is https only, through one `httpsUrl` schema in src/domain/contracts.ts (today's `optionalUrl` uses `.url()`, which accepts javascript:).",
+  "why": "`z.string().url()` accepts javascript: and other schemes, and the admin renders these as links.",
+  "enforcedBy": "ESLint core `no-restricted-syntax` on `CallExpression[callee.property.name='url']` everywhere except the httpsUrl definition. The contracts test asserts that `javascript:alert(1)` and `http://x` fail every URL field."
+ },
+ {
+  "lens": "security",
+  "rule": "Every admin service function rejects a role-less actor before it touches the database, and admin route files import only service modules, never the db client.",
+  "why": "TS authorize() is the only authorization layer on the Worker path. RLS does not run there.",
+  "enforcedBy": "tests/unit/admin-authz-sweep.test.ts: a glob over src/server/**/service.ts, a db Proxy that throws `db_touched`, and a static import check over src/routes/api/admin/**."
+ },
+ {
+  "lens": "security",
+  "rule": "No template literal or string concatenation is passed to supabase-js `.or(`, `.filter(` or `.textSearch(`. Free-text search goes through an RPC parameter.",
+  "why": "PostgREST filter-string injection changes the meaning of a query.",
+  "enforcedBy": "ESLint core `no-restricted-syntax`: `CallExpression[callee.property.name=/^(or|filter|textSearch)$/] > :matches(TemplateLiteral, BinaryExpression)`."
+ },
+ {
+  "lens": "security",
+  "rule": "Every workflow declares top-level `permissions: {}` and grants per job. Every `uses:` is pinned to a 40-character SHA. No attacker-controllable context (`github.event.pull_request.title|body|head.ref`, `github.head_ref`, `github.event.client_payload`, `inputs.`) appears inside a `run:` line; pass it through env.",
+  "why": "Actions jobs hold deploy and database credentials. Mutable tags and script injection hand those credentials to whoever controls the tag or the text.",
+  "enforcedBy": "Regex assertions in tests/unit/hygiene.test.ts over every file in .github/workflows/ (extended from the three files it reads today)."
+ },
+ {
+  "lens": "security",
+  "rule": "A job triggered by pull_request references no production-capable secret: never SUPABASE_ACCESS_TOKEN, PROD_*, BACKUP_* or the main-account CLOUDFLARE_API_TOKEN.",
+  "why": "Dependency and action code in a PR job sees that job's env before any human review, and AI builders add packages in PRs.",
+  "enforcedBy": "tests/unit/hygiene.test.ts, which slices each job's text and checks a deny list. It guards against dependency code, not against a malicious workflow edit."
+ },
+ {
+  "lens": "security",
+  "rule": "Edge Function dependencies are exact versions with a committed deno.lock. bun installs stay frozen, and bunfig keeps minimumReleaseAge of at least 86400.",
+  "why": "The job runner is the most privileged process, and bunfig's release-age guard does not cover Deno's npm: specifiers.",
+  "enforcedBy": "The CI `deno` job runs `deno check --frozen` (the flag exists in deno 2.8.1). hygiene.test.ts asserts that deno.lock exists and checks the bunfig value."
+ },
+ {
+  "lens": "security",
+  "rule": "write_audit never stores contact columns. After delete_subject, the subject's address appears in no public table except the documented keep list.",
+  "why": "Subject requests and the privacy notice must match what the database actually holds, and audit_log is permanent.",
+  "enforcedBy": "tests/db/subject-erasure.db.test.ts, a PL/pgSQL scan of every text and jsonb column before and after delete_subject, run with each later slice's tables automatically."
+ },
+ {
+  "lens": "security",
+  "rule": "Session tokens are verified only by session.ts with algorithms ['ES256'], the project issuer, audience 'authenticated' and a JWKS set with a cooldown. A token without a parseable amr sign-in time is 401.",
+  "why": "A missing amr would otherwise make the 12 h and 15 minute limits unbounded, and an uncached kid lookup is an amplifier.",
+  "enforcedBy": "The negative cases in tests/unit/session-local.test.ts (wrong iss or aud, expired, no amr, at most 1 JWKS fetch for 100 random kids), each watched-fail."
+ },
+ {
+  "lens": "security",
+  "rule": "Test and dev-script processes never see production or account-wide credentials. Env is loaded by profile, and ops values live in .env.ops.",
+  "why": "AI builders run tests headless with permissions skipped, and wrangler reads CLOUDFLARE_API_TOKEN (mop-admin) from env automatically.",
+  "enforcedBy": "scripts/lib/guard-env.mjs, imported by tests/db/global-setup.ts and every dev script, throws on ^PROD_|SUPABASE_ACCESS_TOKEN|CLOUDFLARE_API_TOKEN|CF_EDGE_TOKEN|^BACKUP_ (tests/unit/env-guard.test.ts)."
+ },
+ {
+  "lens": "security",
+  "rule": "Reviewer checklist line: any new action an agent can reach that changes outbound content (emails, posts, recipes), public visibility (publish, unpublish) or a system clock (backup, audit, prune, reconcile, keepwarm) is humanOnly, or is counted by assert_agent_daily_cap and announced through notify_admin.",
+  "why": "Agents read untrusted text, so prompt injection is their main threat, and this class of action is where the damage lands.",
+  "enforcedBy": "A line in .github/pull_request_template.md (`agent-reachable action: humanOnly or capped + notified`). Nothing mechanical exists."
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "A migration file is never edited, renamed or deleted once it is on `main`. Every new migration's timestamp sorts after the newest one on `main` and carries `-- down:` or `-- irreversible:`. A destructive statement (drop table or column, rename, column type change, set not null) also needs a `-- contract: <release sha>` header.",
+  "why": "Parallel lanes otherwise produce out-of-order timestamps, which stop `db push` on `mop-dev` and `mop-prod`. The schema is never rolled back, so a Worker rollback is safe only on an expanded schema.",
+  "enforcedBy": "`scripts/check-migrations.mjs` in the `check` job of `ci.yml` (`git diff --diff-filter=MDR origin/main...HEAD`, timestamp order, a destructive-statement regex), proved by `tests/unit/check-migrations.test.ts` fixtures, plus B2's `tests/db/migration-headers.test.ts`"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "No job reachable from a `pull_request` trigger references `secrets.PROD_*`, `secrets.BACKUP_*` or `secrets.SUPABASE_ACCESS_TOKEN`. Production credentials appear only in jobs triggered by `workflow_run`, `schedule` or `workflow_dispatch`, and in the `production` Environment once one exists.",
+  "why": "Same-repo PRs run their own workflow file with every repository secret. Without GitHub Environments this test catches accidents, not a deliberate edit.",
+  "enforcedBy": "`tests/unit/hygiene.test.ts`: it parses each workflow with the `yaml` package, resolves each job's triggers and fails on a forbidden reference in a PR-reachable job (watched-fail: add `${{ secrets.PROD_SUPABASE_DB_URL }}` to `preview`)"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Every third-party action is pinned by full commit SHA with a version comment, every job declares a minimal `permissions:` block and a `timeout-minutes`, and every workflow passes actionlint.",
+  "why": "Tag-pinned actions are a supply-chain path to the deploy token, and a hung job burns the shared 2,000 minutes.",
+  "enforcedBy": "actionlint downloaded at a pinned release (checksum verified) in the `check` job, plus `hygiene.test.ts` assertions: non-local `uses:` matches `@[0-9a-f]{40}`, and every job has `permissions` and `timeout-minutes`"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "`ci` on `main` fails unless the merged PR's required checks all succeeded, and the `production` and `dev` jobs skip themselves when a newer code commit is already on `main`.",
+  "why": "There is no branch protection, and a re-run of an older `ci` run would otherwise redeploy stale code.",
+  "enforcedBy": "`scripts/merge-gate.mjs` (job `merge-gate` in `ci.yml`, push only) and `scripts/deploy-guard.mjs` (the first step of both deploy jobs), with `tests/unit/merge-gate.test.ts` and `tests/unit/deploy-guard.test.ts` on recorded API fixtures; `hygiene.test.ts` imports the shared `REQUIRED_PR_CHECKS` constant"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Every deploy job ends with `smoke.mjs` against the deployed URL and an automatic Worker rollback when it fails. The smoke fails on `x-mop-cache: stale`, and the rollback step has been run at least once through the `rehearse_rollback` dispatch.",
+  "why": "A deploy that cannot reach the database must not pass as healthy by serving the last good copy, and a rollback first exercised in an incident is a guess.",
+  "enforcedBy": "`tests/unit/smoke.test.ts` (a recorded `stale` answer exits 1) and the `rehearse_rollback` run of the `dev` job, recorded in `docs/runbooks/rollback.md`"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Every clock and background process (runner tick, keep-warm, backup) writes `beat(<name>)` to `ops_heartbeats` and has a maximum age in `ops_health()`. Every pg_cron job and every enabled `schedule_settings` key either has a threshold or is listed as covered by another beat.",
+  "why": "A monitor that runs inside the thing it monitors cannot report that thing's death.",
+  "enforcedBy": "`tests/db/ops-health.db.test.ts` on `mop-dev`: it compares `select jobname from cron.job` and the `schedule_settings` keys with the exported `OPS_HEALTH_THRESHOLDS` map, and checks that a stale beat is reported"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Every outbound `fetch` in `src/server/**` passes an options object containing `signal` (normally `AbortSignal.timeout(...)`).",
+  "why": "A hung vendor call must not hold a 50-second runner tick or a 10 ms-CPU Worker request open.",
+  "enforcedBy": "ESLint `no-restricted-syntax` in `eslint.config.js` for `src/server/**` with the selectors `CallExpression[callee.name='fetch'][arguments.length<2]` and `CallExpression[callee.name='fetch'] > ObjectExpression.arguments:not(:has(Property[key.name='signal']))` (options passed as a variable must be inlined, or use a shared wrapper exempted by file)"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Server code logs only through `logLine(level, fields)` from `src/server/lib/log.ts`, with `requestId` (or `job_id`) in every line, and never puts a personal-data value in a message or error string.",
+  "why": "Workers Logs and Sentry are the only 3 a.m. debugging path, and the scrub cannot detect names in free text.",
+  "enforcedBy": "ESLint `no-console: error` on `src/server/**` with an override for `src/server/lib/log.ts` and `src/server/lib/sentry.ts` (B1b's client writes one `console.error` on a failed send); B3's `tests/unit/log.test.ts` and `sentry.test.ts` scrub fixtures"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Every free-tier resource a change consumes (Workers requests, database size, Edge Function calls, Resend, Actions minutes, R2) has a line in `limits.json` with a `source`, and the daily health check reads the same table.",
+  "why": "A quota exhausted silently stops deploys, backups or mail with no alarm.",
+  "enforcedBy": "`tests/unit/audit/gauges.test.ts` (B14), extended to fail on a `limits.json` line without a non-empty `source` and to require the `actions_minutes` line"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Reviewer checklist: no alert path depends on the component it watches. Name the transport (UptimeRobot email, Sentry email, GitHub failed-run email) and confirm it still fires with the runner, Resend and the database all down.",
+  "why": "`health` -> `notify_admin` -> Resend is silent exactly when it is needed.",
+  "enforcedBy": "A checklist line in `.github/pull_request_template.md` (no mechanical check is possible)"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Reviewer checklist: every secret that cannot be regenerated (the backup decryption key, encryption keys of stored data) has an escrow location outside the laptop and GitHub, recorded in rotation.md with who holds it.",
+  "why": "GitHub secrets are write-only, and the laptop is a single point of failure for a two-person team.",
+  "enforcedBy": "Reviewer checklist line; `runbook-lint.mjs` (H1) additionally requires a non-empty `escrow` column for those rows of the rotation inventory"
+ },
+ {
+  "lens": "delivery-ops",
+  "rule": "Reviewer checklist: a change to a deploy, migration or clock path updates incident.md, rollback.md or restore.md in the same PR, and the changed command is run once on `mop-dev` with its output pasted.",
+  "why": "A runbook nobody re-walked after a pipeline change is fiction at 3 a.m.",
+  "enforcedBy": "A checklist line in `.github/pull_request_template.md`; `runbook-lint.mjs` (named commands and scripts exist) runs in `audit-deps.yml` on runbook paths"
+ },
+ {
+  "lens": "testing",
+  "rule": "Every new or changed test file has at least one entry in tests/mutations/*.json whose mutation turns that test red with the expected message. SQL mutations run inside withMutation within withRollback, never by editing a migration or calling db:reset.",
+  "why": "A test never seen failing may measure nothing, and a ledger has to be replayable rather than a record of what someone says happened.",
+  "enforcedBy": "tests/unit/mutation-registry.test.ts (each test file has an entry) plus a CI step running `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` (exit 1 on BAD, 2 on a stale find)."
+ },
+ {
+  "lens": "testing",
+  "rule": "No focused or disabled tests reach main. A conditional skip uses it.skipIf with a printed reason, and every eslint-disable carries a description.",
+  "why": "Several plans use conditional skips ('B7 not landed', 'jobs table absent'). An unexplained .skip or .only becomes a permanent hole.",
+  "enforcedBy": "@vitest/eslint-plugin vitest/no-focused-tests and vitest/no-disabled-tests at error; @eslint-community/eslint-plugin-eslint-comments require-description; Playwright `forbidOnly: !!process.env.CI` in playwright.config.ts."
+ },
+ {
+  "lens": "testing",
+  "rule": "Type-aware lint passes with @typescript-eslint/no-floating-promises, no-misused-promises (checksVoidReturn.attributes false), await-thenable, only-throw-error and switch-exhaustiveness-check (considerDefaultExhaustiveForUnions false) at error level, on top of the existing recommended preset.",
+  "why": "An un-awaited promise in the Worker or a job step, or a non-exhaustive switch over workflow, job or payment states, is a production bug that compiles and passes review.",
+  "enforcedBy": "`bun run lint` inside `bun run check` (eslint with parserOptions.projectService); hygiene.test.ts asserts the rule names appear in eslint.config.js."
+ },
+ {
+  "lens": "testing",
+  "rule": "The tsconfig strict flags (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noPropertyAccessFromIndexSignature, noImplicitReturns, noImplicitOverride, noUnusedLocals, noUnusedParameters, noUncheckedSideEffectImports) are never turned off. New scripts are written as .ts and run by bun.",
+  "why": "Builders working under deadline pressure loosen compiler flags to get green.",
+  "enforcedBy": "hygiene.test.ts reads tsconfig.json and asserts each flag is true; `bun run typecheck` in check."
+ },
+ {
+  "lens": "testing",
+  "rule": "No unused files, exports or dependencies.",
+  "why": "AI builders leave dead helpers and stray dependencies that look like working code and hide the real paths.",
+  "enforcedBy": "`bunx knip` inside `bun run check`, configured by knip.json (src/db/types.ts and src/routeTree.gen.ts ignored)."
+ },
+ {
+  "lens": "testing",
+  "rule": "Unit and component tests make no network call and see no credentials.",
+  "why": "Otherwise a test passes on a laptop with .env loaded and fails in CI.",
+  "enforcedBy": "tests/setup/hermetic.ts in setupFiles of the unit and component vitest projects (env scrub plus a throwing fetch), proved by a registered watched-fail."
+ },
+ {
+  "lens": "testing",
+  "rule": "In CI, database and live e2e tests run against a database built for that job from the branch's own migrations, never against mop-dev. mop-dev receives only migrations that are on main. Tests create the rows they change and never depend on rows another test changed.",
+  "why": "Shared mutable schema across branches and lanes makes tests fail for reasons unrelated to the diff and lets real drift through.",
+  "enforcedBy": "hygiene.test.ts fails if a ci.yml job uses `group: mop-dev` or links DEV_SUPABASE_PROJECT_REF, or if deploy.yml preview-db runs db:push on a pull request (applies once the T-01 decision is taken)."
+ },
+ {
+  "lens": "testing",
+  "rule": "Every `for update` or `pg_advisory_xact_lock` inside a SQL function has a committed race() test on two or more connections.",
+  "why": "A sequential test cannot fail when a lock is removed.",
+  "enforcedBy": "tests/unit/concurrency-coverage.test.ts maps each such token's enclosing function in supabase/migrations/** to a tests/db/** file containing that function name and `race(`."
+ },
+ {
+  "lens": "testing",
+  "rule": "Database tests, factories and the dataset take time from the database (dbNow) or an explicit p_now parameter. FIXED_NOW and at() are for pure unit tests only.",
+  "why": "A fixed date compared against SQL now() makes a test that starts failing on a calendar date.",
+  "enforcedBy": "tests/unit/time-model.test.ts fails when tests/db/**, tests/api/**, tests/e2e/**, tests/fixtures/factories.ts or tests/fixtures/dataset.ts imports FIXED_NOW or at."
+ },
+ {
+  "lens": "testing",
+  "rule": "A migration that drops, renames, retypes or newly requires a column or table carries `-- contract-of: <earlier version on main>` or `-- irreversible: <reason>`.",
+  "why": "Production pushes the schema before the Worker, and a Worker rollback does not undo migrations.",
+  "enforcedBy": "B2's tests/db/migration-headers.test.ts, extended with the destructive-DDL regex."
+ },
+ {
+  "lens": "testing",
+  "rule": "A PR merges only through merge-gate.mjs: its head contains current origin/main, `gh pr checks` reports no failed or pending check, path-skipped jobs are printed, and the merge uses --match-head-commit.",
+  "why": "There is no branch protection on this plan (P-028), and in parallel lanes a stale PR merges a combination nobody tested.",
+  "enforcedBy": "The ci.yml `gate-check` job on push to main fails unless the merged PR's head carries the `merge-gate=success` commit status; deploy.yml production waits on ci success."
+ },
+ {
+  "lens": "testing",
+  "rule": "Reviewer checklist: each invariant in the slice plan's Contract section is named by a test title and a mutation id. Tests assert observable behaviour (HTTP status, row state, rendered DOM), not implementation calls, except the sanctioned db call counter.",
+  "why": "This catches tests that exist but do not pin down the stated invariant, which no tool can judge.",
+  "enforcedBy": "Reviewer checklist line in .github/pull_request_template.md, ticked by the build-slice unit-reviewer with the test names quoted."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Lint is type-aware and zero-warning: typescript-eslint strictTypeChecked with projectService; only-throw-error allows TanStack's Redirect and NotFoundError; no-confusing-void-expression ignores arrow shorthands; switch-exhaustiveness-check, consistent-type-imports, no-unsafe-type-assertion and ban-ts-comment (ts-expect-error only with a description of 10 or more characters) at error; unused disable directives are errors.",
+  "why": "Un-awaited promises cancelled after the response, `any` from res.json(), casts from any, non-exhaustive switches over event and state unions, and stray disables are the main ways AI-written code compiles yet is wrong. Measured on today's tree: 16 s, about 56 real problems to fix once.",
+  "enforcedBy": "eslint.config.js (B1b step 5): `languageOptions.parserOptions.projectService: true`, `linterOptions.reportUnusedDisableDirectives: 'error'`; package.json `\"lint\": \"eslint . --max-warnings 0\"`, run by `bun run check` in the ci.yml job `check`."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "The compiler refuses ambiguous code. tsconfig adds verbatimModuleSyntax true, isolatedModules true, allowUnreachableCode false, allowUnusedLabels false and erasableSyntaxOnly true to the existing strict flags. Scripts are type-checked by tsconfig.scripts.json with allowJs and checkJs.",
+  "why": "A type-only import must say `import type`, which is the mechanism B3's portability rule relies on. Unreachable code and unused labels become errors. The 127 planned scripts stop being untyped. Measured: today's code passes all five flags with 0 errors.",
+  "enforcedBy": "`tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json` as the `typecheck` script inside `bun run check`."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Code loaded by the Deno job runner imports and re-exports with explicit `.ts` extensions, only by relative path, `@/server/` or `@/domain/`. It never imports cloudflare:workers, node:*, env.ts, wait-until.ts or browser globals.",
+  "why": "Deno 2.8.1 refuses extensionless imports (TS2307, re-measured), and the Edge Function shares this code with the Worker.",
+  "enforcedBy": "eslint `no-restricted-syntax` on ImportDeclaration, ExportNamedDeclaration and ExportAllDeclaration with `[source.value=/^([.]|@.(server|domain))/]:not([source.value=/[.]ts$/])` for the Deno-set globs (selector tested); CI job `deno` running `deno check --config supabase/functions/job-runner/deno.json` from B3 on (entry `scripts/deno-portable.ts`, then index.ts from B8)."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Server-side layering follows architecture section 2. src/server, src/domain and supabase/functions never import src/data, components, admin or routes. src/server/lib imports no feature folder. Client code never imports `**/server/**` or `**/db/queries/**`.",
+  "why": "Bundled illustrative data reaching the server breaks 'production shows no illustrative property'. An inverted lib layer becomes the cross-lane wiring that three parallel lanes produce.",
+  "enforcedBy": "eslint built-in `no-restricted-imports` `patterns` blocks per glob; TanStack `importProtection` in vite.config.ts (`behavior: 'error'`) at `bun run build`; `tests/unit/architecture.test.ts` holding the table-write regex, the admin fetch rule and the crypto.subtle rule."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "No unused export, file or dependency, and no copied block of 70 or more tokens across src, scripts and supabase/functions. An export kept for a later slice carries knip's `@public` JSDoc tag and a STUB marker.",
+  "why": "Parallel lanes cannot see each other's helpers, and duplicated or dead code is the most common AI filler. Measured baselines are small: knip 24 items, jscpd 1 clone.",
+  "enforcedBy": "`knip` (knip.json with explicit entries; exits 1 on any issue) and `jscpd` (.jscpd.json minTokens 70, threshold 0) in `bun run check`."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Errors and logs have one shape. Throw only AppError with an ErrorCode. Every SQL raise code is mapped in admin-errors.ts or listed internalOnly. Log only through `logLine(level, event: LogEvent, fields)`, with ids in fields. No console outside log.ts and scripts. Every catch in server code rethrows, returns a typed outcome, or calls logLine or captureException.",
+  "why": "Swallowed errors, unmapped raise codes that surface as 500s, two names for one conflict, and console calls that bypass the email scrubber make production failures invisible or leak data.",
+  "enforcedBy": "eslint `no-console: 'error'` (overrides for src/server/lib/log.ts and scripts), the tested `no-restricted-syntax` CatchClause and .catch selectors from CS-09, `@typescript-eslint/only-throw-error`; tests/unit/error-codes.test.ts (migration raise codes against the map) and tests/unit/log.test.ts (every line is JSON with an event in LogEvent and no email)."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Only adapter files call outside services, and each parses every response it reads with a Zod schema; no cast from `any`. Environment variables are read only in src/server/lib/env.ts and runtime-env.ts. Web Crypto is called only in src/server/lib/crypto.ts, whose timingSafeEqual is plain TypeScript.",
+  "why": "Vendor responses change shape without notice. Scattered env reads defeat the env parse and break the Deno runner. crypto.subtle.timingSafeEqual exists only in workerd (undefined in Node, Bun and Deno, measured).",
+  "enforcedBy": "eslint `no-restricted-globals: ['error', 'fetch']` under src/server, with an override for the CS-15 adapter files; `no-restricted-properties` on `process.env` and `Deno.env` outside env.ts and runtime-env.ts; `@typescript-eslint/no-unsafe-type-assertion` and the no-unsafe-* rules; the crypto.subtle case in tests/unit/architecture.test.ts; tests/unit/crypto.test.ts (RFC 4231 vectors) in the node-environment unit project."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Files stay readable: at most 400 lines per file, excluding blanks and comments, with data and generated files exempt. Server, domain and script functions have at most 80 lines and complexity 15. A growing schema file splits by feature behind the same re-export.",
+  "why": "Append-target files edited by up to ten slices otherwise grow until nobody reads them before adding a second copy. Function limits are kept off JSX pages, where they would fight the existing style.",
+  "enforcedBy": "eslint `max-lines` (src/**, scripts/**), and `max-lines-per-function` and `complexity` (src/server/**, src/domain/**, scripts/**) at error, ignoring src/data/**, src/routeTree.gen.ts and src/db/types.ts."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Every test asserts, none is skipped or focused, and unit tests reach the database only through the typed tests/fixtures/fake-db.ts, which throws on any unregistered RPC or table.",
+  "why": "Tests that cannot fail and hand-rolled loose mocks are how a green suite proves nothing, and the plans' proofs are 'vitest run passes'.",
+  "enforcedBy": "vitest.config.ts `test.expect: { requireAssertions: true }` in every project (option present in vitest 5.0.2); `@vitest/eslint-plugin` rules expect-expect, no-disabled-tests, no-focused-tests, no-conditional-expect, valid-expect and no-identical-title; the per-plan watched-fail list stays mandatory."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Every production code stub carries `// STUB(<slice>[ step n]|post-v1): <replacement>`, and a stub whose slice is closed fails the build.",
+  "why": "The plans and S54 create stubs on purpose. One that outlives its slice ships silent non-behaviour, such as no confirmation email or no events.",
+  "enforcedBy": "`bun run scripts/stubs.ts` in `bun run check` (checks against the PLAN.md status table); L1 `scripts/launch/preflight.mjs` check: zero markers except `post-v1`."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Reviewer checklist line: before accepting, grep src/lib, src/server/lib, scripts/lib and tests/fixtures for the verb of every new exported function (format, parse, sign, hash, paginate, retry, toLocal...). A second implementation of an existing helper, or a new shared helper placed inside a feature folder, is a defect.",
+  "why": "jscpd catches copied text, not a semantically identical rewrite under another name.",
+  "enforcedBy": "Reviewer checklist (build-slice.js reviewPrompt, replacing 'Style opinions are not defects')."
+ },
+ {
+  "lens": "code-standards",
+  "rule": "Reviewer checklist line: comments state why (an invariant, a ruling id such as G39, a platform limit), never what the next line does. An interface, option, parameter or layer with one implementation that the plan does not require is a defect. No commented-out code.",
+  "why": "Restating comments and speculative generality are filler no linter can see.",
+  "enforcedBy": "Reviewer checklist (build-slice.js reviewPrompt and the orchestrator's diff read in RUNBOOK step 3)."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every state machine (submission `workflow_state`, property and story `editorial_state`, `payments.status`, `assets.status`, `jobs.status`, `social_posts.status`, `newsletter_issues.status`) is declared once as a transition table in `src/domain/workflow.ts` (or its slice's domain file), and the SQL guard function accepts exactly the same pairs.",
+  "why": "Two copies of a graph drift. DL-03 is that drift today: B7 prescribes moves that B2's guard refuses.",
+  "enforcedBy": "`tests/db/state-parity.db.test.ts` (db vitest project, rolled back): for each machine, cross-join `enum_range(null::<enum>)` with itself and compare the SQL guard's answer with the TS table for every pair. It extends B2's existing `workflow.test.ts` parity pattern."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every state graph has a terminal state reachable from every state, and every non-terminal state has at least one outgoing edge.",
+  "why": "Stuck states (DL-03, DL-04, DL-09) come from graphs that nobody walked end to end.",
+  "enforcedBy": "`tests/unit/state-graph.test.ts`: a BFS over each TS transition table that asserts every state reaches a state in that machine's declared `terminalStates`."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every SQL function that changes the state of an aggregate takes the aggregate root row `for update` (directly, or by first calling `save_property` with the expected version) before any read it bases a decision on.",
+  "why": "A check followed by an insert without the lock is a race that a double click or two admins will hit (DL-02).",
+  "enforcedBy": "`scripts/lint-sql-locks.mjs`, run in `ci.yml`: for each function named in `stateChangingFunctions` of `tests/db/schema-manifest.ts`, its body in `supabase/migrations/*.sql` must contain `for update` or a `save_property(` call before its first `insert` or `update`. Plus one committed-mode concurrency test for activation (DL-02)."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "A 'create once' rule is backed by a unique constraint or partial unique index, never by read-then-insert alone.",
+  "why": "Only the database can guarantee 'one' under concurrency.",
+  "enforcedBy": "`requiredUniqueIndexes` in `tests/db/schema-manifest.ts` (`properties(submission_id)`, `campaigns(payment_id)`, `social_posts(asset_id, channel)`, `payments(submission_id) where live`, `assets(property_id, kind, revision)`), asserted against `pg_indexes` and `pg_constraint` in `tests/db/integrity.db.test.ts`."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every job step or system handler that causes an outside effect (post, email, webhook, broadcast) re-checks its domain preconditions when it runs (property publicly visible, subscriber still consenting, payment still in the expected state) and never relies on a cancel issued at the moment of change.",
+  "why": "Jobs outlive the state that created them, and `retry_at`, backoff and approvals delay them for hours (DL-05).",
+  "enforcedBy": "`tests/unit/jobs/preconditions.test.ts`: for each external step listed in the step registry, run it against a fixture where the property is not public or the subscriber is unsubscribed, and assert no `fetch` call and a `skipped` or `retry_at` result."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Business dates (invoice dates, campaign windows, KPI weeks) are computed with an explicit IANA zone. Server and domain code takes `now` from `ctx.now` or a parameter and never calls `new Date()` or `Date.now()` directly.",
+  "why": "Implicit UTC dates put the wrong date on legal documents (DL-12) and make tests depend on the wall clock.",
+  "enforcedBy": "ESLint `no-restricted-syntax` in `eslint.config.js`, in a block scoped to `src/server/**` and `src/domain/**` (with `src/server/lib/clock.ts` and the runner entry ignored), with selectors `NewExpression[callee.name='Date'][arguments.length=0]` and `CallExpression[callee.object.name='Date'][callee.property.name='now']`, run by `bun run check`. SQL side: reviewer checklist line 'no `::date` on a timestamptz without `at time zone`', because a text lint cannot tell column types apart."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every `switch` over a domain union (states, kinds, channels, tiers) is exhaustive, so a new value fails the build until each consumer handles it.",
+  "why": "A new state silently falls into a default branch and gets the wrong behaviour.",
+  "enforcedBy": "`@typescript-eslint/switch-exhaustiveness-check` set to `error`. It needs type information, which today's `eslint.config.js` does not enable: add a block for `src/**/*.{ts,tsx}` with `languageOptions.parserOptions.projectService: true` and the rule, run by `bun run check`."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every domain error code raised in SQL has an entry in `admin-errors.ts` / `fromRpcError` with a 4xx status. A unique violation (23505) on a domain index maps to 409 with a named code.",
+  "why": "An unmapped domain error becomes a 500 the operator cannot act on, and a lost unique race shows up as a crash.",
+  "enforcedBy": "`tests/unit/admin-errors.coverage.test.ts`: extracts every `raise exception '<snake_case_code>'` from `supabase/migrations/*.sql` and asserts each one is a key of the error map."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Mail recipients are selected only through the consent-aware functions (`newsletter_audience_members`, the market-open selection, `resolveRecipient`), never by an ad hoc query on `subscribers`.",
+  "why": "Ad hoc recipient queries skip suppression, unsubscribe or consent checks (DL-06).",
+  "enforcedBy": "CI grep step in `ci.yml`: `git grep -n 'from(\"subscribers\")' -- 'Matter Of Place Codebase/src/server'` may return only allow-listed files (`src/server/subscribers/**`, `src/server/newsletter/audience.ts`, `src/server/jobs/system/market-open-notice.ts`), else exit 1."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Every job type that calls an outside provider declares its own retry budget of at least 10 attempts.",
+  "why": "One default budget of about 8 minutes dead-letters outbound work during ordinary incidents (DL-10).",
+  "enforcedBy": "`tests/unit/automation/step-specs.test.ts`: iterates the step and system registries and asserts `maxAttempts >= 10` for the external types it lists."
+ },
+ {
+  "lens": "domain-logic",
+  "rule": "Reviewer checklist: each new state-changing function or transition names its race partner (the other action, actor or job that can touch the same row) and the test that runs both, and names the outside effects that must re-check this state when they run.",
+  "why": "Concurrency and the spread of state changes are the defects tests miss unless someone names them.",
+  "enforcedBy": "Reviewer checklist line in the H1 review template and in each slice's PR description (nothing mechanical exists)."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "The catalog snapshot is at most 1.5 MB on the 100-property, 30-media-per-property synthetic fixture, and the test prints the byte count.",
+  "why": "Each isolate fetches the snapshot once per version, so its size multiplies straight into the 5 GB egress line and into the 10 ms cold-path CPU after every bump.",
+  "enforcedBy": "`tests/db/snapshot-budget.db.test.ts` (B2, withRollback on `mop-dev`) in the CI `db` job, watched-fail by adding a 20 KB text column to the snapshot's property object."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "Every public HTML document is at most 60 KB transferred, and list API responses are at most 600 bytes per item on the 100-property fixture. Lists return card shapes, never full detail objects.",
+  "why": "Catalog data dehydrated into every page's HTML grows with the catalog, and the script-size assertion does not see it.",
+  "enforcedBy": "Lighthouse CI assertion `resource-summary:document:size` (`maxNumericValue` 61440) in `lighthouserc.json`, mirrored in `budget.json` and checked by `tests/unit/perf-budget.test.ts`; plus `tests/api/payload-budget.api.test.ts`."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "No Worker request makes more than 40 Supabase requests (database and Storage together), measured with maximum-size inputs: 40 photographs and 50-row pages. Any I/O loop over a user-sized collection runs in a job.",
+  "why": "The free Worker refuses every subrequest after the 50th, which fails the request partway through, and a retry that repeats the same calls never converges.",
+  "enforcedBy": "`expect(dbCallCount()).toBeLessThanOrEqual(40)` (B3's wrapped-fetch counter in `getDb()`, which counts every request to Supabase) in each admin and public `tests/api/*.api.test.ts` case that runs with maximum-size inputs."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "Every table that grows with time, including extension tables (`cron.job_run_details`, `pgmq` archive tables, `net._http_response`), has a `retention_policies` row or an explicit allow-list entry that says why it is bounded (for example pg_net's own TTL).",
+  "why": "Above 500 MB the free project refuses writes, and every write in the business stops.",
+  "enforcedBy": "`tests/db/retention-coverage.db.test.ts` on `mop-dev`: lists ordinary tables in the `public`, `cron`, `pgmq` and `net` schemas from `pg_class` and fails on any relation with neither a policy row nor an allow-list entry."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "A burst of N uploaded or copied photographs of one property is rendered with each photograph dispatched exactly once, with rows claimed through `for update skip locked`.",
+  "why": "Each dispatch is an Actions run plus a download of originals from Supabase Storage, which counts against egress.",
+  "enforcedBy": "`tests/db/render-claim.db.test.ts` on `mop-dev`: 40 staged rows and 40 queued jobs dispatch 40 items in total, concurrent claims are disjoint, and a failed job's rows can be claimed again."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "Every GitHub workflow job sets `timeout-minutes`, and every workflow sets a `concurrency` group.",
+  "why": "The 2,000 minutes on the private repo are shared by CI, deploys, renders and backups, and a hung job or a superseded run spends them all.",
+  "enforcedBy": "`bun scripts/check-workflows.ts` (parses root `.github/workflows/*.yml` with `Bun.YAML.parse`) as a step of the `check` job in `ci.yml`, watched-fail by deleting one `timeout-minutes`."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "Cache API entries under a versioned key are stored with `s-maxage=31536000`, and the last-good key contains the release.",
+  "why": "A versioned key cannot go stale; a short stored TTL only adds CPU-heavy misses, and the Cache API ignores `stale-while-revalidate` on `put` and `match`.",
+  "enforcedBy": "Assertions in `tests/unit/cache.test.ts` on the stored entry's `Cache-Control` and on the last-good key shape."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "Every email template has a quota class (`transactional`, `confirm` or `bulk`), and bulk and confirm sends stop below their reserve of the daily cap.",
+  "why": "The shared 90-a-day cap must not let bulk mail delay buyers' acknowledgements or signup confirmations.",
+  "enforcedBy": "Database constraint `email_templates.class text not null check (class in ('transactional','confirm','bulk'))` and `tests/unit/email/cap-classes.test.ts`."
+ },
+ {
+  "lens": "performance-cost",
+  "rule": "A PR that adds a public route, beacon, job type, heavy step or workflow states its unit cost (Worker requests per page view, Supabase calls, egress bytes, Actions minutes, emails) and the P-009 line it draws on.",
+  "why": "Free-tier lines are hit by accumulation, not by any single change, so the cost has to be written where the change is made.",
+  "enforcedBy": "A `unit cost` box in `.github/pull_request_template.md`, whose presence is asserted by B1b's `hygiene.test.ts` (the same mechanism as the existing `new public read` box); filling it is a reviewer checklist line."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "A Worker request handler makes at most 35 outbound fetches with the largest input the contract allows. Any loop over a collection whose size a user controls (photographs, recipients, contacts, posts) runs in a job, never in a request handler.",
+  "why": "The Workers free plan stops an invocation at 50 subrequests, and architecture 1 forbids side effects inside a request (E2E-02).",
+  "enforcedBy": "tests/unit/subrequest-budget.test.ts wraps fetch with a counter and drives every admin and public handler that iterates input (createFromSubmission, activate, POST submissions, bulk admin actions) with the maximum input, failing above 35."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "mop-dev's migration history and job runner come only from code that contains origin/main. A migration file is never edited after any db push has applied it anywhere; a correction is a new migration. `--include-all` and `migration repair` are never run without the orchestrator.",
+  "why": "Three lanes share one mop-dev. The CLI refuses foreign or out-of-order versions, and an edited migration is silently skipped (E2E-06).",
+  "enforcedBy": "scripts/db-push.mjs, run by `bun run db:push`, preview-db and the production job: it fails on a remote-only version, an out-of-order local version, or a file hash differing from public.migration_checksums. tests/unit/db-push-guard.test.ts covers the three cases."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Every step that calls an outside service survives a crash after the call: it either sends a provider idempotency key derived from the job id or reads the provider's state back before calling again.",
+  "why": "Duplicate mails, posts, broadcasts and webhooks are the main way a retry harms customers (E2E-10).",
+  "enforcedBy": "A case in tests/unit/automation/catalog.test.ts fails when a step in step-specs.ts marked `external: true` has no tests/unit/jobs/idempotency/<step>.test.ts. Each such test simulates 'call succeeded, finish failed, retry' against a fake provider and asserts exactly one outside effect."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Content a human approved is never written by a job. `set_asset_files` and `set_asset_text` change only pending or rejected rows; a change to approved creative is revision n+1 through `rerender_asset`.",
+  "why": "Approval is the S23/S46 gate, and a late render callback must not bypass it (E2E-05).",
+  "enforcedBy": "tests/db/assets.db.test.ts -t approved_guard: both functions return false and change nothing on an approved or published row."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Destructive DDL (drop, rename, type change, new not null) appears only in a contract migration whose header names an expand migration already on origin/main.",
+  "why": "A Worker rollback leaves the newer schema in place, so the previous release must still run against it (E2E-07).",
+  "enforcedBy": "The extension of B2's tests/db/migration-headers.test.ts; watched-fail with a headerless `drop column` in a scratch migration."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Every step paramsSchema parses `{}`, and every seeded recipe step parses under the current schema. Schemas change only by adding optional fields with defaults.",
+  "why": "Jobs snapshot params for days and recipes live in the database across deploys (B8b line 21 states the rule; this makes it a check).",
+  "enforcedBy": "A case in tests/unit/automation/catalog.test.ts that loops over step-specs.ts calling `paramsSchema.parse({})` and parses each step of the seed recipes in `<ts>_automation_seed.sql` (via the same fixture `plan.test.ts` uses)."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Real outside side effects (email to non-staff, social posts) happen only when `liveSideEffects(channel)` is true: MOP_ENV is exactly 'production', or an explicit EMAIL_LIVE / SOCIAL_LIVE flag is set together with the dev allow-list.",
+  "why": "Dev and production share Resend and the brand's social accounts, so a forgotten dry-run flag means real mail or posts of illustrative content (E2E-04).",
+  "enforcedBy": "tests/unit/lib/live-side-effects.test.ts, plus an ESLint `no-restricted-imports` entry in eslint.config.js (core rule, flat-config `files`/`ignores` block) that allows importing the provider clients only from src/server/channels/** and src/server/email/resend-client.ts."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Each step declares `maxAttempts` in step-specs.ts. A step that calls an outside service stays retryable through a 60-minute outage, and dead jobs can be retried in bulk by type, error and time.",
+  "why": "A uniform 8-minute path to dead turns any provider incident into manual cleanup one job at a time (E2E-03).",
+  "enforcedBy": "tests/unit/jobs/backoff.test.ts -t outage (simulated clock) and tests/db/jobs.db.test.ts -t retry_bulk."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Each of the nine journeys has an end-to-end test on mop-dev with fake providers, from the first public or admin call to the last row and outside call.",
+  "why": "Every gap in this review sits at a handoff between two slices whose own tests pass.",
+  "enforcedBy": "A CI job `journeys` (concurrency group mop-dev) running tests/journeys/<n>-<name>.test.ts against fake Resend, Meta, X, LinkedIn, GitHub-dispatch and Omnikom servers (the B15 omnikom-mock pattern). An H1 checklist row requires all nine green."
+ },
+ {
+  "lens": "end-to-end",
+  "rule": "Every cross-slice handoff in a plan names who retries it, where a failure becomes visible to a person, and within what time.",
+  "why": "Stuck states with no owner, such as a staged photograph with no job or an issue left 'sending', come from handoffs that name only the happy path.",
+  "enforcedBy": "A reviewer checklist line in H1 and in the build-slice review: 'For each new call into another slice: retry owner, the screen that shows it, time to alert.'"
+ }
+]

@@ -2,7 +2,7 @@
 // Shot list and reasons: STORYBOARD.md. Sound cues on the same clock: cues.json.
 import { film, gsap, maskIn, maskOut, track, weight, wipe, black, shot, depth, move, sequence, decode } from "/launch/engine/runtime/film.js";
 
-const ASSET = "/Matter%20Of%20Place%20Codebase/src/assets/";
+const ASSET = "/app/src/assets/";
 const A = (n) => ASSET + n;
 const $ = (s) => document.querySelector(s);
 

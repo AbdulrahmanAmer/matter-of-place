@@ -102,7 +102,7 @@ Full ledger: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [
 ## Folder map
 | Folder | What |
 |---|---|
-| `Matter Of Place Codebase/` | the site (React, TanStack Start, plain CSS, Cloudflare Worker) |
+| `app/` | the site (React, TanStack Start, plain CSS, Cloudflare Worker) |
 | `workspace/00-MAP-OF-WHAT-WE-HAVE.md` | the company and what exists today |
 | `workspace/02-tech-stack/` | the approved stack and the rule for adding anything |
 | `workspace/03-diagrams/img/` | every diagram as a picture |

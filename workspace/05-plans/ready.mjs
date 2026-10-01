@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..", "..");
-const APP = join(ROOT, "Matter Of Place Codebase");
+const APP = join(ROOT, "app");
 const REPO = "AbdulrahmanAmer/matter-of-place";
 const full = process.argv.includes("--full");
 const rows = [];
@@ -37,7 +37,11 @@ else {
       .filter((l) => /^[A-Z0-9_]+=/.test(l))
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
   );
-  const need = ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "SENTRY_DSN", "SUPABASE_ACCESS_TOKEN", "DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_DB_PASSWORD", "DEV_SUPABASE_SERVICE_ROLE_KEY", "DEV_SUPABASE_POOLER_HOST", "DEV_SUPABASE_POOLER_USER", "PROD_TURNSTILE_SECRET", "VITE_TURNSTILE_SITE_KEY_PROD", "PREVIEW_RATE_LIMIT_SALT", "PREVIEW_SENTRY_TEST_TOKEN"];
+  // SEC-08: B2 moves the ops names (admin tokens, PROD_*, Omnikom) to the git-ignored .env.ops; read both
+  const opsPath = join(ROOT, ".env.ops");
+  if (existsSync(opsPath))
+    for (const l of readFileSync(opsPath, "utf8").split(/\r?\n/).filter((x) => /^[A-Z0-9_]+=/.test(x))) env[l.slice(0, l.indexOf("="))] = l.slice(l.indexOf("=") + 1).trim();
+  const need =["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "SENTRY_DSN", "SUPABASE_ACCESS_TOKEN", "DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_DB_PASSWORD", "DEV_SUPABASE_SERVICE_ROLE_KEY", "DEV_SUPABASE_POOLER_HOST", "DEV_SUPABASE_POOLER_USER", "PROD_TURNSTILE_SECRET", "VITE_TURNSTILE_SITE_KEY_PROD", "PREVIEW_RATE_LIMIT_SALT", "PREVIEW_SENTRY_TEST_TOKEN"];
   const bad = need.filter((k) => !env[k] || env[k].startsWith("PASTE_"));
   add(bad.length ? "FAIL" : "PASS", ".env names", bad.length ? `missing: ${bad.join(", ")}` : `${need.length} present`);
   const ig = run("git", ["check-ignore", "-q", ".env"]);
@@ -102,6 +106,7 @@ const missSecrets = needSecrets.filter((s) => !haveSecrets.includes(s));
 add(gs.code === 0 && !missSecrets.length ? "PASS" : "FAIL", "GitHub Actions secrets", missSecrets.length ? `missing: ${missSecrets.join(", ")}` : `${needSecrets.length} present`);
 const gv = run("gh", ["variable", "list", "--repo", REPO]);
 add(/VITE_SITE_URL/.test(gv.out) && /VITE_TURNSTILE_SITE_KEY/.test(gv.out) ? "PASS" : "FAIL", "GitHub variables", "VITE_SITE_URL, VITE_TURNSTILE_SITE_KEY");
+add(/VITE_GA4_MEASUREMENT_ID/.test(gv.out) ? "PASS" : "WAIT", "Google Analytics and Search Console", /VITE_GA4_MEASUREMENT_ID/.test(gv.out) ? "" : "GitHub variable VITE_GA4_MEASUREMENT_ID missing: blocks B13, B14");
 const ga = run("gh", ["api", `repos/${REPO}/actions/permissions`, "--jq", ".enabled"]);
 add(ga.out.trim() === "true" ? "PASS" : "FAIL", "GitHub Actions enabled");
 
@@ -121,7 +126,8 @@ for (const f of [".claude/agents/mop-builder.md", ".claude/agents/mop-designer.m
   add(existsSync(join(ROOT, f)) ? "PASS" : "FAIL", `file ${f}`);
 }
 const stage = (readFileSync(join(ROOT, "PROJECT-STATE.md"), "utf8").match(/^STAGE:\s*(\d+)/m) || [])[1];
-add(stage === "3" ? "PASS" : "FAIL", "PROJECT-STATE stage 3 (BUILD)", `stage ${stage}`);
+const launchMode = process.argv.includes("--launch");
+add((launchMode ? ["4", "5"].includes(stage) : stage === "3") ? "PASS" : "FAIL", launchMode ? "PROJECT-STATE stage 4 or 5 (HARDEN signed, LAUNCH)" : "PROJECT-STATE stage 3 (BUILD)", `stage ${stage}`);
 
 // 9. the app itself
 if (full) {
@@ -138,7 +144,6 @@ const waits = [
   ["X_CLIENT_ID", "X developer app", "B10 post_x"],
   ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app", "B10 post_linkedin"],
   ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
-  ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
   ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
   ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of H1 and L1 (launch only)"],
