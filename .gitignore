@@ -23,3 +23,7 @@ cloudflare tokens and secrets.txt
 creds/
 *secrets*.txt
 Claude Session.txt
+
+# visual-pass raw shots: regenerable, archived in history at f9fa95e (S54 cleanup)
+workspace/08-visual-pass/before/
+workspace/08-visual-pass/after/

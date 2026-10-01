@@ -4,6 +4,11 @@ Branch `fix/visual-pass`. Method: `shoot.mjs` (18 routes x 1440/390 full page), 
 `overflow.mjs` (six widths), `sticky.mjs` (phone page end). Before in `before/`, after in `after/`, pairs in `pairs/`
 (left = before, right = after). Defect table: `DEFECTS.md`.
 
+Archived 2026-10-02 (S54 cleanup): the raw full-page shots in `before/` and `after/` (132 files, about 145 MB) were
+removed from the tree and are ignored from now on. They remain in history at commit `f9fa95e`
+(`git checkout f9fa95e -- workspace/08-visual-pass/before workspace/08-visual-pass/after`), and the shooters
+regenerate them. The ten pairs this report cites stay.
+
 Counts: found 26 (blocks 3, hurts 12, polish 11). Fixed 22 (blocks 3, hurts 12, polish 7). Remaining 4 polish.
 
 ## Top ten before/after
