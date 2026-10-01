@@ -34,8 +34,8 @@ and 4 plans.
 
 | Phase | Lanes (each is one builder session at a time, reviewed by a fresh context) |
 |---|---|
-| 0 Spine, one lane | B1b, then B2, then B3 |
-| 1 Three lanes | Public: B3b, B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
+| 0 Spine, one lane | B1b, then B2, then B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the lanes open) |
+| 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
 | 2 One lane | H1 on everything, then L1: `mop-prod`, production secrets, deploy, matterofplace.com routed to the Worker |
 
 The orchestrator (this session) dispatches, re-runs each slice's proof itself, merges, and keeps the table at the end of
