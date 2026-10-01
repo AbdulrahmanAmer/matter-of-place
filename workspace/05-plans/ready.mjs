@@ -115,7 +115,7 @@ const ahead = run("git", ["rev-list", "--left-right", "--count", "origin/main...
 add(ahead === "0\t0" ? "PASS" : "FAIL", "in sync with origin/main", ahead.replace("\t", " behind, ") + " ahead");
 
 // 8. plans, agents, harness
-const cp = run("node", [join(here, "check-plans.mjs")]);
+const cp = run("node", [join(here, "check-plans.mjs"), "--require-trace"]);
 add(cp.code === 0 ? "PASS" : "FAIL", "check-plans", cp.out.trim().split(/\r?\n/).pop());
 for (const f of [".claude/agents/mop-builder.md", ".claude/agents/mop-designer.md", ".claude/agents/mop-scout.md", ".claude/agents/mop-auditor.md", ".claude/workflows/build-slice.js", "workspace/05-plans/RUNBOOK.md", "GOTCHAS.md", "PROJECT-STATE.md", ".claude/POSITION.md"]) {
   add(existsSync(join(ROOT, f)) ? "PASS" : "FAIL", `file ${f}`);
@@ -138,8 +138,10 @@ const waits = [
   ["X_CLIENT_ID", "X developer app", "B10 post_x"],
   ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app", "B10 post_linkedin"],
   ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
-  ["GA4_MEASUREMENT_ID", "Google Analytics, Search Console, Tag Manager", "B13, B14"],
+  ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
+  ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
+  ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of H1 and L1 (launch only)"],
   ["GITHUB_DISPATCH_TOKEN", "fine-grained GitHub token for render dispatch", "B8 step 7, B9 renders in Actions"],
   ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods", "B6 invoice issue, B16"],
 ];
@@ -150,4 +152,9 @@ for (const r of rows) console.log(`${r.state}  ${r.name.padEnd(pad)}  ${r.detail
 const fails = rows.filter((r) => r.state === "FAIL").length;
 const waitsN = rows.filter((r) => r.state === "WAIT").length;
 console.log(`\nREADY TO BUILD: ${fails ? "no" : "yes"} (${rows.filter((r) => r.state === "PASS").length} pass, ${fails} fail, ${waitsN} waiting on the operator)`);
+// --launch (L1's one gate for operator inputs, ASSUMED G32): nothing may be waiting either
+if (process.argv.includes("--launch")) {
+  console.log(`READY TO LAUNCH: ${fails || waitsN ? "no" : "yes"}${waitsN ? ` (${waitsN} operator input(s) still missing, listed above as WAIT)` : ""}`);
+  process.exit(fails || waitsN ? 1 : 0);
+}
 process.exit(fails ? 1 : 0);

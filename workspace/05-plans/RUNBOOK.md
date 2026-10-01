@@ -37,6 +37,13 @@ other slices go ahead.
 - Production shows no illustrative property, ever (S30). `MOP_ENV` defaults to `production`.
 - Caching is a contract (S52, architecture section 13): no public read queries a table directly; the reviewer rejects one that does.
 
+## Documented means traceable (S53)
+`trace.json` lists every table, route, screen, event, step, schedule, email, page, script and decision with its owning slice,
+its files and whether it has a proof. `check-plans.mjs --require-trace` (run by `ready.mjs`) fails when a plan stops naming a
+traced file, when a catalog step has no code file, or when a slice is missing from the completion map. A builder who finds
+that a plan leaves an owner, a file, a table or a mechanism to be invented stops, fixes the plan and the trace, and only then
+builds. Completeness audits of plans run on Opus at high effort; rulings go in `ASSUMED.md` section G.
+
 ## Every task ends the same way
 Slice or not: a block in `.claude/POSITION.md` with the proof output, new entries in `GOTCHAS.md` for anything that went wrong,
 commit, push, and `git log origin/main -1` showing the commit. Then `node workspace/05-plans/ready.mjs` still ends with yes.

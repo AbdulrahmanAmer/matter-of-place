@@ -358,3 +358,38 @@ Operator asked what makes the automations possible in code and whether that is d
   B12 (1), B13 (1), B15 (1), B8b (1).
 - `check-plans.mjs` now fails when a catalog step has no code file named in any plan (watched-fail done).
 - Nothing was run or built; plan documents only. None of this code exists yet: it is specified, not implemented.
+
+## 2026-10-01 · TRACEABILITY AUDIT CLOSED (S53): every capability traces to an owner, a file, its data and a proof
+Operator: "that is a gap that might exist in all of our docs ... fix everything end to end for the last time", with
+Opus 5.5 at high effort. He was right that the project was not ready: the earlier "READY TO BUILD: yes" came from a
+gate that checked accounts and syntax, not whether the documents could be built from (GOTCHAS P-044).
+- Method: one workflow, `traceability-audit`, six rounds. Each round: ten auditors across the spec (data, public API,
+  admin, automation engine, content pipelines, email, public site, delivery and ops, decisions, producers and
+  consumers) and, in rounds one and two, one auditor inside each of the 21 plans; then one writer per document; then
+  a fresh re-audit. The workflow was paused after every fix round so the CTO could rule on what the writers passed
+  up, and resumed from cache (P-045). Models: Opus 5.5, high effort, about 258 agent runs.
+- Gaps found per round: 1,152 · 1,191 · 306 · 150 · 99 · 42 (the last round counted blockers only). About 1,600
+  fixes were written into the 21 plans, architecture.md, tech-stack.md, admin-screens.md and completion-map.md.
+- Rulings: `workspace/05-plans/ASSUMED.md` section G, G1 to G65. The ones that changed the design: an 18th event
+  `subject_request.received` with an acknowledgement email (G29); invoices in a private Supabase bucket, so B6 no
+  longer needs R2 (G26); a stable dev Worker `matter-of-place-dev` and noindex on every workers.dev host (G19);
+  events written in SQL in the same transaction as the row (G20, G49); one sender for subscriber confirmation
+  (G12, G38); eight schedule rows, one reconcile clock (G9, G10); media intake stripped in Actions from a private
+  staging path (G25, G42, G51); draft properties may be incomplete and the publish gate lists what is missing (G62);
+  the last two submission states are B10's (G60); retention rows, owners and names (G48).
+- New, permanent: `workspace/05-plans/trace.json` (1,136 items: kind, id, owning plan, files, proof) and three
+  checker rules in `check-plans.mjs` (a catalog step without a code file, a slice missing from the completion map,
+  a plan that stops naming a traced file); `ready.mjs` runs the checker with `--require-trace` and has `--launch`;
+  `readiness-table.mjs` rebuilds the waiting table of PLAN.md from the plans. All ten diagram sources were corrected
+  against the plans and re-rendered (36 pictures).
+- Project rules changed: CLAUDE.md "Documented means traceable (S53)", Opus high for completeness audits, answer a
+  question with a checked result and do not start building in reply (memory `answer-first-evidence-not-description`).
+- HONEST LIMITS: the last round's 42 blockers were fixed but not re-audited; the conformance pass for G54 to G65 was
+  not re-audited either; by the trend a further round would still find a few tens of fine-grained items. The builder
+  rule stands: a plan that turns out wrong is fixed first, then built. Nothing was built or run; the code is still
+  specified, not implemented. UNPROVEN items listed in ASSUMED F26 g and in each plan stay unproven until built.
+- Operator decisions made the conservative way, to confirm or overrule: one 45-day clock for privacy requests and an
+  emailed acknowledgement (G29); no cap in code on reels (G30); Campaign standalone email goes to confirmed
+  subscribers of that market only (G15); commercial role stays read-only everywhere (G22, G27); no staff upload of
+  representative photographs at launch (G56).
+- NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.

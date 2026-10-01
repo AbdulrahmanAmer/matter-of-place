@@ -44,6 +44,12 @@ Video and sound: no music ever (S36), sound design synthesized in code only; mot
 frame capture (S37), direction lives in `launch/MOTION-BIBLE.md`, quality is gated by `launch/tools/motion-gate.mjs`
 plus a fresh-eyes review. "Quiet" means palette, type and copy, never a static screen.
 
+**Documented means traceable (S53).** A capability counts as documented only when a plan names all of: what starts it,
+the one slice that owns it, the code file, the data it reads and writes, the outside call if there is one, what happens
+on failure, and a proof command. `workspace/05-plans/trace.json` lists every such item and `check-plans.mjs` enforces it.
+A sentence that says what will exist without those is a gap, not a plan. Answer "is X covered" by running the check,
+never from memory, and when the operator asks a question, answer it: do not start running or building in reply.
+
 **Caching is a contract (S52, architecture section 13):** a warm public read costs zero database queries; HTML and
 catalog JSON are cached under a key of release and catalog version; never add a public read that queries a table directly.
 
@@ -61,6 +67,8 @@ bun run dev       # http://localhost:8080
 ## Model routing (token discipline is a project requirement)
 - Orchestrator: this session (Fable). Judgment, synthesis, RULE 2 verification only.
 - Workers: `.claude/agents/mop-*.md` — Sonnet at medium or lower, Haiku for extraction. Never spawn Fable children.
+  Exception (operator, 2026-10-01): completeness and traceability audits of the plans and spec, and the fixes that come
+  out of them, run on Opus 5.5 at high effort. Building stays on Sonnet.
   Every worker prompt begins with "Read E:\Matter Of Place\GOTCHAS.md in full first" (the agent bodies say it too);
   a worker that hits a banked gotcha again is a prompt defect, fix the prompt.
 - Anything deterministic (image resize, carousel render, sitemap, reports) becomes a script, not a prompt.

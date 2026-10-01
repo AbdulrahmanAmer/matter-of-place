@@ -20,22 +20,22 @@ flowchart TB
 
   subgraph CF[Cloudflare, free tier: zone matterofplace.com]
     edge[Edge cache + WAF + Turnstile + rate-limit rule]
-    site[One Worker: SSR pages, /api/* server routes, /admin behind auth]
-    r2[(R2: photo originals + variants made once at publish, reels, nightly DB dump)]
+    site[One Worker: SSR pages, /api/* server routes, /admin behind auth, Cache API, keep-warm cron every 10 minutes. Also pr-N previews and the stable dev Worker matter-of-place-dev]
+    r2[(R2, designed in and off until the operator enables it: stripped originals + variants made once at publish, reels, copy of the nightly DB dump)]:::todo
   end
 
   subgraph SB[Supabase, free tier]
     db[(Postgres: catalog, submissions, inquiries, subscribers, events, campaigns, jobs, assets)]
-    auth[Auth: magic links; roles: chief_editor, managing_editor, visual_editor, media_ops, commercial]
-    store[(Storage: private submissions bucket, signed uploads)]
-    q[[pgmq queue + pg_cron: light jobs, keep-warm, digest assembly]]:::todo
+    auth[Auth: magic links, roles chief_editor, managing_editor, visual_editor, media_ops, commercial, admin]
+    store[(Storage, private buckets: submissions for signed uploads and staged originals, invoices for invoice PDFs)]
+    q[[pgmq queues jobs_light, jobs_heavy + pg_cron: runner every minute, health, retention, token refresh]]:::todo
     fn[[Edge Function: job runner reads the recipe at trigger time]]:::todo
     rules[(Automation settings: recipes, email templates, decline reasons, channel + schedule settings, revisions)]:::todo
   end
 
   subgraph GH[GitHub, free tier]
-    repo[Private repo: main protected, PR previews]
-    ci[[Actions: check, test, build, wrangler deploy]]:::todo
+    repo[Private repo: no branch protection on this plan, deploy runs only after CI passes on the same commit]
+    ci[[Actions: check, test, build, wrangler deploy, nightly encrypted backup]]:::todo
     render[[Actions render workflow: image variants, carousel + story + OG PNGs, ffmpeg reels]]:::todo
   end
 
@@ -59,7 +59,7 @@ flowchart TB
   end
 
   subgraph MONEY[Commercial: manual now, Stripe later behind the same table]
-    pay[payments table: invoice from template, preferred method, mark paid, activate agent]:::todo
+    pay[payments table: invoice from template, PDF in the private invoices bucket, preferred method, mark paid, activate agent]:::todo
     stripe[Stripe adapter, later]:::todo
     omni[Omnikom handoff webhook: inquiries, attribution]:::todo
   end
@@ -69,7 +69,7 @@ flowchart TB
 
   subgraph OBS[Observe and improve]
     sentry[Sentry free]:::todo
-    ga[GA4 + Search Console + Cloudflare analytics + first-party events]
+    ga[GA4 through gtag.js after consent + Search Console + Cloudflare zone analytics + first-party events]
     auditor[[mop-auditor on a schedule: perf, SEO, AEO, GEO, keywords, channels → report + patch PR]]:::todo
   end
 
@@ -88,14 +88,16 @@ flowchart TB
   render --> og & car & story & reel & nl
   fn --> cap
   og & car & story & reel & nl & cap --> approve
-  approve --> ig & resend
+  approve --> ig & xch & li & resend
+  approve -.->|only when switched on| offch
   site --> pay
   stripe -.-> pay
   site --> empty
   site --> omni
   site --> sentry
   site --> ga
-  auditor --> ga & ig & resend
+  auditor --> ga
+  auditor -->|agent key: audit API with channel and newsletter numbers| site
   auditor -->|PR| repo --> ci -->|deploy| site
   prog -.-> OUT
 
@@ -127,7 +129,7 @@ sequenceDiagram
   D-->>A: email: invoice
   E->>D: mark paid, activate agent → Scheduled (Stripe webhook can do this later)
   E->>D: write dossier (narrative, sequence, facts, representation) → editorial_state published
-  D->>J: jobs: variants, OG, carousel, story, newsletter block, captions (+ reel, email for Campaign)
+  D->>J: jobs: catalog version bump, cache purge, variants, OG cover, carousel, story, newsletter block, captions (+ reel, email for Campaign)
   J->>D: assets rows, status pending
   M->>D: approve
   D->>J: publish jobs
@@ -139,11 +141,11 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  t[Scheduled trigger] --> m[Measure: PSI, Search Console, GA4, Graph API, Resend, crawl, JSON-LD, llms.txt]
+  t[Saturday 12:00 UTC routine, audit row of schedule_settings] --> m[Measure: PSI, Search Console, GA4, Cloudflare zone analytics, uptime monitor, our audit API for channel and newsletter numbers, crawl, JSON-LD, llms.txt]
   m --> r[Rank findings: impact ÷ effort, brand guard]
   r --> w[Write workspace/audits/date.md]
   r --> p[Patch on a branch: code, copy, schema, keywords]
-  p --> pr[PR: tests + security-guidance + code-review plugins]
+  p --> pr[PR: CI checks and review]
   pr --> h{Operator merges?}
   h -->|yes| d[Actions deploy] --> v[Verify in production] --> t
   h -->|no| t

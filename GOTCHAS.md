@@ -81,7 +81,7 @@ Entry template
 - symptom: a key committed as `VITE_SOMETHING_SECRET` is visible in the built JS.
 - cause: Vite inlines every `VITE_*` value at build time.
 - rule: secrets go in `wrangler secret put` (server side) only; `VITE_*` is for public URLs and flags. The global `secret-scan` hook also checks writes.
-- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, INSTAGRAM_URL, TURNSTILE_SITE_KEY, GA4_MEASUREMENT_ID (all public by nature; every secret stays server side).
+- proof: `grep -rn "VITE_" .env.example` → only SITE_URL, API_BASE_URL, TURNSTILE_SITE_KEY, GA4_MEASUREMENT_ID (all public by nature; every secret stays server side; the Instagram address is no longer a build variable, it lives in `settings.site.social`, ASSUMED G23).
 - added: 2026-09-30
 
 ## G-007 · Styling is tokens only: no hex, no utility classes
@@ -147,7 +147,7 @@ Entry template
 - Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
 - Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
 - GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes).
-- Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare Web Analytics: free.
+- Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
 - added: 2026-09-30
 
@@ -420,4 +420,25 @@ Entry template
 - cause: `check-plans.mjs` verified that step names were in the catalog, not that each catalog step had an implementing file in some plan. Ownership stated in two plans was never cross-checked.
 - rule: an automation is documented when four things are named in a plan: the event that starts it, the recipe row (B8b seed), the step's code file `src/server/jobs/steps/<name>.ts`, and a proof command. `check-plans.mjs` now fails when a catalog step has no file named in any plan. Answer "is X covered" questions by running a check, not by describing the design.
 - proof: `node workspace/05-plans/check-plans.mjs` prints OK; deleting the `render-variants.ts` line from B9.md makes it print `no plan names the code file of step render_variants`.
+- added: 2026-10-01
+
+## P-044 · "Ready to build" was declared from a gate that checked accounts and syntax, not whether the documents could be built from
+- symptom: on 2026-10-01 the readiness gate printed `READY TO BUILD: yes` and the CTO session reported it. The operator did not believe it ("I felt that we were not ready to write the code for production") and asked how an automation would actually work in code. A full audit then found 1,152 gaps in the plans and spec in its first round: 299 contradictions between documents, 219 mechanisms described without the code that performs them, 104 things used and created by nobody, 96 with two owners, 88 with no proof, 67 with no code file.
+- cause: the gate measured what was easy to measure (tokens, tools, secrets, a checker for catalog names and section headings). Nothing measured whether a builder holding only a plan would have to invent an owner, a file, a table or a mechanism, or whether two plans disagreed. Two earlier passes with Sonnet workers at medium effort had made the plans longer and more confident without closing that.
+- rule (S53): a capability is documented only when a plan names what starts it, one owning slice, the code file, the data, the outside call, the failure path and a proof command. `workspace/05-plans/trace.json` lists every such item (1,100 and more) and `check-plans.mjs` fails when an item's plan stops naming its files, when a catalog step has no file, or when a slice is missing from the completion map. "Is it covered" and "are we ready" are answered by running `node workspace/05-plans/ready.mjs --full`, never from memory. Completeness audits run on Opus at high effort (operator's instruction); a cheaper pass that returns "all consistent" is a claim, not a result.
+- proof: `node workspace/05-plans/check-plans.mjs` prints OK with the trace enforced; the six audit rounds found 1,152, 1,191, 306, 150, 99 and 42 gaps.
+- added: 2026-10-01
+
+## P-045 · An audit that fixes as it goes does not converge by itself: it needs rulings between rounds and a tighter bar each round
+- symptom: round two of the traceability audit found more gaps (1,191) than round one (1,152). The writers, one per document, could not decide anything that touched another document, so they passed 149 questions up and each fixed its side of a contradiction differently.
+- cause: with one writer per file, a disagreement between two files has no owner. Left alone, every round re-reports it and every fix adds text that can disagree somewhere else.
+- rule: stop the workflow when a fix round ends; read what the writers passed up; write rulings in `ASSUMED.md` section G that name every document they bind; resume from the cached run so finished work is not repeated (add new prompt text only for later rounds, and prove the earlier prompts are byte-identical before resuming). Tighten the bar every round: by round three report only what would make a builder guess or contradict; in the last round only blockers. Give later auditors the earlier writers' notes about other documents as unverified claims. Expect several hours and about two hundred agent runs for twenty-five documents; say so before starting.
+- proof: after 65 rulings the rounds went 1,191, 306, 150, 99, 42; `rounds` in the workflow result lists them.
+- added: 2026-10-01
+
+## P-046 · Waiting on long background work from the Bash tool
+- symptom: a command that began with `sleep 90` was refused ("To wait for a condition, use Monitor"); loops that ran past the tool's ten-minute limit were moved to the background and reported later, out of order; a `mermaid` render took over three minutes while seventeen agents were running and was moved to the background too.
+- cause: the Bash tool blocks a bare leading `sleep` and caps a foreground call at ten minutes.
+- rule: wait with a bounded loop that checks a condition (`for i in $(seq 1 50); do <check> && break; sleep 10; done`) and keep it under nine minutes; read progress from the workflow's `journal.jsonl` (count `started` and `result` lines by label). Render diagrams when no fan-out is running. The post-write hook reports "Illegal return statement" on a workflow script because the script body is not a module: verify such a script by wrapping it in an async function, not with `node --check`.
+- proof: this session's polls; `new Function(... 'return (async()=>{' + script + '})')` parses the workflow script that `node --check` rejects.
 - added: 2026-10-01

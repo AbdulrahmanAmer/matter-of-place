@@ -26,8 +26,8 @@ stateDiagram-v2
   Paid --> Scheduled: activate agent
   Waived --> Scheduled: activate agent
   Scheduled --> Published: publish property
-  Published --> DistributionActive: first asset posted
-  DistributionActive --> Completed: campaign window ends
+  Published --> DistributionActive: first post is posted (B10)
+  DistributionActive --> Completed: campaign end date passed, or 30 days after publication (B10)
   Declined --> [*]
   Completed --> [*]
   state "Under Review" as UnderReview
@@ -62,6 +62,7 @@ sequenceDiagram
   participant WK as Worker hook render callback
   CR->>RN: every minute via pg_net with runner secret
   RN->>PG: sweep events without processed_at and fan out
+  RN->>PG: runDueSchedules claims due schedule_settings rows, emits digest.due or enqueues prune, reconcile, kpi_weekly, newsletter_hygiene
   RN->>PG: pgmq read jobs_light with visibility timeout
   PG-->>RN: message with job id
   RN->>PG: claim_job sets running, locked_by, attempts plus 1
@@ -104,21 +105,25 @@ flowchart TD
   A["Server function commits state change"] --> B["events row inserted in the same transaction"]
   B --> C["fanoutEvent runs after commit, sweep re-runs it every minute"]
   C --> D{"Enabled recipe for events.type?"}
-  D -- "no" --> Z1["Mark event processed, no jobs"]
+  D -- "no" --> Z1["Every step skipped, reason recipe_disabled, event marked processed, no jobs"]
   D -- "yes" --> E["For each step in recipe order"]
   E --> F{"Step enabled?"}
   F -- "no" --> S1["Skipped, reason step_disabled"]
-  F -- "yes" --> G{"Conditions match payload tier and market?"}
+  F -- "yes" --> G{"Conditions match payload tier, market and kind?"}
   G -- "no" --> S2["Skipped, reason condition"]
-  G -- "yes" --> H{"requires_approval true?"}
-  H -- "yes" --> J1["Insert job waiting_approval"]
-  H -- "no" --> J2["Insert job queued, pgmq send"]
-  J1 --> AP["Human approves on Jobs or Assets screen"]
-  AP --> J2
-  J2 --> K["Job runner runs light step or dispatches heavy step"]
-  S1 --> L["Mark event processed"]
+  G -- "yes" --> G2{"Step type implemented and params valid?"}
+  G2 -- "no" --> S3["Skipped, reason not_implemented or invalid_params"]
+  G2 -- "yes" --> H{"requires_approval true?"}
+  H -- "yes" --> J1["Planned job waiting_approval, no queue message"]
+  H -- "no" --> J2["Planned job queued with pgmq send"]
+  J1 --> L["fanout_insert_jobs: one transaction inserts the planned jobs and sets events.processed_at last"]
+  J2 --> L
+  S1 --> L
   S2 --> L
-  K --> L
+  S3 --> L
+  L --> K["Job runner runs light step or dispatches heavy step"]
+  L --> AP["waiting_approval job: approved on the Jobs or Assets screen, then queued"]
+  AP --> K
   DR["Dry-run with sample entity"] -.-> E
   DR -.-> R["Returns planned jobs and skips, inserts nothing"]
   subgraph GUARD["Idempotency"]

@@ -8,8 +8,9 @@ Words: `../06-architecture/architecture.md`.
 
 ```mermaid
 flowchart LR
-  V([Visitor]) --> E[Edge cache + Turnstile + rate-limit rule]
-  E --> W[Cloudflare Worker]
+  V([Visitor]) --> E[Cloudflare zone: WAF + rate-limit rule]
+  E --> W[Cloudflare Worker: Cache API lookup first, Turnstile verified on form writes]
+  CR[Worker cron trigger every 10 minutes] -->|keep-warm| W
   W --> P[Pages SSR]
   W --> PUB["/api/public/*"]
   W --> ADM["/api/admin/*"]
@@ -21,10 +22,11 @@ flowchart LR
   ADM --> SF
   HK --> SF
   SF --> DB[(Postgres)]
-  SF --> R2[(R2)]
-  DB --> EV[(events)] --> RE[Recipe engine] --> J[(jobs)] --> Q[[pgmq]] --> RUN[[Edge Function job runner]]
-  RUN -->|heavy| GH
-  RUN -->|light| STEPS[step catalog: send_email, write_captions, post_meta, post_x, post_linkedin, queue_digest, notify_admin, webhook_omnikom, bump_catalog_version, purge_cache]
+  SF --> ST[(Supabase Storage: private buckets submissions and invoices)]
+  SF --> R2[(R2, off until the operator enables it)]
+  DB --> EV[(events, written in the same transaction)] --> RE[Recipe engine: fanoutEvent after commit, runner sweep] --> J[(jobs)] --> Q[[pgmq]] --> RUN[[Edge Function job runner, pg_cron every minute]]
+  RUN -->|"heavy: render_variants, render_cover, render_carousel, render_story, render_reel, render_og_static"| GH
+  RUN -->|light| STEPS[light steps: send_email, notify_admin, write_captions, build_newsletter_block, post_meta, post_x, post_linkedin, queue_digest, webhook_omnikom, bump_catalog_version, purge_cache]
 ```
 
 ## 2. Data model v2
@@ -58,6 +60,8 @@ erDiagram
   email_templates ||--o{ automation_revisions : history
   channel_settings ||--o{ automation_revisions : history
   schedule_settings ||--o{ automation_revisions : history
+  decline_reasons ||--o{ automation_revisions : history
+  jobs ||--o{ job_events : timeline
   subscribers }o--o{ markets : interested_in
   properties ||--o{ slug_history : renamed
   redirects
@@ -82,6 +86,7 @@ erDiagram
     text invoice_number
     text status
     uuid paid_marked_by
+    text invoice_r2_key "PDF path in the private invoices bucket, not R2"
   }
   jobs {
     uuid id PK
@@ -109,7 +114,7 @@ erDiagram
     jsonb steps
   }
   user_roles {
-    uuid user_id PK
+    uuid user_id FK "unique with role"
     text role
     text actor_kind
   }
@@ -122,14 +127,19 @@ stateDiagram-v2
   [*] --> queued: recipe step enabled
   [*] --> waiting_approval: step requires approval
   waiting_approval --> queued: Media Ops or agent approves
-  waiting_approval --> [*]: rejected
+  waiting_approval --> cancelled: cancel
+  queued --> cancelled: cancel, or a takedown cancels queued posts
+  failed --> cancelled: cancel
   queued --> running: runner pops (light) or dispatches (heavy)
   running --> done: step returns result
+  running --> queued: retry_at, waits for a prerequisite, no attempt used
   running --> failed: error, attempts < max
   failed --> queued: run_after backoff
   running --> dead: attempts = max
   dead --> queued: retry button in /admin › Jobs
+  failed --> queued: retry button
   done --> [*]
+  cancelled --> [*]
 ```
 
 ## 4. Agents as staff
@@ -144,30 +154,32 @@ flowchart LR
   R -->|visual_editor| M[Dossier, media, sequences]
   R -->|media_ops| AP[Approve assets, channels, automations]
   R -->|commercial| RO[Read queue, invoices, reports]
-  R -->|admin| T[Team, agent keys, settings]
+  R -->|admin| T[Team, agent keys, settings, invoices, void]
   D & M & AP & RO & T --> AU[(audit_log: actor_id, actor_kind)]
-  G[Guardrails: agents cannot touch roles, keys or settings; per-channel human approval; daily decision cap] -.-> K
+  G[Guardrails: agents cannot touch roles, keys or settings, 403 human_only on mark paid, waive, void, activate and on switching a channel to automatic, per-channel human approval, daily decision cap] -.-> K
 ```
 
 ## 5. Caching: what a visitor's request touches
 
 ```mermaid
 flowchart LR
-  V([Visitor]) --> B[Browser cache: files kept for a year, data kept 5 minutes]
-  B -->|not found| EC[Edge cache in the Worker: finished pages and catalog data]
-  EC -->|not found| M[Memory in the Worker: one snapshot per catalog version]
+  V([Visitor]) --> B[Browser: fingerprinted files a year, immutable, HTML max-age=0 must-revalidate, catalog JSON 60 seconds, TanStack Query 5 minutes]
+  B -->|not found| EC[Edge cache, Cache API in the Worker: finished pages and catalog JSON, s-maxage=300, stale-while-revalidate=86400, key release, catalog version, kind, path]
+  EC -->|not found| M[Memory in the Worker: public state and one catalog snapshot per version]
   M -->|new version or first visit| DB[(Database)]
-  DB --> D1[State check: every 15 seconds]
-  DB --> D2[Catalog snapshot: once per version]
+  DB --> D1[State check: one RPC, at most every 15 seconds per isolate]
+  DB --> D2[Catalog snapshot: one RPC, once per version]
   D1 --> M
   D2 --> M
   M --> EC
   EC --> V
-  ED([Editor publishes]) --> BUMP[Catalog version goes up]
+  ED([Publish, unpublish, edit, or a write to public settings, markets.coming_soon, redirects, slug_history]) --> BUMP[Catalog version goes up, by trigger]
   BUMP --> DB
   BUMP --> NEW[Every cache key changes within 15 seconds, no purge needed]
   NEW --> EC
-  DOWN{{Database down}} -.-> STALE[The last good copy is served]
+  DOWN{{Database down or slower than 2 seconds}} -.-> STALE[The last good copy is served, x-mop-cache stale]
   STALE -.-> V
   WARM[Warm page view: zero database calls] -.-> EC
+  KW[Keep-warm every 10 minutes: one state RPC, keeps the free database awake] -.-> D1
+  MEDIA[Photographs: R2 variants under content-hashed keys, immutable, once R2 is on] -.-> B
 ```
