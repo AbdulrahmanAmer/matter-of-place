@@ -64,5 +64,6 @@ bun run dev       # http://localhost:8080
   Warm Grey #8B877F. Jost / Urbanist (utility) + Cormorant Garamond (editorial). No gradients, glow, gold, SaaS cards.
 - The three tests: a $15M owner is comfortable here; a non-buyer would still follow; a top agent says "we got you in".
 
-## Lovable
-The repo syncs to Lovable. Never rewrite pushed history. There is no `.git` locally yet (see completion map, slice B1).
+## Lovable (disconnected 2026-10-01)
+The MVP began on Lovable; nothing syncs there now. The GitHub repo has no Lovable webhook, app or deploy key, and the
+app carries no Lovable asset (the favicon is the brand emblem). Never rewrite pushed history.
