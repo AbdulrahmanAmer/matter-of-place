@@ -22,6 +22,7 @@ stateDiagram-v2
   Accepted --> InvoiceIssued: issue invoice, payment due
   InvoiceIssued --> Paid: mark paid
   InvoiceIssued --> Waived: waive
+  InvoiceIssued --> InvoiceIssued: reissue after void
   Paid --> Scheduled: activate agent
   Waived --> Scheduled: activate agent
   Scheduled --> Published: publish property

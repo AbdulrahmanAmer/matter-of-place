@@ -1,5 +1,7 @@
 # MATTER OF PLACE
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 ## MASTER WEBSITE BUILD PROMPT
 
 Build the complete first version of **MatterOfPlace.com**.

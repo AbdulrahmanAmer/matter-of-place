@@ -4,6 +4,8 @@ A selective property publication for remarkable places across California, Florid
 
 This repository is the complete frontend: every screen, the content model, the write contracts and the service boundary the backend will implement. It runs on its own from bundled illustrative content, and switches to a live API with one environment variable.
 
+The approved spec lives one level up in `../workspace/`: `02-tech-stack/tech-stack.md`, `06-architecture/architecture.md` and the build slices in `05-plans/`. Build from those; the `docs/` folder here is the earlier sketch.
+
 ## Stack
 
 - React 19, TanStack Start (SSR) and TanStack Router, TanStack Query for reads
@@ -15,8 +17,8 @@ This repository is the complete frontend: every screen, the content model, the w
 ## Getting started
 
 ```bash
-bun install            # or: npm install
-bun run dev            # or: npm run dev  ->  http://localhost:8080
+bun install
+bun run dev            # http://localhost:8080
 ```
 
 Optional: point the site at an API.
@@ -29,18 +31,16 @@ Without `VITE_API_BASE_URL` the site serves the content in `src/data/`, and ever
 
 ## Scripts
 
-Every `npm run <script>` below also works as `bun run <script>`.
-
 | Command                                   | Purpose                                 |
 | ----------------------------------------- | --------------------------------------- |
-| `npm run dev`                             | development server                      |
-| `npm run build`                           | production build into `.output/`        |
-| `npm run preview`                         | serve the production build              |
-| `npm run typecheck`                       | TypeScript, no emit                     |
-| `npm run lint` / `npm run lint:fix`       | ESLint (with Prettier as a rule)        |
-| `npm run format` / `npm run format:check` | Prettier                                |
-| `npm run test`                            | Vitest unit tests (`tests/unit`)        |
-| `npm run check`                           | typecheck, lint, format check and tests |
+| `bun run dev`                             | development server                      |
+| `bun run build`                           | production build into `.output/`        |
+| `bun run preview`                         | serve the production build              |
+| `bun run typecheck`                       | TypeScript, no emit                     |
+| `bun run lint` / `bun run lint:fix`       | ESLint (with Prettier as a rule)        |
+| `bun run format` / `bun run format:check` | Prettier                                |
+| `bun run test`                            | Vitest unit tests (`tests/unit`)        |
+| `bun run check`                           | typecheck, lint, format check and tests |
 
 ## Project layout
 
@@ -60,16 +60,14 @@ docs            architecture, API contract, database schema, deployment, decisio
 
 Full map and conventions: [docs/architecture/frontend.md](docs/architecture/frontend.md). How every kind of change is added: [docs/HOW-TO-ADD.md](docs/HOW-TO-ADD.md).
 
-## Documentation
+## Sketch documentation (intent only)
 
-Start at [docs/README.md](docs/README.md). Diagrams are Mermaid and render on GitHub.
+Start at [docs/README.md](docs/README.md). These pages are the MVP sketch; the approved spec is in `../workspace/`. Diagrams are Mermaid and render on GitHub.
 
 - System, read and write flows: `docs/architecture/overview.md`
 - API contract the frontend already speaks: `docs/architecture/services.md`
 - Data model and ER diagram: `docs/architecture/data-model.md`
 - Cache layers for the free Supabase tier: `docs/architecture/caching.md`
-- Postgres schema: `docs/database/schema.sql`
-- Cloudflare deployment: `docs/deploy/cloudflare.md`
 
 ## Content
 

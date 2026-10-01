@@ -1,6 +1,10 @@
 # 0002 Zod contracts shared by frontend and API
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 Status: accepted
+
+Superseded in part: the database shape now comes from `supabase/migrations`, and the server maps between database rows and the camelCase API JSON.
 
 ## Context
 

@@ -1,3 +1,5 @@
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 You are recalibrating an EXISTING website project for:
 
 MATTER OF PLACE

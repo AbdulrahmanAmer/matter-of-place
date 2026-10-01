@@ -386,3 +386,10 @@ Entry template
 - rule: nothing starts Docker here. Schema goes to `mop-dev` with `supabase db push`; types come from `supabase gen types typescript --project-id`; Edge Functions deploy with `--use-api`; config with `supabase config push`; ad hoc SQL through the Supabase connector. Tests that need a clean database use a throwaway cluster from the native PostgreSQL 18 (`initdb` in a temp folder) or a scratch schema on `mop-dev`; tests that need pg_cron, pgmq or pg_net run on `mop-dev` only. A plan step that says Docker is a plan defect: fix the plan first.
 - proof: `grep -n -i "docker\|supabase start\|db reset" workspace/05-plans/*.md` shows only lines that say Docker is not used.
 - added: 2026-10-01
+
+## P-039 · "Unused" is a claim about the whole repository, not the app folder: `launch/` reads images from `src/assets`
+- symptom: a cleanup deleted four images that no file under the app imported. A fresh reviewer found that `launch/03-partner-deck/build.mjs` and `launch/02-partner-presentation/scene.html` read `gallery/desert-colonnade.jpg` straight from `Matter Of Place Codebase/src/assets/`, and the film storyboard names two more. A finder and a verifier had both grepped the app folder only.
+- cause: the app's asset folder is also the asset source for the launch deck, presentation and film. A search scoped to the app cannot see those users.
+- rule: before deleting any asset, run `git grep -l -I "<basename>" -- .` from the repo root. A hit under `launch/` or `workspace/` is a user. Only `tribeca.jpg` was unused everywhere.
+- proof: `git grep -l -I "desert-colonnade" -- . ':!workspace/01-site-index'` lists three files under `launch/`.
+- added: 2026-10-01

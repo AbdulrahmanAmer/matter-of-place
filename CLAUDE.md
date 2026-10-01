@@ -65,7 +65,9 @@ bun run dev       # http://localhost:8080
 - Copy: calm, brief, specific, no em dashes, no hyperbole, no guarantees of leads/buyers/sales. Markets: CA, NY, FL only.
   No developments, no global, no memberships. Price never equals merit.
 - Visual: palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2, Mineral Grey #575751,
-  Warm Grey #8B877F. Jost / Urbanist (utility) + Cormorant Garamond (editorial). No gradients, glow, gold, SaaS cards.
+  Warm Grey #8B877F. Jost / Urbanist (utility) + Cormorant Garamond (editorial). No gradients, glow, gold, SaaS cards
+  (decoration is what is banned: the legibility scrim over a photograph and the map hairline are functional and stay, S51).
+  Epilogue is the fourth shipped typeface (footer, overlays).
 - The three tests: a $15M owner is comfortable here; a non-buyer would still follow; a top agent says "we got you in".
 
 ## Lovable (disconnected 2026-10-01)

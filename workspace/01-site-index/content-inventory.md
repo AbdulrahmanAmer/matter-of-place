@@ -675,11 +675,10 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | hamptons.jpg | new-york | the-hamptons | sagaponack-shingle-house (hero); the-hamptons region image |
 | la-jolla.jpg | california | la-jolla | la-jolla-terrace (hero); la-jolla region image |
 | berkeley-hills.jpg | california | bay-area | berkeley-hills-house (hero) |
-| bayshore-residences.jpg | — | — | *Not referenced in current content* |
-| ridgeline-collection.jpg | — | — | *Not referenced in current content* |
-| tribeca.jpg | — | — | *Not referenced in current content* |
+| bayshore-residences.jpg | — | — | *Not used by the site; named in the launch film storyboard* |
+| ridgeline-collection.jpg | — | — | *Not used by the site; named in the launch film storyboard* |
 
-**Total hero/market images:** 18 (16 in use, 2 unreferenced)
+**Total hero/market images:** 18 (16 in use by the site, 2 kept for the launch film)
 
 ---
 
@@ -699,10 +698,10 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | fl-pool.jpg | la-courtyard, miami-waterfront, naples-garden-house, palm-beach-estate, sagaponack-shingle-house, south-florida-pavilion | 6 |
 | fl-loggia.jpg | palm-beach-estate; exposure FAQ (fl-loggia, story reference) | 2 |
 | fl-bath.jpg | la-courtyard, miami-waterfront, palm-beach-estate, south-florida-pavilion, naples-garden-house | 5 |
-| desert-colonnade.jpg | *Not referenced in current content* | 0 |
+| desert-colonnade.jpg | *Not used by the site; used by the partner deck and presentation in `launch/`* | 0 |
 | desert-court.jpg | stories (courtyards-of-the-westside story image) | 1 |
 
-**Total gallery images:** 13 (12 in active use, 1 unreferenced)
+**Total gallery images:** 14 (13 in use by the site, 1 used by the launch deck)
 
 ---
 
@@ -728,8 +727,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | FAQ Entries | 12 (+ 7 Exposure FAQ) |
 | Domain Types | 5 (Property, Market, Story, Exposure, Contracts) |
 | Zod Schemas | 9 |
-| Hero/Market Images | 18 (16 in use, 2 unreferenced) |
-| Gallery Images | 13 (12 in use, 1 unreferenced) |
+| Hero/Market Images | 18 (16 in use by the site, 2 kept for the launch film) |
+| Gallery Images | 14 (13 in use by the site, 1 used by the launch deck) |
 | Video Assets | 1 |
 | **Total Images** | **31** |
 | **Total Assets Referenced** | **32** (31 images + 1 video) |
@@ -745,8 +744,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 - Pricing products are complete with clear differentiation and terms
 
 ### Asset Usage
-- 29 of 32 assets are actively referenced
-- Unreferenced: bayshore-residences.jpg, ridgeline-collection.jpg, tribeca.jpg, desert-colonnade.jpg
+- 29 of 32 assets are referenced by the site
+- Not used by the site: bayshore-residences.jpg and ridgeline-collection.jpg (launch film storyboard), desert-colonnade.jpg (partner deck and presentation). tribeca.jpg was unused everywhere and was deleted on 2026-10-01.
 - Gallery images are reused extensively (e.g., ca-stair.jpg appears in 7 properties)
 
 ### Property Distribution

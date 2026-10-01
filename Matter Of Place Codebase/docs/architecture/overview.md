@@ -1,5 +1,7 @@
 # Architecture overview
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 Matter of Place is a server-rendered React site (TanStack Start on Vite) with a thin, typed service boundary. Today every service is implemented locally from bundled content; setting one environment variable switches the same interfaces to an HTTP API. The intended production shape is a Cloudflare Worker for the site and API, an edge cache in front of all catalog reads, and Supabase Postgres as the system of record.
 
 ## System context
@@ -55,7 +57,7 @@ Rules that keep the layers honest:
 
 - Routes and components import `services`, never `data/*` directly. The only exceptions are the pricing schedule and FAQ copy, which are static marketing content.
 - `domain/contracts.ts` is the single source of write-side validation. The frontend validates before sending; the API imports the same file and validates again.
-- Field names in `domain/property.ts`, `domain/market.ts` and `domain/story.ts` equal the JSON the API returns and the columns in `docs/database/schema.sql`, so the HTTP adapter has no mapping layer.
+- Field names in `domain/property.ts`, `domain/market.ts` and `domain/story.ts` equal the JSON the API returns and the columns in `docs/database/schema.sql`, so the HTTP adapter has no mapping layer. Superseded: the database shape now comes from `supabase/migrations`, and the server maps between database rows and the camelCase API JSON.
 
 ## Read path
 

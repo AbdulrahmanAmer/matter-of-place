@@ -1,5 +1,7 @@
 # 0001 One service boundary with two adapter sets
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 Status: accepted
 
 ## Context

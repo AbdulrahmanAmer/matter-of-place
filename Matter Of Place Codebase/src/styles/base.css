@@ -241,10 +241,6 @@ h3 {
   color: var(--accent);
 }
 
-.breadcrumb .crumb-current {
-  color: var(--muted-foreground);
-}
-
 /* Label over photography marking content as illustrative */
 .content-tag {
   position: absolute;

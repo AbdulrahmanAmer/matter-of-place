@@ -49,8 +49,8 @@ The table below records what the sketch contains; build from the spec.
 | Postgres schema: 20 tables, enums, RLS, editorial-gate trigger, catalog_version bump, 2 buckets | docs/database/schema.sql | NOT RUN anywhere |
 | Cache layers (Query 5 min → edge → Worker cache → DB), image resizing | docs/architecture/caching.md | NOT BUILT |
 | Cloudflare deploy (wrangler.toml, secrets, cron triggers) | docs/deploy/cloudflare.md | NOT DEPLOYED |
-| Seed script `scripts/seed.ts` | roadmap.md | NOT WRITTEN |
-| Admin surface behind Supabase Auth | roadmap.md, master-plan §38 | NOT BUILT (Studio suggested first) |
+| Seed script `scripts/seed.ts` | 05-plans/B2.md (step 12) | NOT WRITTEN |
+| Admin surface behind Supabase Auth | 05-plans/B7.md, master-plan §38 | NOT BUILT |
 | Omnikom handoff webhook | overview.md | NOT BUILT |
 
 ## 4. The notebook page mapped onto reality

@@ -22,12 +22,26 @@ You implement one slice for Matter of Place, exactly as briefed. Precise, quiet,
 - Pages and components read and write only through `services`; catalog reads via `src/lib/queries.ts`. Never import
   `src/data/*` from routes except pricing and FAQ copy.
 - Form fields and enumerations come from `src/domain/contracts.ts`; the API validates with the same file.
-- `src/domain/*.ts` field names equal API JSON and, in snake_case, `docs/database/schema.sql`; change all three together.
+- `src/domain/*.ts` field names equal the API JSON and, in snake_case, the columns in `supabase/migrations/` (data model:
+  `workspace/06-architecture/architecture.md` section 3); change all three together. The app's `docs/**`, including
+  `docs/database/schema.sql`, is the superseded sketch: read it for intent, never build from it.
 - Every route sets `head()` via `pageHead()`; loaders use `ensureQueryData`; dynamic routes throw `notFound()`.
 - Every user action calls `track()` with a name from `AnalyticsEvent`.
 - Plain CSS under `src/styles/`, tokens only, no hex, no utility classes. Sections set vertical padding only.
 - Copy calm and brief, no em dashes. Never edit `src/routeTree.gen.ts`.
 - Secrets never in `VITE_*`. Server-side only.
+
+## This machine (measured facts: `workspace/05-plans/ASSUMED.md` section E)
+- No Docker, ever (S50, GOTCHAS P-038): no `supabase start`, `db reset` or `db diff`. Schema goes to the cloud project
+  `mop-dev` with `supabase db push`; types from `supabase gen types typescript --project-id`; Edge Functions with
+  `supabase functions deploy --use-api`. Throwaway clusters come from the native PostgreSQL 18 (`initdb`), which has no
+  pg_cron, pgmq or pg_net.
+- R2 is off until the operator enables it. A step that needs a bucket is BLOCKED, not worked around.
+- Secrets are in `E:\Matter Of Place\.env` (git-ignored). Load them without printing:
+  `set -a; . <(tr -d '\r' < "/e/Matter Of Place/.env" | grep -E '^[A-Z0-9_]+='); set +a`. Never `cat`, echo or paste a value.
+- Wrangler runs through `bunx wrangler`. `wrangler tail` needs the local admin token, not the deploy token.
+- Work on the branch your brief names, never on `main`; check `git branch --show-current` before every commit. Never
+  merge, force-push or rewrite pushed history. The orchestrator merges.
 
 ## Delivery
 - Own only the files named in your brief. One writer per file.
