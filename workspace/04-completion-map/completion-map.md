@@ -33,7 +33,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | # | Slice | Exit |
 |---|---|---|
 | B1 | Repo hygiene: remove Lovable preset (plain Vite + TanStack Start config), `wrangler.toml`, CI (`check`, build), deploy workflow, preview per PR, Sentry wired, security headers [builder] | preview URL renders every route; Sentry receives a test error |
-| B2 | Database: Supabase CLI init, migrations from a corrected schema (roles, jobs, assets, campaigns, audit columns), generated types, seed script from `src/data/*` with images to R2 variants [builder] | `supabase db reset` clean; 16 properties readable from dev DB |
+| B2 | Database on the cloud project `mop-dev`, no Docker and no local stack (S50): Supabase CLI init, migrations from a corrected schema (roles, jobs, assets, campaigns, audit columns) applied with `supabase db push --linked`, generated types (`bun run gen:types` writes `src/db/types.ts`), seed script `scripts/seed.ts` from `src/data/*` (`bun run seed -- --target dev --mode full --images skip`); image variants (`scripts/variants.ts`) to R2 BLOCKED until the operator turns R2 on (E8) [builder] | `bun run db:reset` on `mop-dev` exits 0 (no Docker, S50); `bun run check` compiles the generated types; after `bun run seed` 16 properties readable from the dev database through the service role; images to R2 BLOCKED until R2 is on (E8) |
 | B3 | API: catalog reads with edge cache + `catalog_version`; writes for inquiries, submissions (signed uploads), subscribers with market interest, events; search; rule-based concierge; rate limits; request logging; Turnstile verification. Flip `VITE_API_BASE_URL` on preview [builder] | every form persists a row; `services.mode === "live"` |
 | B3b | Coming-soon mode (S30): empty states for home edit, properties, each market and region with the per-market interest signup; illustrative seed excluded from production; "what is real" viewer statement on any illustrative preview [designer → builder] | production shows zero listings and a signup; preview shows seed |
 | B4 | Tests as the safety net: Vitest contracts + state machine, Playwright sweep of every route desktop/phone/a11y, on every PR [builder] | CI red on a broken form, green on main |
@@ -51,23 +51,26 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | # | Slice | Exit |
 |---|---|---|
 | B9 | Creative system: `mop-designer` produces rendered options for carousel, story, OG cover, newsletter block, standalone email, reel storyboard; winners become React templates in `src/templates` [designer → builder] | PNGs for one property match the chosen design |
-| B10 | Social publishing: Meta app, publish carousel/story on approval, pull metrics into `campaign_reports` [builder] | a test post appears on the Instagram account |
+| B10 | Social publishing (S48): on asset approval the publish recipe runs the steps `post_meta` (Instagram through the Meta Graph API, `src/server/jobs/steps/post-meta.ts`), `post_x` (`post-x.ts`) and `post_linkedin` (`post-linkedin.ts`) inside each channel's posting window; Facebook and YouTube exist as disabled channel blocks; the daily `reconcile` system job (`.github/workflows/reconcile.yml`) pulls metrics into `campaign_reports` [builder] | a test post appears on the Instagram account, and on X and LinkedIn (`bun run scripts/meta-test-post.ts` and `scripts/social-test-post.ts --channel x|linkedin`, each printing its permalink); BLOCKED until the accounts exist (A5) and R2 is on (E8) |
 | B11 | Newsletter automation: digest every 14 days (S25) assembled from published properties and stories, standalone property email for Campaign tier, sent through Broadcasts on approval [builder] | broadcast delivered to a test audience |
-| B12 | Reel: ffmpeg template in Actions, poster + MP4 to R2, attached to the dossier and to the Instagram job for Campaign tier [designer → builder] | MP4 renders with wordmark and captions |
+| B12 | Reel (S36, S37): heavy step `render_reel` (`src/server/jobs/steps/render-reel.ts`) dispatches `render.yml` in Actions, where `scripts/render-reel.mjs` captures the GSAP + Three.js scene `launch/reel/scene.html` frame by frame in headless Chrome, encodes with ffmpeg, adds synthesized sound only (no music) and runs `launch/tools/motion-gate.mjs`; poster + MP4 to R2 (BLOCKED until R2 is on, E8), attached to the dossier on approval and to the Instagram job (`post_meta`) for Campaign tier only [designer → builder] | MP4 renders with wordmark and captions: `bun scripts/render-reel.mjs --fixture --out ../.tmp/reel-run` prints the gate line today; the end-to-end run on `mop-dev` BLOCKED until R2 is on (E8) |
 
 **Be found**
 | # | Slice | Exit |
 |---|---|---|
-| B13 | SEO/AEO/GEO: JSON-LD per type, sitemap from DB, `llms.txt`, OG images from templates, archive pages (city, architect, style) generated only when the catalog justifies them, fix the title bug [builder] | rich-result test passes; llms.txt served; one brand in every title |
+| B13 | SEO/AEO/GEO: JSON-LD per type, sitemap from DB, `llms.txt`, OG images from templates, archive pages (city, architect, style) generated only when the catalog justifies them, keep the title rule green (G-003, enforced by `tests/unit/seo.test.ts`) [builder] | rich-result test passes; llms.txt served; one brand in every title |
 | B14 | Audit robot: `mop-auditor` on a Saturday-morning cloud schedule with API credentials, first report, first patch PR [auditor] | report in `workspace/audits/`; PR opened |
 | B16 | Legal identity (S33): `siteConfig.legal` = Omnikom entity; footer line, legal, terms and privacy rewritten as "a product of Omnikom"; contact details rendered [builder] | legal page shows the entity; no null contact lines |
 | B15 | Omnikom handoff: signed webhook for inquiries and attribution [builder] | payload received by the Omnikom endpoint |
+| B17 | Website essentials (wave 3): self-hosted fonts (Jost, Cormorant Garamond, Urbanist, Epilogue; S51) replacing the Google Fonts link (G-014), consent notice, CSP by hashes, icons and manifest, `.well-known` files, contrast check `scripts/contrast.mjs` (G-013), accessibility basics [builder, designer for icons, error pages and the consent notice] | `curl -s <preview>/ \| grep -c fonts.googleapis` prints 0; `node scripts/contrast.mjs` exits 0 (every pair passes); the `essentials` suite passes on the preview |
 
 ### Stage 4 — HARDEN
 Turnstile everywhere; CSP and HSTS; rate-limit rule live; secrets audit with `claude-security`; RLS reviewed per table;
 empty, loading, 404 and 500 states; real legal pages with the entity; illustrative content labelled or replaced;
 Lighthouse ≥ 95 mobile on the six key pages; rollback documented (`wrangler rollback`); backups verified (Supabase PITR
-is paid, so a nightly `pg_dump` to R2 from Actions).
+is paid, so B1b's `backup.yml` takes a nightly `pg_dump` through the session pooler, encrypted with `openssl enc` and
+`BACKUP_PASSPHRASE` (A20): a workflow artifact today, to the R2 bucket `mop-backups` once the operator turns R2 on (E8);
+proof `gh workflow run backup.yml -f target=dev`, then decrypt and `pg_restore --list` the artifact).
 
 ### Stage 5 — LAUNCH AND ITERATE
 DNS cut-over, production deploy, verify against production, watch Sentry, GA4 and Search Console for a week, first
