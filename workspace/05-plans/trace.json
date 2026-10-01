@@ -227,7 +227,7 @@
   "id": "admin runbook",
   "plan": "B7",
   "files": [
-   "docs/runbook-admin.md"
+   "docs/runbooks/admin.md"
   ],
   "hasProof": true
  },
@@ -1558,7 +1558,7 @@
   "plan": "B8",
   "files": [
    "supabase/migrations/<ts>_job_cron.sql",
-   "docs/runbook-jobs.md"
+   "docs/runbooks/jobs.md"
   ],
   "hasProof": true
  },
@@ -5874,7 +5874,7 @@
    "scripts/meta-check.ts",
    "scripts/x-authorize.ts",
    "scripts/linkedin-authorize.ts",
-   "docs/runbook-meta.md"
+   "docs/runbooks/meta.md"
   ],
   "hasProof": true
  },
@@ -6220,7 +6220,7 @@
    "scripts/launch/verify-production.mjs",
    "scripts/launch/verify-cache.mjs",
    "scripts/rehearsal.ts",
-   "docs/runbook-launch.md"
+   "docs/runbooks/launch.md"
   ],
   "hasProof": true
  },
@@ -6508,7 +6508,7 @@
   "id": "S23 day-60 switch on screen 20",
   "plan": "L1",
   "files": [
-   "docs/runbook-launch.md"
+   "docs/runbooks/launch.md"
   ],
   "hasProof": true
  },
@@ -6637,7 +6637,7 @@
   "files": [
    "scripts/launch/registrar-check.mjs",
    "scripts/cf-edge.mjs",
-   "docs/runbook-launch.md"
+   "docs/runbooks/launch.md"
   ],
   "hasProof": true
  },
@@ -7955,30 +7955,30 @@
  {
   "dimension": "delivery-ops",
   "kind": "runbook",
-  "id": "docs/runbook-delivery.md",
+  "id": "docs/runbooks/delivery.md",
   "plan": "B1b",
   "files": [
-   "docs/runbook-delivery.md"
+   "docs/runbooks/delivery.md"
   ],
   "hasProof": true
  },
  {
   "dimension": "delivery-ops",
   "kind": "runbook",
-  "id": "docs/runbook-jobs.md",
+  "id": "docs/runbooks/jobs.md",
   "plan": "B8",
   "files": [
-   "docs/runbook-jobs.md"
+   "docs/runbooks/jobs.md"
   ],
   "hasProof": true
  },
  {
   "dimension": "delivery-ops",
   "kind": "runbook",
-  "id": "docs/runbook-launch.md + workspace/audits/launch-week-1.md",
+  "id": "docs/runbooks/launch.md + workspace/audits/launch-week-1.md",
   "plan": "L1",
   "files": [
-   "docs/runbook-launch.md",
+   "docs/runbooks/launch.md",
    "workspace/audits/launch-week-1.md"
   ],
   "hasProof": true
@@ -9392,7 +9392,7 @@
   "id": "Resend webhook registration on dev Worker (BLOCKED until setup A3)",
   "plan": "B5",
   "files": [
-   "docs/runbook-email.md"
+   "docs/runbooks/email.md"
   ],
   "hasProof": true
  },
@@ -9633,7 +9633,7 @@
   "id": "B10 creates (file, named in its steps)",
   "plan": "B10",
   "files": [
-   "docs/runbook-meta.md",
+   "docs/runbooks/meta.md",
    "src/admin/dashboard/ChannelHealthTile.tsx",
    "src/domain/channels.ts",
    "src/server/channels/approval.ts",
@@ -9682,7 +9682,7 @@
   "id": "B11 creates (file, named in its steps)",
   "plan": "B11",
   "files": [
-   "docs/runbook-newsletter.md",
+   "docs/runbooks/newsletter.md",
    "src/domain/newsletter.ts",
    "src/server/channels/resend.ts",
    "src/server/jobs/steps/queue-digest.ts",
@@ -9744,7 +9744,7 @@
   "id": "B13 creates (file, basename not named in its Steps or Verification)",
   "plan": "B13",
   "files": [
-   "docs/runbook-search.md",
+   "docs/runbooks/search.md",
    "public/<INDEXNOW_KEY>.txt",
    "public/og/static/<key>.png",
    "src/components/site/ArchiveLink.tsx",
@@ -9932,7 +9932,7 @@
   "id": "B1b creates (file, named in its steps)",
   "plan": "B1b",
   "files": [
-   "docs/runbook-delivery.md",
+   "docs/runbooks/delivery.md",
    "public/_headers",
    "src/server/lib/error-page.ts",
    "src/server/lib/headers.ts",
@@ -9949,7 +9949,7 @@
   "id": "B2 creates (file, named in its steps)",
   "plan": "B2",
   "files": [
-   "docs/runbook-database.md",
+   "docs/runbooks/database.md",
    "src/db/index.ts",
    "src/db/types.ts",
    "src/domain/enums.check.ts",
@@ -9981,7 +9981,7 @@
   "id": "B3 creates (file, named in its steps)",
   "plan": "B3",
   "files": [
-   "docs/runbook-api.md",
+   "docs/runbooks/api.md",
    "src/components/forms/honeypot.tsx",
    "src/lib/turnstile.ts",
    "src/routes/__spike.tsx",
@@ -10070,7 +10070,7 @@
   "id": "B5 creates (file, named in its steps)",
   "plan": "B5",
   "files": [
-   "docs/runbook-email.md",
+   "docs/runbooks/email.md",
    "src/domain/email.ts",
    "src/server/email/attachments.ts",
    "src/server/email/context.ts",
@@ -10167,7 +10167,7 @@
   "id": "B7 creates (file, named in its steps)",
   "plan": "B7",
   "files": [
-   "docs/runbook-admin.md",
+   "docs/runbooks/admin.md",
    "src/admin/audit/",
    "src/admin/dashboard/",
    "src/admin/inquiries/",
@@ -10221,7 +10221,7 @@
   "id": "B8 creates (file, basename not named in its Steps or Verification)",
   "plan": "B8",
   "files": [
-   "docs/runbook-jobs.md",
+   "docs/runbooks/jobs.md",
    "src/routes/admin/jobs.index.tsx",
    "src/routes/api/admin/jobs.index.ts"
   ],
@@ -10382,7 +10382,7 @@
   "id": "L1 creates (file, named in its steps)",
   "plan": "L1",
   "files": [
-   "docs/runbook-launch.md",
+   "docs/runbooks/launch.md",
    "workspace/audits/launch-week-1.md"
   ],
   "hasProof": true
@@ -11251,7 +11251,7 @@
    "scripts/meta-test-post.ts",
    "scripts/social-test-post.ts",
    "scripts/x-limits-check.ts",
-   "docs/runbook-social.md"
+   "docs/runbooks/social.md"
   ],
   "hasProof": true
  },
