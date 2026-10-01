@@ -484,3 +484,9 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - OPERATOR SHOULD KNOW (CTO rulings he may overrule): Docker allowed on GitHub's runners only; raw analytics kept 90
   days (aggregates 13 months); no second Cloudflare account for previews (risk recorded); GitHub Pro (4 USD a month)
   recommended, not assumed; largest stored photo 4000 px; agent publishes capped at 5 a day.
+
+## 2026-10-02 01:52 EDT · Resend done (setup A3); GitHub Pro declined
+- Operator: "the Github is a recommendation not that necessary resend you can go get that done end to end for me", then signed up himself and sent the onboarding link.
+- Resend: domain `matterofplace.com` Verified (us-east-1, return path `send`); three DNS records written to Cloudflare through the API; key `mop-dev` (sending only) copied from the dashboard to `.env` as `RESEND_API_KEY` through the clipboard, never displayed. Facts: ASSUMED E17. GitHub Pro: ASSUMED H5 (declined, B1b step 9 stays BLOCKED).
+- AFTER THE FOLD RETURNS: B5 step 5 and the readiness table still say Resend is missing (their writers own those files right now): bring B5, completion-map A3, `ready.mjs` WAIT list and PLAN.md in line with E17, then `readiness-table.mjs --write`.
+- Still to do for Resend inside the build: webhook registration (B5 step 6, needs the deployed endpoint), Supabase function secret (B5 step 5), production key (L1).
