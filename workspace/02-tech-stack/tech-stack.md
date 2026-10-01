@@ -22,7 +22,7 @@ limit is hit; fewest accounts possible; nothing deterministic goes through a mod
 | Payments | **Manual at launch** (S32): templated invoice from `/admin`, preferred payment method recorded, admin marks paid and activates the agent. Same state machine later accepts Stripe (links + signed idempotent webhooks) without changing the flow | $0 | the first clients are closed by phone; Stripe is a later slice |
 | Launch mode | **Coming soon** (S30): no listings on production until real ones are accepted; every collection has an empty state with a per-market interest signup; illustrative content is dev/preview only; `settings.coming_soon_global` defaults to `false` and `markets.coming_soon` to `true` (the fail-safe); interest counts come from the view `market_interest_counts`; consent is read only through `readConsent()` in `src/lib/consent.ts` | n/a | honesty with viewers; build the interest list first |
 | Social | Launch channels (S48): Instagram (Meta Graph API), X (X API), LinkedIn company page (LinkedIn API). One adapter per channel behind the same `{ publish, metrics }` interface. Facebook and YouTube adapters exist as disabled blocks (`channel_settings.enabled = false`), switched on later without new architecture | free tiers; X and LinkedIn limits UNPROVEN until the apps are approved | no scheduler subscription |
-| Video | ffmpeg Ken Burns template in GitHub Actions; poster + MP4 to R2 | free | |
+| Video | Campaign tier only (S24): the GSAP + Three.js scene `launch/reel/scene.html` captured frame by frame in headless Chrome and encoded with ffmpeg by `scripts/render-reel.mjs` in `render.yml`'s `reel` job (B12, S37); synthesized sound only, no music (S36); gated by `launch/tools/motion-gate.mjs`; poster + MP4 to R2 (BLOCKED while R2 is off, E8) | free | |
 | Bots / abuse | Turnstile on all forms; one Cloudflare rate-limit rule; per-endpoint sliding window in the API (KV-free, DB-backed); headers from `cspFor(env, flags)` (CSP report-only from B1b, enforced by H1 through `flags.csp_enforce`; HSTS `max-age=31536000` until preload day 30, then `63072000` with `preload`) | free | |
 | Errors / logs | Sentry free tier on the Worker and on the job-runner Edge Function (`SENTRY_DSN` in both); Workers Logs; a daily `health` system job (B8: pg_cron row `health` at 13:00 UTC enqueues it, `src/server/jobs/system/health.ts` runs the checks, writes `jobs.result`, emits `health.failed` once when a check fails, and B8b's seeded recipe for that event emails the admin through `notify_admin`; proof `bunx vitest run tests/unit/jobs/health.test.ts`). The weekly audit robot (B14) reads health, it does not ping | 5k errors/month | |
 | Analytics | GA4 via the typed `dataLayer` (gtag.js after consent, G31), Search Console, Bing, Cloudflare zone HTTP analytics (read through the API, no Web Analytics beacon script, G31), first-party `analytics_events` | free | |
@@ -88,7 +88,7 @@ Matter Of Place Codebase/
   src/templates/         social, og, email templates (React) consumed by render jobs
   supabase/migrations/   versioned SQL (source of truth)
   supabase/functions/    light job runner, digest assembly (keep-warm is the Worker's scheduled() handler, owned by B8b)
-  scripts/               seed, image variants, render-social, render-reel, publish-meta (app folder; the film engine stays in repo-root launch/)
+  scripts/               seed.ts and variants.ts (B2); render-job.mjs and post-callback.mjs (B8); render-variants, render-cover, render-carousel, render-story and render-og-static .mjs (B9) and render-reel.mjs (B12), all run by render.yml; harden/ (H1); launch/ (L1). App folder; posting runs in job-runner steps, not scripts (G21); the film engine stays in repo-root launch/ and the audit robot's scripts/audit/ sits at the repository root (B14)
   tests/                 vitest + playwright
   wrangler.toml
 E:\Matter Of Place\.github\workflows\   ci.yml, deploy.yml, render.yml, backup.yml, audit-scope.yml, audit-deps.yml (audit-collect.yml only as B14's fallback) — at the REPO root, not under the app (GitHub only reads it there; GOTCHAS G-012)
@@ -152,15 +152,16 @@ secret by adding a key to that GitHub secret (the orchestrator updates it from `
 `render.yml`'s `post-callback.mjs`); `BACKUP_PASSPHRASE` (B1b, `backup.yml`); `PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_DB_PASSWORD` and
 `PROD_SUPABASE_DB_URL` (the session pooler string), set with `gh secret set` in L1 step 1 once `mop-prod` exists (until then the
 production job's `supabase db push` and B3b's coming-soon assertion are skipped). Variables: `VITE_SITE_URL`, `VITE_TURNSTILE_SITE_KEY`, `VITE_API_BASE_URL` (`/api/public`);
-to add when R2 is on: `DEV_MEDIA_BASE_URL` and `PROD_MEDIA_BASE_URL` (the public base of each bucket); to add when the GA4 property exists
+to add when R2 is on: `DEV_MEDIA_BASE_URL` and `PROD_MEDIA_BASE_URL` (the public base of each bucket; `PROD_MEDIA_BASE_URL` is `https://media.matterofplace.com`, set by L1, G47); to add when the GA4 property exists
 (E9): `VITE_GA4_MEASUREMENT_ID` (B13; public, G-006; passed by `deploy.yml` to the production build only, so previews never load GA4);
 to add at launch: `MOP_LAUNCHED` (`true` makes B3b's production step run `assert-coming-soon.mjs --after-launch`; absent means coming-soon
-mode is asserted). Plain Worker vars `MOP_ENV`, `MEDIA_BASE_URL` and
-`SENTRY_RELEASE` (set per deploy with `--var`, B1b) are not secrets.
+mode is asserted; set by L1 step 4e at the domain cut-over with `gh variable set MOP_LAUNCHED --body true`, G47). Plain Worker vars `MOP_ENV`, `MEDIA_BASE_URL` and
+`SENTRY_RELEASE` (set per deploy with `--var`, B1b) are not secrets; the production deploy passes `--var MEDIA_BASE_URL:${{ vars.PROD_MEDIA_BASE_URL }}`
+from the start, empty until the variable exists (G47).
 
 Local `.env` only (git-ignored, loaded without printing as E10 describes; never a GitHub or Worker secret): `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID` (the owner's `mop-admin`), `CF_EDGE_TOKEN` (optional, `scripts/cf-edge.mjs`), `DEV_SUPABASE_PROJECT_REF`,
-`DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `DEV_DB_URL`, `SUPABASE_ACCESS_TOKEN`; at launch (L1 step 1, A11)
+`DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `DEV_DB_URL`, `SUPABASE_ACCESS_TOKEN`; at launch (L1 step 1, ASSUMED A11)
 `PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_DB_PASSWORD`, `PROD_SUPABASE_SERVICE_ROLE_KEY` (G32; read by B2's `seed.ts` and B3b's
 `set-environment.ts`) and `PROD_DB_URL` (the pooler string L1 and H1 pass to `psql` and `--db-url`); the source copies of values the
 orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `RENDER_CALLBACK_SECRET`,

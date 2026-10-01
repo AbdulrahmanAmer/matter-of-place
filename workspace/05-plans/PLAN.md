@@ -9,10 +9,12 @@ Owner agent is `mop-builder` unless noted. A slice is closed only when its verif
 | Wave | Slices | Why together |
 |---|---|---|
 | 0 | V1 visual pass | merged as PR #2 on 2026-09-30 |
-| 1 | B1b repo and delivery | everything deploys through it; every prerequisite is met as of 2026-10-01 (A1 Cloudflare and tokens, A6 Sentry, A8 GitHub secrets, A11 email) |
+| 1 | B1b repo and delivery | everything deploys through it; every prerequisite is met as of 2026-10-01 (setup A1 Cloudflare and tokens, setup A6 Sentry, setup A8 GitHub secrets, setup A11 email) |
 | 2 | B2 database → B3 API → B3b coming-soon → B4 tests | the spine; nothing else persists without it |
-| 3 | B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B8 job system · B17 website essentials | the day-to-day operating system, and the public surface made compliant |
-| 4 | B6 money box · B8b automation console · B16 legal identity | close the loop from accept to invoice to activate; automations become settings |
+| 3 | B8 job system · B8b automation console steps 1 to 5 · B5 email · B7 admin workspace (screens 1–4, 7–9, 11, 14, 15, 23–25) · B17 website essentials | the day-to-day operating system, and the public surface made compliant |
+| 4 | B6 money box · B8b steps 6 to 10 · B16 legal identity | close the loop from accept to invoice to activate; automations become settings |
+
+Waves 3 and 4 interleave. The landing order is line 5 of B5, B6, B7, B8, B8b and B16: B8 steps 1 to 8, B8b steps 1 to 5, B5, B16 steps 1 and 2 (any time after B2), the rest of B16 after B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10. Inside the shared files the order is B3, B3b, B5, B17, B16 (ASSUMED G33).
 | 5 | B9 creative system (designer first) → B10 social · B11 newsletter · B12 reel | listings become content |
 | 6 | B13 SEO/AEO/GEO → B14 audit robot (needs B13 checks) · B15 Omnikom handoff | be found, be measured, hand off |
 | 7 | H1 HARDEN | gate before launch |

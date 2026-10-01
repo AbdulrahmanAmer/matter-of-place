@@ -32,7 +32,7 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
 | S11 | Photography: R2 originals + variants generated once at publish; no request-time resizing | 2026-09-30 | zero egress, no transformation bill |
 | S12 | Jobs: `jobs` table + pgmq + pg_cron for light work; GitHub Actions for heavy renders (images, PNG covers, ffmpeg reels) | 2026-09-30 | free; replaces Cloudflare Queues and Browser Rendering |
 | S13 | Email: Resend for transactional and Place Notes, double opt-in, own domain | 2026-09-30 | one provider, free to 3,000/month |
-| S14 | Payments: Stripe, links after editorial acceptance, signed idempotent webhooks | 2026-09-30 | acceptance before payment is a brand rule |
+| S14 | Payments: Stripe, links after editorial acceptance, signed idempotent webhooks | 2026-09-30 | acceptance before payment is a brand rule (Deferred by S32: manual invoices at launch, built in B6; Stripe is a later slice behind the same `payments` table and state machine.) |
 | S15 | Social: Meta Graph API direct, one Business account; no scheduler subscription | 2026-09-30 | fewest accounts |
 | S16 | Bots and abuse: Turnstile on every form, one edge rate-limit rule, per-endpoint limits in the API | 2026-09-30 | free |
 | S17 | Observability: Sentry free tier, Workers logs, request IDs, daily health job; analytics GA4 + Search Console + Cloudflare + first-party events | 2026-09-30 | a requirement, not a phase |

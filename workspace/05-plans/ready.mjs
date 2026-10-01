@@ -138,7 +138,7 @@ const waits = [
   ["X_CLIENT_ID", "X developer app", "B10 post_x"],
   ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app", "B10 post_linkedin"],
   ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
-  ["GA4_MEASUREMENT_ID", "Google Analytics, Search Console, Tag Manager", "B13, B14"],
+  ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
   ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
   ["BING_WEBMASTER_API_KEY", "Bing Webmaster Tools", "L1"],
