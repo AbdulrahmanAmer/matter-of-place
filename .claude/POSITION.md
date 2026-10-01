@@ -248,3 +248,9 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   "This API Token is valid and active"; zone matterofplace.com visible (count 1). R2 is NOT enabled on the account:
   API says "Please enable R2 through the Cloudflare Dashboard" (needs the operator: R2 › enable, which asks for a
   payment method on file; free tier 10 GB, no charge expected — decision needed under S21). S3 keys untestable until then.
+- 2026-10-01 A6 DONE — Sentry: operator signed up (org `matter-of-place`), CTO drove onboarding: skipped repo
+  connect, platform "TanStack Start React", error monitoring only (no replay, tracing, logs, metrics). Project slug
+  `javascript-tanstackstart-react`. DSN appended to `.env` as `SENTRY_DSN` and proven: POST envelope → http 200 with
+  an event id. B1b uses the hand-written envelope client, so no Sentry auth token is needed yet. Trial is 14 days,
+  then the free plan (5,000 errors a month); no card on file.
+  Remaining before B1b: A8 GitHub Actions secrets (waiting on the operator's yes). R2 still not enabled.

@@ -14,7 +14,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | A11 | DONE 2026-10-01: company email on Zoho Mail (admin@matterofplace.com), MX/SPF/DKIM/DMARC live, records now served by Cloudflare | zoho.com | everything |
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |
 | A5 | Launch channels are Instagram, X and LinkedIn (S48). Needed: an X developer account and app for the brand handle; a LinkedIn company page plus a developer app with posting access (approval can take days, apply early); and via the partner (access on request): Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
-| A6 | Sentry account (free) | sentry.io | B1 |
+| A6 | DONE 2026-10-01: Sentry org `matter-of-place` (owner admin@matterofplace.com), project `javascript-tanstackstart-react`, error monitoring only; DSN in local `.env` as `SENTRY_DSN`; 14-day trial then free plan, no card | sentry.io | B1 |
 | A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
 | A8 | GitHub: branch protection on `main`, Actions secrets from tech-stack §4 | github.com | B1 |
 | A9 | DEFERRED (S47): legal entity placeholder, email only (no phone), Instagram after the partner creates it, CEO is admin + chief_editor. Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
