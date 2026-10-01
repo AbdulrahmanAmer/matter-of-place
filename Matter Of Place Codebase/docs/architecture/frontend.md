@@ -1,5 +1,7 @@
 # Frontend structure
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 ## Folder map
 
 ```text
@@ -87,7 +89,7 @@ src/
 ```bash
 cp .env.example .env
 # VITE_API_BASE_URL=http://localhost:8787/api
-npm run dev
+bun run dev
 ```
 
 With the variable set, `services.mode === "live"`: catalog reads hit the API, forms post to it, analytics beacons to `/events`, and the delivery notices disappear.

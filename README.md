@@ -6,8 +6,8 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 **Where we are (1 Oct 2026):** the website exists and looks right (visual pass merged). Every decision is made and the
 whole build is planned to the file level (21 slices). Company email is live (admin@matterofplace.com on Zoho Mail) and
 the domain runs on Cloudflare with the zone hardened (Full strict TLS, HTTPS forced, bot protection, speed settings).
-Nothing behind the site is built yet: no database, no admin, no invoices, no social posting, no newsletter. Production
-starts with slice B1b (repo and delivery). This page is the map; the folders hold the detail.
+The dev database project exists and is empty. Nothing behind the site is built yet: no tables, no admin, no invoices,
+no social posting, no newsletter. Lovable is disconnected. Production starts with slice B1b (repo and delivery). This page is the map; the folders hold the detail.
 
 ## The whole system in one picture
 Solid boxes exist today; dashed boxes are what we build.
@@ -74,13 +74,18 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 | Need | Status | Used by |
 |---|---|---|
 | matterofplace.com | done: registered at Namecheap, DNS on Cloudflare nameservers | everything |
-| Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened. Left for wave 1: API token, R2 bucket (needs a card on file) | wave 1 |
+| Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened, deploy token and owner token issued. Previews use holy-meadow-4327.workers.dev | wave 1 |
+| R2 (photo storage) | off until Dave enables it in the dashboard; no bucket exists. Photos, backups and renders wait on it | waves 2, 5, 7 |
+| GitHub | done: private repository, Actions enabled and secrets set. No branch protection and no Environments on this plan, so merge review is the gate | wave 1 |
+| Turnstile | done: widget "matterofplace.com forms" | wave 2 |
 | Company email | done: Zoho Mail free plan, admin@matterofplace.com sends and receives; SPF, DKIM, DMARC set | everything |
-| Supabase (database) | done: organisation "Matter Of Place" (Free) under admin@matterofplace.com, dev project `mop-dev` running in East US. Production project is created at launch | wave 2 |
-| Resend (email) | sign up with admin@matterofplace.com when wave 3 starts | wave 3 |
-| Sentry (errors) | sign up with admin@matterofplace.com when wave 1 starts | wave 1 |
-| Google: GA4, Search Console | sign up with admin@matterofplace.com when wave 6 starts | wave 6 |
-| Meta Business + Instagram Business | Dave's; access when we reach wave 5 | wave 5 |
+| Supabase (database) | done: organisation "Matter Of Place" (Free) under admin@matterofplace.com, dev project `mop-dev` running in East US, sign-ups closed. Production project `mop-prod` is created at launch. No Docker: all database work runs against `mop-dev` | wave 2 |
+| Resend (email) | not yet; sign up with admin@matterofplace.com when wave 3 starts | wave 3 |
+| Sentry (errors) | done: organisation and project created, errors only | wave 1 |
+| Google: GA4, Search Console | not yet; sign up with admin@matterofplace.com when wave 6 starts | wave 6 |
+| X developer app, LinkedIn page and app | not yet; created when wave 5 starts | wave 5 |
+| Anthropic API key, Omnikom endpoint | not yet; the endpoint needs a URL and secret from Omnikom | waves 5, 6 |
+| Meta Business + Instagram Business | through the partner; access when we reach wave 5 | wave 5 |
 | Legal entity name and address | deferred until the lawyer confirms; invoices are blocked until set | wave 4 |
 | Instagram handle | when Dave creates it | wave 5 |
 | Payment methods for invoices | set later in admin Settings | wave 4 |

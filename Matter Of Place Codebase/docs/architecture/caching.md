@@ -1,5 +1,7 @@
 # Caching strategy
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec. Slice B3 revises this page.
+
 Goal: the public site should serve almost every request without touching Postgres, so the Supabase free tier (500 MB database, 1 GB storage, 5 GB egress a month at the time of writing; quotas change, so check the current limits) carries the whole catalog comfortably. Writes are rare and small.
 
 ```mermaid

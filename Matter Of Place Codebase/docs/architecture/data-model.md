@@ -1,5 +1,7 @@
 # Data model
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec. Slice B2 replaces this page.
+
 The frontend types in `src/domain/` are the canonical shapes. The database schema in `docs/database/schema.sql` stores the same fields with snake_case columns; the API converts to camelCase JSON at the boundary.
 
 ```mermaid

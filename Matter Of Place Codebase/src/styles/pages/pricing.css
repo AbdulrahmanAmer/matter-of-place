@@ -19,12 +19,6 @@
   color: var(--muted-foreground);
 }
 
-.fp-title {
-  font-size: clamp(44px, 7vw, 68px);
-  line-height: 1;
-  margin-bottom: 18px;
-}
-
 .fp-text {
   max-width: 480px;
   margin-bottom: 18px;
@@ -86,62 +80,14 @@
   color: var(--muted-foreground);
 }
 
-.fp-fold {
-  margin-bottom: 48px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.fp-fold summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 18px 0;
-  font-family: var(--font-serif);
-  font-size: 24px;
-}
-
-.fp-fold summary span,
 .fp-faq summary span {
   font-family: var(--font-sans);
   font-weight: 300;
   transition: transform 0.2s;
 }
 
-.fp-fold summary span {
-  font-size: 20px;
-}
-
-.fp-fold[open] summary span,
 .fp-faq details[open] summary span {
   transform: rotate(45deg);
-}
-
-.fp-fold dl {
-  margin-bottom: 16px;
-}
-
-.fp-fold dl div {
-  padding: 8px 0;
-}
-
-.fp-fold dt {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 0.85rem;
-}
-
-.fp-fold dt em {
-  font-style: normal;
-  white-space: nowrap;
-  color: var(--muted-foreground);
-}
-
-.fp-fold dd {
-  margin-top: 4px;
-  font-size: 0.78rem;
-  color: var(--muted-foreground);
 }
 
 .fp-faq {
@@ -172,35 +118,6 @@
   color: var(--muted-foreground);
 }
 
-.fp-more {
-  margin-top: 22px;
-  font-size: 0.78rem;
-  color: var(--muted-foreground);
-}
-
-.fp-more a,
-.fp-inline {
-  color: var(--foreground);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 1px;
-}
-
-.fp-end {
-  margin-top: 64px;
-}
-
-.fp-submit {
-  display: block;
-  padding: 16px;
-  text-align: center;
-  background: var(--foreground);
-  color: var(--background);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 /* Exposure */
 .exposure-body {
   max-width: 1000px;
@@ -211,14 +128,6 @@
   font-size: clamp(34px, 4vw, 48px);
   line-height: 1.1;
   margin-bottom: 16px;
-}
-
-.exposure-offer {
-  margin-bottom: 14px;
-}
-
-.exposure-offer .text-link {
-  margin-top: 24px;
 }
 
 .exposure-list dl {
@@ -287,8 +196,7 @@
     padding-top: 32px;
   }
 
-  .fp-card-head h3,
-  .fp-fold summary {
+  .fp-card-head h3 {
     font-size: 21px;
   }
 

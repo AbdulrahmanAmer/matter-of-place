@@ -284,3 +284,32 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   unless Custom; "Create legacy token" gives full access). After the paste: `supabase projects list` with the token,
   set GitHub secrets `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`, add the service role key to
   `PREVIEW_WORKER_SECRETS_JSON` via `supabase projects api-keys`, then `supabase link` at B2 step 2.
+
+## 2026-10-01 · READINESS RUN CLOSED: the build can start (branch chore/build-readiness, merged as one PR)
+Operator instruction: go end to end with Sonnet workers until the real build can start; no permissions needed.
+- Credentials complete and tested: Supabase access token and database password (operator pasted), service role key,
+  `DEV_DB_URL` (session pooler) in `.env`; GitHub secrets now 9 (added `SUPABASE_ACCESS_TOKEN`,
+  `DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`; preview bundle carries the service role key) and
+  variables 3 (`VITE_SITE_URL`, `VITE_TURNSTILE_SITE_KEY`, `VITE_API_BASE_URL`).
+- New standing rules: S50 no Docker on this machine, ever, and R2 off until the operator enables it (GOTCHAS P-038);
+  S51 functional scrims and Epilogue stay. Memory: `no-docker-use-the-laptop`.
+- Measured facts are in `workspace/05-plans/ASSUMED.md` section E (E1 to E13): deploy token permissions (KV read added,
+  `wrangler delete` needs it), workers.dev host `holy-meadow-4327`, server CPU per route on the free plan (home 6 to 52 ms,
+  every outcome ok, risk open), pg_dump through the pooler, Edge Functions with `--use-api` and the planned npm
+  libraries, `gen types` without Docker. Every throwaway Worker, function and token was deleted afterwards.
+- Workflows run (Sonnet workers only): plans-start-readiness (21 plans, audit plus fresh verify, then spec sync: 43
+  agents), codebase-polish-audit (5 finders plus 5 verifiers), codebase-polish-fix (2 writers plus 1 reviewer, who
+  caught that `launch/` still uses three of four "unused" images: restored, only `tribeca.jpg` deleted, GOTCHAS P-039),
+  plans-apply-rulings (22 writers) and plans-apply-rulings-2 (7 writers). Cross-slice rulings F1 to F23 are in ASSUMED
+  section F. `check-plans: OK (21 plans, 17 events, 17 steps)`.
+- Codebase: `AGENTS.md` rewritten (spec is in `workspace/`, `docs/` is the sketch), sketch banners on every docs page,
+  roadmap and README corrected, 15 dead CSS classes removed, VP-01 fixed (related grid, also on story pages),
+  `noUnusedLocals` and `noUnusedParameters` on. Proof: 13 of 16 pages pixel-identical before and after; the 3 that differ
+  are the VP-01 grid on pages with two related cards. `bun run check` and `bun run build` green.
+- Build harness: `.claude/workflows/build-slice.js` (size, build with mop-builder, fresh review, two fix rounds, stops
+  for the orchestrator), `workspace/05-plans/RUNBOOK.md`, `workspace/05-plans/ready.mjs` (the gate),
+  `workspace/05-plans/logs/` (evidence per slice), `mop-builder.md` updated with the machine facts.
+- NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.
+- WAITING ON OPERATOR (blocks named steps only, never a whole slice; table in PLAN.md "Start readiness"): R2 on, Resend
+  account, legal entity and payment facts, X, LinkedIn, Google, Meta through the partner, Anthropic API key, fine-grained
+  GitHub token for render dispatch. UNPROVEN: R2 keys derived from the deploy token; CPU limit under real traffic.

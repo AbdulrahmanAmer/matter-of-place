@@ -1,5 +1,7 @@
 # Service boundary and API contract
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec. Slice B3 revises this page.
+
 `src/services/index.ts` exports one `services` object. Its shape is fixed by `src/services/types.ts`; two implementations exist.
 
 | Mode    | Trigger                   | Catalog        | Writes                         | Search and concierge                      |

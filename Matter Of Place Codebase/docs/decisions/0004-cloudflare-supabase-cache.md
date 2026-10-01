@@ -1,5 +1,7 @@
 # 0004 Cloudflare in front, Supabase behind, cache between
 
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec.
+
 Status: accepted (target architecture)
 
 ## Context
