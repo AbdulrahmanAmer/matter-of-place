@@ -416,3 +416,22 @@ builders' standards (one document plus the mechanical checks in B1b and B4: lint
 test, banned-pattern check) and upgrade `.claude/workflows/build-slice.js` so the fresh reviewer runs that checklist;
 (d) rebuild `trace.json` from the last clean round, regenerate the PLAN.md readiness table, re-render diagrams that
 changed, `ready.mjs --full`, PR, merge, position and gotchas. Nothing is built or run in this loop.
+
+## 2026-10-02 00:10 EDT · DEADLINE SET: live by 2026-10-04 00:00 EDT (S54)
+Operator, verbatim: "after you are done with this please make sure to udpate everything on github and archieve
+everything that needs to be archieved or deleted we need to be ready to output the website admin panel db all in 48
+hours so that is the time line for going live end to end".
+- Recorded: PROJECT-STATE S54, PLAN.md "48-hour launch cut" (ten rows, landing order, shrink order), project memory
+  `go-live-deadline-2026-10-04.md`.
+- Measured this turn: zone `matterofplace.com` status `active` on Cloudflare, public NS = abdullah / laila
+  .ns.cloudflare.com (no DNS wait). Supabase projects: only `mop-dev` (ACTIVE_HEALTHY), so `mop-prod` fits the free plan.
+- TIME BOX for the review loops (CTO): round 12 is the LAST audit round of `wf_13d412c3-82e`; its integrator fixes what
+  it finds and the loop is stopped there even if not zero (remaining findings go to ASSUMED as known, each owned by the
+  slice that builds it). From the engineering review (`wf_ab396430-d17`) only critical and major findings are ruled on
+  and applied before the build; minor ones become the builders' standards checklist. Target: branch merged and
+  `build-slice` started on B1b by 2026-10-02 04:00 EDT.
+- After the loop closes (operator's instruction): push everything, archive or delete what is stale, then build in the
+  order of PLAN.md "48-hour launch cut": B1b, B2, B3, B3b, B4, B8 1 to 8, B8b 1 to 5, B5 1 to 4a, B16, B17, B7 1 to 10,
+  H1 rows that apply, L1 production steps.
+- UNPROVEN: that about a hundred plan steps fit in 48 hours. First measured pace = B1b; report it and re-cut if needed.
+- WAITING ON OPERATOR (affects the date): Resend account and `RESEND_API_KEY`; legal entity facts (B16).
