@@ -17,3 +17,9 @@ Thumbs.db
 
 # never commit credentials
 creds/
+
+# local secrets and session exports: never commit
+cloudflare tokens and secrets.txt
+creds/
+*secrets*.txt
+Claude Session.txt

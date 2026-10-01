@@ -351,3 +351,10 @@ Entry template
 - rule: the commit is already local; retry the push once before diagnosing the network; never re-run the commit.
 - proof: push failed then succeeded 20 s later with the same commit (05222b0).
 - added: 2026-10-01
+
+## P-034 · Cloudflare "Please verify your email": the message was in Zoho's Notification folder, and the resend button is on the Authentication page
+- symptom: creating an API token ends with "An unknown error occurred. Please try again. Please verify your email." The Zoho inbox and spam for admin@matterofplace.com showed no Cloudflare message, and Profile › Settings, Account home and /email-verification show no resend control.
+- cause: Zoho Mail's smart filter files Cloudflare mail (sender noreply@notify.cloudflare.com) under the folder "Notification", not Inbox. The original 1:43 AM message was there all along. (First diagnosis, "the mail bounced before MX existed", was wrong.)
+- rule: when a service mail is "missing" in Zoho, read the Notification folder before anything else. Cloudflare's resend lives at My Profile › Access Management › Authentication (`/profile/access-management/authentication`): "Send verification email". Verify with `GET /api/v4/user` → `email_verified`.
+- proof: after the operator opened the link, `/api/v4/user` returned `email_verified: true` and token creation went through.
+- added: 2026-10-01

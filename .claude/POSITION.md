@@ -231,3 +231,16 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   Supabase mop-dev: "Allow new users to sign up" switched OFF in the dashboard and verified after reload. B2 must still
   set `[auth] enable_signup = false` in supabase/config.toml so a later `config push` does not turn it back on.
   Still open for Supabase: CLI `supabase login` + `supabase link` (B2), 2FA on the account (optional).
+- 2026-10-01 BLOCKED — Cloudflare API token `mop-github-actions` (Workers template + R2, account + zone matterofplace.com)
+  could not be created: "Please verify your email." No verification mail in Zoho (inbox, spam); no resend control found
+  in the dashboard (GOTCHAS P-034). Unblock: sign out/in to get the resend prompt, or Cloudflare support. B1b waits on it.
+  Six setup tabs are open in the operator's Edge: Cloudflare, Sentry sign-up, Resend sign-up, X sign-in, LinkedIn page, LinkedIn app.
+- 2026-10-01 UNBLOCKED — Cloudflare email verified (message was in Zoho "Notification" folder; resend button is under
+  Profile › Access Management › Authentication). Operator created an ACCOUNT API token `mop-admin` with the "Write all
+  resources" template (all zones + whole account, no expiration) and saved the values in
+  `cloudflare tokens and secrets.txt` at the repo root (git-ignored, never read by the CTO session).
+  `E:\Matter Of Place\.env` created with paste markers: CLOUDFLARE_API_TOKEN, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+  R2_S3_ENDPOINT (+ CLOUDFLARE_ACCOUNT_ID 5f55b1e09db48961c4366b73b188c7f9, CLOUDFLARE_ZONE_NAME). Git-ignored.
+  This token stays local; CI gets a narrow token later (mint via API with mop-admin, or UI).
+  Verify after paste, printing no secret:
+  `set -a; . ./.env; set +a; curl -s https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | grep -o '"status":"[a-z]*"'`
