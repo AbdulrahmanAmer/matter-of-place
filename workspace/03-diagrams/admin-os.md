@@ -49,7 +49,7 @@ flowchart LR
     REV[(automation_revisions:<br/>who changed what, when)]
   end
   subgraph CODE[Code: fixed step catalog, grows only by PR]
-    CAT[send_email · render_variants · render_cover · render_carousel · render_story · render_reel ·<br/>write_captions · build_newsletter_block · post_meta · queue_digest · notify_admin · webhook_omnikom]
+    CAT[send_email · render_variants · render_cover · render_carousel · render_story · render_reel ·<br/>write_captions · build_newsletter_block · post_meta · post_x · post_linkedin · queue_digest · notify_admin · webhook_omnikom]
   end
   EV[Event: submission received, declined, accepted,<br/>invoice issued, payment marked, property published,<br/>asset approved, digest due]
   RUN[[Job runner: reads the recipe at trigger time]]

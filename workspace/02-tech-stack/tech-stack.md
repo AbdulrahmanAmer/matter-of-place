@@ -21,7 +21,7 @@ limit is hit; fewest accounts possible; nothing deterministic goes through a mod
 | Email | Resend: transactional (React Email) + Audiences/Broadcasts for Place Notes; double opt-in; SPF/DKIM/DMARC on our domain | 3,000/month, 100/day | |
 | Payments | **Manual at launch** (S32): templated invoice from `/admin`, preferred payment method recorded, admin marks paid and activates the agent. Same state machine later accepts Stripe (links + signed idempotent webhooks) without changing the flow | $0 | the first clients are closed by phone; Stripe is a later slice |
 | Launch mode | **Coming soon** (S30): no listings on production until real ones are accepted; every collection has an empty state with a per-market interest signup; illustrative content is dev/preview only | n/a | honesty with viewers; build the interest list first |
-| Social | Meta Graph API direct: Instagram Business + Facebook Page under one Business account | free | no scheduler subscription |
+| Social | Launch channels (S48): Instagram (Meta Graph API), X (X API), LinkedIn company page (LinkedIn API). One adapter per channel behind the same `{ publish, metrics }` interface. Facebook and YouTube adapters exist as disabled blocks (`channel_settings.enabled = false`), switched on later without new architecture | free tiers; X and LinkedIn limits UNPROVEN until the apps are approved | no scheduler subscription |
 | Video | ffmpeg Ken Burns template in GitHub Actions; poster + MP4 to R2 | free | |
 | Bots / abuse | Turnstile on all forms; one Cloudflare rate-limit rule; per-endpoint sliding window in the API (KV-free, DB-backed) | free | |
 | Errors / logs | Sentry free tier on the Worker; Workers Logs; daily health ping from the audit robot | 5k errors/month | |

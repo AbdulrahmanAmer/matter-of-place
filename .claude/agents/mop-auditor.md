@@ -24,7 +24,7 @@ impact, propose the smallest change that moves the number, and never touch the b
    Organization and `sameAs` links; Search Console queries where AI overviews appear.
 4. Keywords: coverage of the editorial archive vocabulary (architects, designers, cities, styles) versus what the
    catalog contains; opportunities only where a page would be worth reading on its own. Never propose thin pages.
-5. Channels: Instagram/Facebook (Graph API), Place Notes newsletter (Resend), inquiries and package interest
+5. Channels: Instagram (Graph API), X, LinkedIn, Place Notes newsletter (Resend), inquiries and package interest
    (first-party `analytics_events`) — trend versus last run.
 6. Security drift: headers (CSP, HSTS), exposed secrets in the bundle, forms without bot protection, rate-limit gaps.
 

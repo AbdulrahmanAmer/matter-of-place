@@ -27,7 +27,8 @@ flowchart LR
   subgraph PUBLISH[Publishing events]
     E8[property.published] --> P1[bump_catalog_version + purge_cache] & P2[render_variants] & P3[render_cover] & P4[render_carousel] & P5[render_story] & P6[write_captions Haiku] & P7[build_newsletter_block] & P8[render_reel, Campaign only] & P9[send_email standalone, Campaign only, needs approval] & P10[open market if coming_soon]
     E9[property.unpublished] --> P11[bump_catalog_version + purge_cache] & P12[withdraw scheduled posts]
-    E10[asset.approved] --> C1[post_meta per enabled channel, in posting window, approval mode per tier] & C2[queue_digest]
+    E10[asset.approved] --> C1[post_meta: Instagram now, Facebook when enabled] & CX[post_x] & CL[post_linkedin] & C2[queue_digest]
+    C1 & CX & CL -.-> CN[each posts only if its channel is enabled, in its posting window, approval mode per tier]
     E11[asset.rejected] --> C3[notify_admin]
   end
   subgraph CLOCKS[Clock events]
@@ -48,7 +49,7 @@ flowchart TB
   DAY[daily] --> HE[health job: queues, channels, quotas, Resend bounces, uptime] & PR[retention: analytics 13 months, declined photos 90 days, inquiries anonymised 24 months, done jobs 30 days] & BK[backup: pg_dump to R2, 30 days kept] & TK[meta token refresh, alert 7 days before expiry]
   H6[every 6 hours] --> RC[reconcile: uploads marked, post metrics pulled, tokens checked]
   D3[every 3 days] --> KW[keep-warm read so the free Supabase project never pauses]
-  WIN[posting windows per channel] --> PM[post_meta waits for the window before publishing]
+  WIN[posting windows per channel] --> PM[post_meta, post_x and post_linkedin wait for the window before publishing]
 ```
 
 ## 3. Who can change what

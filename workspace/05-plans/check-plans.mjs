@@ -11,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const arch = readFileSync(join(here, "..", "06-architecture", "architecture.md"), "utf8");
 const catLine = arch.match(/the event catalog \((\d+)\): ([^\n]*)/);
 const events = new Set([...catLine[2].matchAll(/`([a-z_.]+)`/g)].map((m) => m[1]));
-const steps = new Set(["send_email","render_variants","render_cover","render_carousel","render_story","render_reel","write_captions","build_newsletter_block","post_meta","queue_digest","notify_admin","webhook_omnikom","bump_catalog_version","purge_cache","render_og_static"]);
+const steps = new Set(["send_email","render_variants","render_cover","render_carousel","render_story","render_reel","write_captions","build_newsletter_block","post_meta","queue_digest","notify_admin","webhook_omnikom","bump_catalog_version","purge_cache","render_og_static","post_x","post_linkedin"]);
 const sections = ["## Goal","## Contract","## Files","## Data changes","## Steps","## Verification","## Risks","## Out of scope"];
 const plans = readdirSync(here).filter((f) => /^(B|H|L)\S*\.md$/.test(f));
 const errors = [], warnings = [], created = {};

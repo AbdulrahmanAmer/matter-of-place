@@ -22,7 +22,7 @@ written). Section B: needs the CEO. Section C: unproven until built (each plan h
 | A13 | Media columns hold R2 keys; variants JPEG for carousel/og, AVIF+JPEG for hero/card; coordinates stored `point(lon, lat)` | B2 |
 | A14 | Schedules: digest every 14 days (`interval_days`), audit `0 12 * * 6` UTC, timezones UTC by default; audit/reconcile/backup are external clocks | B8b, B11, B14 |
 | A15 | Reach-tier approval manual by default; `auto_after` set at launch + 60 days (S23) | B10, L1 |
-| A16 | Asset-to-channel map: carousel, story, reel → Instagram; cover, story → Facebook; daily cap 2 posts/channel; no hashtags at launch | B10 |
+| A16 | Asset-to-channel map (S48): carousel, story, reel → Instagram; cover (X crop 1200×675 or the 1200×630 cover, short caption plus property link) → X; cover or the first 3 to 4 carousel images (longer editorial caption for agents and brokerages) → LinkedIn; cover, story → Facebook only when enabled; daily cap 2 posts/channel; no hashtags at launch; B9 `write_captions` writes three variants (Instagram, X short, LinkedIn editorial) | B10, B9 |
 | A17 | Reel 18 s, 1080×1920, 30 fps, single-plane camera moves, sound bed by property type and market (no music, S36) | B12 |
 | A18 | Archive URLs `/archive/<kind>/<slug>`; `llms-full.txt` capped at 500 KB; city-level location only; `public/robots.txt` replaced by a route | B13 |
 | A19 | Terms and privacy split to `/terms` and `/privacy` with redirects from the old `/legal#terms` and `/legal#privacy` anchors (the plan's "no redirect" is overruled) | B16 |
@@ -42,7 +42,7 @@ Worker 10 ms CPU limit for SSR and admin (B1b, B3, H1) · `pg_dump` via session 
 minutes per render (B9, B12) · Supabase signed PUT behaviour and 2-hour URL lifetime (B3) · Bun importing `.jpg` in the
 seed (B2) · Deno `npm:` support for `pdf-lib`, React Email, `cron-parser` in the Edge Function (B6, B8) · Resend
 `Idempotency-Key` and whether auth mail shares the daily quota (B5) · `@supabase/ssr` in the Worker (B7) · cloud
-routine egress for the auditor (B14) · Meta development-mode publishing without App Review (B10).
+routine egress for the auditor (B14) · Meta development-mode publishing without App Review (B10) · X free-tier write limits, media upload on the free tier and scope names (B10 step 3a) · LinkedIn product approval and timing, rate limits, multi-image posts, image sizes (1200×627 single, 1080×1080 set) and scope names (B10 step 3b, B9) · caption limits X 280 with the link counted at 23 and LinkedIn 3,000 (B9, B10 steps 3a and 3b).
 
 ## D. Spec corrections to apply to architecture.md (done by the CTO in the next docs commit)
 Event catalog: add `subscriber.created`, `submission.awaiting_assets`, `property.unpublished` recipes (17 events).

@@ -60,14 +60,23 @@ flowchart TD
   AUTO --> EV2
   EV2 --> REC2{"Recipe asset.approved"}
 
-  REC2 --> PM["post_meta per channel_settings"]
+  REC2 --> PM["post_meta per channel_settings: Instagram, Facebook when enabled"]
+  REC2 --> PX["post_x per channel_settings"]
+  REC2 --> PL["post_linkedin per channel_settings"]
   REC2 --> QD1["queue_digest mode add"]
 
   PM --> WIN{"Inside posting window and daily cap?"}
   WIN -->|"no"| RA["retry_at next window slot"]
   RA -.-> PM
-  WIN -->|"yes"| GRAPH["Graph API container then publish"]
+  PX --> WIN
+  PL --> WIN
+  WIN -->|"yes, Instagram"| GRAPH["Graph API container then publish"]
+  WIN -->|"yes, X"| XAPI["X API media upload, then post with cover, short caption, link"]
+  WIN -->|"yes, LinkedIn"| LAPI["LinkedIn API image upload, then organisation post with editorial caption"]
+  WIN -->|"channel disabled"| SKD["skipped_disabled, nothing written"]
   GRAPH --> SP["social_posts posted, permalink, remote_id"]
+  XAPI --> SP
+  LAPI --> SP
   SP --> CH["Channels screen 12 and reconcile metrics pull"]
 
   QD1 --> DRAFT["newsletter_issues draft, one open draft only"]
@@ -84,7 +93,7 @@ flowchart TD
 
 ## 2. The Meta publish call for an approved carousel
 
-One `post_meta` job, one Instagram carousel. Facebook runs the same job with its own calls (photo post for the cover, photo story).
+One `post_meta` job, one Instagram carousel. Facebook runs the same job with its own calls (photo post for the cover, photo story) once its channel row is enabled; at launch it is a disabled block. X and LinkedIn have their own steps, `post_x` and `post_linkedin`, shown in the first diagram.
 Every call carries `appsecret_proof`. Meta downloads the images itself from the public R2 host.
 
 ```mermaid

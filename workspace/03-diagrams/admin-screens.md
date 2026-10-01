@@ -86,7 +86,7 @@ flowchart TB
   REC --> J6[render_reel: heavy, Campaign tier only]
   J2 & J3 & J4 & J5 & J6 --> AS[Assets screen: pending cards]
   AS -->|approve| EV2[event asset.approved]
-  EV2 --> PM[post_meta per enabled channel, inside posting window, approval mode per tier]
+  EV2 --> PM[post_meta, post_x, post_linkedin: each per enabled channel, inside posting window, approval mode per tier]
   EV2 --> QD[queue_digest → next Place Notes issue draft]
   PM --> CH[Channels screen: scheduled → posted, metrics]
   QD --> NL[Newsletter screen: issue draft → approve → send]

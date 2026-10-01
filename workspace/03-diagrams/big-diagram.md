@@ -14,7 +14,7 @@ Solid boxes exist today; dashed boxes are not built. Free tier everywhere unless
 
 ```mermaid
 flowchart TB
-  visitor([Visitor: web, Instagram, email, search, AI answer engines])
+  visitor([Visitor: web, Instagram, X, LinkedIn, email, search, AI answer engines])
   agent([Agent / brokerage / owner])
   editor([Editorial team: Chief Editor, Managing Editor, Visual Editor, Media Ops])
 
@@ -50,7 +50,10 @@ flowchart TB
   end
 
   subgraph OUT[Distribution]
-    ig[Instagram + Facebook Page: Meta Graph API]:::todo
+    ig[Instagram: Meta Graph API]:::todo
+    xch[X: X API, OAuth 2.0 user context]:::todo
+    li[LinkedIn company page: LinkedIn API]:::todo
+    offch[Facebook and YouTube: built as blocks, disabled until further notice]:::todo
     resend[Resend: Place Notes broadcasts + transactional]:::todo
     prog[Programmatic media, Campaign tier, managed separately]:::todo
   end
@@ -128,7 +131,7 @@ sequenceDiagram
   J->>D: assets rows, status pending
   M->>D: approve
   D->>J: publish jobs
-  J->>O: Instagram/Facebook post, queued into next Place Notes
+  J->>O: Instagram, X and LinkedIn posts, queued into next Place Notes
   O-->>D: post ids, metrics → campaign_reports
 ```
 

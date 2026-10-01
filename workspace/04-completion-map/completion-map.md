@@ -13,7 +13,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A11 | DONE 2026-10-01: company email on Zoho Mail (admin@matterofplace.com), MX/SPF/DKIM/DMARC live, records now served by Cloudflare | zoho.com | everything |
 | A4 | Invoice template inputs: Omnikom entity, address, payment methods to list (bank, wire, card by phone), invoice numbering. Stripe account only when S32 is revisited | you | B6 |
-| A5 | Via the CEO's partner (access on request): Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
+| A5 | Launch channels are Instagram, X and LinkedIn (S48). Needed: an X developer account and app for the brand handle; a LinkedIn company page plus a developer app with posting access (approval can take days, apply early); and via the partner (access on request): Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
 | A6 | Sentry account (free) | sentry.io | B1 |
 | A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
 | A8 | GitHub: branch protection on `main`, Actions secrets from tech-stack §4 | github.com | B1 |

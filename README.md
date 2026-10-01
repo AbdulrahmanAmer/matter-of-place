@@ -76,7 +76,7 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 | matterofplace.com | done: registered at Namecheap, DNS on Cloudflare nameservers | everything |
 | Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened. Left for wave 1: API token, R2 bucket (needs a card on file) | wave 1 |
 | Company email | done: Zoho Mail free plan, admin@matterofplace.com sends and receives; SPF, DKIM, DMARC set | everything |
-| Supabase (database) | next: sign up with admin@matterofplace.com | wave 2 |
+| Supabase (database) | done: organisation "Matter Of Place" (Free) under admin@matterofplace.com, dev project `mop-dev` running in East US. Production project is created at launch | wave 2 |
 | Resend (email) | sign up with admin@matterofplace.com when wave 3 starts | wave 3 |
 | Sentry (errors) | sign up with admin@matterofplace.com when wave 1 starts | wave 1 |
 | Google: GA4, Search Console | sign up with admin@matterofplace.com when wave 6 starts | wave 6 |
@@ -88,7 +88,7 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 ## Decisions that shape everything
 Free tier first, pay only when a measured limit is hit · no music ever in films, sound design only · launch is coming-soon
 until the first real property · payments are manual invoices now, Stripe later behind the same table · agents (AI) can
-work the admin portal until humans are hired · Instagram + Facebook at launch, human approval on posts for 60 days ·
+work the admin portal until humans are hired · Instagram, X and LinkedIn at launch (Facebook and YouTube built as switched-off blocks), human approval on posts for 60 days ·
 newsletter every two weeks · audit robot every Saturday morning.
 Full ledger: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [GOTCHAS.md](GOTCHAS.md).
 

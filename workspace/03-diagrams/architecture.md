@@ -24,7 +24,7 @@ flowchart LR
   SF --> R2[(R2)]
   DB --> EV[(events)] --> RE[Recipe engine] --> J[(jobs)] --> Q[[pgmq]] --> RUN[[Edge Function job runner]]
   RUN -->|heavy| GH
-  RUN -->|light| STEPS[step catalog: send_email, write_captions, post_meta, queue_digest, notify_admin, webhook_omnikom, bump_catalog_version, purge_cache]
+  RUN -->|light| STEPS[step catalog: send_email, write_captions, post_meta, post_x, post_linkedin, queue_digest, notify_admin, webhook_omnikom, bump_catalog_version, purge_cache]
 ```
 
 ## 2. Data model v2

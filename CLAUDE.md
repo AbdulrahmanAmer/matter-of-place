@@ -33,7 +33,7 @@ acceptance, Meta Graph API direct, Sentry, GA4 + Search Console, Turnstile. Free
 settled decision. `Matter Of Place Codebase/docs/**` is the Lovable sketch: read for intent, never build from it.
 Launch is coming-soon: production shows no illustrative property, ever; an empty collection becomes a per-market interest
 signup. Payments are manual invoices from `/admin` (Stripe later, same table). Legal identity is Omnikom's entity.
-Audit robot runs Saturday mornings. Social at launch: Instagram + Facebook only, human approval for 60 days.
+Audit robot runs Saturday mornings. Social at launch: Instagram, X and LinkedIn (S48); Facebook and YouTube exist as disabled channel blocks until further notice; human approval for 60 days.
 The admin portal is the operating system: automations are recipes in the database edited from `/admin › Automation`
 (fixed step catalog in code, parameters and toggles as data, dry-run, revisions). Never hard-code a pipeline.
 Every kind of change has one path (tech-stack.md §5: page, API route, admin action, table, job type, email, event,
