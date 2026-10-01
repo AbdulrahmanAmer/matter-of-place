@@ -26,8 +26,8 @@ stateDiagram-v2
   Paid --> Scheduled: activate agent
   Waived --> Scheduled: activate agent
   Scheduled --> Published: publish property
-  Published --> DistributionActive: first asset posted, no plan owns this move yet
-  DistributionActive --> Completed: campaign window ends, no plan owns this move yet
+  Published --> DistributionActive: first post is posted (B10)
+  DistributionActive --> Completed: campaign end date passed, or 30 days after publication (B10)
   Declined --> [*]
   Completed --> [*]
   state "Under Review" as UnderReview

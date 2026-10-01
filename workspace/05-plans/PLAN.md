@@ -24,43 +24,43 @@ Waves 3 and 4 interleave. The landing order is line 5 of B5, B6, B7, B8, B8b and
 Gate: `node workspace/05-plans/ready.mjs --full` must end with `READY TO BUILD: yes`. Procedure: `RUNBOOK.md`. One slice
 is run with `Workflow({ name: "build-slice", args: { slice: "<id>" } })`.
 
-No slice is blocked as a whole. Each one starts when the slices it depends on are closed. The table lists the steps that
-wait on something only the operator can supply; every other step runs, and each waiting step is marked BLOCKED in its
-plan with the exact thing that unblocks it. All 21 plans were re-read against the measured facts (ASSUMED section E) and
-the cross-slice rulings (section F) by one worker each and a second worker in a fresh context.
+No slice is blocked as a whole. Each one starts when the slices it depends on are closed. The table is rebuilt from the
+plans by `node workspace/05-plans/readiness-table.mjs --write`: it counts the numbered steps that carry a BLOCKED part and
+names what they wait on; every other step runs. The plans were audited in both directions on 2026-10-01 (six rounds, Opus
+5.5 at high effort, 1,152 gaps in the first round, 42 blockers in the last, all fixed; rulings in ASSUMED section G), and
+`trace.json` lists the 1,136 items that now trace to one owning slice, its files and a proof (S53).
 
-| Slice | Steps that wait | On what |
+| Slice | Steps with a waiting part | On what |
 |---|---|---|
-| B1b | 5 step(s) | R2 switched on, mop-prod (created at launch), custom domain attach (L1), GitHub Pro (branch protection) |
-| B2 | 4 step(s) | R2 switched on, mop-prod (created at launch) |
-| B3 | 3 step(s) | R2 switched on, Resend account |
-| B3b | 1 step(s) | mop-prod (created at launch) |
-| B4 | 1 step(s) | none |
-| B5 | 5 step(s) | Resend account |
-| B6 | 4 step(s) | R2 switched on, Resend account, legal entity and payment facts |
-| B7 | 5 step(s) | R2 switched on, Resend account, legal entity and payment facts |
-| B8 | 2 step(s) | GitHub dispatch token |
-| B8b | 1 step(s) | none |
-| B9 | 4 step(s) | R2 switched on, Anthropic API key, GitHub dispatch token, CEO creative pick |
-| B10 | 9 step(s) | R2 switched on, X developer app, LinkedIn page and app, Meta app (partner) |
-| B11 | 6 step(s) | Resend account |
-| B12 | 2 step(s) | R2 switched on |
-| B13 | 5 step(s) | R2 switched on, Google accounts, custom domain attach (L1) |
-| B14 | 6 step(s) | R2 switched on, Resend account, Google accounts |
-| B15 | 3 step(s) | mop-prod (created at launch), Omnikom endpoint |
-| B16 | 1 step(s) | none |
-| B17 | 3 step(s) | R2 switched on, Resend account, custom domain attach (L1) |
-| H1 | 9 step(s) | R2 switched on, Resend account, mop-prod (created at launch), legal entity and payment facts |
-| L1 | 12 step(s) | R2 switched on, Resend account, mop-prod (created at launch), X developer app, LinkedIn page and app, Meta app (partner), Google accounts, CEO creative pick |
+| B1b | 7 of 11 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
+| B2 | 3 of 14 | mop-prod (created at launch), R2 switched on |
+| B3 | 4 of 13 | Resend account |
+| B3b | 2 of 10 | mop-prod (created at launch) |
+| B4 | 1 of 10 | see the plan |
+| B5 | 6 of 10 | Resend account, mop-prod (created at launch) |
+| B6 | 4 of 9 | legal entity and payment facts, Resend account |
+| B7 | 8 of 18 | Resend account, R2 switched on |
+| B8 | 1 of 12 | R2 switched on, mop-prod (created at launch), GitHub dispatch token |
+| B8b | none of 11 | none |
+| B9 | 5 of 11 | CEO creative pick, R2 switched on, GitHub dispatch token, Anthropic API key, LinkedIn page and app, Meta app (partner) |
+| B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Resend account, Anthropic API key, GitHub dispatch token |
+| B11 | 5 of 13 | Resend account, R2 switched on, Meta app (partner) |
+| B12 | 2 of 9 | R2 switched on, GitHub dispatch token |
+| B13 | 4 of 13 | R2 switched on, Google accounts |
+| B14 | 8 of 9 | Google accounts, Resend account, custom domain (L1) |
+| B15 | 3 of 7 | Omnikom endpoint, mop-prod (created at launch) |
+| B16 | none of 8 | none |
+| B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend account |
+| H1 | 4 of 10 | R2 switched on |
+| L1 | 2 of 11 | Google accounts |
 
-What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (13 slices have a
-waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google
+What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (11 slices have a waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google
 accounts and ask the partner for Meta access, create an Anthropic API key and a fine-grained GitHub token for render
 dispatch. `mop-prod`, the custom domain and the creative pick come up inside their own slices.
 
 ## Slice files
 B1b.md · B2.md · B3.md · B3b.md · B4.md · B5.md · B6.md · B7.md · B8.md · B8b.md · B9.md · B10.md · B11.md · B12.md ·
-B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md · RUNBOOK.md · check-plans.mjs · ready.mjs · logs/ (one evidence log per slice)
+B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md · RUNBOOK.md · check-plans.mjs · ready.mjs · readiness-table.mjs · trace.json · logs/ (one evidence log per slice)
 
 ## Rules for working the plan
 - One slice per builder session; a builder reads GOTCHAS.md, CLAUDE.md, the slice file and the two spec documents, nothing else first.

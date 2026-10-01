@@ -115,7 +115,7 @@ const ahead = run("git", ["rev-list", "--left-right", "--count", "origin/main...
 add(ahead === "0\t0" ? "PASS" : "FAIL", "in sync with origin/main", ahead.replace("\t", " behind, ") + " ahead");
 
 // 8. plans, agents, harness
-const cp = run("node", [join(here, "check-plans.mjs")]);
+const cp = run("node", [join(here, "check-plans.mjs"), "--require-trace"]);
 add(cp.code === 0 ? "PASS" : "FAIL", "check-plans", cp.out.trim().split(/\r?\n/).pop());
 for (const f of [".claude/agents/mop-builder.md", ".claude/agents/mop-designer.md", ".claude/agents/mop-scout.md", ".claude/agents/mop-auditor.md", ".claude/workflows/build-slice.js", "workspace/05-plans/RUNBOOK.md", "GOTCHAS.md", "PROJECT-STATE.md", ".claude/POSITION.md"]) {
   add(existsSync(join(ROOT, f)) ? "PASS" : "FAIL", `file ${f}`);
@@ -141,7 +141,7 @@ const waits = [
   ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
   ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
-  ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of B1b step 4, H1 and L1"],
+  ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of H1 and L1 (launch only)"],
   ["GITHUB_DISPATCH_TOKEN", "fine-grained GitHub token for render dispatch", "B8 step 7, B9 renders in Actions"],
   ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods", "B6 invoice issue, B16"],
 ];

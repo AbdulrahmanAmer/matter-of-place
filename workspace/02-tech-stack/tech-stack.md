@@ -47,8 +47,10 @@ Cost at launch: $0/month plus the domain. Paid steps, in order of likelihood: Re
 - **Every side effect is a job.** Publish, accept, decline, payment received, subscriber confirmed → a row in `jobs`
   (type, payload, idempotency key, attempts, run_after). Light jobs run in an Edge Function on pg_cron; heavy jobs are
   dispatched to a GitHub Actions workflow that writes results back through a signed endpoint.
-- **Generated assets wait for a human.** Job output lands in `assets` with `status = pending`; media ops approves in `/admin`;
+- **Generated assets wait for a human.** The output of the asset steps (cover, carousel, story, reel, newsletter block,
+  standalone email) lands in `assets` with `status = pending`; media ops approves in `/admin`;
   approval enqueues the publish-to-channel job. Nothing posts on its own until the operator relaxes this per tier.
+  `render_variants` creates no `assets` row: photo variants are stored on `property_media` and need no approval (G61).
 - **Money is a box with two doors.** `payments` holds one record per accepted submission: method (`invoice_manual` now,
   `stripe` later), amount, invoice number, status (`due`, `paid`, `waived`), who marked it paid and when. Acceptance
   never depends on it; activation (Scheduled) does. Swapping in Stripe means adding a webhook that writes the same row.
@@ -178,8 +180,9 @@ orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `REN
 `RESEND_API_KEY` (B5 step 5), `ANTHROPIC_API_KEY` (B9), `CF_PURGE_TOKEN` and `CF_ZONE_ID` (B8b), `X_ACCESS_TOKEN`, `X_REFRESH_TOKEN`,
 `LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_REFRESH_TOKEN` (B10's authorize scripts), each written when its account or token exists);
 `ADMIN_SMOKE_KEY` (B7, the dev agent key the seed prints, read by `scripts/admin-smoke.ts`); `OMNIKOM_MOCK_SECRET` (B15, the signing
-secret of the local mock receiver); `LEGAL_ENTITY_NAME` (the operator input `ready.mjs --launch` checks before L1 step 1, G32); `SENTRY_AUTH_TOKEN` (optional, `org:read`, `project:read`, `event:read`, used by H1's
-`sentry-probe.ts`, G11); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
+secret of the local mock receiver); `LEGAL_ENTITY_NAME` (the operator input `ready.mjs --launch` checks before L1 step 1, G32); `SENTRY_AUTH_TOKEN` (`org:read`, `project:read`, `event:read`, G11;
+not needed to build, needed for the stored-event checks of H1's `sentry-probe.ts` and of L1, so it gates launch only: `ready.mjs`
+lists it as `WAIT` and `ready.mjs --launch` fails while it is missing, G65); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
 operator's shell only, never in a file: `AUDIT_AGENT_KEY_DEV` (B14, the `mop-auditor-dev` key on `mop-dev`). Proof of the names
 (values never printed): `node workspace/05-plans/ready.mjs` prints its `.env names` row as `PASS` with the count of the names it requires.
 
