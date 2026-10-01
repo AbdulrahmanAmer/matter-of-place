@@ -244,3 +244,7 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   This token stays local; CI gets a narrow token later (mint via API with mop-admin, or UI).
   Verify after paste, printing no secret:
   `set -a; . ./.env; set +a; curl -s https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | grep -o '"status":"[a-z]*"'`
+- 2026-10-01 `.env` filled by the operator and verified without printing secrets: `mop-admin` account token →
+  "This API Token is valid and active"; zone matterofplace.com visible (count 1). R2 is NOT enabled on the account:
+  API says "Please enable R2 through the Cloudflare Dashboard" (needs the operator: R2 › enable, which asks for a
+  payment method on file; free tier 10 GB, no charge expected — decision needed under S21). S3 keys untestable until then.
