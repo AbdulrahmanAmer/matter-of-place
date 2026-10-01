@@ -1,7 +1,7 @@
 # Architecture diagrams
 
 Pictures: [img/architecture-1.png](img/architecture-1.png) request paths, [img/architecture-2.png](img/architecture-2.png) data model v2,
-[img/architecture-3.png](img/architecture-3.png) job lifecycle, [img/architecture-4.png](img/architecture-4.png) agents as staff.
+[img/architecture-3.png](img/architecture-3.png) job lifecycle, [img/architecture-4.png](img/architecture-4.png) agents as staff, [img/architecture-5.png](img/architecture-5.png) caching.
 Words: `../06-architecture/architecture.md`.
 
 ## 1. Request paths
@@ -147,4 +147,27 @@ flowchart LR
   R -->|admin| T[Team, agent keys, settings]
   D & M & AP & RO & T --> AU[(audit_log: actor_id, actor_kind)]
   G[Guardrails: agents cannot touch roles, keys or settings; per-channel human approval; daily decision cap] -.-> K
+```
+
+## 5. Caching: what a visitor's request touches
+
+```mermaid
+flowchart LR
+  V([Visitor]) --> B[Browser cache: files kept for a year, data kept 5 minutes]
+  B -->|not found| EC[Edge cache in the Worker: finished pages and catalog data]
+  EC -->|not found| M[Memory in the Worker: one snapshot per catalog version]
+  M -->|new version or first visit| DB[(Database)]
+  DB --> D1[State check: every 15 seconds]
+  DB --> D2[Catalog snapshot: once per version]
+  D1 --> M
+  D2 --> M
+  M --> EC
+  EC --> V
+  ED([Editor publishes]) --> BUMP[Catalog version goes up]
+  BUMP --> DB
+  BUMP --> NEW[Every cache key changes within 15 seconds, no purge needed]
+  NEW --> EC
+  DOWN{{Database down}} -.-> STALE[The last good copy is served]
+  STALE -.-> V
+  WARM[Warm page view: zero database calls] -.-> EC
 ```

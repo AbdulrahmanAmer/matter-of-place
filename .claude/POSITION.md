@@ -313,3 +313,34 @@ Operator instruction: go end to end with Sonnet workers until the real build can
 - WAITING ON OPERATOR (blocks named steps only, never a whole slice; table in PLAN.md "Start readiness"): R2 on, Resend
   account, legal entity and payment facts, X, LinkedIn, Google, Meta through the partner, Anthropic API key, fine-grained
   GitHub token for render dispatch. UNPROVEN: R2 keys derived from the deploy token; CPU limit under real traffic.
+
+## 2026-10-01 · CACHING CONTRACT CLOSED (S52): designed, in every plan, verified; build can start
+Operator: caching on all fronts before any build, so the database is not asked the same thing over and over; and every
+task ends with GitHub, this file and the gotcha bank updated (now a rule in CLAUDE.md and RUNBOOK.md).
+- What existed: catalog JSON cached under a versioned key, browser data cache. What was missing: rendered HTML was not
+  cached at all (the CPU risk of E3), no release id in the key, no stale copy when the database is down, flags and
+  coming-soon read per request, one database insert per analytics event, no proof.
+- Architecture section 13, twelve rules: a warm public read costs zero database queries; one state RPC
+  (`public_state()`, memo 15 s) and one snapshot RPC (`public_catalog_snapshot()`, once per version per isolate) feed
+  every public read; HTML, JSON and documents cached in the Worker's Cache API under
+  `<release>/v<catalogVersion>/<kind>/<pathname>`; anything that changes a public page bumps the version by trigger
+  (content, settings, flags, coming-soon, redirects, slug history); last good copy served when the database is down;
+  writes, admin, hooks and previews never cached; CSP by hashes stored with the page; events batched; admin session
+  verified locally; keep-warm keeps the free database awake; proof is a database call counter test (B4), a local edge
+  proof under `bunx wrangler dev`, and the hit ratio on the domain (H1, L1, B14).
+- Rulings F24, F25, F26 in ASSUMED section F. New measured facts E14 (ES256 signing key on mop-dev), E15
+  (pg_stat_statements readable through the pooler), E16 (the Cache API works under local `wrangler dev`: miss, hit, and
+  a random query string still hits; it stays inert on workers.dev).
+- Workflows (Sonnet only): plans-caching-contract (14 plans, apply plus fresh verify, plus spec and diagram: 29 agents)
+  and plans-caching-amendments (12 plans, apply plus verify: 24 agents). The verifiers found the gaps that became F25:
+  a flag change would have left cached pages stale for five minutes; the state payload lacked two fields; keep-warm on a
+  cache hit would not have touched the database. `check-plans: OK (21 plans, 17 events, 17 steps)`.
+- New picture: `workspace/03-diagrams/img/architecture-5.png` (what a visitor's request touches), linked from README.
+- Outside the repo, on this machine: two broken hook registrations in `~/.claude/settings.json` repaired (GOTCHAS
+  P-040). The command guard is now `~/.claude/hooks/raga-guard.mjs` and is live: it refuses a forced push, a recursive
+  delete from the root and skipping commit hooks. Backup: `~/.claude/settings.json.bak-2026-10-01`.
+- Decision the operator may want to confirm: public search now runs inside the Worker over the cached snapshot (no
+  database query), matching whole words and prefixes with plurals folded, without full stemming.
+- NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.
+- UNPROVEN until the slice that first runs it (F26 g): `wrangler dev --test-scheduled` on the Nitro build, whether the
+  local cache follows `--persist-to`, the hit ratio on the real domain, CPU under real traffic, R2 keys.

@@ -12,7 +12,9 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
   The operator reads pictures, not Mermaid: every diagram ships as PNG + SVG in `03-diagrams/img/` via `node render.mjs`
   (run it after any diagram edit; send the PNGs with SendUserFile).
 - `PROJECT-STATE.md` — agent-os stage + decisions. Stage 0 denies writes under `src/`; the operator advances the line.
-- `.claude/POSITION.md` — position file, injected on compact/resume. Append a block when a unit of work closes.
+- `.claude/POSITION.md` — position file, injected on compact/resume. **Every task ends the same way, without being
+  asked (operator, 2026-10-01):** append a block here, add what went wrong to `GOTCHAS.md`, commit, push, and confirm
+  `origin/main` holds it. A task whose result is not on GitHub is not finished.
 - `GOTCHAS.md` — the bank of things that already broke or cost time. `.claude/hooks/gotcha-guard.mjs` pushes matching
   entries before every Edit/Write (`block` denies, `warn` injects). **Maintain it without being asked**: the moment a tool
   error, a failed approach, a wrong assumption or a rework costs more than a few minutes, add the entry in the same turn
@@ -41,6 +43,9 @@ role, channel). Follow the path or stop and add one; never bolt on.
 Video and sound: no music ever (S36), sound design synthesized in code only; motion engine is GSAP + Three.js with
 frame capture (S37), direction lives in `launch/MOTION-BIBLE.md`, quality is gated by `launch/tools/motion-gate.mjs`
 plus a fresh-eyes review. "Quiet" means palette, type and copy, never a static screen.
+
+**Caching is a contract (S52, architecture section 13):** a warm public read costs zero database queries; HTML and
+catalog JSON are cached under a key of release and catalog version; never add a public read that queries a table directly.
 
 **No Docker on this machine, ever (S50).** No `supabase start`, no Docker Desktop. The database is the cloud project
 `mop-dev` (`supabase db push`, `gen types --project-id`, `functions deploy --use-api`) plus the native PostgreSQL 18 for

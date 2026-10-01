@@ -35,6 +35,11 @@ other slices go ahead.
   beside the plan.
 - Two failed approaches to the same obstacle end the attempt: record BLOCKED with what would unblock it, move on.
 - Production shows no illustrative property, ever (S30). `MOP_ENV` defaults to `production`.
+- Caching is a contract (S52, architecture section 13): no public read queries a table directly; the reviewer rejects one that does.
+
+## Every task ends the same way
+Slice or not: a block in `.claude/POSITION.md` with the proof output, new entries in `GOTCHAS.md` for anything that went wrong,
+commit, push, and `git log origin/main -1` showing the commit. Then `node workspace/05-plans/ready.mjs` still ends with yes.
 
 ## What only the orchestrator does
 Merges to `main`, the first production deploy, production secrets (`wrangler secret put`), any change to a decision,

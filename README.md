@@ -53,6 +53,8 @@ More: [job lifecycle](workspace/03-diagrams/img/architecture-3.png) · [publish 
 [recipe engine](workspace/03-diagrams/img/plans-b-3.png) · [weekly audit loop](workspace/03-diagrams/img/big-diagram-3.png) ·
 [who can change what](workspace/03-diagrams/img/automations-3.png)
 
+Public pages are served from cache and do not query the database when warm: [what a visitor's request touches](workspace/03-diagrams/img/architecture-5.png).
+
 ## Website essentials
 What every professional site must serve, and how consent and headers work here (plan B17).
 
