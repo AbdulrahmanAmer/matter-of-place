@@ -267,3 +267,20 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   workers.dev subdomain now exists: `holy-meadow-4327` (random; rename only from the dashboard, GOTCHAS P-035).
   Branch protection: API says "Upgrade to GitHub Pro" (A12 stands). All B1b prerequisites (A1, A6, A8) are met.
   Still with the operator, at B2: `supabase login` + link, `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`.
+- 2026-10-01 A10 DONE — Lovable disconnected (operator: "this is only the codebase"). GitHub: no webhooks, no deploy
+  keys, one repo. Leftover found and fixed: `public/favicon.ico` was Lovable's heart logo; replaced by the brand emblem
+  (`public/favicon.svg` source, `favicon.ico` 16/32/48, `apple-touch-icon.png` 180; `__root.tsx` links all three).
+  Only remaining mention in the app: `docs/brief/recalibration.md:1241`, the client's original brief, left as a record.
+- 2026-10-01 Turnstile DONE — widget "matterofplace.com forms" (domain matterofplace.com, managed mode) created with
+  `mop-admin`; site key `0x4AAAAAAFKsPkQz7CGDYO7M` (public) → GitHub variable `VITE_TURNSTILE_SITE_KEY` and `.env`
+  `VITE_TURNSTILE_SITE_KEY_PROD`; secret → `.env` `PROD_TURNSTILE_SECRET` (goes to the production Worker by
+  `wrangler secret put` at B1b step 7). Proven: siteverify with the secret and a dummy token → `invalid-input-response`
+  (secret recognised). Preview and local keep Cloudflare's test keys.
+- 2026-10-01 R2 stays OFF until further notice (operator). Slices that need it (B2 media variants, backup.yml) are
+  BLOCKED on that decision; B1b steps 1 to 7 do not need R2.
+- 2026-10-01 Supabase — WAITING ON OPERATOR: `.env` has markers `SUPABASE_ACCESS_TOKEN=PASTE_SUPABASE_ACCESS_TOKEN_HERE`
+  and `DEV_SUPABASE_DB_PASSWORD=PASTE_DATABASE_PASSWORD_HERE`. The agent is not allowed to create the access token
+  (GOTCHAS P-037). Tokens page: https://supabase.com/dashboard/account/tokens (scoped tokens expire in at most 90 days
+  unless Custom; "Create legacy token" gives full access). After the paste: `supabase projects list` with the token,
+  set GitHub secrets `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`, add the service role key to
+  `PREVIEW_WORKER_SECRETS_JSON` via `supabase projects api-keys`, then `supabase link` at B2 step 2.

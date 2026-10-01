@@ -8,7 +8,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 
 | # | Setup | Where | Needed by |
 |---|---|---|---|
-| A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported; account token `mop-admin` (full write, local `.env` only) and narrow token `mop-github-actions` (Workers Scripts + R2 only, in GitHub); workers.dev subdomain `holy-meadow-4327`. Remaining: enable R2 (needs a payment method on file), then the buckets | namecheap.com, dash.cloudflare.com | B1 |
+| A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported; account token `mop-admin` (full write, local `.env` only) and narrow token `mop-github-actions` (Workers Scripts + R2 only, in GitHub); workers.dev subdomain `holy-meadow-4327`. Turnstile widget "matterofplace.com forms" created (site key in GitHub variable `VITE_TURNSTILE_SITE_KEY`, secret in local `.env` as `PROD_TURNSTILE_SECRET`). R2 stays off until further notice (operator, 2026-10-01) | namecheap.com, dash.cloudflare.com | B1 |
 | A2 | DONE for dev 2026-10-01: org "Matter Of Place", project `mop-dev` (us-east-1, ref hbokkmpgpqhrnemgsqra); `mop-prod` at launch | supabase.com | B2 |
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A11 | DONE 2026-10-01: company email on Zoho Mail (admin@matterofplace.com), MX/SPF/DKIM/DMARC live, records now served by Cloudflare | zoho.com | everything |
@@ -18,7 +18,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
 | A8 | DONE for B1b 2026-10-01: secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `DEV_SUPABASE_PROJECT_REF`, `PREVIEW_WORKER_SECRETS_JSON`; variable `VITE_SITE_URL`. Branch protection is not available on the free plan for a private repo (CI rule instead, A12). Remaining at B2: `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`, and the service role key inside the preview JSON | github.com | B1 |
 | A9 | DEFERRED (S47): legal entity placeholder, email only (no phone), Instagram after the partner creates it, CEO is admin + chief_editor. Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
-| A10 | Lovable: disconnect, or accept it never syncs this repo | lovable.dev | B1 |
+| A10 | DONE 2026-10-01: Lovable disconnected. The repo has no Lovable webhook or deploy key, `git grep -i lovable` in the app finds only the original brief, and the Lovable heart favicon is replaced by the brand emblem (`favicon.svg`, `favicon.ico`, `apple-touch-icon.png`) | lovable.dev | B1 |
 
 ## Part B — Build slices, in order (owner agent in brackets; each ends with something observed)
 
