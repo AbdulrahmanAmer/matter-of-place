@@ -147,7 +147,7 @@ Entry template
 - Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
 - Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
 - GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes).
-- Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare Web Analytics: free.
+- Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
 - added: 2026-09-30
 
