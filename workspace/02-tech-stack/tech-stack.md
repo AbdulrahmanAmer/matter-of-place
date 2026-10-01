@@ -23,13 +23,13 @@ limit is hit; fewest accounts possible; nothing deterministic goes through a mod
 | Launch mode | **Coming soon** (S30): no listings on production until real ones are accepted; every collection has an empty state with a per-market interest signup; illustrative content is dev/preview only; `settings.coming_soon_global` defaults to `false` and `markets.coming_soon` to `true` (the fail-safe); interest counts come from the view `market_interest_counts`; consent is read only through `readConsent()` in `src/lib/consent.ts` | n/a | honesty with viewers; build the interest list first |
 | Social | Launch channels (S48): Instagram (Meta Graph API), X (X API), LinkedIn company page (LinkedIn API). One adapter per channel behind the same `{ publish, metrics }` interface. Facebook and YouTube adapters exist as disabled blocks (`channel_settings.enabled = false`), switched on later without new architecture | free tiers; X and LinkedIn limits UNPROVEN until the apps are approved | no scheduler subscription |
 | Video | Campaign tier only (S24): the GSAP + Three.js scene `launch/reel/scene.html` captured frame by frame in headless Chrome and encoded with ffmpeg by `scripts/render-reel.mjs` in `render.yml`'s `reel` job (B12, S37); synthesized sound only, no music (S36); gated by `launch/tools/motion-gate.mjs`; poster + MP4 to R2 (BLOCKED while R2 is off, E8) | free | |
-| Bots / abuse | Turnstile on all forms; one Cloudflare rate-limit rule; per-endpoint sliding window in the API (KV-free, DB-backed); headers from `cspFor(env, flags)` (CSP report-only from B1b, enforced by H1 through `flags.csp_enforce`; HSTS `max-age=31536000` until preload day 30, then `63072000` with `preload`) | free | |
+| Bots / abuse | Turnstile on all forms; one Cloudflare rate-limit rule; per-endpoint sliding window in the API (KV-free, DB-backed); headers from `cspFor(env, flags)` (CSP report-only from B1b, enforced through `flags.csp_enforce`: H1 switches it on `mop-dev`, and on `mop-prod` an admin switches it in Settings at L1 step 8 after seven days with no `csp_report` row, G32; HSTS `max-age=31536000` until preload day 30, then `63072000` with `preload`) | free | |
 | Errors / logs | Sentry free tier on the Worker and on the job-runner Edge Function (`SENTRY_DSN` in both); Workers Logs; a daily `health` system job (B8: pg_cron row `health` at 13:00 UTC enqueues it, `src/server/jobs/system/health.ts` runs the checks, writes `jobs.result`, emits `health.failed` once when a check fails, and B8b's seeded recipe for that event emails the admin through `notify_admin`; proof `bunx vitest run tests/unit/jobs/health.test.ts`). The weekly audit robot (B14) reads health, it does not ping | 5k errors/month | |
 | Analytics | GA4 via the typed `dataLayer` (gtag.js after consent, G31), Search Console, Bing, Cloudflare zone HTTP analytics (read through the API, no Web Analytics beacon script, G31), first-party `analytics_events` | free | |
 | Admin | `/admin` route group inside the site from day one: request queue, decide with templated emails, invoice, dossier editor, media, publish, asset approvals, channel status, subscriber and interest lists, **Automation section** (recipes, templates, reasons, channel and schedule settings, dry-run) | free | docs deferred to Studio; Studio has no publish button |
 | Tests | Vitest (contracts, forms, state machine), Playwright (every route, desktop + phone, a11y), run on every PR | free | docs had none |
 | Delivery | private GitHub repo `AbdulrahmanAmer/matter-of-place`; Actions: check → test → build → `wrangler deploy` on main; preview Worker per PR; `main` is guarded by a CI rule, not branch protection (P-028), and human merge review is the production gate (GitHub Environments are not available on this plan) | free | |
-| Domain | `matterofplace.com` on Cloudflare (Registrar at cost, or DNS only) | ~$10/yr | |
+| Domain | `matterofplace.com` registered at Namecheap (S29, S47; the registrar stays Namecheap, L1), DNS on Cloudflare (zone active, Free, E9) | ~$10/yr | |
 | Audit robot | `mop-auditor` (B14) on the `audit` schedule row; reads PSI, Search Console, GA4, Cloudflare zone analytics, Sentry stats (optional, G11), the uptime monitor, Bing (optional) and our `/api/admin/audit.*` actions with its agent key; it holds no Meta, Resend, service role or deploy credential (B14 invariant 3); writes `workspace/audits/`; opens PRs | Claude usage only | |
 | AI usage | Sonnet designs templates once; Haiku writes captions and alt text; concierge and search rule-based at launch | small | |
 
@@ -81,13 +81,13 @@ Cost at launch: $0/month plus the domain. Paid steps, in order of likelihood: Re
 ```
 Matter Of Place Codebase/
   src/routes/            pages + api/ server routes
-  src/server/            handlers, db client, jobs, rate-limit, log, email, stripe, meta
+  src/server/            handlers; lib/ (db client, log, rate-limit, env, r2, the job enqueuer); jobs/ (steps/ and system/); email/ (B5); payments/ with adapters/ (manual.ts and stripe.ts, B6); channels/ (meta.ts, x.ts, linkedin.ts, youtube.ts by B10, resend.ts by B11)
   src/db/                generated types, query helpers
   src/domain/            aliases + Zod input schemas
   src/admin/             admin components (behind auth)
-  src/templates/         social, og, email templates (React) consumed by render jobs
+  src/templates/         social/ (cover, carousel, story, newsletter block and the static OG card `OgCard.tsx`, all B9; there is no og/ folder) and email/ (React Email, B5, later slices append), consumed by the render jobs and the mail sender
   supabase/migrations/   versioned SQL (source of truth)
-  supabase/functions/    light job runner, digest assembly (keep-warm is the Worker's scheduled() handler, owned by B8b)
+  supabase/functions/    job-runner/ only (B8): runs every light step, digest assembly included (`queue_digest`, B11), and dispatches the heavy ones; no other function exists (keep-warm is the Worker's scheduled() handler, owned by B8b)
   scripts/               seed.ts and variants.ts (B2); render-job.mjs and post-callback.mjs (B8); render-variants, render-cover, render-carousel, render-story and render-og-static .mjs (B9) and render-reel.mjs (B12), all run by render.yml; harden/ (H1); launch/ (L1). App folder; posting runs in job-runner steps, not scripts (G21); the film engine stays in repo-root launch/ and the audit robot's scripts/audit/ sits at the repository root (B14)
   tests/                 vitest + playwright
   wrangler.toml
@@ -162,13 +162,26 @@ from the start, empty until the variable exists (G47).
 
 Local `.env` only (git-ignored, loaded without printing as E10 describes; never a GitHub or Worker secret): `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID` (the owner's `mop-admin`), `CF_EDGE_TOKEN` (optional, `scripts/cf-edge.mjs`), `DEV_SUPABASE_PROJECT_REF`,
-`DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `DEV_DB_URL`, `SUPABASE_ACCESS_TOKEN`; at launch (L1 step 1, ASSUMED A11)
+`DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `DEV_DB_URL`, `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_POOLER_HOST` and
+`DEV_SUPABASE_POOLER_USER` (the session pooler host and the `postgres.<ref>` user that `ready.mjs` checks with `psql`), `SENTRY_DSN`;
+at launch (L1 step 1, ASSUMED A11)
 `PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_DB_PASSWORD`, `PROD_SUPABASE_SERVICE_ROLE_KEY` (G32; read by B2's `seed.ts` and B3b's
-`set-environment.ts`) and `PROD_DB_URL` (the pooler string L1 and H1 pass to `psql` and `--db-url`); the source copies of values the
-orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `RENDER_CALLBACK_SECRET`,
-`CF_ANALYTICS_TOKEN`, `BACKUP_PASSPHRASE`); `SENTRY_AUTH_TOKEN` (optional, `org:read`, `project:read`, `event:read`, used by H1's
+`set-environment.ts`) and `PROD_DB_URL` (the pooler string L1 and H1 pass to `psql` and `--db-url`), then the fresh production values
+`PROD_RATE_LIMIT_SALT`, `PROD_CONFIRM_TOKEN_SECRET`, `PROD_PREVIEW_TOKEN_SECRET`, `PROD_JOB_RUNNER_SECRET` (L1 step 1a writes each once,
+never reused from `mop-dev`) and `PROD_RESEND_WEBHOOK_SECRET` (L1 step 4e); the production Turnstile pair `PROD_TURNSTILE_SECRET` (the
+value of the Worker secret `TURNSTILE_SECRET` on `matter-of-place`, B3, L1 step 1a) and `VITE_TURNSTILE_SITE_KEY_PROD` (the source copy
+of the GitHub variable `VITE_TURNSTILE_SITE_KEY`); `PREVIEW_RATE_LIMIT_SALT` and `PREVIEW_SENTRY_TEST_TOKEN` (the source copies of the
+bundle keys `RATE_LIMIT_SALT` and `SENTRY_TEST_TOKEN`, read by B3's dev loader; `RATE_LIMIT_SALT` on `matter-of-place` takes
+`PREVIEW_RATE_LIMIT_SALT` until L1 step 1a); the source copies of values the
+orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `RENDER_CALLBACK_SECRET`, `PREVIEW_TOKEN_SECRET` (B7 step 2),
+`RESEND_WEBHOOK_SECRET` (the `mop-dev` webhook's value, B3), `CF_ANALYTICS_TOKEN`, `BACKUP_PASSPHRASE`, and the function secrets
+`RESEND_API_KEY` (B5 step 5), `ANTHROPIC_API_KEY` (B9), `CF_PURGE_TOKEN` and `CF_ZONE_ID` (B8b), `X_ACCESS_TOKEN`, `X_REFRESH_TOKEN`,
+`LINKEDIN_ACCESS_TOKEN` and `LINKEDIN_REFRESH_TOKEN` (B10's authorize scripts), each written when its account or token exists);
+`ADMIN_SMOKE_KEY` (B7, the dev agent key the seed prints, read by `scripts/admin-smoke.ts`); `OMNIKOM_MOCK_SECRET` (B15, the signing
+secret of the local mock receiver); `LEGAL_ENTITY_NAME` (the operator input `ready.mjs --launch` checks before L1 step 1, G32); `SENTRY_AUTH_TOKEN` (optional, `org:read`, `project:read`, `event:read`, used by H1's
 `sentry-probe.ts`, G11); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
-operator's shell only, never in a file: `AUDIT_AGENT_KEY_DEV` (B14, the `mop-auditor-dev` key on `mop-dev`).
+operator's shell only, never in a file: `AUDIT_AGENT_KEY_DEV` (B14, the `mop-auditor-dev` key on `mop-dev`). Proof of the names
+(values never printed): `node workspace/05-plans/ready.mjs` prints its `.env names` row as `PASS` with the count of the names it requires.
 
 Audit routine environment (B14; the cloud routine's settings, never the repository, `.env` or GitHub unless B14 step 9 moves them to
 Actions secrets of the same names): `AUDIT_AGENT_KEY`, `SITE_URL` (the stable dev Worker before L1, `https://matterofplace.com` after),
@@ -215,7 +228,8 @@ with the access token shows `"disable_signup": true`.
 | an email | `src/templates/email/<name>.tsx` (React Email); its key appended to `emailTemplateKeys` in `src/domain/email.ts` and its entry appended to `definitions` in `src/templates/email/index.ts` (G46, G53); its `email_templates` row (subject, preheader, blocks, variables) seeded by the slice's migration with `on conflict (key) do nothing`; preview in `/admin › Automation` | Vitest renders it and B5's seed test finds `select key from email_templates` equal to `emailTemplateKeys` as sets; `bun run scripts/email-test.ts render <key>` writes the HTML today; a test send lands (`bun run scripts/email-test.ts <key> <address>`, BLOCKED until the Resend account, key and verified domain exist) |
 | an analytics event | name added to `AnalyticsEvent`; `track()` call at the action; the API's allow-list | TypeScript refuses free strings; event row appears |
 | a role or permission | `app_role` enum migration; RLS policies in the same migration (architecture 3.7); the action in `src/server/lib/permissions/<group>.ts` with its import line in `src/server/lib/permissions/index.ts`, checked by `authorize(actor, actionId)` from `src/server/lib/authz.ts` in the server function (B7); its row in the hand-typed fixture of `tests/unit/authz.matrix.test.ts` in the same commit | `bunx vitest run tests/unit/authz.matrix.test.ts` (fails on an action without a fixture row and on a fixture row without an action) |
-| a social or email channel | `src/server/channels/<name>.ts` implementing `{ publish(asset, settings) }`; `channel_settings` row; Media Ops toggle | Vitest with the API mocked; one real test post |
+| a social channel | the channel name into architecture 3.5's `channel_settings` list and its step type `post_<name>` into the architecture step catalog first (P-031); `src/server/channels/<name>.ts` implementing B10's `Channel` interface from `src/server/channels/types.ts` (`{ id, supports(kind), publish(asset, ctx), metrics(post), health() }`; YouTube's disabled block `youtube.ts` is the starting file); its entries in `getChannel`, `targetsFor`, `filesFor` and `captionFor` (`src/server/channels/index.ts`); its spec in `src/server/automation/step-specs.ts` and its mapping in `stepForChannel` (`src/server/automation/catalog.ts`); `src/server/jobs/steps/post-<name>.ts` calling `postToChannel` (`src/server/channels/post-to-channel.ts`) with one import line in `src/server/jobs/steps/index.ts`; its credentials rule in `assertMayEnable` (`src/server/channels/enable-guard.ts`; YouTube answers 422 `no_adapter` until then); the slice's migration widens the `channel_settings.channel` check and inserts the row disabled with `on conflict (channel) do nothing` when the channel is new (YouTube's row is already seeded by B8b), and replaces `unpublish_property` (`create or replace`) so a takedown also cancels `post_<name>` jobs; the step joins the `asset.approved` recipe from `/admin › Automation`; the row is enabled on screen 20 once `assertMayEnable` passes | `bunx vitest run tests/unit/channels/<name>.test.ts tests/unit/channels/post-<name>.test.ts tests/unit/channels/targets.test.ts tests/unit/channels/enable-guard.test.ts tests/unit/automation/catalog.test.ts` with the API mocked; `node workspace/05-plans/check-plans.mjs` → OK; one real test post BLOCKED until the channel's account and credentials exist (operator) |
+| an email channel | `src/server/channels/<name>.ts` with `{ publish(asset, settings), metrics }` (B11's `src/server/channels/resend.ts` is the pattern); its `channel_settings` row (`newsletter` is the existing one) | `bunx vitest run tests/unit/channels/<name>.test.ts` with the API mocked |
 | a new public read | add it to the snapshot shape in `getCatalog` (or to `getPublicState` if it is a flag or a setting), never a table query per request; the endpoint and the loader read the memoised result | Vitest: the database call counter does not move on a warm request (architecture §13) |
 
 Rules behind the table: feature folders (`src/server/<feature>`, `src/admin/<feature>`) own their code; shared code is

@@ -69,7 +69,7 @@ sequenceDiagram
   R->>D: jobs(send_email declined)
   D-->>U: job id, JobWatcher shows queued → done
   M-->>E: email delivered event via Resend webhook → timeline
-  Note over E,M: Accept is the same shape, then Issue invoice → invoice job (PDF to R2, email) → Mark paid → Activate → Scheduled
+  Note over E,M: Accept is the same shape, then Issue invoice → invoice_pdf job (PDF to the private invoices bucket, not R2) and send_email invoice → Mark paid → Activate → Scheduled
 ```
 
 ## 3. Publish to channels (screens 8, 10, 12, 13)
@@ -78,16 +78,17 @@ sequenceDiagram
 flowchart TB
   PUB[Publish button: checklist green] --> TX[tx: editorial_state=published, catalog_version+1, audit, event property.published]
   TX --> REC[Recipe property.published]
-  REC --> J1[bump_catalog_version + purge_cache: light]
+  REC --> J1[bump_catalog_version, opens a coming-soon market, + purge_cache: light]
   REC --> J2[render_variants: heavy → Actions]
   REC --> J3[render_cover, carousel, story: heavy]
   REC --> J4[write_captions: light, Haiku]
   REC --> J5[build_newsletter_block: light]
   REC --> J6[render_reel: heavy, Campaign tier only]
+  REC --> J7[send_email standalone: Campaign tier only, waits for approval]
   J2 & J3 & J4 & J5 & J6 --> AS[Assets screen: pending cards]
   AS -->|approve| EV2[event asset.approved]
-  EV2 --> PM[post_meta, post_x, post_linkedin: each per enabled channel, inside posting window, approval mode per tier]
-  EV2 --> QD[queue_digest → next Place Notes issue draft]
+  EV2 --> PM[post_meta, post_x, post_linkedin for cover, carousel, story, reel: each per enabled channel, inside posting window, approval mode per tier]
+  EV2 --> QD[queue_digest mode add for a newsletter block → next Place Notes issue draft]
   PM --> CH[Channels screen: scheduled → posted, metrics]
   QD --> NL[Newsletter screen: issue draft → approve → send]
 ```

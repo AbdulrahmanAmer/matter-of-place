@@ -8,12 +8,13 @@ Pictures: [img/essentials-1.png](img/essentials-1.png) every response: headers a
 ```mermaid
 flowchart LR
   REQ([Request]) --> CLS{Route class}
-  CLS -->|page| PG["public, s-maxage=300, stale-while-revalidate=86400"]
-  CLS -->|"/api/public"| AP["public JSON with ETag and Cache-Tag catalog, writes never cached"]
-  CLS -->|"/admin and /api/admin"| AD["private, no-store"]
+  CLS -->|page| PG["browser: public, max-age=0, must-revalidate. Stored copy at the edge: s-maxage=300, stale-while-revalidate=86400"]
+  CLS -->|"/api/public"| AP["catalog JSON: public, max-age=60, ETag, Cache-Tag catalog, same edge lifetime as pages. Writes never cached"]
+  CLS -->|"sitemap, robots, llms, feeds"| DOC["public, max-age=3600, s-maxage=3600"]
+  CLS -->|"/admin, /api/admin, /api/hooks, POST, 5xx"| AD["private, no-store"]
   CLS -->|fingerprinted asset| AS["public, max-age=31536000, immutable"]
-  CLS -->|photograph variant| IM["public, max-age=2592000, Vary Accept"]
-  PG & AP & AD & AS & IM --> H[Common headers on all: CSP with per-request nonce, HSTS, nosniff, Referrer-Policy strict-origin-when-cross-origin, X-Frame-Options DENY, Permissions-Policy, COOP same-origin, CORP same-site]
+  CLS -->|photograph variant| IM["R2 under content-hashed keys: public, max-age=31536000, immutable, once R2 is on. No Vary Accept"]
+  PG & AP & DOC & AD & AS & IM --> H["Common headers on all: CSP by inline-script hashes, stored with the cached page, never a per-request nonce. HSTS, nosniff, Referrer-Policy strict-origin-when-cross-origin, X-Frame-Options DENY, Permissions-Policy, COOP same-origin, CORP same-site"]
   H --> CSP{CSP mode}
   CSP -->|"week one: report-only"| RPT["reports to /api/public/csp-report, stored as csp_report events"]
   CSP -->|"clean week: settings.flags.csp_enforce"| ENF[enforced]
@@ -24,18 +25,18 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  V([Visitor arrives]) --> GPC{"Sec-GPC: 1 header?"}
+  V([Visitor arrives]) --> GPC{"Global Privacy Control? navigator.globalPrivacyControl after hydration, Sec-GPC on the uncached consent endpoint"}
   GPC -->|yes| DEC[Decline recorded automatically, no analytics]
-  GPC -->|no| CK{consent cookie present and current version?}
-  CK -->|yes, accept| GA[GA4 and Tag Manager load with nonce]
+  GPC -->|no| CK{"readConsent: stored record or mop_consent cookie at the current version?"}
+  CK -->|yes, accept| GA["gtag.js, GA4 only, loads after consent through Ga4Loader. No Tag Manager container"]
   CK -->|yes, decline| NO[No third-party scripts, first-party anonymous events only]
-  CK -->|no| NOTE[Footer-anchored notice: Accept, Decline, Settings, equal weight, no wall]
+  CK -->|no| NOTE["Footer-anchored notice: Allow and No, thank you, equal weight, no wall"]
   NOTE -->|JavaScript on| SET[Choice stored in cookie 12 months and localStorage]
-  NOTE -->|JavaScript off| LINK["/privacy-choices?set=accept or decline, real links, server sets the cookie"]
+  NOTE -->|JavaScript off| LINK["noscript links /api/consent?set=accept or decline, server sets the cookie, 303, never cached"]
   SET & LINK --> EV[consent_set event, anonymous]
   EV --> GA & NO
-  FOOT["Footer: Privacy choices link reopens the notice"] -.-> NOTE
-  INV["docs/cookies.md inventory → /cookies page; version bump when it changes"] -.-> CK
+  FOOT["Footer: Cookie settings link to /privacy-choices reopens the notice"] -.-> NOTE
+  INV["src/config/cookies.ts inventory → /cookies page, CONSENT_VERSION bump when its hash changes"] -.-> CK
 ```
 
 ## 3. The files every professional site serves
@@ -50,14 +51,14 @@ flowchart LR
   subgraph WELL[".well-known and roots"]
     W1[security.txt: contact, expires, policy]
     W2[change-password → admin sign-in]
-    W3[mta-sts.txt with the DNS records]
+    W3[mta-sts.txt on the mta-sts host, with the DNS records]
     W4[robots.txt dynamic, humans.txt]
   end
   subgraph FEEDS[Discovery]
-    S1[sitemap index with image sitemap]
+    S1[sitemap.xml: one urlset, image entries once R2 is on, no redirected or taken-down path]
     S2[llms.txt and llms-full.txt]
     S3[feed.xml RSS 2.0 and feed.json with autodiscovery]
-    S4[JSON-LD: Organization, WebSite with SearchAction, Breadcrumb, Listing, Article, FAQ]
+    S4[JSON-LD: Organization, WebSite with SearchAction, BreadcrumbList, RealEstateListing, Article, FAQPage]
   end
   subgraph ERR[Error and state pages]
     E1[404 with search and market links]
@@ -71,6 +72,6 @@ flowchart LR
     L2[Cookies inventory]
     L3[Terms for Professionals]
     L4[Accessibility statement]
-    L5[Imprint block: entity, address, contact]
+    L5["/legal: entity, address, contact"]
   end
 ```

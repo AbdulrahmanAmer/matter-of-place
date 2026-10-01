@@ -22,7 +22,8 @@ const reasons = [
   ["Omnikom endpoint", /omnikom (endpoint|url|supplies|webhook)/i],
   ["legal entity and payment facts", /legal entity|payment (method|fact|instruction)|owner inputs|invoice design/i],
   ["GitHub dispatch token", /GITHUB_DISPATCH_TOKEN|dispatch token|fine-grained/i],
-  ["CEO creative pick", /\bCEO\b|creative pick|picked one option/i],
+  ["CEO creative pick", /creative pick|picked one option|contact sheets?|CEO (has )?pick/i],
+  ["invoice design approval", /invoice (design|template)[^.]{0,60}approv|approv[^.]{0,60}invoice (design|template)/i],
   ["custom domain (L1)", /custom domain|domain attach|Stage 5|step 4e/i],
   ["GitHub Pro (branch protection)", /github pro/i],
 ];

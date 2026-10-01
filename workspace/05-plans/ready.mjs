@@ -141,7 +141,7 @@ const waits = [
   ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
   ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
-  ["BING_WEBMASTER_API_KEY", "Bing Webmaster Tools", "L1"],
+  ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of B1b step 4, H1 and L1"],
   ["GITHUB_DISPATCH_TOKEN", "fine-grained GitHub token for render dispatch", "B8 step 7, B9 renders in Actions"],
   ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods", "B6 invoice issue, B16"],
 ];
