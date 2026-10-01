@@ -81,7 +81,7 @@ Events emitted: none new. `subscriber.confirmed` (B3, after the confirmation cli
 | `consent.link` | Read our privacy policy |
 `consent.link` points at the privacy text that exists today, `<Link to="/legal" hash="privacy">`, the same target as the footer's Privacy link; B16, which creates `/privacy` and moves the footer link there, changes this link in the same commit (G33 puts B16 after B3b).
 | `consent.change` | Cookie settings |
-The form reuses `t.common.emailAddress`, `t.common.sending`, `t.forms.error` and `t.forms.invalid` for its field label, busy state and failures. `stories.index.tsx` keeps its existing intro line ("Sample stories, shown to set the format.") only when stories exist. After B5 adds double opt-in, `form.sentMarket` and `form.sentAny` gain "Please confirm from the email we send." (B5 changes the two strings).
+The form reuses `t.common.emailAddress`, `t.common.sending`, `t.forms.error` and `t.forms.invalid` for its field label, busy state and failures. `stories.index.tsx` drops its intro line "Sample stories, shown to set the format." in every case (G70: stories carry no illustrative wording); the PageIntro keeps `Original writing from three editorial desks.` After B5 adds double opt-in, `form.sentMarket` and `form.sentAny` gain "Please confirm from the email we send." (B5 changes the two strings).
 
 ### Layout decisions (mop-designer; no wireframes)
 - One shared block, `ComingSoon`, in three scopes. Desktop (1440): the existing `editorial-statement` grid, eyebrow left, right column holds `h2`, one paragraph, then the form on a single row (field, button) with the market chooser beneath as three checkboxes in a row. Phone (390): one column, form stacked, chooser as three full-width rows with 44 px targets.

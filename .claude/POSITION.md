@@ -393,3 +393,26 @@ gate that checked accounts and syntax, not whether the documents could be built 
   subscribers of that market only (G15); commercial role stays read-only everywhere (G22, G27); no staff upload of
   representative photographs at launch (G56).
 - NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.
+
+## 2026-10-02 · LOOP IN PROGRESS: production-grade engineering review (operator's /loop, self-paced)
+Operator's instruction (verbatim intent): have the workflows bring the whole project to the highest production level
+(code to be written, frontends, database structure, workers, deployment, logic, cross-wiring, how each part is
+actually built) so AI workers can be trusted to build production-correct, slop-free code. Opus 5.5 at high effort.
+Branch: `chore/zero-blockers` (pushed at 15e7687; later work uncommitted on it).
+Two background workflows are running; both resume from their journals if this session is compacted:
+1. `traceability-audit` (run id `wf_13d412c3-82e`, script in the session's workflows/scripts folder): the zero-blocker
+   consistency loop. Rounds so far: 1,152 · 1,191 · 306 · 150 · 99 · 42 · 33 · 23 · 20 · 11 · round 11 at 5 with one
+   auditor pending. From round 7 one integrator fixes all findings together; from round 10 it self-checks. It stops
+   when a round finds zero (hard stop at round 14). After each integrator result run
+   `node <scratchpad>/trace/record-decisions.mjs <round>` to append its decisions to ASSUMED section G (now G1 to G71).
+2. `engineering-review` (run id `wf_ab396430-d17`): READ-ONLY. Twelve lenses (database, api, frontend, jobs,
+   integrations, security, delivery-ops, testing, code-standards, performance-cost, domain-logic, end-to-end), each
+   review challenged by a second reviewer. Returns verified findings (critical, major, minor) and enforceable
+   standards per lens.
+NEXT, in this order: (a) when the review returns, the CTO rules on each finding (accept, reject, or operator
+decision when it changes cost or a settled decision) and writes the rulings as ASSUMED section H; (b) apply them with
+one integrator per group of documents, then re-run the consistency loop until a round is clean; (c) write the
+builders' standards (one document plus the mechanical checks in B1b and B4: lint rules, compiler flags, boundary
+test, banned-pattern check) and upgrade `.claude/workflows/build-slice.js` so the fresh reviewer runs that checklist;
+(d) rebuild `trace.json` from the last clean round, regenerate the PLAN.md readiness table, re-render diagrams that
+changed, `ready.mjs --full`, PR, merge, position and gotchas. Nothing is built or run in this loop.
