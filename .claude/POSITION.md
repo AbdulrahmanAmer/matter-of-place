@@ -435,3 +435,24 @@ hours so that is the time line for going live end to end".
   H1 rows that apply, L1 production steps.
 - UNPROVEN: that about a hundred plan steps fit in 48 hours. First measured pace = B1b; report it and re-cut if needed.
 - WAITING ON OPERATOR (affects the date): Resend account and `RESEND_API_KEY`; legal entity facts (B16).
+
+## 2026-10-02 00:40 EDT · SCOPE CORRECTED BY THE OPERATOR: full build in 48 hours, no cut (S54 rewritten)
+Operator, verbatim: "what? no we have 48 hours yes but we are noting deferring anything we are building it all my
+friend end to end we are not cutting anything we are getting it all built in 48 hours you will be orchestrating this".
+- The "launch cut" block above is WITHDRAWN. Scope = every slice of PLAN.md (B1b to B17, H1, L1; 237 steps), live by
+  2026-10-04 00:00 EDT. PLAN.md section "48-hour full build" holds the lanes: spine B1b, B2, B3 in one lane; then three
+  lanes (Public: B3b, B4, B17, B16, B13, B15 · Operations: B8 1-8, B8b 1-5, B5, B7 1-10, B6, B7 11-16, B8 9-10,
+  B8b 6-10 · Content: B9, B10, B11, B12, B14); then H1 and L1. Each lane in its own git worktree, landing through CI.
+- Rule banked: GOTCHAS P-047 and memory `scope-is-the-operators` (never cut scope on my own).
+- Review time-box stands: round 12 is the last audit round of `wf_13d412c3-82e` (stop the workflow after its
+  integrator); engineering review `wf_ab396430-d17`: critical and major findings applied to slices before they start,
+  the rest becomes the builders' checklist. B1b starts as soon as round 12's integrator is done; it does not wait for
+  the engineering review.
+- NEXT: (1) `.claude/workflows/build-slice.js` must take a lane (worktree and branch) so three run side by side;
+  (2) start B1b; (3) after B3, open the three lanes.
+- Archive done so far: raw visual-pass shots out of the tree (commit f857351). Still to do at merge: delete the six
+  merged remote branches (build-readiness, caching-contract, lovable-leftovers-favicon, remove-lovable, traceability,
+  fix/visual-pass) and chore/zero-blockers after its PR merges.
+- UNPROVEN: 237 steps in 48 hours; three lanes merging cleanly. WAITING ON OPERATOR for live switches only (built on
+  stubs meanwhile): Resend, R2, legal entity, Anthropic key, X, LinkedIn, Meta, Google, GitHub dispatch token, Sentry
+  auth token, Omnikom endpoint.

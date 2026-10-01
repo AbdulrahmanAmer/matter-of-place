@@ -20,36 +20,38 @@ Waves 3 and 4 interleave. The landing order is line 5 of B5, B6, B7, B8, B8b and
 | 7 | H1 HARDEN | gate before launch |
 | 8 | L1 LAUNCH | DNS, production, first real property, watch week |
 
-## 48-hour launch cut (S54, deadline 2026-10-04 00:00 EDT)
-The operator set the date on 2026-10-02 00:00 EDT: the website, the admin panel and the database live end to end.
-The cut below is the CTO's (the operator may overrule). It is waves 1 to 3 without their waiting steps, in the landing
-order the plans already agree on, then the production steps of L1. Nothing in it is reordered inside a slice.
+## 48-hour full build (S54, deadline 2026-10-04 00:00 EDT)
+The operator set the date on 2026-10-02 00:00 EDT and the scope a few minutes later: "we are not cutting anything we
+are getting it all built in 48 hours you will be orchestrating this". Every slice of this plan is in scope: B1b to B17,
+H1 and L1, 237 steps. Nothing is deferred to "after launch". A launch cut the CTO wrote first was withdrawn the same
+hour (GOTCHAS P-047).
 
-| # | Slice and steps | What is live when it lands |
-|---|---|---|
-| 1 | B1b, every step without a waiting part | CI, preview Worker, deploy path, secrets, error reporting |
-| 2 | B2 | the database on `mop-dev`: migrations, policies, the two public RPCs, seed, generated types |
-| 3 | B3 | the API under `/api/public/*`, the cache contract of architecture 13 |
-| 4 | B3b | coming-soon mode: no illustrative property, the per-market interest signup |
-| 5 | B4 | the test gates CI runs on every later slice |
-| 6 | B8 steps 1 to 8, B8b steps 1 to 5 | events, jobs and the runner that the admin decisions write to |
-| 7 | B5 steps 1 to 4a (5 to 8 as soon as `RESEND_API_KEY` exists) | templates and the send step; real sends wait on the Resend account |
-| 8 | B16, B17 without their waiting steps | legal identity, legal pages, headers, error pages, consent |
-| 9 | B7 steps 1 to 10 (Part 1) | admin sign-in, shell, requests, decisions, properties, media, dashboard |
-| 10 | H1 rows that apply to what is built, then L1 production steps | `mop-prod` created, production secrets, deploy, matterofplace.com routed to the Worker, smoke check |
+237 steps do not fit in 48 hours one after another, so the build runs in lanes. Steps inside a slice stay in order;
+slices that do not depend on each other run side by side, each lane in its own git worktree and branch, each landing on
+`main` through CI. What already makes this safe: one writer at a time on `mop-dev` (G34, the advisory lock), the
+shared-file order B3, B3b, B5, B17, B16 (G33, applied when lanes merge), and the landing order of line 5 of the wave 3
+and 4 plans.
 
-If the clock runs short, the cut shrinks from the bottom of this priority list, never by skipping a gate: (1) the public
-site on the real domain with the production database and API, coming-soon signup working; (2) admin sign-in, requests
-and properties; (3) the rest of admin Part 1. After launch the plan continues in its own order: B7 steps 11 to 16, B6,
-B8 steps 9 and 10, B8b steps 6 to 10, B9 to B15, full H1.
+| Phase | Lanes (each is one builder session at a time, reviewed by a fresh context) |
+|---|---|
+| 0 Spine, one lane | B1b, then B2, then B3 |
+| 1 Three lanes | Public: B3b, B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
+| 2 One lane | H1 on everything, then L1: `mop-prod`, production secrets, deploy, matterofplace.com routed to the Worker |
 
-Facts measured on 2026-10-02: the zone `matterofplace.com` is active on Cloudflare and public DNS already answers with
+The orchestrator (this session) dispatches, re-runs each slice's proof itself, merges, and keeps the table at the end of
+this file. A lane that fails the same step twice is recorded BLOCKED with what would unblock it and the lane moves to
+its next slice that does not depend on it.
+
+Built is not the same as switched on. Every step that calls an outside account is built and tested against its stub,
+and goes live the hour the operator supplies the account; the table under "Start readiness" names each one. In order of
+how much they hold back: the Resend account and key, R2 switched on (needs a payment method), the legal entity and
+payment facts, the Anthropic API key, the X app, the LinkedIn page and app, Meta access through the partner, the Google
+accounts, a fine-grained GitHub token for render dispatch, the Sentry auth token, the Omnikom endpoint.
+
+Facts measured on 2026-10-02: the zone `matterofplace.com` is active on Cloudflare and public DNS answers with
 Cloudflare's nameservers, so the domain needs no waiting time; Supabase holds one project (`mop-dev`), so `mop-prod`
-fits the free plan. UNPROVEN: that about a hundred plan steps fit in the time. The first measured pace is B1b; the
-orchestrator reports it when B1b closes and re-cuts here if the pace says so.
-What the operator supplies, in order of effect on the date: the Resend account and its key (without it no email leaves
-the system, and admin sign-in links come from Supabase's built-in mailer, which the Supabase documentation limits to
-the project's own team addresses and a few messages an hour; not tested here), then the legal entity facts for B16.
+fits the free plan. UNPROVEN: that 237 steps fit in the time, and that three lanes merge cleanly. The first measured
+pace is B1b; the orchestrator reports it when B1b closes.
 
 ## Start readiness (2026-10-01)
 Gate: `node workspace/05-plans/ready.mjs --full` must end with `READY TO BUILD: yes`. Procedure: `RUNBOOK.md`. One slice
