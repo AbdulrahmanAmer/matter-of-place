@@ -11,6 +11,14 @@ enforcement: deny
 None. Q1–Q16 answered by the CEO on 2026-09-30 (S22–S33, S43–S46). Owner inputs status in S47.
 Stage 0 gate met; stage 2 gate met (PLAN.md read and sliced); STAGE stays 3 (BUILD). Production starts next session with B1b.
 
+Open risks (ASSUMED section H, 2026-10-02; recorded, not decisions to take now):
+- Ruling H4 (SEC-01 part 2 not adopted): pull request preview jobs hold the account-wide deploy token `mop-github-actions`
+  (Workers Scripts Write), which can replace the production Worker. A second Cloudflare account for previews may be added
+  after launch; the operator decides.
+- Ruling H5 (DO-02): without GitHub Pro there is no branch protection and no environment-scoped secret, so the secret checks
+  of `hygiene.test.ts` on pull request jobs catch accidents only, because a malicious pull request can edit the test too.
+  GitHub Pro (about 4 USD a month) is the operator's decision; declined for now (2026-10-02).
+
 Owner inputs (not decisions): Omnikom legal entity name + registered address, contact email + phone, Instagram handle,
 first editors' emails and roles, Meta Business access, Namecheap purchase of matterofplace.com, invoice template details
 (bank/payment methods to list).

@@ -48,7 +48,7 @@ Entry template
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-003 · Page titles: pass the bare title, `pageHead` adds the suffix
-- paths: app/src/lib/seo.ts, app/src/routes/index.tsx
+- paths: app/src/lib/seo.ts, app/src/routes/index.tsx, app/src/routes/_site.index.tsx
 - severity: warn
 - symptom: home `<title>` renders "Matter of Place | Exceptional property. Properly considered. | Matter of Place".
 - cause: `pageHead` only skips the " | Matter of Place" suffix when the title already ends with it; the home route passes a title that starts with the brand instead.
@@ -144,9 +144,10 @@ Entry template
 
 ## P-009 · Free-tier limits we are designing inside (measured 2026-09; re-check quarterly)
 - Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; R2 10 GB, zero egress; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
+- Workers free: at most 50 outbound subrequests per invocation (vendor documentation, UNPROVEN here); every Supabase RPC, Storage call and Turnstile call counts (JOB-03, E2E-02, PERF-07). A per-photograph loop inside an admin request breaks at about 22 photographs, so such loops run as jobs (B7's `copy_submission_media`); B3 signs at most 20 upload URLs per request; a render callback's `onResult` makes a fixed number of calls whatever the photo count (B9 `render_variants`: `apply_media_variants`, one Storage remove, `clear_media_staging`). Proof once built: `bunx vitest run tests/unit/subrequest-budget.test.ts`.
 - Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
 - Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
-- GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes).
+- GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes). Once B9 step 10 runs, the billed minutes of one 40-photograph `render_variants` run are written here (JOB-08); until then UNPROVEN.
 - Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
 - added: 2026-09-30
@@ -462,4 +463,11 @@ Entry template
 - cause: `app/node_modules` and `launch/node_modules` hold tens of thousands of files; `--include` does not stop the directory walk.
 - rule: search tracked files with `git grep -I` (or the Grep tool). Never `grep -r` from the root.
 - proof: `git grep -c "08-visual-pass"` returns at once.
+- added: 2026-10-02
+
+## P-050 · Parallel lanes and one shared mop-dev: an unmerged migration from one lane breaks every other lane's push
+- symptom (E2E-06, measured in the review, not yet hit): the Supabase CLI refuses a `db push` when the remote holds a version the branch lacks ("Remote migration versions not found in local migrations directory") or when a local file sorts before the newest remote one ("Found local migration files to be inserted before the last migration on remote database"), and an edited migration that is already applied is skipped silently, so the schema drifts.
+- cause: three S54 lanes pushing migrations and job-runner builds from their own branches into the one shared `mop-dev`.
+- rule: only `main` reaches `mop-dev` (ASSUMED ruling H1): the post-merge `dev` job of `deploy.yml` runs `bun run db:push` and deploys the job runner; the per-PR proof is the CI `db` job on an ephemeral stack. Rebase on `origin/main` before any push. Never run `--include-all` or `migration repair` without the orchestrator. B2's `scripts/db-push.mjs` and B1b's `scripts/check-migrations.mjs` enforce it once built.
+- proof: `grep -c "group: mop-dev" .github/workflows/ci.yml` prints 0 (B1b); `bunx vitest run tests/unit/db-push-guard.test.ts` passes (B2).
 - added: 2026-10-02

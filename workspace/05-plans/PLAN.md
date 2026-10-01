@@ -42,9 +42,14 @@ The orchestrator (this session) dispatches, re-runs each slice's proof itself, m
 this file. A lane that fails the same step twice is recorded BLOCKED with what would unblock it and the lane moves to
 its next slice that does not depend on it.
 
+Actions minutes (ruling H6, B1b invariant 14): before each phase the orchestrator sums the month's run durations from
+`gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and records the minutes in `.claude/POSITION.md`;
+at 70 percent of 2,000 it runs `gh variable set CI_HEAVY --body off`. Merges go only through
+`node workspace/05-plans/merge-gate.mjs <pr>` once B1b step 5b has written it (RUNBOOK step 3).
+
 Built is not the same as switched on. Every step that calls an outside account is built and tested against its stub,
 and goes live the hour the operator supplies the account; the table under "Start readiness" names each one. In order of
-how much they hold back: the Resend account and key, R2 switched on (needs a payment method), the legal entity and
+how much they hold back (Resend is done: ASSUMED E17 to E20; GitHub Pro was declined: H5): R2 switched on (needs a payment method), the legal entity and
 payment facts, the Anthropic API key, the X app, the LinkedIn page and app, Meta access through the partner, the Google
 accounts, a fine-grained GitHub token for render dispatch, the Sentry auth token, the Omnikom endpoint.
 
@@ -65,15 +70,15 @@ names what they wait on; every other step runs. The plans were audited in both d
 
 | Slice | Steps with a waiting part | On what |
 |---|---|---|
-| B1b | 7 of 11 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
-| B2 | 3 of 14 | mop-prod (created at launch), R2 switched on |
-| B3 | 4 of 13 | Resend account |
+| B1b | 7 of 15 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
+| B2 | 3 of 15 | mop-prod (created at launch), R2 switched on |
+| B3 | 4 of 18 | Resend account |
 | B3b | 2 of 10 | mop-prod (created at launch) |
 | B4 | 1 of 10 | see the plan |
 | B5 | 6 of 10 | Resend account, mop-prod (created at launch) |
 | B6 | 4 of 9 | legal entity and payment facts, Resend account |
-| B7 | 8 of 18 | Resend account, R2 switched on |
-| B8 | 1 of 12 | GitHub dispatch token |
+| B7 | 8 of 19 | Resend account, R2 switched on |
+| B8 | 2 of 14 | GitHub dispatch token |
 | B8b | none of 11 | none |
 | B9 | 5 of 11 | CEO creative pick, R2 switched on, GitHub dispatch token, Anthropic API key, LinkedIn page and app, Meta app (partner) |
 | B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Resend account, Anthropic API key, GitHub dispatch token |
@@ -84,7 +89,7 @@ names what they wait on; every other step runs. The plans were audited in both d
 | B15 | 3 of 7 | Omnikom endpoint, mop-prod (created at launch) |
 | B16 | none of 8 | none |
 | B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend account |
-| H1 | 4 of 10 | R2 switched on |
+| H1 | 4 of 11 | R2 switched on |
 | L1 | 2 of 11 | Google accounts |
 
 What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (10 slices have a waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google

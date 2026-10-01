@@ -420,11 +420,12 @@
   "files": [
    "src/routes/admin/sign-in.tsx",
    "src/routes/api/admin/auth.send-link.ts",
-   "src/routes/api/admin/auth.callback.ts",
+   "src/routes/api/admin/auth.verify.ts",
    "src/routes/api/admin/auth.sign-out.ts",
    "src/server/lib/session.ts",
    "src/server/lib/csrf.ts",
-   "supabase/migrations/<ts>_admin_audit.sql"
+   "supabase/migrations/<ts>_admin_audit.sql",
+   "src/routes/admin/auth.confirm.tsx"
   ],
   "hasProof": true
  },
@@ -5895,7 +5896,7 @@
   "plan": "B13",
   "files": [
    "src/lib/ga4.ts",
-   "src/components/site/Ga4Loader.tsx"
+   "src/components/site/ga4-loader.tsx"
   ],
   "hasProof": true
  },
@@ -6413,7 +6414,7 @@
   "plan": "B13",
   "files": [
    "src/lib/ga4.ts",
-   "src/components/site/Ga4Loader.tsx"
+   "src/components/site/ga4-loader.tsx"
   ],
   "hasProof": true
  },
@@ -7796,7 +7797,7 @@
   "id": "structured request log line (logLine)",
   "plan": "B3",
   "files": [
-   "src/server/lib/log.ts"
+   "src/server/public/pipeline.ts"
   ],
   "hasProof": true
  },
@@ -9747,9 +9748,9 @@
    "docs/runbooks/search.md",
    "public/<INDEXNOW_KEY>.txt",
    "public/og/static/<key>.png",
-   "src/components/site/ArchiveLink.tsx",
-   "src/components/site/PropertyGone.tsx",
-   "src/components/site/Ga4Loader.tsx",
+   "src/components/site/archive-link.tsx",
+   "src/components/site/property-gone.tsx",
+   "src/components/site/ga4-loader.tsx",
    "src/lib/og.ts",
    "src/routes/archive.$kind.$slug.tsx",
    "src/routes/llms-full[.]txt.ts",
@@ -9971,7 +9972,8 @@
    "src/routes/api/public/properties.$slug.ts",
    "src/routes/api/public/subscribers.confirm.ts",
    "src/server/subscribers/confirmation.ts",
-   "src/services/http/fetch.ts"
+   "src/services/http/fetch.ts",
+   "supabase/functions/job-runner/deno.json"
   ],
   "hasProof": false
  },
@@ -9999,7 +10001,6 @@
    "src/server/lib/errors.ts",
    "src/server/lib/events.ts",
    "src/server/lib/ids.ts",
-   "src/server/lib/log.ts",
    "src/server/lib/r2.ts",
    "src/server/lib/ratelimit.ts",
    "src/server/lib/runtime-env.ts",
@@ -10260,7 +10261,6 @@
    "src/server/lib/jobs.ts",
    "src/server/lib/permissions/jobs.ts",
    "src/styles/admin/jobs.css",
-   "supabase/functions/job-runner/deno.json",
    "supabase/functions/job-runner/index.ts"
   ],
   "hasProof": true
@@ -12070,7 +12070,7 @@
    "tests/unit/admin-errors.test.ts",
    "tests/unit/admin-nav.test.ts",
    "tests/unit/admin-pagination.test.ts",
-   "tests/unit/auth-callback.test.ts",
+   "tests/unit/auth-verify.test.ts",
    "tests/unit/auth-send-link.test.ts",
    "tests/unit/authz.matrix.test.ts",
    "tests/unit/market-time.test.ts",
@@ -12463,7 +12463,6 @@
   "plan": "B3",
   "files": [
    "src/server/lib/ids.ts",
-   "src/server/lib/log.ts",
    "tests/unit/log.test.ts"
   ],
   "hasProof": true
@@ -13049,7 +13048,7 @@
   "plan": "B13",
   "files": [
    "src/lib/ga4.ts",
-   "src/components/site/Ga4Loader.tsx",
+   "src/components/site/ga4-loader.tsx",
    "src/routes/__root.tsx",
    ".github/workflows/deploy.yml"
   ],
@@ -13398,9 +13397,9 @@
   "files": [
    "src/routes/property.$slug.tsx",
    "src/lib/gone.ts",
-   "src/components/site/PropertyGone.tsx",
+   "src/components/site/property-gone.tsx",
    "src/server/seo/gone.ts",
-   "src/components/site/ArchiveLink.tsx"
+   "src/components/site/archive-link.tsx"
   ],
   "hasProof": true
  },
@@ -13715,6 +13714,1346 @@
   "files": [
    "supabase/migrations/20261001110000_coming_soon.sql",
    "scripts/set-environment.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "observability",
+  "id": "logLine and maskEmails, the one server logger (CS-08)",
+  "plan": "B1b",
+  "files": [
+   "src/server/lib/log.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "observability",
+  "id": "LogEvent const array of event names (CS-08)",
+  "plan": "B1b",
+  "files": [
+   "src/server/lib/log-events.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "library",
+  "id": "the one Web Crypto module (CS-04)",
+  "plan": "B1b",
+  "files": [
+   "src/server/lib/crypto.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "migration-order step: edited applied file, timestamp order, destructive change without contract-of header (DB-01, DO-05)",
+  "plan": "B1b",
+  "files": [
+   "scripts/check-migrations.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "post-merge merge-gate job, REQUIRED_PR_CHECKS and evaluateMergeGate (DO-04, T-03)",
+  "plan": "B1b",
+  "files": [
+   "scripts/merge-gate.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "first step of production and dev, skips a superseded SHA (DO-04)",
+  "plan": "B1b",
+  "files": [
+   "scripts/deploy-guard.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "STUB marker ledger against PLAN.md, --count-non-v1 (CS-11)",
+  "plan": "B1b",
+  "files": [
+   "scripts/stubs.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "the orchestrator's only merge path (T-03)",
+  "plan": "B1b",
+  "files": [
+   "workspace/05-plans/merge-gate.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "config",
+  "id": "type-checks scripts with checkJs (CS-07)",
+  "plan": "B1b",
+  "files": [
+   "tsconfig.scripts.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "config",
+  "id": "dead-code entries and ignores (CS-05)",
+  "plan": "B1b",
+  "files": [
+   "knip.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "config",
+  "id": "copy detection, minTokens 70 (CS-05)",
+  "plan": "B1b",
+  "files": [
+   ".jscpd.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "backup",
+  "id": "public certificate backups are encrypted to with openssl cms (DO-02)",
+  "plan": "B1b",
+  "files": [
+   "backup-recipient.pem"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "crypto vectors and timingSafeEqual (CS-04)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/crypto.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "stub ledger cases (CS-11)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/stubs.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "migration-order cases (DO-05)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/check-migrations.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "merge gate over recorded gh fixtures (DO-04, T-03)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/merge-gate.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "superseded SHA cases (DO-04)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/deploy-guard.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "runSmoke with recorded answers and SMOKE_FORCE_FAIL (DO-09)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/smoke.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "layout gate G07 over the folder map (STANDARDS R56)",
+  "plan": "B1b",
+  "files": [
+   "scripts/check-layout.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "checkLayout fixture paths (STANDARDS R56)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/check-layout.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "import layering and text scans, gate G09 (STANDARDS R06, R11, R26, R38, R41, R42, R46)",
+  "plan": "B1b",
+  "files": [
+   "tests/unit/boundaries.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "B1b watched-fail registry (T-07, R49)",
+  "plan": "B1b",
+  "files": [
+   "tests/mutations/B1b.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "script",
+  "id": "db:push guard and pusher (DB-01, E2E-06)",
+  "plan": "B2",
+  "files": [
+   "scripts/db-push.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "script-lib",
+  "id": "pure push-guard refusals (DB-01)",
+  "plan": "B2",
+  "files": [
+   "scripts/lib/push-guard.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "script",
+  "id": "db:fn writes a function migration from its one source file (DB-13)",
+  "plan": "B2",
+  "files": [
+   "scripts/db-fn.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "one current source file per public function (DB-13)",
+  "plan": "B2",
+  "files": [
+   "supabase/sql/functions/<name>.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "doc",
+  "id": "migration rules (DB-08, DB-13, E2E-06)",
+  "plan": "B2",
+  "files": [
+   "supabase/migrations/README.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "dev and ops env profiles (SEC-08)",
+  "plan": "B2",
+  "files": [
+   "scripts/load-env.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script-lib",
+  "id": "guardEnv refuses ops and prod names in tests (SEC-08)",
+  "plan": "B2",
+  "files": [
+   "scripts/lib/guard-env.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "push-guard refusals (DB-01)",
+  "plan": "B2",
+  "files": [
+   "tests/unit/db-push-guard.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "guardEnv cases (SEC-08)",
+  "plan": "B2",
+  "files": [
+   "tests/unit/env-guard.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "function files equal pg_proc.prosrc (DB-13)",
+  "plan": "B2",
+  "files": [
+   "tests/db/function-source.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "snapshot byte budget (PERF-03)",
+  "plan": "B2",
+  "files": [
+   "tests/db/snapshot-budget.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "B2 watched-fail registry (T-07)",
+  "plan": "B2",
+  "files": [
+   "tests/mutations/B2.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mapping",
+  "id": "errorCodes, the only code list (API-03)",
+  "plan": "B3",
+  "files": [
+   "src/server/lib/error-codes.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "tests",
+  "id": "every raised message is a key of errorCodes (API-03)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/error-codes.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "test-helper",
+  "id": "typed fakeDb (CS-12)",
+  "plan": "B3",
+  "files": [
+   "tests/fixtures/fake-db.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "tests",
+  "id": "fakeDb cases (CS-12)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/fake-db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mechanism",
+  "id": "HMAC upload token with a 2-hour expiry (E2E-02)",
+  "plan": "B3",
+  "files": [
+   "src/server/submissions/upload-token.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "public-route",
+  "id": "POST /api/public/submissions/:id/uploads (E2E-02)",
+  "plan": "B3",
+  "files": [
+   "src/routes/api/public/submissions.$id.uploads.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "read function for the uploads route (E2E-02, DB-13)",
+  "plan": "B3",
+  "files": [
+   "supabase/sql/functions/submission_upload_paths.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "public-route",
+  "id": "POST /api/public/client-error (FE-09)",
+  "plan": "B3",
+  "files": [
+   "src/routes/api/public/client-error.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mechanism",
+  "id": "clientErrors.report, Sentry capture in waitUntil (FE-09)",
+  "plan": "B3",
+  "files": [
+   "src/server/client-errors/service.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "library",
+  "id": "reportClientError and installClientErrorListeners (FE-09)",
+  "plan": "B3",
+  "files": [
+   "src/lib/report-error.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "library",
+  "id": "prepareImage and fitWithin (PERF-08)",
+  "plan": "B3",
+  "files": [
+   "src/lib/image-prep.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "upload",
+  "id": "runUploadQueue (FE-04)",
+  "plan": "B3",
+  "files": [
+   "src/services/http/upload-queue.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "mapping",
+  "id": "pickCard, the single PropertyCard definition (PERF-06)",
+  "plan": "B3",
+  "files": [
+   "src/lib/property-card.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "layout",
+  "id": "pathless public layout (FE-02)",
+  "plan": "B3",
+  "files": [
+   "src/routes/_site.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "component",
+  "id": "SiteChrome (FE-02)",
+  "plan": "B3",
+  "files": [
+   "src/components/layout/site-chrome.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "deno check target of the Deno-loaded modules (CS-01)",
+  "plan": "B3",
+  "files": [
+   "scripts/deno-portable.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "live-bundle gate (FE-03)",
+  "plan": "B3",
+  "files": [
+   "scripts/bundle-check.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "bundle-check over a recorded manifest (FE-03)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/bundle-check.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "tests",
+  "id": "outbound call budget per request (E2E-02)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/subrequest-budget.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "tests",
+  "id": "upload queue cases (FE-04)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/upload-queue.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "tests",
+  "id": "fitWithin cases (PERF-08)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/image-prep.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "tests",
+  "id": "client error beacon dedupe (FE-09)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/report-error.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "tests",
+  "id": "lazy search index (PERF-03)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/catalog.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "liveSideEffects predicate (E2E-04)",
+  "plan": "B3",
+  "files": [
+   "tests/unit/lib/live-side-effects.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "B3 SQL functions incl. DL-06 (T-07)",
+  "plan": "B3",
+  "files": [
+   "tests/db/public-write.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "every test file has a registry entry (T-07)",
+  "plan": "B4",
+  "files": [
+   "tests/unit/mutation-registry.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "db, api and e2e tests never import FIXED_NOW (T-08)",
+  "plan": "B4",
+  "files": [
+   "tests/unit/time-model.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "test-helper",
+  "id": "syntheticCatalogSnapshot (PERF-06)",
+  "plan": "B4",
+  "files": [
+   "tests/fixtures/catalog-fixture.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "tests",
+  "id": "list payload budget (PERF-06)",
+  "plan": "B4",
+  "files": [
+   "tests/api/payload-budget.api.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "tests",
+  "id": "one client-error beacon (FE-09)",
+  "plan": "B4",
+  "files": [
+   "tests/e2e/client-error.spec.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script",
+  "id": "CPU P50 gate and queryWorkersInvocations (T-11)",
+  "plan": "B4",
+  "files": [
+   "scripts/cpu-gate.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "cpu-gate over recorded answers (T-11)",
+  "plan": "B4",
+  "files": [
+   "tests/unit/cpu-gate.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "tests",
+  "id": "countingDb counts calls (JOB-03)",
+  "plan": "B4",
+  "files": [
+   "tests/unit/db-counter.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "test-helper",
+  "id": "unit and component tests reach no network and no credential (STANDARDS R50)",
+  "plan": "B4",
+  "files": [
+   "tests/setup/hermetic.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "migration",
+  "id": "ops_heartbeats, beat, ops_health, jobs_liveness (DO-03, JOB-04)",
+  "plan": "B8",
+  "files": [
+   "supabase/migrations/<ts>_ops_heartbeat.sql"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "migration",
+  "id": "takedown_media_keys and takedown_mark_posts (E2E-01)",
+  "plan": "B8",
+  "files": [
+   "supabase/migrations/<ts>_takedown.sql"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "health",
+  "id": "handleOpsHealth (DO-03)",
+  "plan": "B8",
+  "files": [
+   "src/server/hooks/ops-health.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "hook-route",
+  "id": "GET /api/hooks/ops-health/<token> (DO-03)",
+  "plan": "B8",
+  "files": [
+   "src/routes/api/hooks/ops-health.$token.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "health",
+  "id": "provider health checks (INT-07)",
+  "plan": "B8",
+  "files": [
+   "src/server/jobs/system/health/providers.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "system-job",
+  "id": "takedown_media: R2 delete, URL purge, posts marked (E2E-01)",
+  "plan": "B8",
+  "files": [
+   "src/server/jobs/system/takedown-media.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "rollback",
+  "id": "job-runner redeploy from a previous SHA (DO-10)",
+  "plan": "B8",
+  "files": [
+   "scripts/rollback-runner.sh"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST jobs/retry-bulk (E2E-03)",
+  "plan": "B8",
+  "files": [
+   "src/routes/api/admin/jobs.retry-bulk.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "client",
+  "id": "screen 16 query keys and mutations (FE-06)",
+  "plan": "B8",
+  "files": [
+   "src/admin/jobs/jobs-queries.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "config",
+  "id": "committed Deno lock (SEC-13)",
+  "plan": "B8",
+  "files": [
+   "supabase/functions/job-runner/deno.lock"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "workflow_dispatch URL and body (JOB-01)",
+  "plan": "B8",
+  "files": [
+   "tests/unit/jobs/dispatch.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "ops-health hook cases (DO-03)",
+  "plan": "B8",
+  "files": [
+   "tests/unit/jobs/ops-health-hook.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "ops_health and jobs_liveness (DO-03)",
+  "plan": "B8",
+  "files": [
+   "tests/db/ops-health.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "provider checks (INT-07)",
+  "plan": "B8",
+  "files": [
+   "tests/unit/jobs/health-providers.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "takedown job cases (E2E-01)",
+  "plan": "B8",
+  "files": [
+   "tests/unit/jobs/takedown-media.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "Deno smoke of every step module (T-11)",
+  "plan": "B8",
+  "files": [
+   "tests/deno/steps.smoke.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "maxAttempts and sideEffect per type (DL-10, R28)",
+  "plan": "B8b",
+  "files": [
+   "tests/unit/automation/step-specs.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "client",
+  "id": "screens 17 to 21 query keys (FE-06)",
+  "plan": "B8b",
+  "files": [
+   "src/admin/automation/automation-queries.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "mapping",
+  "id": "RESEND_ERRORS and classifyResendError (INT-11)",
+  "plan": "B5",
+  "files": [
+   "src/server/email/resend-errors.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "tests",
+  "id": "one case per Resend error (INT-11)",
+  "plan": "B5",
+  "files": [
+   "tests/unit/email/resend-errors.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "tests",
+  "id": "ceilings per mail class (INT-03, PERF-11)",
+  "plan": "B5",
+  "files": [
+   "tests/unit/email/cap-classes.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST waive without invoice (DL-01)",
+  "plan": "B6",
+  "files": [
+   "src/routes/api/admin/submissions.$id.waive.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "component",
+  "id": "screen 6 waive dialog (DL-01)",
+  "plan": "B6",
+  "files": [
+   "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "client",
+  "id": "payments query keys (FE-06)",
+  "plan": "B6",
+  "files": [
+   "src/admin/invoices/payments-queries.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "mechanism",
+  "id": "defineAdminRoute (API-02, CS-03)",
+  "plan": "B7",
+  "files": [
+   "src/server/lib/admin-route.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "test-helper",
+  "id": "loadAdminRoutes registry (API-02, CS-03)",
+  "plan": "B7",
+  "files": [
+   "tests/fixtures/admin-routes.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "script",
+  "id": "action_roles migrations from the matrix (DB-04)",
+  "plan": "B7",
+  "files": [
+   "scripts/gen-action-roles.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "migration",
+  "id": "generated action_roles rows (DB-04)",
+  "plan": "B7",
+  "files": [
+   "supabase/migrations/<ts>_action_roles.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "migration",
+  "id": "withdraw_submission (DL-04)",
+  "plan": "B7",
+  "files": [
+   "supabase/migrations/<ts>_admin_withdraw.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "client",
+  "id": "adminKeys and admin query defaults (FE-06)",
+  "plan": "B7",
+  "files": [
+   "src/admin/query.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "component",
+  "id": "admin error boundary (FE-09)",
+  "plan": "B7",
+  "files": [
+   "src/admin/ui/AdminRouteError.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "system-job",
+  "id": "copy_submission_media (E2E-02, PERF-07)",
+  "plan": "B7",
+  "files": [
+   "src/server/jobs/system/copy-submission-media.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST withdraw (DL-04)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/submissions.$id.withdraw.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "GET signed original (PERF-08)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/submissions.$id.media.$mediaId.original.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST role grant (API-02)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/team.users.$id.roles.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "DELETE role revoke (API-02)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/team.users.$id.roles.$role.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST user disable (API-02)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/team.users.$id.disable.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "component",
+  "id": "screen 4 Withdraw dialog (DL-04)",
+  "plan": "B7",
+  "files": [
+   "src/admin/requests/WithdrawDialog.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "every admin handler built by defineAdminRoute (API-02)",
+  "plan": "B7",
+  "files": [
+   "tests/unit/admin-routes-parity.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "authorization sweep (SEC-04)",
+  "plan": "B7",
+  "files": [
+   "tests/unit/admin-authz-sweep.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "action_roles equals the matrix (DB-04)",
+  "plan": "B7",
+  "files": [
+   "tests/unit/action-roles.sync.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "automation-engine",
+  "kind": "tests",
+  "id": "copy job runs of 20 (E2E-02)",
+  "plan": "B7",
+  "files": [
+   "tests/unit/jobs/copy-submission-media.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "write_audit actor checks (DB-04)",
+  "plan": "B7",
+  "files": [
+   "tests/db/actor.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "no plaintext personal data in audit rows (DB-03)",
+  "plan": "B7",
+  "files": [
+   "tests/db/audit-pii.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "admin retry policy (FE-06)",
+  "plan": "B7",
+  "files": [
+   "src/admin/query.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "serial save queue (FE-01)",
+  "plan": "B7",
+  "files": [
+   "src/admin/properties/use-autosave.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "list refetch after decline (FE-06)",
+  "plan": "B7",
+  "files": [
+   "src/admin/requests/requests-queries.test.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "tests",
+  "id": "claim_media_for_render cases (PERF-01)",
+  "plan": "B9",
+  "files": [
+   "tests/db/render-claim.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "sql-function",
+  "id": "H3 claim source (DB-13)",
+  "plan": "B9",
+  "files": [
+   "supabase/sql/functions/claim_media_for_render.sql"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "sql-function",
+  "id": "batched variant write (JOB-03)",
+  "plan": "B9",
+  "files": [
+   "supabase/sql/functions/apply_media_variants.sql"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST withdrawn, channels.mark_withdrawn (E2E-01)",
+  "plan": "B10",
+  "files": [
+   "src/routes/api/admin/channels.posts.$id.withdrawn.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "component",
+  "id": "screen 12 Withdraw by hand list (E2E-01)",
+  "plan": "B10",
+  "files": [
+   "src/admin/channels/WithdrawList.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "sql-function",
+  "id": "mark_social_post_withdrawn source (DB-13)",
+  "plan": "B10",
+  "files": [
+   "supabase/sql/functions/mark_social_post_withdrawn.sql"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "sql-function",
+  "id": "attach_reel source (DB-13)",
+  "plan": "B12",
+  "files": [
+   "supabase/sql/functions/attach_reel.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "sql-function",
+  "id": "assets_reel_video trigger function source (DB-13)",
+  "plan": "B12",
+  "files": [
+   "supabase/sql/functions/assets_reel_video.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "tests",
+  "id": "SEC-03 canary",
+  "plan": "B13",
+  "files": [
+   "tests/unit/csp-inline.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "mechanism",
+  "id": "CSP_INLINE_ALLOWLIST (SEC-03)",
+  "plan": "B17",
+  "files": [
+   "src/server/lib/csp-allowlist.ts"
+  ],
+  "hasProof": false
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "mark_inquiry_forwarded source (DB-13)",
+  "plan": "B15",
+  "files": [
+   "supabase/sql/functions/mark_inquiry_forwarded.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "settings_put_site source (DB-13)",
+  "plan": "B16",
+  "files": [
+   "supabase/sql/functions/settings_put_site.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "audit_usage source (DB-13)",
+  "plan": "B14",
+  "files": [
+   "supabase/sql/functions/audit_usage.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "audit_health source (DB-13)",
+  "plan": "B14",
+  "files": [
+   "supabase/sql/functions/audit_health.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "audit_not_found source (DB-13)",
+  "plan": "B14",
+  "files": [
+   "supabase/sql/functions/audit_not_found.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "audit_record_run source (DB-13)",
+  "plan": "B14",
+  "files": [
+   "supabase/sql/functions/audit_record_run.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "hardening",
+  "id": "H1-21b restore drill (DB-11, DO-06)",
+  "plan": "H1",
+  "files": [
+   "scripts/harden/restore-supabase-drill.sh"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "hardening",
+  "id": "H1-45 CSRF probe (CS-03)",
+  "plan": "H1",
+  "files": [
+   "tests/e2e/admin-csrf.spec.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "launch",
+  "id": "preflight check 7 watched-fail fixture (INT-02)",
+  "plan": "L1",
+  "files": [
+   "scripts/launch/fixtures/preflight-bad/supabase-dev.txt"
   ],
   "hasProof": true
  }

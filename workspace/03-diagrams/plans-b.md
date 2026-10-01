@@ -65,10 +65,10 @@ sequenceDiagram
   RN->>PG: runDueSchedules claims due schedule_settings rows, emits digest.due or enqueues prune, reconcile, kpi_weekly, newsletter_hygiene
   RN->>PG: pgmq read jobs_light with visibility timeout
   PG-->>RN: message with job id
-  RN->>PG: claim_job sets running, locked_by, attempts plus 1
+  RN->>PG: claim_job sets running and a fresh locked_by claim, attempts unchanged (fail_job increments)
   alt claim lost or job not queued
     PG-->>RN: no row returned
-    RN->>PG: pgmq archive message
+    RN->>PG: pgmq delete message
   else claimed and light
     RN->>ST: run with ctx, params, payload
     alt step succeeds
@@ -83,11 +83,11 @@ sequenceDiagram
     end
   end
   RN->>PG: pgmq read jobs_heavy with capacity limit
-  RN->>GH: repository_dispatch render with job id, type, payload
+  RN->>GH: workflow_dispatch of render.yml with job id, claim, type, payload
   RN->>PG: status running, job_events dispatched
   GH->>GH: run script for the job type
   GH->>WK: POST result with HMAC signature and timestamp
-  WK->>WK: verify signature, age, job status running, attempt matches
+  WK->>WK: verify signature, age, job status running, claim matches
   alt result ok
     WK->>PG: step onResult writes assets, status done
   else result failed

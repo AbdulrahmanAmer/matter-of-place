@@ -20,7 +20,10 @@ other slices go ahead.
    proofs and tries to refute "done"; a rejected group gets at most two fix rounds. It stops at the first group that is
    rejected, blocked, or that needs the orchestrator.
 3. The orchestrator then re-runs the slice's Verification section itself (RULE 2: a worker's green is a claim), reads the
-   diff, and only then merges the pull request into `main`. Workers never merge.
+   diff, and only then merges the pull request into `main`, only with `node workspace/05-plans/merge-gate.mjs <pr>` and never
+   with `gh pr merge` directly (T-03, DO-05, B1b invariant 6b). The script refuses a draft, prints `rebase first` and exits 1
+   unless `origin/main` is an ancestor of the head, requires `gh pr checks <pr>` to exit 0, posts the `merge-gate` commit
+   status on the head and merges with `--match-head-commit`. Workers never merge.
 4. Resume with the value the workflow returned in `resumeWith`, for example `{ slice: "B1b", startAt: "g4" }`.
 5. Close the slice: status line in `PLAN.md`, a block in `.claude/POSITION.md` with the proof output, new gotchas in
    `GOTCHAS.md`, `PROJECT-STATE.md` if a decision was made.
@@ -34,6 +37,10 @@ other slices go ahead.
 - A plan that turns out wrong is changed first (`check-plans.mjs` must print OK), then built. Nothing is built quietly
   beside the plan.
 - Two failed approaches to the same obstacle end the attempt: record BLOCKED with what would unblock it, move on.
+- Builders open pull requests as drafts and run `gh pr ready <pr>` when the group is done (drafts skip the heavy CI jobs,
+  T-12). Before opening or updating a pull request a builder rebases on `origin/main` and runs `bun run migrations:check`
+  (`scripts/check-migrations.mjs`, B1b); only `main` reaches `mop-dev` (ASSUMED H1), and nobody runs `--include-all` or
+  `migration repair` without the orchestrator.
 - Production shows no illustrative property, ever (S30). `MOP_ENV` defaults to `production`.
 - Caching is a contract (S52, architecture section 13): no public read queries a table directly; the reviewer rejects one that does.
 

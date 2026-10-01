@@ -37,7 +37,11 @@ else {
       .filter((l) => /^[A-Z0-9_]+=/.test(l))
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
   );
-  const need = ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "SENTRY_DSN", "SUPABASE_ACCESS_TOKEN", "DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_DB_PASSWORD", "DEV_SUPABASE_SERVICE_ROLE_KEY", "DEV_SUPABASE_POOLER_HOST", "DEV_SUPABASE_POOLER_USER", "PROD_TURNSTILE_SECRET", "VITE_TURNSTILE_SITE_KEY_PROD", "PREVIEW_RATE_LIMIT_SALT", "PREVIEW_SENTRY_TEST_TOKEN"];
+  // SEC-08: B2 moves the ops names (admin tokens, PROD_*, Omnikom) to the git-ignored .env.ops; read both
+  const opsPath = join(ROOT, ".env.ops");
+  if (existsSync(opsPath))
+    for (const l of readFileSync(opsPath, "utf8").split(/\r?\n/).filter((x) => /^[A-Z0-9_]+=/.test(x))) env[l.slice(0, l.indexOf("="))] = l.slice(l.indexOf("=") + 1).trim();
+  const need =["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "SENTRY_DSN", "SUPABASE_ACCESS_TOKEN", "DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_DB_PASSWORD", "DEV_SUPABASE_SERVICE_ROLE_KEY", "DEV_SUPABASE_POOLER_HOST", "DEV_SUPABASE_POOLER_USER", "PROD_TURNSTILE_SECRET", "VITE_TURNSTILE_SITE_KEY_PROD", "PREVIEW_RATE_LIMIT_SALT", "PREVIEW_SENTRY_TEST_TOKEN"];
   const bad = need.filter((k) => !env[k] || env[k].startsWith("PASTE_"));
   add(bad.length ? "FAIL" : "PASS", ".env names", bad.length ? `missing: ${bad.join(", ")}` : `${need.length} present`);
   const ig = run("git", ["check-ignore", "-q", ".env"]);

@@ -82,7 +82,7 @@ flowchart TB
   editor -->|/admin › Automation: edit recipes, templates, toggles, dry-run| rules
   rules --> fn
   site -->|enqueue| q --> fn
-  fn -->|heavy work: repository_dispatch| render
+  fn -->|heavy work: workflow_dispatch of render.yml| render
   render -->|signed callback| site
   render --> r2
   render --> og & car & story & reel & nl
