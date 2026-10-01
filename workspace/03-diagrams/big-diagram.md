@@ -21,7 +21,7 @@ flowchart TB
   subgraph CF[Cloudflare, free tier: zone matterofplace.com]
     edge[Edge cache + WAF + Turnstile + rate-limit rule]
     site[One Worker: SSR pages, /api/* server routes, /admin behind auth, Cache API, keep-warm cron every 10 minutes. Also pr-N previews and the stable dev Worker matter-of-place-dev]
-    r2[(R2, designed in and off until the operator enables it: stripped originals + variants made once at publish, reels, copy of the nightly DB dump)]:::todo
+    r2[(R2, designed in and off until the operator enables it: stripped originals + variants made once when a photograph is attached, reels, copy of the nightly DB dump)]:::todo
   end
 
   subgraph SB[Supabase, free tier]

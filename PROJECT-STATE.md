@@ -29,7 +29,7 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
 | S8 | Database: Supabase free tier, versioned migrations via CLI, TypeScript types generated from the schema, Zod for input only | 2026-09-30 | replaces hand-synced field names and the single schema.sql |
 | S9 | Permissions: RLS per role (chief_editor, managing_editor, visual_editor, media_ops, commercial); only editorial roles accept/decline/publish | 2026-09-30 | the docs let every editor do everything |
 | S10 | Editor auth: Supabase Auth magic links | 2026-09-30 | free, no passwords to manage |
-| S11 | Photography: R2 originals + variants generated once at publish; no request-time resizing | 2026-09-30 | zero egress, no transformation bill |
+| S11 | Photography: R2 originals + variants generated once at publish; no request-time resizing | 2026-09-30 | zero egress, no transformation bill (Refined 2026-10-01, ASSUMED G66: the sizes are made once when a photograph is attached, before publication, so a published page never waits for them.) |
 | S12 | Jobs: `jobs` table + pgmq + pg_cron for light work; GitHub Actions for heavy renders (images, PNG covers, ffmpeg reels) | 2026-09-30 | free; replaces Cloudflare Queues and Browser Rendering |
 | S13 | Email: Resend for transactional and Place Notes, double opt-in, own domain | 2026-09-30 | one provider, free to 3,000/month |
 | S14 | Payments: Stripe, links after editorial acceptance, signed idempotent webhooks | 2026-09-30 | acceptance before payment is a brand rule (Deferred by S32: manual invoices at launch, built in B6; Stripe is a later slice behind the same `payments` table and state machine.) |

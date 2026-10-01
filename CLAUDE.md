@@ -29,7 +29,7 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
 
 ## The approved stack (2026-09-30) — build only this; details in workspace/02-tech-stack/tech-stack.md
 One Cloudflare Worker (site + `/api/*` + `/admin`), Supabase (Postgres via versioned migrations + generated types, Auth
-magic links, private uploads bucket, pgmq + pg_cron jobs), R2 for photos with variants made once at publish, GitHub
+magic links, private uploads bucket, pgmq + pg_cron jobs), R2 for photos with variants made once, when a photograph is attached (ASSUMED G66), GitHub
 Actions for CI, deploys and heavy renders (images, ffmpeg reels), Resend (email + Place Notes), Stripe links after
 acceptance, Meta Graph API direct, Sentry, GA4 + Search Console, Turnstile. Free tier first; no paid feature without a
 settled decision. `Matter Of Place Codebase/docs/**` is the Lovable sketch: read for intent, never build from it.

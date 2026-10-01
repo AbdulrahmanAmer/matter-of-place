@@ -102,6 +102,7 @@ const missSecrets = needSecrets.filter((s) => !haveSecrets.includes(s));
 add(gs.code === 0 && !missSecrets.length ? "PASS" : "FAIL", "GitHub Actions secrets", missSecrets.length ? `missing: ${missSecrets.join(", ")}` : `${needSecrets.length} present`);
 const gv = run("gh", ["variable", "list", "--repo", REPO]);
 add(/VITE_SITE_URL/.test(gv.out) && /VITE_TURNSTILE_SITE_KEY/.test(gv.out) ? "PASS" : "FAIL", "GitHub variables", "VITE_SITE_URL, VITE_TURNSTILE_SITE_KEY");
+add(/VITE_GA4_MEASUREMENT_ID/.test(gv.out) ? "PASS" : "WAIT", "Google Analytics and Search Console", /VITE_GA4_MEASUREMENT_ID/.test(gv.out) ? "" : "GitHub variable VITE_GA4_MEASUREMENT_ID missing: blocks B13, B14");
 const ga = run("gh", ["api", `repos/${REPO}/actions/permissions`, "--jq", ".enabled"]);
 add(ga.out.trim() === "true" ? "PASS" : "FAIL", "GitHub Actions enabled");
 
@@ -121,7 +122,8 @@ for (const f of [".claude/agents/mop-builder.md", ".claude/agents/mop-designer.m
   add(existsSync(join(ROOT, f)) ? "PASS" : "FAIL", `file ${f}`);
 }
 const stage = (readFileSync(join(ROOT, "PROJECT-STATE.md"), "utf8").match(/^STAGE:\s*(\d+)/m) || [])[1];
-add(stage === "3" ? "PASS" : "FAIL", "PROJECT-STATE stage 3 (BUILD)", `stage ${stage}`);
+const launchMode = process.argv.includes("--launch");
+add((launchMode ? ["4", "5"].includes(stage) : stage === "3") ? "PASS" : "FAIL", launchMode ? "PROJECT-STATE stage 4 or 5 (HARDEN signed, LAUNCH)" : "PROJECT-STATE stage 3 (BUILD)", `stage ${stage}`);
 
 // 9. the app itself
 if (full) {
@@ -138,7 +140,6 @@ const waits = [
   ["X_CLIENT_ID", "X developer app", "B10 post_x"],
   ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app", "B10 post_linkedin"],
   ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
-  ["GA4_MEASUREMENT_ID", "Google Analytics and Search Console", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
   ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
   ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of H1 and L1 (launch only)"],

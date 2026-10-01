@@ -14,7 +14,7 @@ limit is hit; fewest accounts possible; nothing deterministic goes through a mod
 | Database | Supabase Postgres, versioned migrations via Supabase CLI, TypeScript types generated from the schema, Zod for input only | 500 MB, pauses after 7 idle days (keep-warm cron) | docs had one `schema.sql` and hand-synced field names |
 | Permissions | RLS per role: `chief_editor`, `managing_editor` may accept/decline/publish; `visual_editor` edits media; `media_ops` approves assets; `commercial` reads only | n/a | docs gave every editor everything |
 | Editor auth | Supabase Auth magic links; roles in `user_roles` | 50k MAU | |
-| Photography | R2 originals; variants (thumb, card, hero, og, carousel) generated once at publish by a script; served from R2 with immutable cache headers. R2 is designed in and switched off until the operator enables it (S50); no bucket exists yet | 10 GB, zero egress | docs resized on every request (paid past 5k/month) |
+| Photography | R2 originals; variants (thumb, card, hero, og, carousel) generated once per photograph when it is attached or replaced (B7's `attach_media` and `replace_media` enqueue `render_variants`, run in Actions by `scripts/render-variants.mjs`); the `property.published` recipe re-runs it only for photographs that still have no sizes; `properties.hero_image` follows the first rendered photograph (G66); served from R2 with immutable cache headers. R2 is designed in and switched off until the operator enables it (S50); no bucket exists yet | 10 GB, zero egress | docs resized on every request (paid past 5k/month) |
 | Submission uploads | private Supabase Storage bucket, signed PUT, 25 MB, images only, virus-scan-free but MIME-sniffed server side | 1 GB | |
 | Jobs | `jobs` table + Supabase Queues (pgmq) + pg_cron for light work; GitHub Actions (`repository_dispatch`) for heavy renders (images, PNG covers, ffmpeg reels) | 2,000 Actions minutes/month | docs wanted Cloudflare Queues ($5/mo) and Browser Rendering (paid) |
 | Cache | Rendered HTML and catalog JSON in the Worker's Cache API (`caches.default`) under a key of release and `catalog_version`; an isolate-memory snapshot of the catalog per version; one state RPC (`getPublicState`, checked every 15 seconds) and one snapshot RPC (`getCatalog`, once per version) are the only public database reads; the last good copy is served when the database is down; TanStack Query 5 min in the browser; no KV (architecture §13, S52) | free | docs queried per request, no Worker KV needed |
@@ -182,12 +182,15 @@ orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `REN
 `ADMIN_SMOKE_KEY` (B7, the dev agent key the seed prints, read by `scripts/admin-smoke.ts`); `OMNIKOM_MOCK_SECRET` (B15, the signing
 secret of the local mock receiver); `LEGAL_ENTITY_NAME` (the operator input `ready.mjs --launch` checks before L1 step 1, G32); `SENTRY_AUTH_TOKEN` (`org:read`, `project:read`, `event:read`, G11;
 not needed to build, needed for the stored-event checks of H1's `sentry-probe.ts` and of L1, so it gates launch only: `ready.mjs`
-lists it as `WAIT` and `ready.mjs --launch` fails while it is missing, G65); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
+lists it as `WAIT` and `ready.mjs --launch` fails while it is missing, G65); `UPTIME_API_KEY` (setup A15, the uptime vendor's
+read-only key; the source copy for `ready.mjs --launch` and for the laptop runs of `uptime.mjs` in B14 step 1 and L1 step 6, copied
+into the routine environment at B14 step 7); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
 operator's shell only, never in a file: `AUDIT_AGENT_KEY_DEV` (B14, the `mop-auditor-dev` key on `mop-dev`). Proof of the names
 (values never printed): `node workspace/05-plans/ready.mjs` prints its `.env names` row as `PASS` with the count of the names it requires.
 
-Audit routine environment (B14; the cloud routine's settings, never the repository, `.env` or GitHub unless B14 step 9 moves them to
-Actions secrets of the same names): `AUDIT_AGENT_KEY`, `SITE_URL` (the stable dev Worker before L1, `https://matterofplace.com` after),
+Audit routine environment (B14; the cloud routine's settings, never the repository or GitHub unless B14 step 9 moves them to
+Actions secrets of the same names; `CF_ANALYTICS_TOKEN`, `SENTRY_AUTH_TOKEN` and `UPTIME_API_KEY` also keep a source copy in the
+local `.env`): `AUDIT_AGENT_KEY`, `SITE_URL` (the stable dev Worker before L1, `https://matterofplace.com` after),
 `PSI_API_KEY`, `GOOGLE_SA_JSON_B64`, `GA4_PROPERTY_ID`, `CF_ANALYTICS_TOKEN`, `CF_ACCOUNT_ID`, `CF_ZONE_ID`, `UPTIME_API_KEY`, and the
 optional `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` (G11) and `BING_WEBMASTER_API_KEY`. No other credential is created for the audit (G11).
 
