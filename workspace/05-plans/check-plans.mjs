@@ -3,7 +3,7 @@
 // catalog; the B8b recipe seed missing a catalog event; a plan missing one of the eight sections; leftover
 // "Gap additions" appendices; CRLF bytes. Prints double-creator candidates as warnings (paths listed under Files
 // with create/new/add wording in more than one plan) for a human to judge.
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +12,7 @@ const arch = readFileSync(join(here, "..", "06-architecture", "architecture.md")
 const catLine = arch.match(/the event catalog \((\d+)\): ([^\n]*)/);
 const events = new Set([...catLine[2].matchAll(/`([a-z_.]+)`/g)].map((m) => m[1]));
 const steps = new Set(["send_email","render_variants","render_cover","render_carousel","render_story","render_reel","write_captions","build_newsletter_block","post_meta","queue_digest","notify_admin","webhook_omnikom","bump_catalog_version","purge_cache","render_og_static","post_x","post_linkedin"]);
+const eventRe = new RegExp("`((?:" + [...new Set([...events].map((e) => e.split(".")[0]))].join("|") + ")\\.[a-z_]+)`", "g");
 const sections = ["## Goal","## Contract","## Files","## Data changes","## Steps","## Verification","## Risks","## Out of scope"];
 const plans = readdirSync(here).filter((f) => /^(B|H|L)\S*\.md$/.test(f));
 const errors = [], warnings = [], created = {};
@@ -24,7 +25,7 @@ for (const f of plans) {
   const s = raw.toString("utf8");
   for (const h of sections) if (!s.split("\n").some((l) => l.startsWith(h))) errors.push(`${f}: missing section ${h}`);
   if (s.includes("## Gap additions")) errors.push(`${f}: leftover Gap additions appendix (P-030: fold into sections)`);
-  for (const m of s.matchAll(/`((?:submission|invoice|payment|property|asset|digest|inquiry|subscriber|health)\.[a-z_]+)`/g))
+  for (const m of s.matchAll(eventRe))
     if (!events.has(m[1]) && !allow.has(m[1]) && !/\.(ts|tsx|json|spec|test|fixture|example|pdf|sql|mjs)$/.test(m[1])) errors.push(`${f}: event \`${m[1]}\` is not in the catalog (${events.size} events)`);
   for (const m of s.matchAll(/(\[?)`((?:render|post|queue|notify|webhook|bump|purge)_[a-z_]+)`/g))
     if (m[1] !== "[" && !steps.has(m[2]) && ![...steps].some((st) => m[2].startsWith(st + "_")) && !/_(error|receipts|at|by|id|status|count|add)$/.test(m[2])) errors.push(`${f}: step \`${m[2]}\` is not in the step catalog`);
@@ -38,6 +39,24 @@ for (const [p, fs] of Object.entries(created)) if (fs.size > 1) warnings.push(`c
 // every catalog step must have its code file named in a plan (GOTCHAS P-043): steps/<kebab-name>.ts
 const allPlans = plans.map((f) => readFileSync(join(here, f), "utf8")).join("\n");
 for (const st of steps) if (!allPlans.includes(st.replace(/_/g, "-") + ".ts")) errors.push(`no plan names the code file of step \`${st}\` (steps/${st.replace(/_/g, "-")}.ts)`);
+// every plan has a row in the completion map (B1b is listed there as B1; H1 and L1 are its stages 4 and 5)
+const cmap = readFileSync(join(here, "..", "04-completion-map", "completion-map.md"), "utf8");
+for (const f of plans) {
+  const id = f.replace(".md", "");
+  if (!/^B/.test(id)) continue;
+  if (!cmap.includes(`| ${id} |`) && !(id === "B1b" && cmap.includes("| B1 |"))) errors.push(`completion-map.md has no row for ${id}`);
+}
+// trace.json (S53): every documented item names one owning plan, and that plan names its code files
+const tracePath = join(here, "trace.json");
+if (existsSync(tracePath)) {
+  const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+  const text = Object.fromEntries(plans.map((f) => [f.replace(".md", ""), readFileSync(join(here, f), "utf8")]));
+  for (const it of trace) {
+    if (it.plan === "exists") continue;
+    if (!text[it.plan]) { errors.push(`trace.json: ${it.kind} ${it.id} is owned by unknown plan ${it.plan}`); continue; }
+    for (const file of it.files) if (!text[it.plan].includes(file.split("/").pop())) errors.push(`trace.json: ${it.plan}.md no longer names ${file} (${it.kind} ${it.id})`);
+  }
+} else if (process.argv.includes("--require-trace")) errors.push("trace.json is missing (S53)");
 
 for (const w of warnings) console.log("WARN  " + w);
 for (const e of errors) console.log("ERROR " + e);

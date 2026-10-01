@@ -140,6 +140,8 @@ const waits = [
   ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
   ["GA4_MEASUREMENT_ID", "Google Analytics, Search Console, Tag Manager", "B13, B14"],
   ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
+  ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
+  ["BING_WEBMASTER_API_KEY", "Bing Webmaster Tools", "L1"],
   ["GITHUB_DISPATCH_TOKEN", "fine-grained GitHub token for render dispatch", "B8 step 7, B9 renders in Actions"],
   ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods", "B6 invoice issue, B16"],
 ];
@@ -150,4 +152,9 @@ for (const r of rows) console.log(`${r.state}  ${r.name.padEnd(pad)}  ${r.detail
 const fails = rows.filter((r) => r.state === "FAIL").length;
 const waitsN = rows.filter((r) => r.state === "WAIT").length;
 console.log(`\nREADY TO BUILD: ${fails ? "no" : "yes"} (${rows.filter((r) => r.state === "PASS").length} pass, ${fails} fail, ${waitsN} waiting on the operator)`);
+// --launch (L1's one gate for operator inputs, ASSUMED G32): nothing may be waiting either
+if (process.argv.includes("--launch")) {
+  console.log(`READY TO LAUNCH: ${fails || waitsN ? "no" : "yes"}${waitsN ? ` (${waitsN} operator input(s) still missing, listed above as WAIT)` : ""}`);
+  process.exit(fails || waitsN ? 1 : 0);
+}
 process.exit(fails ? 1 : 0);

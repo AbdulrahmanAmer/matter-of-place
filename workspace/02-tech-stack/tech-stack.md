@@ -25,12 +25,12 @@ limit is hit; fewest accounts possible; nothing deterministic goes through a mod
 | Video | ffmpeg Ken Burns template in GitHub Actions; poster + MP4 to R2 | free | |
 | Bots / abuse | Turnstile on all forms; one Cloudflare rate-limit rule; per-endpoint sliding window in the API (KV-free, DB-backed); headers from `cspFor(env, flags)` (CSP report-only from B1b, enforced by H1 through `flags.csp_enforce`; HSTS `max-age=31536000` until preload day 30, then `63072000` with `preload`) | free | |
 | Errors / logs | Sentry free tier on the Worker and on the job-runner Edge Function (`SENTRY_DSN` in both); Workers Logs; a daily `health` system job (B8: pg_cron row `health` at 13:00 UTC enqueues it, `src/server/jobs/system/health.ts` runs the checks, writes `jobs.result`, emits `health.failed` once when a check fails, and B8b's seeded recipe for that event emails the admin through `notify_admin`; proof `bunx vitest run tests/unit/jobs/health.test.ts`). The weekly audit robot (B14) reads health, it does not ping | 5k errors/month | |
-| Analytics | GA4 via the typed `dataLayer`, Search Console, Bing, Cloudflare Web Analytics, first-party `analytics_events` | free | |
+| Analytics | GA4 via the typed `dataLayer` (gtag.js after consent, G31), Search Console, Bing, Cloudflare zone HTTP analytics (read through the API, no Web Analytics beacon script, G31), first-party `analytics_events` | free | |
 | Admin | `/admin` route group inside the site from day one: request queue, decide with templated emails, invoice, dossier editor, media, publish, asset approvals, channel status, subscriber and interest lists, **Automation section** (recipes, templates, reasons, channel and schedule settings, dry-run) | free | docs deferred to Studio; Studio has no publish button |
 | Tests | Vitest (contracts, forms, state machine), Playwright (every route, desktop + phone, a11y), run on every PR | free | docs had none |
 | Delivery | private GitHub repo `AbdulrahmanAmer/matter-of-place`; Actions: check → test → build → `wrangler deploy` on main; preview Worker per PR; `main` is guarded by a CI rule, not branch protection (P-028), and human merge review is the production gate (GitHub Environments are not available on this plan) | free | |
 | Domain | `matterofplace.com` on Cloudflare (Registrar at cost, or DNS only) | ~$10/yr | |
-| Audit robot | `mop-auditor` on a schedule; reads PSI, Search Console, GA4, Graph API, Resend; writes `workspace/audits/`; opens PRs | Claude usage only | |
+| Audit robot | `mop-auditor` (B14) on the `audit` schedule row; reads PSI, Search Console, GA4, Cloudflare zone analytics, Sentry stats (optional, G11), the uptime monitor, Bing (optional) and our `/api/admin/audit.*` actions with its agent key; it holds no Meta, Resend, service role or deploy credential (B14 invariant 3); writes `workspace/audits/`; opens PRs | Claude usage only | |
 | AI usage | Sonnet designs templates once; Haiku writes captions and alt text; concierge and search rule-based at launch | small | |
 
 Cost at launch: $0/month plus the domain. Paid steps, in order of likelihood: Resend $20 (list > 3,000 sends), Supabase Pro $25
@@ -91,8 +91,11 @@ Matter Of Place Codebase/
   scripts/               seed, image variants, render-social, render-reel, publish-meta (app folder; the film engine stays in repo-root launch/)
   tests/                 vitest + playwright
   wrangler.toml
-E:\Matter Of Place\.github\workflows\   ci.yml, deploy.yml, render.yml, backup.yml — at the REPO root, not under the app (GitHub only reads it there; GOTCHAS G-012)
+E:\Matter Of Place\.github\workflows\   ci.yml, deploy.yml, render.yml, backup.yml, audit-scope.yml, audit-deps.yml (audit-collect.yml only as B14's fallback) — at the REPO root, not under the app (GitHub only reads it there; GOTCHAS G-012)
+E:\Matter Of Place\.github\dependabot.yml   B1b, repo root as well
 ```
+
+Workflow owners: `ci.yml`, `deploy.yml`, `backup.yml` and `dependabot.yml` are B1b's (later slices add jobs or steps as their plans say); `render.yml` is B8's (B9 and B12 add to it); `audit-scope.yml` is B14's; `audit-deps.yml` is H1's; `audit-collect.yml` exists only if B14 step 8 records the routine's network egress as BLOCKED (B14 step 9). Proof once the owning slices land: `ls "E:/Matter Of Place/.github/workflows"` lists those files and `git ls-files "Matter Of Place Codebase/.github"` prints nothing.
 
 CI and fonts. Jobs set `working-directory: Matter Of Place Codebase`. No job needs Docker (S50). The `db` job runs tests
 against `mop-dev` with secrets from `PREVIEW_WORKER_SECRETS_JSON` and one shared concurrency group; tests roll back.
@@ -104,39 +107,77 @@ Font files (`public/fonts/*.woff2`) belong to one slice: whichever of B9 and B17
 |---|---|---|---|
 | local | localhost:8080 | `mop-dev` (cloud dev project) plus native PostgreSQL 18 for throwaway tests; no Docker, no local Supabase stack (S50, E7) | `bun run dev` |
 | preview | `pr-<n>.holy-meadow-4327.workers.dev` | `mop-dev` | Actions on PR |
-| production | matterofplace.com (before the domain is attached: `matter-of-place.holy-meadow-4327.workers.dev`) | `mop-prod`, created at launch | Actions on merge to main, after human merge review |
+| dev (stable) | `matter-of-place-dev.holy-meadow-4327.workers.dev` | `mop-dev` | Actions on every push to `main` (`deploy.yml`, B1b, G19), with the preview secret bundle and `MOP_ENV=preview`; it is the callback target of heavy jobs on `mop-dev` (`RENDER_CALLBACK_URL`) and the `SITE_URL` of `mop-dev`'s job runner (B5) |
+| production | matterofplace.com (before the domain is attached: `matter-of-place.holy-meadow-4327.workers.dev`) | `mop-prod`, created at launch; until then the Worker holds the `mop-dev` pair and L1 swaps it (G19) | Actions on merge to main, after human merge review |
+
+Every `.workers.dev` host answers `X-Robots-Tag: noindex` whatever `MOP_ENV` says (`isIndexableHost(host, MOP_ENV)` in `src/server/seo/robots.ts`, B1b creates, B13 extends, G19).
 
 R2 media is off in every environment until the operator enables R2 (S50); steps that need a bucket are blocked, not failed.
 
 Worker secrets (`wrangler secret`, never in the repo): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET`,
 `SENTRY_DSN`, `SENTRY_TEST_TOKEN` (B1b's `POST /api/hooks/sentry-test`; set on preview always, on production only while a test runs,
-the route answers 404 when it is unset), `RENDER_CALLBACK_SECRET`, `JOB_RUNNER_SECRET`, `RATE_LIMIT_SALT`, `PREVIEW_TOKEN_SECRET`,
-`RESEND_WEBHOOK_SECRET` (Svix, B3), `RESEND_API_KEY`, and later `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. No Meta, X or LinkedIn
+the route answers 404 when it is unset), `RENDER_CALLBACK_SECRET`, `JOB_RUNNER_SECRET`, `RATE_LIMIT_SALT`, `CONFIRM_TOKEN_SECRET`
+(B5; the Worker seals the subscriber confirm token at signup and the job runner opens it, so the same value is also a Supabase
+function secret; read through B3's `src/server/lib/env.ts`, G12), `PREVIEW_TOKEN_SECRET`,
+`RESEND_WEBHOOK_SECRET` (Svix, B3), and later `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. `RESEND_API_KEY` is not a Worker secret: the
+Worker never calls Resend (B5 invariant 10, B11), every send runs in the job runner. No Meta, X or LinkedIn
 secret is a Worker secret: every platform call runs in a job-runner step or the reconcile job (B10 invariant 1), so those names
-live only in Supabase function secrets and in GitHub Actions under `DEV_` and `PROD_`. R2 access
+live only in Supabase function secrets (G21); none is a GitHub Actions secret and none is set with `wrangler secret put`. R2 access
 is tolerant of missing `R2_*` secrets and fails with the one shared `r2_unavailable` error (B3 creates `src/server/lib/r2.ts`).
 
-Supabase function secrets (`supabase secrets set`): `RESEND_API_KEY`, `RESEND_FROM`, `CONFIRM_TOKEN_SECRET`, `ADMIN_NOTIFY_EMAIL`,
-`JOB_RUNNER_SECRET`, `GITHUB_DISPATCH_TOKEN` (a fine-grained GitHub token; an operator step), `GITHUB_REPO`, `SOCIAL_DRY_RUN` (the single dry-run flag for every social channel; `META_DRY_RUN` is retired), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`
+Supabase function secrets (`supabase secrets set`): `RESEND_API_KEY`, `RESEND_FROM`, `CONFIRM_TOKEN_SECRET` (the Worker's value, B5),
+`ADMIN_NOTIFY_EMAIL`, `SITE_URL` (B5: the https origin `confirm_url` and `link_url` are built on; on `mop-dev` the stable dev Worker's URL,
+on `mop-prod` `https://matterofplace.com`, set by L1), `EMAIL_DRY_RUN` (B5: `1` on `mop-dev` until the Resend account exists, G14; rows are
+`skipped` with a `dry_` id),
+`JOB_RUNNER_SECRET`, `GITHUB_DISPATCH_TOKEN` (a fine-grained GitHub token; an operator step; never a Worker secret, G33), `GITHUB_REPO`, `SOCIAL_DRY_RUN` (the single dry-run flag for every social channel; `META_DRY_RUN` is retired), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
 (R2 off, S50), `MEDIA_BASE_URL` (the same public media base as the Worker var; `mediaUrl(key)` in the steps prefixes it and Meta
 fetches what it builds, so `post_meta`, `post_x`, `post_linkedin` and the render dispatch need it in the function too; while it is unset
 those steps return `retry_at` with reason `r2_unavailable`, B10 invariant 5), `MOP_ENV`, `SENTRY_DSN`, `RENDER_CALLBACK_URL` (B8),
-`CF_PURGE_TOKEN`, `CF_ZONE_ID` (B8b, `purge_cache`), `META_*`, `X_*`, `LINKEDIN_*`, `OMNIKOM_WEBHOOK_URL`, `OMNIKOM_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`.
-`R2_BUCKET` is `mop-media-dev` on `mop-dev` and `mop-media` on `mop-prod`, `MEDIA_BASE_URL` is that bucket's public base; both are
-set with `bunx supabase secrets set R2_BUCKET=... MEDIA_BASE_URL=... --project-ref <ref>` in the step that switches R2 on, BLOCKED
-until the operator enables R2 and the bucket exists (E8). Proof: `bunx supabase secrets list --project-ref $DEV_SUPABASE_PROJECT_REF`
-lists both names (values are never printed).
+`CF_PURGE_TOKEN`, `CF_ZONE_ID` (B8b, `purge_cache`), `INDEXNOW_KEY` (B13, optional: read by `purge_cache` only when `params.indexnow`
+is true; unset means the ping is skipped and logged `indexnow_skipped`), `META_*`, `X_*`, `LINKEDIN_*`, `OMNIKOM_WEBHOOK_URL`, `OMNIKOM_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`.
+There is no `R2_BUCKET` secret or variable (G3): in a function the bucket follows `MOP_ENV` (`mop-media-dev` on `mop-dev`, `mop-media` on
+`mop-prod`), and only `render.yml` derives an `R2_BUCKET` value, from `client_payload.env`. `MEDIA_BASE_URL` is that bucket's public base; it is
+set with `bunx supabase secrets set MEDIA_BASE_URL=... --project-ref <ref>` (with the three `R2_*` names) in the step that switches R2 on,
+BLOCKED until the operator enables R2 and the bucket exists (E8). Proof: `bunx supabase secrets list --project-ref $DEV_SUPABASE_PROJECT_REF`
+lists the names (values are never printed).
 
 GitHub Actions (measured 2026-10-01, E10). Secrets present: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
 `R2_SECRET_ACCESS_KEY` (UNPROVEN while R2 is off), `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_DB_PASSWORD`,
 `PREVIEW_WORKER_SECRETS_JSON` (a bundle: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET`, `SENTRY_DSN`,
 `RATE_LIMIT_SALT`, `SENTRY_TEST_TOKEN`). `deploy.yml` passes the whole bundle to `wrangler secret bulk`, so a later slice adds a preview
 secret by adding a key to that GitHub secret (the orchestrator updates it from `.env`), never by editing the workflow:
-`RESEND_WEBHOOK_SECRET` (B3), `PREVIEW_TOKEN_SECRET` (B7), `RENDER_CALLBACK_SECRET` and `JOB_RUNNER_SECRET` (B8). The secret
-`DEV_SUPABASE_SERVICE_ROLE_KEY` exists as well, for jobs that need the dev key outside the bundle. Absent until backup and launch:
-`BACKUP_PASSPHRASE` and the `PROD_*` secrets. Variables: `VITE_SITE_URL`, `VITE_TURNSTILE_SITE_KEY`, `VITE_API_BASE_URL` (`/api/public`);
-to add when R2 is on: `DEV_MEDIA_BASE_URL` and `PROD_MEDIA_BASE_URL` (the public base of each bucket). Plain Worker vars `MOP_ENV` and
-`MEDIA_BASE_URL` are not secrets.
+`RESEND_WEBHOOK_SECRET` (B3), `CONFIRM_TOKEN_SECRET` (B5), `PREVIEW_TOKEN_SECRET` (B7), `RENDER_CALLBACK_SECRET` and `JOB_RUNNER_SECRET` (B8). The secret
+`DEV_SUPABASE_SERVICE_ROLE_KEY` exists as well, for jobs that need the dev key outside the bundle. Added by later slices:
+`RENDER_CALLBACK_SECRET` as a GitHub secret of its own (B8 step 7, `gh secret set`; the same value as the Worker secret, read by
+`render.yml`'s `post-callback.mjs`); `BACKUP_PASSPHRASE` (B1b, `backup.yml`); `PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_DB_PASSWORD` and
+`PROD_SUPABASE_DB_URL` (the session pooler string), set with `gh secret set` in L1 step 1 once `mop-prod` exists (until then the
+production job's `supabase db push` and B3b's coming-soon assertion are skipped). Variables: `VITE_SITE_URL`, `VITE_TURNSTILE_SITE_KEY`, `VITE_API_BASE_URL` (`/api/public`);
+to add when R2 is on: `DEV_MEDIA_BASE_URL` and `PROD_MEDIA_BASE_URL` (the public base of each bucket); to add when the GA4 property exists
+(E9): `VITE_GA4_MEASUREMENT_ID` (B13; public, G-006; passed by `deploy.yml` to the production build only, so previews never load GA4);
+to add at launch: `MOP_LAUNCHED` (`true` makes B3b's production step run `assert-coming-soon.mjs --after-launch`; absent means coming-soon
+mode is asserted). Plain Worker vars `MOP_ENV`, `MEDIA_BASE_URL` and
+`SENTRY_RELEASE` (set per deploy with `--var`, B1b) are not secrets.
+
+Local `.env` only (git-ignored, loaded without printing as E10 describes; never a GitHub or Worker secret): `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` (the owner's `mop-admin`), `CF_EDGE_TOKEN` (optional, `scripts/cf-edge.mjs`), `DEV_SUPABASE_PROJECT_REF`,
+`DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `DEV_DB_URL`, `SUPABASE_ACCESS_TOKEN`; at launch (L1 step 1, A11)
+`PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_DB_PASSWORD`, `PROD_SUPABASE_SERVICE_ROLE_KEY` (G32; read by B2's `seed.ts` and B3b's
+`set-environment.ts`) and `PROD_DB_URL` (the pooler string L1 and H1 pass to `psql` and `--db-url`); the source copies of values the
+orchestrator pushes elsewhere (`CONFIRM_TOKEN_SECRET`, `JOB_RUNNER_SECRET`, `RENDER_CALLBACK_SECRET`,
+`CF_ANALYTICS_TOKEN`, `BACKUP_PASSPHRASE`); `SENTRY_AUTH_TOKEN` (optional, `org:read`, `project:read`, `event:read`, used by H1's
+`sentry-probe.ts`, G11); `REHEARSAL_AGENT_KEY` (L1's `scripts/rehearsal.ts`, a dev agent key revoked after sign-off). In the
+operator's shell only, never in a file: `AUDIT_AGENT_KEY_DEV` (B14, the `mop-auditor-dev` key on `mop-dev`).
+
+Audit routine environment (B14; the cloud routine's settings, never the repository, `.env` or GitHub unless B14 step 9 moves them to
+Actions secrets of the same names): `AUDIT_AGENT_KEY`, `SITE_URL` (the stable dev Worker before L1, `https://matterofplace.com` after),
+`PSI_API_KEY`, `GOOGLE_SA_JSON_B64`, `GA4_PROPERTY_ID`, `CF_ANALYTICS_TOKEN`, `CF_ACCOUNT_ID`, `CF_ZONE_ID`, `UPTIME_API_KEY`, and the
+optional `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` (G11) and `BING_WEBMASTER_API_KEY`. No other credential is created for the audit (G11).
+
+Inventory proof (names only, values never printed): `bunx wrangler secret list --name matter-of-place` (with the local `mop-admin`
+token) lists the Worker secrets that exist so far, and the same with `--name matter-of-place-dev` once B1b's `deploy.yml` has deployed
+the dev Worker (BLOCKED until then); `bunx supabase secrets list --project-ref $DEV_SUPABASE_PROJECT_REF` lists the function secrets;
+`gh secret list` and `gh variable list` list the GitHub names. A name a plan uses that is missing from this section is a defect in this
+section, not a new secret.
 
 `render.yml` (B8 creates it; B9 and B12 add to it) gets everything per run from `client_payload` and fixed names, never from a
 variable that holds one environment: `client_payload.env` picks the target (`development` gives `R2_BUCKET=mop-media-dev` and
@@ -168,7 +209,7 @@ with the access token shows `"disable_signup": true`.
 | an API route | `src/routes/api/<name>.ts` handler → `src/server/<feature>/service.ts`; Zod input schema in `src/domain/<feature>.ts`; rate limit entry; log line with request ID | Vitest for the schema and the service; Playwright hits the route |
 | an admin action (button) | `src/admin/<feature>/` component + server function; permission check by role in the server function, never in the UI; audit row (`who, what, when`) | Vitest: forbidden role gets 403; allowed role changes state |
 | a table or column | `supabase/migrations/<ts>_<name>.sql` (up only; a second migration undoes); `supabase gen types` → `src/db/types.ts`; RLS policy in the same migration. `<ts>` (written `<timestamp>` in some plans, same thing) is the UTC creation time `YYYYMMDDHHMMSS` that `bunx supabase migration new <name>` prints, run (no Docker needed) in the step that adds the file, so file order equals landing order; a migration that references another slice's table is created only after that slice's migration is on `mop-dev`. B2's foundation set (12 fixed names from `20261001090000_extensions_enums.sql` to `20261001091100_settings_defaults.sql`) is the one place RLS sits in its own migration (`20261001090900_rls.sql`) | `bun run db:reset` (B2's no-Docker reset of `mop-dev`: empties `public`, drops the pgmq queues, unschedules the cron jobs migrations created, then pushes; P-038) or `supabase db push` clean; `bunx supabase migration list --linked` shows the local and remote columns equal and ascending; generated types compile |
-| a job type | the name goes into the architecture's step catalog first (P-031); `src/server/jobs/steps/<name>.ts` exporting `{ type, heavy, paramsSchema, run(ctx, params, payload), onResult? }` (B8 contract: `onResult(ctx, job, result)` for heavy steps only, `run` returns `{ status: "done" }` or `{ status: "retry_at", at, reason }` and never updates `jobs` itself); one import line in `src/server/jobs/steps/index.ts`; the recipe editor's choices come from that catalog and its `paramsSchema` | Vitest runs the step against a fixture; dry-run lists it; `node workspace/05-plans/check-plans.mjs` prints OK (it fails when a catalog step has no code file in any plan, P-043) |
+| a job type | the name goes into the architecture's step catalog first (P-031); `src/server/jobs/steps/<name>.ts` exporting `{ type, heavy, paramsSchema, run(ctx, params, payload), onResult? }` (B8 contract: `onResult(ctx, job, result)` for heavy steps only, `run` returns `{ status: "done" }` or `{ status: "retry_at", at, reason }` and never updates `jobs` itself); one import line in `src/server/jobs/steps/index.ts`; the recipe editor's choices come from that catalog and its `paramsSchema`; no deploy step of its own: `deploy.yml` (B8's steps) redeploys `job-runner` with `bunx supabase functions deploy job-runner --use-api` whenever a change touches `supabase/functions` or `src/server` | Vitest runs the step against a fixture; dry-run lists it; `node workspace/05-plans/check-plans.mjs` prints OK (it fails when a catalog step has no code file in any plan, P-043) |
 | an email | `src/templates/email/<name>.tsx` (React Email); row in `email_templates` seed with subject and variables; preview in `/admin › Automation` | Vitest renders it; a test send lands |
 | an analytics event | name added to `AnalyticsEvent`; `track()` call at the action; the API's allow-list | TypeScript refuses free strings; event row appears |
 | a role or permission | `app_role` enum migration; RLS policies; server-function guard; role matrix in `docs/admin-os` diagram | Vitest permission matrix |
