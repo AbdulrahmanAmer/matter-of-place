@@ -254,3 +254,16 @@ NEXT SESSION, in order (CEO present, CTO drives the built-in browser, CEO types 
   an event id. B1b uses the hand-written envelope client, so no Sentry auth token is needed yet. Trial is 14 days,
   then the free plan (5,000 errors a month); no card on file.
   Remaining before B1b: A8 GitHub Actions secrets (waiting on the operator's yes). R2 still not enabled.
+- 2026-10-01 A8 DONE for B1b — GitHub Actions secrets set from a script that prints no value
+  (scratchpad `set-github-secrets.mjs`): minted a narrow ACCOUNT token `mop-github-actions`
+  (id 615228067122039a34523db888665e72; Workers Scripts Write + Workers R2 Storage Write only, per B1b Permissions)
+  with `mop-admin`, verified active, piped straight into `CLOUDFLARE_API_TOKEN`. Also set `CLOUDFLARE_ACCOUNT_ID`,
+  `DEV_SUPABASE_PROJECT_REF`, `PREVIEW_WORKER_SECRETS_JSON` (SUPABASE_URL, Turnstile test secret, SENTRY_DSN,
+  RATE_LIMIT_SALT, SENTRY_TEST_TOKEN; NO service role key yet, B2 adds it; salt and test token are also in local
+  `.env` as PREVIEW_*), and `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` derived from the narrow token
+  (id + sha256 of the value). Variable `VITE_SITE_URL=https://matterofplace.com`.
+  UNPROVEN: the derived R2 keys (R2 is not enabled, nothing to test against); whether Workers Scripts Write alone is
+  enough for `wrangler deploy` with an account token (B1b step 6 measures it; widen with Account Settings Read if not).
+  workers.dev subdomain now exists: `holy-meadow-4327` (random; rename only from the dashboard, GOTCHAS P-035).
+  Branch protection: API says "Upgrade to GitHub Pro" (A12 stands). All B1b prerequisites (A1, A6, A8) are met.
+  Still with the operator, at B2: `supabase login` + link, `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`.

@@ -8,7 +8,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 
 | # | Setup | Where | Needed by |
 |---|---|---|---|
-| A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported. Remaining: API token, R2 bucket; add the zone and point Namecheap nameservers at it; API token scoped to Workers + R2 | namecheap.com, dash.cloudflare.com | B1 |
+| A1 | DONE 2026-10-01: zone on Cloudflare (Free), nameservers switched, mail records imported; account token `mop-admin` (full write, local `.env` only) and narrow token `mop-github-actions` (Workers Scripts + R2 only, in GitHub); workers.dev subdomain `holy-meadow-4327`. Remaining: enable R2 (needs a payment method on file), then the buckets | namecheap.com, dash.cloudflare.com | B1 |
 | A2 | DONE for dev 2026-10-01: org "Matter Of Place", project `mop-dev` (us-east-1, ref hbokkmpgpqhrnemgsqra); `mop-prod` at launch | supabase.com | B2 |
 | A3 | Resend account; verify sending domain (SPF, DKIM, DMARC records in Cloudflare) | resend.com | B5 |
 | A11 | DONE 2026-10-01: company email on Zoho Mail (admin@matterofplace.com), MX/SPF/DKIM/DMARC live, records now served by Cloudflare | zoho.com | everything |
@@ -16,7 +16,7 @@ agent-os; the STAGE line in `PROJECT-STATE.md` moves only when a gate is met.
 | A5 | Launch channels are Instagram, X and LinkedIn (S48). Needed: an X developer account and app for the brand handle; a LinkedIn company page plus a developer app with posting access (approval can take days, apply early); and via the partner (access on request): Meta Business Manager; Instagram Business account linked to a Facebook Page; developer app with `instagram_content_publish`, `pages_manage_posts` | business.facebook.com, developers.facebook.com | B10 |
 | A6 | DONE 2026-10-01: Sentry org `matter-of-place` (owner admin@matterofplace.com), project `javascript-tanstackstart-react`, error monitoring only; DSN in local `.env` as `SENTRY_DSN`; 14-day trial then free plan, no card | sentry.io | B1 |
 | A7 | Google: GA4 property, Search Console for the domain, Tag Manager container; Bing Webmaster | | B13 |
-| A8 | GitHub: branch protection on `main`, Actions secrets from tech-stack §4 | github.com | B1 |
+| A8 | DONE for B1b 2026-10-01: secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `DEV_SUPABASE_PROJECT_REF`, `PREVIEW_WORKER_SECRETS_JSON`; variable `VITE_SITE_URL`. Branch protection is not available on the free plan for a private repo (CI rule instead, A12). Remaining at B2: `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_DB_PASSWORD`, and the service role key inside the preview JSON | github.com | B1 |
 | A9 | DEFERRED (S47): legal entity placeholder, email only (no phone), Instagram after the partner creates it, CEO is admin + chief_editor. Business facts: contact email and phone, legal entity and address, Instagram handle, first editors' emails and roles | you | B4, B7 |
 | A10 | Lovable: disconnect, or accept it never syncs this repo | lovable.dev | B1 |
 
