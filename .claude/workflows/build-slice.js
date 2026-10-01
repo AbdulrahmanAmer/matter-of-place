@@ -1,7 +1,7 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end with Sonnet workers: size it into groups, build each group, review it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups.',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log', model: 'sonnet' },
@@ -13,9 +13,12 @@ export const meta = {
 // The orchestrator (the main session) stays the judge: it re-runs the proofs, merges the pull request and
 // closes the slice in PLAN.md. Nothing here merges into main or touches production.
 
-const ROOT = 'E:/Matter Of Place'
-const APP = `${ROOT}/Matter Of Place Codebase`
 const a = args || {}
+const MAIN = 'E:/Matter Of Place'
+const ROOT = a.root || MAIN
+const BASE = a.base || 'origin/main'
+const BASH_ROOT = '/' + ROOT[0].toLowerCase() + ROOT.slice(2)
+const APP = `${ROOT}/Matter Of Place Codebase`
 const slice = a.slice
 if (!slice || !/^(B|H|L)[0-9a-z]+$/i.test(slice)) throw new Error('args.slice is required, for example { slice: "B1b" }')
 const planPath = `${ROOT}/workspace/05-plans/${slice}.md`
@@ -77,8 +80,8 @@ const RULES = `Standing rules for this project (they overrule habit):
 - Read ${ROOT}/GOTCHAS.md in full first. Add an entry in the same session when something costs you more than a few minutes.
 - No Docker on this machine, ever (S50). The database is the cloud project mop-dev. R2 is off until the operator enables it.
 - Facts measured on this machine are in ${ROOT}/workspace/05-plans/ASSUMED.md section E. They overrule older lines anywhere.
-- Secrets live in ${ROOT}/.env (git-ignored). Load them without printing: set -a; . <(tr -d '\\r' < "/e/Matter Of Place/.env" | grep -E '^[A-Z0-9_]+='); set +a   Never cat, echo or paste a value. Never commit a secret.
-- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge, never force-push, never rewrite pushed history.
+- Secrets live in ${ROOT}/.env (git-ignored). Load them without printing: set -a; . <(tr -d '\\r' < "${BASH_ROOT}/.env" | grep -E '^[A-Z0-9_]+='); set +a   Never cat, echo or paste a value. Never commit a secret.
+${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the repository (a lane of the 48-hour build, S54). Every path you read or write is under it. Never read, edit, check out or run git in ${MAIN}: other lanes and the orchestrator work there. A Supabase CLI command that needs the project link runs \`supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"\` in this tree's app folder first (the link is per folder).\n`}- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge, never force-push, never rewrite pushed history.
 - One writer per file: touch only the files your group names, plus ${logPath} (append only).
 - Every new test is watched-fail: break the code it covers, see it red for the right reason, restore.
 - A red result is a valid result. Paste real output. Words to use: UNPROVEN, NOT DONE, BLOCKED. Two failed approaches to one obstacle ends the attempt: record BLOCKED and what would unblock it.
@@ -110,7 +113,7 @@ The plan is ${planPath}. Read it in full, then ${APP}/AGENTS.md, then only the s
 Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
 Proof you must run and paste: ${g.proof}
 
-${defects ? `A fresh reviewer rejected the previous attempt. Fix exactly these defects, then re-run every proof:\n${JSON.stringify(defects, null, 1)}\n` : `Start: \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" checkout ${branch} 2>/dev/null || git -C "${ROOT}" checkout -b ${branch} origin/main\`. Confirm the branch before you write.`}
+${defects ? `A fresh reviewer rejected the previous attempt. Fix exactly these defects, then re-run every proof:\n${JSON.stringify(defects, null, 1)}\n` : `Start: \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" checkout ${branch} 2>/dev/null || git -C "${ROOT}" checkout -b ${branch} ${BASE}\`. Confirm the branch before you write.`}
 Build the steps in order. After each step run its proof. When the group is proven: run \`bun run check\` and \`bun run build\` in the app folder, commit on ${branch} with a message that names the slice and steps, push the branch (\`git push -u origin ${branch}\`).
 Append to ${logPath} a block headed "## ${g.id} · steps ${g.steps}" with each proof command and its real output (trim long output, never trim the failing part).
 If the plan is wrong, do not build something else quietly: stop, say what is wrong, and return status "blocked".`
@@ -118,7 +121,7 @@ If the plan is wrong, do not build something else quietly: stop, say what is wro
 const reviewPrompt = (g, built) => `${RULES}
 
 You are a fresh reviewer for group ${g.id} of slice ${slice} ("${g.title}", plan steps ${g.steps}). You did not write this code and you were not given the author's reasoning. Read-only: do not edit, commit or push.
-The contract is ${planPath} (the sections Contract, Invariants and the steps ${g.steps} with their proofs). The branch is ${branch}; see what changed with \`git -C "${ROOT}" diff origin/main...${branch} --stat\` and read the changed files.
+The contract is ${planPath} (the sections Contract, Invariants and the steps ${g.steps} with their proofs). The branch is ${branch}; see what changed with \`git -C "${ROOT}" diff ${BASE}...${branch} --stat\` and read the changed files.
 The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs, unproven: built.unproven, watchedFail: built.watchedFail }, null, 1)}
 1. Re-run every proof command yourself and record what you observed.
 2. Try to refute "done": an invariant of the plan the code breaks, a proof that passes for the wrong reason, a test that cannot fail, a file the group should have created that is missing, a convention in AGENTS.md that is broken, a secret or an em dash in the diff, Docker or R2 assumed.
@@ -154,4 +157,4 @@ for (const g of groups) {
 }
 
 const next = sized.groups.find((g) => !g.blocked && !out.some((o) => o.group === g.id && o.status === 'accepted'))
-return { slice, branch, log: logPath, groups: out, resumeWith: next ? { slice, startAt: next.id } : null, sizing: sized }
+return { slice, branch, root: ROOT, base: BASE, log: logPath, groups: out, resumeWith: next ? { slice, startAt: next.id } : null, sizing: sized }
