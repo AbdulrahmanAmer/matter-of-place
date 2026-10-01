@@ -19,8 +19,8 @@ that breathes. You code every frame; nothing comes from an outside model, stock 
 - Palette only: Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2, Mineral Grey #575751, Warm Grey #8B877F.
 - Type: Jost (300/400/500) for labels, facts, prices; Cormorant Garamond (400/500) for titles and editorial lines;
   Urbanist for UI. Load from Google Fonts in the scene page and wait for `document.fonts.ready` before capturing.
-- Emblem and wordmark: port `Matter Of Place Codebase/src/components/brand/emblem.tsx` and `wordmark.tsx` to inline SVG exactly.
-- Photography: `Matter Of Place Codebase/src/assets/*.jpg` and `src/assets/gallery/*.jpg`; the film `public/media/tiburon-waterline.mp4`.
+- Emblem and wordmark: port `app/src/components/brand/emblem.tsx` and `wordmark.tsx` to inline SVG exactly.
+- Photography: `app/src/assets/*.jpg` and `src/assets/gallery/*.jpg`; the film `public/media/tiburon-waterline.mp4`.
   Content is illustrative: never show a price or street address for a property in a brand film. Product prices are fine.
 - Motion: cross-fades 1.2 to 2 s, image drift 1 to 2 percent over a hold, text fades in over 0.8 s and holds. Never bounce,
   spin, gradients, glow, particles, lens flares, counters, stock transitions. Silence is acceptable; if you add sound,
@@ -42,7 +42,7 @@ that breathes. You code every frame; nothing comes from an outside model, stock 
 5. Decks: `pptxgenjs` via bun; 16:9; same palette and type; a clickable agenda and "back to agenda" links on every slide
    (`slide.addText(..., { hyperlink: { slide: n } })`); notes on every slide; no clip art, no default themes.
 
-Keep every file you create inside the folder you were given. Do not touch `Matter Of Place Codebase/`. Anything that
+Keep every file you create inside the folder you were given. Do not touch `app/`. Anything that
 cost you time (a font that would not load, a Chrome flag, an ffmpeg filter) goes into `E:\Matter Of Place\GOTCHAS.md`
 as a process entry with proof, without being asked. Return: paths,
 storyboard summary, ffprobe output, contact-sheet paths, and one line `MEMORY: <lesson>`.

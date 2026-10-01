@@ -1,6 +1,6 @@
 # Matter of Place: pages and wording index
 
-Extracted verbatim from `E:\Matter Of Place\Matter Of Place Codebase` (React 19 + TanStack Start). Nothing was modified in the codebase.
+Extracted verbatim from `E:\Matter Of Place\app` (React 19 + TanStack Start). Nothing was modified in the codebase.
 
 Conventions used below:
 - `pageHead()` (src/lib/seo.ts) builds every page title as `<title> | Matter of Place` (suffix added unless already present), sets og:title, og:description, og:type (`website`, or `article` where noted), og:url, `twitter:card = summary_large_image`, and a canonical link. Titles below are the code value BEFORE the ` | Matter of Place` suffix unless stated.

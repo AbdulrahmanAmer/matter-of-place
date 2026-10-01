@@ -18,7 +18,7 @@ const MAIN = 'E:/Matter Of Place'
 const ROOT = a.root || MAIN
 const BASE = a.base || 'origin/main'
 const BASH_ROOT = '/' + ROOT[0].toLowerCase() + ROOT.slice(2)
-const APP = `${ROOT}/Matter Of Place Codebase`
+const APP = `${ROOT}/app`
 const slice = a.slice
 if (!slice || !/^(B|H|L)[0-9a-z]+$/i.test(slice)) throw new Error('args.slice is required, for example { slice: "B1b" }')
 const planPath = `${ROOT}/workspace/05-plans/${slice}.md`

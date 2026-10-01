@@ -5,7 +5,7 @@ California, New York and Florida. An Omnikom company. Domain: matterofplace.com.
 Lovable; backend, automations, social, newsletter and the audit agent are not built yet.
 
 ## Layout (this folder is the workspace root; the app is one level down)
-- `Matter Of Place Codebase/` — the app (React 19, TanStack Start SSR, Vite 8, Nitro → Cloudflare Worker). Its own
+- `app/` — the app (React 19, TanStack Start SSR, Vite 8, Nitro → Cloudflare Worker). Its own
   `AGENTS.md` holds the code conventions; read it before any edit under `src/`. `docs/` there is the architecture
   (API contract, data model, schema.sql, caching, deploy). `npm run check` must pass.
 - `workspace/` — our maps: `01-site-index` (pages, wording, content), `02-tech-stack`, `03-diagrams`, `04-completion-map`.
@@ -24,7 +24,7 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
 - `.claude/skills/` — `mop-work` (load project state first), `design-from-references`, `motion`, `parallel-execution`,
   `codebase-index`. Global skills used here: seo-*, ai-seo, schema-markup, programmatic-seo, social-content,
   content-strategy, email-sequence, copywriting, launch-strategy, analytics-tracking, design-tournament, supabase.
-- `.mcp.json` — codebase-memory graph (project `E-Matter Of Place-Matter Of Place Codebase`). Use it for code questions;
+- `.mcp.json` — codebase-memory graph (project `E-Matter Of Place-app`). Use it for code questions;
   grep for copy/config.
 
 ## The approved stack (2026-09-30) — build only this; details in workspace/02-tech-stack/tech-stack.md
@@ -32,7 +32,7 @@ One Cloudflare Worker (site + `/api/*` + `/admin`), Supabase (Postgres via versi
 magic links, private uploads bucket, pgmq + pg_cron jobs), R2 for photos with variants made once, when a photograph is attached (ASSUMED G66), GitHub
 Actions for CI, deploys and heavy renders (images, ffmpeg reels), Resend (email + Place Notes), Stripe links after
 acceptance, Meta Graph API direct, Sentry, GA4 + Search Console, Turnstile. Free tier first; no paid feature without a
-settled decision. `Matter Of Place Codebase/docs/**` is the Lovable sketch: read for intent, never build from it.
+settled decision. `app/docs/**` is the Lovable sketch: read for intent, never build from it.
 Launch is coming-soon: production shows no illustrative property, ever; an empty collection becomes a per-market interest
 signup. Payments are manual invoices from `/admin` (Stripe later, same table). Legal identity is Omnikom's entity.
 Audit robot runs Saturday mornings. Social at launch: Instagram, X and LinkedIn (S48); Facebook and YouTube exist as disabled channel blocks until further notice; human approval for 60 days.
@@ -57,7 +57,7 @@ catalog JSON are cached under a key of release and catalog version; never add a 
 `mop-dev` (`supabase db push`, `gen types --project-id`, `functions deploy --use-api`) plus the native PostgreSQL 18 for
 throwaway tests. R2 is off until the operator turns it on; nothing may assume a bucket exists.
 
-## Commands (run inside `Matter Of Place Codebase/`, bun is installed)
+## Commands (run inside `app/`, bun is installed)
 ```
 bun run check     # typecheck + lint + prettier
 bun run build     # .output/ for Cloudflare (nitro cloudflare_module)

@@ -1,6 +1,6 @@
 # Tech stack — APPROVED 2026-09-30 (CEO sign-off in session)
 
-This file is the spec we build from. It supersedes `Matter Of Place Codebase/docs/**`, which is the Lovable MVP sketch:
+This file is the spec we build from. It supersedes `app/docs/**`, which is the Lovable MVP sketch:
 read those docs for intent, never build from them (GOTCHAS G-010). Rule: free tier first; pay only when a measured
 limit is hit; fewest accounts possible; nothing deterministic goes through a model.
 
@@ -81,7 +81,7 @@ Cost at launch: $0/month plus the domain. Paid steps, in order of likelihood: Re
 ## 3. Repo layout target
 
 ```
-Matter Of Place Codebase/
+app/
   src/routes/            pages + api/ server routes
   src/server/            handlers; lib/ (db client, log, rate-limit, env, r2, the job enqueuer); jobs/ (steps/ and system/); email/ (B5); payments/ with adapters/ (manual.ts and stripe.ts, B6); channels/ (meta.ts, x.ts, linkedin.ts, youtube.ts by B10, resend.ts by B11)
   src/db/                generated types, query helpers
@@ -97,9 +97,9 @@ E:\Matter Of Place\.github\workflows\   ci.yml, deploy.yml, render.yml, backup.y
 E:\Matter Of Place\.github\dependabot.yml   B1b, repo root as well
 ```
 
-Workflow owners: `ci.yml`, `deploy.yml`, `backup.yml` and `dependabot.yml` are B1b's (later slices add jobs or steps as their plans say); `render.yml` is B8's (B9 and B12 add to it); `audit-scope.yml` is B14's; `audit-deps.yml` is H1's; `audit-collect.yml` exists only if B14 step 8 records the routine's network egress as BLOCKED (B14 step 9). Proof once the owning slices land: `ls "E:/Matter Of Place/.github/workflows"` lists those files and `git ls-files "Matter Of Place Codebase/.github"` prints nothing.
+Workflow owners: `ci.yml`, `deploy.yml`, `backup.yml` and `dependabot.yml` are B1b's (later slices add jobs or steps as their plans say); `render.yml` is B8's (B9 and B12 add to it); `audit-scope.yml` is B14's; `audit-deps.yml` is H1's; `audit-collect.yml` exists only if B14 step 8 records the routine's network egress as BLOCKED (B14 step 9). Proof once the owning slices land: `ls "E:/Matter Of Place/.github/workflows"` lists those files and `git ls-files "app/.github"` prints nothing.
 
-CI and fonts. Jobs set `working-directory: Matter Of Place Codebase`. No job needs Docker (S50). The `db` job runs tests
+CI and fonts. Jobs set `working-directory: app`. No job needs Docker (S50). The `db` job runs tests
 against `mop-dev` with secrets from `PREVIEW_WORKER_SECRETS_JSON` and one shared concurrency group; tests roll back.
 Font files (`public/fonts/*.woff2`) belong to one slice: whichever of B9 and B17 runs first creates them and the other reuses them.
 

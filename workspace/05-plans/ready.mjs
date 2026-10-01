@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..", "..");
-const APP = join(ROOT, "Matter Of Place Codebase");
+const APP = join(ROOT, "app");
 const REPO = "AbdulrahmanAmer/matter-of-place";
 const full = process.argv.includes("--full");
 const rows = [];

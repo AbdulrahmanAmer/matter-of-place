@@ -9,8 +9,8 @@ that breathes. You code every frame; nothing comes from an outside model, stock 
 - Palette only: Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2, Mineral Grey #575751, Warm Grey #8B877F.
 - Type: Jost (300/400/500) for labels, facts, prices; Cormorant Garamond (400/500) for titles and editorial lines;
   Urbanist for UI. Load from Google Fonts in the scene page and wait for `document.fonts.ready` before capturing.
-- Emblem and wordmark: port `Matter Of Place Codebase/src/components/brand/emblem.tsx` and `wordmark.tsx` to inline SVG exactly.
-- Photography: `Matter Of Place Codebase/src/assets/*.jpg` and `src/assets/gallery/*.jpg`; the film `public/media/tiburon-waterline.mp4`.
+- Emblem and wordmark: port `app/src/components/brand/emblem.tsx` and `wordmark.tsx` to inline SVG exactly.
+- Photography: `app/src/assets/*.jpg` and `src/assets/gallery/*.jpg`; the film `public/media/tiburon-waterline.mp4`.
   Content is illustrative: never show a price or street address for a property in a brand film. Product prices are fine.
 - Motion: cross-fades 1.2 to 2 s, image drift 1 to 2 percent over a hold, text fades in over 0.8 s and holds. Never bounce,
   spin, gradients, glow, particles, lens flares, counters, stock transitions. Silence is acceptable; if you add sound,
@@ -21,11 +21,11 @@ that breathes. You code every frame; nothing comes from an outside model, stock 
   "we got your property into Matter of Place".
 
 ## Task
-Work inside `E:\Matter Of Place\launch\` only. Do not modify anything under `E:\Matter Of Place\Matter Of Place Codebase\`
+Work inside `E:\Matter Of Place\launch\` only. Do not modify anything under `E:\Matter Of Place\app\`
 (read-only source of assets and copy). Another worker is editing that codebase at the same time; you only read
 `src/assets`, `src/components/brand`, `src/styles/tokens.css`, `src/data`, `docs/brief`, which it will not touch.
 
-Read first, in this order: `E:\Matter Of Place\CLAUDE.md`; `Matter Of Place Codebase\docs\brief\recalibration.md`
+Read first, in this order: `E:\Matter Of Place\CLAUDE.md`; `app\docs\brief\recalibration.md`
 (positioning, language rules, the four products, programmatic distribution terms, FAQ); `src\data\exposure.ts` (exact
 product names, prices, included items, CTAs, selection steps, editorial qualities); `src\styles\tokens.css`;
 `src\components\brand\emblem.tsx` and `wordmark.tsx`; `src\data\markets.ts` (market names, regions, intro copy);

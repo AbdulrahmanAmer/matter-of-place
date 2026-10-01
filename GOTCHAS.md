@@ -30,7 +30,7 @@ Entry template
 ---
 
 ## G-001 · Generated route tree must never be edited by hand
-- paths: Matter Of Place Codebase/src/routeTree.gen.ts
+- paths: app/src/routeTree.gen.ts
 - severity: block
 - symptom: hand edits vanish on the next `vite dev` or build, and routing silently diverges from the files on disk.
 - cause: `@tanstack/router-plugin` regenerates this file from `src/routes/*`.
@@ -39,7 +39,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-002 · Vite config is plain and explicit; Start's plugin already generates the route tree
-- paths: Matter Of Place Codebase/vite.config.ts
+- paths: app/vite.config.ts
 - severity: warn
 - symptom: duplicate-plugin crash ("plugin already registered"), two route generators fighting, or a build that silently targets Node instead of Cloudflare.
 - cause: `@tanstack/react-start/plugin/vite` bundles the router generator; the Cloudflare target exists only because `nitro({ preset: "cloudflare-module" })` is added on build; nitro invents a worker name from the git remote when none is pinned.
@@ -48,7 +48,7 @@ Entry template
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-003 · Page titles: pass the bare title, `pageHead` adds the suffix
-- paths: Matter Of Place Codebase/src/lib/seo.ts, Matter Of Place Codebase/src/routes/index.tsx
+- paths: app/src/lib/seo.ts, app/src/routes/index.tsx
 - severity: warn
 - symptom: home `<title>` renders "Matter of Place | Exceptional property. Properly considered. | Matter of Place".
 - cause: `pageHead` only skips the " | Matter of Place" suffix when the title already ends with it; the home route passes a title that starts with the brand instead.
@@ -58,7 +58,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-004 · Field names live in three files and must change together
-- paths: Matter Of Place Codebase/src/domain/**, Matter Of Place Codebase/supabase/migrations/**
+- paths: app/src/domain/**, app/supabase/migrations/**
 - severity: warn
 - symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error.
 - cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
@@ -67,7 +67,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-005 · Routes never import bundled data directly
-- paths: Matter Of Place Codebase/src/routes/**
+- paths: app/src/routes/**
 - severity: warn
 - symptom: a page keeps showing illustrative content after the API goes live because it bypassed the service boundary.
 - cause: importing `src/data/*` in a route hard-wires local mode.
@@ -76,7 +76,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-006 · `VITE_*` variables ship to the browser
-- paths: Matter Of Place Codebase/.env.example, Matter Of Place Codebase/src/env.d.ts, Matter Of Place Codebase/src/config/site.ts
+- paths: app/.env.example, app/src/env.d.ts, app/src/config/site.ts
 - severity: warn
 - symptom: a key committed as `VITE_SOMETHING_SECRET` is visible in the built JS.
 - cause: Vite inlines every `VITE_*` value at build time.
@@ -85,7 +85,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-007 · Styling is tokens only: no hex, no utility classes
-- paths: Matter Of Place Codebase/src/styles/**, Matter Of Place Codebase/src/components/**
+- paths: app/src/styles/**, app/src/components/**
 - severity: warn
 - symptom: a colour drifts from the palette or a utility class does nothing (Tailwind was removed on 2026-09-30; it was never imported).
 - cause: ADR 0003; the palette lives in `src/styles/tokens.css` and `--muted` is a surface, `--muted-foreground` is text.
@@ -112,7 +112,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-010 · The codebase `docs/` folder is the Lovable sketch, not the spec
-- paths: Matter Of Place Codebase/docs/**
+- paths: app/docs/**
 - severity: warn
 - symptom: an agent implements `schema.sql`, Cloudflare Queues or request-time image resizing "because the docs say so".
 - cause: those docs were written for an MVP; the CEO-approved spec (2026-09-30) is `workspace/02-tech-stack/tech-stack.md`.
@@ -121,7 +121,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-011 · No paid platform feature without a settled decision
-- paths: Matter Of Place Codebase/wrangler.toml, Matter Of Place Codebase/src/server/**, Matter Of Place Codebase/supabase/**
+- paths: app/wrangler.toml, app/src/server/**, app/supabase/**
 - severity: warn
 - symptom: a binding for Queues, Browser Rendering, Images, Durable Objects, or a Supabase Pro-only feature appears in config.
 - cause: each of those is a monthly bill; the approved stack is free tier first.
@@ -130,11 +130,11 @@ Entry template
 - added: 2026-09-30
 
 ## G-012 · GitHub Actions reads workflows only at the repository root, which is the workspace folder
-- paths: Matter Of Place Codebase/.github/**
+- paths: app/.github/**
 - severity: block
-- symptom: a workflow written under `Matter Of Place Codebase/.github/workflows/` never runs; tech-stack §3 draws the folder under the app, which is where a builder would put it.
+- symptom: a workflow written under `app/.github/workflows/` never runs; tech-stack §3 draws the folder under the app, which is where a builder would put it.
 - cause: the git root is `E:\Matter Of Place` (workspace + app in one repo); GitHub ignores nested `.github` folders.
-- rule: workflows live in `.github/workflows/` at the repo root and set `working-directory: Matter Of Place Codebase` per job; never create `.github` under the app. Correct tech-stack §3 when it is next edited.
+- rule: workflows live in `.github/workflows/` at the repo root and set `working-directory: app` per job; never create `.github` under the app. Correct tech-stack §3 when it is next edited.
 - proof: `git rev-parse --show-toplevel` → `E:/Matter Of Place`; `ls .github/workflows` at the root → README.md (workflows arrive with B1b).
 - added: 2026-09-30
 
@@ -152,9 +152,9 @@ Entry template
 - added: 2026-09-30
 
 ## P-001 · agent-os stage 0 refuses `src/**` even though the app is one folder down
-- symptom: an Edit under `Matter Of Place Codebase/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".
+- symptom: an Edit under `app/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".
 - rule: it is a sequencing gate. Put the finding in POSITION.md or GOTCHAS.md, and ask the operator to advance the STAGE line in PROJECT-STATE.md when the stage gate is met. Do not work around it in `workspace/`.
-- proof: `python ~/.agent-os/scripts/agent_os.py check "Matter Of Place Codebase/src/routes/index.tsx"` → denied.
+- proof: `python ~/.agent-os/scripts/agent_os.py check "app/src/routes/index.tsx"` → denied.
 - added: 2026-09-30
 
 ## P-002 · `npx` on this machine can fail with `ECOMPROMISED Lock compromised`
@@ -320,7 +320,7 @@ Entry template
 - added: 2026-09-30
 
 ## G-013 · Warm Grey on Ivory fails AA contrast for body text
-- paths: Matter Of Place Codebase/src/styles/tokens.css, Matter Of Place Codebase/src/styles/base.css
+- paths: app/src/styles/tokens.css, app/src/styles/base.css
 - severity: warn
 - symptom: `--muted-foreground` (#8B877F) on `--ivory` (#F5F2EB) is about 3.6:1; WCAG 2.2 AA needs 4.5:1 for normal text.
 - rule: Warm Grey is for large text (≥ 24 px or 19 px bold) and metadata only; body copy on Ivory uses Mineral Grey (#575751, about 7:1) or an adjusted token. `scripts/contrast.mjs` (B17 step 5) checks every token pair.
@@ -328,7 +328,7 @@ Entry template
 - added: 2026-10-01
 
 ## G-014 · No third-party request before consent: the Google Fonts link in the root route must go
-- paths: Matter Of Place Codebase/src/routes/__root.tsx
+- paths: app/src/routes/__root.tsx
 - severity: warn
 - symptom: `fonts.googleapis.com` is requested on first paint for every visitor, which sends EU visitors' IPs to Google before any consent (GDPR) and adds a render-blocking third party.
 - rule: fonts are self-hosted WOFF2 subsets (B17 step 2); the only third parties are Turnstile (necessary) and GA4 after consent. `grep -c fonts.googleapis` on the rendered home page must be 0.
@@ -388,7 +388,7 @@ Entry template
 - added: 2026-10-01
 
 ## P-039 · "Unused" is a claim about the whole repository, not the app folder: `launch/` reads images from `src/assets`
-- symptom: a cleanup deleted four images that no file under the app imported. A fresh reviewer found that `launch/03-partner-deck/build.mjs` and `launch/02-partner-presentation/scene.html` read `gallery/desert-colonnade.jpg` straight from `Matter Of Place Codebase/src/assets/`, and the film storyboard names two more. A finder and a verifier had both grepped the app folder only.
+- symptom: a cleanup deleted four images that no file under the app imported. A fresh reviewer found that `launch/03-partner-deck/build.mjs` and `launch/02-partner-presentation/scene.html` read `gallery/desert-colonnade.jpg` straight from `app/src/assets/`, and the film storyboard names two more. A finder and a verifier had both grepped the app folder only.
 - cause: the app's asset folder is also the asset source for the launch deck, presentation and film. A search scoped to the app cannot see those users.
 - rule: before deleting any asset, run `git grep -l -I "<basename>" -- .` from the repo root. A hit under `launch/` or `workspace/` is a user. Only `tribeca.jpg` was unused everywhere.
 - proof: `git grep -l -I "desert-colonnade" -- . ':!workspace/01-site-index'` lists three files under `launch/`.

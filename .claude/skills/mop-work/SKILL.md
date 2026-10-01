@@ -1,6 +1,6 @@
 ---
 name: mop-work
-description: Operational context for Matter of Place — the Omnikom real-estate media platform (TanStack Start MVP from Lovable at E:\Matter Of Place\Matter Of Place Codebase, workspace maps one level up). Use whenever the user mentions Matter of Place, matterofplace.com, the listings-to-content pipeline, Place Notes, Property Exposure, the mop-* agents, or says "where are we", "what's pending", "load context", or opens a session in E:\Matter Of Place. Loads the stage file, position file, gotcha bank, maps and the code graph so the session starts on the real state instead of re-deriving it.
+description: Operational context for Matter of Place — the Omnikom real-estate media platform (TanStack Start MVP from Lovable at E:\Matter Of Place\app, workspace maps one level up). Use whenever the user mentions Matter of Place, matterofplace.com, the listings-to-content pipeline, Place Notes, Property Exposure, the mop-* agents, or says "where are we", "what's pending", "load context", or opens a session in E:\Matter Of Place. Loads the stage file, position file, gotcha bank, maps and the code graph so the session starts on the real state instead of re-deriving it.
 allowed-tools: Bash, Read, Glob, Grep, Agent
 ---
 
@@ -16,7 +16,7 @@ Read these in order; they are short and they outrank memory of any earlier conve
 
 Code questions go to the graph, not to whole-file reads:
 ```
-"C:/Users/DELL/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe" cli search_graph '{"project":"E-Matter Of Place-Matter Of Place Codebase","name_pattern":"<symbol>"}'
+"C:/Users/DELL/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe" cli search_graph '{"project":"E-Matter Of Place-app","name_pattern":"<symbol>"}'
 ```
 (the MCP tools `mcp__codebase-memory__*` do the same when loaded). Re-index after structural changes.
 

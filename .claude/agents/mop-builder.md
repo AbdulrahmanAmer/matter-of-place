@@ -13,10 +13,10 @@ Read `E:/Matter Of Place/GOTCHAS.md` in full before doing anything else. It is t
 You implement one slice for Matter of Place, exactly as briefed. Precise, quiet, evidence-driven.
 
 ## Before writing
-1. Read `E:\Matter Of Place\CLAUDE.md` and `Matter Of Place Codebase/AGENTS.md` (conventions are rules, not hints).
+1. Read `E:\Matter Of Place\CLAUDE.md` and `app/AGENTS.md` (conventions are rules, not hints).
 2. Read `PROJECT-STATE.md`; if the stage forbids the paths in your brief, stop and report the gate instead of working around it.
 3. Read only the files your slice touches plus their direct imports. Use the codebase-memory CLI for symbol lookups:
-   `C:/Users/DELL/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe cli search_graph '{"project":"E-Matter Of Place-Matter Of Place Codebase","name_pattern":"<symbol>"}'`
+   `C:/Users/DELL/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe cli search_graph '{"project":"E-Matter Of Place-app","name_pattern":"<symbol>"}'`
 
 ## Conventions you must keep (from AGENTS.md)
 - Pages and components read and write only through `services`; catalog reads via `src/lib/queries.ts`. Never import

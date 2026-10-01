@@ -14,9 +14,9 @@ DONE
   code-review, pr-review-toolkit, feature-dev, claude-md-management, commit-commands, hookify, cloudflare, resend,
   playwright, typescript-lsp, session-report, context7, skill-creator. agent-os was already installed globally.
 - agent-os: `PROJECT-STATE.md` at STAGE 0, enforcement deny. Verified the gate denies
-  `Matter Of Place Codebase/src/**` and `package.json`, allows `workspace/**`.
+  `app/src/**` and `package.json`, allows `workspace/**`.
 - codebase-memory: `.mcp.json` registered (loads next session); CLI index done: 2322 nodes / 8418 edges,
-  project name `E-Matter Of Place-Matter Of Place Codebase`.
+  project name `E-Matter Of Place-app`.
 - workspace/01-site-index: pages-and-wording.md (20 URLs + chrome + forms + strings + 21 events),
   content-inventory.md (16 properties, 3 markets/12 regions, 6 stories, 4 products, FAQ, types, 31 images, 1 video),
   appendix-data-copy.md.
@@ -45,7 +45,7 @@ DONE (operator asked "what did you skip": gotcha bank + app-folder CLAUDE.md)
 - `.claude/hooks/gotcha-guard.mjs` registered as PreToolUse (Edit|Write|MultiEdit|NotebookEdit) in `.claude/settings.json`.
   Watched-fail tested: routeTree.gen.ts → deny; src/lib/seo.ts → additionalContext; workspace/README.md → silent;
   path outside root → silent; garbage stdin → silent, exit 0.
-- `Matter Of Place Codebase/CLAUDE.md` pointer (the real one is at the workspace root, which Claude Code loads anyway).
+- `app/CLAUDE.md` pointer (the real one is at the workspace root, which Claude Code loads anyway).
 - `.claude/skills/mop-work` (project context loader) + copies of `design-from-references`, `motion`,
   `parallel-execution`, `codebase-index` from the agent-os skills pack.
 

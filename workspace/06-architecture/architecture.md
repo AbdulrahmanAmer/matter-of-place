@@ -21,7 +21,7 @@ Rules that hold everywhere:
 - Every state change goes through a server function in `src/server/<feature>/` that (1) resolves the actor, (2) checks the role, (3) performs the change in a transaction, (4) writes `audit_log`, (5) emits an event that the recipe engine turns into jobs. UI never calls the database.
 - Every side effect is a job with an idempotency key. Nothing external (email, post, render) happens inside a request.
 
-## 2. Module map (`Matter Of Place Codebase/`)
+## 2. Module map (`app/`)
 | Path | Owns | Imports from |
 |---|---|---|
 | `src/routes/*.tsx` | public pages, `head()`, loaders through `src/lib/queries.ts` | `src/services`, `src/components` |
@@ -40,7 +40,7 @@ Rules that hold everywhere:
 | `src/db/` | generated `types.ts`, `queries/*.ts` typed helpers | supabase-js |
 | `supabase/migrations/` | schema | |
 | `supabase/functions/job-runner/` | Edge Function: pop jobs, run light steps, dispatch heavy | shares `src/server/jobs` by import |
-| `scripts/` | `seed.ts` (`--target dev` or `--target prod`, no `local`; `prod` runs only as `--target prod --mode reference --confirm-production` at L1, F17; never a local stack) and `variants.ts` (B2), `render-job.mjs` and `post-callback.mjs` (B8), `render-variants`, `render-cover`, `render-carousel`, `render-story` and `render-og-static` `.mjs` (B9), `render-reel.mjs` (B12); no report export script (campaign reports print from the browser, G22) and no dump script (backups are `pg_dump` inside `.github/workflows/backup.yml`, B1b); this is `Matter Of Place Codebase/scripts/`, while the film engine stays in the repo-root `launch/` | |
+| `scripts/` | `seed.ts` (`--target dev` or `--target prod`, no `local`; `prod` runs only as `--target prod --mode reference --confirm-production` at L1, F17; never a local stack) and `variants.ts` (B2), `render-job.mjs` and `post-callback.mjs` (B8), `render-variants`, `render-cover`, `render-carousel`, `render-story` and `render-og-static` `.mjs` (B9), `render-reel.mjs` (B12); no report export script (campaign reports print from the browser, G22) and no dump script (backups are `pg_dump` inside `.github/workflows/backup.yml`, B1b); this is `app/scripts/`, while the film engine stays in the repo-root `launch/` | |
 | `tests/unit`, `tests/e2e` | Vitest, Playwright | |
 | `E:\Matter Of Place\.github\workflows\` | `ci.yml`, `deploy.yml`, `backup.yml` (B1b), `render.yml` (B8; B9 and B12 add to it), `audit-scope.yml` (B14), `audit-deps.yml` (H1), `audit-collect.yml` (only as B14's fallback); `E:\Matter Of Place\.github\dependabot.yml` (B1b); owners as tech-stack 3 | |
 
