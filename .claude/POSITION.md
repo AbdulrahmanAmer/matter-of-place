@@ -344,3 +344,4 @@ task ends with GitHub, this file and the gotcha bank updated (now a rule in CLAU
 - NEXT: `node workspace/05-plans/ready.mjs --full`, then `Workflow({ name: "build-slice", args: { slice: "B1b" } })`.
 - UNPROVEN until the slice that first runs it (F26 g): `wrangler dev --test-scheduled` on the Nitro build, whether the
   local cache follows `--persist-to`, the hit ratio on the real domain, CPU under real traffic, R2 keys.
+- 2026-10-01 after the merge of PR #5: `ready.mjs --full` on main ends `READY TO BUILD: yes (37 pass, 0 fail, 11 waiting on the operator)`. Leftover local `wrangler dev` on port 8799 stopped (GOTCHAS P-042). Nothing running, no stash, tree clean.

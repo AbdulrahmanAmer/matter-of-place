@@ -407,3 +407,10 @@ Entry template
 - rule: list every input a public render reads, then make each one move the version: content, `settings` (flags, coming-soon, site, environment), `markets.coming_soon`, `redirects`, `slug_history`. The version moves only through B2's function (its triggers and the `bump_catalog_version` step). A new input to a public render is not done until a test shows that changing it changes `x-catalog-version`. No public read queries a table per request (architecture section 13).
 - proof: `grep -n "bumps .catalog_version" workspace/06-architecture/architecture.md` shows rule 4 with the full list; ASSUMED F25 a.
 - added: 2026-10-01
+
+## P-042 · Stopping `wrangler dev` means stopping its parent `node` process: killing `workerd` only makes it respawn
+- symptom: after a local cache test, port 8799 kept a listener. Killing the `workerd.exe` that held the port printed SUCCESS three times and a new `workerd` appeared each time.
+- cause: `bunx wrangler dev` runs as a `node.exe` parent that restarts its `workerd` child. A background `wrangler dev` started with `&` from the Bash tool leaves that parent behind.
+- rule: stop a background `wrangler dev` by its parent. In PowerShell: find `node.exe` or `bun.exe` whose command line contains `wrangler` and the port, stop those, then stop any `workerd`. Filter by process name so the command does not match and kill its own shell (that happened once in this project with a pattern match on the command line). Confirm with `Get-NetTCPConnection -LocalPort <port> -State Listen`.
+- proof: after stopping two `node.exe` parents, `listeners on 8799: 0` and `workerd left: 0`.
+- added: 2026-10-01
