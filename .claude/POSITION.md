@@ -490,3 +490,8 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Resend: domain `matterofplace.com` Verified (us-east-1, return path `send`); three DNS records written to Cloudflare through the API; key `mop-dev` (sending only) copied from the dashboard to `.env` as `RESEND_API_KEY` through the clipboard, never displayed. Facts: ASSUMED E17. GitHub Pro: ASSUMED H5 (declined, B1b step 9 stays BLOCKED).
 - AFTER THE FOLD RETURNS: B5 step 5 and the readiness table still say Resend is missing (their writers own those files right now): bring B5, completion-map A3, `ready.mjs` WAIT list and PLAN.md in line with E17, then `readiness-table.mjs --write`.
 - Still to do for Resend inside the build: webhook registration (B5 step 6, needs the deployed endpoint), Supabase function secret (B5 step 5), production key (L1).
+
+## 2026-10-02 02:05 EDT · Resend completed as far as it can be before the build
+- Operator asked "did you finish everything we need to setup in resend tho?". Checked against the plans: no. Added: full-access key `mop-dev-full` now in `.env` as `RESEND_API_KEY` (the sending-only key cannot reach audiences, broadcasts, contacts, domains or webhooks: ruling H28), and the dev webhook (id 0a3d4d33-f723-4912-ba64-cf8bd262e7a0, seven events, enabled) with its signing secret in `.env` as `RESEND_WEBHOOK_SECRET`. Facts in ASSUMED E17.
+- Left for the build, by design: Supabase function secrets and `PREVIEW_WORKER_SECRETS_JSON` (B5 steps 5, 6), Auth SMTP (B5 step 8), production key and webhook (L1). The unused sending-only key `mop-dev` is still in the dashboard.
+- AFTER THE FOLD: bring B5 (steps 5, 6: no longer BLOCKED on setup A3; key scope per H28), B11 step 8, completion-map A3, `ready.mjs` and PLAN.md in line with E17 and H28.
