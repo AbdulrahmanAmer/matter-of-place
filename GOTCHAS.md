@@ -449,3 +449,17 @@ Entry template
 - rule: scope belongs to the operator. Under a deadline the first move is orchestration (parallel lanes, worktrees, more workers), never a cut. A cut may be recommended in one sentence; it is recorded only after the operator says yes. State what is UNPROVEN about fitting the time.
 - proof: `grep -c "48-hour full build" workspace/05-plans/PLAN.md` prints 1 and `grep -c "launch cut" workspace/05-plans/PLAN.md` prints 1 (the line that says it was withdrawn).
 - added: 2026-10-02
+
+## P-048 · `gh api` with a leading slash under Git Bash, and the billing API
+- symptom: `gh api /users/<login>/settings/billing/usage` answered `invalid API endpoint: "C:/Program Files/Git/users/..."`; without the slash it answered HTTP 404 "This API operation needs the user scope".
+- cause: Git Bash rewrites an argument that starts with `/` into a Windows path; the billing endpoints need the `user` scope, which this `gh` login does not have and only the operator can add (`gh auth refresh -s user` is interactive).
+- rule: write `gh api` endpoints without the leading slash. Measure Actions minutes from the repository API instead: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and sum the run durations (ASSUMED section H, ruling DO-08).
+- proof: both outputs above, 2026-10-02.
+- added: 2026-10-02
+
+## P-049 · `grep -r` from the repository root runs into node_modules and times out
+- symptom: a `grep -rl ... .` at the root did not finish inside the two-minute tool limit and was moved to the background.
+- cause: `app/node_modules` and `launch/node_modules` hold tens of thousands of files; `--include` does not stop the directory walk.
+- rule: search tracked files with `git grep -I` (or the Grep tool). Never `grep -r` from the root.
+- proof: `git grep -c "08-visual-pass"` returns at once.
+- added: 2026-10-02

@@ -456,3 +456,31 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - UNPROVEN: 237 steps in 48 hours; three lanes merging cleanly. WAITING ON OPERATOR for live switches only (built on
   stubs meanwhile): Resend, R2, legal entity, Anthropic key, X, LinkedIn, Meta, Google, GitHub dispatch token, Sentry
   auth token, Omnikom endpoint.
+
+## 2026-10-02 01:05 EDT · Review loops CLOSED; findings being folded into the plans; app folder renamed
+- Zero-blocker audit loop `wf_13d412c3-82e` STOPPED after round 12 (time box, S54). It did NOT reach zero: rounds
+  ended 11 · 5 · 16 findings; round 12's integrator applied 14, 1 not reproduced; decisions recorded as G72, G73.
+  No round 13 result exists, so what round 12's fixes disturbed is UNPROVEN. `check-plans: OK` at every commit.
+- Engineering review `wf_ab396430-d17` DONE: 155 findings (14 critical, 82 major, 59 minor), 137 raw standards.
+  Rulings: ASSUMED section H (27 rows, H1 to H27; every critical and major accepted unless a row changes it; minor not
+  applied). Full text per slice: `workspace/05-plans/review/<slice>.md`, index `review/README.md`,
+  `review/standards-raw.json`.
+- RUNNING: workflow `fold-engineering-review` (run id `wf_38d40906-2cd`, task `w3bh9yj06`): seven Opus writers, one
+  per group of plan files, fold the findings into the plans; an eighth writes `workspace/05-plans/STANDARDS.md`
+  (folder map, rules, mechanical gates, reviewer checklist); a ninth applies cross-file handoffs, adds trace items and
+  runs `check-plans.mjs --require-trace`. When it returns: verify the check myself, `readiness-table.mjs --write`,
+  `ready.mjs --full`, commit, PR `chore/zero-blockers` to main, merge, delete the merged remote branches, then start
+  `Workflow({ name: "build-slice", args: { slice: "B1b" } })` in the main tree (the spine is one lane).
+- Folder cleanup (operator: "properly put anything in it's own folder ... clean and clear no unnecesary things"):
+  the app folder is now `app/` (was "Matter Of Place Codebase"; commit ddc0b4d, 163 references, `bun run check` and
+  `bun run build` pass from the new path); every runbook is `docs/runbooks/<name>.md`; the folder map and the layout
+  check (`scripts/check-layout.mjs`, in `bun run check`) come with STANDARDS.md and B1b. The codebase-memory graph
+  still indexes the old path: re-index `E:/Matter Of Place/app` before using it.
+- `.claude/workflows/build-slice.js`: takes `root` and `base` for lanes; builders and the fresh reviewer are bound
+  to STANDARDS.md and section H.
+- Phase 0 is now B1b, B2, B3, B4 steps 1 to 8 (ruling T-02). Database rule: ruling DB-01 in section H (only main
+  reaches mop-dev once lanes open; a CI `db` job on an ephemeral Supabase stack on the GitHub runner; S50 covers the
+  laptop only). Actions minutes: measure from the repository runs API (P-048).
+- OPERATOR SHOULD KNOW (CTO rulings he may overrule): Docker allowed on GitHub's runners only; raw analytics kept 90
+  days (aggregates 13 months); no second Cloudflare account for previews (risk recorded); GitHub Pro (4 USD a month)
+  recommended, not assumed; largest stored photo 4000 px; agent publishes capped at 5 a day.

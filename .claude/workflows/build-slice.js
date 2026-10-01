@@ -81,7 +81,8 @@ const RULES = `Standing rules for this project (they overrule habit):
 - No Docker on this machine, ever (S50). The database is the cloud project mop-dev. R2 is off until the operator enables it.
 - Facts measured on this machine are in ${ROOT}/workspace/05-plans/ASSUMED.md section E. They overrule older lines anywhere.
 - Secrets live in ${ROOT}/.env (git-ignored). Load them without printing: set -a; . <(tr -d '\\r' < "${BASH_ROOT}/.env" | grep -E '^[A-Z0-9_]+='); set +a   Never cat, echo or paste a value. Never commit a secret.
-${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the repository (a lane of the 48-hour build, S54). Every path you read or write is under it. Never read, edit, check out or run git in ${MAIN}: other lanes and the orchestrator work there. A Supabase CLI command that needs the project link runs \`supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"\` in this tree's app folder first (the link is per folder).\n`}- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge, never force-push, never rewrite pushed history.
+${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the repository (a lane of the 48-hour build, S54). Every path you read or write is under it. Never read, edit, check out or run git in ${MAIN}: other lanes and the orchestrator work there. A Supabase CLI command that needs the project link runs \`supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"\` in this tree's app folder first (the link is per folder). Never push an unmerged migration to mop-dev from a lane (ASSUMED section H, ruling DB-01): your database proof is the \`db\` job of CI on your pull request.\n`}- ${ROOT}/workspace/05-plans/STANDARDS.md binds every line you write: its folder map says where each file lives (a file that fits no row stops you: say so, do not invent a folder), its rules and mechanical gates are part of every proof. ASSUMED section H (the engineering review rulings) overrules older plan text; when a plan line cites a finding id (for example DB-01), its full text is in ${ROOT}/workspace/05-plans/review/${slice}.md.
+- Write only what the step needs. No dead code, no speculative option or abstraction, no comment that restates the code, no swallowed error, no TODO left behind, no file outside the folder map, nothing committed that is build output, a log or a scratch file.- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge, never force-push, never rewrite pushed history.
 - One writer per file: touch only the files your group names, plus ${logPath} (append only).
 - Every new test is watched-fail: break the code it covers, see it red for the right reason, restore.
 - A red result is a valid result. Paste real output. Words to use: UNPROVEN, NOT DONE, BLOCKED. Two failed approaches to one obstacle ends the attempt: record BLOCKED and what would unblock it.
@@ -109,7 +110,7 @@ if (a.only) groups = groups.filter((g) => a.only.includes(g.id))
 const buildPrompt = (g, defects) => `${RULES}
 
 You are building group ${g.id} of slice ${slice}: "${g.title}" (plan steps ${g.steps}).
-The plan is ${planPath}. Read it in full, then ${APP}/AGENTS.md, then only the spec sections the plan cites and the files you will touch.
+The plan is ${planPath}. Read it in full, then ${ROOT}/workspace/05-plans/STANDARDS.md, then ${APP}/AGENTS.md, then only the spec sections the plan cites and the files you will touch.
 Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
 Proof you must run and paste: ${g.proof}
 
@@ -126,7 +127,8 @@ The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs
 1. Re-run every proof command yourself and record what you observed.
 2. Try to refute "done": an invariant of the plan the code breaks, a proof that passes for the wrong reason, a test that cannot fail, a file the group should have created that is missing, a convention in AGENTS.md that is broken, a secret or an em dash in the diff, Docker or R2 assumed.
 3. Run \`bun run check\` in the app folder.
-Verdict "accept" only if every proof reproduced and you found no defect that breaks the contract. Style opinions are not defects.`
+4. Read ${ROOT}/workspace/05-plans/STANDARDS.md and go through its reviewer checklist line by line against the diff, and check every new or moved file against its folder map. A broken rule of STANDARDS.md is a defect: name the rule and the line. So is code the step did not ask for: dead code, an unused export, a speculative option, a comment that restates the code, a swallowed error, a leftover TODO, a scratch or generated file in the commit.
+Verdict "accept" only if every proof reproduced and you found no defect that breaks the contract or the standards. Taste alone is not a defect.`
 
 const out = []
 for (const g of groups) {
