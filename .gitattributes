@@ -3,4 +3,5 @@
 *.jpg binary
 *.mp4 binary
 *.ico binary
-GOTCHAS.md merge=union
+# Merged by entry (workspace/05-plans/merge-gotchas.mjs, ruling H48 (4)); the driver is set in the clone's config.
+GOTCHAS.md merge=gotchas

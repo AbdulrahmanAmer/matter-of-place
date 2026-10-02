@@ -1198,3 +1198,10 @@ Entry template
 - rule: a builder adds the smallest entry for its own files to a gate's configuration and says so in the log (ruling H46 (1)); the build workflow's standing rules say it. When writing a plan step that adds a script spawning a system binary, name `knip.json` in its files.
 - proof: `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
 - added: 2026-10-02
+
+## P-501 · A text merge of two appends to GOTCHAS.md drops the last line of an entry
+- symptom: after merging main into a lane, `check-gotchas` printed `ERROR P-137: no added` (earlier: P-064, P-130, P-132). The built-in `merge=union` driver did it, and so did the hand resolver that "keeps both sides".
+- cause: every entry ends with the same line, `- added: <date>`. Two sides that each append entries share that last line, the merge takes it for common text and writes it once, so the entry in the middle loses it. GitHub ignores merge drivers altogether, so it shows such a pull request as conflicting and starts no run on it (P-136).
+- rule: the bank merges by entry, never by text: `workspace/05-plans/merge-gotchas.mjs` is the merge driver (clone config `merge.gotchas.driver`, `.git/info/attributes` and `.gitattributes`). After any merge that touches the bank run `node workspace/05-plans/check-gotchas.mjs`. A lane brings main in itself when its pull request shows a conflict (ruling H48 (3)).
+- proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree, and `git config merge.gotchas.driver` prints the driver line.
+- added: 2026-10-02
