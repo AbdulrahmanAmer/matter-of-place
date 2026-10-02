@@ -3250,3 +3250,381 @@ For the orchestrator (still open)
 NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository; the first run of the post-merge `merge-gate` job.
 
 GOTCHAS: P-132 added.
+
+## g1 · steps 6
+Builder of group g1 (smoke script and the `deploy.yml` pull request jobs). Commits on `slice/b1b`: `978eb9b` (smoke, deploy.yml, tests, registry, runbook, P-134, P-135), `585a450` (first wait step), `5e175d1` (ten-in-a-row wait, P-136, P-137), and the commit that holds this block. Draft pull request #43. Probe pull requests #44, #47, #50 and #51 were opened and closed unmerged; their branches and Workers are deleted.
+
+Files: `app/scripts/smoke.mjs`, `app/tests/unit/smoke.test.ts`, `.github/workflows/deploy.yml`, `app/package.json` (script `smoke`), `app/tests/unit/hygiene.test.ts`, `app/tests/mutations/B1b.json` (51 new entries: `--check` went from 316 to 367 file entries), `app/docs/runbooks/delivery.md` (sections Smoke and Previews), `GOTCHAS.md`.
+
+Stale facts and plan lines, for the orchestrator:
+- The brief's correction holds: plan E10 and step 8 name `E:/Matter Of Place`; in this lane `.env` loads from `E:/mop-build/spine/.env`, and every command here did that.
+- Plan line 105 diffs `base.sha head.sha` (two dots). Built with three dots (`"$BASE...$HEAD"`): with two, a migration that only `main` gained since the branch left it counts as changed and posts the comment on an unrelated pull request.
+- Plan line 107 gives `preview-cleanup` its own group `preview-cleanup-<n>`. Built in the preview's group `preview-<n>` with `cancel-in-progress: false`, so a preview still deploying cannot bring the Worker back after the delete. The delete forgives only Cloudflare's `[code: 10090]` (a pull request closed before any preview has no Worker), measured below.
+- Plan line 106 comments `$PREVIEW_URL` on every run; built to comment once (`preview: <url>`), the address never changes for a pull request.
+- Not in the plan: a `wait` step before the smoke (P-137). A first deploy of a Worker name answers Cloudflare's own 404 now and then for about 20 s. Step 7's first deploys of `matter-of-place` and `matter-of-place-dev` need the same wait.
+- `hygiene.test.ts`: the plan's single deploy.yml block would go red the moment step 6 writes the file (it asserts the step 7 jobs). The step 6 cases run now; the `production` and `dev` cases are skipped until both jobs exist.
+- H35 (7) and L1 say `wrangler secret bulk` never removes a name. `bunx wrangler secret bulk --help` (4.145.0): "Set a key to null in the JSON file to delete it." An absent key still stays.
+
+BLOCKED (plan defect, P-134): invariant 13a builds the preview in live mode while `PREVIEW_WORKER_SECRETS_JSON` holds `SUPABASE_URL` (true today). Before B3 serves `/api/public/*`, that build answers 500 on `/`, `/properties`, `/markets`, `/california`, `/stories` and `/sitemap.xml`, measured locally and on the deployed probe `pr-51` (below). So `node scripts/smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev` cannot exit 0 and the PR comment (posted after the smoke) cannot appear until B3 lands or a ruling changes the build mode (for example: unset the repository variable `VITE_API_BASE_URL` until B3 merges, which turns every preview to the local adapter; production is not deployed yet). Not changed here without a ruling.
+
+BLOCKED (P-136): pull request #43 is `dirty` on GitHub (`mergeable false`), because main appended P-500 to the bank while this lane appended P-134 to P-137, and GitHub ignores `GOTCHAS.md merge=union`. GitHub starts no `pull_request` run on it until main is merged into `slice/b1b`, which the brief forbids the builder; the orchestrator's step. The runs below on #43 are of `978eb9b`, before main moved.
+
+### Local proofs (`bun run cf:preview` on 8788, `.dev.vars` holds `MOP_ENV=local`, build without `VITE_API_BASE_URL`)
+
+`cd app && bun run build && bun run cf:preview & ; node scripts/smoke.mjs http://127.0.0.1:8788` (output file `scratch/g1s6-smoke-local.txt`)
+```
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/properties
+ok   http://127.0.0.1:8788/markets
+ok   http://127.0.0.1:8788/california
+ok   http://127.0.0.1:8788/stories
+ok   http://127.0.0.1:8788/submit
+ok   http://127.0.0.1:8788/contact
+ok   http://127.0.0.1:8788/sitemap.xml
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: OK http://127.0.0.1:8788
+exit 0
+```
+
+`cd app && node scripts/smoke.mjs http://127.0.0.1:8788 --expect-indexable | tail -3; node scripts/smoke.mjs https://pr-1.holy-meadow-4327.workers.dev --expect-indexable; node scripts/smoke.mjs; node scripts/smoke.mjs http://127.0.0.1:8788 --bogus; SMOKE_FORCE_FAIL=1 node scripts/smoke.mjs http://127.0.0.1:8788` (output file `scratch/g1s6-smoke-cli.txt`)
+```
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: FAILED 8: http://127.0.0.1:8788/ http://127.0.0.1:8788/properties http://127.0.0.1:8788/markets http://127.0.0.1:8788/california http://127.0.0.1:8788/stories http://127.0.0.1:8788/submit http://127.0.0.1:8788/contact http://127.0.0.1:8788/sitemap.xml
+exit 1
+usage: node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]
+--expect-indexable contradicts the host pr-1.holy-meadow-4327.workers.dev
+exit 2
+usage: node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]
+exit 2
+usage: node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]
+exit 2
+smoke forced to fail (SMOKE_FORCE_FAIL)
+exit 1
+```
+
+Watched-fail (c), live: the `x-request-id` check in `smoke.mjs` made to look for `"skip"` and the `headers.set("x-request-id", requestId);` line deleted from `src/server/lib/pipeline.ts` (both by the Edit tool after copying the bytes to `scratch/g1s6-*.saved`), rebuilt, previewed:
+
+`node scripts/smoke.mjs http://127.0.0.1:8788 (check skipped, header removed)` (output file `scratch/g1s6-c-skipped.txt`)
+```
+$ curl -sI http://127.0.0.1:8788/ | grep -ci x-request-id
+0
+$ node scripts/smoke.mjs http://127.0.0.1:8788   (check skipped, header removed)
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/properties
+ok   http://127.0.0.1:8788/markets
+ok   http://127.0.0.1:8788/california
+ok   http://127.0.0.1:8788/stories
+ok   http://127.0.0.1:8788/submit
+ok   http://127.0.0.1:8788/contact
+ok   http://127.0.0.1:8788/sitemap.xml
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: OK http://127.0.0.1:8788
+exit 0
+```
+
+Then `smoke.mjs` restored from its saved bytes (`grep -c 'x-request-id") === null' scripts/smoke.mjs` → 1), same mutated Worker:
+
+`node scripts/smoke.mjs http://127.0.0.1:8788 (check restored, header still removed)` (output file `scratch/g1s6-c-red.txt`)
+```
+$ node scripts/smoke.mjs http://127.0.0.1:8788   (check restored, header still removed)
+FAIL http://127.0.0.1:8788/: no x-request-id
+FAIL http://127.0.0.1:8788/properties: no x-request-id
+FAIL http://127.0.0.1:8788/markets: no x-request-id
+FAIL http://127.0.0.1:8788/california: no x-request-id
+FAIL http://127.0.0.1:8788/stories: no x-request-id
+FAIL http://127.0.0.1:8788/submit: no x-request-id
+FAIL http://127.0.0.1:8788/contact: no x-request-id
+FAIL http://127.0.0.1:8788/sitemap.xml: no x-request-id
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: FAILED 8: http://127.0.0.1:8788/ http://127.0.0.1:8788/properties http://127.0.0.1:8788/markets http://127.0.0.1:8788/california http://127.0.0.1:8788/stories http://127.0.0.1:8788/submit http://127.0.0.1:8788/contact http://127.0.0.1:8788/sitemap.xml
+exit 1
+```
+
+Then `pipeline.ts` restored from its saved bytes (`git status --short src/` empty), `wrangler dev` stopped by its parent `node.exe` (`scratch/g1s6-stop.ps1`, P-042: `listeners on 8788: 0`), and the Worker rebuilt.
+
+Live mode, measured before writing the workflow (P-134): `VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`, `bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type} $p"` for each smoke page:
+```
+500 text/html; charset=utf-8 /
+500 text/html; charset=utf-8 /properties
+500 text/html; charset=utf-8 /markets
+500 text/html; charset=utf-8 /california
+500 text/html; charset=utf-8 /stories
+200 text/html; charset=utf-8 /submit
+200 text/html; charset=utf-8 /contact
+500 application/json /sitemap.xml
+```
+
+### Unit tests and watched-fails (registry replay, `scratch/replay.mjs`, text in the g4 close-out block)
+
+`cd app && bunx vitest run tests/unit/smoke.test.ts tests/unit/hygiene.test.ts (summary lines)` (output file `scratch/g1s6-vitest2.txt`)
+```
+ Test Files  2 passed (2)
+      Tests  63 passed | 7 skipped (70)
+exit 0
+```
+
+`cd app && node ../scratch/replay.mjs c smoke-status ... smoke-usage-url (every smoke.test.ts entry; (c) and (aw) of Verification)` (output file `scratch/g1s6-replay-smoke.txt`)
+```
+RED c: exit=1 expect=true | × fails on no x-request-id on /properties and names the URL 10ms
+RED smoke-status: exit=1 expect=true | × fails on a 500 on /california and names the URL 10ms
+RED smoke-nosniff: exit=1 expect=true | × fails on no nosniff on /contact and names the URL 10ms
+RED smoke-frame: exit=1 expect=true | × fails on x-frame-options SAMEORIGIN on /stories and names the URL 10ms
+RED smoke-robots-noindex: exit=1 expect=true | × fails on no x-robots-tag on /markets and names the URL 9ms
+RED smoke-robots-indexable: exit=1 expect=true | × requires no x-robots-tag on matterofplace.com 12ms
+RED smoke-workers-dev: exit=1 expect=true | × exits 2 before any request when the flag contradicts the host 9ms
+RED smoke-apex: exit=1 expect=true | × requires no x-robots-tag on matterofplace.com 9ms
+RED smoke-default-noindex: exit=1 expect=true | × lets another host follow the flag, noindex by default 11ms
+RED smoke-contradiction: exit=1 expect=true | × exits 2 before any request when the flag contradicts the host 9ms
+RED smoke-home-cache: exit=1 expect=true | × fails on / without must-revalidate and names the URL 9ms
+RED smoke-two-ids: exit=1 expect=true | × fails on one request id on both requests of / and names the URL 15ms
+RED smoke-no-asset: exit=1 expect=true | × fails on / with no /assets/*.js in its HTML and names the URL 11ms
+RED smoke-asset-immutable: exit=1 expect=true | × fails on an asset that is not immutable and names the URL 9ms
+RED smoke-asset-status: exit=1 expect=true | × fails on an asset that answers 404 and names the URL 10ms
+RED smoke-asset-nosniff: exit=1 expect=true | × fails on an asset without nosniff and names the URL 10ms
+RED smoke-media-age: exit=1 expect=true | × fails on the media file kept one hour and names the URL 10ms
+RED smoke-media-status: exit=1 expect=true | × fails on the media file missing and names the URL 10ms
+RED smoke-hook-no-store: exit=1 expect=true | × fails on the hook merged no-store with private and names the URL 10ms
+RED aw: exit=1 expect=true | × returns 1 before any fetch when SMOKE_FORCE_FAIL is 1 (DO-09) 9ms
+RED smoke-redirect: exit=1 expect=true | × passes a complete set of answers and prints one line per URL 37ms
+RED smoke-signal: exit=1 expect=true | × passes a complete set of answers and prints one line per URL 37ms
+RED smoke-retry: exit=1 expect=true | × retries a refused connection and reports the third refusal 12ms
+RED smoke-usage-url: exit=1 expect=true | × refuses a missing base URL, an unknown flag and two flags with exit 2 253ms
+replayed 24, not red 0
+exit 0
+```
+
+`cd app && node ../scratch/replay.mjs o hy-deploy-dependabot ar ar-dev-key as ... hy-cleanup-waits ((o), (ar) twice, (as) of Verification and every step 6 hygiene case)` (output file `scratch/g1s6-replay-hygiene.txt`)
+```
+RED o: exit=1 expect=true | × every pull request job refuses forks and Dependabot (invariants 6 and 8) 10ms
+RED hy-deploy-dependabot: exit=1 expect=true | × every pull request job refuses forks and Dependabot (invariants 6 and 8) 8ms
+RED ar: exit=1 expect=true | × no job a pull request can reach references a database, production or backup secret 10ms
+RED ar-dev-key: exit=1 expect=true | × no job a pull request can reach references a database, production or backup secret 9ms
+RED as: exit=1 expect=true | × the heavy jobs skip drafts and obey CI_HEAVY 10ms
+RED hy-deploy-types: exit=1 expect=true | × runs on pull requests into main, marked ready and closed 8ms
+RED hy-deploy-closed: exit=1 expect=true | × preview-db and preview skip a closed pull request and cleanup runs only on one 9ms
+RED hy-deploy-secret-allow: exit=1 expect=true | × pull request jobs read only the secrets the plan names (13, 15) 10ms
+RED hy-preview-db-once: exit=1 expect=true | × preview-db comments once, on a changed migration only, and touches no database (13) 26ms
+RED hy-preview-db-sql: exit=1 expect=true | × preview-db comments once, on a changed migration only, and touches no database (13) 16ms
+RED hy-preview-db-three-dots: exit=1 expect=true | × preview-db comments once, on a changed migration only, and touches no database (13) 15ms
+RED hy-preview-db-when: exit=1 expect=true | × preview-db comments once, on a changed migration only, and touches no database (13) 15ms
+RED hy-preview-db-supabase: exit=1 expect=true | × preview-db comments once, on a changed migration only, and touches no database (13) 16ms
+RED hy-preview-mop-env: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 12ms
+RED hy-preview-api-base: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 11ms
+RED hy-preview-release: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 12ms
+RED hy-preview-media: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 10ms
+RED hy-preview-turnstile: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 10ms
+RED hy-preview-order: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 12ms
+RED hy-preview-url-once: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 12ms
+RED hy-cleanup-forgive: exit=1 expect=true | × preview-cleanup deletes pr-<n> and forgives only a Worker that never existed 18ms
+RED hy-cleanup-exit: exit=1 expect=true | × preview-cleanup deletes pr-<n> and forgives only a Worker that never existed 9ms
+RED hy-cleanup-waits: exit=1 expect=true | × preview-cleanup deletes pr-<n> and forgives only a Worker that never existed 9ms
+replayed 23, not red 0
+exit 0
+```
+
+`cd app && node ../scratch/replay.mjs hy-wait-reset hy-wait-ten hy-wait-fails hy-preview-wait (the wait step, added after the probes)` (output file `scratch/g1s6-replay-wait.txt`)
+```
+RED hy-preview-wait: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 26ms
+RED hy-wait-reset: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 20ms
+RED hy-wait-ten: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 18ms
+RED hy-wait-fails: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 15ms
+replayed 4, not red 0
+exit 0
+```
+
+`node ../scratch/replay.mjs --check` → `checked 367, bad 0`; `--baseline` on 21 of the new entries (`c`, `aw`, `o`, `ar`, `as`, the order, wait and cleanup ones and others) → `loose 0`.
+
+### Gates
+
+`cd app && bun run check (summary lines, colour codes stripped)` (output file `scratch/g1s6-check.txt`)
+```
+layout: OK (591 files)
+stubs: 15 markers, 0 on closed slices
+All matched files use Prettier code style!
+ Test Files  15 passed (15)
+      Tests  380 passed | 7 skipped (387)
+exit 0
+```
+
+`cd app && bun run build (last lines)` (output file `scratch/g1s6-build.txt`)
+```
+[nitro] ✔ You can preview this build using npx vite preview
+[nitro] ✔ You can deploy this build using npx nitro deploy --prebuilt
+exit 0
+```
+
+`Verification greps (repository root, after git add: P-135)` (output file `scratch/g1s6-greps.txt`)
+```
+$ git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows; echo "exit $?"
+exit 1
+$ grep -c "HAS_DB" .github/workflows/deploy.yml
+3
+$ grep -c "group: mop-dev\|DEV_SUPABASE_PROJECT_REF" .github/workflows/ci.yml
+0
+$ git ls-files --eol .github/workflows/deploy.yml app/scripts/smoke.mjs app/tests/unit/smoke.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	.github/workflows/deploy.yml
+i/lf    w/lf    attr/text=auto eol=lf 	app/scripts/smoke.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	app/tests/unit/smoke.test.ts
+```
+
+`grep -c "HAS_DB"` prints 3, not the plan's "at least 4": the plan counts the `dev` job's env and build lines, which step 7 writes. NOT DONE until step 7.
+
+`cd app && bunx wrangler delete --name pr-990001 --force (a Worker that never existed; .env loaded without printing)` (output file `scratch/g1s6-delete-missing-clean.txt`)
+```
+ ⛅️ wrangler 4.145.0 (update available 4.147.0)
+───────────────────────────────────────────────
+✘ [ERROR] A request to the Cloudflare API (/accounts/5f55b1e09db48961c4366b73b188c7f9/workers/services/pr-990001) failed.
+  This Worker does not exist on this account. [code: 10090]
+  If you think this is a bug, please open an issue at: https://github.com/cloudflare/workers-sdk/issues/new/choose
+exit 1
+```
+
+
+### On GitHub
+Draft PR #43 (`978eb9b`), run `37049324641`: `preview` skipped on the draft (invariant 14), `preview-db` ran:
+
+`gh run view 37049324641 --json jobs; gh run view --job <preview-db> --log | grep -c "supabase "; gh pr view 43 comments; step conclusions` (output file `scratch/g1s6-pr43-previewdb.txt`)
+```
+$ gh run view 37049324641 --json jobs --jq '.jobs[] | [.name,.conclusion,.startedAt,.completedAt] | @tsv'
+preview-db	success	2026-10-02T18:43:12Z	2026-10-02T18:43:24Z
+preview-cleanup	skipped	2026-10-02T18:43:10Z	2026-10-02T18:43:09Z
+preview	skipped	2026-10-02T18:43:25Z	2026-10-02T18:43:24Z
+$ gh run view --job 110978470467 --log | grep -c "supabase "
+0
+$ gh run view --job 110978470467 --log | grep -E "changed=|Run gh|preview-db:"
+2026-10-02T18:43:21.5968955Z ^[[36;1m  echo "changed=true" >> "$GITHUB_OUTPUT"^[[0m
+2026-10-02T18:43:21.5969617Z ^[[36;1m  echo "changed=false" >> "$GITHUB_OUTPUT"^[[0m
+$ gh pr view 43 --json comments --jq ".comments | length"
+0
+Set up job	success
+Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	success
+migrations	success
+comment	skipped
+Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	success
+Complete job	success
+```
+
+Probe PR #44 (ready; deploy.yml as in `978eb9b`), run `37049456480`: `preview-db` success, `preview` failure at `smoke` after `deploy` and `secrets` succeeded. The deploy line printed `--var SENTRY_RELEASE:af010c0169b1c1fe3c5060f6122076055aca98ab`, which is `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/44 --jq .merge_commit_sha`; `wrangler secret bulk` printed `6 secrets successfully created`. The smoke ran two seconds after the first deploy and got Cloudflare's 404 (P-137); first lines (output file `scratch/g1s6-pr44-smoke-head.txt`):
+```
+FAIL https://pr-44.holy-meadow-4327.workers.dev/: status 404; no x-request-id; no nosniff; x-frame-options not DENY; x-robots-tag missing, expected noindex, nofollow
+FAIL https://pr-44.holy-meadow-4327.workers.dev/properties: status 404; no x-request-id; no nosniff; x-frame-options not DENY; x-robots-tag missing, expected noindex, nofollow
+FAIL https://pr-44.holy-meadow-4327.workers.dev/markets: status 404; no x-request-id; no nosniff; x-frame-options not DENY; x-robots-tag missing, expected noindex, nofollow
+```
+Sentry from the deployed preview (step 4's two API calls, `.env` loaded without printing):
+
+`cd app && node ../scratch/g1s6-sentry-read.mjs https://pr-44.holy-meadow-4327.workers.dev` (output file `scratch/g1s6-pr44-sentry.txt`)
+```
+POST https://pr-44.holy-meadow-4327.workers.dev/api/hooks/sentry-test -> 500 code=server requestId=b19bd10d-e8cb-4e3e-9731-4b167a98b66d header=b19bd10d-e8cb-4e3e-9731-4b167a98b66d
+poll 1: issues 0
+poll 2: issues 1
+issue 7767612319 events 1
+tags request_id=b19bd10d-e8cb-4e3e-9731-4b167a98b66d env=preview release=af010c0169b1c1fe3c5060f6122076055aca98ab side=worker route=/api/hooks/sentry-test
+user null
+ip_address|cookie|authorization count 0
+exit 0
+```
+
+Closing #44 ran `preview-cleanup` (run `37049865513`):
+
+`gh run view 37049865513 --json jobs; the delete step's log lines` (output file `scratch/g1s6-pr44-cleanup.txt`)
+```
+$ gh run view 37049865513 --json jobs --jq ...
+preview-cleanup	success	2026-10-02T18:47:58Z	2026-10-02T18:48:17Z
+preview	skipped	2026-10-02T18:47:55Z	2026-10-02T18:47:55Z
+preview-db	skipped	2026-10-02T18:47:55Z	2026-10-02T18:47:55Z
+$ gh run view --job 110980271367 --log (delete step lines)
+﻿2026-10-02T18:48:12.6023506Z ##[group]Run if out=$(bunx wrangler delete --name "$WORKER" --force 2>&1); then
+^[[36;1mif out=$(bunx wrangler delete --name "$WORKER" --force 2>&1); then^[[0m
+^[[36;1melif printf '%s' "$out" | grep -q "code: 10090"; then^[[0m
+^[[36;1m  printf '%s\nno preview Worker %s\n' "$out" "$WORKER"^[[0m
+Successfully deleted pr-44
+```
+
+`bunx wrangler deployments list --name pr-44; curl https://pr-44.holy-meadow-4327.workers.dev/` (output file `scratch/g1s6-pr44-gone.txt`)
+```
+$ bunx wrangler deployments list --name pr-44
+ ⛅️ wrangler 4.145.0 (update available 4.147.0)
+───────────────────────────────────────────────
+✘ [ERROR] A request to the Cloudflare API (/accounts/5f55b1e09db48961c4366b73b188c7f9/workers/scripts/pr-44/deployments) failed.
+  This Worker does not exist on your account. [code: 10007]
+  If you think this is a bug, please open an issue at: https://github.com/cloudflare/workers-sdk/issues/new/choose
+exit 1
+$ curl -s -o /dev/null -w "%{http_code}" https://pr-44.holy-meadow-4327.workers.dev/
+404
+```
+
+`gh run rerun 37049865513 --job 110980271367 (the Worker is gone now), the delete step's log lines` (output file `scratch/g1s6-pr44-cleanup-rerun.txt`)
+```
+^[[36;1m  printf '%s\nno preview Worker %s\n' "$out" "$WORKER"^[[0m
+  This Worker does not exist on this account. [code: 10090]
+no preview Worker pr-44
+```
+
+Probe PR #47 (cut from `slice/b1b` at `585a450`) started no run in ten minutes: `mergeable false`, `dirty` (P-136); closed. Probe PR #50 (cut from `origin/main` with `deploy.yml` and `smoke.mjs` from the lane) ran: the one-answer wait passed after 2 tries and the smoke still got the 404 on most URLs. Measured from the laptop with throwaway Workers (deleted after; `Successfully deleted pr-990002`, `pr-990003`), `scratch/g1s6-propagation2.sh`:
+```
+# bash ../scratch/g1s6-propagation2.sh <worker name>   (from app/, .env loaded, build present)
+# Deploys a throwaway Worker under a new name, then requests / once a second for 150 s and prints
+# one line per request: seconds since deploy, status, whether x-request-id is present, cf-ray colo.
+name="$1"
+bunx wrangler deploy --config .output/server/wrangler.json --name "$name" --var MOP_ENV:local > ../scratch/g1s6-propagation2-deploy.txt 2>&1
+echo "deploy exit $? at $(date -u +%H:%M:%S)"
+start=$(date +%s)
+for i in $(seq 1 150); do
+  h=$(curl -s -m 10 -o /dev/null -D - "https://$name.holy-meadow-4327.workers.dev/" | tr -d '\r')
+  status=$(printf '%s\n' "$h" | head -1 | cut -d' ' -f2)
+  ours=$(printf '%s\n' "$h" | grep -ci '^x-request-id:')
+  ray=$(printf '%s\n' "$h" | grep -i '^cf-ray:' | sed 's/.*-//')
+  echo "$(( $(date +%s) - start )) ${status:-none} ours=$ours $ray"
+  sleep 1
+done
+```
+First lines of its output (file `scratch/g1s6-propagation2.txt`; the remaining 145 lines are all `200 ours=1`):
+```
+deploy exit 0 at 19:15:33
+2 404 ours=0 MRS
+6 200 ours=1 MRS
+11 404 ours=0 MRS
+13 404 ours=0 MRS
+17 404 ours=0 MRS
+21 200 ours=1 MRS
+24 200 ours=1 MRS
+```
+Probe PR #51 (ten-in-a-row wait, `5e175d1`'s deploy.yml on `origin/main`), run `37054383666`, `preview` smoke (output file `scratch/g1s6-pr51-smoke.txt`): every failure is the live-mode 500 of P-134, every other check green.
+```
+the Worker answered ten times in a row after 13 requests
+FAIL https://pr-51.holy-meadow-4327.workers.dev/: status 500; cache-control no-store, expected max-age=0 and must-revalidate
+FAIL https://pr-51.holy-meadow-4327.workers.dev/properties: status 500
+FAIL https://pr-51.holy-meadow-4327.workers.dev/markets: status 500
+FAIL https://pr-51.holy-meadow-4327.workers.dev/california: status 500
+FAIL https://pr-51.holy-meadow-4327.workers.dev/stories: status 500
+ok   https://pr-51.holy-meadow-4327.workers.dev/submit
+ok   https://pr-51.holy-meadow-4327.workers.dev/contact
+FAIL https://pr-51.holy-meadow-4327.workers.dev/sitemap.xml: status 500
+ok   https://pr-51.holy-meadow-4327.workers.dev/
+ok   https://pr-51.holy-meadow-4327.workers.dev/assets/index-BbNBrAYn.js
+ok   https://pr-51.holy-meadow-4327.workers.dev/media/tiburon-waterline.mp4
+ok   https://pr-51.holy-meadow-4327.workers.dev/api/hooks/sentry-test
+smoke: FAILED 6: https://pr-51.holy-meadow-4327.workers.dev/ https://pr-51.holy-meadow-4327.workers.dev/properties https://pr-51.holy-meadow-4327.workers.dev/markets https://pr-51.holy-meadow-4327.workers.dev/california https://pr-51.holy-meadow-4327.workers.dev/stories https://pr-51.holy-meadow-4327.workers.dev/sitemap.xml
+```
+Closing #51 deleted `pr-51` (`Successfully deleted pr-51`); `bunx wrangler deployments list --name` for `pr-44`, `pr-50`, `pr-51` each answers `This Worker does not exist on your account. [code: 10007]`; `git ls-remote --heads origin | grep -c probe` → 0.
+
+Measured cost (C22), now in the workflow header and the runbook: `preview-db` 11 to 19 s, `preview` 38 to 60 s, `preview-cleanup` 19 s, one billed minute each.
+
+NOT DONE or UNPROVEN in step 6:
+- `node scripts/smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev` exit 0 and the `preview: <url>` comment: BLOCKED on P-134 (above).
+- The slice PR #43 marked ready: not done (the brief forbids it); every `preview` proof ran on probe pull requests instead.
+- "A second PR gets its own Worker": `pr-44`, `pr-50` and `pr-51` were each their own Worker, never two open at once; UNPROVEN beyond that.
+- `preview-db` posting its one comment on a migration: B2's first migration pull request (the brief's note: B2's, not a waiting part here).
+- `grep -c "HAS_DB"` at least 4: step 7.
+
+GOTCHAS: P-134, P-135, P-136, P-137 added.

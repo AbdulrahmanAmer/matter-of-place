@@ -2,9 +2,11 @@ name: deploy
 
 # Pull request previews (B1b step 6). Every pull request job refuses forks and Dependabot
 # (invariants 6 and 8), and none links, migrates or reads the dev database (invariant 13).
-# Cost (C22): UNPROVEN until the first runs are measured; the runbook (docs/runbooks/delivery.md,
-# section Previews) holds the measured minutes. Drawn from the 2,000 Actions minutes a month of
-# GOTCHAS P-009 and from the Workers free plan: one pr-<n> Worker per open pull request.
+# Cost (C22), measured on 2026-10-02 (PRs 43, 44, 50, 51): preview-db 11 to 19 s, preview 38 to
+# 60 s, preview-cleanup 19 s, each billed as one whole minute. A push to a draft costs 1 Actions
+# minute here, a push to a ready pull request 2, closing it 1, on top of ci.yml; drawn from the
+# 2,000 minutes a month of GOTCHAS P-009, and one pr-<n> Worker per open ready pull request from
+# the Workers free plan.
 on:
   pull_request:
     branches: [main]

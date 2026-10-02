@@ -144,7 +144,7 @@ the request instead: Nitro's `augmentReq` puts the Worker's bound `waitUntil` on
 `wrangler dev`: the parse succeeded on every request. `process.env.MOP_ENV` is populated from the Worker variables and
 secrets by `nodejs_compat`, so `start.ts` reads it there. Under `bun run dev` there is no Worker and no `waitUntil`;
 the fallback starts the promise and leaves it. Step 4's test event reached Sentry from `wrangler dev`, so `waitUntil`
-ran the report to completion there; on a deployed Worker that stays UNPROVEN until step 7's production test.
+ran the report to completion there, and the preview `pr-44` did the same on a deployed Worker (section Previews).
 
 ### Static asset headers
 
@@ -219,8 +219,9 @@ none links, migrates or reads the database (invariant 13).
   migration merges (DB-01).
 - `preview` runs once the pull request is ready for review and `CI_HEAVY` is not `off`. It builds with the HAS_DB
   switch (invariant 13a), deploys the Worker `pr-<n>` with `MOP_ENV`, `SENTRY_RELEASE` (the merge commit) and
-  `MEDIA_PUBLIC_BASE`, then pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, runs the
-  smoke against `https://pr-<n>.holy-meadow-4327.workers.dev` and comments that address once (`preview: <url>`).
+  `MEDIA_PUBLIC_BASE`, then pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, waits until
+  the Worker answers ten times in a row, runs the smoke against `https://pr-<n>.holy-meadow-4327.workers.dev` and
+  comments that address once (`preview: <url>`).
 - `preview-cleanup` runs when the pull request closes and deletes `pr-<n>`. It shares the preview's concurrency group
   and waits, so a preview still deploying cannot bring the Worker back after the delete. A pull request closed before
   any preview has no Worker; Cloudflare answers `This Worker does not exist on this account. [code: 10090]` (measured
@@ -230,7 +231,23 @@ Until B3 serves `/api/public/*`, a preview built while the bundle holds a databa
 pages answer 500. Measured 2026-10-02 under `bun run cf:preview` on a build with `VITE_API_BASE_URL=/api/public`: `/`,
 `/properties`, `/markets`, `/california` and `/stories` answered `500 text/html`, `/sitemap.xml` `500 application/json`,
 `/submit` and `/contact` 200. The server render calls the API with a relative address, which a Worker cannot fetch. So
-the preview smoke stays red on those URLs until B3 lands, or until the orchestrator rules otherwise.
+the preview smoke stays red on those URLs until B3 lands, or until the orchestrator rules otherwise (GOTCHAS P-134).
+The deployed preview of probe PR #51 answered the same: 500 on those six, every other check of the smoke green.
+
+A Worker name deployed for the first time answers Cloudflare's own 404 (`cache-control: private, max-age=0, no-store,
+...`, no header of ours) now and then for about 20 seconds (GOTCHAS P-137). Probe PR #44 smoked two seconds after the
+deploy and every URL got that 404; PR #50 waited for one answer of ours and most URLs still got it. The `wait` step
+therefore asks for ten answers with `x-request-id` in a row, at most 180 s; on PR #51 it took 13 requests. A redeploy of
+an existing name does not show it, but the first deploy of `matter-of-place` and `matter-of-place-dev` (step 7) will.
+
+The preview reports to Sentry with its own release. Measured on `pr-44`: `POST /api/hooks/sentry-test` with the bundle's
+`SENTRY_TEST_TOKEN` answered 500 with request id `b19bd10d-e8cb-4e3e-9731-4b167a98b66d`, and the stored event carried
+`env` `preview`, `release` `af010c0169b1c1fe3c5060f6122076055aca98ab` (the merge commit the deploy line printed) and
+`user` null. So `waitUntil` runs the report to completion on a deployed Worker too.
+
+Cost, measured on 2026-10-02 (PRs #43, #44, #50, #51): `preview-db` 11 to 19 s, `preview` 38 to 60 s, `preview-cleanup`
+19 s, each billed as one whole minute. A push to a draft costs 1 Actions minute in `deploy.yml`, a push to a ready pull
+request 2, closing it 1, on top of `ci.yml`.
 
 `wrangler secret bulk` (4.145.0) deletes a key whose value is `null` in the JSON it reads (`bunx wrangler secret bulk
 --help`); a key that is simply absent stays on the Worker.
