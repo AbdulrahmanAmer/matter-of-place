@@ -8,10 +8,11 @@ const CREATE =
   "-- down: drop table notes\nset lock_timeout = '5s';\ncreate table notes (id uuid);\n";
 const DROP =
   "-- irreversible: data goes\nset lock_timeout = '5s';\nalter table notes drop column body;\n";
+const NEW_F = "create function f(a text) returns int language sql as $$ select 1 $$;";
 
-// Every destructive kind of STANDARDS R17 and ruling ASSUMED H42 (3), then the places a text scan
-// can lose one: a DO block, a comment before it, a string that holds `--`, a called function body,
-// a function created twice.
+// Every destructive kind of STANDARDS R17 and rulings ASSUMED H42 (3), H43 (1) and H44 (2), then
+// the places a text scan can lose one: a DO block, a comment before it, a string that holds `--`,
+// a called function body, a function created twice.
 const DESTRUCTIVE = [
   { name: "a drop table", kind: "drop table", sql: "drop table public.notes;" },
   { name: "a drop column", kind: "drop column", sql: "alter table notes drop column body;" },
@@ -147,6 +148,22 @@ const DESTRUCTIVE = [
     kind: "drop table",
     sql: "create or replace function f() returns void language plpgsql as $$ begin drop table notes; end $$;\nselect f();\ncreate or replace function f() returns void language sql as $$ select 1 $$;",
   },
+  {
+    name: "a drop of two functions, one created",
+    kind: "drop function",
+    sql: `drop function if exists f(int), g(int);\n${NEW_F}`,
+  },
+  {
+    name: "a function dropped, another created",
+    kind: "drop function",
+    sql: `drop function g(int);\n${NEW_F}`,
+  },
+  {
+    name: "a drop table named like a new function",
+    kind: "drop table",
+    sql: `drop table f;\n${NEW_F}`,
+  },
+  { name: "a truncate", kind: "truncate", sql: "truncate table notes;" },
 ];
 
 // Changes R17 leaves to an ordinary migration.
@@ -228,6 +245,27 @@ const ALLOWED = [
     name: "an added constraint after a line break",
     sql: "alter table notes add\n  constraint notes_body_check check (body is not null);",
   },
+  // Ruling ASSUMED H43 (1): a signature change drops the old function and creates the new one.
+  { name: "a drop then create of one function", sql: `drop function f(int);\n${NEW_F}` },
+  {
+    name: "a drop then create with a schema",
+    sql: "drop function public.f(int);\ncreate function public.f(a text) returns int language sql as $$ select 1 $$;",
+  },
+  { name: "a drop if exists then create", sql: `drop function if exists f(int);\n${NEW_F}` },
+  {
+    name: "the db:fn form of a signature change",
+    sql: "drop function if exists public.f(int);\ncreate function public.f(a int, b int) returns int language sql as $$ select 1 $$;",
+  },
+  {
+    name: "a drop then create of one procedure",
+    sql: "drop procedure p(int);\ncreate procedure p(a text) language sql as $$ select 1 $$;",
+  },
+  // Ruling ASSUMED H44 (2): the word in a comment or a string is not a statement.
+  {
+    name: "a truncate inside a comment",
+    sql: "create table memos (id uuid); -- kept; truncate notes",
+  },
+  { name: "a truncate inside a string", sql: "comment on table notes is 'kept; truncate notes';" },
 ];
 
 function run(added: Record<string, string>, changed: string[] = []) {
@@ -277,7 +315,16 @@ describe("checkMigrations", () => {
 
   it("refuses a contract-of header without a 14-digit version", () => {
     const short = `-- contract-of: 202610\n${DROP}`;
-    expect(run({ [`${DIR}/20261002110000_drop_body.sql`]: short })).toHaveLength(1);
+    expect(run({ [`${DIR}/20261002110000_drop_body.sql`]: short })).toEqual([
+      `destructive change (drop column) without "-- contract-of: <14-digit version>" in its first 30 lines: ${DIR}/20261002110000_drop_body.sql`,
+    ]);
+  });
+
+  it("refuses a contract-of version that is not on main", () => {
+    const stray = `-- contract-of: 20269999000000\n${DROP}`;
+    expect(run({ [`${DIR}/20261002110000_drop_body.sql`]: stray })).toEqual([
+      `contract-of names a version that is not on main: ${DIR}/20261002110000_drop_body.sql`,
+    ]);
   });
 
   it("refuses a contract-of header below line 30", () => {

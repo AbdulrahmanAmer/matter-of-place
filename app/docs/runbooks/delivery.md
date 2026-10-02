@@ -54,6 +54,28 @@ UNPROVEN until the file is on `main` and the first Monday after that (ruling ASS
 A Dependabot pull request gets no Actions secrets, so `scripts/merge-gate.mjs` does not require `preview` on it
 (invariant 8).
 
+## Migration order check
+
+`node scripts/check-migrations.mjs` is the `migration-order` step of the CI `check` job (`bun run migrations:check`
+on the laptop). It refuses a migration already on `main` that the branch edits, renames or deletes, a new file whose
+version is not after the newest on `main`, and a new file with a destructive change that has no
+`-- contract-of: <version>` line in its first 30 lines, or whose line names a version that is not on `main` (ASSUMED
+H44 (1)).
+
+Destructive means: every drop and every rename of an object, a column type change, `set not null`, a new NOT NULL
+column without a default, and `truncate` (H44 (2)). These pass: dropping a trigger or a policy; renaming a policy,
+trigger, index or constraint; dropping a function or procedure when the same file creates one of every name it drops,
+which is how `bun run db:fn` changes a signature (H43 (1)); `alter publication ... drop table` and
+`alter extension ... drop`, because they take an object out of a list and lose nothing (H43 (2)).
+
+What the scan does not read (H43 (4), H44 (2)). A reviewer reads every migration that uses any of these:
+
+- SQL built at run time, with `format()` or by joining strings;
+- a function named in quotes;
+- a trigger created by an earlier migration, whose function this file changes;
+- a table whose name equals a function's name, which reads as a call of that function;
+- `delete from`: a change to data, not to the schema.
+
 ## Decision for step 9: branch protection
 
 BLOCKED. Free private repositories have no branch protection and the operator declined GitHub Pro (ASSUMED H5, about

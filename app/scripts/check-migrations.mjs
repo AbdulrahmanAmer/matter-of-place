@@ -5,17 +5,25 @@ import { fileURLToPath } from "node:url";
 
 const DIR = "supabase/migrations";
 const PREFIX = /^(\d{14})_/;
-const CONTRACT_HEADER = /^-- contract-of: \d{14}\b/m;
+const CONTRACT_HEADER = /^-- contract-of: (\d{14})\b/m;
 const HEADER_LINES = 30;
-// Destructive DDL needs a contract migration (DB-08, STANDARDS R17, ruling ASSUMED H42 (3)).
-// Every drop and rename of an object counts, except dropping a trigger (R17) or a policy and
-// renaming a policy, trigger, index or constraint. A statement starts the text, or follows a
-// PL/pgSQL keyword inside a DO or function body.
+// Destructive DDL needs a contract migration (DB-08, STANDARDS R17, rulings ASSUMED H42 (3), H43,
+// H44). Every drop and rename of an object counts, and `truncate`, except dropping a trigger (R17)
+// or a policy, renaming a policy, trigger, index or constraint, and dropping a function or
+// procedure the same file creates again. A statement starts the text, or follows a PL/pgSQL
+// keyword inside a DO or function body.
 const START = String.raw`(?:^|\b(?:begin|then|else|loop)\s+)`;
 const DROP = new RegExp(
   String.raw`${START}drop\s+(?!trigger\b|policy\b)(materialized\s+view|foreign\s+table|\w+)`,
   "i",
 );
+// `bun run db:fn` writes `drop function if exists public.<name>(<old types>);` before the new
+// `create function` when a signature changes (H43 (1)).
+const ROUTINE_DROP = new RegExp(
+  String.raw`${START}drop\s+(?:function|procedure|routine)\s+(?:if\s+exists\s+)?`,
+  "i",
+);
+const ROUTINE_NAME = /^(?:[\w$]+\s*\.\s*)?([A-Za-z_][\w$]*)/;
 /** @type {[string, RegExp][]} */
 const STATEMENT_RULES = [
   [
@@ -34,6 +42,7 @@ const STATEMENT_RULES = [
     new RegExp(String.raw`${START}alter\s+type\b[\s\S]*\balter\s+attribute\b`, "i"),
   ],
   ["set not null", /\bset\s+not\s+null\b/i],
+  ["truncate", new RegExp(String.raw`${START}truncate\b`, "i")],
 ];
 // Postgres makes the COLUMN keyword optional, so the column rules read each clause of the
 // statement, and a column may be named `type`.
@@ -221,25 +230,47 @@ function bodiesOf(statements) {
 }
 
 /**
+ * Whether the statement drops functions or procedures and the file creates one of every name
+ * it drops. A name in quotes is blanked by the lexer, so it never counts as created.
+ * @param {string} text
+ * @param {Set<string>} created
+ * @returns {boolean}
+ */
+function recreates(text, created) {
+  const head = ROUTINE_DROP.exec(text);
+  return (
+    head !== null &&
+    clausesOf(text.slice(head.index + head[0].length)).every((target) => {
+      const name = ROUTINE_NAME.exec(target)?.[1]?.toLowerCase();
+      return name !== undefined && created.has(name);
+    })
+  );
+}
+
+/**
  * The destructive kinds in the statements. Inside a DO block or a called body every string is
  * read as SQL too, because `execute '<statement>'` is how such a body runs conditional DDL.
  * @param {{ text: string, literals: string[] }[]} statements
  * @param {boolean} inDoBlock
  * @param {Map<string, string[]>} bodies functions of the file a statement may call
+ * @param {Set<string>} created names of every function and procedure the file creates
  * @returns {string[]}
  */
-function destructiveKinds(statements, inDoBlock, bodies) {
+function destructiveKinds(statements, inDoBlock, bodies, created) {
   /**
    * @param {string} literal
    * @param {Map<string, string[]>} callable
    */
-  const read = (literal, callable) => destructiveKinds(statementsOf(literal), true, callable);
+  const read = (literal, callable) =>
+    destructiveKinds(statementsOf(literal), true, callable, created);
   return statements.flatMap(({ text, literals }) => {
     const head = ALTER_TABLE.exec(text);
     const clauses = head === null ? [] : clausesOf(text.slice(head.index + head[0].length));
     const dropped = DROP.exec(text)?.[1]?.replace(/^(?:materialized|foreign)\s+/i, "");
     const own = [
-      ...(dropped === undefined ? [] : [`drop ${dropped.toLowerCase()}`]),
+      ...(dropped === undefined || recreates(text, created)
+        ? []
+        : [`drop ${dropped.toLowerCase()}`]),
       ...STATEMENT_RULES.filter(([, rule]) => rule.test(text)).map(([kind]) => kind),
       ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))).map(
         ([kind]) => kind,
@@ -284,11 +315,17 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
     const text = readFile(file);
     const header = text.split("\n").slice(0, HEADER_LINES).join("\n");
     const statements = statementsOf(text);
-    const kinds = [...new Set(destructiveKinds(statements, false, bodiesOf(statements)))];
-    if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {
-      failures.push(
-        `destructive change (${kinds.join(", ")}) without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,
-      );
+    const bodies = bodiesOf(statements);
+    const kinds = [...new Set(destructiveKinds(statements, false, bodies, new Set(bodies.keys())))];
+    if (kinds.length > 0) {
+      const version = CONTRACT_HEADER.exec(header)?.[1];
+      if (version === undefined) {
+        failures.push(
+          `destructive change (${kinds.join(", ")}) without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,
+        );
+      } else if (!mainPrefixes.includes(version)) {
+        failures.push(`contract-of names a version that is not on main: ${file}`);
+      }
     }
   }
   return failures;

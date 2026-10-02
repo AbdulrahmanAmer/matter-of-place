@@ -1165,7 +1165,7 @@
     "id": "cm-destructive",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {",
+    "find": "if (kinds.length > 0) {",
     "replace": "if (false) {",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop column needs the contract-of header"
@@ -1426,8 +1426,8 @@
     "id": "cm-contract-header",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {",
-    "replace": "if (kinds.length > 0) {",
+    "find": "if (version === undefined) {",
+    "replace": "if (true) {",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "accepts a drop column with the contract-of header"
   },
@@ -1435,8 +1435,8 @@
     "id": "cm-contract-digits",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "/^-- contract-of: \\d{14}\\b/m",
-    "replace": "/^-- contract-of: \\d+/m",
+    "find": "/^-- contract-of: (\\d{14})\\b/m",
+    "replace": "/^-- contract-of: (\\d+)/m",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "refuses a contract-of header without a 14-digit version"
   },
@@ -1844,6 +1844,132 @@
     "replace": "bodies.set(name, literals);",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a function created twice and called needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-recreated",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "dropped === undefined || recreates(text, created)",
+    "replace": "dropped === undefined",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create of one function needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-dbfn",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "dropped === undefined || recreates(text, created)",
+    "replace": "dropped === undefined",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "the db:fn form of a signature change needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^(?:[\\w$]+\\s*\\.\\s*)?([A-Za-z_][\\w$]*)/",
+    "replace": "/^([A-Za-z_][\\w$]*)/",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create with a schema needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-if-exists",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:function|procedure|routine)\\s+(?:if\\s+exists\\s+)?",
+    "replace": "(?:function|procedure|routine)\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop if exists then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-procedure",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "drop\\s+(?:function|procedure|routine)\\s+",
+    "replace": "drop\\s+(?:function|routine)\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create of one procedure needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-every",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": ".every((target) =>",
+    "replace": ".some((target) =>",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop of two functions, one created needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-name",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "created.has(name)",
+    "replace": "created.size > 0",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function dropped, another created needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "drop\\s+(?:function|procedure|routine)\\s+",
+    "replace": "drop\\s+\\w+\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table named like a new function needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-alone",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "return name !== undefined && created.has(name);",
+    "replace": "return true;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop function needs the contract-of header"
+  },
+  {
+    "id": "cm-truncate",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "  [\"truncate\", new RegExp(String.raw`${START}truncate\\b`, \"i\")],\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate needs the contract-of header"
+  },
+  {
+    "id": "cm-truncate-comment",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (pair === \"--\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate inside a comment needs no contract-of header"
+  },
+  {
+    "id": "cm-truncate-string",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate inside a string needs no contract-of header"
+  },
+  {
+    "id": "cm-contract-on-main",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (!mainPrefixes.includes(version)) {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a contract-of version that is not on main"
+  },
+  {
+    "id": "cm-contract-on-main-accept",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (!mainPrefixes.includes(version)) {",
+    "replace": "} else if (true) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "accepts a drop column with the contract-of header"
   },
   {
     "id": "hy-checkout",
