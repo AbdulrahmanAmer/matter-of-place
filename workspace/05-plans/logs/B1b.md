@@ -3126,3 +3126,127 @@ For the orchestrator (files outside this group; review defect 2)
 NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository; the first run of the post-merge `merge-gate` job.
 
 GOTCHAS: P-131 added; P-118 extended.
+
+## c7 · steps 5b
+Round 3: fix of the review of `2370f18`. Commit `66cf0a0` on `slice/b1b` holds the code, registry and bank change; this block is the next commit.
+
+What changed (review defect 1)
+- `app/tests/unit/hygiene.test.ts`: `maxWarnings` in `lint is type-aware, zero-warning and refuses the named rules` was `scripts.lint.includes("--max-warnings 0")`. Since c7 the lint script holds the flag twice (`eslint .` and the merge script's own run), so dropping it from `eslint .`, the run over all of `app/`, stayed green. It now reads `scripts.lint.startsWith("eslint . --max-warnings 0 && ")`. The test `lint runs on it from the repository root` already pins the second flag.
+- `app/tests/mutations/B1b.json`: two entries, one flag each. `hy-lint-warnings-app` removes only the flag of `eslint .`; `hy-lint-warnings-gate` removes only the flag of the merge script's run (its `find` carries `--config app/eslint.config.js`, because `lint:fix` repeats the shorter tail; the first `find` occurred twice, see below). `hy-lint-warnings` (both flags) is kept unchanged (P-093: no id is renamed or reused).
+- `GOTCHAS.md`: P-132 (a text check with `includes` goes blind when a change puts its needle into the text twice; the doubled `find` is its second hit).
+
+The defect, shown before the fix: the old assertion put back by hand (Edit tool), the three entries replayed, then the new assertion restored. The first replay of this pair had `hy-lint-warnings-gate` with the `find` `--max-warnings 0 workspace/05-plans/merge-gate.mjs"` and printed `BAD hy-lint-warnings-gate: find occurs 2 times`; the entry was rewritten before the run below.
+`cd app && node ../scratch/replay.mjs hy-lint-warnings-app hy-lint-warnings-gate hy-lint-warnings` (output file `scratch/c7r3/old-test-replay.txt`)
+```
+RED hy-lint-warnings: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules 52ms
+NOT RED hy-lint-warnings-app: exit=0 expect=false | 
+RED hy-lint-warnings-gate: exit=1 expect=true | × lint runs on it from the repository root, and format:check reads .prettierrc for it 8ms
+replayed 3, not red 1
+exit 1
+```
+
+Watched-fail on the committed assertion:
+`cd app && node ../scratch/replay.mjs hy-lint-warnings-app hy-lint-warnings-gate hy-lint-warnings` (output file `scratch/c7r3/new-test-replay.txt`)
+```
+RED hy-lint-warnings: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules 53ms
+RED hy-lint-warnings-app: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules 68ms
+RED hy-lint-warnings-gate: exit=1 expect=true | × lint runs on it from the repository root, and format:check reads .prettierrc for it 8ms
+replayed 3, not red 0
+exit 0
+```
+
+Each red for the right reason (the `wide` filter of `why-check.mjs`, text in the c7 bank close-out block):
+`cd app && node ../scratch/why-check.mjs wide hy-lint-warnings-app hy-lint-warnings-gate` (output file `scratch/c7r3/why.txt`)
+```
+== hy-lint-warnings-app exit=1
+     × lint is type-aware, zero-warning and refuses the named rules 64ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected { strictTypeChecked: true, …(8) } to deeply equal { strictTypeChecked: true, …(8) }
+-   "maxWarnings": true,
++   "maxWarnings": false,
+== hy-lint-warnings-gate exit=1
+     × lint runs on it from the repository root, and format:check reads .prettierrc for it 8ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected { lint: false, …(1) } to deeply equal { lint: true, …(1) }
+-   "lint": true,
++   "lint": false,
+wide: 2 red runs, 0 without a cause line
+exit 0
+```
+
+The new `expect` values match nothing on the unmutated tree (P-121):
+`cd app && node ../scratch/replay.mjs --baseline hy-lint-warnings-app hy-lint-warnings-gate` (output file `scratch/c7r3/baseline.txt`)
+```
+CLEAN hy-lint-warnings-app
+CLEAN hy-lint-warnings-gate
+baseline 2, loose 0
+exit 0
+```
+
+`cd app && node ../scratch/replay.mjs --check` (output file `scratch/c7r3/replay-check.txt`)
+```
+checked 316, bad 0
+exit 0
+```
+
+`node workspace/05-plans/check-gotchas.mjs` (output file `scratch/c7r3/gotchas.txt`)
+```
+check-gotchas: OK (32 path entries, 123 process entries)
+exit 0
+```
+
+Step 5b proofs on `66cf0a0`'s tree (run before the commit; nothing changed after but the commit itself):
+`cd app && bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts (summary lines, colour codes stripped)` (output file `scratch/c7r3/vitest.txt`)
+```
+ Test Files  2 passed (2)
+      Tests  73 passed | 8 skipped (81)
+exit 0
+```
+
+`cd app && bun run check (summary lines, colour codes stripped)` (output file `scratch/c7r3/check.txt`)
+```
+layout: OK (586 files)
+stubs: 15 markers, 0 on closed slices
+All matched files use Prettier code style!
+ Test Files  14 passed (14)
+      Tests  350 passed | 8 skipped (358)
+exit 0
+```
+
+`cd app && bun run build (last lines, colour codes stripped)` (output file `scratch/c7r3/build.txt`)
+```
+[nitro] ✔ You can preview this build using npx vite preview
+[nitro] ✔ You can deploy this build using npx nitro deploy --prebuilt
+exit 0
+```
+
+The plan's probe (P-105: `66cf0a0` pushed first): `git switch -c gate-probe origin/main~1` (`d686b5d`), a trailing newline added to `app/src/lib/cx.ts`, pushed, `gh pr create --draft` → PR #35; then on `slice/b1b` from the repository root:
+`node workspace/05-plans/merge-gate.mjs 35 (draft, then after gh pr ready 35)` (output file `scratch/c7r3/probe.txt`)
+```
+$ node workspace/05-plans/merge-gate.mjs 35   (draft)
+mark ready first
+exit 1
+✓ Pull request AbdulrahmanAmer/matter-of-place#35 is marked as "ready for review"
+$ node workspace/05-plans/merge-gate.mjs 35   (ready)
+rebase first
+exit 1
+$ gh api repos/AbdulrahmanAmer/matter-of-place/commits/$(gh pr view 35 --json headRefOid --jq .headRefOid)/statuses --jq length
+0
+✓ Closed pull request AbdulrahmanAmer/matter-of-place#35 (gate probe (B1b c7 round 3, closed unmerged))
+✓ Deleted branch gate-probe
+$ gh pr view 35 --json state --jq .state
+CLOSED
+$ git ls-remote --heads origin
+3eab6ae9d5d0e2485b23a80629fd110c6e992ca4	refs/heads/main
+66cf0a0f54a38cf98711f141a1f039fb72363e70	refs/heads/slice/b1b
+```
+
+Re-running this block (review defect 3): every output file named above is kept in the lane's ignored `scratch/c7r3/` and is not deleted. `cd app && node ../scratch/in-log.mjs ../workspace/05-plans/logs/B1b.md ../scratch/c7r3/old-test-replay.txt ../scratch/c7r3/new-test-replay.txt ../scratch/c7r3/why.txt ../scratch/c7r3/baseline.txt ../scratch/c7r3/replay-check.txt ../scratch/c7r3/gotchas.txt ../scratch/c7r3/vitest.txt ../scratch/c7r3/check.txt ../scratch/c7r3/build.txt ../scratch/c7r3/probe.txt` checks every block against its file (the runner's text is in the c7 round 2 block; its output is in the next commit's message, since it reads this block). The raw outputs the summaries were cut from are beside them: `vitest-raw.txt`, `check-raw.txt`, `build-raw.txt`. This block was appended by `scratch/c7r3/compose-log.mjs`, which reads those files and retypes nothing.
+
+For the orchestrator (still open)
+- Review defect 2, unchanged and not built here: the documents-only path of `workspace/05-plans/merge-gate.mjs` merges a pull request that edits the gate itself or any other code under `workspace/**` (`check-plans.mjs`, `check-gotchas.mjs`) with no check, because `ci.yml` ignores `workspace/**` and H42 (2) put the script under the app's gates, which run only locally. UNPROVEN as a protected path until a ruling says which paths under `workspace/**` a documents-only merge may hold.
+- The three items of the c7 bank close-out block stay open: RUNBOOK step 3 (line 25) is stale, STANDARDS G02 (line 366) gives lint as one pass, and `slice/b1b` does not contain `origin/main` (`3eab6ae`), so the gate answers `rebase first` for the B1b pull request until main is merged into the lane (P-072).
+
+NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository; the first run of the post-merge `merge-gate` job.
+
+GOTCHAS: P-132 added.
