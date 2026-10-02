@@ -862,3 +862,70 @@ UNPROVEN:
 - Dependabot: `gh pr list --author "app/dependabot" --state all --json number --jq length` -> `0` today; proved after the first Monday run (2026-10-05).
 - The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases, and the heavy-job `if:` case, as in the first round's list.
 - The engines step compares `BUN_PIN` (a literal kept equal to `engines.bun` and to setup-bun's `bun-version` by the pins case), not the output of `bun --version`; a setup-bun that installed another version than asked would pass it. Not a reviewer defect; named for the orchestrator.
+
+## g6 · steps 5
+
+Fix round 2 after the reviewer's rejection (three defects). Commits `f175423` (the fix), `42e2ade` and `22925fe` (the two deliberate red commits), `a0d1a6d` and `8e93a5d` (their reverts), on `slice/b1b`, draft PR #22.
+
+What changed:
+- `hygiene.test.ts`, defect 1: new case `a step that calls gh reads GH_TOKEN from its env and nowhere else (15)`, the clause of invariant 15 that had no assertion. A step calls `gh` when a line of its `run:` does, or when it runs `node <script>` and that script spawns `gh` (step 5b's `merge-gate` job runs `node scripts/merge-gate.mjs`, which calls `gh api`). Such a step must have `GH_TOKEN` in its `env`, and its `run:` must not hand a token another way (`GH_TOKEN=`, `GITHUB_TOKEN=`, `gh auth login`, an inline `${{ secrets.* }}` or `${{ github.token }}`). No step calls `gh` today, so the case passes on an empty list; the three registry entries add one and watch it red. Stale plan line for the fold: B1b.md line 147 should name this clause of invariant 15 (GOTCHAS P-101, extended).
+- `splitWorkflow` walks the parsed tree only (`contents`, the `jobs` pair, its value), so every `range` it reads is typed non-null and no range guard is left; the reviewer's "half done" line 61 is gone (GOTCHAS P-102).
+- 3 registry entries: `hy-gh-direct` (`gh api user` in the audit step), `hy-gh-script` (`node ../workspace/05-plans/ready.mjs`, a tracked script that spawns `gh`), `hy-gh-token-elsewhere` (`GH_TOKEN` in `env` and a second token piped into `gh auth login`).
+- GOTCHAS, defects 2 and 3: P-102 (yaml types `range` non-null from the parsed tree and nullable from `get()`, so `no-unnecessary-condition` fires on one guard and not the other), P-103 (destructuring a `map`-built array under `noUncheckedIndexedAccess` gives `T | undefined`); P-101 records the repeat.
+
+Proof 1: `cd app && bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  33 passed | 9 skipped (42)
+```
+
+Proof 2: `cd app && node scripts/check-migrations.mjs; echo "exit $?"`
+```
+no migrations
+exit 0
+```
+
+Proof 3: `git ls-files "app/bun.lock"` -> `app/bun.lock`.
+
+Proof 4, CI on the fix commit `f175423`, run 37001450768: `gh run watch --exit-status` exit 0; `gh run view 37001450768 --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'`
+```
+build	success
+check	success
+```
+No job named `audit` or `deno`; check steps `engines`, `Run bun install --frozen-lockfile`, `migration-order`, `Run bun run check`, `audit`. `gh run download 37001450768 -n build-output -D scratch/dl3` -> `nitro.json package-lock.json package.json public server`; `node -p "require('./scratch/dl3/server/wrangler.json').name"` -> `matter-of-place`.
+
+Proof 5, watched-fail (d) in CI: `42e2ade` appends `const x: number = "a";` to `app/src/lib/cx.ts`. Run 37001631430: `gh run watch --exit-status` exit 1, `check failure`, `build success`; `gh run view 37001631430 --log-failed`:
+```
+##[error]src/lib/cx.ts(5,7): error TS2322: Type 'string' is not assignable to type 'number'.
+##[error]src/lib/cx.ts(5,7): error TS6133: 'x' is declared but its value is never read.
+```
+Reverted by `a0d1a6d`; run 37001725655: exit 0, `build success`, `check success`.
+
+Proof 6, watched-fail engines in CI: `22925fe` sets `engines.bun` to `1.3.14`. Run 37001853318: exit 1, `build success`, `check failure`, failed step `engines`; the failed log:
+```
+engines {"bun":"1.3.14","node":"24.x"} runner 1.3.13 24
+```
+Reverted by `8e93a5d`; run 37001929305: exit 0, `check success`, `build success`.
+
+Durations this round (C22): check 63, 54 and 53 s, build 21, 23 and 23 s, each billed as one minute: 2 Actions minutes a run, inside the `ci.yml` header's 2 to 3.
+
+Proof 7, local watched-fails, replay runner of the g4 close-out block (`node ../scratch/replay.mjs`, from `app/`): `--check` -> `checked 158, bad 0`. All 37 entries of step 5 (`bd f g ao ap`, the 4 `cm-*`, the 28 `hy-*`): `replayed 37, not red 0`, among them
+```
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 7ms
+RED hy-gh-direct: exit=1 expect=true | AssertionError: expected [ 'ci.yml check: audit' ] to deeply equal []
+RED hy-gh-script: exit=1 expect=true | AssertionError: expected [ 'ci.yml check: audit' ] to deeply equal []
+RED hy-gh-token-elsewhere: exit=1 expect=true | AssertionError: expected [ 'ci.yml check: audit' ] to deeply equal []
+replayed 37, not red 0
+```
+With `hy-gh-direct` applied by hand the red case is the new one: `× a step that calls gh reads GH_TOKEN from its env and nowhere else (15)`, `Tests 1 failed | 26 passed | 9 skipped (36)`. Control: the same audit step with `env: GH_TOKEN: ${{ github.token }}` and `run: gh api user && bun audit` stays green (`Tests 27 passed | 9 skipped (36)`), so the case does not refuse a correct step. `git status --short` was identical before and after.
+
+Proof 8: `cd app && bun run check` exit 0 (`Test Files 13 passed (13)`, `Tests 221 passed | 9 skipped (230)`); `bun run build` exit 0 (three `built in` lines); `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (27 path entries, 101 process entries)`.
+
+UNPROVEN:
+- Dependabot: `gh pr list --author "app/dependabot" --state all` prints nothing today; proved after the first Monday run (2026-10-05).
+- The `gh` case has never seen a real `gh` step: it is proved by mutations only until step 5b adds the `merge-gate` job. It detects `gh` called from a `run:` line or from a `node <script>` the step runs; a `gh` call reached through `bun run <name>` (a package script) is not followed.
+- The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases, and the heavy-job `if:` case, as in the earlier rounds.
