@@ -622,3 +622,10 @@ Entry template
 - rule: any text that contains a backslash (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`) goes in with the Write or Edit tool, never through a heredoc or an inline script. After a scripted rewrite of such a file, read back the changed lines (`git diff`) before trusting it.
 - proof: `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the `type` row keeps its escapes); the same row written through a heredoc printed `"Estate" | "Residence"` with no backslash.
 - added: 2026-10-02
+
+## P-071 · A relative redirect from `app/` wrote a scratch file outside the worktree
+- symptom: a builder in the lane redirected a check's output to `../../scratch-check.txt` from `E:/mop-build/spine/app`; the file landed in `E:/mop-build/`, outside the repository, and the builder's `rm` was refused there. The reviewer found it on disk.
+- cause: `../..` from `app/` is the lane's parent folder, not the lane. Nothing under git sees a file there, so no gate catches it.
+- rule: a scratch file goes to the session scratchpad or under a path the lane's `.gitignore` covers, never to a relative path that climbs out of the lane. A lane writes nothing outside its own folder. The orchestrator checks `ls E:/mop-build/` after every group: it holds lane folders only.
+- proof: `ls /e/mop-build/` prints `spine` and nothing else.
+- added: 2026-10-02

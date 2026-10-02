@@ -388,7 +388,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | story | string[] | Editorial narrative (one paragraph per entry) |
 | place | string | Setting description |
 | features | string[] | Feature list |
-| representation | Representation | Optional: agent/brokerage details |
+| representation | object | Optional: agent/brokerage details (file-local `representationSchema`) |
 | listingUrl | string | Optional: listing URL |
 | heroRank | number | Optional: home page hero position |
 | featuredRank | number | Optional: home page featured grid position |
@@ -408,7 +408,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 - caption: string
 - duration: string (display duration, e.g. "0:06")
 
-**Representation:**
+**representation** (file-local `representationSchema`):
 - name: string
 - brokerage: string
 - license?: string
