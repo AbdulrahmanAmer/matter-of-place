@@ -27,10 +27,36 @@ const BROWSER_CACHE_CONTROL: Record<CacheKind, string> = {
 };
 
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
-const NOT_PAGE_PREFIXES = ["/api/", "/media/", "/.well-known/", "/_serverFn/"];
+const NOT_PAGE_PREFIXES = ["/api/", "/media/", "/.well-known/", "/_serverfn/"];
 const NEVER_CACHED_PREFIXES = ["/api/admin/", "/api/hooks/"];
+const KEPT_ESCAPES = /(%25|%5C)/i;
+const ESCAPE = /%[0-9A-F]{2}/gi;
 
-const isAdmin = (pathname: string) => pathname === "/admin" || pathname.startsWith("/admin/");
+/** `decodeURI`, or each ASCII escape alone when the whole is malformed, as the router does. */
+function decodeLikeRouter(text: string): string {
+  try {
+    return decodeURI(text);
+  } catch {
+    return text.replace(ESCAPE, (escape) =>
+      Number.parseInt(escape.slice(1), 16) < 0x80 ? decodeURI(escape) : escape,
+    );
+  }
+}
+
+/**
+ * The path as the router matches it (`decodePath` in `@tanstack/router-core`): escapes decoded
+ * except `%25` and `%5C`, leading slashes made one, case ignored. `/API/x`, `/%61pi/x` and
+ * `//api/x` all reach the `/api/x` route, so every prefix rule reads this form.
+ */
+function routePath(pathname: string): string {
+  const decoded = pathname
+    .split(KEPT_ESCAPES)
+    .map((part, index) => (index % 2 === 1 ? part : decodeLikeRouter(part)))
+    .join("");
+  return `/${decoded.replace(/^\/+/, "")}`.toLowerCase();
+}
+
+const isAdmin = (path: string) => path === "/admin" || path.startsWith("/admin/");
 
 /** What the browser may keep; the edge lifetime belongs to the stored copy inside B3's module. */
 export function browserCacheControl(kind: CacheKind): string {
@@ -39,10 +65,11 @@ export function browserCacheControl(kind: CacheKind): string {
 
 /** A page is HTML rendered by the router. A dotted last segment is a document (`/robots.txt`). */
 export function isPageRequest(pathname: string): boolean {
-  if (isAdmin(pathname) || NOT_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  const path = routePath(pathname);
+  if (isAdmin(path) || NOT_PAGE_PREFIXES.some((prefix) => path.startsWith(prefix))) {
     return false;
   }
-  return !(pathname.split("/").at(-1) ?? "").includes(".");
+  return !(path.split("/").at(-1) ?? "").includes(".");
 }
 
 /**
@@ -51,10 +78,11 @@ export function isPageRequest(pathname: string): boolean {
  */
 export function neverCached(request: Request, pathname: string, response?: Response): boolean {
   const search = new URL(request.url).searchParams;
+  const path = routePath(pathname);
   return (
     (request.method !== "GET" && request.method !== "HEAD") ||
-    isAdmin(pathname) ||
-    NEVER_CACHED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    isAdmin(path) ||
+    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
     search.has("preview") ||
     search.has("draft_token") ||
     (response !== undefined && (response.headers.has("set-cookie") || response.status >= 500))
@@ -84,12 +112,10 @@ export function errorJson(
   );
 }
 
-function calmServerError(request: Request, pathname: string, requestId: string): Response {
+function calmServerError(request: Request, underApi: boolean, requestId: string): Response {
   const readsPage = request.method === "GET" || request.method === "HEAD";
   const wantsHtml =
-    readsPage &&
-    !pathname.startsWith("/api/") &&
-    (request.headers.get("accept") ?? "").includes("text/html");
+    readsPage && !underApi && (request.headers.get("accept") ?? "").includes("text/html");
   return wantsHtml
     ? new Response(serverErrorHtml(requestId), {
         status: 500,
@@ -102,9 +128,9 @@ function calmServerError(request: Request, pathname: string, requestId: string):
  * H39 (2): the router renders an API route file that has no handler for the method as a page.
  * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status.
  */
-function apiShellGuard(pathname: string, response: Response, requestId: string): Response {
+function apiShellGuard(underApi: boolean, response: Response, requestId: string): Response {
   const html = (response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html");
-  if (!pathname.startsWith("/api/") || !html) return response;
+  if (!underApi || !html) return response;
   return response.status === 200
     ? errorJson(405, "method_not_allowed", requestId)
     : errorJson(response.status, "not_found", requestId);
@@ -122,6 +148,7 @@ export async function handle(
 ): Promise<Response> {
   const requestId = requestIdOf(request);
   const { pathname } = new URL(request.url);
+  const underApi = routePath(pathname).startsWith("/api/");
   const mopEnv = ctx.env.MOP_ENV ?? "production";
   let flags: Flags = {};
   let response: Response;
@@ -135,9 +162,9 @@ export async function handle(
   } catch (error) {
     logLine("error", "unhandled_error", { requestId, route: pathname });
     ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
-    response = calmServerError(request, pathname, requestId);
+    response = calmServerError(request, underApi, requestId);
   }
-  response = apiShellGuard(pathname, response, requestId);
+  response = apiShellGuard(underApi, response, requestId);
 
   const headers = response.headers;
   headers.set("x-request-id", requestId);

@@ -301,3 +301,226 @@ Proofs, in `app/` (real output):
 Plan lines now stale, for the orchestrator (H39 already overrules them): B1b.md line 131 (`sentry-test` "Returns 404", now the R09 404 body, and the bearer check in the route file, H39 (5)); B1b.md line 126 (`deps.render` runs the request: it now takes `(request, requestId)`); B1b.md line 130 names no input caps for `sentry.ts` (H39 (3)).
 
 UNPROVEN: `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream, dropped by the `/api/` guard, is released without cost on a deployed Worker (nothing measured it). `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+
+## g4 close-out · steps 3b-4
+
+Fix round after the review of `b6ebc7c` (three defects).
+
+What changed:
+1. `pipeline.ts` reads every path the way the router matches it. The router decodes the path (`decodePath` in `@tanstack/router-core`: `decodeURI`, each escape alone when the whole is malformed, `%25` and `%5C` kept, leading slashes made one) and ignores case (`caseSensitive: options.caseSensitive ?? false`, `router.js` line 808), so `/API/...`, `/Api/...`, `/%61pi/...`, `//api/...` and `/api/hoo%E2%84%AAs/...` (the Kelvin sign lower-cases to `k`) all reach `/api/hooks/...`. New file-local `routePath(pathname)` does the same, and the `/api/` guard, `calmServerError`, `isPageRequest` and `neverCached` read it, so B3's callers get the same answer from a raw pathname (`isPageRequest("/API/admin/x")` is now `false`). `/_serverFn/` became `/_serverfn/` in the prefix list, because the path is compared in lower case. Tests: four guard cases, six rule-6 cases and "reads a path as the router matches it" in `pipeline.test.ts`.
+2. `crypto.test.ts` tests the constant-time property: "reads every byte of both arrays when the first byte differs" wraps both arrays in a Proxy that records the indexes read and expects 32 of 32 for each. The reviewer's mutation (the short-circuit compare) is registry entry `crypto-every-byte`, and `crypto-no-early-exit` stops the loop at the first difference; both are red.
+3. Proofs replay from this block: the five scratch scripts this round used are printed below in full (they live in the lane-root `scratch/`, git-ignored, run from `app/`). The earlier close-out block's `scratch/measure-frame.mjs`, `scratch/measure.mjs`, `scratch/replay.mjs`, `scratch/sentry-read.mjs` and `scratch/stop-wrangler.ps1` are gone; the scripts below replace them, and their numbers are re-measured here.
+4. Registry: four entries whose `find` this change moved were rewritten (`u`, `pipe-guard-off`, `pipe-guard-path`, `pipe-guard-html`); ten new entries (`pipe-path-case`, `pipe-path-decode`, `pipe-path-slashes`, `pipe-path-split`, `pipe-path-fallback`, `pipe-path-ascii`, `pipe-path-never-cached`, `pipe-path-page`, `crypto-every-byte`, `crypto-no-early-exit`).
+5. Bank: G-024 (the router matches decoded and without case; prefix rules on the raw pathname miss it), P-087 (ESLint lints `app/scratch/` although git ignores it: this round's first `bun run check` failed with 8 errors from the scratch scripts, which moved to the lane root), P-088 (a log proof that names a deleted scratch script cannot be replayed), P-089 (a security property that does not change the answer needs its own test).
+
+Files: `src/server/lib/pipeline.ts`, `tests/unit/pipeline.test.ts`, `tests/unit/crypto.test.ts`, `tests/mutations/B1b.json`, `GOTCHAS.md`, this log.
+
+Proofs, in `app/` (real output):
+- `bunx vitest run tests/unit/pipeline.test.ts tests/unit/crypto.test.ts` -> `Test Files  2 passed (2)`, `Tests  87 passed (87)`
+- `node ../scratch/replay.mjs --check` -> `checked 103, bad 0`
+- new and moved entries, `node ../scratch/replay.mjs pipe-path-case pipe-path-decode pipe-path-slashes pipe-path-split pipe-path-fallback pipe-path-ascii pipe-path-never-cached pipe-path-page crypto-every-byte crypto-no-early-exit u pipe-guard-off pipe-guard-path pipe-guard-html` -> `replayed 14, not red 0`, among them `RED pipe-path-case: exit=1 expect=true | × answers GET /API/hooks/sentry-test, which the router matches as /api/, with the R09 405`, `RED pipe-path-decode: ... × answers GET /%61pi/hooks/sentry-test, ...`, `RED pipe-path-slashes: ... × answers GET //api/hooks/sentry-test, ...`, `RED pipe-path-split: ... × forces no-store on GET /api/hoo%E2%84%AAs/x%25%E0 (the same beside a malformed escape)`, `RED pipe-path-fallback: ... × reads a path as the router matches it`, `RED pipe-path-ascii: ... URIError: URI malformed`, `RED pipe-path-never-cached: ... × forces no-store on GET /%61pi/hooks/resend (a hook with an escaped letter)`, `RED pipe-path-page: ... × reads a path as the router matches it`, `RED crypto-every-byte: ... × reads every byte of both arrays when the first byte differs`, `RED crypto-no-early-exit: ...` the same
+- every vitest entry, `node ../scratch/replay.mjs --all` -> `replayed 90, not red 0`; `git status --short` the same before and after
+- parse time of the crafted line, `node ../scratch/measure.ts` (Node v24.13.0) -> `line length 28004`, `old pattern ms per run: 170.52, 175.38, 169.13` (a second run `178.09, 168.58, 169.88`; under bun `170.95, 165.38, 164.26`), `captureException ms per run: 25.86, 0.38, 0.22` (the first run loads the module; a second run `26.49, 0.23, 0.13`)
+- `bun run build` exit 0, then `bun run cf:preview` -> `wrangler 4.145.0`, `Using secrets defined in .output\server\.dev.vars`, `Ready on http://127.0.0.1:8788`
+- `MSYS_NO_PATHCONV=1 bash ../scratch/live.sh` (curl `--path-as-is`):
+```
+/api/hooks/sentry-test               GET  405 application/json | cache-control: no-store
+/API/hooks/sentry-test               GET  405 application/json | cache-control: no-store
+/Api/hooks/sentry-test               GET  405 application/json | cache-control: no-store
+/%61pi/hooks/sentry-test             GET  405 application/json | cache-control: no-store
+//api/hooks/sentry-test              GET  308  | cache-control: 
+/api/hoo%E2%84%AAs/sentry-test       GET  405 application/json | cache-control: no-store
+/api/hooks/nothing-here              GET  404 application/json | cache-control: no-store
+/API/hooks/nothing-here              GET  404 application/json | cache-control: no-store
+/ADMIN                               GET  404 text/html; charset=utf-8 | cache-control: no-store
+/Api/Admin/x                         GET  404 application/json | cache-control: no-store
+/                                    GET  200 text/html; charset=utf-8 | cache-control: public, max-age=0, must-revalidate
+/California                          GET  404 text/html; charset=utf-8 | cache-control: public, max-age=0, must-revalidate
+/api/hooks/sentry-test               POST no token: HTTP/1.1 404 Not Found | x-request-id fd9f1c13-10d6-4d8a-a403-1eb117cb5090 | body {"error":{"code":"not_found","message":"There is nothing at this address.","requestId":"fd9f1c13-10d6-4d8a-a403-1eb117cb5090"}}
+/API/hooks/sentry-test               POST no token: HTTP/1.1 404 Not Found | x-request-id f6296f26-bc11-4edd-b619-974884e69cfb | body {"error":{"code":"not_found","message":"There is nothing at this address.","requestId":"f6296f26-bc11-4edd-b619-974884e69cfb"}}
+/%61pi/hooks/sentry-test             POST no token: HTTP/1.1 404 Not Found | x-request-id 403eb143-e6fc-45a7-85cd-238d62338f2e | body {"error":{"code":"not_found","message":"There is nothing at this address.","requestId":"403eb143-e6fc-45a7-85cd-238d62338f2e"}}
+wrong bearer: HTTP/1.1 404 Not Found | x-request-id d4e3d470-279f-48fa-adee-93813c16fe71 | id in body equals header: 1
+no scheme: HTTP/1.1 404 Not Found | x-request-id cfd9fd08-4197-473f-b21d-cdffa494c071 | id in body equals header: 1
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+x-request-id: 35affba0-9e21-451f-ac12-8e9affd82021
+body {"error":{"code":"server","message":"Something went wrong. Please try again in a moment.","requestId":"35affba0-9e21-451f-ac12-8e9affd82021"}}
+```
+  The reviewer measured, before this fix, `200 text/html; charset=utf-8` and `Cache-Control: public, max-age=0, must-revalidate` for `/API/...`, `/Api/...` and `/%61pi/...`. `//api/...` answers a bare `308` to `/api/hooks/sentry-test` with no `x-request-id` (so it is not our pipeline: the runtime normalises it first), and following it (`curl -L`) gives `405 application/json`. `/ADMIN` is a 404 page because `/admin` does not exist until B7; its answer is `no-store` all the same. `/California` is not a route (case is ignored, the page does not exist).
+- Sentry round trip, `node ../scratch/sentry-read.mjs 35affba0-9e21-451f-ac12-8e9affd82021` -> `poll 1: issues 0`, `poll 2: issues 0`, `poll 3: issues 1`, `issue 7767612319 | SentryTestError: Sentry test error for [email]`, `events 1`, `tags {"env":"local","release":"dev","request_id":"35affba0-9e21-451f-ac12-8e9affd82021","route":"/API/hooks/sentry-test","side":"worker"}`, `user null`, `request entry false`, `ip/cookie/authorization count 0`, `test@example.com count 0`. The same through the lower-case path in the first preview run: request id `199c780e-0277-44f4-a625-598bf64cdfad`, `poll 3: issues 1`, tags `route":"/api/hooks/sentry-test"`, `user null`, counts `0` and `0`.
+- stop (P-042), `powershell -NoProfile -ExecutionPolicy Bypass -File ../scratch/stop-wrangler.ps1` -> first run `stopped node.exe 27448`, `stopped node.exe 17632`, `listeners on 8788: 0`, `workerd left: 0`; second run `stopped node.exe 21788`, `stopped node.exe 12168`, `listeners on 8788: 0`, `workerd left: 0`
+- P-087, measured: `bun run check` with the scripts in `app/scratch/` -> exit 1, `Parsing error: E:\mop-build\spine\app\scratch\measure.ts was not found by the project service` and seven `prettier/prettier` errors on the `.mjs` files; `bunx eslint --max-warnings 0 scratch/zz-scratch.mjs` -> `1:25  error  Insert ';'  prettier/prettier`, exit 1; `app/scratch` removed after
+- `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (24 path entries, 87 process entries)`
+- `bun run check` -> exit 0: `layout: OK (577 files)`, eslint silent, knip `Configuration hints (4)` (g3's), `Found 0 clones.`, `stubs: 15 markers, 0 on closed slices`, `All matched files use Prettier code style!`, `Test Files  11 passed (11)`, `Tests  175 passed (175)`
+- `bun run build` -> exit 0, `built in 1.21s`, `built in 710ms`, `built in 532ms`
+
+Replay tools (save each under the lane-root `scratch/`, git-ignored; run from `app/`; the `.env` names are loaded without printing):
+
+`scratch/replay.mjs`
+```js
+// Replays watched-fail entries of tests/mutations/B1b.json from app/.
+// node ../scratch/replay.mjs --check          every file entry's find occurs exactly once
+// node ../scratch/replay.mjs <id> [<id> ...]  apply, run, expect red matching `expect`, restore
+// node ../scratch/replay.mjs --all            the same for every file entry run by vitest
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+const args = process.argv.slice(2);
+const files = entries.filter((e) => e.kind === undefined);
+const count = (text, find) => text.split(find).length - 1;
+
+if (args[0] === "--check") {
+  const bad = files.filter((e) => count(readFileSync(e.file, "utf8"), e.find) !== 1);
+  for (const e of bad) console.log(`BAD ${e.id}: find occurs ${count(readFileSync(e.file, "utf8"), e.find)} times`);
+  console.log(`checked ${files.length}, bad ${bad.length}`);
+  process.exit(bad.length === 0 ? 0 : 1);
+}
+
+const chosen =
+  args[0] === "--all"
+    ? files.filter((e) => e.run.startsWith("bunx vitest"))
+    : files.filter((e) => args.includes(e.id));
+let notRed = 0;
+for (const e of chosen) {
+  const saved = readFileSync(e.file);
+  const text = saved.toString("utf8");
+  if (count(text, e.find) !== 1) {
+    console.log(`BAD ${e.id}: find occurs ${count(text, e.find)} times`);
+    notRed += 1;
+    continue;
+  }
+  writeFileSync(e.file, text.replace(e.find, () => e.replace));
+  let exit = 0;
+  let out = "";
+  try {
+    out = execSync(e.run, { encoding: "utf8", stdio: "pipe" });
+  } catch (error) {
+    exit = error.status ?? 1;
+    out = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  } finally {
+    writeFileSync(e.file, saved);
+  }
+  const matched = new RegExp(e.expect).test(out);
+  const red = exit !== 0 && matched;
+  if (!red) notRed += 1;
+  const line = out.split("\n").find((l) => new RegExp(e.expect).test(l)) ?? "";
+  console.log(`${red ? "RED" : "NOT RED"} ${e.id}: exit=${exit} expect=${matched} | ${line.trim().slice(0, 140)}`);
+}
+console.log(`replayed ${chosen.length}, not red ${notRed}`);
+process.exit(notRed === 0 ? 0 : 1);
+```
+
+`scratch/measure.ts`
+```ts
+// node ../scratch/measure.ts   (Node 24 strips the types; from app/; ASSUMED H39 (3) parse time of the crafted 28 KB line)
+// Old: the two-lazy-group frame pattern sentry.ts used before the close-out, on the full line.
+// New: the whole captureException with that line as the stack; fetch is stubbed, nothing is sent.
+import { captureException } from "../app/src/server/lib/sentry.ts";
+
+const line = "at " + "a:1:1 (".repeat(4000) + "x";
+const OLD_FRAME = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/;
+const time = (run: () => unknown) => {
+  const start = performance.now();
+  run();
+  return (performance.now() - start).toFixed(2);
+};
+console.log(`line length ${line.length}`);
+console.log(`old pattern ms per run: ${[1, 2, 3].map(() => time(() => OLD_FRAME.exec(line))).join(", ")}`);
+
+globalThis.fetch = () => Promise.resolve(new Response(null, { status: 200 }));
+const error = Object.assign(new Error("crafted"), { stack: `Error: crafted\n${line}` });
+const runs: string[] = [];
+for (let index = 0; index < 3; index += 1) {
+  const start = performance.now();
+  await captureException(error, {
+    dsn: "https://key@o1.ingest.sentry.io/1",
+    requestId: `measure-${index}-request`,
+    route: `/measure/${index}`,
+    env: "local",
+    release: "dev",
+  });
+  runs.push((performance.now() - start).toFixed(2));
+}
+console.log(`captureException ms per run: ${runs.join(", ")}`);
+```
+
+`scratch/sentry-read.mjs`
+```js
+// node ../scratch/sentry-read.mjs <request id>   (SENTRY_AUTH_TOKEN loaded from .env, never printed)
+// Polls the issues query for the id, then reads the stored event and prints what it carries.
+const id = process.argv[2];
+const headers = { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` };
+const api = "https://sentry.io/api/0";
+const get = async (url) => {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const response = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
+      return await response.json();
+    } catch (error) {
+      if (attempt === 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+};
+let issues = [];
+for (let poll = 1; poll <= 20 && issues.length === 0; poll += 1) {
+  if (poll > 1) await new Promise((resolve) => setTimeout(resolve, 6000));
+  issues = await get(`${api}/projects/matter-of-place/javascript-tanstackstart-react/issues/?query=request_id:${id}`);
+  console.log(`poll ${poll}: issues ${issues.length}`);
+}
+if (issues.length === 0) process.exit(1);
+console.log(`issue ${issues[0].id} | ${issues[0].title}`);
+const events = await get(`${api}/organizations/matter-of-place/issues/${issues[0].id}/events/?query=request_id:${id}&full=true`);
+console.log(`events ${events.length}`);
+const event = events[0];
+const text = JSON.stringify(event);
+console.log(`tags ${JSON.stringify(Object.fromEntries(event.tags.map((t) => [t.key, t.value]).filter(([k]) => ["request_id", "env", "release", "side", "route"].includes(k))))}`);
+console.log(`user ${JSON.stringify(event.user)}`);
+console.log(`request entry ${event.entries.some((e) => e.type === "request")}`);
+console.log(`ip/cookie/authorization count ${(text.match(/ip_address|cookie|authorization/gi) ?? []).length}`);
+console.log(`test@example.com count ${text.split("test@example.com").length - 1}`);
+```
+
+`scratch/live.sh`
+```bash
+#!/usr/bin/env bash
+# Live proofs of the /api/ guard and rule 6 under `bun run cf:preview` (port 8788). Run from app/.
+set -a; . <(tr -d '\r' < "/e/mop-build/spine/.env" | grep -E '^[A-Z0-9_]+='); set +a
+B=http://127.0.0.1:8788
+for p in /api/hooks/sentry-test /API/hooks/sentry-test /Api/hooks/sentry-test /%61pi/hooks/sentry-test //api/hooks/sentry-test /api/hoo%E2%84%AAs/sentry-test /api/hooks/nothing-here /API/hooks/nothing-here /ADMIN /Api/Admin/x / /California; do
+  cc=$(curl -s --path-as-is -D - -o /dev/null "$B$p" | tr -d '\r' | grep -i '^cache-control:' | cut -d' ' -f2-)
+  printf '%-36s GET  %s | cache-control: %s\n' "$p" "$(curl -s --path-as-is -o /dev/null -w '%{http_code} %{content_type}' "$B$p")" "$cc"
+done
+for p in /api/hooks/sentry-test /API/hooks/sentry-test /%61pi/hooks/sentry-test; do
+  h=$(curl -s --path-as-is -D - -o ../scratch/body.json -X POST "$B$p" | tr -d '\r')
+  id=$(printf '%s\n' "$h" | grep -i '^x-request-id:' | cut -d' ' -f2)
+  printf '%-36s POST no token: %s | x-request-id %s | body %s\n' "$p" "$(printf '%s\n' "$h" | head -1)" "$id" "$(cat ../scratch/body.json)"
+done
+for auth in "authorization: Bearer wrong-token-value" "authorization: $PREVIEW_SENTRY_TEST_TOKEN"; do
+  h=$(curl -s -D - -o ../scratch/body.json -X POST -H "$auth" "$B/api/hooks/sentry-test" | tr -d '\r')
+  id=$(printf '%s\n' "$h" | grep -i '^x-request-id:' | cut -d' ' -f2)
+  case "$auth" in *wrong*) n="wrong bearer" ;; *) n="no scheme" ;; esac
+  echo "$n: $(printf '%s\n' "$h" | head -1) | x-request-id $id | id in body equals header: $(grep -c "\"requestId\":\"$id\"" ../scratch/body.json)"
+done
+curl -s --path-as-is -D - -o ../scratch/body.json -X POST -H "authorization: Bearer $PREVIEW_SENTRY_TEST_TOKEN" "$B/API/hooks/sentry-test" | tr -d '\r' | grep -i '^HTTP\|^cache-control\|^x-request-id\|^content-type'
+echo "body $(cat ../scratch/body.json)"
+```
+
+`scratch/stop-wrangler.ps1`
+```powershell
+# Stops `wrangler dev` on port 8788 by its parents first (GOTCHAS P-042), then any workerd.
+$parents = Get-CimInstance Win32_Process -Filter "Name = 'node.exe' OR Name = 'bun.exe'" |
+  Where-Object { $_.CommandLine -like '*wrangler*' -and $_.CommandLine -like '*8788*' }
+foreach ($p in $parents) { Stop-Process -Id $p.ProcessId -Force; "stopped $($p.Name) $($p.ProcessId)" }
+Start-Sleep -Seconds 2
+Get-Process workerd -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.Id -Force; "stopped workerd $($_.Id)" }
+Start-Sleep -Seconds 1
+"listeners on 8788: $(@(Get-NetTCPConnection -LocalPort 8788 -State Listen -ErrorAction SilentlyContinue).Count)"
+"workerd left: $(@(Get-Process workerd -ErrorAction SilentlyContinue).Count)"
+```
+
+Plan lines for the orchestrator: none new. B3's cache module and B7's admin wrapper classify paths through `isPageRequest` and `neverCached` (G-024), not their own `startsWith`.
+
+UNPROVEN: that a deployed Worker (not `wrangler dev`) answers `//api/...` with the same bare 308 before the pipeline; `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream dropped by the `/api/` guard is released without cost on a deployed Worker. `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).

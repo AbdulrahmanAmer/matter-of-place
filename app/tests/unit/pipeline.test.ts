@@ -156,6 +156,18 @@ describe("a path under /api/ never answers the page shell (H39 (2))", () => {
     });
   });
 
+  it.each([
+    "/API/hooks/sentry-test",
+    "/Api/hooks/sentry-test",
+    "/%61pi/hooks/sentry-test",
+    "//api/hooks/sentry-test",
+  ])("answers GET %s, which the router matches as /api/, with the R09 405", async (path) => {
+    const response = await setup({ render: shell(200) }).run(get(path));
+    expect(response.status).toBe(405);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.parse(await response.json()).error.code).toBe("method_not_allowed");
+  });
+
   it("answers a page shell of 404 under /api/ with the R09 404", async () => {
     const response = await setup({ render: shell(404) }).run(get("/api/hooks/nothing-here"));
     expect(response.status).toBe(404);
@@ -185,6 +197,12 @@ describe("rule 6: never cached", () => {
     ["GET", "/api/admin/properties", "an admin read"],
     ["GET", "/api/hooks/resend", "a hook"],
     ["GET", "/admin", "the admin page"],
+    ["GET", "/ADMIN", "the admin page in capitals"],
+    ["GET", "/API/hooks/sentry-test", "a hook in capitals"],
+    ["GET", "/Api/Admin/properties", "an admin read in mixed case"],
+    ["GET", "/%61pi/hooks/resend", "a hook with an escaped letter"],
+    ["GET", "/api/hoo%E2%84%AAs/resend", "a hook spelled with the Kelvin sign"],
+    ["GET", "/api/hoo%E2%84%AAs/x%25%E0", "the same beside a malformed escape"],
   ];
 
   it.each(cases)("forces no-store on %s %s (%s)", async (method, path) => {
@@ -326,6 +344,15 @@ describe("which requests reach the cache hook", () => {
     expect(isPageRequest("/robots.txt")).toBe(false);
     expect(isPageRequest("/api/public/markets")).toBe(false);
     expect(isPageRequest("/admin/properties")).toBe(false);
+  });
+
+  it("reads a path as the router matches it", () => {
+    expect(isPageRequest("/API/admin/x")).toBe(false);
+    expect(isPageRequest("/%61dmin")).toBe(false);
+    expect(isPageRequest("/%41PI/x%E0")).toBe(false);
+    expect(isPageRequest("//media/a")).toBe(false);
+    expect(isPageRequest("/%2561pi/x")).toBe(true);
+    expect(isPageRequest("/California")).toBe(true);
   });
 });
 

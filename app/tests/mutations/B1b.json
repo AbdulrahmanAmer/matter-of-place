@@ -372,8 +372,8 @@
     "id": "u",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\");",
-    "replace": "    (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\") &&\n    pathname === \"\";",
+    "find": "    readsPage && !underApi && (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\");",
+    "replace": "    readsPage && !underApi && (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\") && underApi;",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "answers a page request that accepts HTML with the HTML page and the id"
   },
@@ -723,7 +723,7 @@
     "id": "pipe-guard-off",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  response = apiShellGuard(pathname, response, requestId);\n",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
     "replace": "",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "answers GET /api/hooks/sentry-test rendered as a"
@@ -750,7 +750,7 @@
     "id": "pipe-guard-path",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  if (!pathname.startsWith(\"/api/\") || !html) return response;",
+    "find": "  if (!underApi || !html) return response;",
     "replace": "  if (!html) return response;",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "leaves a page and an API answer that is not HTML untouched"
@@ -759,8 +759,8 @@
     "id": "pipe-guard-html",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  if (!pathname.startsWith(\"/api/\") || !html) return response;",
-    "replace": "  if (!pathname.startsWith(\"/api/\")) return response;",
+    "find": "  if (!underApi || !html) return response;",
+    "replace": "  if (!underApi) return response;",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "leaves a page and an API answer that is not HTML untouched"
   },
@@ -844,5 +844,95 @@
     "replace": "value: String(error)",
     "run": "bunx vitest run tests/unit/sentry.test.ts",
     "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "pipe-path-case",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return `/${decoded.replace(/^\\/+/, \"\")}`.toLowerCase();",
+    "replace": "  return `/${decoded.replace(/^\\/+/, \"\")}`;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /API/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-decode",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "(index % 2 === 1 ? part : decodeLikeRouter(part))",
+    "replace": "part",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /%61pi/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-slashes",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "decoded.replace(/^\\/+/, \"\")",
+    "replace": "decoded",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET //api/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-split",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    .split(KEPT_ESCAPES)",
+    "replace": "    .split(/(?!)/)",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "the same beside a malformed escape"
+  },
+  {
+    "id": "pipe-path-fallback",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    return text.replace(ESCAPE, (escape) =>",
+    "replace": "    return text;\n    return text.replace(ESCAPE, (escape) =>",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "reads a path as the router matches it"
+  },
+  {
+    "id": "pipe-path-ascii",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "      Number.parseInt(escape.slice(1), 16) < 0x80 ? decodeURI(escape) : escape,",
+    "replace": "      decodeURI(escape),",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "URIError: URI malformed"
+  },
+  {
+    "id": "pipe-path-never-cached",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||",
+    "replace": "    NEVER_CACHED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "forces no-store on GET /%61pi/hooks/resend"
+  },
+  {
+    "id": "pipe-path-page",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  const path = routePath(pathname);\n  if (isAdmin(path)",
+    "replace": "  const path = pathname;\n  if (isAdmin(path)",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "reads a path as the router matches it"
+  },
+  {
+    "id": "crypto-every-byte",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "    difference |= (a[index] ?? 0) ^ (b[index] ?? 0);",
+    "replace": "    if (a[index] !== b[index]) return false;",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "reads every byte of both arrays when the first byte differs"
+  },
+  {
+    "id": "crypto-no-early-exit",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  for (let index = 0; index < a.length; index += 1) {",
+    "replace": "  for (let index = 0; index < a.length && difference === 0; index += 1) {",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "reads every byte of both arrays when the first byte differs"
   }
 ]

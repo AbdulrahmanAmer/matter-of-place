@@ -819,3 +819,33 @@ Entry template
 - rule: a helper returns what it read (`answerOf(response)` returning status, headers and the parsed body) and the test asserts it with one `expect(...).toEqual(...)`. Do not add helper names to the rule's config to make a test pass.
 - proof: a scratch `tests/unit/zz-scratch.test.ts` with `function check(value: number) { expect(value).toBe(1); }` and `it("checks in a helper", () => { check(1); });` → `cd app && bunx eslint --max-warnings 0 tests/unit/zz-scratch.test.ts; echo $?` prints `Test has no assertions  vitest/expect-expect` and `1` (measured 2026-10-02); `bunx eslint --max-warnings 0 tests/unit/sentry-test-route.test.ts` → exit `0`.
 - added: 2026-10-02
+
+## G-024 · The router matches a path decoded and without regard to case; a prefix rule on the raw pathname does not
+- paths: app/src/server/lib/pipeline.ts, app/src/server/public/**, app/src/server/lib/admin-route.ts
+- severity: warn
+- symptom: the `/api/` guard (H39 (2)) and the rule-6 prefix lists compared `new URL(request.url).pathname` with `startsWith`. A reviewer sent `GET /API/hooks/sentry-test`, `/Api/...` and `/%61pi/...` (curl `--path-as-is`) under `cf:preview`: each answered the page shell, `200 text/html`, with `Cache-Control: public, max-age=0, must-revalidate` instead of `no-store`, and a POST with the right bearer to `/API/...` still reached the handler. `isPageRequest("/API/admin/x")` was `true`, so B3's cache hook would have seen an admin API read.
+- cause: `@tanstack/router-core` matches with `caseSensitive: false` by default (`router.js` line 808) and decodes the path first (`decodePath` in `utils.js`: `decodeURI`, each escape alone when the whole is malformed, `%25` and `%5C` kept, leading slashes made one). `toLowerCase` also turns the Kelvin sign (`%E2%84%AA`) into `k`. WHATWG `URL` decodes none of this.
+- rule: every rule that classifies a request by its path reads it through `routePath` in `pipeline.ts` (via `isPageRequest`, `neverCached` or `handle`); B3's cache module and B7's admin wrapper call those functions and never write their own `startsWith` on a pathname. A new prefix constant is written lower case.
+- proof: `cd app && bunx vitest run tests/unit/pipeline.test.ts` passes, and registry entries `pipe-path-case`, `pipe-path-decode`, `pipe-path-slashes`, `pipe-path-split`, `pipe-path-never-cached` and `pipe-path-page` turn it red; under `cf:preview` `curl -s --path-as-is -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/%61pi/hooks/sentry-test` → `405 application/json` (before: `200 text/html; charset=utf-8`).
+- added: 2026-10-02
+
+## P-087 · ESLint lints `app/scratch/` although git ignores it, so a scratch script there fails `bun run check`
+- symptom: in the B1b g4 close-out the replay and measurement scripts lived in `app/scratch/` (ignored by the root `.gitignore`); `bun run check` failed with 8 errors: `Parsing error: ...scratch/measure.ts was not found by the project service` and `prettier/prettier` on the `.mjs` files.
+- cause: flat-config ESLint does not read `.gitignore`; `app/eslint.config.js` ignores only build folders and generated files.
+- rule: scratch files go to the lane root `E:/mop-build/<lane>/scratch/` (ignored, outside `app/`, so no app gate sees it) or the session scratchpad; run them from `app/` as `node ../scratch/<file>`. Never add `scratch` to the lint config to make room for it.
+- proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (measured 2026-10-02); `rm -rf scratch` after.
+- added: 2026-10-02
+
+## P-088 · A slice log's proof named scratch scripts that were then deleted, so a reviewer could not replay it
+- symptom: the first g4 close-out block of `workspace/05-plans/logs/B1b.md` cited `node scratch/sentry-read.mjs`, `scratch/measure-frame.mjs`, `scratch/measure.mjs`, `scratch/replay.mjs` and `scratch/stop-wrangler.ps1`; the folder was gone when the reviewer came, who had to rebuild each script to check the claims. The review listed it as a defect.
+- cause: scratch files are never committed (STANDARDS 1.2), and the log treated them as if they were.
+- rule: a proof in a slice log is a command someone else can run: a tracked script, a self-contained command, or a scratch script whose full text is in the log block beside its output (fenced, written with the Edit tool so backslashes survive, P-070).
+- proof: `git grep -c "^// node ../scratch/replay.mjs --check" -- workspace/05-plans/logs/B1b.md` → `1` (the replay runner's text is in the log).
+- added: 2026-10-02
+
+## P-089 · A security property needs a test that breaks when the property goes and the answer stays
+- symptom: `timingSafeEqual` in `crypto.ts` (CS-04) had tests for equal, unequal and different-length arrays. A reviewer replaced the XOR loop with `if (a[index] !== b[index]) return false;` and all 27 crypto and route tests stayed green: the function still returned the right booleans, it just leaked where the first difference was.
+- cause: the tests checked the result, and the property (every byte is read whatever the first difference) does not change the result.
+- rule: for a property that does not change the output (constant time, no early exit, a signal passed, a header never stored), test the behaviour that carries it: here a Proxy over each array counts the indexes read when the first byte differs, and both must be all 32. Write the mutation that keeps the answer and drops the property, and see it red.
+- proof: `cd app && bunx vitest run tests/unit/crypto.test.ts` passes; registry entries `crypto-every-byte` (the reviewer's mutation) and `crypto-no-early-exit` turn it red with `× reads every byte of both arrays when the first byte differs`.
+- added: 2026-10-02

@@ -85,6 +85,25 @@ describe("timingSafeEqual", () => {
     flipped[9] = (flipped[9] ?? 0) ^ 0x01;
     expect(timingSafeEqual(text("same bytes"), flipped)).toBe(false);
   });
+
+  // The time it takes must not tell where the first difference is (CS-04), so it reads them all.
+  it("reads every byte of both arrays when the first byte differs", () => {
+    const watched = (bytes: Uint8Array) => {
+      const reads = new Set<string>();
+      const proxy = new Proxy(bytes, {
+        get(target, key) {
+          if (typeof key === "string" && /^\d+$/.test(key)) reads.add(key);
+          const value: unknown = Reflect.get(target, key);
+          return value;
+        },
+      });
+      return { proxy, reads };
+    };
+    const a = watched(filled(32, 0x00));
+    const b = watched(filled(32, 0xff));
+    expect(timingSafeEqual(a.proxy, b.proxy)).toBe(false);
+    expect([a.reads.size, b.reads.size]).toEqual([32, 32]);
+  });
 });
 
 describe("hashes and encodings", () => {
