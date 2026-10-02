@@ -2146,8 +2146,8 @@
     "id": "hy-lint-warnings",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"lint\": \"eslint . --max-warnings 0\",",
-    "replace": "\"lint\": \"eslint .\",",
+    "find": "\"lint\": \"eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
+    "replace": "\"lint\": \"eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "lint is type-aware, zero-warning and refuses the named rules"
   },
@@ -2538,7 +2538,7 @@
     "find": "if (checks.status !== 0 || rows.length === 0) {",
     "replace": "if (checks.status !== 0 && rows.length > 0) {",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
-    "expect": "refuses a pull request that has no checks, and writes nothing"
+    "expect": "refuses when the checks cannot be read, and writes nothing"
   },
   {
     "id": "mg-draft",
@@ -2647,5 +2647,167 @@
     "replace": "",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "reads no steps for a check that is not a job of ours"
+  },
+  {
+    "id": "mg-post-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (status.status !== 0) return refuse(",
+    "replace": "if (status.status === 99) return refuse(",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses and merges nothing when posting the status fails"
+  },
+  {
+    "id": "mg-merge-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return { code: merge.status === 0 ? 0 : 1, lines };",
+    "replace": "return { code: 0, lines };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "exits 1 when gh pr merge fails"
+  },
+  {
+    "id": "mg-docs-nochecks",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const NO_CHECKS = /^no checks reported/;",
+    "replace": "const NO_CHECKS = /^never/;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-every",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return other === undefined ? \"\" : ",
+    "replace": "return true ? \"\" : ",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check that changes app/src/start"
+  },
+  {
+    "id": "mg-docs-anchor",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return new RegExp(`^${source}$`);",
+    "replace": "return new RegExp(source);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check that changes app/a"
+  },
+  {
+    "id": "mg-docs-root",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "[\"**/\", \"(?:.*/)?\"],",
+    "replace": "[\"**/\", \".*/\"],",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-main",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "`origin/main:${CI_YML}`",
+    "replace": "`HEAD:${CI_YML}`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-ci-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (ci.status !== 0) return",
+    "replace": "if (ci.status === 99) return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when ci.yml cannot be read on origin/main"
+  },
+  {
+    "id": "mg-docs-wildcard",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  if (/[?[\\]!+{}\\\\]/.test(pattern)) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when paths-ignore holds a wildcard the gate does not read"
+  },
+  {
+    "id": "mg-docs-unread",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  if (patterns === null) return \"merge-gate: no checks, and the paths-ignore of ci.yml is unread\";\n",
+    "replace": "  if (patterns === null) return \"\";\n",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when paths-ignore holds a wildcard the gate does not read"
+  },
+  {
+    "id": "mg-docs-count",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (paths.length === 0 || String(paths.length) !== count) {",
+    "replace": "if (paths.length === 0) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when gh lists fewer files than the pull request changes"
+  },
+  {
+    "id": "mg-docs-empty",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (paths.length === 0 || String(paths.length) !== count) {",
+    "replace": "if (String(paths.length) !== count) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check and no changed file"
+  },
+  {
+    "id": "mg-docs-files-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (files.status !== 0) return",
+    "replace": "if (files.status === 99) return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the changed files cannot be read"
+  },
+  {
+    "id": "mg-gate-type",
+    "test": "bun run typecheck",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "/** @type {number} */\nconst CI_YML = \".github/workflows/ci.yml\";",
+    "run": "bun run typecheck",
+    "expect": "merge-gate\\.mjs\\(\\d+,\\d+\\): error TS2322"
+  },
+  {
+    "id": "mg-gate-lint",
+    "test": "bun run lint",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "const CI_YML = \".github/workflows/ci.yml\";\nPromise.resolve(CI_YML);",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-floating-promises"
+  },
+  {
+    "id": "mg-gate-format",
+    "test": "bun run format:check",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "const CI_YML = '.github/workflows/ci.yml';",
+    "run": "bun run format:check",
+    "expect": "warn\\S*\\] \\.\\./workspace/05-plans/merge-gate\\.mjs"
+  },
+  {
+    "id": "mg-gate-format-config",
+    "test": "bun run format:check",
+    "file": "package.json",
+    "find": "\"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "replace": "\"prettier --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "run": "bun run format:check",
+    "expect": "warn\\S*\\] \\.\\./workspace/05-plans/merge-gate\\.mjs"
+  },
+  {
+    "id": "mg-gate-lint-prettier",
+    "test": "bun run lint",
+    "file": "eslint.config.js",
+    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "replace": "",
+    "run": "bun run lint",
+    "expect": "workspace.05-plans.merge-gate\\.mjs[\\s\\S]*prettier/prettier"
   }
 ]

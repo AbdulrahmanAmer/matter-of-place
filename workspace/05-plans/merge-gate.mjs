@@ -4,7 +4,8 @@
 // In order: refuses a draft, a head that does not contain origin/main, and any check that is
 // failed, pending or cancelled, and prints every job that passed with all its steps skipped; then
 // posts the commit status merge-gate=success on the head and merges with a merge commit pinned
-// to that head. The post-merge ci job `merge-gate`
+// to that head. A pull request with no check at all merges only when every changed path is in the
+// paths-ignore of ci.yml on origin/main (ASSUMED H42 (1)). The post-merge ci job `merge-gate`
 // (app/scripts/merge-gate.mjs) verifies the status and the required checks again, so a merge that
 // skipped this script cannot deploy.
 import { spawnSync } from "node:child_process";
@@ -12,6 +13,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = "AbdulrahmanAmer/matter-of-place";
+const CI_YML = ".github/workflows/ci.yml";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
@@ -32,6 +34,84 @@ function runHere(command, args) {
 
 // The steps the runner adds to every job; a job passes "all skipped" when every other step did.
 const BOOKKEEPING = /^(Set up job|Complete job|Post )/;
+
+// What gh 2.92.0 writes to stderr, with exit 1, for a pull request no workflow ran on.
+const NO_CHECKS = /^no checks reported/;
+
+// ci.yml writes the patterns as one flow list of double-quoted strings; any other form is not
+// read, so the gate refuses rather than guesses.
+const PATHS_IGNORE =
+  /^ {2}pull_request:\n(?: {4}.*\n)*? {4}paths-ignore: \[("[^"]*"(?:, "[^"]*")*)\]$/m;
+
+const WILDCARDS = new Map([
+  ["**/", "(?:.*/)?"],
+  ["**", ".*"],
+  ["*", "[^/]*"],
+]);
+
+/**
+ * A GitHub filter pattern that uses only `**` and `*`, as a regular expression; any other special
+ * character gives null.
+ * @param {string} pattern
+ * @returns {RegExp | null}
+ */
+function globToRegExp(pattern) {
+  if (/[?[\]!+{}\\]/.test(pattern)) return null;
+  const source = pattern
+    .split(/(\*\*\/|\*\*|\*)/)
+    .map((part) => WILDCARDS.get(part) ?? part.replace(/[.^$|()]/g, "\\$&"))
+    .join("");
+  return new RegExp(`^${source}$`);
+}
+
+/**
+ * The `paths-ignore` patterns of the `pull_request` trigger, or null when they cannot be read.
+ * @param {string} text
+ * @returns {RegExp[] | null}
+ */
+function pathsIgnore(text) {
+  const list = PATHS_IGNORE.exec(text)?.[1];
+  if (list === undefined) return null;
+  /** @type {RegExp[]} */
+  const patterns = [];
+  for (const [, pattern = ""] of list.matchAll(/"([^"]*)"/g)) {
+    const regex = globToRegExp(pattern);
+    if (regex === null) return null;
+    patterns.push(regex);
+  }
+  return patterns;
+}
+
+/**
+ * A pull request no workflow ran on (H42 (1)): every changed path must match a `paths-ignore`
+ * pattern of ci.yml on origin/main, where the PR cannot have widened the list. `files` holds at
+ * most 100 paths, so a list shorter than `changedFiles` is refused.
+ * @param {string} pr
+ * @param {Run} run
+ * @returns {string} the refusal, or "" for documents only
+ */
+function documentsOnly(pr, run) {
+  const ci = run("git", ["show", `origin/main:${CI_YML}`]);
+  if (ci.status !== 0) return `merge-gate: no checks, and ci.yml cannot be read: ${ci.err}`;
+  const patterns = pathsIgnore(ci.out);
+  if (patterns === null) return "merge-gate: no checks, and the paths-ignore of ci.yml is unread";
+  const files = run("gh", [
+    "pr",
+    "view",
+    pr,
+    "--json",
+    "changedFiles,files",
+    "--jq",
+    ".changedFiles, .files[].path",
+  ]);
+  if (files.status !== 0) return `merge-gate: cannot read the changed files: ${files.err}`;
+  const [count, ...paths] = files.out.split("\n");
+  if (paths.length === 0 || String(paths.length) !== count) {
+    return `merge-gate: no checks, and ${String(paths.length)} of ${count ?? ""} changed files listed`;
+  }
+  const other = paths.find((path) => !patterns.some((pattern) => pattern.test(path)));
+  return other === undefined ? "" : `merge-gate: no checks reported and ${other} is not a document`;
+}
 
 /**
  * @param {string} text
@@ -89,15 +169,19 @@ export function mergeGate(pr, run) {
     ".[] | [.bucket, .workflow, .name, .link] | @tsv",
   ]);
   const rows = tsv(checks.out);
-  if (checks.status !== 0 || rows.length === 0) {
+  if (checks.status !== 0 && NO_CHECKS.test(checks.err)) {
+    const refusal = documentsOnly(pr, run);
+    if (refusal !== "") return refuse(refusal);
+    lines.push("documents only: no check expected");
+  } else if (checks.status !== 0 || rows.length === 0) {
     return refuse(
-      `merge-gate: no checks to read (gh pr checks exit ${checks.status}) ${checks.err}`.trim(),
+      `merge-gate: no checks to read (gh pr checks exit ${String(checks.status)}) ${checks.err}`.trim(),
     );
   }
   let blocked = false;
-  for (const [bucket, workflow, name, link] of rows) {
+  for (const [bucket = "", workflow = "", name = "", link = ""] of rows) {
     if (bucket === "pass") {
-      const jobId = /\/actions\/runs\/\d+\/job\/(\d+)/.exec(link ?? "")?.[1];
+      const jobId = /\/actions\/runs\/\d+\/job\/(\d+)/.exec(link)?.[1];
       if (jobId === undefined) continue;
       const steps = run("gh", [
         "api",
@@ -114,7 +198,7 @@ export function mergeGate(pr, run) {
       }
       continue;
     }
-    lines.push(`${bucket === "skipping" ? "skipped" : String(bucket)}: ${workflow} ${name}`);
+    lines.push(`${bucket === "skipping" ? "skipped" : bucket}: ${workflow} ${name}`);
     if (bucket !== "skipping") blocked = true;
   }
   if (blocked) return refuse("merge-gate: checks are not all green");

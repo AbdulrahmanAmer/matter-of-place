@@ -8,6 +8,13 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import { readFileSync } from "node:fs";
+
+// The orchestrator's merge script sits outside app/ (ASSUMED H42 (2)). ESLint refuses a file above
+// its base path, so `bun run lint` lints it in a second run from the repository root with this
+// config, where the path below is relative to that root.
+const MERGE_GATE = "workspace/05-plans/merge-gate.mjs";
+const prettierOptions = JSON.parse(readFileSync(new URL(".prettierrc", import.meta.url), "utf8"));
 
 // Deno-loaded files (CS-01): the job runner imports them, so every relative, `@/server/` and
 // `@/domain/` import or re-export carries its `.ts` or `.tsx` extension. A slash inside an esquery
@@ -192,7 +199,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["scripts/**/*.{ts,mjs}"],
+    files: ["scripts/**/*.{ts,mjs}", MERGE_GATE],
     extends: [js.configs.recommended, tseslint.configs.strictTypeChecked],
     languageOptions: {
       globals: globals.node,
@@ -254,4 +261,6 @@ export default defineConfig(
   },
   ...syntaxBlocks(),
   eslintPluginPrettier,
+  // Prettier looks for its config beside the file, and no folder above this one holds one.
+  { files: [MERGE_GATE], rules: { "prettier/prettier": ["error", prettierOptions] } },
 );
