@@ -2152,6 +2152,24 @@
     "expect": "lint is type-aware, zero-warning and refuses the named rules"
   },
   {
+    "id": "hy-lint-warnings-app",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"lint\": \"eslint . --max-warnings 0 && cd ..",
+    "replace": "\"lint\": \"eslint . && cd ..",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-lint-warnings-gate",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "--config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\"",
+    "replace": "--config app/eslint.config.js workspace/05-plans/merge-gate.mjs\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
     "id": "hy-lint-floating",
     "test": "tests/unit/hygiene.test.ts",
     "file": "eslint.config.js",
