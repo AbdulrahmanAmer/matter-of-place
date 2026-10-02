@@ -1,0 +1,8 @@
+name = "matter-of-place"
+
+[vars]
+MOP_ENV = "production"
+MEDIA_PUBLIC_BASE = "https://matterofplace.com/media"
+
+[observability]
+enabled = true
