@@ -650,3 +650,10 @@ Entry template
 - rule: a scratch file goes to the session scratchpad or under a path the lane's `.gitignore` covers, never to a relative path that climbs out of the lane. A lane writes nothing outside its own folder. The orchestrator checks `ls E:/mop-build/` after every group: it holds lane folders only.
 - proof: `ls /e/mop-build/` prints `spine` and nothing else.
 - added: 2026-10-02
+
+## P-072 · Merging main into a lane: both sides append to the bank, the merge conflicts, and a shared last line goes missing
+- symptom: `git merge origin/main` on `slice/b1b` stopped with a conflict in `GOTCHAS.md` only. Keeping both sides left entry P-064 without its `- added:` line: git had treated the identical last line of both sides as common text and placed it after the conflict block, so it stayed with the lane's last entry.
+- cause: main and the lane each append entries at the end of the same file, and every entry ends with the same `- added: <date>` line.
+- rule: while one lane is open, the orchestrator adds its own bank entries on the lane's branch, not on main. When a merge does conflict in the bank, keep both sides (main's entries first), then run `node workspace/05-plans/check-gotchas.mjs` before committing: it names the entry that lost a line or a number used twice. Lanes take the next free number above the highest in both copies. History is never rewritten: bring main into a lane with a merge commit, never a rebase of pushed commits.
+- proof: after the merge `node workspace/05-plans/check-gotchas.mjs` printed `ERROR P-064: no added`; after restoring the line it printed `check-gotchas: OK (16 path entries, 69 process entries)`.
+- added: 2026-10-02
