@@ -1,0 +1,52 @@
+{
+  "written": "2026-10-03, after the build was parked at the operator's request",
+  "how": "On the operator's go, the orchestrator launches every lane below in one message: Workflow({ scriptPath: \"E:/Matter Of Place/.claude/workflows/build-slice.js\", args: <lane.args> }). Before that: git -C <root> fetch origin && git -C <root> merge origin/main in each lane (the builders also do it at every group). The board at http://127.0.0.1:8790 shows the lanes live (node workspace/05-plans/board.mjs). First thing after launch, run the plan audits of ruling H50 item 1 as read-only Opus agents over B1b, B2, B4, B3, B3b and B9.",
+  "lanes": [
+    {
+      "name": "spine",
+      "note": "B1b steps 7 to 11. Step 7's additions by ruling H49 were being built when the run was stopped; the WIP commit 88994da on slice/b1b holds them unproven. Item (3) of H49, the test timeouts and worker cap, is already on main (package.json test script), so the close-out carries two items.",
+      "args": {
+        "slice": "B1b",
+        "root": "E:/mop-build/spine",
+        "closeOut": [
+          {
+            "id": "c7",
+            "steps": "7",
+            "critical": true,
+            "title": "B1b step 7: finish the WIP of ruling H49 (production switch, rollback target); the test timeouts are on main already",
+            "defects": [
+              {
+                "file": ".github/workflows/deploy.yml",
+                "blocking": true,
+                "what": "Finish the work saved in commit 88994da (WIP, parked), do not start over. Ruling ASSUMED H49 (1): the `production` job runs only when the repository variable PRODUCTION_DEPLOY is `on` (it is `off` today; the orchestrator sets it to `on` when B3b is on main). Add `&& vars.PRODUCTION_DEPLOY == 'on'` to its `if:`, a hygiene test case for it, watched failing, with a registry entry. The first production deploy and every live production proof of step 7 are NOT DONE until then; say so in the log.",
+                "evidence": "gh variable list shows PRODUCTION_DEPLOY off; ASSUMED.md row H49."
+              },
+              {
+                "file": ".github/workflows/deploy.yml",
+                "blocking": true,
+                "what": "Ruling H49 (2): before `wrangler deploy`, the dev job reads the version id serving 100 percent into a step output (empty when the Worker does not exist yet); after a red smoke it runs `wrangler rollback <that id> --yes` and prints `rolled back to <id>`, or prints `first deploy: nothing to roll back to` and exits 1. Keep the hygiene cases in step, watched failing. Then `bun run check`, `bun run build`, commit, push slice/b1b.",
+                "evidence": "deploy.yml before the WIP: deploy, then `wrangler secret bulk`, then smoke, then `wrangler rollback` with no version id."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "db",
+      "note": "B2 from step 4. Steps 1, 1b, 2 and 3 are on main (PR 49); the sizing reads the slice log and leaves them out. This lane alone changes the schema of mop-dev (H45 (5)).",
+      "args": { "slice": "B2", "root": "E:/mop-build/db", "previewPort": 8798, "bankBase": { "P": 300, "G": 100 } }
+    },
+    {
+      "name": "tests",
+      "note": "B4 from step 1; step 1 needs only B2 step 1, which is on main. Groups that need later B2 steps block and are picked up on the next run. The builder creates branch slice/b4.",
+      "args": { "slice": "B4", "root": "E:/mop-build/tests", "previewPort": 8808, "bankBase": { "P": 400, "G": 150 } }
+    },
+    {
+      "name": "design",
+      "note": "B9 steps 1 and 2 are designer steps (mop-designer, creative direction); later groups block on B8. The builder creates branch slice/b9.",
+      "args": { "slice": "B9", "root": "E:/mop-build/design", "previewPort": 8818, "bankBase": { "P": 700, "G": 250 } }
+    }
+  ],
+  "after": "When B2 closes, start B3 in the tests lane or a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300). The orchestrator re-runs its own probes on main after each self-merge and records them in progress.json."
+}
