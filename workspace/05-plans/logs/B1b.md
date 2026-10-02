@@ -1042,3 +1042,78 @@ For the fold (stale plan lines, ASSUMED H and STANDARDS bind; no plan file was t
 - `docs/runbooks/delivery.md` (not in this group's files): when it is written it needs the merge gate paragraph of its Files line (how to read an `unverified merge` line).
 
 GOTCHAS: P-104 (no checks on a docs-only PR make the gate refuse it) and P-105 (the probe branch and the lane tree) added.
+
+## g7 · steps 5b (fix round: three defects of the review)
+
+Commit `95c3495` on `slice/b1b` (draft PR #22), plus the commit that carries this block. Files: `app/scripts/merge-gate.mjs`, `app/tests/unit/merge-gate.test.ts`, `app/tests/mutations/B1b.json`, `workspace/05-plans/merge-gate.mjs`, `GOTCHAS.md` (the brief named it as a defect), this log. `hygiene.test.ts` and `ci.yml` needed no change.
+
+What changed:
+- `workspace/05-plans/merge-gate.mjs` (defect 1): `gh pr checks --json` exits 0 whatever the checks are, so the old script posted `merge-gate=success` and merged a red head. The gate is now the exported `mergeGate(pr, run)` (commands injected, the file still runs as a script): it reads the `bucket` of every row, lets only `pass` and `skipping` through (`fail`, `pending`, `cancel` and any other bucket refuse with `merge-gate: checks are not all green`), and refuses an empty list or a non-zero exit (a PR with no checks, P-104). Nothing is written before the last refusal.
+- `app/scripts/merge-gate.mjs` (defect 2): the check-runs of one SHA hold one run per workflow run (draft, ready, cancelled, re-run). The jq row now carries the run `id` and `latestRun` judges the highest id of each required name, so an older skipped or cancelled run no longer turns `main` red. A latest run that is skipped or cancelled still refuses (apart from the `CI_HEAVY=off` exception).
+- `app/tests/unit/merge-gate.test.ts`: 23 cases (8 new): the latest run wins whatever the list order, an older success never saves a latest failure; the orchestrator script through `mergeGate` with a fake `run`: pass and skipping merge, `fail`, `pending` and `cancel` refuse with no `gh api -X` and no `gh pr merge` call, no checks refuse, draft and `rebase first` refuse before checks are read.
+- `GOTCHAS.md` (defect 3): P-106 (`gh pr checks --json` exit code), P-107 (check-runs hold one run per workflow run); P-104's first lines no longer say the script requires exit 0.
+- `app/tests/mutations/B1b.json`: `mg-missing` re-pointed (its `find` moved with the code); new `mg-latest-run`, `mg-latest-order`, `mg-bucket`, `mg-bucket-pending`, `mg-nochecks`, `mg-draft`, `mg-rebase`. 186 entries, `--check` bad 0.
+
+Proof 1: `cd app && bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  53 passed | 8 skipped (61)
+```
+
+Proof 2, watched-fail (aq) and every other g7 entry replayed (`node ../scratch/replay.mjs <ids>` from `app/`; `git status --short` unchanged after): 28 entries (the 21 of the first round and the 7 new), `replayed 28, not red 0`. The new and the re-pointed ones:
+```
+RED aq: exit=1 expect=true | × refuses a failed e2e and names it 9ms
+RED mg-missing: exit=1 expect=true | × refuses a required check that has no run on the head 8ms
+RED mg-latest-run: exit=1 expect=true | × judges the latest run of a name, wherever the list puts it 9ms
+RED mg-latest-order: exit=1 expect=true | × refuses when the latest run failed, whatever an older run of the name did 1ms
+RED mg-bucket: exit=1 expect=true | × refuses a fail check although gh pr checks --json exits 0, and writes nothing 9ms
+RED mg-bucket-pending: exit=1 expect=true | × refuses a pending check although gh pr checks --json exits 0, and writes nothing 10ms
+RED mg-nochecks: exit=1 expect=true | × refuses a pull request that has no checks, and writes nothing 9ms
+RED mg-draft: exit=1 expect=true | × refuses a draft and a head that does not contain origin/main before it reads a check 9ms
+RED mg-rebase: exit=1 expect=true | × refuses a draft and a head that does not contain origin/main before it reads a check 9ms
+```
+`mg-bucket` puts back the old behaviour (`if (checks.status !== 0) blocked = true;`): the three bucket cases go red because the script then posts and merges.
+
+Proof 3, the reviewer's own evidence, run again against the real `gh` (a `--require` shim in `scratch/` runs `gh pr view` and `gh pr checks` on cli/cli, stubs git and prints the two write calls instead of running them; PR 13788 has three failed builds). The script of HEAD before this round, then the new one:
+```
+--- OLD (HEAD)
+fail: Unit and Integration Tests build (ubuntu-latest)
+fail: Unit and Integration Tests build (macos-latest)
+fail: Unit and Integration Tests build (windows-latest)
+SHIM would run: gh api -X POST repos/AbdulrahmanAmer/matter-of-place/statuses/2537a3b6931a787d6b4b0ab686cd4cf7eda0dfda -f state=success -f context=merge-gate
+SHIM would run: gh pr merge 13788 --merge --match-head-commit 2537a3b6931a787d6b4b0ab686cd4cf7eda0dfda
+exit 0
+--- NEW
+fail: Unit and Integration Tests build (ubuntu-latest)
+fail: Unit and Integration Tests build (macos-latest)
+fail: Unit and Integration Tests build (windows-latest)
+merge-gate: checks are not all green
+exit 1
+```
+`gh pr checks 14148 -R cli/cli --json bucket >/dev/null; echo $?` → `0`; the same without `--json` → `1`; `gh pr checks 23 --json bucket` (no checks) → `no checks reported on the 'chore/b1b-g5-records' branch`, exit 1. `gh api "repos/vitest-dev/vitest/commits/89d191ec.../check-runs?per_page=100"` returns two `Lint: node-latest, ubuntu-latest` rows, `skipped` and `success`. The post-merge script's new jq column was run against the real API (`id: 110826041371, name: 'check', status: 'completed', conclusion: 'success'` for the lane head `94387e0`).
+
+Proof 4, the probe PR #25 (draft, cut from `origin/main~1`, one commit `821c3fc`, then `gh pr ready 25`), the script run from `slice/b1b` (P-105):
+```
+$ git merge-base --is-ancestor origin/main HEAD ; echo $?          (HEAD 821c3fc, origin/main abaa02d)
+1
+$ node workspace/05-plans/merge-gate.mjs 25 ; echo "exit $?"
+rebase first
+exit 1
+$ gh api .../commits/<probe head>/status --jq '.statuses | length'
+0
+$ node workspace/05-plans/merge-gate.mjs 22 ; echo "exit $?"      (the lane PR, still a draft)
+mark ready first
+exit 1
+$ gh pr close 25 --delete-branch   -> ✓ Closed pull request #25 ... ✓ Deleted branch gate-probe
+$ git ls-remote --heads origin
+abaa02de74944bfc2f0a39825849da50628bb840	refs/heads/main
+95c349561e11606abd9deb60232b66d6ec927596	refs/heads/slice/b1b
+```
+
+Proof 5: `cd app && bun run check` exit 0 (`Test Files 14 passed (14)`, `Tests 247 passed | 8 skipped (255)`); `bun run build` exit 0 (three `built in` lines); `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (27 path entries, 105 process entries)`. CI on `95c3495` (run 37006220710, `pull_request`): `check success`, `build success`, `merge-gate skipped`.
+
+NOT DONE (unchanged, a worker never merges):
+- The merge of the B1b pull request with `node workspace/05-plans/merge-gate.mjs 22` and the `merge-gate success` of that merge's `ci` run on `main`. UNPROVEN until the orchestrator runs it: the job's `GITHUB_TOKEN` rights on `commits/<sha>/pulls`, `status` and `check-runs`, its cost, that `CI_HEAVY` reaches it, and that the first merge really leaves one run per name or a latest run that is `success`.
+- The new refusal path was proved by unit tests, mutations and the shim against another repository's PR; it has not run against a red PR of this repository (no red PR exists, and a deliberately red one costs Actions minutes).
+
+GOTCHAS: P-106 and P-107 added; P-104 reworded to the new rule.
