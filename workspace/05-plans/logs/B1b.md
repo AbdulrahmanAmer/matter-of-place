@@ -1243,3 +1243,219 @@ NOT DONE (a worker never merges, standing rule of this lane; PR #22 is also stil
 - The new refusal paths have not run against a red PR of this repository.
 
 GOTCHAS: P-108 (a limit written into a log without asking the API) and P-109 (map every test title to a registry entry before reporting) added.
+
+## c6 · steps 5
+
+Close-out of group g6 under ruling ASSUMED H42 (3) and (4): four defects of the review. Commits on `slice/b1b`: `036ed52` (the work), `1692c2c` and `95e69c5` (type-error watched-fail and its revert), `05690d9` and `6691ee6` (engines watched-fail and its revert); the tree at `6691ee6` equals `036ed52` (`git diff --quiet 036ed52 HEAD` exit 0).
+
+1. `scripts/check-migrations.mjs` follows STANDARDS R17 and H42 (3). Statement rules: `drop table`, `drop view` (and `drop materialized view`), `drop type`, `drop function`, `drop index`, any `rename` (column, table, and the form without `COLUMN`), `set not null`. Clause rules, read per top-level clause of an `alter table` statement because Postgres makes `COLUMN` optional: a dropped column (with or without `COLUMN`, not `drop constraint`), a column type change (with or without `COLUMN`), and a new NOT NULL column without `default` or `generated` (not `add constraint`, not `add check`). The clause split respects parentheses and quotes (`numeric(10, 2)`, `default ')'`). The failure now names the kinds: `destructive change (drop view) without "-- contract-of: <14-digit version>" in its first 30 lines: <file>`. Found beyond the review's list while probing: `alter table t drop body`, `alter table t alter body type x` and `alter table t add y int not null` (all without `COLUMN`) passed too; all three are flagged now and have their own cases.
+2. `tests/unit/check-migrations.test.ts`: one `it.each` row per destructive kind (16) and per allowed change (6: NOT NULL with a default, drop trigger, drop constraint, a dropped column default, `add check (... is not null)`, a new table with NOT NULL columns), plus a header without a 14-digit version. `tests/mutations/B1b.json`: 27 new `cm-` entries and `cm-destructive` rewritten to the moved line (P-090); every title of the file maps to at least one entry.
+3. GOTCHAS P-111 (a hand-applied mutation prints its mutated line and refuses an unchanged file).
+4. Dependabot: `docs/runbooks/delivery.md` has a section that says UNPROVEN until the file is on `main` and the first Monday after that (correction below).
+
+Stale lines for the orchestrator: STANDARDS R17 says "dropping a function or trigger stays allowed"; H42 (3) flags `drop function`, which was built (H42 binds; R17 needs the word "function" removed). R17's `Enforced by:` still says "HANDOFF HO-4: B1b names it `-- contract:`"; the script reads `-- contract-of:`. B1b.md line 137 (c) and line 155 list the shorter set of patterns and a single `drop column` case.
+
+### Correction to the g6 Dependabot lines (H42 (4))
+
+The g6 blocks above (lines 782, 862 and 929 of this file) say Dependabot is proved after "the first Monday run (2026-10-05)". That is wrong: GitHub reads `dependabot.yml` only from the default branch, and the file is not on `main`:
+```
+$ gh api 'repos/AbdulrahmanAmer/matter-of-place/contents/.github/dependabot.yml?ref=main'
+{"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}gh: Not Found (HTTP 404)
+$ gh api 'repos/AbdulrahmanAmer/matter-of-place/contents/.github/dependabot.yml?ref=slice/b1b' --jq .path
+.github/dependabot.yml
+$ gh pr list --author "app/dependabot" --state all --json number --jq length
+0
+```
+Corrected: Dependabot is UNPROVEN until its file is on `main` and the first Monday after that; the `bun` ecosystem name is checked then (ASSUMED, fallback `npm`).
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+Before the change, the review's evidence reproduced and three more misses (`node ../scratch/c6-probe.mjs`, text below): `0  drop column, no COLUMN keyword`, `0  rename, no COLUMN keyword`, `0  column type, no COLUMN keyword`, `0  not null column, no default`, `0  not null column, no COLUMN keyword`, `0  drop view`, `0  drop materialized view`, `0  drop type`, `0  drop function`, `0  drop index`. After:
+```
+1  drop table  | destructive change (drop table)
+1  drop column  | destructive change (drop column)
+1  drop column, no COLUMN keyword  | destructive change (drop column)
+1  rename column  | destructive change (rename)
+1  rename, no COLUMN keyword  | destructive change (rename)
+1  rename to  | destructive change (rename)
+1  column type  | destructive change (column type)
+1  column type, no COLUMN keyword  | destructive change (column type)
+1  set not null  | destructive change (set not null)
+1  not null column, no default  | destructive change (not null column
+1  not null column, no COLUMN keyword  | destructive change (not null column
+1  drop view  | destructive change (drop view)
+1  drop materialized view  | destructive change (drop view)
+1  drop type  | destructive change (drop type)
+1  drop function  | destructive change (drop function)
+1  drop index  | destructive change (drop index)
+0  ALLOWED not null column with a default
+0  ALLOWED drop trigger
+0  ALLOWED drop constraint
+0  ALLOWED drop default
+0  ALLOWED add check not null
+0  ALLOWED create table
+0  ALLOWED expand header
+```
+Plan step 5 proofs:
+```
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+ Test Files  2 passed (2)
+      Tests  58 passed | 8 skipped (66)
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines" ; ls ../.github/dependabot.yml
+{ bun: '1.3.13', node: '24.x' }
+../.github/dependabot.yml
+```
+CI on `036ed52` (run 37010774950, `pull_request`, success): `check success`, `build success`, `merge-gate skipped`; the steps of `check` are `engines`, `migration-order` (log: `$ node scripts/check-migrations.mjs` / `no migrations`), `Run bun run check`, `audit`, all `success`, and no job named `audit` or `deno`. `gh run download 37010774950 -n build-output -D scratch/c6-art` holds `server/wrangler.json`, name `matter-of-place`.
+Watched-fail (d), type error: `1692c2c` adds `const x: number = "a";` to `src/lib/strings.ts` (diff line printed before the commit: `+const x: number = "a";`). Run 37011031661: `check failure`, `build success`, log `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.` Revert `95e69c5`: run 37011160255 `success`.
+Watched-fail, engines: `05690d9` sets `engines.bun` to `1.3.12` (`+    "bun": "1.3.12",`). Run 37011313878: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `Process completed with exit code 1.`; cache, install and `migration-order` `skipped`). Revert `6691ee6`: run 37011425524 `success`.
+Registry (runner `scratch/replay.mjs`, text in the g4 close-out block):
+```
+$ node ../scratch/replay.mjs --check
+checked 223, bad 0
+$ node ../scratch/replay.mjs ap cm-applied cm-destructive cm-header-lines cm-comments cm-drop-table cm-drop-column cm-drop-bare cm-alter-head cm-rename-column cm-rename-bare cm-rename-table cm-type-column cm-type-bare cm-set-not-null cm-not-null cm-not-null-bare cm-split-parens cm-split-quotes cm-drop-view cm-drop-mview cm-drop-type cm-drop-function cm-drop-index cm-allow-default cm-allow-trigger cm-allow-constraint cm-allow-drop-default cm-allow-check cm-allow-create
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 8ms
+RED cm-applied: exit=1 expect=true | × refuses an edited applied migration 8ms
+RED cm-destructive: exit=1 expect=true | × a drop column needs the contract-of header 2ms
+RED cm-header-lines: exit=1 expect=true | × refuses a contract-of header below line 30 8ms
+RED cm-comments: exit=1 expect=true | × passes a clean tree and a new file after the newest on main 10ms
+RED cm-drop-table: exit=1 expect=true | × a drop table needs the contract-of header 8ms
+RED cm-drop-column: exit=1 expect=true | × a drop column needs the contract-of header 8ms
+RED cm-drop-bare: exit=1 expect=true | × a drop written without COLUMN needs the contract-of header 8ms
+RED cm-alter-head: exit=1 expect=true | × a drop written without COLUMN needs the contract-of header 7ms
+RED cm-rename-column: exit=1 expect=true | × a rename column needs the contract-of header 7ms
+RED cm-rename-bare: exit=1 expect=true | × a rename written without COLUMN needs the contract-of header 8ms
+RED cm-rename-table: exit=1 expect=true | × a table rename needs the contract-of header 9ms
+RED cm-type-column: exit=1 expect=true | × a column type change needs the contract-of header 8ms
+RED cm-type-bare: exit=1 expect=true | × a type change written without COLUMN needs the contract-of header 7ms
+RED cm-set-not-null: exit=1 expect=true | × a set not null needs the contract-of header 7ms
+RED cm-not-null: exit=1 expect=true | × a new NOT NULL column with no default needs the contract-of header 8ms
+RED cm-not-null-bare: exit=1 expect=true | × a new NOT NULL column without COLUMN needs the contract-of header 8ms
+RED cm-split-parens: exit=1 expect=true | × a new NOT NULL column without COLUMN needs the contract-of header 7ms
+RED cm-split-quotes: exit=1 expect=true | × a new NOT NULL column without COLUMN needs the contract-of header 7ms
+RED cm-drop-view: exit=1 expect=true | × a drop view needs the contract-of header 8ms
+RED cm-drop-mview: exit=1 expect=true | × a drop materialized view needs the contract-of header 8ms
+RED cm-drop-type: exit=1 expect=true | × a drop type needs the contract-of header 7ms
+RED cm-drop-function: exit=1 expect=true | × a drop function needs the contract-of header 7ms
+RED cm-drop-index: exit=1 expect=true | × a drop index needs the contract-of header 7ms
+RED cm-allow-default: exit=1 expect=true | × a new NOT NULL column with a default needs no contract-of header 7ms
+RED cm-allow-trigger: exit=1 expect=true | × a drop trigger needs no contract-of header 7ms
+RED cm-allow-constraint: exit=1 expect=true | × a drop constraint needs no contract-of header 7ms
+RED cm-allow-drop-default: exit=1 expect=true | × a dropped column default needs no contract-of header 7ms
+RED cm-allow-check: exit=1 expect=true | × an added check on not null needs no contract-of header 8ms
+RED cm-allow-create: exit=1 expect=true | × a new table with NOT NULL columns needs no contract-of header 1ms
+replayed 30, not red 0
+$ node ../scratch/replay.mjs cm-contract-header cm-contract-digits
+RED cm-contract-header: exit=1 expect=true | × accepts a drop column with the contract-of header in its first 30 lines 7ms
+RED cm-contract-digits: exit=1 expect=true | × refuses a contract-of header without a 14-digit version 8ms
+replayed 2, not red 0
+$ node ../scratch/replay.mjs ao bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 117ms
+replayed 5, not red 0
+$ node ../scratch/c6-map.mjs | tail -1
+titles 28, without an entry 0
+$ node ../scratch/c6-badfind.mjs        (the P-111 proof)
+BAD cm-drop-view: find occurs 0 times
+checked 223, bad 1
+exit 1
+restored: true
+```
+Gates: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints `src/db/types.ts` and `supabase/functions/*/index.ts` of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files 14 passed (14)`, `Tests 273 passed | 8 skipped (281)`); `bun run build` exit 0 (three `built in` lines, `src/routeTree.gen.ts` unchanged); from the lane root `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (27 path entries, 109 process entries)`.
+
+Scratch scripts (lane-root `scratch/`, git-ignored, run from `app/`; P-088):
+
+`scratch/c6-probe.mjs`
+```js
+// node ../scratch/c6-probe.mjs   (from app/) feeds each R17 / H42 (3) case to checkMigrations and prints the count.
+import { checkMigrations } from "../app/scripts/check-migrations.mjs";
+
+const cases = {
+  "drop table": "drop table public.notes;",
+  "drop column": "alter table notes drop column body;",
+  "drop column, no COLUMN keyword": "alter table notes drop body;",
+  "rename column": "alter table notes rename column body to text;",
+  "rename, no COLUMN keyword": "alter table notes rename body to text;",
+  "rename to": "alter table notes rename to memos;",
+  "column type": "alter table notes alter column body type varchar(80);",
+  "column type, no COLUMN keyword": "alter table notes alter body type varchar(80);",
+  "set not null": "alter table notes alter column body set not null;",
+  "not null column, no default": "alter table notes add column y text not null;",
+  "not null column, no COLUMN keyword": "alter table notes add y text not null;",
+  "drop view": "drop view public.v_notes;",
+  "drop materialized view": "drop materialized view public.mv_notes;",
+  "drop type": "drop type public.note_kind;",
+  "drop function": "drop function public.f(int);",
+  "drop index": "drop index public.notes_body_idx;",
+  "ALLOWED not null column with a default": "alter table notes add column y text not null default '';",
+  "ALLOWED drop trigger": "drop trigger notes_touch on notes;",
+  "ALLOWED drop constraint": "alter table notes drop constraint notes_body_check;",
+  "ALLOWED drop default": "alter table notes alter column body drop default;",
+  "ALLOWED add check not null": "alter table notes add check (body is not null);",
+  "ALLOWED create table": "create table notes (id uuid not null, body text not null);",
+  "ALLOWED expand header": "-- down: drop table notes\nset lock_timeout = '5s';\ncreate table notes (id uuid);",
+};
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({ changed: [], added: [file], mainPrefixes: ["20261002100000"], readFile: () => sql });
+  console.log(`${String(failures.length)}  ${name}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+```
+`scratch/c6-map.mjs`
+```js
+// node ../scratch/c6-map.mjs   (from app/) maps every test title of check-migrations.test.ts, it.each rows
+// expanded through their `name`, to the registry entries whose `expect` matches it.
+import { readFileSync } from "node:fs";
+
+const TEST = "tests/unit/check-migrations.test.ts";
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8")).filter((e) => e.test === TEST);
+const source = readFileSync(TEST, "utf8");
+const rows = (table) => {
+  const body = source.split(`const ${table} = [`)[1].split("\n];")[0];
+  return [...body.matchAll(/name: "([^"]+)"/g)].map((m) => m[1]);
+};
+const titles = [];
+for (const m of source.matchAll(/\bit(?:\.each\((\w+)\))?\(\s*"([^"]+)"/g)) {
+  if (m[1] === undefined) titles.push(m[2]);
+  else for (const name of rows(m[1])) titles.push(m[2].replace("$name", name));
+}
+let none = 0;
+for (const title of titles) {
+  const ids = entries.filter((e) => new RegExp(e.expect).test(title)).map((e) => e.id);
+  if (ids.length === 0) none += 1;
+  console.log(`${ids.length === 0 ? "NONE" : ids.join(",")}  <-  ${title}`);
+}
+console.log(`titles ${titles.length}, without an entry ${none}`);
+```
+`scratch/c6-badfind.mjs`
+```js
+// node ../scratch/c6-badfind.mjs   (from app/) breaks the find of cm-drop-view, runs replay --check, restores the bytes.
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const path = "tests/mutations/B1b.json";
+const saved = readFileSync(path);
+const entries = JSON.parse(saved.toString("utf8"));
+const entry = entries.find((e) => e.id === "cm-drop-view");
+entry.find = "/drops+view/i";
+writeFileSync(path, `${JSON.stringify(entries, null, 2)}\n`);
+try {
+  console.log(execSync("node ../scratch/replay.mjs --check", { encoding: "utf8" }));
+} catch (error) {
+  console.log(`${error.stdout}exit ${String(error.status)}`);
+} finally {
+  writeFileSync(path, saved);
+}
+console.log(`restored: ${String(readFileSync(path).equals(saved))}`);
+```
+
+UNPROVEN: Dependabot (above). The new rules have not met a real migration yet (B2 writes the first); B2's `tests/db/migration-headers.test.ts` checks the header's version against `origin/main`, this script checks only its shape.
+
+GOTCHAS: P-111 added.
