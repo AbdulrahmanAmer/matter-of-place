@@ -705,3 +705,81 @@ Proofs, same tree after the edits (`bun run build` first):
 - Replay (runner text in the g4 close-out block): `--check` -> `checked 121, bad 0`; `RED bm-page-refusal: exit=1 expect=true | × answers a page asked for with Accept application/json with the R09 406`; `RED bn-page-406-all: exit=1 expect=true | × leaves a page asked for with Accept text/html as it is`; `RED pipe-406-no-store: ... × answers a page asked for with Accept application/json with the R09 406`; each restored, `git status` shows only the runbook, `pipeline.ts`, GOTCHAS and this log changed.
 
 UNPROVEN: the 406 and the 307 headers on a deployed Worker (only `cf:preview` was run).
+
+## g6 · steps 5
+
+Built: `.github/workflows/ci.yml` (jobs `check` and `build`), `.github/dependabot.yml`, `.github/pull_request_template.md`, `app/package.json` (`engines` `{"bun": "1.3.13", "node": "24.x"}`, devDependency `yaml` ^2.9.1, script `migrations:check`), `app/bun.lock`, `app/scripts/check-migrations.mjs`, `app/tests/unit/check-migrations.test.ts`, `app/tests/unit/hygiene.test.ts`, 28 entries in `app/tests/mutations/B1b.json` (26 replayed, 2 `manual` for the two CI watched-fails). Draft PR #22 (`slice/b1b` into `main`): https://github.com/AbdulrahmanAmer/matter-of-place/pull/22. Commits `2904f2d` (step 5), `34efddc` and `2fd7643` (the two deliberate red commits), `5774a23` and `b5bf959` (their reverts).
+
+Pins, resolved with `gh release view -R <repo> --json tagName` then `gh api repos/<repo>/commits/<tag> --jq .sha`: `actions/checkout` v7.0.1 `3d3c42e5aac5ba805825da76410c181273ba90b1`, `oven-sh/setup-bun` v2.2.0 `0c5077e51419868618aeaa5fe8019c62421857d6`, `actions/setup-node` v7.0.0 `820762786026740c76f36085b0efc47a31fe5020`, `actions/cache` v6.1.0 `55cc8345863c7cc4c66a329aec7e433d2d1c52a9`, `actions/upload-artifact` v7.0.1 `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`.
+
+Where the build differs from the plan text (for the orchestrator's fold; B1b.md is not this group's file):
+- Branch: the plan says push `ci/b1b`; the lane branch `slice/b1b` carries the draft PR.
+- `hygiene.test.ts` line of Files: "`eslint.config.js` names ... `no-floating-promises`" cannot hold, the word is not in the file (`grep -c no-floating-promises eslint.config.js` -> `0`): `strictTypeChecked` switches the rule on. The test reads the resolved config with `ESLint.calculateConfigForFile` and asserts severity 2 for `no-floating-promises`, `switch-exhaustiveness-check`, `only-throw-error`, `no-console`, `vitest/no-focused-tests`, `projectService` true and `reportUnusedDisableDirectives` 2; the text check stays for `strictTypeChecked` (GOTCHAS P-096).
+- The step `migration-order` runs `bun run migrations:check`, the gate command of STANDARDS G11 (`node scripts/check-migrations.mjs` behind it). The header is `-- contract-of:` (HO-4 done); STANDARDS R17's note "B1b names it `-- contract:`" is stale.
+- `check-migrations.mjs` scans statements with `--` comments removed: the first version refused a plain expand migration because its R16 `-- down: drop table notes` header matched `drop table` (GOTCHAS G-026).
+- `build` also runs `actions/setup-node` 24 (the build and the `worker-name` step run node; the pin then matches `engines.node`), and its upload sets `include-hidden-files: true`: upload-artifact's globber skips any item whose basename starts with a dot, the search root `.output` included (GOTCHAS P-099, read in `actions/toolkit` `internal-globber.ts` line 132; not measured with the flag off).
+- In `check` the `engines` step runs after setup-node and before the cache step (the plan lists the cache first; `engines` is the first step that runs project code).
+- `hygiene.test.ts` checks node and `BUN_PIN` pins as well as setup-bun against `engines`, and that no `.github` folder exists under `app/`.
+
+Proof 1: `cd app && bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  29 passed | 9 skipped (38)
+```
+The 9 skipped, with their reasons printed (`--reporter=verbose`): `deploy.yml (skipped until step 6 writes it)` 5 cases, `backup.yml (skipped until step 8 writes it)` 2, `merge gate (invariant 6b; skipped until step 5b writes scripts/merge-gate.mjs)` 1, `job runner (skipped until B8 writes it)` 1. The R02 compiler case runs (not skipped).
+
+Proof 2: `cd app && node scripts/check-migrations.mjs; echo exit=$?`
+```
+no migrations
+exit=0
+```
+
+Proof 3: `git ls-files "app/bun.lock"` -> `app/bun.lock`; `node -p "require('./package.json').engines"` -> `{ bun: '1.3.13', node: '24.x' }`.
+
+Proof 4, CI on the draft PR, run 36996622633 (event `pull_request`, head `2904f2d`): `gh run view 36996622633 --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'`
+```
+check	success
+build	success
+```
+No job named `audit` or `deno`. From the run log: step `migration-order` printed `no migrations`; `bun run check` printed `layout: OK (583 files)`, `stubs: 15 markers, 0 on closed slices`, `Test Files 13 passed (13)`; step `audit` (advisory, `continue-on-error`) printed `12 vulnerabilities (10 high, 2 moderate)`, the first `brace-expansion <1.1.17` through `eslint › @eslint/eslintrc › minimatch`. `gh run download 36996622633 -n build-output -D scratch/dl` -> `nitro.json package-lock.json package.json public server`, `scratch/dl/server/wrangler.json` present, `node -p "require('./scratch/dl/server/wrangler.json').name"` -> `matter-of-place`.
+
+Proof 5, watched-fail (d) in CI: commit `34efddc` appends `const x: number = "a";` to `app/src/lib/cx.ts`. Run 36996821935, `gh run watch --exit-status` exit 1; jobs `build success`, `check failure`; check steps `engines success`, `migration-order success`, `Run bun run check failure`, `audit skipped`; `gh run view 36996821935 --log-failed`:
+```
+##[error]src/lib/cx.ts(5,7): error TS2322: Type 'string' is not assignable to type 'number'.
+##[error]src/lib/cx.ts(5,7): error TS6133: 'x' is declared but its value is never read.
+##[error]Process completed with exit code 2.
+```
+Reverted by `5774a23`; run 36997093930: `gh run watch` exit 0, `build success`, `check success`.
+
+Proof 6, watched-fail engines in CI: commit `2fd7643` sets `engines.bun` to `1.3.14`. Run 36997237735: `check failure`, `build success`; check steps `engines failure`, then `Run actions/cache skipped`, `Run bun install --frozen-lockfile skipped`, `migration-order skipped`; the failed log:
+```
+engines {"bun":"1.3.14","node":"24.x"} runner 1.3.13 24
+##[error]Process completed with exit code 1.
+```
+Reverted by `b5bf959`; run 36997322467: `gh run watch` exit 0, `build success`, `check success`.
+
+Proof 7, local watched-fails, replayed with the runner whose text is in the g4 close-out block (`node ../scratch/replay.mjs <ids>` from `app/`; `--check` -> `checked 147, bad 0`; `git status --short` identical before and after): `replayed 26, not red 0`, among them
+```
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 7ms
+RED cm-comments: exit=1 expect=true | × passes a clean tree and a new file after the newest on main 15ms
+RED hy-pr-secret: exit=1 expect=true | +   "ci.yml check: secrets.DEV_SUPABASE_",
+RED hy-lint-floating: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules 1439ms
+RED hy-subtle: exit=1 expect=true | × only src/server/lib/crypto.ts calls crypto.subtle (CS-04) 31ms
+```
+(f) names both versions, (bd) names the flag. The others (`cm-applied`, `cm-destructive`, `cm-header-lines`, `hy-checkout`, `hy-permissions`, `hy-timeout`, `hy-concurrency`, `hy-working-directory`, `hy-one-build`, `hy-mop-dev`, `hy-r2`, `hy-ready`, `hy-template`, `hy-wrangler`, `hy-lint-warnings`, `hy-check-js`, `hy-release-age`) each printed `RED` with its own test title.
+
+Proof 8, the skipped suites against stand-in files (not committed): temporary `.github/workflows/deploy.yml` and `backup.yml` holding the plan's strings, and `app/scripts/merge-gate.mjs` exporting `REQUIRED_PR_CHECKS = ["check", "build", "db", "e2e", "preview"]`. `bunx vitest run tests/unit/hygiene.test.ts` -> `Tests 1 failed | 30 passed | 1 skipped (32)`, the one red being `mergeGateJob: false` (step 5b adds the job). With the preview job given `${{ secrets.DEV_SUPABASE_DB_PASSWORD }}`, `needs: dev` changed, the Dependabot guard removed, `options: [dev, prod]` and `retention-days: 7`: 5 red (`no job a pull request can reach ...`, `preview refuses forks and Dependabot`, `production needs dev, ...`, `offers only the dev target ...`, the merge gate case). The stand-ins were deleted; `git status --short` showed only this group's files.
+
+Proof 9: `cd app && bun run check` exit 0 (`layout: OK (583 files)`, `stubs: 15 markers, 0 on closed slices`, `Test Files 13 passed (13)`, `Tests 217 passed | 9 skipped (226)`); `bun run build` exit 0 (three `built in` lines); `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (26 path entries, 97 process entries)`.
+
+GOTCHAS: G-026 (comments in the destructive scan), P-096 (a plan's text check of a preset rule), P-097 (asymmetric matchers are `any` to the lint), P-098 (the guard refuses `--no-verify`; `git revert` has no `-q`, and a `;` chain then watched the old red run), P-099 (upload-artifact skips `.output`).
+
+UNPROVEN:
+- Dependabot: `gh pr list --author "app/dependabot"` lists nothing until the first Monday run (2026-10-05, 06:00 America/New_York); the `bun` ecosystem is ASSUMED available (fallback `npm` per the plan's risk line, after two Mondays).
+- The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases: proved only against stand-ins (Proof 8), watched-fail on the real files when steps 5b, 6, 8 and B8 land.
+- The heavy-job `if:` case passes with no `db`, `e2e` or `preview` job in any workflow (nothing to check yet); watched-fail when step 6 (`preview`) or B4 (`db`, `e2e`) lands.
+- `bun audit`: 12 advisories (10 high, 2 moderate) in the dependency tree, advisory until HARDEN; not triaged here.

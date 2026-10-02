@@ -900,3 +900,41 @@ Entry template
 - rule: a sentence in a runbook or a log that says what a response carries is written from a `curl -s -D -` of that response on the built Worker, one line per header named. "Accepted" in a ruling is a decision, not a measurement. A rule that lists the classes it covers (architecture 13 rule 6, B1b invariant 10) is checked against the code's list when the code adds a class (here the 406 of `neverCached`); the line to fold is named to the orchestrator in the same block.
 - proof: under `bun run cf:preview`, `curl -s -D - -o /dev/null http://127.0.0.1:8788/api/hooks/sentry-test/ | grep -ic "x-request-id\|x-frame-options"` → `2`; `curl -s --path-as-is -D - -o /dev/null http://127.0.0.1:8788//california | grep -ic "x-request-id\|x-frame-options"` → `0` (measured 2026-10-02).
 - added: 2026-10-02
+
+## G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop
+- paths: app/scripts/check-migrations.mjs
+- severity: warn
+- symptom: the first `checkMigrations` of B1b step 5 refused a plain expand migration: its R16 header `-- down: drop table notes` matched `drop table`, so every new table would have needed a `-- contract-of:` header. The fixture caught it before any migration existed.
+- cause: the destructive scan ran over the whole file text; R16 makes the `-- down:` line of every reversible create name the drop that undoes it.
+- rule: scan the statements with `--` line comments removed; read the `-- contract-of:` header from the raw first 30 lines. A change to the scan keeps the fixture whose `-- down:` names a drop.
+- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes; registry entry `cm-comments` (no comment stripping) turns `passes a clean tree and a new file after the newest on main` red.
+- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
+- added: 2026-10-02
+
+## P-096 · A plan's text check can name a rule the config never spells: `no-floating-promises` comes from the preset
+- symptom: B1b's `hygiene.test.ts` line asks that `eslint.config.js` "names" `no-floating-promises`; the file does not contain the word, because `tseslint.configs.strictTypeChecked` switches the rule on. A text check would be red on a correct config, and writing the name into the config to please it would be dead text.
+- cause: the plan line was written from what the lint does, not from what the file says.
+- rule: assert lint rules on the resolved config (`new ESLint({ cwd }).calculateConfigForFile(<file>)`, severity `2`), and keep text checks for names that are literal config keys (`strictTypeChecked`). Name the stale plan line to the orchestrator in the slice log.
+- proof: `cd app && grep -c no-floating-promises eslint.config.js` → `0`; `bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware"` passes, and registry entry `hy-lint-floating` (the rule set `off`) turns it red.
+- added: 2026-10-02
+
+## P-097 · Asymmetric matchers are `any` to the type-aware lint
+- symptom: the first `hygiene.test.ts` failed `bun run lint` three times: `expect.stringMatching(...)` and `expect.arrayContaining(...)` inside `toEqual` gave `no-unsafe-assignment`, and `String(value)` on a field parsed as `z.unknown()` gave `no-base-to-string`. P-082 names `JSON.parse` and string rejections only.
+- cause: vitest types its asymmetric matchers as `any`; `strictTypeChecked` refuses an `any` placed into an object literal and a `String()` of a value that may be an object.
+- rule: compute plain values first (`/re/.test(value)`, `list.includes(item)`) and compare those; give a zod record a value union (`z.union([z.string(), z.number(), z.boolean()])`) instead of `z.unknown()` when the test converts its values. Run `bunx eslint --max-warnings 0 <new test>` before the first full check.
+- proof: a scratch `tests/unit/zz-scratch.test.ts` holding `expect({ a: "1" }).toEqual({ a: expect.stringMatching(/1/) });` → `cd app && bunx eslint --max-warnings 0 tests/unit/zz-scratch.test.ts; echo $?` prints `Unsafe assignment of an \`any\` value` and `1` (measured 2026-10-02).
+- added: 2026-10-02
+
+## P-098 · Watched-fail commits on a lane: the guard refuses `--no-verify`, and `git revert` has no `-q`
+- symptom: B1b step 5 pushes a deliberately red commit and reverts it. A `git commit --no-verify` was refused by the RAGA guard before it ran; then `git revert --no-edit HEAD -q` printed only `usage: git revert ...` and did nothing, and the chain after it ran on the unreverted tree (the watch reported the red run again).
+- cause: the global guard treats skipping commit hooks as dangerous; `git revert` has no quiet switch.
+- rule: commit a deliberate red commit like any other (nothing is skipped); undo it with `git revert --no-commit HEAD && git commit -F <message file>`, a new commit, never an amend of a pushed one (G-009). Gate every later command of the chain on the revert with `&&`, and after a refused or failed call read `git status --short` and `git log --oneline -1` before retrying (P-056).
+- proof: `git revert -q HEAD 2>&1 | head -1` → `usage: git revert [--[no-]edit] ...` (measured 2026-10-02); `git log --oneline -6` on `slice/b1b` shows each red commit followed by its revert.
+- added: 2026-10-02
+
+## P-099 · `actions/upload-artifact` uploads nothing from `.output` unless hidden files are included
+- symptom: none hit (read before the first run): the build artifact of `ci.yml` is the Nitro output folder `app/.output/`, a name that starts with a dot.
+- cause: upload-artifact (v4.4 and later, v7.0.1 here) searches with `@actions/glob` and `excludeHiddenFiles: true` by default; the globber skips any item whose basename starts with a dot, the search root itself included (`internal-globber.ts`, line 132).
+- rule: every upload of a dot-named folder (`.output`, `.lighthouseci`) sets `include-hidden-files: true`, and the proof is a download: `gh run download <id> -n <artifact>` lists the files. B4's `e2e` and B8's `render.yml` follow the same rule.
+- proof: `gh api "repos/actions/toolkit/contents/packages/glob/src/internal-globber.ts" --jq .content | base64 -d | grep -n "excludeHiddenFiles &&"` → `132:      if (options.excludeHiddenFiles && path.basename(item.path).match(/^\./)) {`; `gh run download 36996622633 -n build-output` holds `server/wrangler.json`.
+- added: 2026-10-02
