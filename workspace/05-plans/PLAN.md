@@ -119,8 +119,8 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 |---|---|---|---|
 | V1 | closed | 2026-09-30 | PR #2 merged; check, build, render gate green; 22 of 26 defects fixed |
 | B1a | closed | 2026-10-01 | PR #1 and PR #3 merged: Lovable removed, plain Vite, first test, brand favicon; the repository is not connected to Lovable (ASSUMED E13) |
-| B1b | in progress | | started 2026-10-02 07:15 +0300 in the lane `E:/mop-build/spine`; steps 1, 2, 2b, 3, 3b, 4, 4b, 5 and 5b accepted (an Opus review each, the orchestrator's own re-run) and merged to `main` through the merge gate as PR #22 (`719657f`); steps 6 to 11 being built |
-| B2 | not started | | |
+| B1b | in progress | | started 2026-10-02 07:15 +0300 in the lane `E:/mop-build/spine`; steps 1 to 5b accepted and on `main` (PR #22, `719657f`); steps 6 and 7 accepted on `slice/b1b` (PR #43, draft) with the orchestrator's re-run done; step 7's three additions by ruling H49 saved as an unproven WIP commit `88994da` when the build was parked on 2026-10-03; steps 7b to 11 not started |
+| B2 | in progress | | started 2026-10-02 21:10 +0300 in the lane `E:/mop-build/db` (branch `slice/b2`, port 8798, bank numbers from P-300 and G-100); steps 1, 1b, 2 and 3 accepted at first review and on `main` (PR #49, `ecae323`); migrations 1 to 3 are on `mop-dev`; step 4 onward not started |
 | B3 | not started | | |
 | B3b | not started | | |
 | B4 | not started | | |
