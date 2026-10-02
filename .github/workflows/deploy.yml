@@ -1,0 +1,176 @@
+name: deploy
+
+# Pull request previews (B1b step 6). Every pull request job refuses forks and Dependabot
+# (invariants 6 and 8), and none links, migrates or reads the dev database (invariant 13).
+# Cost (C22): UNPROVEN until the first runs are measured; the runbook (docs/runbooks/delivery.md,
+# section Previews) holds the measured minutes. Drawn from the 2,000 Actions minutes a month of
+# GOTCHAS P-009 and from the Workers free plan: one pr-<n> Worker per open pull request.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+
+permissions: {}
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  # A preview runs against main's schema until its migration merges (DB-01): this job only says so.
+  preview-db:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: preview-db-${{ github.event.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Three dots: what the pull request changed since it left main, not what main gained since.
+      - name: migrations
+        id: migrations
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --name-only "$BASE...$HEAD" -- 'supabase/migrations/*.sql' | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: comment
+        if: steps.migrations.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.number }}
+        run: |
+          posted=$(gh pr view "$PR" --json comments --jq '[.comments[].body | select(startswith("preview-db:"))] | length')
+          if [ "$posted" = "0" ]; then
+            gh pr comment "$PR" --body "preview-db: this preview runs against main's schema until the migration merges; the PR's database proof is the ci db job"
+          fi
+
+  # Heavy (invariant 14): drafts and CI_HEAVY=off skip it. B4 appends the change test, the
+  # @overflow run and the Lighthouse gate after the smoke; B8b points --config at the copy without
+  # a cron trigger.
+  preview:
+    needs: preview-db
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: preview-${{ github.event.number }}
+      cancel-in-progress: true
+    # False once L1's launch switch removes the database pair from the bundle (invariant 13a).
+    env:
+      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+      # Cloudflare's public always-pass Turnstile test key; never the real one on a preview.
+      - name: build
+        env:
+          VITE_SITE_URL: https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev
+          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}
+          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+        run: bun run build
+      # On a pull request github.sha is the merge commit, which is what was built (invariant 11).
+      - name: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy --config .output/server/wrangler.json --name pr-${{ github.event.number }} --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:${{ github.sha }} --var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media
+      # The one definition of PREVIEW_URL; B4's and B17's appended steps read it.
+      - run: echo "PREVIEW_URL=https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev" >> "$GITHUB_ENV"
+      # The whole bundle, so a later slice adds a preview secret by adding a key to it (F12). The
+      # Worker must exist first; a request in between answers the calm 500.
+      - name: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIEW_WORKER_SECRETS_JSON: ${{ secrets.PREVIEW_WORKER_SECRETS_JSON }}
+        run: printf '%s' "$PREVIEW_WORKER_SECRETS_JSON" | bunx wrangler secret bulk --name pr-${{ github.event.number }}
+      # A Worker name deployed for the first time answers Cloudflare's own 404 for a while
+      # (GOTCHAS P-136); every answer of ours carries x-request-id.
+      - name: wait
+        run: |
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null -D - "$PREVIEW_URL/" | grep -qi '^x-request-id:'; then
+              echo "the Worker answered after $i tries"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "the Worker did not answer in 120 s"
+          exit 1
+      - name: smoke
+        run: node scripts/smoke.mjs "$PREVIEW_URL"
+      - name: comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.number }}
+        run: |
+          posted=$(gh pr view "$PR" --json comments --jq '[.comments[].body | select(startswith("preview: "))] | length')
+          if [ "$posted" = "0" ]; then
+            gh pr comment "$PR" --body "preview: $PREVIEW_URL"
+          fi
+
+  # Keeps the account under its free Worker count (invariant 5). It shares the preview's group and
+  # waits, so a preview still deploying cannot bring the Worker back after the delete.
+  preview-cleanup:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    concurrency:
+      group: preview-${{ github.event.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+      # A pull request closed before any preview has no Worker: Cloudflare answers code 10090.
+      - name: delete
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: pr-${{ github.event.number }}
+        run: |
+          if out=$(bunx wrangler delete --name "$WORKER" --force 2>&1); then
+            printf '%s\n' "$out"
+          elif printf '%s' "$out" | grep -q "code: 10090"; then
+            printf '%s\nno preview Worker %s\n' "$out" "$WORKER"
+          else
+            printf '%s\n' "$out"
+            exit 1
+          fi
