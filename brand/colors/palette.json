@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Obsidian",
+    "hex": "#11110F",
+    "rgb": [
+      17,
+      17,
+      15
+    ],
+    "role": "Text on light grounds, dark grounds, the emblem on light backgrounds."
+  },
+  {
+    "name": "Bone",
+    "hex": "#EEEAE1",
+    "rgb": [
+      238,
+      234,
+      225
+    ],
+    "role": "Secondary surfaces, the emblem and wordmark on dark backgrounds."
+  },
+  {
+    "name": "Warm Ivory",
+    "hex": "#F5F2EB",
+    "rgb": [
+      245,
+      242,
+      235
+    ],
+    "role": "Page background, the default ground for editorial pages."
+  },
+  {
+    "name": "Sandstone",
+    "hex": "#C9C0B2",
+    "rgb": [
+      201,
+      192,
+      178
+    ],
+    "role": "Borders, hairlines and quiet accents."
+  },
+  {
+    "name": "Mineral Grey",
+    "hex": "#575751",
+    "rgb": [
+      87,
+      87,
+      81
+    ],
+    "role": "Body copy and secondary text on light grounds."
+  },
+  {
+    "name": "Warm Grey",
+    "hex": "#8B877F",
+    "rgb": [
+      139,
+      135,
+      127
+    ],
+    "role": "Metadata and large text only, never body copy."
+  }
+]

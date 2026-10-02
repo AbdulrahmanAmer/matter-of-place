@@ -471,3 +471,12 @@ Entry template
 - rule: only `main` reaches `mop-dev` (ASSUMED ruling H1): the post-merge `dev` job of `deploy.yml` runs `bun run db:push` and deploys the job runner; the per-PR proof is the CI `db` job on an ephemeral stack. Rebase on `origin/main` before any push. Never run `--include-all` or `migration repair` without the orchestrator. B2's `scripts/db-push.mjs` and B1b's `scripts/check-migrations.mjs` enforce it once built.
 - proof: `grep -c "group: mop-dev" .github/workflows/ci.yml` prints 0 (B1b); `bunx vitest run tests/unit/db-push-guard.test.ts` passes (B2).
 - added: 2026-10-02
+
+## G-015 · The wordmark's "A" is a Greek lambda that Jost does not contain, and the emblem's two planes abut
+- paths: app/src/components/brand/wordmark.tsx, app/src/components/brand/emblem.tsx, app/public/favicon.svg
+- severity: warn
+- symptom: the site's wordmark text is "MΛTTER OF PLΛCE" in Jost Light, but Jost has no glyph for Λ (U+039B), so the browser draws those two letters in a fallback font (measured in headless Chrome on Windows: Arial Regular, visibly heavier than the other letters; a Mac or a phone picks another font). The emblem's two paths share one diagonal edge, so a hairline of background shows between them at large sizes.
+- cause: a letter outside the font's character set; two shapes that meet on an antialiased edge.
+- rule: never set the wordmark as live text. Use the outlined SVG from `brand/logo/wordmark/` (its Λ is Jost Light's "A" without the crossbar). When a slice touches the wordmark or the emblem component, replace the text with the outlined paths and take the emblem geometry from `brand/logo/emblem/`. Regenerate brand assets only with `node launch/tools/brand-build.mjs`.
+- proof: `grep -rl "<text" brand/logo | wc -l` prints 0; the generator's check tool `node launch/tools/brand-wordmark-check.mjs` renders the site's text beside the outline.
+- added: 2026-10-02
