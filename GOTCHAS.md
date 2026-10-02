@@ -1205,3 +1205,17 @@ Entry template
 - rule: right after opening or pushing a pull request, read `gh pr view <n> --json mergeable,mergeStateStatus` before waiting on any check; `CONFLICTING` means no CI will come, so report it to the orchestrator (who merges main into the lane, P-072) instead of polling. An empty `gh run list` is not "CI is slow".
 - proof: `gh pr view 49 --json mergeable,mergeStateStatus` → `{"mergeStateStatus":"DIRTY","mergeable":"CONFLICTING"}` and `gh pr checks 49` → `no checks reported on the 'slice/b2' branch` (measured 2026-10-02, B2 c1).
 - added: 2026-10-02
+
+## P-302 · The union merge of main into a lane is clean on this laptop and still drops the last entry's `added` line
+- symptom: `git merge-tree --write-tree origin/main slice/b2` exits 0 with no conflict, but in the merged `GOTCHAS.md` P-500's `proof:` line is followed directly by `## P-300`: its `- added: 2026-10-02` line and the blank line after it are gone. `check-gotchas.mjs` then fails on P-500, or the entry ships broken when nobody runs it.
+- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; both sides end their last entry with the same `- added:` line, so union keeps it once, after the lane's block (the P-072 hazard, here without any conflict marker to warn).
+- rule: after every merge of main into a lane, clean or not, run `node workspace/05-plans/check-gotchas.mjs` before committing the merge, and restore the missing `added` line and the blank line by hand (main's entries first).
+- proof: `T=$(git merge-tree --write-tree origin/main slice/b2 | head -1); git show $T:GOTCHAS.md | grep -A5 "^## P-500" | grep -c "^- added"` prints 0 (it should print 1), and `git show $T:GOTCHAS.md | grep -B1 "^## P-300"` shows the `proof:` line of P-500 directly above the heading (measured 2026-10-02, B2 c1 review).
+- added: 2026-10-02
+
+## P-303 · A local `git merge-tree` is clean while GitHub reports the same merge CONFLICTING, because GitHub ignores merge drivers
+- symptom: P-301 says PR 49 conflicts in `GOTCHAS.md`, yet `git merge-tree --write-tree origin/main slice/b2` printed a tree and exited 0. A reviewer spent time looking for a conflict that the laptop cannot show. `gh pr view 49 --json mergeable` → `CONFLICTING` and no workflow starts.
+- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; the laptop's git applies it, GitHub's merge machinery does not, so both sides appending to the bank conflict there only.
+- rule: trust `gh pr view <n> --json mergeable,mergeStateStatus`, not a local merge test, for whether CI will run (P-301). When it says CONFLICTING and the local merge is clean, the cause is the bank: merge main into the lane with the union driver, then run `node workspace/05-plans/check-gotchas.mjs` (P-072, P-302) before committing.
+- proof: `git merge-tree --write-tree origin/main slice/b2 > /dev/null; echo $?` prints 0 while `gh pr view 49 --json mergeable` prints `{"mergeable":"CONFLICTING"}`; `grep -n GOTCHAS .gitattributes` prints `GOTCHAS.md merge=union` (measured 2026-10-02, B2 c1 review).
+- added: 2026-10-02
