@@ -1,0 +1,86 @@
+{
+  "started": "2026-10-02T07:15:00+03:00",
+  "updated": "2026-10-02 21:25, laptop time (UTC+3)",
+  "now": "Slice B1b, repo and delivery. Step 5 (the CI pipeline) is accepted. Step 5b (the merge gate) passed its code review on the fourth round; the orchestrator is re-running its proofs and then merges the first eight steps into main through that gate. After that two lanes run side by side: the rest of B1b (deploys, backups) and B2, the database.",
+  "paceNote": "That pace was one lane, with every review finding costing a full fix round. From 2026-10-02 21:40 (UTC+3) two lanes run side by side and only a blocking finding costs a round (ruling H45). The new pace is unproven until it has been measured.",
+  "runGroups": { "c6": "5", "c7": "5b" },
+  "slices": {
+    "V1": {
+      "note": "The first review of the starting code, closed on 2026-09-30. It is not part of the step count."
+    },
+    "B1a": {
+      "note": "Closed on 2026-10-01, before the step plans were written. It is not part of the step count."
+    },
+    "B1b": {
+      "accepted": ["1", "2", "2b", "3", "3b", "4", "4b", "5"],
+      "inReview": ["5b"]
+    }
+  },
+  "lanes": [
+    { "phase": "Phase 0", "lane": "Delivery", "parts": [{ "slice": "B1b" }] },
+    { "phase": "Phase 0", "lane": "Database", "parts": [{ "slice": "B2" }] },
+    {
+      "phase": "Phase 0",
+      "lane": "API and tests",
+      "parts": [{ "slice": "B3" }, { "slice": "B4", "from": 1, "to": 8 }]
+    },
+    {
+      "phase": "Phase 1",
+      "lane": "Public",
+      "parts": [
+        { "slice": "B3b" },
+        { "slice": "B4", "from": 9, "to": 10 },
+        { "slice": "B17" },
+        { "slice": "B16" },
+        { "slice": "B13" },
+        { "slice": "B15" }
+      ]
+    },
+    {
+      "phase": "Phase 1",
+      "lane": "Operations",
+      "parts": [
+        { "slice": "B8", "from": 1, "to": 8 },
+        { "slice": "B8b", "from": 1, "to": 5 },
+        { "slice": "B5" },
+        { "slice": "B7", "from": 1, "to": 10 },
+        { "slice": "B6" },
+        { "slice": "B7", "from": 11, "to": 16 },
+        { "slice": "B8", "from": 9, "to": 10 },
+        { "slice": "B8b", "from": 6, "to": 10 }
+      ]
+    },
+    {
+      "phase": "Phase 1",
+      "lane": "Content",
+      "parts": [{ "slice": "B9" }, { "slice": "B10" }, { "slice": "B11" }, { "slice": "B12" }, { "slice": "B14" }]
+    },
+    {
+      "phase": "Phase 2",
+      "lane": "Hardening and launch",
+      "parts": [{ "slice": "H1" }, { "slice": "L1" }]
+    }
+  ],
+  "waiting": [
+    {
+      "what": "Sign up at uptimerobot.com",
+      "why": "Then the orchestrator sets up the uptime monitor. Nothing is held back today."
+    },
+    {
+      "what": "Store the backup private key offline",
+      "why": "Asked for when B1b step 8 creates it."
+    },
+    {
+      "what": "Legal entity, address and payment methods",
+      "why": "Needed in the last phase, for invoices and the legal pages."
+    },
+    {
+      "what": "X, LinkedIn and Meta apps",
+      "why": "Needed at the end. Posting is built and tested against stubs until then."
+    },
+    {
+      "what": "Your word to register the captions task on this laptop",
+      "why": "Asked for at launch."
+    }
+  ]
+}

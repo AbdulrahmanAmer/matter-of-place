@@ -34,7 +34,7 @@ and 4 plans.
 
 | Phase | Lanes (each is one builder session at a time, reviewed by a fresh context) |
 |---|---|
-| 0 Spine, one lane | B1b, then B2, then B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the lanes open) |
+| 0 Spine, two lanes while they do not depend on each other (ruling H45 (4), 2026-10-02) | Delivery: the rest of B1b (steps 6 to 11) · Database: B2, which depends only on B1b steps 1 to 3 · then one lane: B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the phase 1 lanes open) |
 | 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
 | 2 One lane | H1 on everything, then L1: the launch switch of the one database (ASSUMED H35), production secrets, deploy, matterofplace.com routed to the Worker |
 
@@ -108,6 +108,11 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 - Every new test is watched-fail before it counts. Every slice ends with `bun run check`, `bun run build` and its own proof.
 - `node workspace/05-plans/check-plans.mjs` must print OK before any plan change is committed (P-031).
 - Cross-slice conflicts are settled in ASSUMED.md §A; a builder who finds a new one stops and writes it there.
+- `progress.json` is the ledger of accepted steps. The orchestrator writes a step into it in the same change as the status
+  row below, only after the fresh review accepted it and its proofs were re-run, and `node workspace/05-plans/board.mjs --check`
+  must print `board: OK`. The operator reads it as a page: `node workspace/05-plans/board.mjs` serves http://127.0.0.1:8790.
+- Every time in these files is the laptop's clock, UTC+3. "EDT" in older lines is the shell's label for Egypt Daylight Time,
+  not US Eastern (GOTCHAS P-130); new lines carry the numeric offset.
 - The orchestrator re-runs the slice's verification before marking it closed here:
 
 | Slice | Status | Closed on | Proof |

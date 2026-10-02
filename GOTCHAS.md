@@ -593,6 +593,13 @@ Entry template
 - proof: `git status --short` showed ` M .claude/workflows/build-slice.js` after the failure; after `git checkout -- .claude/workflows/build-slice.js` the parse check passed.
 - added: 2026-10-02
 
+## P-130 · The shell on this laptop prints "EDT" for Egypt Daylight Time, not US Eastern
+- symptom: every time written with `date "+%H:%M %Z"` reads "EDT". The progress board took the label as US Eastern, stored the build's start with the offset -04:00, and reported 6.1 hours of work where 13.2 had passed, so its pace line was wrong by a factor of two.
+- cause: the laptop's zone is Egypt Standard Time (UTC+3) and Git Bash abbreviates its summer time as EDT. The abbreviation is shared with US Eastern Daylight Time, seven hours away.
+- rule: write a time with its numeric offset, `date "+%Y-%m-%d %H:%M %z"`, never with `%Z`. Every "EDT" already in POSITION.md, PLAN.md, PROJECT-STATE.md and the logs is laptop time, UTC+3. Code that needs a start instant takes an ISO time with `+03:00`.
+- proof: `date "+%Z %z"` prints `EDT +0300`; `node -e "console.log(Intl.DateTimeFormat().resolvedOptions().timeZone)"` prints `Africa/Cairo`.
+- added: 2026-10-02
+
 ## G-016 · The lint block for `scripts/**` cannot use the project service: it needs `project: ["./tsconfig.scripts.json"]`
 - paths: app/eslint.config.js, app/tsconfig.scripts.json
 - severity: warn
@@ -1176,4 +1183,11 @@ Entry template
 - cause: `includes` asks "is it anywhere", which stays true while one copy survives. A mutation that removes every copy tests the stronger claim and says nothing about the weaker one; a script line copied into a sibling script (`lint`, `lint:fix`) doubles any short `find`.
 - rule: when a change adds a second copy of a text a test looks for, the test pins the copy it means (`startsWith`, the exact command, or a count) and the registry gets one entry per copy that removes that copy alone. A `find` in `package.json` carries the script's own key or enough of its line to occur once; run `replay.mjs --check` before replaying.
 - proof: with `maxWarnings` read as `includes("--max-warnings 0")` in `app/tests/unit/hygiene.test.ts`, `cd app && node ../scratch/replay.mjs hy-lint-warnings-app` → `NOT RED hy-lint-warnings-app: exit=0 expect=false`; with the committed `startsWith("eslint . --max-warnings 0 && ")` → `RED hy-lint-warnings-app: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules` (measured 2026-10-02, B1b c7 round 3).
+- added: 2026-10-02
+
+## P-133 · An Edit anchor taken from the tail of a registry entry matches two entries
+- symptom: an edit of one entry in `app/tests/mutations/B1b.json` was refused because its `old_string` was found twice: two entries end with the same `expect` text.
+- cause: registry entries of one test share their `expect` line, so the tail of an entry is not unique. Only the `id` line and the `replace` line are.
+- rule: anchor an edit of a registry entry on its `"id"` line or its `replace` line, never on its `expect`.
+- proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
 - added: 2026-10-02
