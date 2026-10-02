@@ -60,7 +60,7 @@ in any folder of the map.
 | `src/server/lib/` | Cross-domain server modules: `db.ts`, `env.ts`, `runtime-env.ts`, `log.ts`, `log-events.ts`, `crypto.ts`, `sentry.ts`, `pipeline.ts`, `admin-route.ts`, `headers.ts`, `errors.ts`, `error-codes.ts`, `admin-errors.ts`, `authz.ts`, `permissions/<group>.ts`, `actor.ts`, `session.ts` and the other files the plans name | Feature logic | kebab `.ts` |
 | `src/domain/` | Shared contracts used by browser and server: Zod schemas (`contracts.ts`), camelCase types, transition tables (`workflow.ts`), enums, `market-time.ts`. Admin-only contracts are `admin-<feature>.ts` | Database access; React; anything that reads the environment | kebab `.ts` |
 | `src/services/` | The browser-side data boundary: `index.ts`, `types.ts`, `http/` (live adapter), `local/` (illustrative adapter, local and preview only) | Server code | kebab `.ts` |
-| `src/lib/` | Browser-safe shared helpers: `seo.ts`, `queries.ts`, `format.ts`, `strings.ts`, `form-copy.ts`, `analytics.ts`, `consent.ts` and the others the plans name; TanStack server functions as `<name>.functions.ts` | Server-only code (it goes to `src/server/lib/`) | kebab `.ts` |
+| `src/lib/` | Browser-safe shared helpers: `seo.ts`, `queries.ts`, `format.ts`, `strings.ts`, `form-copy.ts`, `form-data.ts` (`formText`, exists since B1b step 2b, ruling H38 (5)), `analytics.ts`, `consent.ts` and the others the plans name; TanStack server functions as `<name>.functions.ts` | Server-only code (it goes to `src/server/lib/`) | kebab `.ts` |
 | `src/hooks/` | React hooks shared by public components | Admin hooks (they live in their feature folder) | `use-<name>.ts` |
 | `src/config/` | `site.ts`, `cookies.ts` | Secrets | kebab `.ts` |
 | `src/data/` | Illustrative content for local and preview (`properties.ts`, `stories.ts`, `markets.ts`) and static marketing copy (`exposure.ts`, `faq.ts`) | Anything production reads except `exposure.ts` and `faq.ts` (G-005) | kebab `.ts` |
@@ -95,7 +95,7 @@ creates the check yet; the orchestrator adds the step named in section 3.
 
 ### 2.1 TypeScript and lint
 
-**R01.** Lint is type-aware and zero-warning: `eslint . --max-warnings 0` with `strictTypeChecked` and `projectService`, `only-throw-error` allowing only TanStack's `Redirect` and `NotFoundError`, `switch-exhaustiveness-check` (`considerDefaultExhaustiveForUnions: false`), `consistent-type-imports`, `no-unsafe-type-assertion`, and `reportUnusedDisableDirectives: 'error'`.
+**R01.** Lint is type-aware and zero-warning: `eslint . --max-warnings 0` with `strictTypeChecked` and `projectService` (the `scripts/**` block uses `project: ["./tsconfig.scripts.json"]` with `projectService: false`, measured, GOTCHAS G-016, ruling H38 (6)), `only-throw-error` allowing only TanStack's `Redirect` and `NotFoundError`, `switch-exhaustiveness-check` (`considerDefaultExhaustiveForUnions: false`), `consistent-type-imports`, `no-unsafe-type-assertion`, and `reportUnusedDisableDirectives: 'error'`.
 Why: un-awaited promises, unvalidated `any` and missed union members are the Worker bug classes; a new union value must fail the build until every consumer handles it.
 Enforced by: G02 (B1b step 2b); G10 asserts the rule names (B1b step 5).
 
@@ -107,7 +107,7 @@ Enforced by: G01 (B1b step 2b); flag assertions in G10 are HANDOFF HO-3.
 Why: a silent disable is how a gate is defeated.
 Enforced by: G02, `@eslint-community/eslint-comments/require-description` and `ban-ts-comment` (B1b step 2b).
 
-**R04.** No unused file, export or dependency, and no copied block of 70 tokens or more across `src`, `scripts` and `supabase/functions`; an export kept for a later slice carries `/** @public */` and a STUB marker.
+**R04.** No unused file, export or dependency, and no copied block of 70 tokens or more across `src`, `scripts` and `supabase/functions`; an export kept for a later slice carries `/** @public */` and a STUB marker. Since B1b step 2b the names nothing imported are file-local; a slice that needs one adds `export` back in the step that first imports it, which is expected and not a plan mismatch (ruling H38 (1)).
 Why: three lanes cannot see each other's helpers until merge; duplicates and orphans appear there.
 Enforced by: G03 `knip`, G04 `jscpd` (B1b step 2b).
 
@@ -129,9 +129,9 @@ Enforced by: G02 block (h) (B1b step 2b); G15 `deno check` (B3 step 3b, B8 step 
 Why: one JSON shape is filterable in Workers Logs, and `log.ts` is where email-shaped strings are scrubbed (CS-08).
 Enforced by: G02 `no-console` (B1b step 2b); `tests/unit/log.test.ts` (B1b step 3).
 
-**R09.** Throw only `AppError` with a key of `errorCodes` (`src/server/lib/error-codes.ts`); SQL raises the code as its exact message; `fromRpcError` is the only translator from SQL or PostgREST errors to HTTP; a dependency outage answers 503 with `Retry-After`; every non-2xx body is `{ error: { code, message, issues?, requestId } }` and every response carries `x-request-id`.
-Why: matching on message text turned real codes into 500s (API-03); a caller needs the request id to report a fault.
-Enforced by: `only-throw-error` (G02); `tests/unit/error-codes.test.ts` (B3 steps 1 and 2, B7 step 1); `pipeline.test.ts` and `smoke.mjs` (B1b steps 3 and 6); `scripts/api-smoke.mjs` (B3).
+**R09.** Throw only `AppError` with a key of `errorCodes` (`src/server/lib/error-codes.ts`); SQL raises the code as its exact message; `fromRpcError` is the only translator from SQL or PostgREST errors to HTTP; a dependency outage answers 503 with `Retry-After`; every non-2xx body is `{ error: { code, message, issues?, requestId } }` and every response carries `x-request-id`. Two exceptions only (ASSUMED H40): an error answer that is stored in the edge cache (the catalog 404 and the 410 `gone`) leaves `requestId` out of its body, because one stored body serves many requests, and the header still carries the id of each request; and the token-gated ops health hook answers plain text, because an uptime monitor matches a keyword. The body's `requestId` is the header's: `handle()` passes the id to `deps.render(request, requestId)`, `src/start.ts` hands it to the router's request context, and a handler reads `context.requestId` and never mints one (`handlePublic` and `defineAdminRoute` build `ctx.requestId` from it, ruling H39 (1)). A path under `/api/` never answers the page shell: `handle()` turns a rendered `text/html` answer under `/api/` into the JSON body (405 `method_not_allowed` for a rendered 200, else the rendered status with `not_found`), and the wrappers add `Allow` where they know the methods (ruling H39 (2)).
+Why: matching on message text turned real codes into 500s (API-03); a caller needs the request id to report a fault; an API route without a handler for the method rendered the page shell as 200 `text/html` (GOTCHAS G-022).
+Enforced by: `only-throw-error` (G02); `tests/unit/error-codes.test.ts` (B3 steps 1 and 2, B7 step 1); `pipeline.test.ts` and `smoke.mjs` (B1b steps 3 and 6); `sentry-test-route.test.ts` and the live curls of B1b step 4; `scripts/api-smoke.mjs` (B3).
 
 **R10.** No swallowed error: every `catch` rethrows, returns a typed outcome, or calls `logLine` or `captureException`; no empty catch and no `.catch(() => {})`.
 Why: a swallowed failure in a job or webhook is a lost email or post with no alert.
@@ -149,7 +149,7 @@ Enforced by: `tests/unit/authz.matrix.test.ts` (B7 step 1), `tests/db/actor.db.t
 Why: free-tier quotas and the 100-a-day Resend allowance are exhausted by one unthrottled route (API-04, SEC-12).
 Enforced by: `routes-parity.test.ts` (B3), `admin-routes-parity.test.ts` (B7 step 1), `tests/unit/csrf.test.ts` (B7 step 2), `tests/unit/security/turnstile-coverage.test.ts` (H1 step 2).
 
-**R14.** Environment values are read only in `src/server/lib/env.ts` or through `readVar` (`src/server/lib/runtime-env.ts`); no other module under `src/server` reads `process.env` or `Deno.env`; secrets never go in `VITE_*` or the repository.
+**R14.** Environment values are read only in `src/server/lib/env.ts` or through `readVar` (`src/server/lib/runtime-env.ts`); no other module under `src/server` reads `process.env` or `Deno.env`; secrets never go in `VITE_*` or the repository. `captureException(error, options)` takes `dsn`, `env` and `release` from its caller and reads no environment; Worker code passes `...sentryOptions()` from `env.ts` (B3), `src/start.ts` reads them under a `STUB(B3)` marker until then, and the job runner passes its own (ruling H39 (4)).
 Why: `VITE_*` ships to the browser (G-006); one reader is one place to audit.
 Enforced by: G02 `no-restricted-properties` (HANDOFF HO-2); G-006 grep (B1b step 10); `secret-scan` hook.
 
@@ -247,9 +247,9 @@ Enforced by: the `liveSideEffects` tests (B3 step 1, B5 step 4, B10 step 5).
 Why: eight hand-rolled signature sites meant eight chances to compare with `===` (CS-04).
 Enforced by: `tests/unit/crypto.test.ts` (B1b step 3b), `crypto.subtle` assertion in G10 (B1b step 5), the hook tests (B3 `hooks/resend`, B8 step 7 `render-hook.test.ts`).
 
-**R37.** Personal data never leaves its table: catalog event payloads carry only ids, enums, slugs and sealed tokens (a step fetches personal data by id); Sentry events and log lines carry no email, name, phone, message, IP, cookie or query string.
-Why: events, logs and Sentry are kept longer and seen by more people than the rows.
-Enforced by: `tests/unit/sentry.test.ts` scrub cases (B1b step 4), `tests/unit/log.test.ts` (B1b step 3); review for payloads (C16).
+**R37.** Personal data never leaves its table: catalog event payloads carry only ids, enums, slugs and sealed tokens (a step fetches personal data by id); Sentry events and log lines carry no email, name, phone, message, IP, cookie or query string. `captureException` bounds its input before any pattern runs: message at most 2,000 characters, stack at most 50 lines of at most 500 characters, frames parsed in linear time (ruling H39 (3)); the browser's text reaches it through `/api/public/client-error`.
+Why: events, logs and Sentry are kept longer and seen by more people than the rows; an unbounded stack parser fed by the browser is a denial of service on the Worker's 10 ms of CPU.
+Enforced by: `tests/unit/sentry.test.ts` scrub and 28 KB capped-input cases (B1b step 4), `tests/unit/log.test.ts` (B1b step 3); review for payloads (C16).
 
 **R38.** Mail recipients are selected only through the consent-aware functions (`newsletter_audience_members`, the market-open selection, `resolveRecipient`), never by an ad hoc query on `subscribers`; every email template has a quota class (`transactional`, `confirm` or `bulk`) and bulk and confirm sends stop below their reserve of the daily cap.
 Why: a bulk send must never starve invoices, confirmations and alerts (INT-03, PERF-11).

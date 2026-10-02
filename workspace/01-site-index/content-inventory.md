@@ -352,6 +352,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ## 6. Domain Types
 
+Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schemas in their files. `Representation`, `Region`, `MarketGuide`, `Neighborhood`, `CampaignTier`, `ListingStatus`, `PropertyType`, `SubmissionSource` and `StoryCategory` below describe shapes, not exported type names: a plan that names one means the schema's inferred type, exported again where a second file needs it.
+
 ### Property (`src/domain/property.ts`)
 
 **Type Definitions:**
@@ -511,6 +513,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 ---
 
 ### Contracts (`src/domain/contracts.ts`)
+
+Since B1b step 2b's dead-export gate (ASSUMED H38 (1)) `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `searchQuerySchema`, `submissionMediaSchema` and `conciergeQuestionSchema` are file-local; the step that first imports one elsewhere adds `export` back.
 
 **Schema Enumerations:**
 
