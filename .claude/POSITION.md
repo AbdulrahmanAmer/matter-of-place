@@ -814,3 +814,19 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   standalone snapshot (Google Fonts, no polling) for the claude.ai artifact the operator shares with his partner.
   Republish the artifact with `node workspace/05-plans/board.mjs --export <file>` then the Artifact tool with its url.
 - A run whose journal is silent for 45 minutes reads as stopped, not running.
+
+## 2026-10-03 01:50 +0300 · Pipeline optimised for the restart (H50); four lanes ready on disk; still PARKED
+- build-slice.js: lanes merge themselves through the gate when the slice is done (`mergeEach`, `noMerge` options);
+  every group starts by merging origin/main; groups of 2 to 3 steps; designer groups run on mop-designer. Validated
+  by scratchpad trace/validate-workflow.mjs (parses; accept logic 8 cases, bad 0). NOT yet exercised on a real run.
+- Lanes on disk, all at main 62c6c9c with .env, .dev.vars and packages: spine (slice/b1b at 88994da WIP), db
+  (slice/b2), tests (detached), design (detached). Merge driver for the bank active in all four.
+- RESTART COMMANDS (run all four in one message; the board shows them live):
+  1. Workflow({ scriptPath: "E:/Matter Of Place/.claude/workflows/build-slice.js", args: { slice: "B1b", root: "E:/mop-build/spine",
+     closeOut: [{ id: "c7", steps: "7", critical: true, title: "finish the WIP of H49 (1) (2) (3)", defects: [<the three H49 items, see run wf_689ef72f-fa9>] }] } })
+  2. ... { slice: "B2", root: "E:/mop-build/db", previewPort: 8798, bankBase: { P: 300, G: 100 } }
+  3. ... { slice: "B4", root: "E:/mop-build/tests", previewPort: 8808, bankBase: { P: 400, G: 150 } }  (branch slice/b4 is created by the builder)
+  4. ... { slice: "B9", root: "E:/mop-build/design", previewPort: 8818, bankBase: { P: 700, G: 250 } }  (steps 1 and 2 are designer steps; later groups block on B8)
+  After each run's notification: read the journal, record the ledger (`progress.json`), run own probes on main in a batch.
+- Operator decisions still open: GitHub Actions spending limit (about 20 dollars); the Claude budget at the reset
+  (about 270 million tokens for the remaining 238 steps at today's rate).
