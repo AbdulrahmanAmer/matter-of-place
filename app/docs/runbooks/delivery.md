@@ -295,3 +295,5 @@ curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/o
 The issue appears within about 20 seconds. On production, set the secret only for the test and delete it right after:
 `bunx wrangler secret put SENTRY_TEST_TOKEN --name matter-of-place`, then `bunx wrangler secret delete SENTRY_TEST_TOKEN
 --name matter-of-place`.
+
+Probe line for B1b g1 step 6 (closed unmerged).
