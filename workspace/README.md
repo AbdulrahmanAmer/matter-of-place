@@ -13,3 +13,5 @@
 | `audits/` | Weekly reports from `mop-auditor` (created on first run) |
 
 Decisions live in `../PROJECT-STATE.md`. Position lives in `../.claude/POSITION.md`.
+
+Probe line, removed with the branch.
