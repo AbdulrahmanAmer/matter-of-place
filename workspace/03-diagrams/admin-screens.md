@@ -4,13 +4,14 @@ Pictures: [img/admin-screens-1.png](img/admin-screens-1.png) navigation map, [im
 decide-and-invoice flow, [img/admin-screens-3.png](img/admin-screens-3.png) publish-to-channels flow.
 Words: `../07-admin-platform/admin-screens.md`.
 
-## 1. Navigation map (25 screens)
+## 1. Navigation map (27 screens)
 
 ```mermaid
 flowchart LR
   SI[1 Sign in] --> DB[2 Dashboard]
   subgraph WORK[Work]
     RQ[3 Requests] --> RD[4 Request detail]
+    PP[26 People] --> PD[27 Person]
     PR[7 Properties] --> PE[8 Property editor]
     ME[9 Media]
     AS[10 Assets]
@@ -43,6 +44,7 @@ flowchart LR
   end
   DB --> WORK & DIST & MONEY & EDIT & AUTO & SYS
   RD -->|accept| ID
+  RD -->|open person| PD
   ID -->|activate| PE
   PE -->|publish| AS
   AS -->|approve| CH & NL

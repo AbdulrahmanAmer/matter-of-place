@@ -12,7 +12,7 @@ for (const p of have) if (!order.includes(p)) order.push(p);
 
 const reasons = [
   ["R2 switched on", /\bR2\b[^.]{0,80}\b(on|enabled|switch|bucket)|until R2|R2 is (on|off)|E8/i],
-  ["Resend account", /resend/i],
+  ["Resend live step (deployed endpoint or the production key at L1; the account exists, E17)", /resend/i],
   ["mop-prod (created at launch)", /mop-prod/i],
   ["Anthropic API key", /anthropic/i],
   ["X developer app", /\bX (developer|app|account|API)\b|X_CLIENT|post_x/],

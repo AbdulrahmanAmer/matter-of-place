@@ -507,3 +507,17 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   B5, B7, the site index and admin-screens, with trace items; it can run while B1b builds (B1b does not touch them).
 - Also to fold after the workflow returns: H28, H29, E17 to E19 into B5, B11, B16, B17, L1, completion-map A3,
   `ready.mjs` (Resend no longer a WAIT) and PLAN.md's list of operator inputs.
+
+## 2026-10-02 04:00 EDT · On main: review folded (PR #7); people, mail and analytics pass ready to merge; BUILD PAUSED BY THE OPERATOR
+- PR #7 merged at 92bd023: zero-blocker rounds 7 to 12, the engineering review folded into the 21 plans (288 finding
+  applications by seven writers, 93 handoffs, 25 mismatches fixed, 134 trace items), STANDARDS.md, rulings H1 to H31,
+  app/ rename, runbooks folder, Resend and Zoho setup. Remote holds only `main`. `ready.mjs --full` on main printed
+  `READY TO BUILD: yes (38 pass, 0 fail, 12 waiting on the operator)`.
+- Branch `chore/people-and-mail`: S55 (who submits: "I am" select with Real estate agent or Property owner, `contacts`
+  table, admin screens 26 People and 27 Person), H29 mail routes, H16 analytics roll-up. Decisions in ASSUMED H32.
+- The operator STOPPED the build start (rejected the lane command, then asked questions). The lane exists anyway:
+  `E:/mop-build/spine`, a git worktree of main (detached at 92bd023) with a copy of `.env` and `bun install` done.
+  It must be moved to the merge commit of this branch before B1b starts
+  (`git -C E:/mop-build/spine checkout --detach origin/main`). Do NOT start B1b until the operator says continue.
+- When he says continue: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`.
+- Actions minutes used this month: 0 runs so far (no workflow exists yet); measure again before phase 1 (P-048).

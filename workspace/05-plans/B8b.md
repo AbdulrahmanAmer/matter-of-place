@@ -180,7 +180,7 @@ Change
   - `property.unpublished`: `bump_catalog_version`, `purge_cache`. ASSUMED addition: otherwise an unpublished property stays cached.
   - `asset.approved`: `post_meta` (`channels: from_settings`), `post_x`, `post_linkedin`, each with `conditions.kinds = ["cover","carousel","story","reel"]`, and `queue_digest` (`mode: add`, G18) with `conditions.kinds = ["newsletter_block"]` (the payload carries `kind`, B10). Each post step posts only when its channel row is enabled.
   - `digest.due`: `queue_digest` (`mode: assemble`, G18), `notify_admin` [`notify_admin_digest`].
-  - `inquiry.received`: `send_email` template `inquiry_ack` [`send_inquiry_ack`], `notify_admin` [`notify_admin_inquiry`], `webhook_omnikom`.
+  - `inquiry.received`: `send_email` template `inquiry_ack` [`send_inquiry_ack`], `send_email` template `inquiry_forward` with `to: "submitter"` [`send_inquiry_forward`] (S55: the message goes to the person who submitted the property, agent or owner, the CTO's default of ASSUMED H30 (7); B5 ends it `skipped: no_submitter` for an inquiry with no such person), `notify_admin` [`notify_admin_inquiry`], `webhook_omnikom`.
   - `submission.activated`, `asset.rejected`, `subscriber.confirmed`: empty `steps`, `enabled = true` (admins may add steps).
   - `subscriber.created` (double opt-in, B5; ASSUMED A7, G12): one step, `send_email` template `interest_confirm` [`send_confirm`], no condition; B5's `send-email.ts` swaps the key to `newsletter_confirm` when `subscribers.markets` is empty or `subscribers.pending_source` is set (DL-06), so every signup plans exactly one job, key `<event_id>:send_confirm`.
   - `invoice.voided`: `notify_admin` [`notify_admin_void`].
