@@ -21,13 +21,12 @@ flowchart TB
   subgraph CF[Cloudflare, free tier: zone matterofplace.com]
     edge[Edge cache + WAF + Turnstile + rate-limit rule]
     site[One Worker: SSR pages, /api/* server routes, /admin behind auth, Cache API, keep-warm cron every 10 minutes. Also pr-N previews and the stable dev Worker matter-of-place-dev]
-    r2[(R2, designed in and off until the operator enables it: stripped originals + variants made once when a photograph is attached, reels, copy of the nightly DB dump)]:::todo
   end
 
   subgraph SB[Supabase, free tier]
     db[(Postgres: catalog, submissions, inquiries, subscribers, events, campaigns, jobs, assets)]
     auth[Auth: magic links, roles chief_editor, managing_editor, visual_editor, media_ops, commercial, admin]
-    store[(Storage, private buckets: submissions for signed uploads and staged originals, invoices for invoice PDFs)]
+    store[(Storage, no R2: private submissions for signed uploads and staged originals, public media for variants and renders at /media/key, private documents for invoice PDFs)]
     q[[pgmq queues jobs_light, jobs_heavy + pg_cron: runner every minute, health, retention, token refresh]]:::todo
     fn[[Edge Function: job runner reads the recipe at trigger time]]:::todo
     rules[(Automation settings: recipes, email templates, decline reasons, channel + schedule settings, revisions)]:::todo
@@ -45,7 +44,7 @@ flowchart TB
     story[IG story 1080x1920]:::todo
     reel[Reel, Campaign tier]:::todo
     nl[Newsletter block + standalone email]:::todo
-    cap[Captions + alt text: Haiku]:::todo
+    cap[Captions + alt text: Haiku through the laptop caption runner]:::todo
     approve{Media Ops approves in /admin}:::todo
   end
 
@@ -59,7 +58,7 @@ flowchart TB
   end
 
   subgraph MONEY[Commercial: manual now, Stripe later behind the same table]
-    pay[payments table: invoice from template, PDF in the private invoices bucket, preferred method, mark paid, activate agent]:::todo
+    pay[payments table: invoice from template, PDF in the private documents bucket, preferred method, mark paid, activate agent]:::todo
     stripe[Stripe adapter, later]:::todo
     omni[Omnikom handoff webhook: inquiries, attribution]:::todo
   end
@@ -84,7 +83,7 @@ flowchart TB
   site -->|enqueue| q --> fn
   fn -->|heavy work: workflow_dispatch of render.yml| render
   render -->|signed callback| site
-  render --> r2
+  render --> store
   render --> og & car & story & reel & nl
   fn --> cap
   og & car & story & reel & nl & cap --> approve

@@ -36,7 +36,7 @@ and 4 plans.
 |---|---|
 | 0 Spine, one lane | B1b, then B2, then B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the lanes open) |
 | 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
-| 2 One lane | H1 on everything, then L1: `mop-prod`, production secrets, deploy, matterofplace.com routed to the Worker |
+| 2 One lane | H1 on everything, then L1: the launch switch of the one database (ASSUMED H35), production secrets, deploy, matterofplace.com routed to the Worker |
 
 The orchestrator (this session) dispatches, re-runs each slice's proof itself, merges, and keeps the table at the end of
 this file. A lane that fails the same step twice is recorded BLOCKED with what would unblock it and the lane moves to
@@ -49,13 +49,16 @@ at 70 percent of 2,000 it runs `gh variable set CI_HEAVY --body off`. Merges go 
 
 Built is not the same as switched on. Every step that calls an outside account is built and tested against its stub,
 and goes live the hour the operator supplies the account; the table under "Start readiness" names each one. In order of
-how much they hold back (Resend is done: ASSUMED E17 to E20; GitHub Pro was declined: H5): R2 switched on (needs a payment method), the legal entity and
-payment facts, the Anthropic API key, the X app, the LinkedIn page and app, Meta access through the partner, the Google
-accounts, a fine-grained GitHub token for render dispatch, the Sentry auth token, the Omnikom endpoint.
+how much they hold back, as the operator set them on 2026-10-02 (S59): the uptime monitor account (he signs up, the
+orchestrator sets it up), the legal entity and payment facts (last phase), the X app, the LinkedIn page and app and Meta
+access through the partner (at the end), Google Analytics and Search Console (set up by the orchestrator when the build
+needs them). Done: Resend (E17 to E20), Sentry with its token (E21), the GitHub token for render dispatch (E22). Gone:
+R2 (S57, files live in Supabase Storage), the Anthropic key (S58, captions through the laptop runner), a second database
+(S60). The Omnikom endpoint does not exist, so B15 is built and stays switched off. GitHub Pro was declined (H5).
 
 Facts measured on 2026-10-02: the zone `matterofplace.com` is active on Cloudflare and public DNS answers with
-Cloudflare's nameservers, so the domain needs no waiting time; Supabase holds one project (`mop-dev`), so `mop-prod`
-fits the free plan. UNPROVEN: that 237 steps fit in the time, and that three lanes merge cleanly. The first measured
+Cloudflare's nameservers, so the domain needs no waiting time; Supabase holds one project (`mop-dev`), which is the
+one database of S60. UNPROVEN: that 237 steps fit in the time, and that three lanes merge cleanly. The first measured
 pace is B1b; the orchestrator reports it when B1b closes.
 
 ## Start readiness (2026-10-01)
@@ -70,31 +73,31 @@ names what they wait on; every other step runs. The plans were audited in both d
 
 | Slice | Steps with a waiting part | On what |
 |---|---|---|
-| B1b | 7 of 15 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
-| B2 | 3 of 15 | mop-prod (created at launch), R2 switched on |
+| B1b | 4 of 15 | GitHub Pro (branch protection), custom domain (L1) |
+| B2 | 2 of 15 | see the plan |
 | B3 | 3 of 18 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
-| B3b | 2 of 10 | mop-prod (created at launch) |
+| B3b | none of 10 | none |
 | B4 | 1 of 10 | see the plan |
 | B5 | 2 of 10 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | B6 | 2 of 9 | legal entity and payment facts |
-| B7 | 5 of 20 | R2 switched on, Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
-| B8 | 2 of 14 | GitHub dispatch token |
+| B7 | none of 20 | none |
+| B8 | 1 of 14 | see the plan |
 | B8b | none of 11 | none |
-| B9 | 5 of 11 | CEO creative pick, R2 switched on, GitHub dispatch token, Anthropic API key, LinkedIn page and app, Meta app (partner) |
-| B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Anthropic API key, GitHub dispatch token |
-| B11 | 3 of 13 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17), R2 switched on, Meta app (partner) |
-| B12 | 2 of 9 | R2 switched on, GitHub dispatch token |
-| B13 | 4 of 13 | R2 switched on, Google accounts |
-| B14 | 7 of 9 | Google accounts, custom domain (L1) |
-| B15 | 3 of 7 | Omnikom endpoint, mop-prod (created at launch) |
+| B9 | 2 of 11 | CEO creative pick |
+| B10 | 9 of 16 | X developer app, LinkedIn page and app, Meta app (partner) |
+| B11 | 3 of 13 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17), legal entity and payment facts, Meta app (partner) |
+| B12 | none of 9 | none |
+| B13 | 2 of 13 | see the plan |
+| B14 | 7 of 9 | custom domain (L1) |
+| B15 | 3 of 7 | Omnikom endpoint |
 | B16 | none of 8 | none |
-| B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
-| H1 | 4 of 11 | R2 switched on |
+| B17 | 4 of 12 | custom domain (L1), Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
+| H1 | 3 of 11 | see the plan |
 | L1 | 2 of 11 | Google accounts |
 
-What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (10 slices have a waiting step), supply the legal entity and payment facts, create the X, LinkedIn and Google
-accounts and ask the partner for Meta access, create an Anthropic API key and a fine-grained GitHub token for render
-dispatch. `mop-prod`, the custom domain and the creative pick come up inside their own slices.
+What the operator can do at any time to shorten that list: sign up for the uptime monitor, supply the legal entity and
+payment facts, and at the end create the X and LinkedIn apps and ask the partner for Meta access (S59). The custom
+domain and the creative pick come up inside their own slices.
 
 ## Slice files
 B1b.md · B2.md · B3.md · B3b.md · B4.md · B5.md · B6.md · B7.md · B8.md · B8b.md · B9.md · B10.md · B11.md · B12.md ·

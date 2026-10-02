@@ -11,10 +11,7 @@ const have = readdirSync(here).filter((f) => /^(B|H|L)\S*\.md$/.test(f)).map((f)
 for (const p of have) if (!order.includes(p)) order.push(p);
 
 const reasons = [
-  ["R2 switched on", /\bR2\b[^.]{0,80}\b(on|enabled|switch|bucket)|until R2|R2 is (on|off)|E8/i],
   ["Resend live step (deployed endpoint or the production key at L1; the account exists, E17)", /resend/i],
-  ["mop-prod (created at launch)", /mop-prod/i],
-  ["Anthropic API key", /anthropic/i],
   ["X developer app", /\bX (developer|app|account|API)\b|X_CLIENT|post_x/],
   ["LinkedIn page and app", /linkedin/i],
   ["Meta app (partner)", /\bmeta\b|instagram/i],
@@ -29,7 +26,6 @@ const reasons = [
 ];
 
 const rows = [];
-let r2 = 0;
 for (const p of order) {
   const text = readFileSync(join(here, `${p}.md`), "utf8");
   const steps = (text.split(/^## Steps/m)[1] || "").split(/^## /m)[0].split("\n").filter((l) => /^\d+[a-z]?\. /.test(l));
@@ -38,7 +34,6 @@ for (const p of order) {
   for (const l of blocked) {
     for (const seg of l.split(/BLOCKED/).slice(1)) for (const [name, re] of reasons) if (re.test(seg.slice(0, 400))) why.add(name);
   }
-  if (why.has("R2 switched on")) r2++;
   rows.push(`| ${p} | ${blocked.length ? `${blocked.length} of ${steps.length}` : `none of ${steps.length}`} | ${[...why].join(", ") || (blocked.length ? "see the plan" : "none")} |`);
 }
 const table = ["| Slice | Steps with a waiting part | On what |", "|---|---|---|", ...rows].join("\n");
@@ -49,7 +44,6 @@ if (process.argv.includes("--write")) {
   const end = plan.indexOf("\n\n", start);
   if (start < 0 || end < 0) throw new Error("readiness table not found in PLAN.md");
   plan = plan.slice(0, start) + table + plan.slice(end);
-  plan = plan.replace(/switch R2 on \(\d+ slices have a\s+waiting step\)/, `switch R2 on (${r2} slices have a waiting step)`);
   writeFileSync(planPath, plan);
-  console.log(`PLAN.md table rewritten (${rows.length} rows, R2 in ${r2})`);
+  console.log(`PLAN.md table rewritten (${rows.length} rows)`);
 } else console.log(table);

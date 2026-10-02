@@ -29,7 +29,7 @@ flowchart TB
     B1[B1b Repo and delivery: wrangler, CI,<br/>preview per PR, dev Worker, Sentry, headers, backups]
   end
   subgraph W2["Wave 2: the spine"]
-    B2[B2 Database on mop-dev: migrations, generated types,<br/>seed to dev only, R2 variants BLOCKED until R2 is on]
+    B2[B2 Database on mop-dev: migrations, generated types,<br/>seed to dev only, three Storage buckets, H33]
     B3[B3 API: catalog + writes + search +<br/>rule-based concierge + rate limits + Turnstile]
     B3b[B3b Coming-soon mode: empty states +<br/>per-market interest signup]
     B4[B4 Tests: Vitest + Playwright on every PR]
@@ -106,16 +106,16 @@ flowchart LR
   A8[A8 DONE: GitHub Actions secrets<br/>and variables, no branch protection] --> B1
   A6[A6 DONE: Sentry account] --> B1
   A10[A10 DONE: Lovable disconnected] --> B1
-  A2[A2 Supabase org: mop-dev DONE,<br/>mop-prod at launch] --> B2
+  A2[A2 Supabase: mop-dev DONE,<br/>the one database, H35] --> B2
   A3[A3 Resend + domain records] --> B5
   A4[A4 Invoice template inputs:<br/>entity, methods, numbering] --> B6
   A9[A9 Business facts: contact,<br/>entity, handle, editors] --> B4 & B7
   A5[A5 X app, LinkedIn page and app,<br/>Meta through the partner] --> B10
   A7[A7 GA4 with gtag.js, Search Console,<br/>Bing, no Tag Manager] --> B13 & B14
-  A12[A12 Anthropic API key] --> B9
-  A13[A13 GitHub dispatch token] --> B8 & B9
-  A14[A14 Omnikom endpoint and secret] --> B15
-  A15[A15 Uptime monitor key,<br/>optional Sentry token] --> B14
+  A12[A12 no model key: captions<br/>through the laptop, H34] --> B9
+  A13[A13 DONE: GitHub dispatch token] --> B8 & B9
+  A14[A14 no Omnikom endpoint:<br/>B15 built, switched off] --> B15
+  A15[A15 Uptime account by the operator,<br/>Sentry token DONE] --> B14
 
   B1[B1b Repo + deploy]
   B2[B2 Database]

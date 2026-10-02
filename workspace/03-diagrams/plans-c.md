@@ -6,8 +6,9 @@ Words: `../05-plans/B9.md`, `B10.md`, `B11.md`, `B12.md`, `B13.md`, `B14.md`, `B
 
 Exact step names come from the catalog in architecture 5. Heavy steps run in GitHub Actions and return through the signed callback,
 light steps run in the Edge Function job runner. Approval is a human (S23) until the automatic path opens for Feature tier after
-`auto_after`. `queue_digest` has two modes (G18, B11): `add` on `asset.approved`, `assemble` on `digest.due`. R2 is off until the
-operator turns it on (E8): heavy renders and real posts wait for it (`r2_unavailable`).
+`auto_after`. `queue_digest` has two modes (G18, B11): `add` on `asset.approved`, `assemble` on `digest.due`. Files live in
+Supabase Storage (ruling H33): heavy renders upload to the bucket `media`, served at `/media/<key>`, and nothing waits on a
+storage switch. `write_captions` is of the execution class `local` and runs on the operator's laptop (ruling H34).
 
 ```mermaid
 flowchart TD
@@ -17,9 +18,12 @@ flowchart TD
   subgraph LIGHT["Light steps, Edge Function"]
     BCV["bump_catalog_version"]
     PC["purge_cache"]
-    WC["write_captions, Haiku plus voice lint"]
     NB["build_newsletter_block"]
     SE["send_email standalone, requires_approval, Campaign only"]
+  end
+
+  subgraph LOCALS["Local step, the laptop caption runner"]
+    WC["write_captions, Haiku through the Claude CLI plus voice lint"]
   end
 
   subgraph HEAVY["Heavy steps, GitHub Actions render.yml"]
@@ -42,6 +46,7 @@ flowchart TD
   REC1 --> SE
   style LIGHT stroke-dasharray: 5 5
   style HEAVY stroke-dasharray: 5 5
+  style LOCALS stroke-dasharray: 5 5
 
   BCV -.->|"market opened"| MON["market_open_notice system job, one mail to interest-only signups"]
   RV --> CB["Signed callback hooks render callback"]
@@ -49,8 +54,8 @@ flowchart TD
   RCA --> CB
   RST --> CB
   RRE --> CB
-  CB --> PMV["property_media: stripped original and variants in R2"]
-  CB --> AS["assets rows, status pending, files in R2"]
+  CB --> PMV["property_media: stripped master and variants in bucket media"]
+  CB --> AS["assets rows, status pending, files in bucket media"]
   WC --> AS
   NB --> AS
 
@@ -77,7 +82,6 @@ flowchart TD
   WIN -->|"yes, X"| XAPI["X API media upload, then post with cover, short caption, link"]
   WIN -->|"yes, LinkedIn"| LAPI["LinkedIn API image upload, then organisation post with editorial caption"]
   WIN -->|"channel disabled"| SKD["skipped_disabled, nothing written"]
-  WIN -->|"R2 off"| R2W["retry_at plus 24 hours, r2_unavailable, no attempt used"]
   GRAPH --> SP["social_posts posted, permalink, remote_id"]
   XAPI --> SP
   LAPI --> SP
@@ -98,8 +102,8 @@ flowchart TD
 ## 2. The Meta publish call for an approved carousel
 
 One `post_meta` job, one Instagram carousel. Facebook runs the same job with its own calls (photo post for the cover, photo story) once its channel row is enabled; at launch it is a disabled block. X and LinkedIn have their own steps, `post_x` and `post_linkedin`, shown in the first diagram.
-Every call carries `appsecret_proof`. Meta downloads the images itself from the public R2 host, so while R2 is off the step
-returns `retry_at` 24 hours later with `r2_unavailable` before any platform call.
+Every call carries `appsecret_proof`. Meta downloads the images itself from our own domain at `/media/<key>` (B3's route over the public Storage bucket
+`media`, ruling H33 (4)); nothing waits on a storage switch.
 
 ```mermaid
 sequenceDiagram
@@ -108,7 +112,7 @@ sequenceDiagram
   participant WK as Worker admin route
   participant PG as Postgres
   participant RN as Job runner Edge Function
-  participant R2 as R2 public media host
+  participant MD as Worker media route on our domain
   participant GR as Meta Graph API
   participant IG as Instagram
   ME->>WK: approve asset
@@ -118,8 +122,6 @@ sequenceDiagram
   RN->>PG: read channel_settings and social_posts for asset and channel
   alt row already posted
     RN->>PG: finish job done, nothing sent
-  else R2 not configured or MEDIA_BASE_URL unset
-    RN->>PG: social_posts error r2_unavailable, retry_at plus 24 hours, attempts unchanged
   else not yet posted
     RN->>RN: nextWindowSlot with timezone and daily cap
     alt outside window or cap reached
@@ -129,8 +131,8 @@ sequenceDiagram
       GR-->>RN: quota usage
       loop each slide, 6 to 8 times
         RN->>GR: POST ig-user-id media with image_url and is_carousel_item
-        GR->>R2: fetch image by public HTTPS URL
-        R2-->>GR: PNG bytes
+        GR->>MD: fetch image by public HTTPS URL at /media/key
+        MD-->>GR: JPEG bytes
         GR-->>RN: child container id
       end
       RN->>GR: POST ig-user-id media with media_type CAROUSEL, children ids, caption
@@ -175,7 +177,7 @@ flowchart LR
     D1["H1-16 RLS review script and role matrix"]
     D2["H1-17 Supabase security advisors"]
     D3["H1-18 and 19 migrations, editorial and money gates"]
-    D4["H1-20 nightly encrypted backup, workflow artifact today, R2 copy once R2 is on"]
+    D4["H1-20 nightly encrypted backup, workflow artifact, the only copy"]
     D5["H1-21 restore rehearsal on a native PostgreSQL 18 throwaway cluster"]
     D6["H1-22 rollback drill on the throwaway Worker mop-drill"]
   end
@@ -194,9 +196,9 @@ flowchart LR
     O4["H1-34 Sentry, health drill, keep-warm tick"]
   end
   subgraph RECO["Recovery, retention, operations"]
-    R1["H1-36 retention drill"]
-    R2["H1-37 migration rollback drill"]
-    R3["H1-38 secret rotation and ages"]
+    RT1["H1-36 retention drill"]
+    RT2["H1-37 migration rollback drill"]
+    RT3["H1-38 secret rotation and ages"]
     R4["H1-39 incident runbook walked"]
   end
   subgraph CACHE["Caching contract and platform"]

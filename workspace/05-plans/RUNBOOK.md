@@ -31,7 +31,9 @@ other slices go ahead.
 ## Rules that hold for every slice
 - Sonnet workers only; the orchestrator judges and verifies. Never a Fable child.
 - No Docker on this machine (S50). The database is the cloud project `mop-dev`; schema changes go through
-  `supabase db push` only. R2 is off until the operator enables it; steps that need a bucket are BLOCKED, not replaced.
+  `supabase db push` only. There is no R2 (ruling H33): files live in the Supabase Storage buckets `submissions`, `media` and
+  `documents` of the one project, and nothing waits on a bucket switch. There is one database (ruling H35): after L1's launch switch
+  every destructive or test script refuses with `refusing: production database`.
 - Secrets stay in `E:\Matter Of Place\.env` and in GitHub and Cloudflare. No worker prints, pastes or commits a value.
 - One writer per file. Slices that run side by side must not share a file; `check-plans.mjs` prints the candidates.
 - A plan that turns out wrong is changed first (`check-plans.mjs` must print OK), then built. Nothing is built quietly
@@ -60,5 +62,8 @@ Merges to `main`, the first production deploy, production secrets (`wrangler sec
 closing a slice, and anything the workflow returns under `needsOrchestrator`.
 
 ## What only the operator does
-Creating accounts and full-access tokens (GOTCHAS P-037), entering a payment method, legal and business facts, turning R2
-on, and approving anything that changes how the site looks or reads beyond the plan.
+Creating accounts and full-access tokens (GOTCHAS P-037; decision S59 delegates the Sentry user token, the fine-grained GitHub
+token for render dispatch, Google Analytics, Search Console and the configuration of the uptime monitor to the orchestrator),
+signing up for the uptime monitor account, supplying the X, LinkedIn and Meta apps at the end, entering a payment method and the
+legal and business facts in the last phase (S59), the word that lets the orchestrator register the caption task on this laptop
+(ruling H34 (4)), and approving anything that changes how the site looks or reads beyond the plan.
