@@ -21,7 +21,7 @@ export type RegionSlug =
   | "the-hamptons"
   | "hudson-valley";
 
-export type Region = {
+type Region = {
   slug: RegionSlug;
   name: string;
   intro: string;
@@ -37,14 +37,14 @@ export type Note = {
   text: string;
 };
 
-export type Neighborhood = {
+type Neighborhood = {
   name: string;
   region: RegionSlug;
   text: string;
 };
 
 /** Market guide: neighbourhoods, what clients ask of us, how we work on the ground. */
-export type MarketGuide = {
+type MarketGuide = {
   neighborhoods: Neighborhood[];
   needs: Note[];
   service: Note[];

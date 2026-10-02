@@ -74,7 +74,7 @@ function PropertiesPage() {
               aria-expanded={showFilters}
               aria-controls="property-filters"
             >
-              Filter {active > 0 ? `(${active})` : ""} {showFilters ? "−" : "+"}
+              Filter {active > 0 ? `(${String(active)})` : ""} {showFilters ? "−" : "+"}
             </button>
           }
         />

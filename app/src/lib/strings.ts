@@ -94,8 +94,8 @@ export type Strings = typeof en;
 const tables: Record<Locale, Strings> = { en };
 
 /** Returns the string table for a locale (English until other tables exist). */
-export function getStrings(locale: Locale = defaultLocale): Strings {
-  return tables[locale] ?? en;
+function getStrings(locale: Locale = defaultLocale): Strings {
+  return tables[locale];
 }
 
 /** Convenience accessor for the default locale. */

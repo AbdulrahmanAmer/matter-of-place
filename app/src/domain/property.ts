@@ -1,20 +1,20 @@
-import type { MarketSlug, RegionSlug } from "./market";
+import type { MarketSlug, RegionSlug } from "./market.ts";
 
 /**
  * Property (the "dossier"). Mirrors the `properties` table described in
  * docs/architecture/data-model.md; field names match the API contract so the
  * `http` catalog adapter needs no mapping layer.
  */
-export type CampaignTier = "Editorial" | "Feature" | "Reach" | "Campaign";
+type CampaignTier = "Editorial" | "Feature" | "Reach" | "Campaign";
 
-export type ListingStatus = "Illustrative" | "Active" | "Off-market" | "Under offer" | "Sold";
+type ListingStatus = "Illustrative" | "Active" | "Off-market" | "Under offer" | "Sold";
 
-export type PropertyType =
+type PropertyType =
   "Estate" | "Residence" | "Townhouse" | "Waterfront" | "Farmhouse" | "Apartment" | "Penthouse";
 
-export type SubmissionSource = "Editorial" | "Submission";
+type SubmissionSource = "Editorial" | "Submission";
 
-export type Representation = {
+type Representation = {
   name: string;
   brokerage: string;
   license?: string;

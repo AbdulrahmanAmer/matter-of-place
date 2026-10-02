@@ -1,42 +1,34 @@
 import type { Property } from "../../domain/property";
 import type { FilterState } from "../../hooks/use-filters";
 import { featuresOf, stylesOf, typesOf } from "../../lib/catalog";
+import { FilterSelect } from "./filter-select";
 
 /** Three concise filters for market and region pages: type, architecture, design feature. */
 export function QuickFilters({ state, pool }: { state: FilterState; pool: Property[] }) {
   const { filters, set, reset, active } = state;
   return (
     <div className="quick-filters">
-      <select
-        aria-label="Property type"
+      <FilterSelect
+        label="Property type"
+        anyLabel="Type"
         value={filters.type}
-        onChange={(e) => set("type", e.target.value)}
-      >
-        <option value="">Type</option>
-        {typesOf(pool).map((type) => (
-          <option key={type}>{type}</option>
-        ))}
-      </select>
-      <select
-        aria-label="Architecture"
+        options={typesOf(pool)}
+        onChange={(value) => set("type", value)}
+      />
+      <FilterSelect
+        label="Architecture"
+        anyLabel="Architecture"
         value={filters.style}
-        onChange={(e) => set("style", e.target.value)}
-      >
-        <option value="">Architecture</option>
-        {stylesOf(pool).map((style) => (
-          <option key={style}>{style}</option>
-        ))}
-      </select>
-      <select
-        aria-label="Design feature"
+        options={stylesOf(pool)}
+        onChange={(value) => set("style", value)}
+      />
+      <FilterSelect
+        label="Design feature"
+        anyLabel="Features"
         value={filters.feature}
-        onChange={(e) => set("feature", e.target.value)}
-      >
-        <option value="">Features</option>
-        {featuresOf(pool).map((feature) => (
-          <option key={feature}>{feature}</option>
-        ))}
-      </select>
+        options={featuresOf(pool)}
+        onChange={(value) => set("feature", value)}
+      />
       {active > 0 && (
         <button type="button" className="filter-clear" onClick={reset}>
           Clear

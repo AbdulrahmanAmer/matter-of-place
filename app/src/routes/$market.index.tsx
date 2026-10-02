@@ -33,7 +33,7 @@ export const Route = createFileRoute("/$market/")({
     const { market } = loaderData;
     return pageHead({
       title: market.name,
-      description: `${market.intro.split(".")[0]}. Property stories across ${market.regions.map((region) => region.name).join(", ")}.`,
+      description: `${market.intro.split(".")[0] ?? market.intro}. Property stories across ${market.regions.map((region) => region.name).join(", ")}.`,
       path: `/${market.slug}`,
     });
   },

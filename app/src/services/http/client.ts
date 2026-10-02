@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { ServiceError } from "../types";
 
 /**
@@ -7,8 +8,20 @@ import { ServiceError } from "../types";
  * the site's origin.
  */
 export type ApiClient = {
-  get<T>(path: string, init?: RequestInit): Promise<T>;
-  post<T>(path: string, body: unknown, init?: RequestInit): Promise<T>;
+  get<T>(path: string, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
+  post<T>(path: string, body: unknown, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
+};
+
+/**
+ * The response shape the API contract promises. The contract is not re-validated in the browser
+ * (ADR 0002); this names the one place where the body is trusted.
+ */
+export const trusted = <T>() => z.custom<T>();
+
+const withHeaders = (defaults: Record<string, string>, extra: HeadersInit | undefined) => {
+  const headers = new Headers(defaults);
+  new Headers(extra).forEach((value, key) => headers.set(key, value));
+  return headers;
 };
 
 const kindForStatus = (status: number) => {
@@ -18,12 +31,12 @@ const kindForStatus = (status: number) => {
 };
 
 export function createApiClient(baseUrl: string): ApiClient {
-  const request = async <T>(path: string, init: RequestInit): Promise<T> => {
+  const request = async <T>(path: string, shape: z.ZodType<T>, init: RequestInit): Promise<T> => {
     let response: Response;
     try {
       response = await fetch(`${baseUrl}${path}`, {
         ...init,
-        headers: { accept: "application/json", ...init.headers },
+        headers: withHeaders({ accept: "application/json" }, init.headers),
       });
     } catch (error) {
       throw new ServiceError("network", error instanceof Error ? error.message : "Network error");
@@ -31,17 +44,16 @@ export function createApiClient(baseUrl: string): ApiClient {
     if (!response.ok) {
       throw new ServiceError(kindForStatus(response.status), response.statusText, response.status);
     }
-    if (response.status === 204) return undefined as T;
-    return (await response.json()) as T;
+    return shape.parse(response.status === 204 ? undefined : await response.json());
   };
 
   return {
-    get: (path, init = {}) => request(path, { ...init, method: "GET" }),
-    post: (path, body, init = {}) =>
-      request(path, {
+    get: (path, shape, init = {}) => request(path, shape, { ...init, method: "GET" }),
+    post: (path, body, shape, init = {}) =>
+      request(path, shape, {
         ...init,
         method: "POST",
-        headers: { "content-type": "application/json", ...init.headers },
+        headers: withHeaders({ "content-type": "application/json" }, init.headers),
         body: JSON.stringify(body),
       }),
   };

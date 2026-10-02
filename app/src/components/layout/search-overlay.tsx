@@ -1,16 +1,18 @@
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, X } from "lucide-react";
+import { focusOnMount } from "../../hooks/use-modal";
 import { track } from "../../lib/analytics";
+import { formText } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 
 /** Site-wide search: one field, sends the term to the Properties collection. */
 export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const term = new FormData(event.currentTarget).get("q")?.toString().trim() ?? "";
+    const term = formText(new FormData(event.currentTarget), "q").trim();
     track("search", { term });
     onClose();
     void navigate({ to: "/properties", search: term ? { q: term } : {} });
@@ -19,12 +21,12 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="search-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label={t.header.search}
-      onClick={onClose}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <div className="search-panel" onClick={(event) => event.stopPropagation()}>
+      <div className="search-panel" role="dialog" aria-modal="true" aria-label={t.header.search}>
         <div className="search-panel-head">
           <span className="eyebrow">{t.header.findAPlace}</span>
           <button
@@ -38,7 +40,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         </div>
         <form onSubmit={onSubmit}>
           <input
-            autoFocus
+            ref={focusOnMount}
             name="q"
             placeholder={t.header.searchPlaceholder}
             aria-label={t.header.searchLabel}

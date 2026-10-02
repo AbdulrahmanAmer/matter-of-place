@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["scripts/**/*.ts", "scripts/**/*.mjs"],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "lib": ["ES2022"],
+    "types": ["node", "bun"]
+  }
+}

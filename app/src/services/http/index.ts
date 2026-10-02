@@ -2,7 +2,7 @@ import type { Market } from "../../domain/market";
 import type { Property } from "../../domain/property";
 import type { Story } from "../../domain/story";
 import type { Receipt } from "../../domain/contracts";
-import { createApiClient } from "./client";
+import { createApiClient, trusted } from "./client";
 import {
   ServiceError,
   type CatalogService,
@@ -37,22 +37,24 @@ export function createHttpServices(baseUrl: string) {
   const api = createApiClient(baseUrl);
 
   const catalog: CatalogService = {
-    listProperties: () => api.get<Property[]>("/properties"),
+    listProperties: () => api.get("/properties", trusted<Property[]>()),
     getProperty: (slug) =>
-      nullOnNotFound(api.get<Property>(`/properties/${encodeURIComponent(slug)}`)),
-    listMarkets: () => api.get<Market[]>("/markets"),
-    getMarket: (slug) => nullOnNotFound(api.get<Market>(`/markets/${encodeURIComponent(slug)}`)),
-    listStories: () => api.get<Story[]>("/stories"),
-    getStory: (slug) => nullOnNotFound(api.get<Story>(`/stories/${encodeURIComponent(slug)}`)),
+      nullOnNotFound(api.get(`/properties/${encodeURIComponent(slug)}`, trusted<Property>())),
+    listMarkets: () => api.get("/markets", trusted<Market[]>()),
+    getMarket: (slug) =>
+      nullOnNotFound(api.get(`/markets/${encodeURIComponent(slug)}`, trusted<Market>())),
+    listStories: () => api.get("/stories", trusted<Story[]>()),
+    getStory: (slug) =>
+      nullOnNotFound(api.get(`/stories/${encodeURIComponent(slug)}`, trusted<Story>())),
   };
 
   const inquiries: InquiryService = {
-    send: (input) => api.post<Receipt>("/inquiries", input),
+    send: (input) => api.post("/inquiries", input, trusted<Receipt>()),
   };
 
   const submissions: SubmissionService = {
     async send(input, files) {
-      const receipt = await api.post<SubmissionReceipt>("/submissions", input);
+      const receipt = await api.post("/submissions", input, trusted<SubmissionReceipt>());
       await Promise.all(
         receipt.uploads.map(async (upload) => {
           const file = files.find((candidate) => candidate.name === upload.name);
@@ -72,15 +74,15 @@ export function createHttpServices(baseUrl: string) {
   };
 
   const newsletter: NewsletterService = {
-    subscribe: (input) => api.post<Receipt>("/subscribers", input),
+    subscribe: (input) => api.post("/subscribers", input, trusted<Receipt>()),
   };
 
   const search: SearchService = {
-    match: (query) => api.post<SearchMatch[]>("/search", query),
+    match: (query) => api.post("/search", query, trusted<SearchMatch[]>()),
   };
 
   const concierge: ConciergeService = {
-    answer: (question) => api.post<ConciergeAnswer>("/concierge", question),
+    answer: (question) => api.post("/concierge", question, trusted<ConciergeAnswer>()),
   };
 
   return { catalog, inquiries, submissions, newsletter, search, concierge };

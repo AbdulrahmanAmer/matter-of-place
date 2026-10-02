@@ -1,0 +1,195 @@
+[
+  {
+    "id": "ab",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/server/lib/db.ts",
+    "find": "",
+    "replace": "export function load(url: string) {\n  fetch(url, { signal: AbortSignal.timeout(1000) });\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-floating-promises"
+  },
+  {
+    "id": "ac",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/server/lib/scratch.ts",
+    "find": "",
+    "replace": "export async function read(res: Response) {\n  const x = await res.json();\n  return x.id;\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-unsafe-member-access"
+  },
+  {
+    "id": "ad",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/lib/scratch.ts",
+    "find": "",
+    "replace": "type Kind = \"a\" | \"b\";\n\nexport function label(kind: Kind): string {\n  switch (kind) {\n    case \"a\":\n      return \"A\";\n  }\n  return \"\";\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/switch-exhaustiveness-check"
+  },
+  {
+    "id": "ae",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/lib/scratch.ts",
+    "find": "",
+    "replace": "// eslint-disable-next-line no-console -- scratch line\nexport const quiet = 1;\n",
+    "run": "bun run lint",
+    "expect": "Unused eslint-disable directive"
+  },
+  {
+    "id": "af",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/server/lib/scratch.ts",
+    "find": "",
+    "replace": "export const warn = () => {\n  console.warn(\"x\");\n};\n",
+    "run": "bun run lint",
+    "expect": "no-console"
+  },
+  {
+    "id": "ag",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/server/lib/errors.ts",
+    "find": "",
+    "replace": "export * from \"./log\";\n",
+    "run": "bun run lint",
+    "expect": "Deno-loaded file: import with the .ts extension"
+  },
+  {
+    "id": "ah",
+    "test": "bun run knip",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const unusedScratch = () => 1;",
+    "run": "bun run knip",
+    "expect": "unusedScratch"
+  },
+  {
+    "id": "ai",
+    "kind": "create",
+    "test": "bun run jscpd",
+    "file": "src/lib/scratch-copy.ts",
+    "find": "",
+    "replace": "import type { Property } from \"../domain/property\";\n\nexport const relatedCopy = (list: Property[], property: Property, count = 3): Property[] => {\n  const bySlug = new Map(list.map((item) => [item.slug, item]));\n  const explicit = (property.related ?? [])\n    .map((slug) => bySlug.get(slug))\n    .filter((item): item is Property => item !== undefined);\n  const pool = list.filter((item) => item.slug !== property.slug && !explicit.includes(item));\n  const sameRegion = pool.filter((item) => item.region === property.region);\n  const sameMarket = pool.filter(\n    (item) => item.market === property.market && !sameRegion.includes(item),\n  );\n  const elsewhere = pool.filter((item) => !sameRegion.includes(item) && !sameMarket.includes(item));\n  return [...explicit, ...sameRegion, ...sameMarket, ...elsewhere].slice(0, count);\n};\n",
+    "run": "bun run jscpd",
+    "expect": "Clone found"
+  },
+  {
+    "id": "aj",
+    "kind": "create",
+    "test": "bun run typecheck",
+    "file": "scripts/scratch.mjs",
+    "find": "",
+    "replace": "/**\n * @param {number} a\n * @param {number} b\n * @returns {number}\n */\nexport function add(a, b) {\n  return a + b;\n}\n\nadd(1);\n",
+    "run": "bun run typecheck",
+    "expect": "TS2554"
+  },
+  {
+    "id": "ak",
+    "kind": "create",
+    "test": "bun run test",
+    "file": "tests/unit/scratch.test.ts",
+    "find": "",
+    "replace": "import { it } from \"vitest\";\n\nit(\"x\", () => {});\n",
+    "run": "bunx vitest run tests/unit/scratch.test.ts",
+    "expect": "expected any number of assertion, but got none"
+  },
+  {
+    "id": "ak-lint",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "tests/unit/scratch.test.ts",
+    "find": "",
+    "replace": "import { it } from \"vitest\";\n\nit(\"x\", () => {});\n",
+    "run": "bun run lint",
+    "expect": "vitest/expect-expect"
+  },
+  {
+    "id": "al",
+    "kind": "create",
+    "test": "bun run stubs",
+    "file": "src/lib/scratch.ts",
+    "find": "",
+    "replace": "// STUB(V1): scratch\nexport const stubbed = 1;\n",
+    "run": "bun run stubs",
+    "expect": "src/lib/scratch.ts:1 STUB(V1) slice is closed"
+  },
+  {
+    "id": "ay",
+    "kind": "create",
+    "test": "bun run layout",
+    "file": "src/helpers/scratch.ts",
+    "find": "",
+    "replace": "export const helper = 1;\n",
+    "run": "bun run layout",
+    "expect": "layout: app/src/helpers/scratch.ts: outside the folder map"
+  },
+  {
+    "id": "az",
+    "test": "bun run lint",
+    "file": "src/domain/market.ts",
+    "find": "/**\n * Markets and regions.",
+    "replace": "export const stamp = Date.now();\n\n/**\n * Markets and regions.",
+    "run": "bun run lint",
+    "expect": "R29"
+  },
+  {
+    "id": "ba",
+    "kind": "create",
+    "test": "bun run lint",
+    "file": "src/server/lib/scratch.ts",
+    "find": "",
+    "replace": "export const value = process.env.X;\n",
+    "run": "bun run lint",
+    "expect": "R14"
+  },
+  {
+    "id": "bb",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/styles/base.css",
+    "find": "html {\n  scroll-behavior: smooth;",
+    "replace": "html {\n  color: #111111;\n  scroll-behavior: smooth;",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "R42"
+  },
+  {
+    "id": "bc",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "/**\n * Localisation table for shared chrome and notices.",
+    "replace": "/**\n * Localisation table — for shared chrome and notices.",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "R46"
+  },
+  {
+    "id": "bc-r06",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/components/site/text-link.tsx",
+    "find": "import { cx } from \"../../lib/cx\";",
+    "replace": "import { cx } from \"../../lib/cx\";\nimport { getDb } from \"@/server/lib/db\";",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "browser code away from src/server"
+  },
+  {
+    "id": "bi",
+    "test": "tests/unit/stubs.test.ts",
+    "file": "scripts/stubs.ts",
+    "find": "const isClosed = closed.has(m.slice);",
+    "replace": "const isClosed = false;",
+    "run": "bunx vitest run tests/unit/stubs.test.ts",
+    "expect": "slice is closed"
+  },
+  {
+    "id": "bj",
+    "test": "tests/unit/check-layout.test.ts",
+    "file": "scripts/check-layout.mjs",
+    "find": "\"secret\"",
+    "replace": "\"secrets\"",
+    "run": "bunx vitest run tests/unit/check-layout.test.ts",
+    "expect": "banned: secret"
+  }
+]

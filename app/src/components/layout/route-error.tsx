@@ -6,6 +6,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   useEffect(() => {
+    // eslint-disable-next-line no-console -- replaced by reportClientError in B3 (FE-09)
     console.error(error);
   }, [error]);
 

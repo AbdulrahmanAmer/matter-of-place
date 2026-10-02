@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { Market } from "../../domain/market";
 
-export function MarketCard({ market }: { market: Market }) {
+function MarketCard({ market }: { market: Market }) {
   return (
     <Link to="/$market" params={{ market: market.slug }} className="market-card">
       <img

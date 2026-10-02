@@ -32,8 +32,6 @@ export const siteConfig = {
   },
 } as const;
 
-export type SiteConfig = typeof siteConfig;
-
 /** Absolute URL for a site path, used in canonical links and structured data. */
 export const absoluteUrl = (path: string) =>
   `${siteConfig.url}${path.startsWith("/") ? path : `/${path}`}`;

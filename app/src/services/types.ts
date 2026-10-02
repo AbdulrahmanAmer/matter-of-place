@@ -18,7 +18,7 @@ import type {
  * (the Matter of Place API on Cloudflare backed by Supabase). Which set is
  * used depends solely on `VITE_API_BASE_URL`.
  */
-export type ServiceMode = "local" | "live";
+type ServiceMode = "local" | "live";
 
 export interface CatalogService {
   listProperties(): Promise<Property[]>;

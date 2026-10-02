@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { contactTopics, inquirySchema, type ContactTopic } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
+import { formText } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
 import { ChoiceGroup } from "./choice-group";
@@ -13,7 +14,7 @@ export function ContactForm() {
   const [topic, setTopic] = useState<ContactTopic>(contactTopics[0]);
   const { state, run, reset, pending } = useAsyncAction((form: HTMLFormElement) => {
     const data = new FormData(form);
-    const text = (key: string) => data.get(key)?.toString() ?? "";
+    const text = (key: string) => formText(data, key);
     return services.inquiries.send(
       inquirySchema.parse({
         intent: "general",
@@ -28,10 +29,11 @@ export function ContactForm() {
     );
   });
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const receipt = await run(event.currentTarget);
-    if (receipt) track("contact_inquiry", { topic });
+    void run(event.currentTarget).then((receipt) => {
+      if (receipt) track("contact_inquiry", { topic });
+    });
   };
 
   if (state.status === "success") {

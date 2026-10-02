@@ -1,7 +1,8 @@
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { subscriberSchema } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
+import { formText } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { isLive, services } from "../../services";
 import { FormError } from "./form-notice";
@@ -11,11 +12,12 @@ export function NewsletterForm({ source }: { source: string }) {
     services.newsletter.subscribe(subscriberSchema.parse({ ...input, source })),
   );
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const email = new FormData(event.currentTarget).get("email")?.toString() ?? "";
-    const receipt = await run({ email });
-    if (receipt) track("newsletter_signup", { source });
+    const email = formText(new FormData(event.currentTarget), "email");
+    void run({ email }).then((receipt) => {
+      if (receipt) track("newsletter_signup", { source });
+    });
   };
 
   if (state.status === "success") {

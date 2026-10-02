@@ -42,7 +42,7 @@ export const Route = createFileRoute("/property/$slug")({
     const { property } = loaderData;
     return pageHead({
       title: `${property.title} ${property.city}`,
-      description: `${property.city}, ${property.state}: ${property.beds} bedrooms, ${formatNumber(property.interiorSqFt)} sq ft, ${property.style.toLowerCase()} architecture and a sense of place.`,
+      description: `${property.city}, ${property.state}: ${String(property.beds)} bedrooms, ${formatNumber(property.interiorSqFt)} sq ft, ${property.style.toLowerCase()} architecture and a sense of place.`,
       path: `/property/${property.slug}`,
       type: "article",
       jsonLd: {
@@ -87,7 +87,7 @@ function PropertyPage() {
     track("share", { slug: property.slug });
     const url = window.location.href;
     try {
-      if (navigator.share) {
+      if (typeof navigator.share === "function") {
         await navigator.share({ title: `${property.title} | ${siteConfig.name}`, url });
         return;
       }

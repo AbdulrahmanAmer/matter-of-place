@@ -19,7 +19,7 @@ export type Filters = {
   feature: string;
 };
 
-export const emptyFilters: Filters = {
+const emptyFilters: Filters = {
   term: "",
   market: "",
   location: "",
@@ -72,6 +72,11 @@ export type FilterState = {
   active: number;
 };
 
+const isFilterKey = (key: string): key is keyof Filters => Object.hasOwn(emptyFilters, key);
+const countedFilters = Object.keys(emptyFilters)
+  .filter(isFilterKey)
+  .filter((key) => key !== "term");
+
 export function useFilters(initial: Partial<Filters> = {}): FilterState {
   // Captured once: the initial values define what "cleared" means for this page.
   const [baseline] = useState<Filters>(() => ({ ...emptyFilters, ...initial }));
@@ -85,10 +90,7 @@ export function useFilters(initial: Partial<Filters> = {}): FilterState {
   const reset = useCallback(() => setFilters(baseline), [baseline]);
 
   const active = useMemo(
-    () =>
-      (Object.keys(emptyFilters) as (keyof Filters)[]).filter(
-        (key) => key !== "term" && filters[key] !== baseline[key],
-      ).length,
+    () => countedFilters.filter((key) => filters[key] !== baseline[key]).length,
     [filters, baseline],
   );
 

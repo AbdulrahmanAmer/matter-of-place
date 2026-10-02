@@ -3,8 +3,6 @@ import { ZodError } from "zod";
 import { ServiceError } from "../services";
 import { t } from "../lib/strings";
 
-export type AsyncStatus = "idle" | "pending" | "success" | "error";
-
 type State<TResult> =
   | { status: "idle" }
   | { status: "pending" }

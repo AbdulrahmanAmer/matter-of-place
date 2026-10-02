@@ -5,7 +5,7 @@ import { pageHead } from "../../src/lib/seo";
 const brand = siteConfig.name;
 const countBrand = (value: string) => value.split(brand).length - 1;
 const titleOf = (head: ReturnType<typeof pageHead>) =>
-  (head.meta.find((tag) => "title" in tag) as { title: string }).title;
+  head.meta.flatMap((tag) => ("title" in tag ? [tag.title] : [])).at(0) ?? "";
 
 describe("pageHead", () => {
   it("appends the brand suffix to a bare page title", () => {
@@ -27,10 +27,10 @@ describe("pageHead", () => {
     const title = titleOf(head);
     expect(title).toBe(given);
     expect(countBrand(title)).toBe(1);
-    const ogTitle = head.meta.find((tag) => "property" in tag && tag.property === "og:title") as {
-      content: string;
-    };
-    expect(ogTitle.content).toBe(given);
+    const ogTitle = head.meta.flatMap((tag) =>
+      "property" in tag && tag.property === "og:title" ? [tag.content] : [],
+    );
+    expect(ogTitle).toEqual([given]);
   });
 
   it("uses the bare brand as the title when the brand alone is passed", () => {

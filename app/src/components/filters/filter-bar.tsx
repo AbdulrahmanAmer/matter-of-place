@@ -2,6 +2,7 @@ import type { Market } from "../../domain/market";
 import type { Property } from "../../domain/property";
 import type { FilterState } from "../../hooks/use-filters";
 import { featuresOf, statusesOf, stylesOf, typesOf } from "../../lib/catalog";
+import { FilterSelect } from "./filter-select";
 
 export type LocationOption = { value: string; label: string };
 
@@ -106,26 +107,20 @@ export function FilterBar({
           </option>
         ))}
       </select>
-      <select
-        aria-label="Architectural style"
+      <FilterSelect
+        label="Architectural style"
+        anyLabel="All styles"
         value={filters.style}
-        onChange={(e) => set("style", e.target.value)}
-      >
-        <option value="">All styles</option>
-        {stylesOf(pool).map((style) => (
-          <option key={style}>{style}</option>
-        ))}
-      </select>
-      <select
-        aria-label="Design feature"
+        options={stylesOf(pool)}
+        onChange={(value) => set("style", value)}
+      />
+      <FilterSelect
+        label="Design feature"
+        anyLabel="All features"
         value={filters.feature}
-        onChange={(e) => set("feature", e.target.value)}
-      >
-        <option value="">All features</option>
-        {featuresOf(pool).map((feature) => (
-          <option key={feature}>{feature}</option>
-        ))}
-      </select>
+        options={featuresOf(pool)}
+        onChange={(value) => set("feature", value)}
+      />
       {statuses.length > 1 && (
         <select
           aria-label="Status"

@@ -10,7 +10,7 @@ import hamptons from "../assets/hamptons.jpg";
 import manhattan from "../assets/manhattan.jpg";
 import brooklyn from "../assets/brooklyn.jpg";
 import hudsonValley from "../assets/hudson-valley.jpg";
-import type { Market, RegionSlug } from "../domain/market";
+import type { Market } from "../domain/market";
 
 /**
  * Matter of Place covers three markets: California, Florida and New York.
@@ -420,8 +420,3 @@ export const markets: Market[] = [
     ],
   },
 ];
-
-/** Every region across all markets, for validation and lookups. */
-export const regionSlugs: RegionSlug[] = markets.flatMap((market) =>
-  market.regions.map((region) => region.slug),
-);

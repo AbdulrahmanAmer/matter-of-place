@@ -30,7 +30,7 @@ export type AnalyticsEvent =
   | "search"
   | "home_finder";
 
-export type AnalyticsEnvelope = {
+type AnalyticsEnvelope = {
   event: AnalyticsEvent;
   path: string;
   at: string;

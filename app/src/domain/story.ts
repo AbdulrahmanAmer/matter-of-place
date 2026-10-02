@@ -1,11 +1,11 @@
-import type { MarketSlug } from "./market";
+import type { MarketSlug } from "./market.ts";
 
 /**
  * Editorial story. Original writing that does not depend on a submission:
  * architecture, interiors and places across the three market desks.
  */
-export const storyCategories = ["Architecture", "Interiors", "Places", "Stories"] as const;
-export type StoryCategory = (typeof storyCategories)[number];
+const storyCategories = ["Architecture", "Interiors", "Places", "Stories"] as const;
+type StoryCategory = (typeof storyCategories)[number];
 
 export type Story = {
   id: string;
