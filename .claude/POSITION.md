@@ -590,3 +590,12 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - The B1b run in progress (`wf_29e2899b-5e5`) still uses the older prompts; when it stops, continue with the SAVED
   workflow: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine", startAt: "<group>" } })`.
 - B1b pace so far: group g1 (steps 1 and 2) built in about four minutes; its review started 07:28 EDT.
+
+## 2026-10-02 07:45 EDT · Models for the build changed by the operator (S62)
+- Builders Sonnet 5.5 at HIGH effort; reviewer of every group Opus 5.5 at HIGH effort; critical groups built by Opus 5.5
+  at high effort (the sizing agent marks them; `opusGroups` or `builderModel: "opus"` force it). No worker below high.
+- B1b so far (run `wf_29e2899b-5e5`, older settings): g1 (steps 1-2) accepted after one fix round (the builder had left
+  out two required lines of `wrangler.toml`). g2 (step 2b, code gates) was building at 07:36 EDT.
+- NEXT: when the running workflow finishes g2's review, stop it and continue B1b with the SAVED workflow so the new
+  models and the gotcha discipline apply: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`
+  (the sizing agent reads the slice log and leaves finished steps out). Check the lane is clean first (P-056).
