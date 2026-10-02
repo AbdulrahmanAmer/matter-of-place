@@ -582,3 +582,11 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   or a fresh run of the saved workflow with `startAt`.
 - OPERATOR ACTION COMING at step 8: store the backup private key (`creds/backup-recipient.key`) offline before the
   laptop copy is deleted.
+
+## 2026-10-02 07:35 EDT · Operator's standing order: "Make sure that you always update the gotcha.md"
+- Enforced in the saved build workflow: builders report `costTime` and `gotchasAdded`; the fresh reviewer rejects a
+  group whose costs have no entry in GOTCHAS.md. The orchestrator checks the bank's diff at every merge and adds its
+  own entries in the same turn (P-062 dashboards, P-063 final message format, P-064 write-before-validate, added now).
+- The B1b run in progress (`wf_29e2899b-5e5`) still uses the older prompts; when it stops, continue with the SAVED
+  workflow: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine", startAt: "<group>" } })`.
+- B1b pace so far: group g1 (steps 1 and 2) built in about four minutes; its review started 07:28 EDT.
