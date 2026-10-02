@@ -599,3 +599,32 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - NEXT: when the running workflow finishes g2's review, stop it and continue B1b with the SAVED workflow so the new
   models and the gotcha discipline apply: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`
   (the sizing agent reads the slice log and leaves finished steps out). Check the lane is clean first (P-056).
+
+## 2026-10-02 09:15 EDT · B1b: steps 1, 2 and 2b ACCEPTED; step 3 onward building on the new models
+- g1 (steps 1-2: runbook, wrangler.toml): accepted after one fix round. g2 (step 2b: code gates): the Opus 5.5 high
+  review (run `wf_67deda32-d6f`) rejected it three times; round one found six real defects (a lint finding hidden behind
+  an empty validator, exports deleted that B2's plan changes, a swallowed error in the stubs gate, no bank entry for four
+  costs, an undeclared second disable, the site index describing deleted names). Two fix rounds closed all but two small
+  leftovers, which the orchestrator fixed (two lines of content-inventory.md, a stray file outside the lane, P-071).
+- Orchestrator's own proof in the lane: `bun run check` exit 0 (layout OK 559 files, 0 clones, 36 tests), `bun run build`
+  exit 0, wrangler.json = `matter-of-place` with `MOP_ENV production`, observability on, compatibility date 2026-09-30 and
+  `nodejs_compat`; three gates broken on purpose and seen red (knip, layout, lint), tree restored.
+- main was merged INTO `slice/b1b` (merge commit 1bd2fa2), so the lane has the new workflow, S62 and the bank. The
+  bank now lives on the slice branch while the lane is open (P-072): it holds up to P-072 and G-016; main holds up to
+  P-064 until the slice merges.
+- Rejections so far (the count the operator asked for): g1 1 of 2 reviews, g2 3 of 3 reviews by Opus.
+- Notes for later slices are binding as ASSUMED H38 (file-local exports, schema-inferred types, the required `shape`
+  argument of the HTTP client, wizard step constants).
+- RUNNING: `build-slice` run `wf_9c9e608f-19c` (saved workflow, new models) for the remaining steps of B1b.
+
+## 2026-10-02 11:25 EDT · B1b: step 3 ACCEPTED; steps 3b-4 (g4) stopped after three Opus rejections, ruled on (H39)
+- Run `wf_9c9e608f-19c` (new models): sizing g3(3) g4(3b-4, critical) g5(5, critical) g6(5b, orchestrator)
+  g7(6, critical) g8(7, critical, orchestrator) g9(7b) g10(8) g11(9-10) g12(11). g3 accepted after one fix round
+  (commits 3f61dbf, 697a3ea). g4 built by Opus (0e39bc9, 00b78f2, 7d96ae5), rejected three times; the last four defects
+  needed rulings: the request id for route handlers, API paths answering the page shell on an unhandled method, an
+  unbounded stack parser in the Sentry client, one cost with no bank entry.
+- Rulings: ASSUMED H39 (nine points). NEXT: (a) close g4 in the lane with H39 (Opus builder, Opus review);
+  (b) one Opus integrator folds H38 and H39 into the stale plan lines of B1b, B3, B4, B8, B8b, B17 and H1 on main;
+  (c) merge main into `slice/b1b`; (d) continue with the saved workflow (step 5 onward).
+- Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 3 of 3. Every rejection named real defects.
+- The bank on the slice branch holds up to P-084 and G-023.
