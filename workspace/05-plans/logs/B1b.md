@@ -670,3 +670,38 @@ UNPROVEN: the 406 on a deployed Worker (only `cf:preview` was run); whether B3's
 - GOTCHAS: P-094 added for the `python3 -` hang (measured: `python3` is Python 3.14.2 behind the WindowsApps path; fed `-` with an empty stdin it opens the interactive prompt, fails with `OSError: [WinError 6] The handle is invalid` and loops, 10.5 MB of traceback in 8 seconds). P-065's proof updated: knip prints 2 hints after step 4b, none naming `routeTree.gen.ts` or `router.tsx`. `node workspace/05-plans/check-gotchas.mjs` prints `check-gotchas: OK (25 path entries, 92 process entries)`.
 - For the orchestrator's within-slice fold (H41 (7)); files owned by others, not touched here: `workspace/05-plans/B1b.md` line 120 still lists `src/router.tsx` in the `knip.json` entries and `src/routeTree.gen.ts` in its ignores (step 4b removed both); `workspace/05-plans/B3.md` line 80 lists `errorCodes` without `not_acceptable: 406` (H41 (1)); `pipeline.ts` says B3's `toErrorResponse` takes the code over.
 - Re-run, same tree, same build: `bunx vitest run tests/unit/pipeline.test.ts` 81 passed. `bun run cf:preview`: `curl -s -D h.txt -o b.json -w "%{http_code} %{content_type}" -H "Accept: application/json" http://127.0.0.1:8788/` printed `406 application/json`, `Cache-Control: no-store`, header `x-request-id: 59cee20c-9d71-40d4-ad59-8fb57fa510cd` and body `requestId` the same; `Accept: text/html` printed `200 text/html; charset=utf-8`. Wrangler stopped by its parent: `listeners on 8788: 0`, `workerd left: 0`. `bun run knip` exit 0, two hints (`src/db/types.ts`, `supabase/functions/*/index.ts`). `bun run check` exit 0 (11 files, 188 tests); `bun run build` exit 0. Replay: `--check` `checked 121, bad 0`; `bm-page-refusal` RED (`× answers a page asked for with Accept application/json with the R09 406`); `bn-page-406-all` RED (`× leaves a page asked for with Accept text/html as it is`); both restored (`git status` shows no change under `app/`).
+
+### g5 · steps 4b, second fix round (reviewer defects: runbook claim, rule 6 drift)
+
+- Correction of a claim made twice above (the Findings bullet that begins "The runbook now says what H41 (2) and (3) accept", and the runbook text it describes): the trailing-slash 307 under `/api/` does NOT come bare. Measured under `bun run cf:preview`:
+  `curl -s -D - -o /dev/null http://127.0.0.1:8788/api/hooks/sentry-test/`
+  ```
+  HTTP/1.1 307 Temporary Redirect
+  Location: /api/hooks/sentry-test
+  Cache-Control: no-store
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy-Report-Only: default-src 'self'; ...
+  X-Frame-Options: DENY
+  x-request-id: 6b1c850b-4395-448a-8973-70addb0f9f6f
+  x-robots-tag: noindex, nofollow
+  ```
+  `curl -s --path-as-is -D - -o /dev/null http://127.0.0.1:8788//california`
+  ```
+  HTTP/1.1 308 Permanent Redirect
+  Content-Length: 0
+  Location: http://127.0.0.1:8788/california
+  ```
+  Only the `//` 308 is bare. `app/docs/runbooks/delivery.md` now says so (H41 (2) names the 308 as headerless; H41 (3) only accepts the 307), and says H1's header sweep covers the 307.
+- `pipeline.ts`: the docstring of `neverCached` now says the 406 is on the list by ASSUMED H41 (1) and that architecture 13 rule 6 does not name it yet. Behaviour unchanged.
+- For the orchestrator's within-slice fold (H41 (7)); files owned by others, not touched here, added to the list in the block above: `workspace/06-architecture/architecture.md` line 210 (rule 6: "any response with `Set-Cookie`, and every 5xx") and `workspace/05-plans/B1b.md` line 79 (invariant 10: "any response carrying `Set-Cookie`, and every 5xx (including the calm 500)") both need the 406 `not_acceptable` of a page whose `Accept` the router refuses added to the never-cached classes, or B3's `cache.ts`, built from rule 6, has no written reason to treat a 406 as never stored. Neither file names `not_acceptable` or 406 today (`git grep -n "not_acceptable" -- workspace/06-architecture/architecture.md` prints nothing). The earlier list stands: `B1b.md` line 120 (`knip.json` entries and ignores) and `B3.md` line 80 (`errorCodes` gets `not_acceptable: 406`).
+- Bank: P-095 (a ruling's "accepted" copied into a runbook as a measured fact about headers). `node workspace/05-plans/check-gotchas.mjs` prints `check-gotchas: OK (25 path entries, 93 process entries)`.
+
+Proofs, same tree after the edits (`bun run build` first):
+- `cd app && bunx vitest run tests/unit/pipeline.test.ts` -> `Test Files  1 passed (1)`, `Tests  81 passed (81)`.
+- `bun run cf:preview`, `curl -s -D h.txt -o b.json -w "%{http_code} %{content_type}\n" -H "Accept: application/json" http://127.0.0.1:8788/` -> `406 application/json`, `Cache-Control: no-store`, `X-Frame-Options: DENY`, `x-request-id: f303c963-d95e-4b8a-885d-d7c23c86e8e1`, body `{"error":{"code":"not_acceptable","message":"This address answers with a web page only.","requestId":"f303c963-d95e-4b8a-885d-d7c23c86e8e1"}}` (the `requestId` equals the header); `-H "Accept: text/html"` -> `200 text/html; charset=utf-8`.
+- Wrangler stopped by its parents (P-042): `listeners on 8788: 0`, `workerd left: 0`.
+- `bun run knip; echo exit=$?` -> `Configuration hints (2)`, `src/db/types.ts  knip.json  Remove from ignore`, `supabase/functions/*/index.ts  knip.json  Refine entry pattern (no matches)`, exit 0; `grep -c "routeTree.gen.ts\|router.tsx"` on it -> `0`.
+- `bun run check` exit 0 (11 files, 188 tests passed); `bun run build` exit 0.
+- Replay (runner text in the g4 close-out block): `--check` -> `checked 121, bad 0`; `RED bm-page-refusal: exit=1 expect=true | × answers a page asked for with Accept application/json with the R09 406`; `RED bn-page-406-all: exit=1 expect=true | × leaves a page asked for with Accept text/html as it is`; `RED pipe-406-no-store: ... × answers a page asked for with Accept application/json with the R09 406`; each restored, `git status` shows only the runbook, `pipeline.ts`, GOTCHAS and this log changed.
+
+UNPROVEN: the 406 and the 307 headers on a deployed Worker (only `cf:preview` was run).

@@ -81,9 +81,11 @@ step 3 on the built Worker).
   `{"error":"Only HTML requests are supported here"}`, GOTCHAS G-025) gets R09 JSON with `no-store`: under `/api/` 405
   `method_not_allowed` when an API route file matches the path, else 404 `not_found`; on a page 406 `not_acceptable`
   (ASSUMED H41 (1)). A page asked for with `Accept: text/html` is untouched.
-- Two answers come from Start itself and carry no `x-request-id` and no security header, accepted as they are (ASSUMED
-  H41): a path that starts with `//` gets a bare 308 to the single-slash path before any of our code runs, and a
-  trailing slash under `/api/` gets the router's 307 to the path without it. H1's header sweep leaves `//` paths out.
+- One answer comes from Start before any of our code runs and carries no `x-request-id` and no security header,
+  accepted as it is (ASSUMED H41 (2)): a path that starts with `//` gets a bare 308 to the single-slash path. H1's
+  header sweep leaves `//` paths out. A trailing slash under `/api/` gets the router's 307 to the path without it
+  (H41 (3)); that answer goes through `handle()`, so it carries `x-request-id`, `no-store` and every security header
+  (measured under `cf:preview`), and the sweep covers it.
 - The Content-Security-Policy ships as `Content-Security-Policy-Report-Only`; a policy already on the response (a hit
   stored by B3) is never overwritten.
 - Until B3 lands, the cache hook is a pass-through and the flags are empty (the stub markers in `src/start.ts` name

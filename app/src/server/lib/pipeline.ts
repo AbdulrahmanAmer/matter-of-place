@@ -75,9 +75,9 @@ export function isPageRequest(pathname: string): boolean {
 }
 
 /**
- * Architecture 13 rule 6. Without `response` it answers for the request alone, which decides
- * whether the cache hook may run; with it, also for a cookie, a 5xx or the 406 that depends on
- * the request's `Accept`.
+ * Architecture 13 rule 6, plus the 406 of ASSUMED H41 (1), which rule 6 does not name yet.
+ * Without `response` it answers for the request alone, which decides whether the cache hook may
+ * run; with it, also for a cookie, a 5xx or the 406 that depends on the request's `Accept`.
  */
 export function neverCached(request: Request, pathname: string, response?: Response): boolean {
   const search = new URL(request.url).searchParams;
