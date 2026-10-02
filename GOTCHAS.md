@@ -865,3 +865,17 @@ Entry template
 - rule: after every edit of a file the registry mutates (`node -e "console.log([...new Set(require('./tests/mutations/B1b.json').map(e=>e.file))].join('\n'))"` lists them), run the replay runner's `--check` (every `find` occurs exactly once) before the commit, and rewrite a moved entry to the new code, then replay it red. Keep a mutated line's text stable when the change does not need to touch it (bind a new value under the old name rather than renaming what an entry finds).
 - proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
 - added: 2026-10-02
+
+## P-091 · A value the router hands back is typed `any`: reading a field of it fails the type-aware lint
+- symptom: in `src/start.ts`, `foundRoute?.fullPath.startsWith("/api/")` on the result of the router's `getMatchedRoutes` failed lint with `no-unsafe-call` and `no-unsafe-member-access`; the first attempt cost a rework.
+- cause: `getMatchedRoutes` returns route objects whose fields are typed `any`, and the lint of B1b step 2b refuses a call or a member access on `any`.
+- rule: read such a field into a variable typed `unknown` and narrow it (`typeof value === "string"`) before using it. Never cast and never disable the rule. The same holds for any third-party value typed `any`.
+- proof: replacing the narrowed read in `app/src/start.ts` with `foundRoute?.fullPath.startsWith("/api/")` and running `bunx eslint --max-warnings 0 src/start.ts` prints `Unsafe call of an any typed value`.
+- added: 2026-10-02
+
+## P-092 · A new required member of a shared dependency type breaks every test that builds that type
+- symptom: adding the required `isApiRoute` to `PipelineDeps` made `tsc` fail in `tests/unit/sentry-test-route.test.ts`, a test of another file, because it builds its own `PipelineDeps`.
+- cause: tests construct the shared type by hand, so each one is a caller the change must update.
+- rule: before adding a required member to a type that tests build (`PipelineDeps`, later `PublicCtx` and the admin route context), `git grep` the type's name under `app/tests` and update every builder in the same commit; run `bun run typecheck` before the tests. A slice that adds a member names it in its plan's Files lines for the tests it touches.
+- proof: `git grep -n "isApiRoute" -- app/tests` lists every test that builds the dependency.
+- added: 2026-10-02
