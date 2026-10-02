@@ -616,3 +616,15 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Notes for later slices are binding as ASSUMED H38 (file-local exports, schema-inferred types, the required `shape`
   argument of the HTTP client, wizard step constants).
 - RUNNING: `build-slice` run `wf_9c9e608f-19c` (saved workflow, new models) for the remaining steps of B1b.
+
+## 2026-10-02 11:25 EDT · B1b: step 3 ACCEPTED; steps 3b-4 (g4) stopped after three Opus rejections, ruled on (H39)
+- Run `wf_9c9e608f-19c` (new models): sizing g3(3) g4(3b-4, critical) g5(5, critical) g6(5b, orchestrator)
+  g7(6, critical) g8(7, critical, orchestrator) g9(7b) g10(8) g11(9-10) g12(11). g3 accepted after one fix round
+  (commits 3f61dbf, 697a3ea). g4 built by Opus (0e39bc9, 00b78f2, 7d96ae5), rejected three times; the last four defects
+  needed rulings: the request id for route handlers, API paths answering the page shell on an unhandled method, an
+  unbounded stack parser in the Sentry client, one cost with no bank entry.
+- Rulings: ASSUMED H39 (nine points). NEXT: (a) close g4 in the lane with H39 (Opus builder, Opus review);
+  (b) one Opus integrator folds H38 and H39 into the stale plan lines of B1b, B3, B4, B8, B8b, B17 and H1 on main;
+  (c) merge main into `slice/b1b`; (d) continue with the saved workflow (step 5 onward).
+- Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 3 of 3. Every rejection named real defects.
+- The bank on the slice branch holds up to P-084 and G-023.
