@@ -37,3 +37,16 @@ None of these blocks the group. No reviewer follow-up of this group concerns `GO
 
 4. File `app/scripts/load-env.mjs`. Gap in what the helper covers: the terminal refusal depends only on process.stdout.isTTY. In a terminal that hands node a pipe instead of a console (for example standalone mintty without winpty or ConPTY), a bare 'node scripts/load-env.mjs --profile dev' would print the four values. The contract holds in a real console, which I proved; this note only records the edge it does not cover.
    Evidence: Suspected by reading line 46; not reproduced (the proof console reported isTTY=true).
+
+## g2 · steps 2
+
+None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and became bank entries P-308 and P-309, not items here.
+
+1. File `workspace/05-plans/B4.md` (a note for B4, not this group's file). B4's CI stack now starts with the hosted auth and storage values from `config.toml`. If an e2e test asks for a magic link twice for the same address within 60 s, it can fail with a rate-limit error. Also, whether `supabase start` accepts `[storage.analytics] enabled = true` on the runner (or starts something extra) is UNPROVEN. B4 should know this before its first db/e2e run.
+   Evidence: Found by reading, not run: `git show 59df9f6 -- app/supabase/config.toml` changes max_frequency from "1s" to "1m0s" and [storage.analytics] enabled from false to true. B4.md line 103 has e2e running the same `supabase start`.
+
+2. File `workspace/05-plans/B2.md`. Plan text is now stale, and folding it is the orchestrator's job. Step 2 (line 162) and the operator note (line 6) still say CLI 2.98.2 and 'no --dry-run for config push' (F20); `config diff` in 2.119.0 does that job. Step 2 also says to load the token through `load-env.mjs --profile ops`, but .env.ops does not exist. The Files line for config.toml (line 86) lists only the pinned keys. It does not record the deviation this group logged: the non-pinned keys now take the live mop-dev values (OTP 8, max_frequency 1m0s, confirmations on, TOTP on, pooler 15/200, storage.analytics on).
+   Evidence: Confirmed by running: `bunx supabase --version` prints 2.119.0. `sed -n '162p;86p' workspace/05-plans/B2.md` shows the old text.
+
+3. File `workspace/05-plans/logs/B2.md`. The answer to step 2's UNPROVEN question was measured with no pending migrations. 'After link, db push --linked needs only the database password' is therefore an inference for a push that actually applies something. That case is first exercised at step 3 or by the deploy job. The sentence for docs/runbooks/database.md also exists only in the log and P-306 until step 14 writes the runbook. The author disclosed both.
+   Evidence: Confirmed by running: with a bogus token, `bun run db:push` exits 0 with migrations [] and the control fails with 401. No local migration file exists yet (`ls app/supabase/migrations` shows only README.md).
