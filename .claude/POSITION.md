@@ -806,3 +806,11 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Open rulings to carry: H48 (B3 sets VITE_API_BASE_URL back), H49 (PRODUCTION_DEPLOY on at B3b's close), H47
   (Dependabot at H1), H45 (6) (gate self-edit at H1). Follow-ups: `workspace/05-plans/logs/B1b-followups.md` and
   `B2-followups.md` in the lanes, folded before each slice closes (H41 (7)).
+
+## 2026-10-03 01:08 +0300 · Board: arms with dependency-aware percentages, finish-line box, snapshot export
+- `board.mjs`: table "By arm of the product" (Website, Admin portal, Backend logic and automation, Database,
+  Deployment and operations; each with its own percent and a to-launch percent that adds the arms it cannot work
+  without, piece-weighted from trace.json), a final "To the finish line" box, and `--export <file>` that writes a
+  standalone snapshot (Google Fonts, no polling) for the claude.ai artifact the operator shares with his partner.
+  Republish the artifact with `node workspace/05-plans/board.mjs --export <file>` then the Artifact tool with its url.
+- A run whose journal is silent for 45 minutes reads as stopped, not running.
