@@ -27,3 +27,19 @@ Claude Session.txt
 # visual-pass raw shots: regenerable, archived in history at f9fa95e (S54 cleanup)
 workspace/08-visual-pass/before/
 workspace/08-visual-pass/after/
+
+# never committed anywhere (STANDARDS section 1.2, gate G07)
+test-results/
+playwright-report/
+coverage/
+.lighthouseci/
+*.log
+scratch/
+*.tmp
+*.bak
+*.orig
+*.rej
+frames/
+launch/.site-main/
+*.dump
+*.p7m

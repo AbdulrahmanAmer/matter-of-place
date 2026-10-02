@@ -54,10 +54,12 @@ export const Route = createFileRoute("/$market/$region")({
   component: RegionPage,
 });
 
-const listPlaces = (places: string[]) =>
-  places.length > 1
-    ? `${places.slice(0, -1).join(", ")} and ${places[places.length - 1]}`
+const listPlaces = (places: string[]) => {
+  const last = places.at(-1);
+  return last !== undefined && places.length > 1
+    ? `${places.slice(0, -1).join(", ")} and ${last}`
     : (places[0] ?? "");
+};
 
 function RegionPage() {
   const { market, region, pool, elsewhere } = Route.useLoaderData();

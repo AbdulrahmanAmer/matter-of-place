@@ -10,14 +10,15 @@ import { sentText } from "../../../lib/form-copy";
 import {
   canContinue,
   initialDraft,
+  lastStep,
+  nextStep,
+  previousStep,
   steps,
   toSubmission,
   type StepIndex,
   type SubmitDraft,
 } from "./state";
 import { ExposureStep, PropertyStep, RepresentationStep, ReviewStep, StoryStep } from "./steps";
-
-const lastStep = (steps.length - 1) as StepIndex;
 
 /** Five-step property submission. Validation lives in `state.ts`; delivery in the submission service. */
 export function SubmitWizard() {
@@ -40,9 +41,10 @@ export function SubmitWizard() {
     setStep(0);
   };
 
-  const send = async () => {
-    const receipt = await run(draft);
-    if (receipt) track("submit_property", { state: draft.state, package: draft.package });
+  const send = () => {
+    void run(draft).then((receipt) => {
+      if (receipt) track("submit_property", { state: draft.state, package: draft.package });
+    });
   };
 
   if (state.status === "success") {
@@ -76,7 +78,7 @@ export function SubmitWizard() {
           <button
             type="button"
             className="button ghost"
-            onClick={() => setStep((step - 1) as StepIndex)}
+            onClick={() => setStep(previousStep(step))}
           >
             {t.common.back}
           </button>
@@ -86,7 +88,7 @@ export function SubmitWizard() {
             type="button"
             className="button"
             disabled={!canContinue(step, draft)}
-            onClick={() => setStep((step + 1) as StepIndex)}
+            onClick={() => setStep(nextStep(step))}
           >
             {t.common.continue}
           </button>

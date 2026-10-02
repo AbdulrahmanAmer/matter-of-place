@@ -1,0 +1,7 @@
+{
+  "path": ["src", "scripts", "supabase/functions"],
+  "ignore": ["src/data/**", "src/routeTree.gen.ts", "src/db/types.ts", "**/*.css"],
+  "minTokens": 70,
+  "threshold": 0,
+  "reporters": ["console"]
+}

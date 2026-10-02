@@ -1,4 +1,4 @@
-import type { Market, MarketSlug, Region, RegionSlug } from "../domain/market";
+import type { Market, MarketSlug, RegionSlug } from "../domain/market";
 import type { Property } from "../domain/property";
 import { formatMoney } from "./format";
 
@@ -75,7 +75,3 @@ export const marketOf = (markets: Market[], slug: MarketSlug) =>
 
 export const regionOf = (markets: Market[], market: MarketSlug, region: RegionSlug) =>
   marketOf(markets, market)?.regions.find((item) => item.slug === region);
-
-/** Region pages for the search filters: every region name across the given markets. */
-export const regionNames = (markets: Market[]) =>
-  markets.flatMap((market) => market.regions.map((region: Region) => region.name));

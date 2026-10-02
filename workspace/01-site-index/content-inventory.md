@@ -356,11 +356,7 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 
 ### Property (`src/domain/property.ts`)
 
-**Type Definitions:**
-- `CampaignTier`: "Editorial" | "Feature" | "Reach" | "Campaign"
-- `ListingStatus`: "Illustrative" | "Active" | "Off-market" | "Under offer" | "Sold"
-- `PropertyType`: "Estate" | "Residence" | "Townhouse" | "Waterfront" | "Farmhouse" | "Apartment" | "Penthouse"
-- `SubmissionSource`: "Editorial" | "Submission"
+**Schema:** `propertySchema` (Zod); `Property` is `z.infer<typeof propertySchema>`. The enumerations are inline `z.enum` values in that schema, not named types; `GalleryImage` and `PropertyVideo` are the only other exported types in the file.
 
 **Property Fields:**
 | Field | Type | Notes |
@@ -383,24 +379,24 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 | interiorSqFt | number | Interior square footage |
 | lotAcres | number | Lot size in acres |
 | yearBuilt | number | Construction year |
-| type | PropertyType | Property type |
+| type | "Estate" \| "Residence" \| "Townhouse" \| "Waterfront" \| "Farmhouse" \| "Apartment" \| "Penthouse" | Property type |
 | style | string | Architectural style |
 | architect | string | Optional: credited architect |
 | designer | string | Optional: credited interior designer |
-| status | ListingStatus | Current status |
+| status | "Illustrative" \| "Active" \| "Off-market" \| "Under offer" \| "Sold" | Current status |
 | heroImage | string | Hero photograph path |
 | gallery | GalleryImage[] | Array of gallery images |
 | video | PropertyVideo | Optional: film asset |
 | story | string[] | Editorial narrative (one paragraph per entry) |
 | place | string | Setting description |
 | features | string[] | Feature list |
-| representation | Representation | Optional: agent/brokerage details |
+| representation | object | Optional: agent/brokerage details (file-local `representationSchema`) |
 | listingUrl | string | Optional: listing URL |
 | heroRank | number | Optional: home page hero position |
 | featuredRank | number | Optional: home page featured grid position |
-| campaignTier | CampaignTier | Campaign tier |
+| campaignTier | "Editorial" \| "Feature" \| "Reach" \| "Campaign" | Campaign tier |
 | publishedAt | string | ISO date published |
-| source | SubmissionSource | Editorial or Submission |
+| source | "Editorial" \| "Submission" | Editorial or Submission |
 | related | string[] | Optional: hand-picked related property slugs |
 
 **GalleryImage:**
@@ -414,7 +410,7 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 - caption: string
 - duration: string (display duration, e.g. "0:06")
 
-**Representation:**
+**representation** (file-local `representationSchema`):
 - name: string
 - brokerage: string
 - license?: string
@@ -439,12 +435,12 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 | currency | string | ISO 4217 currency code |
 | intro | string | Market introduction copy |
 | places | string[] | Places the market covers |
-| regions | Region[] | Array of Region objects |
+| regions | object[] | Array of region objects |
 | notes | Note[] | "How we read this market" notes |
-| guide | MarketGuide | Market guide (neighborhoods, needs, service) |
+| guide | object | Market guide (neighborhoods, needs, service) |
 | image | string | Editorial hero photograph |
 
-**Region:**
+**regions[]** (file-local `regionSchema`):
 - slug: RegionSlug
 - name: string
 - intro: string
@@ -455,12 +451,12 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 - label: string
 - text: string
 
-**MarketGuide:**
-- neighborhoods: Neighborhood[]
+**guide** (file-local `marketGuideSchema`):
+- neighborhoods: object[]
 - needs: Note[]
 - service: Note[]
 
-**Neighborhood:**
+**guide.neighborhoods[]** (file-local `neighborhoodSchema`):
 - name: string
 - region: RegionSlug
 - text: string
@@ -469,8 +465,7 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 
 ### Story (`src/domain/story.ts`)
 
-**Type Definitions:**
-- `StoryCategory`: "Architecture" | "Interiors" | "Places" | "Stories"
+**Schema:** `storySchema` (Zod); `Story` is `z.infer<typeof storySchema>`. `category` is an inline `z.enum`, not a named type.
 
 **Story Fields:**
 | Field | Type | Notes |
@@ -479,7 +474,7 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 | slug | string | URL-friendly identifier |
 | title | string | Story title |
 | deck | string | One-sentence standfirst |
-| category | StoryCategory | Story category |
+| category | "Architecture" \| "Interiors" \| "Places" \| "Stories" | Story category |
 | market | MarketSlug | "california" \| "florida" \| "new-york" |
 | image | string | Hero photograph |
 | body | string[] | Body (one paragraph per entry) |
@@ -514,7 +509,7 @@ Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schem
 
 ### Contracts (`src/domain/contracts.ts`)
 
-Since B1b step 2b's dead-export gate (ASSUMED H38 (1)) `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `searchQuerySchema`, `submissionMediaSchema` and `conciergeQuestionSchema` are file-local; the step that first imports one elsewhere adds `export` back.
+Exports (B1b step 2b, knip): only names another file imports are exported. The enumerations and schemas below that are not named here are file-local: `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `submissionMediaSchema`, `searchQuerySchema` and `conciergeQuestionSchema`; a later slice exports one when it imports it. `submissionStates` and `editorialRoles` stay exported with a STUB marker for B2, which replaces them. The step that first imports one of them elsewhere adds `export` back (ASSUMED H38 (1)).
 
 **Schema Enumerations:**
 
@@ -651,9 +646,14 @@ Since B1b step 2b's dead-export gate (ASSUMED H38 (1)) `inquiryIntents`, `inquir
 - propertySlug: string (1-120 chars, required)
 - question: enum [conciergeQuestions], required
 
-**Receipt (return type):**
+**Receipt (return type, `receiptSchema`):**
 - id: string
 - receivedAt: string
+
+**Response schemas** (the HTTP adapter parses every body with one; the read-side types `Property`, `Market` and `Story` are inferred from `propertySchema`, `marketSchema` and `storySchema` in their own files):
+- `submissionReceiptSchema`: Receipt plus `uploads`, an array of `{ name, url }`
+- `searchMatchSchema`: `{ property, score, reasons }`
+- `conciergeAnswerSchema`: `{ text, link? { slug, title }, action? "showing" }`
 
 ---
 

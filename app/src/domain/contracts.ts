@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { propertySchema } from "./property.ts";
 
 /**
  * Write-side contracts shared by the frontend and the API.
@@ -8,16 +9,8 @@ import { z } from "zod";
  * Cloudflare Worker). Field names match the tables in docs/database/schema.sql.
  */
 
-export const inquiryIntents = [
-  "showing",
-  "ask",
-  "similar",
-  "sell",
-  "invest",
-  "agent",
-  "general",
-] as const;
-export const inquiryIntentSchema = z.enum(inquiryIntents);
+const inquiryIntents = ["showing", "ask", "similar", "sell", "invest", "agent", "general"] as const;
+const inquiryIntentSchema = z.enum(inquiryIntents);
 export type InquiryIntent = z.infer<typeof inquiryIntentSchema>;
 
 export const contactTopics = [
@@ -27,7 +20,7 @@ export const contactTopics = [
   "Property Exposure",
   "Press and partnerships",
 ] as const;
-export const contactTopicSchema = z.enum(contactTopics);
+const contactTopicSchema = z.enum(contactTopics);
 export type ContactTopic = z.infer<typeof contactTopicSchema>;
 
 const email = z.string().trim().email().max(254);
@@ -36,7 +29,7 @@ const longText = z.string().trim().max(5000);
 const optionalShort = shortText.optional().or(z.literal("").transform(() => undefined));
 
 /** What the inquiry is about; absent for general messages. */
-export const inquirySubjectSchema = z.object({
+const inquirySubjectSchema = z.object({
   kind: z.enum(["property"]),
   slug: z.string().min(1).max(120),
   title: z.string().min(1).max(200),
@@ -57,7 +50,6 @@ export const inquirySchema = z.object({
   /** Path the visitor was on when they wrote, for attribution. */
   sourcePath: z.string().max(300),
 });
-export type InquiryInput = z.input<typeof inquirySchema>;
 export type Inquiry = z.infer<typeof inquirySchema>;
 
 /** Matter of Place accepts submissions from these three states only. */
@@ -79,12 +71,14 @@ export const exposurePackages = [
   "Five Features",
   "Not sure yet",
 ] as const;
-export const supportedCurrencies = ["USD"] as const;
+const supportedCurrencies = ["USD"] as const;
 
 /**
  * Internal workflow. Never shown publicly; editorial acceptance must precede
  * any commercial state (Awaiting Payment onwards).
+ * @public
  */
+// STUB(B2): `Awaiting Payment` becomes `Invoice Issued` and `Withdrawn` is added last (G-004, S32, DL-04)
 export const submissionStates = [
   "Submitted",
   "Under Review",
@@ -97,9 +91,14 @@ export const submissionStates = [
   "Distribution Active",
   "Completed",
 ] as const;
+/** @public */
 export type SubmissionState = (typeof submissionStates)[number];
 
-/** Internal roles. Commercial roles cannot move a submission past editorial review. */
+/**
+ * Internal roles. Commercial roles cannot move a submission past editorial review.
+ * @public
+ */
+// STUB(B2): replaced by `appRoles` and `roleLabels` (G-004)
 export const editorialRoles = [
   "Chief Editorial Officer",
   "Managing Editor",
@@ -108,10 +107,11 @@ export const editorialRoles = [
   "Media Operations",
   "Commercial Partnerships",
 ] as const;
+/** @public */
 export type EditorialRole = (typeof editorialRoles)[number];
 
 /** Metadata for a photograph the submitter selected. Binary upload is a separate step (see docs). */
-export const submissionMediaSchema = z.object({
+const submissionMediaSchema = z.object({
   name: z.string().min(1).max(255),
   size: z.number().int().nonnegative(),
   type: z.string().max(100),
@@ -160,7 +160,6 @@ export const submissionSchema = z.object({
   media: z.array(submissionMediaSchema).max(20).default([]),
   sourcePath: z.string().max(300),
 });
-export type SubmissionInput = z.input<typeof submissionSchema>;
 export type Submission = z.infer<typeof submissionSchema>;
 
 export const subscriberSchema = z.object({
@@ -170,7 +169,7 @@ export const subscriberSchema = z.object({
 });
 export type SubscriberInput = z.input<typeof subscriberSchema>;
 
-export const searchQuerySchema = z.object({
+const searchQuerySchema = z.object({
   text: z.string().trim().min(1).max(500),
   limit: z.number().int().min(1).max(24).default(6),
 });
@@ -182,14 +181,34 @@ export const conciergeQuestions = [
   "Are there similar properties nearby?",
   "Can you send the full details?",
 ] as const;
-export const conciergeQuestionSchema = z.object({
+const conciergeQuestionSchema = z.object({
   propertySlug: z.string().min(1).max(120),
   question: z.enum(conciergeQuestions),
 });
 export type ConciergeQuestion = z.infer<typeof conciergeQuestionSchema>;
 
 /** Returned by every write service. */
-export type Receipt = {
-  id: string;
-  receivedAt: string;
-};
+export const receiptSchema = z.object({
+  id: z.string(),
+  receivedAt: z.string(),
+});
+export type Receipt = z.infer<typeof receiptSchema>;
+
+export const submissionReceiptSchema = receiptSchema.extend({
+  /** One signed PUT target per photograph named in `media`, valid for a short window. */
+  uploads: z.array(z.object({ name: z.string(), url: z.string() })),
+});
+
+export const searchMatchSchema = z.object({
+  property: propertySchema,
+  score: z.number(),
+  reasons: z.array(z.string()),
+});
+export type SearchMatch = z.infer<typeof searchMatchSchema>;
+
+export const conciergeAnswerSchema = z.object({
+  text: z.string(),
+  link: z.object({ slug: z.string(), title: z.string() }).optional(),
+  action: z.literal("showing").optional(),
+});
+export type ConciergeAnswer = z.infer<typeof conciergeAnswerSchema>;

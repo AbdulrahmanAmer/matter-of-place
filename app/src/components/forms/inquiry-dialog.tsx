@@ -1,9 +1,10 @@
-import { useEffect, useId, type FormEvent } from "react";
+import { useEffect, useId, type SyntheticEvent } from "react";
 import { X } from "lucide-react";
 import { inquirySchema, type InquiryIntent, type InquirySubject } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
-import { useModal } from "../../hooks/use-modal";
+import { focusOnMount, useModal } from "../../hooks/use-modal";
 import { track, type AnalyticsEvent } from "../../lib/analytics";
+import { formText } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
 import { Field } from "./field";
@@ -107,9 +108,11 @@ const intentCopy: Record<Intent, IntentCopy> = {
 
 const readForm = (form: HTMLFormElement, extra: ExtraField[] = []) => {
   const data = new FormData(form);
-  const text = (key: string) => data.get(key)?.toString() ?? "";
+  const text = (key: string) => formText(data, key);
   const details = Object.fromEntries(
-    extra.map((field) => [field.key, text(field.key)]).filter(([, value]) => value !== ""),
+    extra
+      .map((field): [string, string] => [field.key, text(field.key)])
+      .filter(([, value]) => value !== ""),
   );
   return {
     name: text("name"),
@@ -154,21 +157,22 @@ export function InquiryDialog({
 
   if (!intent || !copy) return null;
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const receipt = await run(event.currentTarget);
-    if (receipt) track(copy.event, { intent, subject: subject?.slug });
+    void run(event.currentTarget).then((receipt) => {
+      if (receipt) track(copy.event, { intent, subject: subject?.slug });
+    });
   };
 
   return (
-    <div className="inquiry-overlay" onClick={onClose}>
-      <div
-        className="inquiry-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(event) => event.stopPropagation()}
-      >
+    <div
+      className="inquiry-overlay"
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="inquiry-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="inquiry-dialog-head">
           <span className="eyebrow">{copy.eyebrow}</span>
           <button
@@ -195,7 +199,7 @@ export function InquiryDialog({
               <p className="inquiry-lede">{copy.lede}</p>
               <div className="field-grid">
                 <Field label="Your name">
-                  <input required autoFocus type="text" name="name" autoComplete="name" />
+                  <input required ref={focusOnMount} type="text" name="name" autoComplete="name" />
                 </Field>
                 <Field label="Email">
                   <input required type="email" name="email" autoComplete="email" />

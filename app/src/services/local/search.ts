@@ -88,7 +88,7 @@ const scoreProperty = (property: Property, text: string): SearchMatch => {
   if (beds > 0) {
     if (property.beds >= beds) {
       score += 1;
-      reasons.push(`${beds}+ bedrooms`);
+      reasons.push(`${String(beds)}+ bedrooms`);
     } else {
       score -= 2;
     }
@@ -97,7 +97,7 @@ const scoreProperty = (property: Property, text: string): SearchMatch => {
   return { property, score, reasons };
 };
 
-export const matchProperties = (list: Property[], text: string, limit: number): SearchMatch[] =>
+const matchProperties = (list: Property[], text: string, limit: number): SearchMatch[] =>
   list
     .map((property) => scoreProperty(property, text))
     .filter((match) => match.score > 0)
@@ -105,7 +105,5 @@ export const matchProperties = (list: Property[], text: string, limit: number): 
     .slice(0, limit);
 
 export const localSearch: SearchService = {
-  async match({ text, limit = 6 }) {
-    return matchProperties(properties, text, limit);
-  },
+  match: ({ text, limit = 6 }) => Promise.resolve(matchProperties(properties, text, limit)),
 };

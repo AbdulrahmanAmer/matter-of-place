@@ -1,0 +1,2885 @@
+[
+  {
+    "id": "ab",
+    "test": "bun run lint",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport function load(url: string) {\n  fetch(url, { signal: AbortSignal.timeout(1000) });\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-floating-promises"
+  },
+  {
+    "id": "ac",
+    "test": "bun run lint",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport async function read(res: Response) {\n  const x = await res.json();\n  return x.id;\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-unsafe-member-access"
+  },
+  {
+    "id": "ad",
+    "test": "bun run lint",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\ntype Kind = \"a\" | \"b\";\n\nexport function label(kind: Kind): string {\n  switch (kind) {\n    case \"a\":\n      return \"A\";\n  }\n  return \"\";\n}\n",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/switch-exhaustiveness-check"
+  },
+  {
+    "id": "ae",
+    "test": "bun run lint",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\n// eslint-disable-next-line no-console -- scratch line\nexport const quiet = 1;\n",
+    "run": "bun run lint",
+    "expect": "Unused eslint-disable directive"
+  },
+  {
+    "id": "af",
+    "test": "bun run lint",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const warn = () => {\n  console.warn(\"x\");\n};\n",
+    "run": "bun run lint",
+    "expect": "no-console"
+  },
+  {
+    "id": "ag",
+    "test": "bun run lint",
+    "file": "src/domain/property.ts",
+    "find": "from \"./market.ts\";",
+    "replace": "from \"./market\";",
+    "run": "bun run lint",
+    "expect": "Deno-loaded file: import with the .ts extension"
+  },
+  {
+    "id": "ah",
+    "test": "bun run knip",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const unusedScratch = () => 1;",
+    "run": "bun run knip",
+    "expect": "unusedScratch"
+  },
+  {
+    "id": "ai",
+    "test": "bun run jscpd",
+    "file": "src/lib/catalog.ts",
+    "find": "export const marketOf = (markets: Market[], slug: MarketSlug) =>",
+    "replace": "export const relatedCopy = (list: Property[], property: Property, count = 3): Property[] => {\n  const bySlug = new Map(list.map((item) => [item.slug, item]));\n  const explicit = (property.related ?? [])\n    .map((slug) => bySlug.get(slug))\n    .filter((item): item is Property => item !== undefined);\n  const pool = list.filter((item) => item.slug !== property.slug && !explicit.includes(item));\n  const sameRegion = pool.filter((item) => item.region === property.region);\n  const sameMarket = pool.filter(\n    (item) => item.market === property.market && !sameRegion.includes(item),\n  );\n  const elsewhere = pool.filter((item) => !sameRegion.includes(item) && !sameMarket.includes(item));\n  return [...explicit, ...sameRegion, ...sameMarket, ...elsewhere].slice(0, count);\n};\n\nexport const marketOf = (markets: Market[], slug: MarketSlug) =>",
+    "run": "bun run jscpd",
+    "expect": "Clone found"
+  },
+  {
+    "id": "aj",
+    "test": "bun run typecheck",
+    "file": "scripts/check-layout.mjs",
+    "find": "const MARKET_AREAS =",
+    "replace": "checkLayout();\nconst MARKET_AREAS =",
+    "run": "bun run typecheck",
+    "expect": "TS2554"
+  },
+  {
+    "id": "ak",
+    "test": "bun run test",
+    "file": "tests/unit/check-layout.test.ts",
+    "find": "    expect(checkLayout(paths)).toEqual([]);",
+    "replace": "    checkLayout(paths);",
+    "run": "bunx vitest run tests/unit/check-layout.test.ts",
+    "expect": "expected any number of assertion, but got none"
+  },
+  {
+    "id": "ak-lint",
+    "test": "bun run lint",
+    "file": "tests/unit/check-layout.test.ts",
+    "find": "    expect(checkLayout(paths)).toEqual([]);",
+    "replace": "    checkLayout(paths);",
+    "run": "bun run lint",
+    "expect": "vitest/expect-expect"
+  },
+  {
+    "id": "al",
+    "test": "bun run stubs",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\n// STUB(V1): scratch\nexport const stubbed = 1;\n",
+    "run": "bun run stubs",
+    "expect": "src/lib/cx\\.ts:\\d+ STUB\\(V1\\) slice is closed"
+  },
+  {
+    "id": "ay",
+    "test": "bun run layout",
+    "file": "scripts/check-layout.mjs",
+    "find": "{ name: \"src/hooks\", patterns: [\"src/hooks/*.ts\"] },",
+    "replace": "{ name: \"src/hooks\", patterns: [\"src/hook/*.ts\"] },",
+    "run": "bun run layout",
+    "expect": "layout: app/src/hooks/.*: outside the folder map"
+  },
+  {
+    "id": "az",
+    "test": "bun run lint",
+    "file": "src/domain/market.ts",
+    "find": "/**\n * Markets and regions.",
+    "replace": "export const stamp = Date.now();\n\n/**\n * Markets and regions.",
+    "run": "bun run lint",
+    "expect": "R29"
+  },
+  {
+    "id": "ba",
+    "kind": "manual",
+    "test": "bun run lint",
+    "file": "src/server/lib/scratch.ts",
+    "replace": "export const value = process.env.X;\n",
+    "run": "bun run lint",
+    "expect": "R14"
+  },
+  {
+    "id": "bb",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/styles/base.css",
+    "find": "html {\n  scroll-behavior: smooth;",
+    "replace": "html {\n  color: #111111;\n  scroll-behavior: smooth;",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "holds no hex colour outside tokens\\.css"
+  },
+  {
+    "id": "bc",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "/**\n * Localisation table for shared chrome and notices.",
+    "replace": "/**\n * Localisation table — for shared chrome and notices.",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "holds no em dash anywhere under src"
+  },
+  {
+    "id": "bc-r06",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "src/components/site/text-link.tsx",
+    "find": "import { cx } from \"../../lib/cx\";",
+    "replace": "import { cx } from \"../../lib/cx\";\nimport { getDb } from \"@/server/lib/db\";",
+    "run": "bunx vitest run tests/unit/boundaries.test.ts",
+    "expect": "browser code away from src/server"
+  },
+  {
+    "id": "bi",
+    "test": "tests/unit/stubs.test.ts",
+    "file": "scripts/stubs.ts",
+    "find": "const isClosed = closed.has(m.slice);",
+    "replace": "const isClosed = false;",
+    "run": "bunx vitest run tests/unit/stubs.test.ts",
+    "expect": "slice is closed"
+  },
+  {
+    "id": "bj",
+    "test": "tests/unit/check-layout.test.ts",
+    "file": "scripts/check-layout.mjs",
+    "find": "\"secret\"",
+    "replace": "\"secrets\"",
+    "run": "bunx vitest run tests/unit/check-layout.test.ts",
+    "expect": "banned: secret"
+  },
+  {
+    "id": "bk",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "return shape.parse(response.status === 204 ? undefined : await response.json());",
+    "replace": "return (await response.json()) as T;",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "promise resolved .* instead of rejecting"
+  },
+  {
+    "id": "bl",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/domain/property.ts",
+    "find": "  featuredRank: z.number().optional(),\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "featuredRank"
+  },
+  {
+    "id": "bm",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/domain/property.ts",
+    "find": "  price: z.number(),",
+    "replace": "  price: z.any(),",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "expected function to throw an error, but it didn't"
+  },
+  {
+    "id": "bn",
+    "test": "tests/unit/stubs.test.ts",
+    "file": "scripts/stubs.ts",
+    "find": "  return ROOTS.flatMap(walk)",
+    "replace": "  return ROOTS.flatMap((root) => {\n    try {\n      return walk(root);\n    } catch {\n      return [];\n    }\n  })",
+    "run": "bunx vitest run tests/unit/stubs.test.ts",
+    "expect": "expected \\+0 not to be \\+0"
+  },
+  {
+    "id": "a",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "\"frame-ancestors\": [\"'none'\"],",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "to contain 'frame-ancestors"
+  },
+  {
+    "id": "j",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      return [directive, ...sources, ...extra].join(\" \");",
+    "replace": "      return [directive, ...sources, ...extra, ...(directive === \"script-src\" ? [\"'nonce-abc'\"] : [])].join(\" \");",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "never uses a nonce, because HTML is cached"
+  },
+  {
+    "id": "k",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "max-age=604800",
+    "replace": "max-age=3600",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "keeps bundled media for a week"
+  },
+  {
+    "id": "k-assets",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "/media/*\n  Cache-Control: public, max-age=604800",
+    "replace": "/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n\n/media/*\n  Cache-Control: public, max-age=604800",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "leaves /assets/\\* to the rule Nitro appends"
+  },
+  {
+    "id": "x-static-security",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "X-Frame-Options: DENY",
+    "replace": "X-Frame-Options: SAMEORIGIN",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "carries the same security headers as the Worker on every static file"
+  },
+  {
+    "id": "m",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "\"max-age=31536000; includeSubDomains\"",
+    "replace": "\"max-age=31536000\"",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "sets HSTS to one year with subdomains and no preload"
+  },
+  {
+    "id": "an",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "  return text.replace(EMAIL, \"[email]\");",
+    "replace": "  return text;",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "to be '/contact/\\[email\\]'"
+  },
+  {
+    "id": "log-mask-field",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "      typeof value === \"string\" ? maskEmails(value) : value,",
+    "replace": "      value,",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "masks an email in a field and emits no email-shaped string"
+  },
+  {
+    "id": "log-level",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "  if (level === \"error\") console.error(line);",
+    "replace": "  if (level === \"error\") console.log(line);",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "sends each level to its console method"
+  },
+  {
+    "id": "h",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => deps.render(request, requestId);",
+    "replace": "    const render = async () => {\n      const rendered = await deps.render(request, requestId);\n      rendered.headers.set(\"x-request-id\", requestId);\n      return rendered;\n    };",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "never stores the request id or a security header, and returns both"
+  },
+  {
+    "id": "i",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "forces no-store on GET /api/admin/properties"
+  },
+  {
+    "id": "l",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (!(hasPolicy && name.startsWith(\"Content-Security-Policy\"))) headers.set(name, value);",
+    "replace": "    headers.set(name, value);",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps the policy a hit carries and does not add the default beside it"
+  },
+  {
+    "id": "n",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    search.has(\"preview\") ||\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "skips the cache hook and answers no-store for a preview token: /property/x\\?preview=t"
+  },
+  {
+    "id": "q",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "export function isIndexableHost(host: string, mopEnv: string): boolean {",
+    "replace": "export function isIndexableHost(host: string, mopEnv: string): boolean {\n  return host !== mopEnv;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks matter-of-place\\.holy-meadow-4327\\.workers\\.dev noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-workers",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "  return !name.endsWith(\".workers.dev\");",
+    "replace": "  return name.length > 0;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks pr-1\\.holy-meadow-4327\\.workers\\.dev noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-lowercase",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "host.toLowerCase().replace(",
+    "replace": "host.replace(",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks Pr-1\\.HOLY-MEADOW-4327\\.WORKERS\\.DEV noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-port",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "host.toLowerCase().replace(/:\\d+$/, \"\")",
+    "replace": "host.toLowerCase()",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks pr-1\\.holy-meadow-4327\\.workers\\.dev:443 noindex under MOP_ENV production"
+  },
+  {
+    "id": "u",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    readsPage && !underApi && (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\");",
+    "replace": "    readsPage && !underApi && (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\") && underApi;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page request that accepts HTML with the HTML page and the id"
+  },
+  {
+    "id": "u-message",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  server: \"Something went wrong. Please try again in a moment.\",\n",
+    "replace": "  server: \"Something went wrong.\",\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers JSON for an API path, a write, or a client that does not accept HTML"
+  },
+  {
+    "id": "z",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "export function isPageRequest(pathname: string): boolean {",
+    "replace": "export function isPageRequest(pathname: string): boolean {\n  return pathname !== \"\";",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps /robots\\.txt away from the cache hook and still adds the headers"
+  },
+  {
+    "id": "aa",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    headers.set(\"cache-control\", \"no-store\");",
+    "replace": "    headers.append(\"cache-control\", \"no-store\");",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "replaces the handler's Cache-Control on POST /api/public/inquiries with exactly no-store \\(G65\\)"
+  },
+  {
+    "id": "aa-nonpage",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (isPageRequest(pathname)) {",
+    "replace": "  } else {",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves the Cache-Control of /sitemap\\.xml alone, because it is not a page"
+  },
+  {
+    "id": "x-escape",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/error-page.ts",
+    "find": "requestId.replace(/[&<>\"']/g, (char) => ESCAPES[char] ?? char)",
+    "replace": "requestId",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "escapes the id in the HTML page"
+  },
+  {
+    "id": "x-redirect",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return response;\n}",
+    "replace": "  return new Response(response.body, response);\n}",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "is the one the render produced, so a router redirect keeps its options"
+  },
+  {
+    "id": "am",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n  let difference = 0;",
+    "replace": "  return crypto.subtle.timingSafeEqual(a, b);\n  let difference = 0;",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "TypeError: crypto\\.subtle\\.timingSafeEqual is not a function"
+  },
+  {
+    "id": "crypto-length",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "is false for different lengths"
+  },
+  {
+    "id": "crypto-hmac",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "{ name: \"HMAC\", hash: \"SHA-256\" }",
+    "replace": "{ name: \"HMAC\", hash: \"SHA-384\" }",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "matches RFC 4231 case 1"
+  },
+  {
+    "id": "crypto-sha256",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "crypto.subtle.digest(\"SHA-256\", bytesOf(input))",
+    "replace": "crypto.subtle.digest(\"SHA-1\", bytesOf(input))",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "gives the FIPS 180-2 value for sha256 of abc"
+  },
+  {
+    "id": "crypto-base64url",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": ".replace(/=+$/, \"\")",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "writes base64url without padding"
+  },
+  {
+    "id": "crypto-open-null",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch {\n    return new Uint8Array();\n  }",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "returns null when one byte was changed"
+  },
+  {
+    "id": "b",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    user: NO_GEO,\n    level: event.level,",
+    "replace": "    user: NO_GEO,\n    request: event.request,\n    level: event.level,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "to not have property \"request\""
+  },
+  {
+    "id": "e",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    user: NO_GEO,\n",
+    "replace": "    user: event.user,\n",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "lets no personal data through and keeps the request id"
+  },
+  {
+    "id": "r",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "gives up on a fetch that never answers after 2 seconds"
+  },
+  {
+    "id": "au",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  if (lastSent.has(key)) return;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends 100 identical throws within a minute once, and again after 61 seconds"
+  },
+  {
+    "id": "sentry-pause",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    if (pause > 0) pausedUntil = Date.now() + pause * 1000;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "pauses every send for the window named by a 429 with Retry-After: 60"
+  },
+  {
+    "id": "sentry-mask",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "maskEmails(text).slice(0, max);",
+    "replace": "text.slice(0, max);",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "posts one envelope to the DSN's envelope URL with the tags and a masked message"
+  },
+  {
+    "id": "sentry-truncate",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "const MAX_VALUE = 200;",
+    "replace": "const MAX_VALUE = 2000;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "expected .* to have a length of 200"
+  },
+  {
+    "id": "sentry-infer-ip",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "settings: { infer_ip: \"never\" }",
+    "replace": "settings: { infer_ip: \"auto\" }",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "expected 'auto' to be 'never'"
+  },
+  {
+    "id": "sentry-side",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "side: options.side ?? \"worker\",",
+    "replace": "side: \"worker\",",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends side, fingerprint and level when given"
+  },
+  {
+    "id": "sentry-no-dsn",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  if (!options.dsn) return;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "returns at once without a DSN"
+  },
+  {
+    "id": "sentry-failed-log",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    if (!response.ok)\n      logLine(\"error\", \"sentry_send_failed\", { requestId, status: response.status });\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "resolves on a 500 answer and logs one sentry_send_failed"
+  },
+  {
+    "id": "route-compare",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "!timingSafeEqual(bytes(bearer), bytes(token))",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers the R09 404 for a wrong bearer"
+  },
+  {
+    "id": "route-scheme",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "/^Bearer (.+)$/",
+    "replace": "/^(?:Bearer )?(.+)$/",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers the R09 404 for the token without the Bearer"
+  },
+  {
+    "id": "route-throw",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "  throw new SentryTestError(\"Sentry test error for test@example.com\");",
+    "replace": "  return new Response(null, { status: 204 });",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers 500 with the request id and no-store through handle, and reports the error"
+  },
+  {
+    "id": "crypto-iv",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));",
+    "replace": "const iv = new Uint8Array(IV_BYTES);",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "starts every seal with a fresh 12-byte IV"
+  },
+  {
+    "id": "crypto-sha1",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "crypto.subtle.digest(\"SHA-1\", bytesOf(input))",
+    "replace": "crypto.subtle.digest(\"SHA-256\", bytesOf(input))",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "gives the FIPS 180-2 value for sha1 of abc"
+  },
+  {
+    "id": "sentry-fp-route",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[options.route, type, top ?",
+    "replace": "[type, top ?",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another route"
+  },
+  {
+    "id": "sentry-fp-class",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[options.route, type, top ?",
+    "replace": "[options.route, top ?",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another error class"
+  },
+  {
+    "id": "sentry-fp-frame",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "top ? `${top.function}@${top.filename}:${String(top.lineno)}` : \"\"",
+    "replace": "\"\"",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another first stack frame"
+  },
+  {
+    "id": "sentry-retry-after",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "return Number.parseInt(response.headers.get(\"retry-after\") ?? \"\", 10) || 60;",
+    "replace": "return 60;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "pauses every send for the window named by a 429 with Retry-After: 120"
+  },
+  {
+    "id": "sentry-rate-limits",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "return Math.max(0, ...limits.split(\",\").map((limit) => Number.parseInt(limit, 10) || 0));",
+    "replace": "return 60;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "named by X-Sentry-Rate-Limits 30 and 120"
+  },
+  {
+    "id": "sentry-tag-mask",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[name, scrubText(value)]",
+    "replace": "[name, value]",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "masks an address in a tag value"
+  },
+  {
+    "id": "sentry-frame-order",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "stacktrace: { frames: [...frames].reverse() },",
+    "replace": "stacktrace: { frames },",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "lists the frames oldest first, so the throwing frame is last"
+  },
+  {
+    "id": "sentry-unprintable",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    return { type: typeof error, value: \"unprintable value\" };",
+    "replace": "    throw new Error(\"unprintable\");",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "resolves and sends one event for a null-prototype object"
+  },
+  {
+    "id": "sentry-non-string",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      type: String(name).slice(0, MAX_LINE),\n      value: String(message).slice(0, MAX_MESSAGE),",
+    "replace": "      type: (name as string).slice(0, MAX_LINE),\n      value: (message as string).slice(0, MAX_MESSAGE),",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends an Error whose name and message are not strings"
+  },
+  {
+    "id": "pipe-render-id",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => deps.render(request, requestId);",
+    "replace": "    const render = () => deps.render(request, crypto.randomUUID());",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "gives the handler the id of the x-request-id header"
+  },
+  {
+    "id": "pipe-guard-off",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/hooks/sentry-test rendered as a"
+  },
+  {
+    "id": "pipe-guard-405",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return response.status === 200",
+    "replace": "  return false",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/hooks/sentry-test rendered as a"
+  },
+  {
+    "id": "pipe-guard-404",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    : errorJson(response.status, \"not_found\", requestId);",
+    "replace": "    : errorJson(405, \"method_not_allowed\", requestId);",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page shell of 404 under /api/ with the R09 404"
+  },
+  {
+    "id": "pipe-guard-path",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  if (!underApi || !html) return response;",
+    "replace": "  if (!html) return response;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page and an API answer that is not HTML untouched"
+  },
+  {
+    "id": "pipe-guard-html",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  if (!underApi || !html) return response;",
+    "replace": "  if (!underApi) return response;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page and an API answer that is not HTML untouched"
+  },
+  {
+    "id": "pipe-guard-case",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": ".toLowerCase().startsWith(\"text/html\")",
+    "replace": ".startsWith(\"text/html\")",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/public/markets rendered as a Text/HTML"
+  },
+  {
+    "id": "pipe-error-no-store",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "{ status, headers: { \"cache-control\": \"no-store\" } }",
+    "replace": "{ status }",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/public/markets rendered as a"
+  },
+  {
+    "id": "route-404-body",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "    return errorJson(404, \"not_found\", requestId);",
+    "replace": "    return new Response(null, { status: 404 });",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers the R09 404 with the request id when the token is unset"
+  },
+  {
+    "id": "route-404-id",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "    return errorJson(404, \"not_found\", requestId);",
+    "replace": "    return errorJson(404, \"not_found\", crypto.randomUUID());",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "through handle, refuses no token with the id of x-request-id"
+  },
+  {
+    "id": "sentry-cap-lines",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".split(\"\\n\", MAX_STACK_LINES)",
+    "replace": ".split(\"\\n\")",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-line",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "frameOf(line.slice(0, MAX_LINE))",
+    "replace": "frameOf(line)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-message",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      value: String(message).slice(0, MAX_MESSAGE),",
+    "replace": "      value: String(message),",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-type",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      type: String(name).slice(0, MAX_LINE),",
+    "replace": "      type: String(name),",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-thrown",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "value: String(error).slice(0, MAX_MESSAGE)",
+    "replace": "value: String(error)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "pipe-path-case",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return `/${decoded.replace(/^\\/+/, \"\")}`.toLowerCase();",
+    "replace": "  return `/${decoded.replace(/^\\/+/, \"\")}`;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /API/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-decode",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "(index % 2 === 1 ? part : decodeLikeRouter(part))",
+    "replace": "part",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /%61pi/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-slashes",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "decoded.replace(/^\\/+/, \"\")",
+    "replace": "decoded",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET //api/hooks/sentry-test, which the router matches as /api/"
+  },
+  {
+    "id": "pipe-path-split",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    .split(KEPT_ESCAPES)",
+    "replace": "    .split(/(?!)/)",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "the same beside a malformed escape"
+  },
+  {
+    "id": "pipe-path-fallback",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    return text.replace(ESCAPE, (escape) =>",
+    "replace": "    return text;\n    return text.replace(ESCAPE, (escape) =>",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "reads a path as the router matches it"
+  },
+  {
+    "id": "pipe-path-ascii",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "      Number.parseInt(escape.slice(1), 16) < 0x80 ? decodeURI(escape) : escape,",
+    "replace": "      decodeURI(escape),",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "URIError: URI malformed"
+  },
+  {
+    "id": "pipe-path-never-cached",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||",
+    "replace": "    NEVER_CACHED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "forces no-store on GET /%61pi/hooks/resend"
+  },
+  {
+    "id": "pipe-path-page",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  const path = routePath(pathname);\n  if (isAdmin(path)",
+    "replace": "  const path = pathname;\n  if (isAdmin(path)",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "reads a path as the router matches it"
+  },
+  {
+    "id": "crypto-every-byte",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "    difference |= (a[index] ?? 0) ^ (b[index] ?? 0);",
+    "replace": "    if (a[index] !== b[index]) return false;",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "reads every byte of both arrays when the first byte differs"
+  },
+  {
+    "id": "crypto-no-early-exit",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  for (let index = 0; index < a.length; index += 1) {",
+    "replace": "  for (let index = 0; index < a.length && difference === 0; index += 1) {",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "reads every byte of both arrays when the first byte differs"
+  },
+  {
+    "id": "pipe-refusal-off",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const refused = await refusedByRouter(request, response);",
+    "replace": "const refused = false;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of"
+  },
+  {
+    "id": "bm-page-refusal",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (refused) {\n",
+    "replace": "  } else if (false) {\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page asked for with Accept application/json with the R09 406"
+  },
+  {
+    "id": "bn-page-406-all",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (refused) {\n",
+    "replace": "  } else if (!underApi) {\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page asked for with Accept text/html as it is"
+  },
+  {
+    "id": "pipe-406-no-store",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "response.status >= 500 || response.status === 406",
+    "replace": "response.status >= 500",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page asked for with Accept application/json with the R09 406"
+  },
+  {
+    "id": "pipe-refusal-405",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response = deps.isApiRoute(path)\n",
+    "replace": "    response = false\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of"
+  },
+  {
+    "id": "pipe-refusal-route-path",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response = deps.isApiRoute(path)\n",
+    "replace": "    response = deps.isApiRoute(pathname)\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of GET with Accept application/json with the R09 405"
+  },
+  {
+    "id": "pipe-refusal-accept",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "accepts.some((part) => part.startsWith(\"*/*\") || part.startsWith(\"text/html\"))",
+    "replace": "accepts.some((part) => part.startsWith(\"*/*\"))",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 to a client that accepts HTML"
+  },
+  {
+    "id": "pipe-refusal-empty-accept",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "request.headers.get(\"accept\") || \"*/*\"",
+    "replace": "request.headers.get(\"accept\") ?? \"\"",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 to an empty Accept"
+  },
+  {
+    "id": "pipe-refusal-status",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response.status !== 500 ||\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 200 with an error field"
+  },
+  {
+    "id": "pipe-refusal-shape",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "typeof body.error === \"string\"",
+    "replace": "true",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a handler's R09 500"
+  },
+  {
+    "id": "pipe-refusal-catch",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    .json()\n    .catch(() => null);",
+    "replace": "    .json();",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 that is not JSON"
+  },
+  {
+    "id": "sentry-cut-off",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  const options = cutOptions(given);",
+    "replace": "  const options = given;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-route",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    route: cut(options.route),",
+    "replace": "    route: options.route,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-request-id",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    requestId: cut(options.requestId),",
+    "replace": "    requestId: options.requestId,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-env",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    env: cut(options.env),",
+    "replace": "    env: options.env,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-release",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    release: cut(options.release),",
+    "replace": "    release: options.release,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-fp-part",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".slice(0, MAX_FINGERPRINT_PARTS).map(cut)",
+    "replace": ".slice(0, MAX_FINGERPRINT_PARTS)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-fp-count",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".slice(0, MAX_FINGERPRINT_PARTS).map(cut)",
+    "replace": ".map(cut)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "start-api-route",
+    "kind": "manual",
+    "test": "live: ../scratch/accept.sh under bun run cf:preview (text in logs/B1b.md, g4 close-out)",
+    "file": "src/start.ts",
+    "find": "fullPath.startsWith(\"/api/\")",
+    "replace": "fullPath.startsWith(\"/nothing/\")",
+    "run": "bun run build && bun run cf:preview, then MSYS_NO_PATHCONV=1 bash ../scratch/accept.sh",
+    "expect": "application/json   GET    /api/hooks/sentry-test       404"
+  },
+  {
+    "id": "bd",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.json",
+    "find": "\"noUncheckedIndexedAccess\": true,",
+    "replace": "\"noUncheckedIndexedAccess\": false,",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "\"noUncheckedIndexedAccess\""
+  },
+  {
+    "id": "f",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"bun\": \"1.3.13\",",
+    "replace": "\"bun\": \"1.3.14\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "setup-bun 1\\.3\\.13, engines\\.bun 1\\.3\\.14"
+  },
+  {
+    "id": "g",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/dependabot.yml",
+    "find": "directory: \"/app\"\n    schedule:\n      interval: \"weekly\"",
+    "replace": "directory: \"/app\"\n    schedule:\n      interval: \"daily\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bun /app daily"
+  },
+  {
+    "id": "ao",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+    "replace": "actions/upload-artifact@v4",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "uses: actions/upload-artifact@v4"
+  },
+  {
+    "id": "ap",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (prefix === undefined || prefix <= latest) {",
+    "replace": "if (prefix === undefined) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses an added file with an older timestamp than main"
+  },
+  {
+    "id": "cm-applied",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const failures = changed.map(",
+    "replace": "const failures = [].map(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses an edited applied migration"
+  },
+  {
+    "id": "cm-destructive",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (kinds.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column needs the contract-of header"
+  },
+  {
+    "id": "cm-header-lines",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text.split(\"\\n\").slice(0, HEADER_LINES)",
+    "replace": "text.split(\"\\n\")",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a contract-of header below line 30"
+  },
+  {
+    "id": "cm-comments",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (pair === \"--\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a down header that drops the new column needs no"
+  },
+  {
+    "id": "cm-prefix-order",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (prefix === undefined || prefix <= latest) {",
+    "replace": "if (prefix === undefined || prefix >= latest) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "passes a clean tree and a new file after the newest on main"
+  },
+  {
+    "id": "cm-drop-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|table\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-column",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"drop column\", /^drop\\s+(?!constraint\\b)/i],",
+    "replace": "[\"drop column\", /^drop\\s+(?!constraint\\b|column\\b)/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-bare",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"drop column\", /^drop\\s+(?!constraint\\b)/i],",
+    "replace": "[\"drop column\", /^drop\\s+column\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop written without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-alter-head",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:if\\s+exists\\s+)?(?:only\\s+)?",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop written without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-column",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?!constraint\\b|column\\b)/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a rename column needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-bare",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?:column|to)\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a rename written without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?!constraint\\b|to\\b)/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a table rename needs the contract-of header"
+  },
+  {
+    "id": "cm-type-column",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?!column\\s)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a column type change needs the contract-of header"
+  },
+  {
+    "id": "cm-type-bare",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+column\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a type change written without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-set-not-null",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"set not null\", /\\bset\\s+not\\s+null\\b/i],",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a set not null needs the contract-of header"
+  },
+  {
+    "id": "cm-not-null",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^add\\s+(?!constraint\\b|check\\b)(?!",
+    "replace": "/^add\\s+(?!constraint\\b|check\\b|column\\b)(?!",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new NOT NULL column with no default needs the contract-of header"
+  },
+  {
+    "id": "cm-not-null-bare",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^add\\s+(?!constraint\\b|check\\b)(?!",
+    "replace": "/^add\\s+column\\s+(?!constraint\\b|check\\b)(?!",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new NOT NULL column without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-split-parens",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (char === \"(\") {\n      depth += 1;",
+    "replace": "if (char === \"(\") {\n      depth += 0;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new NOT NULL column without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-split-quotes",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "literals.push(body);\n      text += \"''\";",
+    "replace": "literals.push(body);\n      text += sql.slice(index, end);",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new NOT NULL column without COLUMN needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-view",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|view\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop view needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-mview",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|materialized\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop materialized view needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|type\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop type needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-function",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|function\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop function needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-index",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|index\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop index needs the contract-of header"
+  },
+  {
+    "id": "cm-allow-default",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "\\b(?:default|generated|",
+    "replace": "\\b(?:generated|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new NOT NULL column with a default needs no contract-of header"
+  },
+  {
+    "id": "cm-allow-trigger",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!policy\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop trigger needs no contract-of header"
+  },
+  {
+    "id": "cm-allow-constraint",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^drop\\s+(?!constraint\\b)/i",
+    "replace": "/^drop\\s+/i",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop constraint needs no contract-of header"
+  },
+  {
+    "id": "cm-allow-drop-default",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^drop\\s+(?!constraint\\b)/i",
+    "replace": "/\\bdrop\\s+(?!constraint\\b)/i",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a dropped column default needs no contract-of header"
+  },
+  {
+    "id": "cm-allow-check",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!constraint\\b|check\\b)(?!",
+    "replace": "(?!constraint\\b)(?!",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an added check on not null needs no contract-of header"
+  },
+  {
+    "id": "cm-allow-create",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"set not null\", /\\bset\\s+not\\s+null\\b/i],",
+    "replace": "[\"set not null\", /\\bnot\\s+null\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new table with NOT NULL columns needs no contract-of header"
+  },
+  {
+    "id": "cm-contract-header",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (version === undefined) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "accepts a drop column with the contract-of header"
+  },
+  {
+    "id": "cm-contract-digits",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^-- contract-of: (\\d{14})\\b/m",
+    "replace": "/^-- contract-of: (\\d+)/m",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a contract-of header without a 14-digit version"
+  },
+  {
+    "id": "cm-block-comment",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "index = blockCommentEnd(sql, index);",
+    "replace": "index += 1;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a DO block after a block comment"
+  },
+  {
+    "id": "cm-comment-nesting",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (depth === 0) {",
+    "replace": "if (depth <= 1) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop inside a nested block comment"
+  },
+  {
+    "id": "cm-string-dashes",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop after a string holding two dashes"
+  },
+  {
+    "id": "cm-string-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a set not null named in a string needs no"
+  },
+  {
+    "id": "cm-escape-string",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const escaped = /[eE]/.test(previous)",
+    "replace": "const escaped = false && /[eE]/.test(previous)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop inside an escape string"
+  },
+  {
+    "id": "cm-do-block",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "inDoBlock",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column inside a DO block"
+  },
+  {
+    "id": "cm-do-execute",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "DO_BLOCK.test(text)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column run by EXECUTE needs"
+  },
+  {
+    "id": "cm-function-body",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "true",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table"
+  },
+  {
+    "id": "cm-dollar-tag",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/\\$(?:[A-Za-z_][A-Za-z0-9_]*)?\\$/y",
+    "replace": "/\\$\\$/y",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table"
+  },
+  {
+    "id": "cm-alter-anywhere",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const ALTER_TABLE =\n  /\\balter",
+    "replace": "const ALTER_TABLE =\n  /^alter",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column inside a DO block"
+  },
+  {
+    "id": "cm-rename-view",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!view\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a view rename needs"
+  },
+  {
+    "id": "cm-rename-mview",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!materialized\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a materialized view rename"
+  },
+  {
+    "id": "cm-rename-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!type\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an enum value rename"
+  },
+  {
+    "id": "cm-rename-function",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!function\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function rename"
+  },
+  {
+    "id": "cm-allow-policy-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a policy rename"
+  },
+  {
+    "id": "cm-allow-trigger-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!policy\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a trigger rename"
+  },
+  {
+    "id": "cm-allow-index-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!policy\\b|trigger\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an index rename"
+  },
+  {
+    "id": "cm-allow-constraint-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename"
+  },
+  {
+    "id": "cm-allow-serial",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "|(?:small|big)?serial[248]?",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new serial NOT NULL column"
+  },
+  {
+    "id": "cm-allow-bigserial",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:small|big)?serial",
+    "replace": "serial",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new bigserial NOT NULL column"
+  },
+  {
+    "id": "cm-drop-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|schema\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop schema needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-sequence",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|sequence\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop sequence needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-any",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(materialized\\s+view|foreign\\s+table|\\w+)",
+    "replace": "(materialized\\s+view|foreign\\s+table|table|view|type|function|index|schema|sequence)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop of any other object needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-foreign",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(materialized\\s+view|foreign\\s+table|\\w+)",
+    "replace": "(materialized\\s+view|\\w+)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop foreign table needs the contract-of header"
+  },
+  {
+    "id": "cm-allow-policy-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop policy needs no contract-of header"
+  },
+  {
+    "id": "cm-statement-start",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const START = String.raw`(?:^|\\b(?:begin|then|else|loop)\\s+)`;",
+    "replace": "const START = String.raw`(?:^)`;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table after THEN in a DO block needs the contract-of header"
+  },
+  {
+    "id": "cm-start-anchor",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const START = String.raw`(?:^|\\b(?:begin|then|else|loop)\\s+)`;",
+    "replace": "const START = String.raw`\\b`;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a table taken out of a publication needs no contract-of header"
+  },
+  {
+    "id": "cm-rename-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!schema\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a schema rename needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-sequence",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!sequence\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a sequence rename needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-skip-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|(?:foreign\\s+)?table\\b)",
+    "replace": "(?!policy\\b|trigger\\b|index\\b)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename needs no contract-of header"
+  },
+  {
+    "id": "cm-alter-foreign",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/\\balter\\s+(?:foreign\\s+)?table\\s+",
+    "replace": "/\\balter\\s+table\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column of a foreign table needs the contract-of header"
+  },
+  {
+    "id": "cm-type-named-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?:column\\s+)?",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a default on a column named type needs no contract-of header"
+  },
+  {
+    "id": "cm-type-named-type-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?:column\\s+)?",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop not null on a column named type needs no contract-of header"
+  },
+  {
+    "id": "cm-type-of-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:column\\s+|(?!column\\s))(?:\"",
+    "replace": "(?:column\\s+|(?!column\\s))(?!type\\s)(?:\"",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a type change of a column named type needs the contract-of header"
+  },
+  {
+    "id": "cm-not-null-set-default",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?<!\\bset\\s+default)",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a NOT NULL column whose key sets default needs the contract-of header"
+  },
+  {
+    "id": "cm-called-body",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const called = DECLARES.test(text)",
+    "replace": "const called = true",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body called in the same file needs the contract-of header"
+  },
+  {
+    "id": "cm-declares-grant",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "|grant|revoke|comment)",
+    "replace": "|revoke|comment)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a grant on a function that drops a table needs no contract-of header"
+  },
+  {
+    "id": "cm-declares-create",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:create\\s+(?:or\\s+replace\\s+)?(?:function|procedure)|(?:alter",
+    "replace": "(?:(?:alter",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table needs no contract-of header"
+  },
+  {
+    "id": "cm-drop-attribute",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "\\bdrop\\s+attribute\\b",
+    "replace": "\\bdrop\\s+attributes\\b",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a composite type attribute drop needs the contract-of header"
+  },
+  {
+    "id": "cm-attribute-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "\\balter\\s+attribute\\b",
+    "replace": "\\balter\\s+attributes\\b",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a composite type attribute type change needs the contract-of header"
+  },
+  {
+    "id": "cm-one-space-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a trigger rename after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-clause-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop constraint after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-add",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an added constraint after a line break needs no contract-of header"
+  },
+  {
+    "id": "cm-bodies-twice",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "bodies.set(name, [...(bodies.get(name) ?? []), ...literals]);",
+    "replace": "bodies.set(name, literals);",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function created twice and called needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-recreated",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "dropped === undefined || recreates(text, created)",
+    "replace": "dropped === undefined",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create of one function needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-dbfn",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "dropped === undefined || recreates(text, created)",
+    "replace": "dropped === undefined",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "the db:fn form of a signature change needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^(?:([\\w$]+)\\s*\\.\\s*)?([A-Za-z_][\\w$]*)/",
+    "replace": "/^(?:([\\w$]+)\\s*\\.\\s*)??([A-Za-z_][\\w$]*)/",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create with a schema needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-if-exists",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:function|procedure|routine)\\s+(?:if\\s+exists\\s+)?",
+    "replace": "(?:function|procedure|routine)\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop if exists then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-procedure",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "drop\\s+(?:function|procedure|routine)\\s+",
+    "replace": "drop\\s+(?:function|routine)\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop then create of one procedure needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-every",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": ".every((target) =>",
+    "replace": ".some((target) =>",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop of two functions, one created needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-name",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "created.has(qualified(match?.[1], name))",
+    "replace": "created.size > 0",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function dropped, another created needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "drop\\s+(?:function|procedure|routine)\\s+",
+    "replace": "drop\\s+\\w+\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table named like a new function needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-alone",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "return name !== undefined && created.has(qualified(match?.[1], name));",
+    "replace": "return true;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop function needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-cascade",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "!CASCADE.test(text) &&",
+    "replace": "true &&",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop function cascade, then create needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-restrict",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const CASCADE = /\\bcascade$/i;",
+    "replace": "const CASCADE = /\\b(?:cascade|restrict)$/i;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop restrict, then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-cascade-word",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const CASCADE = /\\bcascade$/i;",
+    "replace": "const CASCADE = /\\bcascade/i;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function whose name starts cascade needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-other-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "`${(schema ?? \"public\").toLowerCase()}.${name.toLowerCase()}`",
+    "replace": "name.toLowerCase()",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop in another schema, then create needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-public",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "schema ?? \"public\"",
+    "replace": "schema ?? \"\"",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a bare drop, then a public create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-case",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "`${(schema ?? \"public\").toLowerCase()}.${name.toLowerCase()}`",
+    "replace": "`${schema ?? \"public\"}.${name}`",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop in capitals, then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-order",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(index) => after[index] ?? new Set()",
+    "replace": "() => after[0] ?? new Set()",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a create, then a drop of the same name needs the contract-of header"
+  },
+  {
+    "id": "cm-truncate",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "  [\"truncate\", new RegExp(String.raw`${START}truncate\\b`, \"i\")],\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate needs the contract-of header"
+  },
+  {
+    "id": "cm-truncate-comment",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (pair === \"--\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate inside a comment needs no contract-of header"
+  },
+  {
+    "id": "cm-truncate-string",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a truncate inside a string needs no contract-of header"
+  },
+  {
+    "id": "cm-contract-on-main",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (!mainPrefixes.includes(version)) {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a contract-of version that is not on main"
+  },
+  {
+    "id": "cm-contract-on-main-accept",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (!mainPrefixes.includes(version)) {",
+    "replace": "} else if (true) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "accepts a drop column with the contract-of header"
+  },
+  {
+    "id": "hy-checkout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "fetch-depth: 0\n          persist-credentials: false",
+    "replace": "fetch-depth: 0\n          persist-credentials: true",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every actions/checkout sets persist-credentials: false"
+  },
+  {
+    "id": "hy-permissions",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: read-all\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow sets top-level permissions"
+  },
+  {
+    "id": "hy-timeout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "timeout-minutes: 10",
+    "replace": "timeout-minutez: 10",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every job sets timeout-minutes"
+  },
+  {
+    "id": "hy-concurrency",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\nconcurrency:\n",
+    "replace": "\nconcurrencz:\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow has a workflow-level concurrency or one on every job"
+  },
+  {
+    "id": "hy-working-directory",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "working-directory: app",
+    "replace": "working-directory: src",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow runs in app"
+  },
+  {
+    "id": "hy-one-build",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "- run: bun run check",
+    "replace": "- run: bun run check && bun run build",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bun run build runs in exactly one ci\\.yml job"
+  },
+  {
+    "id": "hy-mop-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit # group: mop-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-pr-secret",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: secrets\\.DEV_SUPABASE_"
+  },
+  {
+    "id": "hy-r2",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit R2_BUCKET",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no workflow names R2 or a media base variable"
+  },
+  {
+    "id": "hy-ready",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "types: [opened, synchronize, reopened, ready_for_review]",
+    "replace": "types: [opened, synchronize, reopened]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml is named ci and runs on pull requests marked ready for review"
+  },
+  {
+    "id": "hy-template",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/pull_request_template.md",
+    "find": "- [ ] new public read\n",
+    "replace": "- [ ] new read\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "names every extension path of tech-stack section 5"
+  },
+  {
+    "id": "hy-wrangler",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "wrangler.toml",
+    "find": "[observability]",
+    "replace": "[[kv_namespaces]]\nbinding = \"CACHE\"\n\n[observability]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "holds no secret and no paid binding"
+  },
+  {
+    "id": "hy-lint-warnings",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"lint\": \"eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
+    "replace": "\"lint\": \"eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-lint-warnings-app",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"lint\": \"eslint . --max-warnings 0 && cd ..",
+    "replace": "\"lint\": \"eslint . && cd ..",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-lint-warnings-gate",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "--config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\"",
+    "replace": "--config app/eslint.config.js workspace/05-plans/merge-gate.mjs\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-lint-floating",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "eslint.config.js",
+    "find": "  \"no-console\": \"error\",\n};",
+    "replace": "  \"no-console\": \"error\",\n  \"@typescript-eslint/no-floating-promises\": \"off\",\n};",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-subtle",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const subtle = crypto.subtle;\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "only src/server/lib/crypto\\.ts calls crypto\\.subtle"
+  },
+  {
+    "id": "hy-check-js",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.scripts.json",
+    "find": "\"checkJs\": true,",
+    "replace": "\"checkJs\": false,",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "tsconfig\\.scripts\\.json extends tsconfig\\.json and checks JavaScript"
+  },
+  {
+    "id": "hy-release-age",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "bunfig.toml",
+    "find": "minimumReleaseAge = 86400",
+    "replace": "minimumReleaseAge = 3600",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bunfig\\.toml keeps minimumReleaseAge of at least 86400"
+  },
+  {
+    "id": "d",
+    "kind": "manual",
+    "test": "ci.yml job check on the draft pull request",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nconst x: number = \"a\";\n",
+    "run": "commit, push slice/b1b, gh run watch <id>",
+    "expect": "Type 'string' is not assignable to type 'number'"
+  },
+  {
+    "id": "ci-engines",
+    "kind": "manual",
+    "test": "ci.yml job check, step engines, on the draft pull request",
+    "file": "package.json",
+    "find": "\"bun\": \"1.3.13\",",
+    "replace": "\"bun\": \"1.3.14\",",
+    "run": "commit, push slice/b1b, gh run watch <id>",
+    "expect": "engines \\{\"bun\":\"1\\.3\\.14\",\"node\":\"24\\.x\"\\} runner 1\\.3\\.13 24"
+  },
+  {
+    "id": "hy-workflow-env",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: {}\n\nenv:\n  DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml \\(workflow\\): secrets\\.DEV_SUPABASE_"
+  },
+  {
+    "id": "hy-workflow-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: {}\n\nenv:\n  REF: ${{ vars.DEV_SUPABASE_PROJECT_REF }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-workflow-group",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "group: ci-${{ github.head_ref || github.ref }}",
+    "replace": "group: mop-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-untrusted-title",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: echo \"${{ github.event.pull_request.title }}\" && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no run: line holds attacker-controllable context"
+  },
+  {
+    "id": "hy-untrusted-head-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: echo ${{ github.head_ref }} && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no run: line holds attacker-controllable context"
+  },
+  {
+    "id": "hy-frozen",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - run: bun install --frozen-lockfile\n      - name: migration-order",
+    "replace": "      - run: bun install\n      - name: migration-order",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every bun install in a workflow is --frozen-lockfile"
+  },
+  {
+    "id": "hy-engines-gone",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - name: engines\n        env:\n          BUN_PIN: 1.3.13\n        run: |\n          node -e \"const e=require('./package.json').engines;const b=process.env.BUN_PIN,n=process.version.slice(1).split('.')[0];if(e.bun!==b||e.node!==n+'.x'){console.error('engines',JSON.stringify(e),'runner',b,n);process.exit(1)}\"\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the check job compares the runner with engines before installing"
+  },
+  {
+    "id": "hy-engines-exit",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "'runner',b,n);process.exit(1)}",
+    "replace": "'runner',b,n);process.exit(0)}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the check job compares the runner with engines before installing"
+  },
+  {
+    "id": "hy-gh-direct",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: gh api user && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "hy-gh-script",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: node ../workspace/05-plans/ready.mjs && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "hy-gh-token-elsewhere",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "        run: bun audit\n",
+    "replace": "        env:\n          GH_TOKEN: ${{ github.token }}\n        run: echo \"${{ secrets.OTHER_TOKEN }}\" | gh auth login --with-token && bun audit\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "aq",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "const conclusion = run.conclusion ?? run.status;",
+    "replace": "const conclusion = \"success\";",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a failed e2e and names it"
+  },
+  {
+    "id": "aq-hygiene",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "  # Jobs appended here (B4 db and e2e;",
+    "replace": "  scratch:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:\n      contents: read\n    steps:\n      - run: echo scratch\n\n  # Jobs appended here (B4 db and e2e;",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every pull request job of ci.yml, and deploy.yml's preview, is a required check"
+  },
+  {
+    "id": "mg-required",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"db\", \"e2e\", \"preview\"];",
+    "replace": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"db\", \"e2e\", \"preview\", \"seo\"];",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "names the pull request jobs, not the steps merged into them"
+  },
+  {
+    "id": "mg-status",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (gate?.state !== \"success\") failures.push",
+    "replace": "if (gate === undefined) failures.push",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a head without the merge-gate status"
+  },
+  {
+    "id": "mg-missing",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "failures.push(refuse(`${job} missing`));",
+    "replace": "notes.push(\"missing\");",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a required check that has no run on the head"
+  },
+  {
+    "id": "mg-defined",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "REQUIRED_PR_CHECKS.filter((name) => definedJobs.includes(name))",
+    "replace": "REQUIRED_PR_CHECKS.filter(() => true)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require a check that no workflow at the commit defines"
+  },
+  {
+    "id": "mg-dependabot",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "pr.author === \"dependabot[bot]\"",
+    "replace": "pr.author === \"nobody\"",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require preview from Dependabot, and says so"
+  },
+  {
+    "id": "mg-dependabot-scope",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (job === \"preview\" && pr.author",
+    "replace": "if (pr.author",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require preview from Dependabot, and says so"
+  },
+  {
+    "id": "mg-heavy",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion === \"skipped\" && ciHeavy === \"off\" && HEAVY.includes(job)",
+    "replace": "conclusion === \"skipped\" && HEAVY.includes(job)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a skipped e2e unless CI_HEAVY is off"
+  },
+  {
+    "id": "mg-heavy-scope",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion === \"skipped\" && ciHeavy === \"off\" && HEAVY.includes(job)",
+    "replace": "conclusion === \"skipped\" && ciHeavy === \"off\"",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a skipped e2e unless CI_HEAVY is off"
+  },
+  {
+    "id": "mg-nopr",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (pr === null) return { ok: false, lines: [refuse(\"no pull request\")] };",
+    "replace": "if (pr === null) return { ok: true, lines: [] };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a commit that is no merged pull request"
+  },
+  {
+    "id": "mg-gather-merge-commit",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "pulls.find(([mergeSha]) => mergeSha === sha)",
+    "replace": "pulls.find(() => true)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "ignores a pull request that only contains the commit"
+  },
+  {
+    "id": "mg-gather-head",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "`repos/${REPO}/commits/${headSha}/status?per_page=100`",
+    "replace": "`repos/${REPO}/commits/${sha}/status?per_page=100`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "mg-gather-conclusion",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion: conclusion === \"\" ? null : conclusion,",
+    "replace": "conclusion,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "mg-jobkeys-margin",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/^[^\\s#]/.test(line)",
+    "replace": "/^\\S/.test(line)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "reads the job keys of the jobs map and nothing else"
+  },
+  {
+    "id": "mg-jobkeys-stop",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "} else if (inJobs && /^[^\\s#]/.test(line)) {",
+    "replace": "} else if (!inJobs) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "stops at the next top-level key"
+  },
+  {
+    "id": "hy-mg-if",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    if: github.event_name == 'push'\n",
+    "replace": "    if: github.event_name == 'push' || github.event_name == 'pull_request'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-permissions",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      statuses: read\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-script",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "        run: node scripts/merge-gate.mjs\n",
+    "replace": "        run: echo merge-gate\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-gh-token",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "          GH_TOKEN: ${{ github.token }}\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "a step that calls gh reads GH_TOKEN from its env and nowhere else"
+  },
+  {
+    "id": "hy-mg-jobkeys",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/^ {2}([\\w-]+):/",
+    "replace": "/^ {2}(\\w+):/",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "reads the same job names as the YAML parser"
+  },
+  {
+    "id": "mg-latest-run",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "latest === undefined || run.id > latest.id ? run : latest,",
+    "replace": "latest === undefined ? run : latest,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "judges the latest run of a name, wherever the list puts it"
+  },
+  {
+    "id": "mg-latest-order",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "latest === undefined || run.id > latest.id ? run : latest,",
+    "replace": "latest === undefined || run.id < latest.id ? run : latest,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the latest run failed, whatever an older run of the name did"
+  },
+  {
+    "id": "mg-bucket",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (bucket !== \"skipping\") blocked = true;",
+    "replace": "if (checks.status !== 0) blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a fail check although gh pr checks --json exits 0"
+  },
+  {
+    "id": "mg-bucket-pending",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (bucket !== \"skipping\") blocked = true;",
+    "replace": "if (bucket === \"fail\") blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pending check although gh pr checks --json exits 0"
+  },
+  {
+    "id": "mg-nochecks",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (checks.status !== 0 || rows.length === 0) {",
+    "replace": "if (checks.status !== 0 && rows.length > 0) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the checks cannot be read, and writes nothing"
+  },
+  {
+    "id": "mg-draft",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (draft === \"true\") return refuse(\"mark ready first\");",
+    "replace": "if (draft === \"never\") return refuse(\"mark ready first\");",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a draft and a head that does not contain origin/main"
+  },
+  {
+    "id": "mg-rebase",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (ancestor.status === 1) return refuse(\"rebase first\");",
+    "replace": "if (ancestor.status === 99) return refuse(\"rebase first\");",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a draft and a head that does not contain origin/main"
+  },
+  {
+    "id": "mg-skipping",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "    if (bucket !== \"skipping\") blocked = true;",
+    "replace": "    blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "posts the status and merges when every check passes or is skipped"
+  },
+  {
+    "id": "mg-order",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  const status = run(\"gh\", [\n    \"api\",\n    \"-X\",\n    \"POST\",\n    `repos/${REPO}/statuses/${headSha}`,\n    \"-f\",\n    \"state=success\",\n    \"-f\",\n    \"context=merge-gate\",\n  ]);\n  if (status.status !== 0) return refuse(`merge-gate: posting the status failed: ${status.err}`);\n\n  const merge = run(\"gh\", [\"pr\", \"merge\", pr, \"--merge\", \"--match-head-commit\", headSha]);",
+    "replace": "  const merge = run(\"gh\", [\"pr\", \"merge\", pr, \"--merge\", \"--match-head-commit\", headSha]);\n  const status = run(\"gh\", [\n    \"api\",\n    \"-X\",\n    \"POST\",\n    `repos/${REPO}/statuses/${headSha}`,\n    \"-f\",\n    \"state=success\",\n    \"-f\",\n    \"context=merge-gate\",\n  ]);\n  if (status.status !== 0) return refuse(`merge-gate: posting the status failed: ${status.err}`);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "posts the status and merges when every check passes or is skipped"
+  },
+  {
+    "id": "mg-ok",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "return { ok: failures.length === 0, lines: [...failures, ...notes, ...verified] };",
+    "replace": "return { ok: false, lines: [...failures, ...notes, ...verified] };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "passes when the merge-gate status and every required check are success"
+  },
+  {
+    "id": "mg-inprogress",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "const conclusion = run.conclusion ?? run.status;",
+    "replace": "const conclusion = run.conclusion ?? \"success\";",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a check that has not finished"
+  },
+  {
+    "id": "mg-nopr-gather",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "return { sha, pr: null, statuses: [], checkRuns: [], definedJobs, ciHeavy };",
+    "replace": "return { sha, pr: { number: 0, author: \"\" }, statuses: [], checkRuns: [], definedJobs, ciHeavy };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "says no pull request when the commit has none"
+  },
+  {
+    "id": "mg-steps-every",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "work.every(([, conclusion]) => conclusion === \"skipped\")",
+    "replace": "work.some(([, conclusion]) => conclusion === \"skipped\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints no job that ran a step, or that has no step but the runner's"
+  },
+  {
+    "id": "mg-steps-bookkeeping",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const work = tsv(steps.out).filter(([step]) => !BOOKKEEPING.test(step ?? \"\"));",
+    "replace": "const work = tsv(steps.out);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints a passed job whose steps were all skipped, and still merges"
+  },
+  {
+    "id": "mg-steps-empty",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (work.length > 0 && work.every(",
+    "replace": "if (work.every(",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints no job that ran a step, or that has no step but the runner's"
+  },
+  {
+    "id": "mg-steps-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (steps.status !== 0) {",
+    "replace": "if (steps.status === 99) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the steps of a passed job cannot be read, and writes nothing"
+  },
+  {
+    "id": "mg-steps-link",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "      if (jobId === undefined) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "reads no steps for a check that is not a job of ours"
+  },
+  {
+    "id": "mg-post-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (status.status !== 0) return refuse(",
+    "replace": "if (status.status === 99) return refuse(",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses and merges nothing when posting the status fails"
+  },
+  {
+    "id": "mg-merge-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return { code: merge.status === 0 ? 0 : 1, lines };",
+    "replace": "return { code: 0, lines };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "exits 1 when gh pr merge fails"
+  },
+  {
+    "id": "mg-docs-nochecks",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const NO_CHECKS = /^no checks reported/;",
+    "replace": "const NO_CHECKS = /^never/;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-every",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return other === undefined ? \"\" : ",
+    "replace": "return true ? \"\" : ",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check that changes app/src/start"
+  },
+  {
+    "id": "mg-docs-anchor",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "return new RegExp(`^${source}$`);",
+    "replace": "return new RegExp(source);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check that changes app/a"
+  },
+  {
+    "id": "mg-docs-root",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "[\"**/\", \"(?:.*/)?\"],",
+    "replace": "[\"**/\", \".*/\"],",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-main",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "`origin/main:${CI_YML}`",
+    "replace": "`HEAD:${CI_YML}`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "merges a documents-only pull request"
+  },
+  {
+    "id": "mg-docs-ci-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (ci.status !== 0) return",
+    "replace": "if (ci.status === 99) return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when ci.yml cannot be read on origin/main"
+  },
+  {
+    "id": "mg-docs-wildcard",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  if (/[?[\\]!+{}\\\\]/.test(pattern)) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when paths-ignore holds a wildcard the gate does not read"
+  },
+  {
+    "id": "mg-docs-star",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  [\"*\", \"[^/]*\"],\n",
+    "replace": "  [\"*\", \".*\"],\n",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "× reads a single . as GitHub does: it matches no slash"
+  },
+  {
+    "id": "mg-docs-unread",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  if (patterns === null) return \"merge-gate: no checks, and the paths-ignore of ci.yml is unread\";\n",
+    "replace": "  if (patterns === null) return \"\";\n",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when paths-ignore holds a wildcard the gate does not read"
+  },
+  {
+    "id": "mg-docs-count",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (paths.length === 0 || String(paths.length) !== count) {",
+    "replace": "if (paths.length === 0) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when gh lists fewer files than the pull request changes"
+  },
+  {
+    "id": "mg-docs-empty",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (paths.length === 0 || String(paths.length) !== count) {",
+    "replace": "if (String(paths.length) !== count) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request with no check and no changed file"
+  },
+  {
+    "id": "mg-docs-files-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (files.status !== 0) return",
+    "replace": "if (files.status === 99) return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the changed files cannot be read"
+  },
+  {
+    "id": "mg-gate-type",
+    "test": "bun run typecheck",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "/** @type {number} */\nconst CI_YML = \".github/workflows/ci.yml\";",
+    "run": "bun run typecheck",
+    "expect": "merge-gate\\.mjs\\(\\d+,\\d+\\): error TS2322"
+  },
+  {
+    "id": "mg-gate-lint",
+    "test": "bun run lint",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "const CI_YML = \".github/workflows/ci.yml\";\nPromise.resolve(CI_YML);",
+    "run": "bun run lint",
+    "expect": "@typescript-eslint/no-floating-promises"
+  },
+  {
+    "id": "mg-gate-format",
+    "test": "bun run format:check",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const CI_YML = \".github/workflows/ci.yml\";",
+    "replace": "const CI_YML = '.github/workflows/ci.yml';",
+    "run": "bun run format:check",
+    "expect": "warn\\S*\\] \\.\\./workspace/05-plans/merge-gate\\.mjs"
+  },
+  {
+    "id": "mg-gate-format-config",
+    "test": "bun run format:check",
+    "file": "package.json",
+    "find": "\"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "replace": "\"prettier --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "run": "bun run format:check",
+    "expect": "warn\\S*\\] \\.\\./workspace/05-plans/merge-gate\\.mjs"
+  },
+  {
+    "id": "mg-gate-lint-prettier",
+    "test": "bun run lint",
+    "file": "eslint.config.js",
+    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "replace": "",
+    "run": "bun run lint",
+    "expect": "workspace.05-plans.merge-gate\\.mjs[\\s\\S]*prettier/prettier"
+  },
+  {
+    "id": "hy-gate-include",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.scripts.json",
+    "find": ", \"../workspace/05-plans/merge-gate.mjs\"]",
+    "replace": "]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× tsconfig\\.scripts\\.json type-checks it"
+  },
+  {
+    "id": "hy-gate-lint",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": " && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
+    "replace": "\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-format-path",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"format:check\": \"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "replace": "\"format:check\": \"prettier --config .prettierrc --check .\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-format-config",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"format:check\": \"prettier --config .prettierrc --check .",
+    "replace": "\"format:check\": \"prettier --check .",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-prettier",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "eslint.config.js",
+    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint gives prettier/prettier the options of \\.prettierrc"
+  }
+]

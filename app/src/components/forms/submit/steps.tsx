@@ -5,7 +5,14 @@ import { track } from "../../../lib/analytics";
 import { formatMoney, pluralize } from "../../../lib/format";
 import { ChoiceGroup } from "../choice-group";
 import { Field } from "../field";
-import { isOutsideMarkets, maxFiles, otherState, type SubmitDraft } from "./state";
+import {
+  isOutsideMarkets,
+  maxFiles,
+  otherState,
+  toStateOption,
+  toTypeOption,
+  type SubmitDraft,
+} from "./state";
 
 type StepProps = {
   draft: SubmitDraft;
@@ -13,7 +20,7 @@ type StepProps = {
 };
 
 type TextKey = {
-  [K in keyof SubmitDraft]: SubmitDraft[K] extends string ? K : never;
+  [K in keyof SubmitDraft]: string extends SubmitDraft[K] ? K : never;
 }[keyof SubmitDraft];
 
 /** A text-like input bound to one draft field. */
@@ -39,7 +46,7 @@ function Input({
       <input
         type={type}
         value={draft[name]}
-        onChange={(e) => update(name, e.target.value as never)}
+        onChange={(e) => update(name, e.target.value)}
         {...rest}
       />
     </Field>
@@ -58,7 +65,7 @@ export function PropertyStep({ draft, update }: StepProps) {
         <Field label="State">
           <select
             value={draft.state}
-            onChange={(e) => update("state", e.target.value as SubmitDraft["state"])}
+            onChange={(e) => update("state", toStateOption(e.target.value))}
           >
             <option value="">Select state</option>
             {acceptedStates.map((state) => (
@@ -82,7 +89,7 @@ export function PropertyStep({ draft, update }: StepProps) {
         <Field label="Property type">
           <select
             value={draft.propertyType}
-            onChange={(e) => update("propertyType", e.target.value as SubmitDraft["propertyType"])}
+            onChange={(e) => update("propertyType", toTypeOption(e.target.value))}
           >
             <option value="">Select type</option>
             {propertyTypes.map((type) => (
@@ -168,7 +175,7 @@ function PhotographyPicker({
       {files.length > 0 && (
         <ul className="file-list">
           {files.map((file) => (
-            <li key={`${file.name}-${file.size}`}>
+            <li key={`${file.name}-${String(file.size)}`}>
               <span>{file.name}</span>
               <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
             </li>
@@ -250,7 +257,7 @@ export function ReviewStep({ draft }: { draft: SubmitDraft }) {
     [
       "Photography",
       draft.files.length
-        ? `${draft.files.length} ${pluralize(draft.files.length, "file")} selected`
+        ? `${String(draft.files.length)} ${pluralize(draft.files.length, "file")} selected`
         : draft.photographyUrl,
     ],
     ["Representation", [draft.agentName, draft.brokerage].filter(Boolean).join(", ")],
@@ -283,7 +290,7 @@ const reviewSteps = [
 ];
 
 /** The path every submission follows. Payment comes only after acceptance. */
-export function ReviewTimeline() {
+function ReviewTimeline() {
   return (
     <div className="review-timeline">
       <ol>

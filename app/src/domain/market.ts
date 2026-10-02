@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Markets and regions.
  *
@@ -5,64 +7,69 @@
  * market is divided into regions (Bay Area, Miami, Manhattan) that own a page,
  * a filtered collection and a short piece of local knowledge.
  */
-export type MarketSlug = "california" | "florida" | "new-york";
+export const marketSlugSchema = z.enum(["california", "florida", "new-york"]);
+export type MarketSlug = z.infer<typeof marketSlugSchema>;
 
-export type RegionSlug =
-  | "bay-area"
-  | "los-angeles"
-  | "orange-county"
-  | "la-jolla"
-  | "miami"
-  | "palm-beach"
-  | "naples"
-  | "fort-lauderdale"
-  | "manhattan"
-  | "brooklyn"
-  | "the-hamptons"
-  | "hudson-valley";
+export const regionSlugSchema = z.enum([
+  "bay-area",
+  "los-angeles",
+  "orange-county",
+  "la-jolla",
+  "miami",
+  "palm-beach",
+  "naples",
+  "fort-lauderdale",
+  "manhattan",
+  "brooklyn",
+  "the-hamptons",
+  "hudson-valley",
+]);
+export type RegionSlug = z.infer<typeof regionSlugSchema>;
 
-export type Region = {
-  slug: RegionSlug;
-  name: string;
-  intro: string;
+const regionSchema = z.object({
+  slug: regionSlugSchema,
+  name: z.string(),
+  intro: z.string(),
   /** Neighbourhoods and towns the region covers, in display order. */
-  places: string[];
+  places: z.array(z.string()),
   /** Editorial hero photograph for the region page. */
-  image: string;
-};
+  image: z.string(),
+});
 
 /** A labelled paragraph of local knowledge. */
-export type Note = {
-  label: string;
-  text: string;
-};
+const noteSchema = z.object({
+  label: z.string(),
+  text: z.string(),
+});
+export type Note = z.infer<typeof noteSchema>;
 
-export type Neighborhood = {
-  name: string;
-  region: RegionSlug;
-  text: string;
-};
+const neighborhoodSchema = z.object({
+  name: z.string(),
+  region: regionSlugSchema,
+  text: z.string(),
+});
 
 /** Market guide: neighbourhoods, what clients ask of us, how we work on the ground. */
-export type MarketGuide = {
-  neighborhoods: Neighborhood[];
-  needs: Note[];
-  service: Note[];
-};
+const marketGuideSchema = z.object({
+  neighborhoods: z.array(neighborhoodSchema),
+  needs: z.array(noteSchema),
+  service: z.array(noteSchema),
+});
 
-export type Market = {
-  slug: MarketSlug;
-  name: string;
-  country: string;
+export const marketSchema = z.object({
+  slug: marketSlugSchema,
+  name: z.string(),
+  country: z.string(),
   /** ISO 4217 currency used for asking prices in this market. */
-  currency: string;
-  intro: string;
+  currency: z.string(),
+  intro: z.string(),
   /** Places the market follows, shown on the market page. */
-  places: string[];
-  regions: Region[];
+  places: z.array(z.string()),
+  regions: z.array(regionSchema),
   /** "How we read this market": what shapes its architecture. */
-  notes: Note[];
-  guide: MarketGuide;
+  notes: z.array(noteSchema),
+  guide: marketGuideSchema,
   /** Editorial hero photograph for the market. */
-  image: string;
-};
+  image: z.string(),
+});
+export type Market = z.infer<typeof marketSchema>;

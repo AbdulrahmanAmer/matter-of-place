@@ -1,16 +1,20 @@
-import type { Market } from "../../domain/market";
-import type { Property } from "../../domain/property";
-import type { Story } from "../../domain/story";
-import type { Receipt } from "../../domain/contracts";
+import { z } from "zod";
+import {
+  conciergeAnswerSchema,
+  receiptSchema,
+  searchMatchSchema,
+  submissionReceiptSchema,
+} from "../../domain/contracts";
+import { marketSchema } from "../../domain/market";
+import { propertySchema } from "../../domain/property";
+import { storySchema } from "../../domain/story";
 import { createApiClient } from "./client";
 import {
   ServiceError,
   type CatalogService,
-  type ConciergeAnswer,
   type ConciergeService,
   type InquiryService,
   type NewsletterService,
-  type SearchMatch,
   type SearchService,
   type SubmissionService,
 } from "../types";
@@ -20,10 +24,6 @@ import {
  * in docs/architecture/services.md; the backend implements them on Cloudflare
  * with Supabase behind an edge cache.
  */
-type SubmissionReceipt = Receipt & {
-  /** One signed PUT target per photograph named in `media`, valid for a short window. */
-  uploads: { name: string; url: string }[];
-};
 const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
   try {
     return await promise;
@@ -37,22 +37,24 @@ export function createHttpServices(baseUrl: string) {
   const api = createApiClient(baseUrl);
 
   const catalog: CatalogService = {
-    listProperties: () => api.get<Property[]>("/properties"),
+    listProperties: () => api.get("/properties", z.array(propertySchema)),
     getProperty: (slug) =>
-      nullOnNotFound(api.get<Property>(`/properties/${encodeURIComponent(slug)}`)),
-    listMarkets: () => api.get<Market[]>("/markets"),
-    getMarket: (slug) => nullOnNotFound(api.get<Market>(`/markets/${encodeURIComponent(slug)}`)),
-    listStories: () => api.get<Story[]>("/stories"),
-    getStory: (slug) => nullOnNotFound(api.get<Story>(`/stories/${encodeURIComponent(slug)}`)),
+      nullOnNotFound(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
+    listMarkets: () => api.get("/markets", z.array(marketSchema)),
+    getMarket: (slug) =>
+      nullOnNotFound(api.get(`/markets/${encodeURIComponent(slug)}`, marketSchema)),
+    listStories: () => api.get("/stories", z.array(storySchema)),
+    getStory: (slug) =>
+      nullOnNotFound(api.get(`/stories/${encodeURIComponent(slug)}`, storySchema)),
   };
 
   const inquiries: InquiryService = {
-    send: (input) => api.post<Receipt>("/inquiries", input),
+    send: (input) => api.post("/inquiries", input, receiptSchema),
   };
 
   const submissions: SubmissionService = {
     async send(input, files) {
-      const receipt = await api.post<SubmissionReceipt>("/submissions", input);
+      const receipt = await api.post("/submissions", input, submissionReceiptSchema);
       await Promise.all(
         receipt.uploads.map(async (upload) => {
           const file = files.find((candidate) => candidate.name === upload.name);
@@ -72,15 +74,15 @@ export function createHttpServices(baseUrl: string) {
   };
 
   const newsletter: NewsletterService = {
-    subscribe: (input) => api.post<Receipt>("/subscribers", input),
+    subscribe: (input) => api.post("/subscribers", input, receiptSchema),
   };
 
   const search: SearchService = {
-    match: (query) => api.post<SearchMatch[]>("/search", query),
+    match: (query) => api.post("/search", query, z.array(searchMatchSchema)),
   };
 
   const concierge: ConciergeService = {
-    answer: (question) => api.post<ConciergeAnswer>("/concierge", question),
+    answer: (question) => api.post("/concierge", question, conciergeAnswerSchema),
   };
 
   return { catalog, inquiries, submissions, newsletter, search, concierge };

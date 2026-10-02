@@ -411,11 +411,6 @@ export const markets: Market[] = [
     ],
   },
 ];
-
-/** Every region across all markets, for validation and lookups. */
-export const regionSlugs: RegionSlug[] = markets.flatMap((market) =>
-  market.regions.map((region) => region.slug),
-);
 ```
 
 ## src/data/stories.ts

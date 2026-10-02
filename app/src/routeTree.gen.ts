@@ -32,6 +32,7 @@ import { Route as MarketsSplatRouteImport } from './routes/markets.$'
 import { Route as PropertySlugRouteImport } from './routes/property.$slug'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
+import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -148,6 +149,11 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => StoriesRoute,
 } as any)
+const ApiHooksSentryTestRoute = ApiHooksSentryTestRouteImport.update({
+  id: '/api/hooks/sentry-test',
+  path: '/api/hooks/sentry-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof MarketIndexRoute
   '/markets/': typeof MarketsIndexRoute
   '/stories/': typeof StoriesIndexRoute
+  '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/$market': typeof MarketIndexRoute
   '/markets': typeof MarketsIndexRoute
   '/stories': typeof StoriesIndexRoute
+  '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/$market/': typeof MarketIndexRoute
   '/markets/': typeof MarketsIndexRoute
   '/stories/': typeof StoriesIndexRoute
+  '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/api/hooks/sentry-test'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/api/hooks/sentry-test'
   id:
     | '__root__'
     | '/'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/api/hooks/sentry-test'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -314,6 +326,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRouteWithChildren
   SubmitRoute: typeof SubmitRoute
   PropertySlugRoute: typeof PropertySlugRoute
+  ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -479,6 +492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesSlugRouteImport
       parentRoute: typeof StoriesRoute
     }
+    '/api/hooks/sentry-test': {
+      id: '/api/hooks/sentry-test'
+      path: '/api/hooks/sentry-test'
+      fullPath: '/api/hooks/sentry-test'
+      preLoaderRoute: typeof ApiHooksSentryTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -540,16 +560,18 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRouteWithChildren,
   SubmitRoute: SubmitRoute,
   PropertySlugRoute: PropertySlugRoute,
+  ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

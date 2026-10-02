@@ -1,14 +1,14 @@
 import {
   acceptedStates,
-  exposurePackages,
   propertyTypes,
   submissionSchema,
+  type exposurePackages,
   type Submission,
 } from "../../../domain/contracts";
 
-export type AcceptedState = (typeof acceptedStates)[number];
-export type PropertyTypeOption = (typeof propertyTypes)[number];
-export type ExposurePackage = (typeof exposurePackages)[number];
+type AcceptedState = (typeof acceptedStates)[number];
+type PropertyTypeOption = (typeof propertyTypes)[number];
+type ExposurePackage = (typeof exposurePackages)[number];
 
 /** Value of the state select when the property is outside the three markets. */
 export const otherState = "Another state";
@@ -47,6 +47,12 @@ export type SubmitDraft = {
 export const steps = ["Property", "The story", "Representation", "Exposure", "Review"] as const;
 export type StepIndex = 0 | 1 | 2 | 3 | 4;
 
+export const lastStep: StepIndex = 4;
+const stepOrder: readonly StepIndex[] = [0, 1, 2, 3, 4];
+
+export const previousStep = (step: StepIndex): StepIndex => stepOrder[step - 1] ?? 0;
+export const nextStep = (step: StepIndex): StepIndex => stepOrder[step + 1] ?? lastStep;
+
 export const maxFiles = 20;
 
 export const initialDraft: SubmitDraft = {
@@ -78,6 +84,17 @@ export const initialDraft: SubmitDraft = {
   rightsConfirmed: false,
   files: [],
 };
+
+const stateOptions: readonly SubmitDraft["state"][] = ["", ...acceptedStates, otherState];
+const typeOptions: readonly SubmitDraft["propertyType"][] = ["", ...propertyTypes];
+
+/** The select value as a draft state; anything unknown reads as "not chosen". */
+export const toStateOption = (value: string): SubmitDraft["state"] =>
+  stateOptions.find((option) => option === value) ?? "";
+
+/** The select value as a draft property type; anything unknown reads as "not chosen". */
+export const toTypeOption = (value: string): SubmitDraft["propertyType"] =>
+  typeOptions.find((option) => option === value) ?? "";
 
 const filled = (value: string) => value.trim().length > 0;
 

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
 import { pluralize } from "../../lib/format";
@@ -27,7 +27,7 @@ export function HomeFinder() {
     if (matches) track("home_finder", { q: trimmed, matches: matches.length });
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     void search(text);
   };

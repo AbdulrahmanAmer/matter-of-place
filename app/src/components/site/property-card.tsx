@@ -3,7 +3,7 @@ import type { Property } from "../../domain/property";
 import { formatPrice } from "../../lib/catalog";
 import { ContentTag } from "./content-tag";
 
-export function PropertyCard({ property }: { property: Property }) {
+function PropertyCard({ property }: { property: Property }) {
   return (
     <Link to="/property/$slug" params={{ slug: property.slug }} className="property-card">
       <div className="property-card-image">

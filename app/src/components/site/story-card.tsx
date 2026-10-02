@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { Story } from "../../domain/story";
 
-export function StoryCard({ story }: { story: Story }) {
+function StoryCard({ story }: { story: Story }) {
   return (
     <Link to="/stories/$slug" params={{ slug: story.slug }} className="story-card">
       <img src={story.image} loading="lazy" width={1200} height={1500} alt="" />

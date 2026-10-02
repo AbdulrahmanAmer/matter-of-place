@@ -1,0 +1,134 @@
+name: ci
+
+# This run is the production gate: deploy.yml waits on it (B1b invariant 6a). Lane branches get no
+# CI until their pull request (invariant 14), and a docs-only change runs none.
+# Cost (C22): check takes 58 to 66 s and build 22 to 36 s (four green runs, 2026-10-02), each
+# billed rounded up to a whole minute, so 2 to 3 Actions minutes a run, drawn from the 2,000
+# minutes a month of GOTCHAS P-009. merge-gate runs on pushes to main only, reads three API
+# pages and takes about 10 s, one billed minute a merge (UNPROVEN until its first run).
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]
+  push:
+    branches: [main]
+    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]
+
+permissions: {}
+
+defaults:
+  run:
+    working-directory: app
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      # fetch-depth 0 gives migration-order the origin/main ref it compares against.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: engines
+        env:
+          BUN_PIN: 1.3.13
+        run: |
+          node -e "const e=require('./package.json').engines;const b=process.env.BUN_PIN,n=process.version.slice(1).split('.')[0];if(e.bun!==b||e.node!==n+'.x'){console.error('engines',JSON.stringify(e),'runner',b,n);process.exit(1)}"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+      - name: migration-order
+        run: bun run migrations:check
+      - run: bun run check
+      # Advisory until HARDEN makes it blocking (T-12).
+      - name: audit
+        run: bun audit
+        continue-on-error: true
+      # B3 adds the step named deno here (setup-deno pinned by SHA, then deno check of
+      # scripts/deno-portable.ts, CS-01); B8 points it at the job runner. A step, not a job (T-12).
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+      # Live mode with Cloudflare's public always-pass Turnstile test key (T-04, T-12).
+      - name: build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+        run: bun run build
+      - name: worker-name
+        run: |
+          node -e "const n=require('./.output/server/wrangler.json').name;if(n!=='matter-of-place'){console.error('worker name',n);process.exit(1)}"
+      # B3 adds the step named bundle-check here: node scripts/bundle-check.mjs (FE-03).
+      # The glob skips every path whose name starts with a dot, `.output` itself included.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-output
+          path: app/.output/
+          include-hidden-files: true
+          retention-days: 1
+
+  # Merge gate (B1b invariant 6b): a push to main must come from a pull request that carried the
+  # merge-gate status and green required checks. No install: the script uses only node and gh.
+  merge-gate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: merge-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_HEAVY: ${{ vars.CI_HEAVY }}
+        run: node scripts/merge-gate.mjs
+
+  # Jobs appended here (B4 db and e2e; B13 adds seo steps to e2e, not a job of its own): each sets
+  # timeout-minutes and its own minimal permissions. A job that needs pull request context has
+  # github.event_name == 'pull_request' in its if:, and a heavy one also
+  # github.event.pull_request.draft == false && vars.CI_HEAVY != 'off' (invariant 14). A job that
+  # needs the built site downloads build-output and never builds again. No job touches the shared
+  # dev project, its secrets or a database concurrency group (invariant 13). Every new pull request
+  # job name goes into REQUIRED_PR_CHECKS of scripts/merge-gate.mjs in the same commit (6b).

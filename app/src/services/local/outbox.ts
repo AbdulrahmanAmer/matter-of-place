@@ -22,10 +22,10 @@ const newId = () =>
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-const accept = async (kind: OutboxKind, payload: unknown): Promise<Receipt> => {
+const accept = (kind: OutboxKind, payload: unknown): Promise<Receipt> => {
   const record: OutboxRecord = { id: newId(), kind, receivedAt: new Date().toISOString(), payload };
   records.push(record);
-  return { id: record.id, receivedAt: record.receivedAt };
+  return Promise.resolve({ id: record.id, receivedAt: record.receivedAt });
 };
 
 export const localInquiries: InquiryService = {
@@ -40,6 +40,3 @@ export const localSubmissions: SubmissionService = {
 export const localNewsletter: NewsletterService = {
   subscribe: (input) => accept("subscriber", input),
 };
-
-/** Read-only view for tests and debugging. */
-export const readOutbox = (): readonly OutboxRecord[] => records;

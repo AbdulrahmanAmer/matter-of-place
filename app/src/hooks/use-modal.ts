@@ -1,5 +1,10 @@
 import { useEffect } from "react";
 
+/** Ref callback that moves focus to the element when it mounts (the first field of an overlay). */
+export const focusOnMount = (node: HTMLElement | null) => {
+  node?.focus();
+};
+
 /**
  * Shared behaviour for overlays: locks page scroll while open and closes on
  * Escape. Used by the header menu, the search overlay and the inquiry dialog.
