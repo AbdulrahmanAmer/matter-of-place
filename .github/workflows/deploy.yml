@@ -111,6 +111,19 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PREVIEW_WORKER_SECRETS_JSON: ${{ secrets.PREVIEW_WORKER_SECRETS_JSON }}
         run: printf '%s' "$PREVIEW_WORKER_SECRETS_JSON" | bunx wrangler secret bulk --name pr-${{ github.event.number }}
+      # A Worker name deployed for the first time answers Cloudflare's own 404 for a while
+      # (GOTCHAS P-136); every answer of ours carries x-request-id.
+      - name: wait
+        run: |
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null -D - "$PREVIEW_URL/" | grep -qi '^x-request-id:'; then
+              echo "the Worker answered after $i tries"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "the Worker did not answer in 120 s"
+          exit 1
       - name: smoke
         run: node scripts/smoke.mjs "$PREVIEW_URL"
       - name: comment

@@ -3279,6 +3279,15 @@
     "expect": "× preview deploys, then sets the secrets, then smokes"
   },
   {
+    "id": "hy-preview-wait",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: wait\n",
+    "replace": "      - name: smoke-first\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: wait\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview deploys, then sets the secrets, then smokes"
+  },
+  {
     "id": "hy-cleanup-forgive",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",

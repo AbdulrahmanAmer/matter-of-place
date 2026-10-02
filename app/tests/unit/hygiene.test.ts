@@ -475,6 +475,9 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
       at((run) => run.startsWith("bunx wrangler deploy ")),
       at((run) => run.includes('>> "$GITHUB_ENV"')),
       at((run) => run.includes("bunx wrangler secret bulk --name pr-${{ github.event.number }}")),
+      at((run) =>
+        run.includes(`curl -s -o /dev/null -D - "$PREVIEW_URL/" | grep -qi '^x-request-id:'`),
+      ),
       at((run) => run === 'node scripts/smoke.mjs "$PREVIEW_URL"'),
       at((run) => run.includes('gh pr comment "$PR" --body "preview: $PREVIEW_URL"')),
     ];
