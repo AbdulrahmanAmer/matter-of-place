@@ -72,27 +72,27 @@ names what they wait on; every other step runs. The plans were audited in both d
 |---|---|---|
 | B1b | 7 of 15 | mop-prod (created at launch), R2 switched on, GitHub Pro (branch protection), custom domain (L1) |
 | B2 | 3 of 15 | mop-prod (created at launch), R2 switched on |
-| B3 | 4 of 18 | Resend account |
+| B3 | 3 of 18 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | B3b | 2 of 10 | mop-prod (created at launch) |
 | B4 | 1 of 10 | see the plan |
-| B5 | 6 of 10 | Resend account, mop-prod (created at launch) |
-| B6 | 4 of 9 | legal entity and payment facts, Resend account |
-| B7 | 8 of 19 | Resend account, R2 switched on |
+| B5 | 2 of 10 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
+| B6 | 2 of 9 | legal entity and payment facts |
+| B7 | 5 of 20 | R2 switched on, Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | B8 | 2 of 14 | GitHub dispatch token |
 | B8b | none of 11 | none |
 | B9 | 5 of 11 | CEO creative pick, R2 switched on, GitHub dispatch token, Anthropic API key, LinkedIn page and app, Meta app (partner) |
-| B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Resend account, Anthropic API key, GitHub dispatch token |
-| B11 | 5 of 13 | Resend account, R2 switched on, Meta app (partner) |
+| B10 | 10 of 16 | X developer app, LinkedIn page and app, Meta app (partner), R2 switched on, Anthropic API key, GitHub dispatch token |
+| B11 | 3 of 13 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17), R2 switched on, Meta app (partner) |
 | B12 | 2 of 9 | R2 switched on, GitHub dispatch token |
 | B13 | 4 of 13 | R2 switched on, Google accounts |
-| B14 | 8 of 9 | Google accounts, Resend account, custom domain (L1) |
+| B14 | 7 of 9 | Google accounts, custom domain (L1) |
 | B15 | 3 of 7 | Omnikom endpoint, mop-prod (created at launch) |
 | B16 | none of 8 | none |
-| B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend account |
+| B17 | 4 of 12 | R2 switched on, custom domain (L1), Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | H1 | 4 of 11 | R2 switched on |
 | L1 | 2 of 11 | Google accounts |
 
-What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (10 slices have a waiting step), create the Resend account (9), supply the legal entity and payment facts, create the X, LinkedIn and Google
+What the operator can do at any time to shorten that list, in order of how much it unblocks: switch R2 on (10 slices have a waiting step), supply the legal entity and payment facts, create the X, LinkedIn and Google
 accounts and ask the partner for Meta access, create an Anthropic API key and a fine-grained GitHub token for render
 dispatch. `mop-prod`, the custom domain and the creative pick come up inside their own slices.
 

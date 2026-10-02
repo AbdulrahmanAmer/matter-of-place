@@ -115,7 +115,7 @@ All property-specific text comes from src/data/properties.ts fields noted.
 5. **Gallery** (src/components/property/gallery.tsx). aria-label `Photography of the {city} property`. Images alt `{image.alt}, illustrative`, figcaption `{image.alt}`. Optional film: poster alt `{caption}, poster frame`; play button aria-label "Play property film", label `Play film · {video.duration}`, caption `{video.caption}`; video aria-label `{caption}, illustrative film of the {city} property`.
 6. **Details.** Eyebrow: DETAILS. H2: "In particular". Bulleted `property.features[]`. Definition list: Type, Architecture, Year, Lot (`{lotAcres} acres`), Interior (`{n} sq ft`), Address, Status, Currency.
 7. **Place.** Eyebrow: LOCATION & CONTEXT. H2: "The place". Sub-eyebrow `{CITY}, {STATE}`. Body `{property.place}`. If neighborhood differs from city: `{neighborhood} · {region.name}`. PlaceMap label `Approximate location of {city}`; note "Approximate location. Exact placement is shown for live listings only." CTA: `Explore {region.name}` -> `/{market}/{region}`.
-8. **Representation** (src/components/property/representation.tsx). Eyebrow: REPRESENTATION. H2: "Represented by". If representation: name, brokerage, licence. Otherwise: "No brokerage is attached to this illustrative property. Matter of Place is not the listing brokerage; on live listings the representative, brokerage and licence appear here." Buttons: "Contact listing representative" (opens inquiry `agent`); "Request a private showing" (opens `showing`).
+8. **Representation** (src/components/property/representation.tsx). Eyebrow: REPRESENTATION. H2: "Represented by". If representation: name, brokerage, licence. Otherwise: "No brokerage is attached to this illustrative property. Matter of Place is not the listing brokerage; on live listings the representative, brokerage and licence appear here." Buttons: "Contact listing representative" (opens inquiry `agent`); "Request a private showing" (opens `showing`). Planned (B3 invariant 22, S55): for a home its owner submitted (`presentedByOwner`), H2 "Presented by the owner" with no name, brokerage or licence, and the first button reads "Contact the owner"; this is the CTO's default listed for the operator in ASSUMED H30 (7).
 9. **InquiryBlock.** Eyebrow: INQUIRE. Title: "Begin a conversation." Text: "Every inquiry is read by a person and routed to the right representation." Buttons: "Request a private showing" (showing); "Ask about this property" (ask); "Find something similar" (similar); "I need to sell first" (sell); "I'm buying as an investment" (invest).
 10. **ShareCover** (src/components/property/share-cover.tsx). Eyebrow: PRESERVE & SHARE. Card: wordmark, image, `{CITY}, {STATE}`, price, `{beds} BD · {baths} BA · {sqft} SQ FT`. Button: "Share property cover" / "Link copied".
 11. **Related** (if any). Eyebrow: CONTINUE EXPLORING. Title: `More in {market.name}`. Action: "All properties" -> `/properties`.
@@ -173,7 +173,7 @@ All property-specific text comes from src/data/properties.ts fields noted.
 
 ### `/submit` (src/routes/submit.tsx)
 
-1. PageIntro. Eyebrow: FOR AGENTS, TEAMS & BROKERAGES. Title: Submit a Property. Text: "Submitted as you would submit work to a publication. Every property is reviewed before anything else happens."
+1. PageIntro. Eyebrow: FOR AGENTS, TEAMS & BROKERAGES (planned, B3 invariant 22, S55: FOR AGENTS, BROKERAGES & OWNERS). Title: Submit a Property. Text: "Submitted as you would submit work to a publication. Every property is reviewed before anything else happens."
 2. SubmitWizard (see Forms).
 
 ### `/exposure` (src/routes/exposure.tsx)
@@ -350,13 +350,13 @@ Per intent (copy verbatim):
 - **similar** — Eyebrow: FIND SOMETHING SIMILAR. Title: "Tell us what you are looking for." Lede: "Describe the setting, budget and character you have in mind and we will suggest places with something in common." Message prefill: "I am looking for something similar to this property." Extras: "Budget" (placeholder "e.g. up to $8M"); "Places you would consider" (placeholder "e.g. Marin, Palm Beach, anywhere with water"). Event: similar_property_request.
 - **sell** — Eyebrow: I NEED TO SELL FIRST. Title: "Let us start with your current home." Lede: "Tell us a little about the property you would be selling. We will connect you with the right representation." Message prefill: "I am interested in this property but would need to sell first." Extra: "Your current property" (placeholder "City or neighbourhood, and the kind of house"). Event: seller_intent.
 - **invest** — Eyebrow: BUYING AS AN INVESTMENT. Title: "Tell us about your intentions." Lede: "Rental, long-term hold, or a residence used part of the year: the answer shapes what we suggest." Message prefill: "I am considering this property as an investment." Extra: "Intended use and horizon" (placeholder "e.g. seasonal rental, ten-year hold"). Event: investment_intent.
-- **agent** — Eyebrow: CONTACT LISTING REPRESENTATIVE. Title: "Reach the representative." Lede: "Your message goes to the listing representative. Matter of Place is not the listing brokerage." Message prefill: (empty). Event: agent_contact.
+- **agent** — Eyebrow: CONTACT LISTING REPRESENTATIVE. Title: "Reach the representative." Lede: "Your message goes to the listing representative. Matter of Place is not the listing brokerage." Message prefill: (empty). Event: agent_contact. Planned (B3, S55): opened from a home its owner submitted, eyebrow CONTACT THE OWNER, title "Reach the owner.", lede "Your message goes to the owner of this home. Matter of Place is not a brokerage."; the message also reaches the person who submitted the property by email (B5 `inquiry_forward`).
 - **general** — Eyebrow: GENERAL INQUIRY. Title: "Write to us." Lede: "Questions about properties, markets, or presenting a property with Matter of Place." Message prefill: (empty). Event: contact_inquiry. (Defined in copy; the property page never opens it; the contact page uses ContactForm.)
 
 ### 4.4 Submit wizard (src/components/forms/submit/wizard.tsx, steps.tsx, state.ts)
-Progress list (numbered): 01 Property, 02 The story, 03 Representation, 04 Exposure, 05 Review. Buttons: "Back" (from step 2), "Continue" (steps 1-4, disabled until the step is valid), final step "Send for review" (pending "Sending"). FormError and, on the last step only, DeliveryNotice.
+Progress list (numbered): 01 Property, 02 The story, 03 Representation, 04 Exposure, 05 Review (planned, B3 invariant 22, S55: 03 About you). Buttons: "Back" (from step 2), "Continue" (steps 1-4, disabled until the step is valid), final step "Send for review" (pending "Sending"). FormError and, on the last step only, DeliveryNotice.
 
-Continue-gating rules (state.ts canContinue): step 1 requires address, city, a state that is one of the three accepted (not "Another state"), a 5-digit ZIP, and a property type. Step 2 requires story and significance text. Step 3 requires brokerage, agent name, agent email. Step 4 requires a chosen exposure package and the rights checkbox. Step 5 always allowed. No inline per-field messages besides the out-of-market notice.
+Continue-gating rules (state.ts canContinue): step 1 requires address, city, a state that is one of the three accepted (not "Another state"), a 5-digit ZIP, and a property type. Step 2 requires story and significance text. Step 3 requires brokerage, agent name, agent email (planned, S55: a chosen "I am" kind, name and email, and a brokerage only for a real estate agent). Step 4 requires a chosen exposure package and the rights checkbox. Step 5 always allowed. No inline per-field messages besides the out-of-market notice.
 
 **Step 1: The property**
 - Fields: Property address; City; State (select, first option "Select state"; options California, New York, Florida, "Another state" {data: contracts.ts acceptedStates + state.ts otherState}); ZIP.
@@ -368,18 +368,19 @@ Continue-gating rules (state.ts canContinue): step 1 requires address, city, a s
 - H2 "The story". Fields: Architect, if known; Designer, if known; Year built; Year renovated; The property story (textarea); What makes this property significant? (textarea); Photography link (placeholder "https://"); Video link (placeholder "https://").
 - Photography upload: title "Photography"; hint "Or upload up to 20 high-resolution images." (maxFiles = 20); button "Choose files" / "Change selection"; file list with name and size in MB.
 
-**Step 3: Representation**
-- H2 "Representation". Fields: Listing agent; Brokerage; Agent email; Agent phone; MLS or source link (placeholder "https://").
+**Step 3: Representation** (today) and **About you** (planned, B3 invariant 22, operator decision S55)
+- Today: H2 "Representation". Fields: Listing agent; Brokerage; Agent email; Agent phone; MLS or source link (placeholder "https://").
+- Planned: H2 "About you". First field: select "I am" (required, placeholder "Select one", no default) with exactly two options, "Real estate agent" and "Property owner" {data: contracts.ts submitterKinds + submitterKindLabels}. Real estate agent: Your name; Brokerage (required); Email; Phone; MLS or source link (placeholder "https://"). Property owner: Your name; Email; Phone; no brokerage field; checkbox "This home is currently listed with an agent", which when ticked shows Listing agent name and Listing agent brokerage (both optional). Contract fields `submitterKind`, `submitterName`, `submitterEmail`, `submitterPhone`, `brokerage`, `listedWithAgent`, `listingAgentName`, `listingAgentBrokerage`.
 
 **Step 4: Preferred exposure**
 - H2 "Preferred exposure". Lede: "Confirmed only after editorial review. Nothing is charged now."
 - ChoiceGroup "Preferred exposure" options {data: contracts.ts exposurePackages}: The Feature; The Reach; The Campaign; Five Features; Not sure yet.
 - Field: Optional media budget (USD).
-- Checkbox: "I confirm I have the rights to share this property's photography and media."
+- Checkbox: "I confirm I have the rights to share this property's photography and media." (unchanged for both kinds: an owner and an agent confirm the same thing about the photographs, S55)
 - Link: "Compare Property Exposure" -> `/exposure` (fires package_interest with package "submit_compare").
 
 **Step 5: Review**
-- H2 "Review". Definition list rows: Address; Type; Price; Architect; Photography; Representation; Exposure; Media budget. Empty values show "Not stated". Photography row shows `{n} file(s) selected` or the photography URL.
+- H2 "Review". Definition list rows: Address; Type; Price; Architect; Photography; Representation (planned, S55: "Submitted by", `<name>, <brokerage>` for an agent and `<name>, owner` for an owner, with `, listed with <listing agent name>` when given); Exposure; Media budget. Empty values show "Not stated". Photography row shows `{n} file(s) selected` or the photography URL.
 - ReviewTimeline: Submit; Editorial review; Acceptance; Exposure; Publish; Distribute. Text: "Every property is reviewed against our editorial standard. Payment does not override selection. If a property is not accepted, nothing is charged."
 
 **Outcome**

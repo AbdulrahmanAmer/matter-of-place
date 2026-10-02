@@ -15056,5 +15056,202 @@
    "scripts/launch/fixtures/preflight-bad/supabase-dev.txt"
   ],
   "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "screen",
+  "id": "26 People list of everyone who submits, agents and owners (S55)",
+  "plan": "B7",
+  "files": [
+   "src/routes/admin/people.index.tsx",
+   "src/admin/people/PeopleTable.tsx",
+   "src/admin/people/people-api.ts",
+   "src/admin/people/people-queries.ts",
+   "src/admin/people/people.test.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "screen",
+  "id": "27 Person detail with notes, requests, properties, payments, emails and inquiries (S55)",
+  "plan": "B7",
+  "files": [
+   "src/routes/admin/people.$id.tsx",
+   "src/admin/people/PersonDetail.tsx",
+   "src/admin/people/PersonNotes.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "people list, get and notes routes (S55)",
+  "plan": "B7",
+  "files": [
+   "src/routes/api/admin/people.index.ts",
+   "src/routes/api/admin/people.$id.ts",
+   "src/routes/api/admin/people.$id.notes.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "action",
+  "id": "people.list, people.get, people.note service and SQL functions people_list, person_detail, set_contact_notes (S55)",
+  "plan": "B7",
+  "files": [
+   "src/server/people/service.ts",
+   "src/domain/admin-people.ts",
+   "supabase/migrations/<ts>_admin_people.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "permission-group",
+  "id": "people group: people.list and people.get all six roles, people.note CE ME VE MO (S55)",
+  "plan": "B7",
+  "files": [
+   "src/server/lib/permissions/people.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "tests",
+  "id": "people service and database tests (S55)",
+  "plan": "B7",
+  "files": [
+   "tests/unit/people.service.test.ts",
+   "tests/db/people.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "table/columns",
+  "id": "contacts table, submitter_kind enum, submitter columns and checks of submissions, properties.presented_by_owner (S55)",
+  "plan": "B2",
+  "files": [
+   "supabase/migrations/20261001090400_intake.sql",
+   "supabase/migrations/20261001090300_catalog.sql",
+   "src/domain/contracts.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "tests",
+  "id": "submitter contract refinement submitterRules (S55)",
+  "plan": "B2",
+  "files": [
+   "tests/unit/submitter-contract.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "form",
+  "id": "submit wizard About you step: I am agent or owner (S55)",
+  "plan": "B3",
+  "files": [
+   "src/components/forms/submit/state.ts",
+   "src/components/forms/submit/steps.tsx",
+   "src/components/forms/submit/wizard.tsx",
+   "src/routes/_site.submit.tsx",
+   "tests/unit/submit-state.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "component",
+  "id": "Presented by the owner on the property page and owner wording of the agent inquiry dialog (S55, H30 (7) default)",
+  "plan": "B3",
+  "files": [
+   "src/components/property/representation.tsx",
+   "src/components/forms/inquiry-dialog.tsx",
+   "src/server/public/mappers.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mechanism",
+  "id": "create_submission upserts the contacts row by lower(email) in the same transaction (S55)",
+  "plan": "B3",
+  "files": [
+   "supabase/sql/functions/create_submission.sql",
+   "supabase/migrations/20261001100000_public_write_functions.sql"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "email-template",
+  "id": "inquiry_forward: an inquiry passed on to the property's submitter, agent or owner (S55)",
+  "plan": "B5",
+  "files": [
+   "src/templates/email/inquiry-forward.tsx",
+   "src/server/email/variables.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "mechanism",
+  "id": "sender identities: RESEND_FROM on notify., RESEND_FROM_BULK on notes., reply_to hello@ (H29)",
+  "plan": "B5",
+  "files": [
+   "src/server/email/resend-client.ts",
+   "src/server/jobs/steps/send-email.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "email",
+  "kind": "tests",
+  "id": "resend-domain and resend-check are no-ops on the three verified domains (H28, E17, E18)",
+  "plan": "B5",
+  "files": [
+   "scripts/resend-domain.ts",
+   "scripts/resend-check.ts",
+   "tests/unit/email/resend-domain.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "table/columns",
+  "id": "analytics_daily aggregates kept 13 months, rollup_analytics_daily before raw partitions drop at 90 days (H16)",
+  "plan": "B8",
+  "files": [
+   "supabase/migrations/<ts>_retention.sql",
+   "src/server/jobs/system/retention.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "retention_policies rows (G48)",
+  "id": "contacts_anonymise applied by retention_anonymise_contacts (S55)",
+  "plan": "B8",
+  "files": [
+   "supabase/migrations/<ts>_retention.sql",
+   "src/server/jobs/system/retention.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "audit-tool",
+  "id": "analytics_trend of audit_health() and the report section Analytics trend (H16 reader)",
+  "plan": "B14",
+  "files": [
+   "supabase/migrations/<ts>_audit_reads.sql",
+   "scripts/audit/lint-report.mjs"
+  ],
+  "hasProof": true
  }
 ]
