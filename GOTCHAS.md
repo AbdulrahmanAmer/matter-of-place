@@ -938,3 +938,27 @@ Entry template
 - rule: every upload of a dot-named folder (`.output`, `.lighthouseci`) sets `include-hidden-files: true`, and the proof is a download: `gh run download <id> -n <artifact>` lists the files. B4's `e2e` and B8's `render.yml` follow the same rule.
 - proof: `gh api "repos/actions/toolkit/contents/packages/glob/src/internal-globber.ts" --jq .content | base64 -d | grep -n "excludeHiddenFiles &&"` → `132:      if (options.excludeHiddenFiles && path.basename(item.path).match(/^\./)) {`; `gh run download 36996622633 -n build-output` holds `server/wrangler.json`.
 - added: 2026-10-02
+
+## G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:`
+- paths: app/tests/unit/hygiene.test.ts, .github/workflows/**
+- severity: warn
+- symptom: B1b g6's first `hygiene.test.ts` scanned each job's text for database secrets and for `mop-dev`. A reviewer put `env: DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}` at the top of `ci.yml`, which hands the production database password (H35 (1)) to every job a pull request reaches, and the test stayed green (`Tests 23 passed | 9 skipped`). The plan's own `grep` over the whole file would have caught it.
+- cause: the job slice runs from a job key to the next; the workflow's own keys sit outside every slice, yet their values reach every job.
+- rule: a check about what a job can see also scans the workflow text outside the `jobs:` map (`head` of `splitWorkflow` in `hygiene.test.ts`) whenever any job of that workflow is in scope; a rule about a whole file (invariant 13 on `ci.yml`) scans the whole file text. A test that stands in for a plan's `grep` is at least as wide as the `grep`.
+- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts` passes; registry entries `hy-workflow-env`, `hy-workflow-ref` and `hy-workflow-group` turn it red (`"ci.yml (workflow): secrets.DEV_SUPABASE_"`, `× no ci.yml job reads or writes mop-dev, workflow env included (13)`).
+- enforced-by: tests/unit/hygiene.test.ts (`bun run check`)
+- added: 2026-10-02
+
+## P-100 · A script in the lane-root `scratch/` cannot import an app package by its bare name
+- symptom: in B1b g6 a probe script under `E:/mop-build/spine/scratch/` that read the resolved ESLint config died with `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from E:\mop-build\spine\scratch\...`, although it was run from `app/`; it was rewritten to import eslint by its `node_modules` path.
+- cause: Node resolves a bare import from the folder of the importing file, not from the current folder; `scratch/` sits beside `app/`, so no `node_modules` is on its way up. P-087 sends scratch scripts there, so every such script meets this.
+- rule: a scratch script outside `app/` that needs an app package resolves it from the app: `const fromApp = createRequire(join(process.cwd(), "package.json"));` then `await import(pathToFileURL(fromApp.resolve("eslint")).href)`, run from `app/`. Never move the script into `app/` (P-087) and never install packages at the lane root.
+- proof: from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` → `node ../scratch/zz-bare.mjs` prints `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from E:\mop-build\spine\scratch\zz-bare.mjs` and exits 1; the `createRequire` form prints `function` and exits 0 (measured 2026-10-02, both files deleted after).
+- added: 2026-10-02
+
+## P-101 · A gate STANDARDS names as the enforcer of a rule must assert every clause of it, not only the plan's list
+- symptom: STANDARDS R54 says it is enforced by `hygiene.test.ts`, and two of its clauses (no attacker-controllable context such as `github.event.pull_request.title` or `github.head_ref` in a `run:` line; installs are `bun install --frozen-lockfile`) had no assertion, because B1b's Files line for the test omits them. The reviewer's checklist line C22 (a new workflow states its Actions minutes and the P-009 line) was missed the same way. Both cost a rejected round.
+- cause: the builder built from the plan's test list; the rule the test enforces and the checklist were read but not walked clause by clause.
+- rule: before closing a gate, open each STANDARDS rule whose `Enforced by:` names it and tick every clause against an assertion and a registry entry; walk the C-lines of section 3 for the artifact type (workflow: C22). Where the plan lists less, STANDARDS binds (P-078, P-083), and the stale plan line is named in the slice log.
+- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "R54"` runs `no run: line holds attacker-controllable context (R54)` and `every bun install in a workflow is --frozen-lockfile (R54)`; registry entries `hy-untrusted-title`, `hy-untrusted-head-ref` and `hy-frozen` turn them red; `grep -c "Cost (C22)" .github/workflows/ci.yml` → `1`.
+- added: 2026-10-02

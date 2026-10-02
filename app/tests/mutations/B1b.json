@@ -1360,5 +1360,77 @@
     "replace": "\"bun\": \"1.3.14\",",
     "run": "commit, push slice/b1b, gh run watch <id>",
     "expect": "engines \\{\"bun\":\"1\\.3\\.14\",\"node\":\"24\\.x\"\\} runner 1\\.3\\.13 24"
+  },
+  {
+    "id": "hy-workflow-env",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: {}\n\nenv:\n  DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml \\(workflow\\): secrets\\.DEV_SUPABASE_"
+  },
+  {
+    "id": "hy-workflow-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: {}\n\nenv:\n  REF: ${{ vars.DEV_SUPABASE_PROJECT_REF }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-workflow-group",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "group: ci-${{ github.head_ref || github.ref }}",
+    "replace": "group: mop-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-untrusted-title",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: echo \"${{ github.event.pull_request.title }}\" && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no run: line holds attacker-controllable context"
+  },
+  {
+    "id": "hy-untrusted-head-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: echo ${{ github.head_ref }} && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no run: line holds attacker-controllable context"
+  },
+  {
+    "id": "hy-frozen",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - run: bun install --frozen-lockfile\n      - name: migration-order",
+    "replace": "      - run: bun install\n      - name: migration-order",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every bun install in a workflow is --frozen-lockfile"
+  },
+  {
+    "id": "hy-engines-gone",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - name: engines\n        env:\n          BUN_PIN: 1.3.13\n        run: |\n          node -e \"const e=require('./package.json').engines;const b=process.env.BUN_PIN,n=process.version.slice(1).split('.')[0];if(e.bun!==b||e.node!==n+'.x'){console.error('engines',JSON.stringify(e),'runner',b,n);process.exit(1)}\"\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the check job compares the runner with engines before installing"
+  },
+  {
+    "id": "hy-engines-exit",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "'runner',b,n);process.exit(1)}",
+    "replace": "'runner',b,n);process.exit(0)}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the check job compares the runner with engines before installing"
   }
 ]

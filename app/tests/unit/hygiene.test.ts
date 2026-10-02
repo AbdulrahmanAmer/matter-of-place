@@ -1,5 +1,6 @@
 // Repository hygiene, gate G10 (B1b invariants 1 to 16, STANDARDS R02, R54, R56 to R59). It
 // catches accidents only: a pull request can edit this test as easily as a workflow.
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -15,6 +16,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 
 const Value = z.union([z.string(), z.number(), z.boolean()]);
 const Step = z.object({
+  name: z.string().optional(),
   uses: z.string().optional(),
   run: z.string().optional(),
   env: z.record(Value).optional(),
@@ -40,10 +42,18 @@ const PackageJson = z.object({
   scripts: z.record(z.string()),
 });
 
-/** A job's raw text: the slice from its `<name>:` key to the next job key. */
-function jobTexts(text: string): Map<string, string> {
-  const jobs = parseDocument(text).get("jobs", true);
-  if (!isMap(jobs) || jobs.range === null || jobs.range === undefined) {
+/**
+ * A job's raw text is the slice from its `<name>:` key to the next job key. The workflow's own
+ * text is everything outside the `jobs:` map: its `env:` and `concurrency:` reach every job.
+ */
+function splitWorkflow(text: string): { head: string; jobText: Map<string, string> } {
+  const document = parseDocument(text);
+  const root = document.contents;
+  const jobs = document.get("jobs", true);
+  const jobsPair = isMap(root)
+    ? root.items.find((pair) => isScalar(pair.key) && pair.key.value === "jobs")
+    : undefined;
+  if (!isMap(jobs) || !jobs.range || !isScalar(jobsPair?.key)) {
     throw new Error("workflow has no jobs map");
   }
   const end = jobs.range[2];
@@ -51,12 +61,15 @@ function jobTexts(text: string): Map<string, string> {
     if (!isScalar(pair.key) || !pair.key.range) throw new Error("job key is not a scalar");
     return { name: String(pair.key.value), start: pair.key.range[0] };
   });
-  return new Map(
-    starts.map(({ name, start }, index) => [
-      name,
-      text.slice(start, starts[index + 1]?.start ?? end),
-    ]),
-  );
+  return {
+    head: text.slice(0, jobsPair.key.range[0]) + text.slice(end),
+    jobText: new Map(
+      starts.map(({ name, start }, index) => [
+        name,
+        text.slice(start, starts[index + 1]?.start ?? end),
+      ]),
+    ),
+  };
 }
 
 const workflows = readdirSync(WORKFLOWS)
@@ -64,7 +77,7 @@ const workflows = readdirSync(WORKFLOWS)
   .sort()
   .map((file) => {
     const text = read(join(WORKFLOWS, file));
-    return { file, text, data: Workflow.parse(parse(text)), jobText: jobTexts(text) };
+    return { file, text, data: Workflow.parse(parse(text)), ...splitWorkflow(text) };
   });
 type WorkflowFile = (typeof workflows)[number];
 type JobDef = z.infer<typeof Job>;
@@ -160,7 +173,7 @@ describe("toolchain (GS-07)", () => {
   });
 });
 
-describe("workflows (invariants 1, 13 to 15; R54, R56, R58)", () => {
+describe("workflows (invariants 1, 8, 13 to 15; R54, R56, R58)", () => {
   it("nothing under the app is named .github and every workflow runs in app (G-012)", () => {
     expect({
       nested: existsSync(join(APP, ".github")),
@@ -200,16 +213,47 @@ describe("workflows (invariants 1, 13 to 15; R54, R56, R58)", () => {
   });
 
   it("no job a pull request can reach references a database, production or backup secret", () => {
-    const leaks = workflows.flatMap((w) =>
-      jobsOf(w)
-        .filter(([, job]) => pullRequestReaches(w, job))
-        .flatMap(([name]) =>
-          ["SUPABASE_ACCESS_TOKEN", "secrets.DEV_SUPABASE_", "secrets.PROD_", "secrets.BACKUP_"]
-            .filter((secret) => textOf(w, name).includes(secret))
-            .map((secret) => `${w.file} ${name}: ${secret}`),
-        ),
-    );
+    const leaks = workflows.flatMap((w) => {
+      const reachable = jobsOf(w).filter(([, job]) => pullRequestReaches(w, job));
+      const texts = reachable.map(([name]) => ({ where: name, text: textOf(w, name) }));
+      const scanned =
+        reachable.length > 0 ? [{ where: "(workflow)", text: w.head }, ...texts] : texts;
+      return scanned.flatMap(({ where, text }) =>
+        ["SUPABASE_ACCESS_TOKEN", "secrets.DEV_SUPABASE_", "secrets.PROD_", "secrets.BACKUP_"]
+          .filter((secret) => text.includes(secret))
+          .map((secret) => `${w.file} ${where}: ${secret}`),
+      );
+    });
     expect(leaks).toEqual([]);
+  });
+
+  it("no run: line holds attacker-controllable context (R54)", () => {
+    const UNTRUSTED =
+      /\$\{\{[^}]*(github\.event\.[\w.]*\b(title|body)\b|head\.ref|github\.head_ref|inputs\.)/;
+    const hits = workflows.flatMap((w) =>
+      jobsOf(w).flatMap(([name, job]) =>
+        job.steps
+          .flatMap((step) => (step.run ?? "").split("\n"))
+          .filter((line) => UNTRUSTED.test(line))
+          .map((line) => `${w.file} ${name}: ${line.trim()}`),
+      ),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("every bun install in a workflow is --frozen-lockfile (R54)", () => {
+    const installs = workflows.flatMap((w) =>
+      jobsOf(w).flatMap(([name, job]) =>
+        job.steps
+          .flatMap((step) => (step.run ?? "").split("\n"))
+          .filter((line) => /\bbun\s+(install|i)\b/.test(line))
+          .map((line) => ({ where: `${w.file} ${name}: ${line.trim()}`, line })),
+      ),
+    );
+    expect({
+      loose: installs.filter(({ line }) => !line.includes("--frozen-lockfile")).map((i) => i.where),
+      checked: installs.length > 0,
+    }).toEqual({ loose: [], checked: true });
   });
 
   it("no workflow names R2 or a media base variable (H33)", () => {
@@ -221,13 +265,33 @@ describe("workflows (invariants 1, 13 to 15; R54, R56, R58)", () => {
     expect(hits).toEqual([]);
   });
 
-  it("no ci.yml job reads or writes mop-dev (invariant 13)", () => {
-    const hits = Object.keys(ci?.data.jobs ?? {}).flatMap((name) =>
-      ["group: mop-dev", "DEV_SUPABASE_PROJECT_REF"]
-        .filter((word) => textOf(ci, name).includes(word))
-        .map((word) => `${name}: ${word}`),
-    );
+  it("no ci.yml job reads or writes mop-dev, workflow env included (13)", () => {
+    const text = ci?.text ?? "";
+    const hits = [
+      ...(/group:\s*["']?mop-dev/.test(text) ? ["group: mop-dev"] : []),
+      ...["DEV_SUPABASE_", "SUPABASE_ACCESS_TOKEN"].filter((word) => text.includes(word)),
+    ];
     expect({ ci: ci !== undefined, hits }).toEqual({ ci: true, hits: [] });
+  });
+
+  it("the check job compares the runner with engines before installing (8)", () => {
+    const steps = ci?.data.jobs["check"]?.steps ?? [];
+    const engines = steps.findIndex((step) => step.name === "engines");
+    const install = steps.findIndex((step) => step.run?.includes("bun install") === true);
+    const script = /^node -e "(.*)"$/s.exec(steps[engines]?.run?.trim() ?? "")?.[1] ?? "";
+    const runWith = (pin: string) =>
+      spawnSync(process.execPath, ["-e", script], {
+        cwd: APP,
+        env: { ...process.env, BUN_PIN: pin },
+        encoding: "utf8",
+      });
+    const refused = runWith("0.0.1");
+    expect({
+      beforeInstall: engines >= 0 && engines < install,
+      matchExit: runWith(packageJson.engines.bun).status,
+      mismatchExit: refused.status,
+      namesEngines: refused.stderr.includes("engines"),
+    }).toEqual({ beforeInstall: true, matchExit: 0, mismatchExit: 1, namesEngines: true });
   });
 
   it("every job sets timeout-minutes", () => {

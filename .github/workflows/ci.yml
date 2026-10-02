@@ -2,6 +2,9 @@ name: ci
 
 # This run is the production gate: deploy.yml waits on it (B1b invariant 6a). Lane branches get no
 # CI until their pull request (invariant 14), and a docs-only change runs none.
+# Cost (C22): check takes 58 to 66 s and build 22 to 36 s (four green runs, 2026-10-02), each
+# billed rounded up to a whole minute, so 2 to 3 Actions minutes a run, drawn from the 2,000
+# minutes a month of GOTCHAS P-009.
 on:
   pull_request:
     branches: [main]
