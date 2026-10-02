@@ -772,3 +772,14 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   `git config merge.gotchas.driver` and in `.git/info/attributes` (not versioned: redo both on a fresh clone).
 - Builders may now merge origin/main into their branch. Dependabot PRs 38 to 42 stay open until H1 (H47).
 - Fold items for B1b's close are listed in H48 (5).
+
+## 2026-10-03 00:21 +0300 · B1b steps 6 and 7 built and accepted; H49 before the merge; db lane on B2 step 1b
+- Delivery run `wf_8ed69d5b-1c0`: step 6 accepted at once (preview smoke green on probe PRs 53 and 54 with the local
+  adapter, one `preview:` comment each, Workers deleted); step 7 accepted with four follow-ups (deploy.yml dev and
+  production jobs, deploy guard, deploy:prod). Own proofs: build exit 0; smoke mutation 1 red row, restored; check
+  failed only on two deploy-guard timeouts under load (alone: 6 passed) which H49 (3) fixes.
+- H49: production job gated by `PRODUCTION_DEPLOY` (set `off`; `on` at B3b's close); rollback names its target;
+  test timeouts 60 s. Run `wf_689ef72f-fa9` (task `ws28tlcrz`) closes step 7 (c7) with those three, then STOP:
+  the orchestrator merges PR 43 through the gate (steps 6 and 7), then relaunches B1b for 7b, 8, 9-10, 11.
+- B1b steps on main so far: 1 to 5b. Accepted but not merged: 6, 7 (PR 43, draft).
+- Ledger: progress.json still says 5b was the last accepted; the board reads 6 and 7 from the journals.
