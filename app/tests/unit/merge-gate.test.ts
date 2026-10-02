@@ -456,6 +456,16 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       });
     });
 
+    it("reads a single * as GitHub does: it matches no slash", () => {
+      const out = CI_TEXT.replace('"launch/**"', '"launch/*"');
+      const files = listed(["launch/notes.txt", "launch/film/x.ts"]);
+      const { lines, writes } = gate({ checks: NONE, ci: { status: 0, out }, files });
+      expect({ lines, writes }).toEqual({
+        lines: ["merge-gate: no checks reported and launch/film/x.ts is not a document"],
+        writes: [],
+      });
+    });
+
     it("refuses when gh lists fewer files than the pull request changes", () => {
       const { lines, writes } = gate({ checks: NONE, files: listed(DOCS, 101) });
       expect({ lines, writes }).toEqual({

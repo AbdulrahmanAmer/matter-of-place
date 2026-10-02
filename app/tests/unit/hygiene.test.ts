@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ESLint } from "eslint";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { isMap, isScalar, parse, parseDocument } from "yaml";
 import { z } from "zod";
@@ -493,6 +494,44 @@ describe("merge gate (invariant 6b, R55)", () => {
       workflows.map((w) => [w.file, Object.keys(w.data.jobs)]),
     );
   });
+});
+
+describe("the orchestrator's merge script is under the app's gates (H42 (2), G-032)", () => {
+  const GATE = "workspace/05-plans/merge-gate.mjs";
+
+  it("tsconfig.scripts.json type-checks it", () => {
+    const parsed = ts.getParsedCommandLineOfConfigFile(
+      join(APP, "tsconfig.scripts.json"),
+      {},
+      {
+        ...ts.sys,
+        onUnRecoverableConfigFileDiagnostic: () => undefined,
+      },
+    );
+    const files = (parsed?.fileNames ?? []).map((file) => resolve(file));
+    expect(files.includes(resolve(ROOT, GATE))).toBe(true);
+  });
+
+  it("lint runs on it from the repository root, and format:check reads .prettierrc for it", () => {
+    expect({
+      lint: packageJson.scripts["lint"]?.includes(
+        `&& cd .. && eslint --config app/eslint.config.js --max-warnings 0 ${GATE}`,
+      ),
+      formatCheck: packageJson.scripts["format:check"],
+    }).toEqual({ lint: true, formatCheck: `prettier --config .prettierrc --check . ../${GATE}` });
+  });
+
+  it("lint gives prettier/prettier the options of .prettierrc for it", async () => {
+    const Resolved = z.object({
+      rules: z.object({ "prettier/prettier": z.tuple([z.number(), z.record(Value)]) }),
+    });
+    const eslint = new ESLint({ cwd: ROOT, overrideConfigFile: join(APP, "eslint.config.js") });
+    const resolved = Resolved.parse(await eslint.calculateConfigForFile(GATE));
+    expect(resolved.rules["prettier/prettier"]).toEqual([
+      2,
+      z.record(Value).parse(JSON.parse(read(join(APP, ".prettierrc")))),
+    ]);
+  }, 20_000);
 });
 
 describe.skipIf(!existsSync(JOB_RUNNER))("job runner (skipped until B8 writes it)", () => {

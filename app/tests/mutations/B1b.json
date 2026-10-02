@@ -2730,6 +2730,15 @@
     "expect": "refuses when paths-ignore holds a wildcard the gate does not read"
   },
   {
+    "id": "mg-docs-star",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  [\"*\", \"[^/]*\"],\n",
+    "replace": "  [\"*\", \".*\"],\n",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "× reads a single . as GitHub does: it matches no slash"
+  },
+  {
     "id": "mg-docs-unread",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
@@ -2809,5 +2818,50 @@
     "replace": "",
     "run": "bun run lint",
     "expect": "workspace.05-plans.merge-gate\\.mjs[\\s\\S]*prettier/prettier"
+  },
+  {
+    "id": "hy-gate-include",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.scripts.json",
+    "find": ", \"../workspace/05-plans/merge-gate.mjs\"]",
+    "replace": "]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× tsconfig\\.scripts\\.json type-checks it"
+  },
+  {
+    "id": "hy-gate-lint",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": " && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
+    "replace": "\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-format-path",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"format:check\": \"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "replace": "\"format:check\": \"prettier --config .prettierrc --check .\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-format-config",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"format:check\": \"prettier --config .prettierrc --check .",
+    "replace": "\"format:check\": \"prettier --check .",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint runs on it from the repository root"
+  },
+  {
+    "id": "hy-gate-prettier",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "eslint.config.js",
+    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× lint gives prettier/prettier the options of \\.prettierrc"
   }
 ]
