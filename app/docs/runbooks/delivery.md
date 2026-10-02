@@ -227,12 +227,16 @@ none links, migrates or reads the database (invariant 13).
   any preview has no Worker; Cloudflare answers `This Worker does not exist on this account. [code: 10090]` (measured
   2026-10-02 with `bunx wrangler delete --name pr-990001 --force`, exit 1), and only that answer is forgiven.
 
+Previews run on the local services adapter until B3's last step sets the repository variable `VITE_API_BASE_URL` again.
+A Worker name deployed for the first time is polled until it answers ten times in a row before the smoke runs.
+
 Until B3 serves `/api/public/*`, a preview built while the bundle holds a database pair is in live mode and its catalog
 pages answer 500. Measured 2026-10-02 under `bun run cf:preview` on a build with `VITE_API_BASE_URL=/api/public`: `/`,
 `/properties`, `/markets`, `/california` and `/stories` answered `500 text/html`, `/sitemap.xml` `500 application/json`,
-`/submit` and `/contact` 200. The server render calls the API with a relative address, which a Worker cannot fetch. So
-the preview smoke stays red on those URLs until B3 lands, or until the orchestrator rules otherwise (GOTCHAS P-134).
-The deployed preview of probe PR #51 answered the same: 500 on those six, every other check of the smoke green.
+`/submit` and `/contact` 200. The server render calls the API with a relative address, which a Worker cannot fetch
+(GOTCHAS P-134). The deployed preview of probe PR #51 answered the same: 500 on those six, every other check of the
+smoke green. So the orchestrator removed `VITE_API_BASE_URL` (ruling H48): the build line then gives an empty value
+whatever `HAS_DB` says, and the build takes the local adapter.
 
 A Worker name deployed for the first time answers Cloudflare's own 404 (`cache-control: private, max-age=0, no-store,
 ...`, no header of ours) now and then for about 20 seconds (GOTCHAS P-137). Probe PR #44 smoked two seconds after the
