@@ -73,7 +73,7 @@ names what they wait on; every other step runs. The plans were audited in both d
 
 | Slice | Steps with a waiting part | On what |
 |---|---|---|
-| B1b | 4 of 15 | GitHub Pro (branch protection), custom domain (L1) |
+| B1b | 4 of 16 | GitHub Pro (branch protection), custom domain (L1) |
 | B2 | 2 of 15 | see the plan |
 | B3 | 3 of 18 | Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | B3b | none of 10 | none |
@@ -114,7 +114,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 |---|---|---|---|
 | V1 | closed | 2026-09-30 | PR #2 merged; check, build, render gate green; 22 of 26 defects fixed |
 | B1a | closed | 2026-10-01 | PR #1 and PR #3 merged: Lovable removed, plain Vite, first test, brand favicon; the repository is not connected to Lovable (ASSUMED E13) |
-| B1b | in progress | | started 2026-10-02 07:15 EDT in the lane `E:/mop-build/spine`; steps 1, 2 and 2b accepted (g1 after one fix round, g2 after an Opus review, two fix rounds and the orchestrator's close-out), proofs re-run by the orchestrator |
+| B1b | in progress | | started 2026-10-02 07:15 EDT in the lane `E:/mop-build/spine`; steps 1, 2, 2b, 3, 3b and 4 accepted, each after an Opus review and the orchestrator's own re-run (check, build, break-it probes, live curls); step 4b added by ruling H41 |
 | B2 | not started | | |
 | B3 | not started | | |
 | B3b | not started | | |

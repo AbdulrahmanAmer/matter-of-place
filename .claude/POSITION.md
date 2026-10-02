@@ -636,3 +636,19 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   cmp of _headers. H40 holds the two exceptions to R09 and the integrator's decisions.
 - NOT YET in the lane: merge main into `slice/b1b` only AFTER the g4 close-out (run `wf_2410162e-b5e`) returns, never
   under a working builder (P-011). content-inventory.md may conflict (edited on both sides).
+
+## 2026-10-02 13:00 EDT · B1b: steps 3b and 4 ACCEPTED (g4); step 4b added (H41); step 5 onward next
+- g4 close-out run `wf_2410162e-b5e`: Opus builder applied H39 (request id through the router context, the /api/ guard
+  including the router's refusal of a non-HTML Accept and case or escape variants of /api/, Sentry input caps, bounded
+  option texts). Three Opus reviews; the last found no code defect, only two costs without a bank entry, which the
+  orchestrator added (P-091, P-092). Commits up to ef5faf9 plus the orchestrator's bank commit on `slice/b1b`.
+- Orchestrator's own proof: `bun run check` exit 0 (577 files, 186 tests), `bun run build` exit 0; two break-it
+  probes red and restored (stack cap raised: the 28 KB test fails; guard off: six pipeline tests fail); live under
+  `cf:preview`: home 200 with x-request-id, X-Frame-Options and the report-only CSP; GET on the POST-only hook 405 R09
+  JSON no-store; POST with a wrong bearer 404 R09 with the body's id equal to the header; port 8788 free afterwards.
+- H41: step 4b of B1b (a page asked for without HTML in Accept answers 406 R09; knip hints for existing files cleared),
+  the `//` 308 accepted, isApiRoute a required dep, one fold per closed slice.
+- Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 3 of 3 then 3 of 3 in the close-out (the last on the bank only).
+- NEXT: merge main into `slice/b1b` (content-inventory.md may conflict), then
+  `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })` for steps 4b, 5 and onward.
+  The bank on the slice branch holds up to P-092 and G-025.
