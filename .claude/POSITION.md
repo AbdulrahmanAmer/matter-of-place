@@ -698,3 +698,12 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   `closeOut: [c6 (H43 (1) and (4)), c7 (the three defects of step 5b under H42 (1) and (2))]`, `only: ["c6","c7"]`;
   then own proofs of 5b, `gh pr ready 22`, `node workspace/05-plans/merge-gate.mjs 22` from the lane.
 - The lane bank holds up to P-118 and G-029: the next lane number is P-119.
+
+## 2026-10-02 18:30 EDT · B1b step 5: orchestrator's own proofs done; ruling H44; close-out of c6 and c7 started
+- Own proofs in the lane at 4150fb7: `bun run check` exit 0 (586 files, 315 tests passed, 8 skipped), `bun run build`
+  exit 0; mutation `DO_BLOCK` to `/^never\b/i` (printed, applied once): 4 red rows, restored, 70 passed; CI run
+  37023672556 on 4150fb7 success. Own probe `scratch/orch-cm-probe.mjs`: 27 cases, all as expected except three
+  findings: drop function then create is refused (H43 (1), not built yet), a contract header naming a version not on
+  main passes, `truncate` passes. The last two are ruling H44.
+- NEXT: the run started by scriptPath with closeOut c6 (H43 (1), (4); H44 (1), (2)) and c7 (H42 (1), (2), two untested
+  refusals), `only: ["c6","c7"]`. Then own proofs of 5b, `gh pr ready 22`, `node workspace/05-plans/merge-gate.mjs 22`.
