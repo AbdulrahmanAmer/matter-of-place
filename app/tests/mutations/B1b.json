@@ -1459,5 +1459,194 @@
     "replace": "        env:\n          GH_TOKEN: ${{ github.token }}\n        run: echo \"${{ secrets.OTHER_TOKEN }}\" | gh auth login --with-token && bun audit\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "aq",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "const conclusion = run.conclusion ?? run.status;",
+    "replace": "const conclusion = \"success\";",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a failed e2e and names it"
+  },
+  {
+    "id": "aq-hygiene",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "  # Jobs appended here (B4 db and e2e;",
+    "replace": "  scratch:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:\n      contents: read\n    steps:\n      - run: echo scratch\n\n  # Jobs appended here (B4 db and e2e;",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every pull request job of ci.yml, and deploy.yml's preview, is a required check"
+  },
+  {
+    "id": "mg-required",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"db\", \"e2e\", \"preview\"];",
+    "replace": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"db\", \"e2e\", \"preview\", \"seo\"];",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "names the pull request jobs, not the steps merged into them"
+  },
+  {
+    "id": "mg-status",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (gate?.state !== \"success\") failures.push",
+    "replace": "if (gate === undefined) failures.push",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a head without the merge-gate status"
+  },
+  {
+    "id": "mg-missing",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (runs.length === 0) failures.push",
+    "replace": "if (runs.length < 0) failures.push",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a required check that has no run on the head"
+  },
+  {
+    "id": "mg-defined",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "REQUIRED_PR_CHECKS.filter((name) => definedJobs.includes(name))",
+    "replace": "REQUIRED_PR_CHECKS.filter(() => true)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require a check that no workflow at the commit defines"
+  },
+  {
+    "id": "mg-dependabot",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "pr.author === \"dependabot[bot]\"",
+    "replace": "pr.author === \"nobody\"",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require preview from Dependabot, and says so"
+  },
+  {
+    "id": "mg-dependabot-scope",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (job === \"preview\" && pr.author",
+    "replace": "if (pr.author",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "does not require preview from Dependabot, and says so"
+  },
+  {
+    "id": "mg-heavy",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion === \"skipped\" && ciHeavy === \"off\" && HEAVY.includes(job)",
+    "replace": "conclusion === \"skipped\" && HEAVY.includes(job)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a skipped e2e unless CI_HEAVY is off"
+  },
+  {
+    "id": "mg-heavy-scope",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion === \"skipped\" && ciHeavy === \"off\" && HEAVY.includes(job)",
+    "replace": "conclusion === \"skipped\" && ciHeavy === \"off\"",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a skipped e2e unless CI_HEAVY is off"
+  },
+  {
+    "id": "mg-nopr",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (pr === null) return { ok: false, lines: [refuse(\"no pull request\")] };",
+    "replace": "if (pr === null) return { ok: true, lines: [] };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a commit that is no merged pull request"
+  },
+  {
+    "id": "mg-gather-merge-commit",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "pulls.find(([mergeSha]) => mergeSha === sha)",
+    "replace": "pulls.find(() => true)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "ignores a pull request that only contains the commit"
+  },
+  {
+    "id": "mg-gather-head",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "`repos/${REPO}/commits/${headSha}/status?per_page=100`",
+    "replace": "`repos/${REPO}/commits/${sha}/status?per_page=100`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "mg-gather-conclusion",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "conclusion: conclusion === \"\" ? null : conclusion,",
+    "replace": "conclusion,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "mg-jobkeys-margin",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/^[^\\s#]/.test(line)",
+    "replace": "/^\\S/.test(line)",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "reads the job keys of the jobs map and nothing else"
+  },
+  {
+    "id": "mg-jobkeys-stop",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "} else if (inJobs && /^[^\\s#]/.test(line)) {",
+    "replace": "} else if (!inJobs) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "stops at the next top-level key"
+  },
+  {
+    "id": "hy-mg-if",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    if: github.event_name == 'push'\n",
+    "replace": "    if: github.event_name == 'push' || github.event_name == 'pull_request'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-permissions",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      statuses: read\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-script",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "        run: node scripts/merge-gate.mjs\n",
+    "replace": "        run: echo merge-gate\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the merge-gate job runs on push only"
+  },
+  {
+    "id": "hy-mg-gh-token",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "          GH_TOKEN: ${{ github.token }}\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "a step that calls gh reads GH_TOKEN from its env and nowhere else"
+  },
+  {
+    "id": "hy-mg-jobkeys",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/^ {2}([\\w-]+):/",
+    "replace": "/^ {2}(\\w+):/",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "reads the same job names as the YAML parser"
   }
 ]

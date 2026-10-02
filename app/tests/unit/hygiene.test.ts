@@ -3,11 +3,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 import { isMap, isScalar, parse, parseDocument } from "yaml";
 import { z } from "zod";
+import { REQUIRED_PR_CHECKS, jobKeys } from "../../scripts/merge-gate.mjs";
 
 const APP = resolve(import.meta.dirname, "../..");
 const ROOT = resolve(APP, "..");
@@ -25,6 +25,7 @@ const Step = z.object({
 const Job = z.object({
   if: z.union([z.string(), z.boolean()]).optional(),
   "timeout-minutes": z.number().optional(),
+  permissions: z.record(z.string()).optional(),
   concurrency: z.unknown(),
   steps: z.array(Step).default([]),
 });
@@ -87,7 +88,6 @@ const textOf = (workflow: WorkflowFile | undefined, job: string) =>
 const ci = named("ci.yml");
 const deploy = named("deploy.yml");
 const backup = named("backup.yml");
-const MERGE_GATE = join(APP, "scripts/merge-gate.mjs");
 const JOB_RUNNER = join(APP, "supabase/functions/job-runner/index.ts");
 
 /** Invariant 15: a job is out of a pull request's reach only when every `||` branch of its `if:` names another event. */
@@ -458,24 +458,42 @@ describe.skipIf(backup === undefined)("backup.yml (skipped until step 8 writes i
   });
 });
 
-describe.skipIf(!existsSync(MERGE_GATE))(
-  "merge gate (invariant 6b; skipped until step 5b writes scripts/merge-gate.mjs)",
-  () => {
-    it("every pull request job of ci.yml, and deploy.yml's preview, is a required check", async () => {
-      const { REQUIRED_PR_CHECKS } = z
-        .object({ REQUIRED_PR_CHECKS: z.array(z.string()) })
-        .parse(await import(pathToFileURL(MERGE_GATE).href));
-      const reachable = Object.entries(ci?.data.jobs ?? {})
-        .filter(([, job]) => ci !== undefined && pullRequestReaches(ci, job))
-        .map(([name]) => name);
-      const jobs = deploy === undefined ? reachable : [...reachable, "preview"];
-      expect({
-        mergeGateJob: Object.keys(ci?.data.jobs ?? {}).includes("merge-gate"),
-        unlisted: jobs.filter((name) => !REQUIRED_PR_CHECKS.includes(name)),
-      }).toEqual({ mergeGateJob: true, unlisted: [] });
+describe("merge gate (invariant 6b, R55)", () => {
+  it("every pull request job of ci.yml, and deploy.yml's preview, is a required check", () => {
+    const reachable = Object.entries(ci?.data.jobs ?? {})
+      .filter(([, job]) => ci !== undefined && pullRequestReaches(ci, job))
+      .map(([name]) => name);
+    const jobs = deploy === undefined ? reachable : [...reachable, "preview"];
+    expect({
+      mergeGateJob: Object.keys(ci?.data.jobs ?? {}).includes("merge-gate"),
+      unlisted: jobs.filter((name) => !REQUIRED_PR_CHECKS.includes(name)),
+    }).toEqual({ mergeGateJob: true, unlisted: [] });
+  });
+
+  it("the merge-gate job runs on push only, with read access to pull requests, checks and statuses", () => {
+    const job = ci?.data.jobs["merge-gate"];
+    expect({
+      condition: job?.if,
+      permissions: job?.permissions,
+      script: job?.steps.some((step) => step.run === "node scripts/merge-gate.mjs"),
+    }).toEqual({
+      condition: "github.event_name == 'push'",
+      permissions: {
+        contents: "read",
+        "pull-requests": "read",
+        checks: "read",
+        statuses: "read",
+      },
+      script: true,
     });
-  },
-);
+  });
+
+  it("the gate reads the same job names as the YAML parser, in every workflow", () => {
+    expect(workflows.map((w) => [w.file, jobKeys(w.text)])).toEqual(
+      workflows.map((w) => [w.file, Object.keys(w.data.jobs)]),
+    );
+  });
+});
 
 describe.skipIf(!existsSync(JOB_RUNNER))("job runner (skipped until B8 writes it)", () => {
   it("commits deno.lock beside the job runner (R54)", () => {

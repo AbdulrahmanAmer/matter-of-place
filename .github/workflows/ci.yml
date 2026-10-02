@@ -4,7 +4,8 @@ name: ci
 # CI until their pull request (invariant 14), and a docs-only change runs none.
 # Cost (C22): check takes 58 to 66 s and build 22 to 36 s (four green runs, 2026-10-02), each
 # billed rounded up to a whole minute, so 2 to 3 Actions minutes a run, drawn from the 2,000
-# minutes a month of GOTCHAS P-009.
+# minutes a month of GOTCHAS P-009. merge-gate runs on pushes to main only, reads three API
+# pages and takes about 10 s, one billed minute a merge (UNPROVEN until its first run).
 on:
   pull_request:
     branches: [main]
@@ -99,6 +100,30 @@ jobs:
           path: app/.output/
           include-hidden-files: true
           retention-days: 1
+
+  # Merge gate (B1b invariant 6b): a push to main must come from a pull request that carried the
+  # merge-gate status and green required checks. No install: the script uses only node and gh.
+  merge-gate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: merge-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_HEAVY: ${{ vars.CI_HEAVY }}
+        run: node scripts/merge-gate.mjs
 
   # Jobs appended here (B4 db and e2e; B13 adds seo steps to e2e, not a job of its own): each sets
   # timeout-minutes and its own minimal permissions. A job that needs pull request context has
