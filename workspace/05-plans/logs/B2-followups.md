@@ -21,3 +21,19 @@ None of these blocks the group. The two reviewer items that belong in the gotcha
 
 6. File `app/scripts/README.md`. Stale prose from before this group, not this group's file. It still says variants are made "for R2" (ruling H33: no R2) and that every script runs as `bun run scripts/<name>.ts`, while this group adds plan-frozen .mjs scripts (db-reset-dev, psql-dev). The orchestrator should fold it, or B2 step 12 when the variants script lands.
    Evidence: `cat app/scripts/README.md` -> `image variants for R2 (thumb, card, hero, og, carousel...)`; `Each script runs with `bun run scripts/<name>.ts``.
+
+## g1 · steps 1b
+
+None of these blocks the group. No reviewer follow-up of this group concerns `GOTCHAS.md`, so none became a bank entry.
+
+1. File `app/scripts/db-reset-dev.mjs`. Several of the script's own refusals have no test, so deleting them stays green: the phase-1 branch check (lines 110-113), the --accept-foreign gate (lines 129-132), and the rule that --local skips the ref/branch/foreign checks and the lock. Only isLocalDbUrl, checkResetTarget, findForeignMigrations and the presence of assertNotProduction are tested. The plan's step 1b proof does not ask for these, so this is a follow-up. It should be closed when B4's db job exercises reset, or by exporting a testable resetLinked/main the way db-push.mjs exports pushMigrations.
+   Evidence: Read: no file in tests/unit imports db-reset-dev.mjs except the textual guardedScripts check (grep the registry: no entry mutates the branch or accept-foreign lines). Suspected by reading, not run as a mutation.
+
+2. File `app/scripts/db-reset-dev.mjs`. --local empties whatever database DEV_DB_URL names on 127.0.0.1 (lines 75-83). It then runs 'supabase db push --local', which targets the stack port in supabase/config.toml (54322). If DEV_DB_URL points at another 127.0.0.1 database, such as the laptop's native PostgreSQL 18 used for throwaway tests, the wrong database is emptied and the push goes elsewhere or fails. This follows the plan's literal 'bunx supabase db push --local'. A follow-up for the plan or B4: check the DEV_DB_URL port against config.toml, or push with --db-url "$DEV_DB_URL".
+   Evidence: Suspected by reading lines 75-83 and 149-153; not run (no local stack on this laptop, S50).
+
+3. File `workspace/05-plans/B2.md`. Stale plan fact: the header line 7 and ASSUMED E11 still say Supabase CLI 2.98.2, but package.json pins ^2.119.0 and bunx supabase --version prints 2.119.0. The author logged the difference (log line 22). The orchestrator should fold it into the plan and ASSUMED.
+   Evidence: bunx supabase --version -> 2.119.0; grep -n '2.98.2' workspace/05-plans/B2.md -> line 7
+
+4. File `app/scripts/load-env.mjs`. Gap in what the helper covers: the terminal refusal depends only on process.stdout.isTTY. In a terminal that hands node a pipe instead of a console (for example standalone mintty without winpty or ConPTY), a bare 'node scripts/load-env.mjs --profile dev' would print the four values. The contract holds in a real console, which I proved; this note only records the edge it does not cover.
+   Evidence: Suspected by reading line 46; not reproduced (the proof console reported isTTY=true).
