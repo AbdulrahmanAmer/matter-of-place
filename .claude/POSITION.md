@@ -599,3 +599,20 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - NEXT: when the running workflow finishes g2's review, stop it and continue B1b with the SAVED workflow so the new
   models and the gotcha discipline apply: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`
   (the sizing agent reads the slice log and leaves finished steps out). Check the lane is clean first (P-056).
+
+## 2026-10-02 09:15 EDT · B1b: steps 1, 2 and 2b ACCEPTED; step 3 onward building on the new models
+- g1 (steps 1-2: runbook, wrangler.toml): accepted after one fix round. g2 (step 2b: code gates): the Opus 5.5 high
+  review (run `wf_67deda32-d6f`) rejected it three times; round one found six real defects (a lint finding hidden behind
+  an empty validator, exports deleted that B2's plan changes, a swallowed error in the stubs gate, no bank entry for four
+  costs, an undeclared second disable, the site index describing deleted names). Two fix rounds closed all but two small
+  leftovers, which the orchestrator fixed (two lines of content-inventory.md, a stray file outside the lane, P-071).
+- Orchestrator's own proof in the lane: `bun run check` exit 0 (layout OK 559 files, 0 clones, 36 tests), `bun run build`
+  exit 0, wrangler.json = `matter-of-place` with `MOP_ENV production`, observability on, compatibility date 2026-09-30 and
+  `nodejs_compat`; three gates broken on purpose and seen red (knip, layout, lint), tree restored.
+- main was merged INTO `slice/b1b` (merge commit 1bd2fa2), so the lane has the new workflow, S62 and the bank. The
+  bank now lives on the slice branch while the lane is open (P-072): it holds up to P-072 and G-016; main holds up to
+  P-064 until the slice merges.
+- Rejections so far (the count the operator asked for): g1 1 of 2 reviews, g2 3 of 3 reviews by Opus.
+- Notes for later slices are binding as ASSUMED H38 (file-local exports, schema-inferred types, the required `shape`
+  argument of the HTTP client, wizard step constants).
+- RUNNING: `build-slice` run `wf_9c9e608f-19c` (saved workflow, new models) for the remaining steps of B1b.
