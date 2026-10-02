@@ -237,10 +237,19 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
   const HEAD_SHA = "0a59cc26632faeb8313bebcca9d20a407ba943c5";
   const WRITES = ["gh api -X", "gh pr merge"];
 
+  const JOB = (id: number) => `https://github.com/o/r/actions/runs/9/job/${String(id)}`;
+  const steps = (...rows: [string, string][]) => ({
+    status: 0,
+    out: [["Set up job", "success"], ...rows, ["Complete job", "success"]]
+      .map((row) => row.join("\t"))
+      .join("\n"),
+  });
+
   function gate(
     checks: { status: number; out: string },
     view = `${HEAD_SHA}\tfalse`,
     ancestor = 0,
+    jobs: Record<string, { status: number; out: string }> = {},
   ) {
     const calls: string[] = [];
     const result = mergeGate("22", (command, args) => {
@@ -249,6 +258,10 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       if (command === "git") return { ...empty, status: args[0] === "merge-base" ? ancestor : 0 };
       if (args[1] === "view") return { ...empty, out: view };
       if (args[1] === "checks") return { ...empty, ...checks };
+      const job = /actions\/jobs\/([^/]+)$/.exec(args[1] ?? "")?.[1] ?? "";
+      if (args[0] === "api" && job !== "") {
+        return { ...empty, ...(jobs[job] ?? { status: 1, err: "HTTP 404" }) };
+      }
       return empty;
     });
     return { ...result, calls, writes: calls.filter((call) => WRITES.includes(call)) };
@@ -294,5 +307,52 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       lines: [draft.lines, behind.lines],
       readChecks: [...draft.calls, ...behind.calls].includes("gh pr checks"),
     }).toEqual({ lines: [["mark ready first"], ["rebase first"]], readChecks: false });
+  });
+
+  it("prints a passed job whose steps were all skipped, and still merges", () => {
+    const { code, lines, writes } = gate(
+      { status: 0, out: `pass\tci\tcheck\t${JOB(1)}\npass\tci\te2e\t${JOB(2)}` },
+      undefined,
+      0,
+      {
+        "1": steps(["engines", "success"], ["Run bun run check", "success"]),
+        "2": steps(["engines", "skipped"], ["Run bun run build", "skipped"]),
+      },
+    );
+    expect({ code, lines, writes }).toEqual({
+      code: 0,
+      lines: ["all steps skipped: ci e2e", ""],
+      writes: WRITES,
+    });
+  });
+
+  it("prints no job that ran a step, or that has no step but the runner's", () => {
+    const { lines } = gate(
+      { status: 0, out: `pass\tci\tbuild\t${JOB(1)}\npass\tci\tdb\t${JOB(2)}` },
+      undefined,
+      0,
+      {
+        "1": steps(["engines", "success"], ["Run bun run build", "skipped"]),
+        "2": steps(["Post Run actions/checkout", "skipped"]),
+      },
+    );
+    expect(lines).toEqual([""]);
+  });
+
+  it("refuses when the steps of a passed job cannot be read, and writes nothing", () => {
+    const { code, lines, writes } = gate({ status: 0, out: `pass\tci\tcheck\t${JOB(3)}` });
+    expect({ code, lines, writes }).toEqual({
+      code: 1,
+      lines: ["merge-gate: cannot read the steps of ci check: HTTP 404"],
+      writes: [],
+    });
+  });
+
+  it("reads no steps for a check that is not a job of ours", () => {
+    const { code, writes } = gate({
+      status: 0,
+      out: "pass\tcloudflare\tdeploy\thttps://example.com/deploy/1",
+    });
+    expect({ code, writes }).toEqual({ code: 0, writes: WRITES });
   });
 });

@@ -2,8 +2,9 @@
 // The orchestrator's only merge path (B1b invariant 6b, STANDARDS R55, GOTCHAS P-028).
 // usage: node workspace/05-plans/merge-gate.mjs <pr>
 // In order: refuses a draft, a head that does not contain origin/main, and any check that is
-// failed, pending or cancelled; then posts the commit status merge-gate=success on the head and
-// merges with a merge commit pinned to that head. The post-merge ci job `merge-gate`
+// failed, pending or cancelled, and prints every job that passed with all its steps skipped; then
+// posts the commit status merge-gate=success on the head and merges with a merge commit pinned
+// to that head. The post-merge ci job `merge-gate`
 // (app/scripts/merge-gate.mjs) verifies the status and the required checks again, so a merge that
 // skipped this script cannot deploy.
 import { spawnSync } from "node:child_process";
@@ -29,11 +30,26 @@ function runHere(command, args) {
   };
 }
 
+// The steps the runner adds to every job; a job passes "all skipped" when every other step did.
+const BOOKKEEPING = /^(Set up job|Complete job|Post )/;
+
+/**
+ * @param {string} text
+ * @returns {string[][]}
+ */
+function tsv(text) {
+  return text
+    .split("\n")
+    .filter((row) => row !== "")
+    .map((row) => row.split("\t"));
+}
+
 /**
  * The gate itself, with the commands injected so a test can watch which ones it runs.
  * `gh pr checks --json` exits 0 whatever the buckets are (the plain form exits 1 for a failure
  * and 8 for a pending check), so the verdict is read from the buckets: only `pass` and `skipping`
- * let a merge through.
+ * let a merge through. A job that passed with every step skipped looks like any other pass in
+ * that list (DO-04), so the steps of each passed job are read and such a job is printed.
  * @param {string} pr
  * @param {Run} run
  * @returns {{ code: number, lines: string[] }}
@@ -68,22 +84,36 @@ export function mergeGate(pr, run) {
     "checks",
     pr,
     "--json",
-    "bucket,workflow,name",
+    "bucket,workflow,name,link",
     "--jq",
-    ".[] | [.bucket, .workflow, .name] | @tsv",
+    ".[] | [.bucket, .workflow, .name, .link] | @tsv",
   ]);
-  const rows = checks.out
-    .split("\n")
-    .filter((row) => row !== "")
-    .map((row) => row.split("\t"));
+  const rows = tsv(checks.out);
   if (checks.status !== 0 || rows.length === 0) {
     return refuse(
       `merge-gate: no checks to read (gh pr checks exit ${checks.status}) ${checks.err}`.trim(),
     );
   }
   let blocked = false;
-  for (const [bucket, workflow, name] of rows) {
-    if (bucket === "pass") continue;
+  for (const [bucket, workflow, name, link] of rows) {
+    if (bucket === "pass") {
+      const jobId = /\/actions\/runs\/\d+\/job\/(\d+)/.exec(link ?? "")?.[1];
+      if (jobId === undefined) continue;
+      const steps = run("gh", [
+        "api",
+        `repos/${REPO}/actions/jobs/${jobId}`,
+        "--jq",
+        ".steps[] | [.name, .conclusion] | @tsv",
+      ]);
+      if (steps.status !== 0) {
+        return refuse(`merge-gate: cannot read the steps of ${workflow} ${name}: ${steps.err}`);
+      }
+      const work = tsv(steps.out).filter(([step]) => !BOOKKEEPING.test(step ?? ""));
+      if (work.length > 0 && work.every(([, conclusion]) => conclusion === "skipped")) {
+        lines.push(`all steps skipped: ${workflow} ${name}`);
+      }
+      continue;
+    }
     lines.push(`${bucket === "skipping" ? "skipped" : String(bucket)}: ${workflow} ${name}`);
     if (bucket !== "skipping") blocked = true;
   }

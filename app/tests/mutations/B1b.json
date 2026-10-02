@@ -1711,5 +1711,95 @@
     "replace": "if (ancestor.status === 99) return refuse(\"rebase first\");",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "refuses a draft and a head that does not contain origin/main"
+  },
+  {
+    "id": "mg-skipping",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "    if (bucket !== \"skipping\") blocked = true;",
+    "replace": "    blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "posts the status and merges when every check passes or is skipped"
+  },
+  {
+    "id": "mg-order",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  const status = run(\"gh\", [\n    \"api\",\n    \"-X\",\n    \"POST\",\n    `repos/${REPO}/statuses/${headSha}`,\n    \"-f\",\n    \"state=success\",\n    \"-f\",\n    \"context=merge-gate\",\n  ]);\n  if (status.status !== 0) return refuse(`merge-gate: posting the status failed: ${status.err}`);\n\n  const merge = run(\"gh\", [\"pr\", \"merge\", pr, \"--merge\", \"--match-head-commit\", headSha]);",
+    "replace": "  const merge = run(\"gh\", [\"pr\", \"merge\", pr, \"--merge\", \"--match-head-commit\", headSha]);\n  const status = run(\"gh\", [\n    \"api\",\n    \"-X\",\n    \"POST\",\n    `repos/${REPO}/statuses/${headSha}`,\n    \"-f\",\n    \"state=success\",\n    \"-f\",\n    \"context=merge-gate\",\n  ]);\n  if (status.status !== 0) return refuse(`merge-gate: posting the status failed: ${status.err}`);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "posts the status and merges when every check passes or is skipped"
+  },
+  {
+    "id": "mg-ok",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "return { ok: failures.length === 0, lines: [...failures, ...notes, ...verified] };",
+    "replace": "return { ok: false, lines: [...failures, ...notes, ...verified] };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "passes when the merge-gate status and every required check are success"
+  },
+  {
+    "id": "mg-inprogress",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "const conclusion = run.conclusion ?? run.status;",
+    "replace": "const conclusion = run.conclusion ?? \"success\";",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a check that has not finished"
+  },
+  {
+    "id": "mg-nopr-gather",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "return { sha, pr: null, statuses: [], checkRuns: [], definedJobs, ciHeavy };",
+    "replace": "return { sha, pr: { number: 0, author: \"\" }, statuses: [], checkRuns: [], definedJobs, ciHeavy };",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "says no pull request when the commit has none"
+  },
+  {
+    "id": "mg-steps-every",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "work.every(([, conclusion]) => conclusion === \"skipped\")",
+    "replace": "work.some(([, conclusion]) => conclusion === \"skipped\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints no job that ran a step, or that has no step but the runner's"
+  },
+  {
+    "id": "mg-steps-bookkeeping",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const work = tsv(steps.out).filter(([step]) => !BOOKKEEPING.test(step ?? \"\"));",
+    "replace": "const work = tsv(steps.out);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints a passed job whose steps were all skipped, and still merges"
+  },
+  {
+    "id": "mg-steps-empty",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (work.length > 0 && work.every(",
+    "replace": "if (work.every(",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "prints no job that ran a step, or that has no step but the runner's"
+  },
+  {
+    "id": "mg-steps-fail",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (steps.status !== 0) {",
+    "replace": "if (steps.status === 99) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the steps of a passed job cannot be read, and writes nothing"
+  },
+  {
+    "id": "mg-steps-link",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "      if (jobId === undefined) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "reads no steps for a check that is not a job of ours"
   }
 ]
