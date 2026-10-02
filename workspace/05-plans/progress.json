@@ -1,8 +1,8 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-02 21:12, laptop time (UTC+3)",
+  "updated": "2026-10-02 21:46, laptop time (UTC+3)",
   "now": "Two lanes are building side by side. Delivery: the rest of slice B1b, from step 6 (smoke test and preview deploys) to the production deploy and backups. Database: slice B2, from its first step. The first nine steps of B1b are on main, merged through the new merge gate.",
-  "paceNote": "That pace was one lane, with every review finding costing a full fix round. From 2026-10-02 21:40 (UTC+3) two lanes run side by side and only a blocking finding costs a round (ruling H45). The new pace is unproven until it has been measured.",
+  "paceNote": "That pace was one lane, with every review finding costing a full fix round. From 2026-10-02 21:15 (UTC+3) two lanes run side by side and only a blocking finding costs a round (ruling H45). The new pace is unproven until it has been measured.",
   "runGroups": {
     "c6": "5",
     "c7": "5b"
