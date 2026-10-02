@@ -657,3 +657,28 @@ Entry template
 - rule: while one lane is open, the orchestrator adds its own bank entries on the lane's branch, not on main. When a merge does conflict in the bank, keep both sides (main's entries first), then run `node workspace/05-plans/check-gotchas.mjs` before committing: it names the entry that lost a line or a number used twice. Lanes take the next free number above the highest in both copies. History is never rewritten: bring main into a lane with a merge commit, never a rebase of pushed commits.
 - proof: after the merge `node workspace/05-plans/check-gotchas.mjs` printed `ERROR P-064: no added`; after restoring the line it printed `check-gotchas: OK (16 path entries, 69 process entries)`.
 - added: 2026-10-02
+
+## G-017 · Nitro appends its own rule to `public/_headers`, and a second block for one path replaces ours
+- paths: app/public/_headers
+- severity: warn
+- symptom: B1b step 3 said "Nitro copies the file unchanged" and proved it with `cmp public/_headers .output/public/_headers`. The build prints "Adding Nitro fallback to _headers" and appends `/assets/*` with `cache-control: public, max-age=31536000, immutable`, so the compare exits 1. With our own `/assets/*` block holding the security headers, `curl -I` on `/assets/<file>.js` under `wrangler dev` showed only Nitro's Cache-Control and none of the security headers.
+- cause: the Cloudflare preset's `writeCFHeaders` appends the route-rule headers after the file unless a line matches `^/\* ` (a slash, a star and a space; the Write tool and editors strip that trailing space, so the bypass cannot be kept). A second block for the same path won as a whole (observed under wrangler 4.145.0; the mechanism is inferred, not read).
+- rule: the security headers live in a `/*` block, a path Nitro does not use; `/assets/*` and `/media/*` carry `Cache-Control` only, so no header repeats. Prove the copy with a prefix compare, never a full one.
+- proof: after `bun run build`, `cmp -n "$(wc -c < public/_headers)" public/_headers .output/public/_headers; echo $?` → 0; `bunx vitest run tests/unit/headers.test.ts` goes red when a security header is moved into the `/assets/*` block.
+- added: 2026-10-02
+
+## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
+- paths: app/src/start.ts
+- severity: warn
+- symptom: B1b step 3 imports `waitUntil` from `cloudflare:workers` ("left external by the Nitro build"). `bun run build` fails with `Rolldown failed to resolve import "cloudflare:workers" from src/start.ts` in the TanStack `ssr` service build, and `tsc` has no types for the module (no `@cloudflare/workers-types` here). `bun run dev` would fail the same way. B3's `src/server/lib/wait-until.ts` (plan B3 line 108, `export { waitUntil } from "cloudflare:workers"`) has the same defect.
+- cause: Nitro lists `cloudflare:workers` as external for its own final bundle only; the Vite `ssr` environment is built first and does not know it. Nitro's dev shim for the module applies to Nitro's dev server, not to Start's.
+- rule: take `waitUntil` from the request. Nitro's `augmentReq` puts the Worker's bound `waitUntil` on the request object, and `start.ts` reads it through a zod schema; the Start dev server has none, so the fallback starts the promise and leaves it. Never import `cloudflare:workers` in anything Vite bundles; B3 must take the same route or add `build.rolldownOptions.external` on purpose.
+- proof: `git grep -n "cloudflare:workers" -- app/src` → no import; `bun run build` exits 0; under `bun run cf:preview` a temporary log of the schema parse printed `true`.
+- added: 2026-10-02
+
+## P-073 · `wrangler dev --env-file` does not load `.dev.vars` the way B1b step 3 assumed
+- symptom: `cf:preview` as the plan wrote it (`wrangler dev --config .output/server/wrangler.json --env-file .dev.vars --port 8788`) left `MOP_ENV` at `production` with `MOP_ENV=local` in `app/.dev.vars`; the log had no "Using secrets" line. `--env-file ../../.dev.vars` (relative to the config folder) died with `node: ../../.dev.vars: not found`.
+- cause: with `--env-file`, wrangler 4.145.0 skips its `.dev.vars` lookup and resolves each file against the folder of `--config` (`.output/server/`), while the file is also opened from the current folder; one relative path cannot satisfy both. A build replaces `.output/`, so the file cannot live there.
+- rule: `cf:preview` copies the file next to the built config and lets wrangler read it by default: `cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788`. B3's `scripts/dev-vars.mjs` keeps writing `app/.dev.vars`. Stop wrangler by its parent process (P-042).
+- proof: with `MOP_ENV=local` in `app/.dev.vars`, `bun run cf:preview` logs `Using secrets defined in .output\server\.dev.vars` and `curl -sI http://127.0.0.1:8788/ | grep -i x-robots-tag` → `x-robots-tag: noindex, nofollow`; with an empty file the same request has no such header.
+- added: 2026-10-02

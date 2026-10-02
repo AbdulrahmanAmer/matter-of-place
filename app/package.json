@@ -20,7 +20,8 @@
     "knip": "knip",
     "jscpd": "jscpd",
     "stubs": "bun run scripts/stubs.ts",
-    "layout": "node scripts/check-layout.mjs"
+    "layout": "node scripts/check-layout.mjs",
+    "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -58,6 +59,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.2",
+    "wrangler": "4.145.0"
   }
 }
