@@ -1,11 +1,11 @@
 export const meta = {
   name: 'build-slice',
-  description: 'Build one plan slice end to end with Sonnet workers: size it into groups, build each group, review it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
+  description: 'Build one plan slice end to end: size it into groups, a Sonnet 5.5 builder at high effort builds each group (Opus 5.5 for critical groups), an Opus 5.5 reviewer at high effort tries to refute it in a fresh context, fix at most twice',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
   phases: [
-    { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish', model: 'sonnet' },
-    { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log', model: 'sonnet' },
-    { title: 'Review', detail: 'a fresh reviewer re-runs the proofs and tries to refute the claim of done', model: 'sonnet' },
+    { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish; mark the critical ones', model: 'sonnet' },
+    { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log (Sonnet high; Opus high for a critical group)', model: 'sonnet' },
+    { title: 'Review', detail: 'a fresh Opus reviewer re-runs the proofs and tries to refute the claim of done', model: 'opus' },
     { title: 'Fix', detail: 'the builder repairs what the reviewer refuted, two rounds at most', model: 'sonnet' },
   ],
 }
@@ -40,9 +40,10 @@ const GROUPS = {
           proof: { type: 'string', description: 'the proof commands of these steps, verbatim from the plan' },
           blocked: { type: 'boolean' },
           blockedOn: { type: 'string' },
+          critical: { type: 'boolean', description: 'true when a subtle mistake here is expensive: see rule 5 of the sizing instructions' },
           needsOrchestrator: { type: 'string', description: 'empty, or what only the orchestrator may do after this group (merge to main, a production deploy, a secret to set by hand)' },
         },
-        required: ['id', 'steps', 'title', 'files', 'proof', 'blocked', 'blockedOn', 'needsOrchestrator'],
+        required: ['id', 'steps', 'title', 'files', 'proof', 'blocked', 'blockedOn', 'critical', 'needsOrchestrator'],
       },
     },
     unmetDependencies: { type: 'array', items: { type: 'string' } },
@@ -97,7 +98,8 @@ Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/wo
 1. Check the slice's "Depends on" line against the status table at the end of PLAN.md and the facts in ASSUMED section E. unmetDependencies holds ONLY what stops the whole slice from starting: another slice it depends on that the table does not show as closed, or an input without which not one step can run. A step or a part of a step that waits (on a later slice, an operator input, the custom domain) is NOT an unmet dependency: it goes into that group's blockedOn. A fact you think is stale in a document is not a dependency either: say it in the group title of the step it touches.
 2. Split the plan's ordered steps into groups, in order. One group is what one builder session finishes and proves: usually one or two plan steps, at most about eight files. Keep steps that share files in the same group. Copy each group's proof commands from the plan verbatim.
 3. Mark a group blocked ONLY when nothing in it can run today (every step in it is marked BLOCKED in the plan or needs something section E says does not exist); say on what. When only a part is blocked, keep blocked false, put the waiting part in blockedOn, and say in the title which part runs: the builder builds and proves the part that runs and records the rest as BLOCKED.
-4. Set needsOrchestrator when the plan step merges to main, deploys production, sets a production secret by hand, or needs a decision.`, { label: `size:${slice}`, phase: 'Size', model: 'sonnet', effort: 'low', schema: GROUPS })
+4. Set needsOrchestrator when the plan step merges to main, deploys production, sets a production secret by hand, or needs a decision.
+5. Set critical to true when the group writes or changes any of: row level security policies, grants or security definer SQL functions; sign-in, sessions, tokens, CSRF, permissions or the authorization matrix; the job system's claim, lease, retry or idempotency logic; payment, invoice or credit state; cryptography or signature checks; the launch switch, the production guard or any destructive database command; secrets handling in CI or deploy workflows. Otherwise false. A critical group is built by the stronger model (operator decision S62).`, { label: `size:${slice}`, phase: 'Size', model: 'sonnet', effort: 'high', schema: GROUPS })
 
 if (!sized) throw new Error('sizing agent failed')
 log(`${slice}: ${sized.groups.length} groups, ${sized.groups.filter((g) => g.blocked).length} blocked, unmet dependencies: ${sized.unmetDependencies.join('; ') || 'none'}`)
@@ -135,6 +137,8 @@ The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs
 5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${ROOT}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${ROOT}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${ROOT} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so the author adds it.
 Verdict "accept" only if every proof reproduced and you found no defect that breaks the contract or the standards. Taste alone is not a defect.`
 
+// S62: Sonnet 5.5 at high effort builds; Opus 5.5 at high effort builds a critical group and reviews every group.
+const builderModel = (g) => (a.builderModel === 'opus' || g.critical || (a.opusGroups || []).includes(g.id) ? 'opus' : 'sonnet')
 const out = []
 for (const g of groups) {
   if (g.blocked) {
@@ -142,22 +146,22 @@ for (const g of groups) {
     log(`${g.id} (steps ${g.steps}) BLOCKED on ${g.blockedOn}`)
     continue
   }
-  let built = await agent(buildPrompt(g, null), { label: `build:${slice}:${g.id}`, phase: 'Build', model: 'sonnet', effort: 'medium', agentType: 'mop-builder', schema: BUILD })
+  let built = await agent(buildPrompt(g, null), { label: `build:${slice}:${g.id}`, phase: 'Build', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
   if (!built) { out.push({ group: g.id, steps: g.steps, status: 'failed', blockedOn: 'builder agent died' }); break }
   let review = null
   let rounds = 0
   if (built.status !== 'blocked') {
-    review = await agent(reviewPrompt(g, built), { label: `review:${slice}:${g.id}`, phase: 'Review', model: 'sonnet', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+    review = await agent(reviewPrompt(g, built), { label: `review:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
     while (review && review.verdict === 'reject' && rounds < 2) {
       rounds++
-      const fixed = await agent(buildPrompt(g, review.defects), { label: `fix${rounds}:${slice}:${g.id}`, phase: 'Fix', model: 'sonnet', effort: 'medium', agentType: 'mop-builder', schema: BUILD })
+      const fixed = await agent(buildPrompt(g, review.defects), { label: `fix${rounds}:${slice}:${g.id}`, phase: 'Fix', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
       if (!fixed) break
       built = fixed
-      review = await agent(reviewPrompt(g, built), { label: `review${rounds + 1}:${slice}:${g.id}`, phase: 'Review', model: 'sonnet', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+      review = await agent(reviewPrompt(g, built), { label: `review${rounds + 1}:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
     }
   }
   const accepted = Boolean(review && review.verdict === 'accept')
-  out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, built, review, needsOrchestrator: g.needsOrchestrator })
+  out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, builder: builderModel(g), critical: Boolean(g.critical), built, review, needsOrchestrator: g.needsOrchestrator })
   log(`${g.id} (steps ${g.steps}): ${built.status}, review ${review ? review.verdict : 'not run'}, fix rounds ${rounds}`)
   if (!accepted) { log(`stopping after ${g.id}: later groups depend on it`); break }
   if (g.needsOrchestrator) { log(`stopping after ${g.id}: the orchestrator must act: ${g.needsOrchestrator}`); break }
