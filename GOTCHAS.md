@@ -1018,3 +1018,10 @@ Entry template
 - rule: after any change to a test file, list every `it` title with the registry entries whose `expect` it contains (the script text is in the g7 round 2 block of `workspace/05-plans/logs/B1b.md`, P-088) and write the missing entries; every title ends with at least one entry replayed red for the right reason. An order or a "does not" property needs its own mutation (swap the two calls; remove the guard).
 - proof: `cd app && node ../scratch/g7r2-map.mjs | tail -1` (text in the log block) → `titles 25, without an entry 1` (the one is the `it.each` template, whose three buckets map through `mg-bucket` and `mg-bucket-pending`); with `mg-skipping` and `mg-order` removed from `tests/mutations/B1b.json` it prints `NONE  <-  posts the status and merges when every check passes or is skipped`.
 - added: 2026-10-02
+
+## P-110 · A run of a saved workflow used a copy without the change made a minute earlier
+- symptom: `build-slice` was given `closeOut` to close a rejected group first. The run ignored it: it sized the remaining steps and built the next group on top of four open defects. The run's own script copy (under the session's `workflows/scripts` folder) held no `closeOut` at all, although the saved file did.
+- cause: the saved workflow had been edited on a branch, merged, and the tree switched back to main seconds before the start; the tool resolved the name to the version it had read before the pull finished. Nothing reports which version a named workflow resolves to.
+- rule: after editing a saved workflow, start it with `scriptPath` pointing at the file, not by name, and before waiting on it run `grep -c <new word> <the run's script copy>`; a count of 0 means stop the run. An argument a workflow does not know is ignored silently, so a wrong copy looks like a normal run.
+- proof: `grep -c closeOut` printed 3 for `.claude/workflows/build-slice.js` and 0 for `workflows/scripts/build-slice-wf_f5c085e7-212.js`.
+- added: 2026-10-02
