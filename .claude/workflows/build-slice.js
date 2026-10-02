@@ -1,12 +1,12 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end: size it into groups, a Sonnet 5.5 builder at high effort builds each group (Opus 5.5 for critical groups), an Opus 5.5 reviewer at high effort tries to refute it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } first closes a group that was built and rejected. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish; mark the critical ones', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log (Sonnet high; Opus high for a critical group)', model: 'sonnet' },
     { title: 'Review', detail: 'a fresh Opus reviewer re-runs the proofs and tries to refute the claim of done', model: 'opus' },
-    { title: 'Fix', detail: 'the builder repairs what the reviewer refuted, two rounds at most', model: 'sonnet' },
+    { title: 'Fix', detail: 'the builder repairs what the reviewer refuted, three rounds at most unless maxFixRounds says otherwise', model: 'sonnet' },
   ],
 }
 
@@ -110,6 +110,10 @@ if (!sized.groups.some((g) => !g.blocked)) return { slice, stopped: 'no group ca
 if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stopped: 'unmet dependencies (strict)', ...sized }
 
 let groups = sized.groups
+// A group that was built and then rejected is closed first: closeOut = { id, steps, title, critical, defects }.
+// Its steps are already in the slice log, so the sizing left them out; the builder gets the reviewer's defects.
+if (a.closeOut) groups = [{ id: a.closeOut.id, steps: a.closeOut.steps, title: a.closeOut.title, files: [], proof: `every proof of plan steps ${a.closeOut.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(a.closeOut.critical), needsOrchestrator: '', openDefects: a.closeOut.defects }, ...groups]
+const MAX_FIX = Number.isInteger(a.maxFixRounds) ? a.maxFixRounds : 3
 if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))
 if (a.only) groups = groups.filter((g) => a.only.includes(g.id))
 
@@ -146,13 +150,13 @@ for (const g of groups) {
     log(`${g.id} (steps ${g.steps}) BLOCKED on ${g.blockedOn}`)
     continue
   }
-  let built = await agent(buildPrompt(g, null), { label: `build:${slice}:${g.id}`, phase: 'Build', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
+  let built = await agent(buildPrompt(g, g.openDefects || null), { label: `${g.openDefects ? 'close' : 'build'}:${slice}:${g.id}`, phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
   if (!built) { out.push({ group: g.id, steps: g.steps, status: 'failed', blockedOn: 'builder agent died' }); break }
   let review = null
   let rounds = 0
   if (built.status !== 'blocked') {
     review = await agent(reviewPrompt(g, built), { label: `review:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    while (review && review.verdict === 'reject' && rounds < 2) {
+    while (review && review.verdict === 'reject' && rounds < MAX_FIX) {
       rounds++
       const fixed = await agent(buildPrompt(g, review.defects), { label: `fix${rounds}:${slice}:${g.id}`, phase: 'Fix', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
       if (!fixed) break
