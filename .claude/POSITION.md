@@ -652,3 +652,19 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - NEXT: merge main into `slice/b1b` (content-inventory.md may conflict), then
   `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })` for steps 4b, 5 and onward.
   The bank on the slice branch holds up to P-092 and G-025.
+
+## 2026-10-02 15:00 EDT · B1b: step 4b ACCEPTED (g5); step 5 (g6, CI) rejected three times, close-out next
+- Run `wf_47f3d0bd-17a`: sizing g5(4b) g6(5, critical) g7(5b, critical, orchestrator) g8(6, critical) g9(7, critical,
+  orchestrator) g10(7b) g11(8) g12(9-10) g13(11). g5 accepted after two fix rounds (406 for a page asked for without
+  HTML, knip hints for existing files cleared, runbook corrected by measurement). g6 built by Opus: `.github/workflows/ci.yml`
+  (first CI run 36997736044: check 66 s, build 27 s), Dependabot, PR template, `scripts/check-migrations.mjs`,
+  `tests/unit/hygiene.test.ts`. Three reviews, four defects open: the destructive-change patterns of check-migrations
+  miss a NOT NULL column without a default and a rename without the COLUMN keyword; its test covers one of six
+  patterns; one cost without a bank entry; the Dependabot note understates what is unproven.
+- The saved workflow gained `closeOut: { id, steps, title, critical, defects }` and `maxFixRounds` (default 3): a
+  rejected group is closed first, then the slice continues. Use it instead of a one-off script.
+- Stale plan lines fixed on main by the orchestrator (within-slice fold): B1b knip Files line and never-cached list,
+  architecture 13 rule 6, B3 errorCodes (`not_acceptable: 406`).
+- Actions minutes: one CI run so far, about 3 billed minutes (P-009 line: 2,000 a month).
+- Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 6 of 6 (the last on the bank only); g5 2 of 3; g6 3 of 3.
+- NEXT: merge main into `slice/b1b`, then `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine", closeOut: { id: "g6", steps: "5", ... } } })`.
