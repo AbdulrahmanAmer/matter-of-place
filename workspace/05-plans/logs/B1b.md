@@ -4126,3 +4126,6 @@ All matched files use Prettier code style!
 - CPU: `bunx wrangler tail matter-of-place --format json` while requesting `/`, `/properties`, `/california`, `/markets`, `/submit` five times each, compared with E3; PERF-03 BLOCKED as above.
 
 GOTCHAS: P-503 added (actionlint is not on this laptop and `bunx actionlint` runs nothing; lint a workflow that only runs after a merge with the release binary). P-132 gains a "hit again" line (12 finds repeated by the new jobs). `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (32 path entries, 133 process entries)`.
+
+## g1 · follow-ups recorded
+The review of group g1 (steps 7) found no blocking defect and four follow-ups; no code changed. None was a cost with no entry in the bank, so GOTCHAS.md gains no entry. All four are in `workspace/05-plans/logs/B1b-followups.md` under "## g1 · steps 7" for the orchestrator to fold or assign (a red dev smoke may roll back to the code it just deployed, the deploy-flag cases of `hygiene.test.ts` pin presence and not value, production serves the illustrative catalogue on workers.dev until B3 and B3b and needs a ruling, and the live step 7 proofs that are UNPROVEN until after the merge).
