@@ -2,7 +2,7 @@
 name: mop-builder
 description: Matter of Place implementation agent. Use for a single, well-specified build slice — a route, a server endpoint, a migration, a script, a template — inside the Matter of Place codebase or its workers. Dispatched with a contract, file ownership and a verification command; returns evidence, not claims. Not for design decisions or open-ended exploration.
 model: sonnet
-effort: medium
+effort: high
 color: blue
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
 ---

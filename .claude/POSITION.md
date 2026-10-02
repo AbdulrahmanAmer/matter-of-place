@@ -568,3 +568,34 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Started: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })` in the lane `E:/mop-build/spine` (branch `slice/b1b` from origin/main). The workflow stops after a rejected group or when a group needs the orchestrator; resume with `startAt`.
 - Orchestrator duty per group: re-run its proofs (three times when the claim is that nothing changes, P-059), read the diff against STANDARDS.md, merge through a pull request, update the status table at the end of PLAN.md, record Actions minutes before each phase (P-048).
 - Order after B1b: B2, B3, B4 steps 1 to 8 (phase 0), then three lanes (PLAN.md "48-hour full build").
+
+## 2026-10-02 07:30 EDT · B1b is building (run `wf_29e2899b-5e5`, group g1 started)
+- Two starts stopped at sizing on "unmet dependencies" that were partial waits (P-061). Fixed for good: the saved
+  workflow now stops only when no group can run. The running B1b was resumed with `ignoreDependencies: true` after the
+  orchestrator read the five items: GitHub Pro (step 9), the custom domain (step 11 live proof), B8b's backup schedule
+  row (step 8 Part B1), B2 and B3 (two later proofs in steps 6 and 7), and the operator storing the backup private key
+  offline (step 8). None stops the slice.
+- Sizing: 13 groups g1 (steps 1-2), g2 (2b), g3 (3), g4 (3b), g5 (4), g6 (5), g7 (5b), g8 (6), g9 (7), g10 (7b),
+  g11 (8), g12 (9-10), g13 (11). The workflow stops after a rejected group or one that needs the orchestrator
+  (g7 merge gate, g9 first production deploy, g10 or g11 backup). Resume with
+  `Workflow({ scriptPath: <the run's script>, resumeFromRunId: "wf_29e2899b-5e5", args: { slice: "B1b", root: "E:/mop-build/spine", ignoreDependencies: true, startAt: "<group>" } })`
+  or a fresh run of the saved workflow with `startAt`.
+- OPERATOR ACTION COMING at step 8: store the backup private key (`creds/backup-recipient.key`) offline before the
+  laptop copy is deleted.
+
+## 2026-10-02 07:35 EDT · Operator's standing order: "Make sure that you always update the gotcha.md"
+- Enforced in the saved build workflow: builders report `costTime` and `gotchasAdded`; the fresh reviewer rejects a
+  group whose costs have no entry in GOTCHAS.md. The orchestrator checks the bank's diff at every merge and adds its
+  own entries in the same turn (P-062 dashboards, P-063 final message format, P-064 write-before-validate, added now).
+- The B1b run in progress (`wf_29e2899b-5e5`) still uses the older prompts; when it stops, continue with the SAVED
+  workflow: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine", startAt: "<group>" } })`.
+- B1b pace so far: group g1 (steps 1 and 2) built in about four minutes; its review started 07:28 EDT.
+
+## 2026-10-02 07:45 EDT · Models for the build changed by the operator (S62)
+- Builders Sonnet 5.5 at HIGH effort; reviewer of every group Opus 5.5 at HIGH effort; critical groups built by Opus 5.5
+  at high effort (the sizing agent marks them; `opusGroups` or `builderModel: "opus"` force it). No worker below high.
+- B1b so far (run `wf_29e2899b-5e5`, older settings): g1 (steps 1-2) accepted after one fix round (the builder had left
+  out two required lines of `wrangler.toml`). g2 (step 2b, code gates) was building at 07:36 EDT.
+- NEXT: when the running workflow finishes g2's review, stop it and continue B1b with the SAVED workflow so the new
+  models and the gotcha discipline apply: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`
+  (the sizing agent reads the slice log and leaves finished steps out). Check the lane is clean first (P-056).
