@@ -4,7 +4,7 @@
   "lanes": [
     {
       "name": "spine",
-      "note": "B1b steps 7 to 11. Step 7's additions by ruling H49 were being built when the run was stopped; the WIP commit 88994da on slice/b1b holds them unproven. Item (3) of H49, the test timeouts and worker cap, is already on main (package.json test script), so the close-out carries two items.",
+      "note": "B1b steps 7 to 11. Step 7's additions by ruling H49 were being built when the run was stopped; the WIP commit 88994da on slice/b1b holds them unproven. Item (3) of H49, the test timeouts and worker cap, is already on main (package.json test script), so the close-out carries two items. Bank numbers from P-150 and G-40: without a base this lane continued from the highest number in the file and collided with the orchestrator's P-502 (P-503 on main).",
       "args": {
         "slice": "B1b",
         "root": "E:/mop-build/spine",
@@ -29,23 +29,51 @@
               }
             ]
           }
-        ]
+        ],
+        "bankBase": {
+          "P": 150,
+          "G": 40
+        }
       }
     },
     {
       "name": "db",
       "note": "B2 from step 4. Steps 1, 1b, 2 and 3 are on main (PR 49); the sizing reads the slice log and leaves them out. This lane alone changes the schema of mop-dev (H45 (5)).",
-      "args": { "slice": "B2", "root": "E:/mop-build/db", "previewPort": 8798, "bankBase": { "P": 300, "G": 100 } }
+      "args": {
+        "slice": "B2",
+        "root": "E:/mop-build/db",
+        "previewPort": 8798,
+        "bankBase": {
+          "P": 300,
+          "G": 100
+        }
+      }
     },
     {
       "name": "tests",
       "note": "B4 from step 1; step 1 needs only B2 step 1, which is on main. Groups that need later B2 steps block and are picked up on the next run. The builder creates branch slice/b4.",
-      "args": { "slice": "B4", "root": "E:/mop-build/tests", "previewPort": 8808, "bankBase": { "P": 400, "G": 150 } }
+      "args": {
+        "slice": "B4",
+        "root": "E:/mop-build/tests",
+        "previewPort": 8808,
+        "bankBase": {
+          "P": 400,
+          "G": 150
+        }
+      }
     },
     {
       "name": "design",
       "note": "B9 steps 1 and 2 are designer steps (mop-designer, creative direction); later groups block on B8. The builder creates branch slice/b9.",
-      "args": { "slice": "B9", "root": "E:/mop-build/design", "previewPort": 8818, "bankBase": { "P": 700, "G": 250 } }
+      "args": {
+        "slice": "B9",
+        "root": "E:/mop-build/design",
+        "previewPort": 8818,
+        "bankBase": {
+          "P": 700,
+          "G": 250
+        }
+      }
     }
   ],
   "after": "When B2 closes, start B3 in the tests lane or a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300). The orchestrator re-runs its own probes on main after each self-merge and records them in progress.json."
