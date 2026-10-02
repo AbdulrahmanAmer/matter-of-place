@@ -10,7 +10,8 @@ const DROP =
   "-- irreversible: data goes\nset lock_timeout = '5s';\nalter table notes drop column body;\n";
 
 // Every destructive kind of STANDARDS R17 and ruling ASSUMED H42 (3), then the places a text scan
-// can lose one: a DO block, a comment before it, a string that holds `--`, a called function body.
+// can lose one: a DO block, a comment before it, a string that holds `--`, a called function body,
+// a function created twice.
 const DESTRUCTIVE = [
   { name: "a drop table", kind: "drop table", sql: "drop table public.notes;" },
   { name: "a drop column", kind: "drop column", sql: "alter table notes drop column body;" },
@@ -141,6 +142,11 @@ const DESTRUCTIVE = [
     kind: "attribute type",
     sql: "alter type address alter attribute zip type text;",
   },
+  {
+    name: "a function created twice and called",
+    kind: "drop table",
+    sql: "create or replace function f() returns void language plpgsql as $$ begin drop table notes; end $$;\nselect f();\ncreate or replace function f() returns void language sql as $$ select 1 $$;",
+  },
 ];
 
 // Changes R17 leaves to an ordinary migration.
@@ -205,6 +211,22 @@ const ALLOWED = [
   {
     name: "a grant on a function that drops a table",
     sql: "create function f() returns void language plpgsql as $$ begin drop table notes; end $$;\ngrant execute on function f() to service_role;",
+  },
+  {
+    name: "a trigger rename after two spaces",
+    sql: "alter  trigger notes_touch on notes rename to notes_stamp;",
+  },
+  {
+    name: "a constraint rename after two spaces",
+    sql: "alter table notes rename  constraint body_check to text_check;",
+  },
+  {
+    name: "a drop constraint after two spaces",
+    sql: "alter table notes drop  constraint notes_body_check;",
+  },
+  {
+    name: "an added constraint after a line break",
+    sql: "alter table notes add\n  constraint notes_body_check check (body is not null);",
   },
 ];
 

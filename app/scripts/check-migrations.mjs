@@ -122,6 +122,8 @@ function quoted(sql, start, backslash) {
 /**
  * Splits SQL into statements. Comments go; every string, quoted name and dollar-quoted body is
  * replaced by an empty one in `text`, and the string and body texts are kept in `literals`.
+ * Each run of blanks in `text` becomes one space, so a rule's lookahead after `\s+` cannot be
+ * met by backtracking into the run.
  * @param {string} sql
  * @returns {{ text: string, literals: string[] }[]}
  */
@@ -170,7 +172,9 @@ function statementsOf(sql) {
     }
   }
   statements.push({ text: text.trim(), literals });
-  return statements.filter((statement) => statement.text !== "");
+  return statements
+    .map((statement) => ({ ...statement, text: statement.text.replace(/\s+/g, " ") }))
+    .filter((statement) => statement.text !== "");
 }
 
 /**
@@ -199,7 +203,8 @@ function clausesOf(text) {
 }
 
 /**
- * The bodies of the functions and procedures the statements create, by lower-case name.
+ * The bodies of the functions and procedures the statements create, by lower-case name. A name
+ * created twice keeps both bodies, since a call between the two runs the first.
  * @param {{ text: string, literals: string[] }[]} statements
  * @returns {Map<string, string[]>}
  */
@@ -207,9 +212,9 @@ function bodiesOf(statements) {
   /** @type {Map<string, string[]>} */
   const bodies = new Map();
   for (const { text, literals } of statements) {
-    const name = CREATE_FUNCTION.exec(text)?.[1];
+    const name = CREATE_FUNCTION.exec(text)?.[1]?.toLowerCase();
     if (name !== undefined) {
-      bodies.set(name.toLowerCase(), literals);
+      bodies.set(name, [...(bodies.get(name) ?? []), ...literals]);
     }
   }
   return bodies;

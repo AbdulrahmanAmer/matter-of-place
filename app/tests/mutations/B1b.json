@@ -1801,6 +1801,51 @@
     "expect": "a composite type attribute type change needs the contract-of header"
   },
   {
+    "id": "cm-one-space-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a trigger rename after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-clause-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop constraint after two spaces needs no contract-of header"
+  },
+  {
+    "id": "cm-one-space-add",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text: statement.text.replace(/\\s+/g, \" \")",
+    "replace": "text: statement.text",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an added constraint after a line break needs no contract-of header"
+  },
+  {
+    "id": "cm-bodies-twice",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "bodies.set(name, [...(bodies.get(name) ?? []), ...literals]);",
+    "replace": "bodies.set(name, literals);",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function created twice and called needs the contract-of header"
+  },
+  {
     "id": "hy-checkout",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
