@@ -2214,3 +2214,211 @@ console.log(`cases ${String(Object.keys(cases).length + 2)}, bad ${String(bad)}`
 UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). The P-113 conflict is settled by H43 (1) in this script; the B2 lines that still describe the old pattern list (B2.md:71 invariant 14, replaced by reference in H43 (3)) are the orchestrator's to fold.
 
 GOTCHAS: G-029 proof count updated; no new entry.
+
+## c6 · steps 5
+
+Round 6 of the c6 close-out: the two defects of the round-5 review of `scripts/check-migrations.mjs` (ruling H43 (1)). Commits on `slice/b1b`: `53556e8` (the work), `ce3b669` and `5b69ed0` (type-error watched-fail and its revert), `ab34d32` and `b061160` (engines watched-fail and its revert); `git diff --quiet 53556e8 HEAD` exit 0 after each revert. This log block is committed after them.
+
+1. Cascade. `recreates()` now also needs `!CASCADE.test(text)` (`CASCADE = /\bcascade$/i`, on the statement text with blanks collapsed, so the word is the last of the statement as the `DROP FUNCTION ... [CASCADE | RESTRICT]` grammar puts it). A routine drop with `cascade` is refused without the header whatever the file creates. `restrict` and a name that starts with `cascade` still pass.
+2. Schema and order. `ROUTINE_NAME` and `CREATE_FUNCTION` capture the schema; `qualified(schema, name)` gives `<schema>.<name>` in lower case, with `public` for a name written without one. `createdAfter(statements)` gives each top-level statement the names that the statements after it create; `destructiveKinds` takes `createdLater(index)` instead of one set, and a DO block or a called body read inside a statement keeps that statement's set. So a drop passes only when a later statement creates the same schema and name: `drop function other.f(int)` with `create function public.f` is refused, and so is `create or replace function f(text) ...; drop function f(text);`.
+3. Behaviour that changed on purpose: round 5's probe case `create first, then drop the old signature` (create `f(text)`, then drop `f(int)`) passed and is now refused. The scan does not compare argument types, so it cannot tell that case from the reviewer's `create f(text); drop f(text)`, which removes the new function. `bun run db:fn` writes the drop before the create (B2.md:93, B10.md:166, review files B2, B3, B8, B9, B10, B15 line "prepends `drop function if exists`"), so the refused order costs the legitimate path nothing. `git grep -n -i "cascade" -- workspace/05-plans/B2.md workspace/05-plans/B10.md` shows no routine drop with `cascade` in any plan (only foreign keys `on delete cascade` and the delete paths of B2 invariant 4). No plan line conflicts (P-113).
+4. Runbook `app/docs/runbooks/delivery.md`, section `Migration order check`: the exception now says "a later statement ... of every schema and name it drops"; a new paragraph says that a drop with `cascade` always needs the header and why, that without `cascade` Postgres refuses a drop something depends on, and that a create before the drop does not count. The "does not read" list gained: argument types, `set search_path` (no schema reads as `public`), and a function created inside a DO block or by `execute` (never counts as created, so the drop is refused).
+5. Tests `tests/unit/check-migrations.test.ts`: 7 new rows. Refused: `a drop function cascade, then create`, `a drop in another schema, then create`, `a create, then a drop of the same name`. Allowed: `a bare drop, then a public create`, `a drop in capitals, then create`, `a drop restrict, then create`, `a function whose name starts cascade`. Every row name is 40 characters or fewer (P-116). 89 tests: 82 rows (45 refused, 37 allowed) and 7 single tests.
+6. Registry `tests/mutations/B1b.json`: 7 new entries (`cm-routine-cascade`, `cm-routine-restrict`, `cm-routine-cascade-word`, `cm-routine-other-schema`, `cm-routine-public`, `cm-routine-case`, `cm-routine-order`). Three moved with the code (P-090), found by `--check` (`BAD cm-routine-schema`, `BAD cm-routine-name`, `BAD cm-routine-alone: find occurs 0 times`, `checked 283, bad 3`) and rewritten to the new text; `cm-routine-schema` now makes the schema group lazy (`)?` to `)??`), so `public.f` reads as the name `public`.
+7. GOTCHAS: G-030 (an exception to the scan passes more than the statement the ruling meant), and G-029's proof count brought to `Tests  89 passed (89)`.
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+The review's defect reproduced first, on the round-5 script saved from `cfe521a` as `../scratch/cm-saved-r5.mjs` (`cmp` with the committed file: `same-bytes`), with `node ../scratch/c6r6-probe.mjs ../scratch/cm-saved-r5.mjs` (text below):
+```
+BAD 0  drop function cascade, then create
+BAD 0  drop if exists cascade, then create
+BAD 0  drop procedure cascade, then create
+BAD 0  drop two cascade, both created
+BAD 0  drop cascade over two lines, then create
+BAD 0  drop other.f, create public.f
+BAD 0  drop public.f, create other.f
+BAD 0  create or replace f(text), then drop f(text)
+BAD 0  drop, create, drop again
+BAD 0  drop in a DO block, cascade
+ok  0  drop f, create public.f
+(7 more ok 0 lines)
+cases 18, bad 10
+```
+After, `node ../scratch/c6r6-probe.mjs`:
+```
+ok  1  drop function cascade, then create  | destructive change (drop function)
+ok  1  drop if exists cascade, then create  | destructive change (drop function)
+ok  1  drop procedure cascade, then create  | destructive change (drop procedure)
+ok  1  drop two cascade, both created  | destructive change (drop function)
+ok  1  drop cascade over two lines, then create  | destructive change (drop function)
+ok  1  drop other.f, create public.f  | destructive change (drop function)
+ok  1  drop public.f, create other.f  | destructive change (drop function)
+ok  1  create or replace f(text), then drop f(text)  | destructive change (drop function)
+ok  1  drop, create, drop again  | destructive change (drop function)
+ok  1  drop in a DO block, cascade  | destructive change (drop function)
+ok  0  drop f, create public.f
+ok  0  drop public.f, create f
+ok  0  the db:fn form
+ok  0  drop restrict, then create
+ok  0  drop in capitals, then create
+ok  0  drop routine, then create function
+ok  0  drop two, both created after
+ok  0  a function named like cascade
+cases 18, bad 0
+```
+G-028 check, the earlier probes on the new script: `node ../scratch/c6r5-probe.mjs` → `cases 23, bad 1`, the one being `BAD 1  create first, then drop the old signature  | destructive change (drop function)` (item 3, refused on purpose); `node ../scratch/c6r4-probe.mjs` → `cases 16, bad 0`; `node ../scratch/c6r3-probe.mjs` → `cases 39, bad 0`; `node ../scratch/c6r-probe.mjs | grep -vc "^ok"` → `0`; `node ../scratch/orch-cm-probe.mjs` → `cases 27, bad 0`. No input that round 5 refused passes now.
+
+Why `cascade` is refused and the `db:fn` form is safe, on a throwaway native PostgreSQL 18 cluster (`initdb` in the session scratchpad, port 55439, stopped and deleted after), `psql -v ON_ERROR_STOP=0 -f cascade.sql`:
+```sql
+create function f(a int) returns int language sql immutable as $$ select a * 2 $$;
+create table notes (n int, doubled int generated always as (f(n)) stored, d2 int default f(1));
+create view v as select f(n) from notes;
+\echo == the db:fn form, no cascade
+drop function if exists public.f(int);
+\echo == the same drop with cascade
+drop function if exists public.f(int) cascade;
+\d notes
+select count(*) as views_named_v from pg_views where viewname = 'v';
+```
+```
+== the db:fn form, no cascade
+psql:.../cascade.sql:5: ERROR:  cannot drop function f(integer) because other objects depend on it
+DETAIL:  column doubled of table notes depends on function f(integer)
+default value for column d2 of table notes depends on function f(integer)
+view v depends on function f(integer)
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+== the same drop with cascade
+psql:.../cascade.sql:7: NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to column doubled of table notes
+drop cascades to default value for column d2 of table notes
+drop cascades to view v
+DROP FUNCTION
+ Column |  Type   | Collation | Nullable | Default
+ n      | integer |           |          |
+ d2     | integer |           |          |
+ views_named_v
+             0
+```
+
+Watched-fail of the new rows against the round-5 script (`cp ../scratch/cm-saved-r5.mjs scripts/check-migrations.mjs`, run, `cp ../scratch/cm-saved-r6.mjs scripts/check-migrations.mjs`, `cmp` → `restored`):
+```
+     × a drop function cascade, then create needs the contract-of header 7ms
+     × a drop in another schema, then create needs the contract-of header 1ms
+     × a create, then a drop of the same name needs the contract-of header 1ms
+      Tests  3 failed | 86 passed (89)
+```
+
+```
+$ bunx vitest run tests/unit/check-migrations.test.ts
+      Tests  89 passed (89)
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+ Test Files  2 passed (2)
+      Tests  119 passed | 8 skipped (127)
+$ node ../scratch/replay.mjs --check
+checked 290, bad 0
+$ node ../scratch/replay.mjs cm-routine-schema cm-routine-name cm-routine-alone cm-routine-cascade cm-routine-restrict cm-routine-cascade-word cm-routine-other-schema cm-routine-public cm-routine-case cm-routine-order
+RED cm-routine-schema: exit=1 expect=true | × a drop then create with a schema needs no contract-of header 7ms
+RED cm-routine-name: exit=1 expect=true | × a function dropped, another created needs the contract-of header 1ms
+RED cm-routine-alone: exit=1 expect=true | × a drop function needs the contract-of header 8ms
+RED cm-routine-cascade: exit=1 expect=true | × a drop function cascade, then create needs the contract-of header 8ms
+RED cm-routine-restrict: exit=1 expect=true | × a drop restrict, then create needs no contract-of header 8ms
+RED cm-routine-cascade-word: exit=1 expect=true | × a function whose name starts cascade needs no contract-of header 8ms
+RED cm-routine-other-schema: exit=1 expect=true | × a drop in another schema, then create needs the contract-of header 7ms
+RED cm-routine-public: exit=1 expect=true | × a bare drop, then a public create needs no contract-of header 8ms
+RED cm-routine-case: exit=1 expect=true | × a drop in capitals, then create needs no contract-of header 8ms
+RED cm-routine-order: exit=1 expect=true | × a create, then a drop of the same name needs the contract-of header 7ms
+replayed 10, not red 0
+$ node ../scratch/replay.mjs <all 99 entries whose file is scripts/check-migrations.mjs>
+  (99 lines RED)
+replayed 99, not red 0
+$ cmp scripts/check-migrations.mjs ../scratch/cm-saved-r6.mjs && echo same-bytes
+same-bytes
+$ node ../scratch/c6-map.mjs | tail -1
+titles 89, without an entry 0
+$ node ../scratch/replay.mjs ao ap bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 7ms
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 118ms
+replayed 6, not red 0
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines"
+{ bun: '1.3.13', node: '24.x' }
+$ cd .. && node workspace/05-plans/check-gotchas.mjs
+check-gotchas: OK (30 path entries, 117 process entries)
+```
+
+CI on `53556e8` (run 37029241962, `pull_request`, success): `check success`, `build success`, `merge-gate skipped`; steps of `check`: `engines`, `Run actions/cache@...`, `Run bun install --frozen-lockfile`, `migration-order` (log `no migrations`), `Run bun run check` (log `tests/unit/check-migrations.test.ts (89 tests)`), `audit`, all `success`; no job named `audit` or `deno`. `gh run download 37029241962 -n build-output -D scratch/c6r6-art` → `nitro.json package-lock.json package.json public server`, `server/wrangler.json` name `matter-of-place`.
+Watched-fail (d), type error: `ce3b669` appends `const x: number = "a";` to `src/lib/strings.ts`. Run 37029489695: `failure`, `check failure`, `build success`; `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.`, `##[error]Process completed with exit code 2.` Revert `5b69ed0`: run 37029602095 `success` (`check success`, `build success`).
+Watched-fail, engines: `ab34d32` sets `engines.bun` to `1.3.12` (`-    "bun": "1.3.13",` / `+    "bun": "1.3.12",`). Run 37029756417: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `##[error]Process completed with exit code 1.`); cache, install, `migration-order`, `bun run check` and `audit` `skipped`. Revert `b061160`: run 37029889566 `success` (`check success`, `build success`).
+Gates on the work tree of `53556e8`: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files  14 passed (14)`, `Tests  334 passed | 8 skipped (342)`); `bun run build` exit 0 (three `built in` lines).
+
+`scratch/c6r6-probe.mjs` (lane-root `scratch/`, git-ignored, run from `app/`; P-088)
+```js
+// node ../scratch/c6r6-probe.mjs [<path to check-migrations.mjs>]   (from app/)
+// The two defects of the round-5 review (H43 (1)): a drop that cascades, and a name matched
+// without its schema or its place in the file. Each case prints its failure count.
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+
+const target = resolve(process.argv[2] ?? "scripts/check-migrations.mjs");
+const { checkMigrations } = await import(pathToFileURL(target).href);
+const NEW_F = "create function public.f(a text) returns int language sql as $$ select 1 $$;";
+
+const cases = {
+  "MUST 1  drop function cascade, then create": `drop function f(int) cascade;\n${NEW_F}`,
+  "MUST 1  drop if exists cascade, then create": `drop function if exists public.f(int) cascade;\n${NEW_F}`,
+  "MUST 1  drop procedure cascade, then create":
+    "drop procedure p(int) cascade;\ncreate procedure p(a text) language sql as $$ select 1 $$;",
+  "MUST 1  drop two cascade, both created":
+    "drop function f(int), g(int) cascade;\ncreate function f(a text) returns int language sql as $$ select 1 $$;\ncreate function g(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 1  drop cascade over two lines, then create": `drop function f(int)\n  CASCADE;\n${NEW_F}`,
+  "MUST 1  drop other.f, create public.f": `drop function other.f(int);\n${NEW_F}`,
+  "MUST 1  drop public.f, create other.f":
+    "drop function public.f(int);\ncreate function other.f(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 1  create or replace f(text), then drop f(text)":
+    "create or replace function f(a text) returns int language sql as $$ select 1 $$;\ndrop function f(text);",
+  "MUST 1  drop, create, drop again":
+    `drop function f(int);\n${NEW_F}\ndrop function f(text);`,
+  "MUST 1  drop in a DO block, cascade": `do $$ begin drop function f(int) cascade; end $$;\n${NEW_F}`,
+  "MUST 0  drop f, create public.f": `drop function f(int);\n${NEW_F}`,
+  "MUST 0  drop public.f, create f":
+    "drop function public.f(int);\ncreate function f(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 0  the db:fn form":
+    "drop function if exists public.f(int);\ncreate function public.f(a int, b int) returns int language sql as $$ select 1 $$;",
+  "MUST 0  drop restrict, then create": `drop function f(int) restrict;\n${NEW_F}`,
+  "MUST 0  drop in capitals, then create": `DROP FUNCTION Public.F(int);\n${NEW_F}`,
+  "MUST 0  drop routine, then create function": `drop routine f(int);\n${NEW_F}`,
+  "MUST 0  drop two, both created after":
+    "drop function f(int), g(int);\ncreate function f(a text) returns int language sql as $$ select 1 $$;\ncreate function g(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 0  a function named like cascade":
+    "drop function cascade_notes(int);\ncreate function cascade_notes(a text) returns int language sql as $$ select 1 $$;",
+};
+let bad = 0;
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({
+    changed: [],
+    added: [file],
+    mainPrefixes: ["20261002100000"],
+    readFile: () => `-- irreversible: x\nset lock_timeout = '5s';\n${sql}\n`,
+  });
+  const want = Number(name.slice(5, 6));
+  const ok = failures.length === want;
+  bad += ok ? 0 : 1;
+  console.log(`${ok ? "ok " : "BAD"} ${String(failures.length)}  ${name.slice(8)}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+console.log(`cases ${String(Object.keys(cases).length)}, bad ${String(bad)}`);
+```
+`replay.mjs` is in the g4 close-out block, `c6-map.mjs`, `c6r-probe.mjs`, `c6r3-probe.mjs`, `c6r4-probe.mjs` and `c6r5-probe.mjs` in the c6 blocks above; `orch-cm-probe.mjs` is the orchestrator's file in the same folder.
+
+UNPROVEN: Dependabot (`dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Argument types of a dropped and a created function are not compared (now in the runbook's "does not read" list).
+
+GOTCHAS: G-030 added; G-029 proof count updated.
