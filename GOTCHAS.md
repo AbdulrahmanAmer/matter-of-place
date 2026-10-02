@@ -571,3 +571,24 @@ Entry template
 - rule: the stop is mechanical, not a model's judgement. A sharper prompt did not fix it: the second run listed five partial waits as unmet again. The workflow now stops before building only when not one group can run; the list of unmet dependencies is information the orchestrator reads (pass `strictDependencies: true` to stop on it). Before a slice starts, the status table at the end of PLAN.md shows every closed slice, and ASSUMED section E matches `gh secret list` and `gh variable list`.
 - proof: `gh secret list` shows no R2 name and shows `DEV_SUPABASE_SERVICE_ROLE_KEY`; the status table has the row `B1a | closed`.
 - added: 2026-10-02
+
+## P-062 · Driving an account dashboard through the browser tool: what cost time on 2026-10-02
+- symptom: on Sentry, Resend, Zoho and GitHub: (a) "Couldn't determine which page this action targets" after a page changed its address by itself; (b) "Script injection timed out" on a heavy single-page app that was still loading; (c) a click by coordinate landed on the neighbouring menu item because the menu had moved (GitHub's expiration menu took "No expiration" instead of "90 days"); (d) "Unable to create new key. Please try again." on Sentry's first try; (e) GitHub asked for the password again ("Confirm access") before the token form.
+- cause: coordinates come from the last screenshot and pages move; heavy dashboards need seconds before the tool can read them; a password prompt is the operator's step by rule.
+- rule: after any redirect call `tabs_context_mcp` again before the next action. Wait a few seconds and re-read instead of repeating a failed read. Click by element reference (`find`, `read_page`) when there is one. Before pressing a button that submits, zoom on the form and read every value back. One retry of a failed create is fine; after two, stop and report. A password or login prompt: leave the page open, tell the operator, continue with other work. Read a page that shows a secret only with the interactive filter and move the secret by the unseen route (P-055).
+- proof: `node <scratchpad>/sentry-env.mjs` printed both client keys with their limits after the retry; ASSUMED E21 and E22 record the results.
+- added: 2026-10-02
+
+## P-063 · The session's stop gate rejects a final message that is not in its format, and a claim with no command behind it
+- symptom: more than ten final messages were sent back in one day with "Completion format missing: N bullets (max 3)" or "You state 'done' but there is no evidence in this session".
+- cause: the harness gate counts every bullet in the message (lists under Blockers included) and wants a command run in the same turn whose output the Verification line quotes; the last command of the turn must not show a failure.
+- rule: a final message is exactly: one sentence with the outcome; at most three bullets in the whole message; a line starting `Verification:` that names a command run in this turn and its real output; a line starting `Blockers:` written as prose, never as a list. Extra points go into the three bullets or into sentences. When the honest state includes a failing check, say so in Blockers and make the last command of the turn one that passes for a true reason. Run at least one real check (`check-plans`, `check-gotchas`, `git status`) in every turn that ends with a claim.
+- proof: the gate's own messages in this session; a message in the format passes.
+- added: 2026-10-02
+
+## P-064 · A patch script wrote the file first and checked it second, and left the build workflow broken on disk
+- symptom: a script that edits `.claude/workflows/build-slice.js` inserted text with backticks into a template literal, wrote the file, and only then ran the parse check, which threw `SyntaxError: Unexpected identifier 'node'`. The chain stopped, but the broken file was already in the working tree, and the commands after the `;` still ran (a pull request with no commit, a branch delete).
+- cause: write before validate; a backtick inside a template literal must be written `\``; an `&&` chain followed by `;` keeps going after the failure.
+- rule: a patch script builds the new text in memory, validates it (parse, anchors found, checker), and writes last. Text that lands inside a template literal escapes its backticks and every `${` it does not mean. After a patch fails, look at `git status` before anything else and restore with `git checkout -- <file>`. Never put cleanup or merge commands after a `;` behind a chain that may fail.
+- proof: `git status --short` showed ` M .claude/workflows/build-slice.js` after the failure; after `git checkout -- .claude/workflows/build-slice.js` the parse check passed.
+- added: 2026-10-02

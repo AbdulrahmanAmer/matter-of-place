@@ -60,10 +60,11 @@ const BUILD = {
     watchedFail: { type: 'array', items: { type: 'string' }, description: 'each new test: what was broken, the red output, restored' },
     unproven: { type: 'array', items: { type: 'string' } },
     blockedOn: { type: 'string' },
-    gotchasAdded: { type: 'array', items: { type: 'string' } },
+    gotchasAdded: { type: 'array', items: { type: 'string' }, description: 'ids of the GOTCHAS.md entries you added, for example P-064; empty only if nothing cost you more than a few minutes' },
+    costTime: { type: 'array', items: { type: 'string' }, description: 'everything that took a second attempt, a workaround or a correction of the plan, one line each; empty if truly nothing' },
     memory: { type: 'string' },
   },
-  required: ['status', 'filesChanged', 'commits', 'proofs', 'watchedFail', 'unproven', 'blockedOn', 'gotchasAdded', 'memory'],
+  required: ['status', 'filesChanged', 'commits', 'proofs', 'watchedFail', 'unproven', 'blockedOn', 'gotchasAdded', 'costTime', 'memory'],
 }
 
 const REVIEW = {
@@ -77,7 +78,7 @@ const REVIEW = {
 }
 
 const RULES = `Standing rules for this project (they overrule habit):
-- Read ${ROOT}/GOTCHAS.md in full first. Add an entry in the same session when something costs you more than a few minutes.
+- Read ${ROOT}/GOTCHAS.md in full first. The operator's standing order (2026-10-02): the bank is ALWAYS updated. The moment a tool error, a failed approach, a wrong assumption, a plan line that did not match reality or a rework costs you more than a few minutes, add the entry to ${ROOT}/GOTCHAS.md in the same session (next free number, the template at the top of the file, a proof command), run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}, commit it with your work and name it in gotchasAdded. Finishing with "nothing went wrong" after a second attempt at anything is a defect.
 - No Docker on this machine, ever (S50). There is one cloud database, the project named mop-dev: the build database now, production after the launch switch (ASSUMED H35). There is no R2: files live in Supabase Storage, buckets submissions, media and documents (H33). There is no Anthropic key: captions come from the laptop runner (H34).
 - Facts measured on this machine are in ${ROOT}/workspace/05-plans/ASSUMED.md section E. They overrule older lines anywhere.
 - Secrets live in ${ROOT}/.env (git-ignored). Load them without printing: set -a; . <(tr -d '\\r' < "${BASH_ROOT}/.env" | grep -E '^[A-Z0-9_]+='); set +a   Never cat, echo or paste a value. Never commit a secret.
@@ -126,11 +127,12 @@ const reviewPrompt = (g, built) => `${RULES}
 
 You are a fresh reviewer for group ${g.id} of slice ${slice} ("${g.title}", plan steps ${g.steps}). You did not write this code and you were not given the author's reasoning. Read-only: do not edit, commit or push.
 The contract is ${planPath} (the sections Contract, Invariants and the steps ${g.steps} with their proofs). The branch is ${branch}; see what changed with \`git -C "${ROOT}" diff ${BASE}...${branch} --stat\` and read the changed files.
-The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs, unproven: built.unproven, watchedFail: built.watchedFail }, null, 1)}
+The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs, unproven: built.unproven, watchedFail: built.watchedFail, costTime: built.costTime, gotchasAdded: built.gotchasAdded }, null, 1)}
 1. Re-run every proof command yourself and record what you observed.
 2. Try to refute "done": an invariant of the plan the code breaks, a proof that passes for the wrong reason, a test that cannot fail, a file the group should have created that is missing, a convention in AGENTS.md that is broken, a secret or an em dash in the diff, Docker assumed, R2 or a second database or an Anthropic key assumed (rulings H33, H34, H35).
 3. Run \`bun run check\` in the app folder.
 4. Read ${ROOT}/workspace/05-plans/STANDARDS.md and go through its reviewer checklist line by line against the diff, and check every new or moved file against its folder map. A broken rule of STANDARDS.md is a defect: name the rule and the line. So is code the step did not ask for: dead code, an unused export, a speculative option, a comment that restates the code, a swallowed error, a leftover TODO, a scratch or generated file in the commit.
+5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${ROOT}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${ROOT}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${ROOT} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so the author adds it.
 Verdict "accept" only if every proof reproduced and you found no defect that breaks the contract or the standards. Taste alone is not a defect.`
 
 const out = []
