@@ -300,8 +300,8 @@
     "id": "h",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const render = () => deps.render(request);",
-    "replace": "    const render = async () => {\n      const rendered = await deps.render(request);\n      rendered.headers.set(\"x-request-id\", requestId);\n      return rendered;\n    };",
+    "find": "    const render = () => deps.render(request, requestId);",
+    "replace": "    const render = async () => {\n      const rendered = await deps.render(request, requestId);\n      rendered.headers.set(\"x-request-id\", requestId);\n      return rendered;\n    };",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "never stores the request id or a security header, and returns both"
   },
@@ -381,8 +381,8 @@
     "id": "u-message",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "            message: \"Something went wrong. Please try again in a moment.\",\n",
-    "replace": "",
+    "find": "  server: \"Something went wrong. Please try again in a moment.\",\n",
+    "replace": "  server: \"Something went wrong.\",\n",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "answers JSON for an API path, a write, or a client that does not accept HTML"
   },
@@ -591,7 +591,7 @@
     "find": "!timingSafeEqual(bytes(bearer), bytes(token))",
     "replace": "false",
     "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
-    "expect": "answers 404 for a wrong bearer"
+    "expect": "answers the R09 404 for a wrong bearer"
   },
   {
     "id": "route-scheme",
@@ -600,7 +600,7 @@
     "find": "/^Bearer (.+)$/",
     "replace": "/^(?:Bearer )?(.+)$/",
     "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
-    "expect": "answers 404 for the token without the Bearer scheme"
+    "expect": "answers the R09 404 for the token without the Bearer"
   },
   {
     "id": "route-throw",
@@ -705,9 +705,144 @@
     "id": "sentry-non-string",
     "test": "tests/unit/sentry.test.ts",
     "file": "src/server/lib/sentry.ts",
-    "find": "      type: String(name),\n      value: String(message),",
-    "replace": "      type: name as string,\n      value: message as string,",
+    "find": "      type: String(name).slice(0, MAX_LINE),\n      value: String(message).slice(0, MAX_MESSAGE),",
+    "replace": "      type: (name as string).slice(0, MAX_LINE),\n      value: (message as string).slice(0, MAX_MESSAGE),",
     "run": "bunx vitest run tests/unit/sentry.test.ts",
     "expect": "sends an Error whose name and message are not strings"
+  },
+  {
+    "id": "pipe-render-id",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => deps.render(request, requestId);",
+    "replace": "    const render = () => deps.render(request, crypto.randomUUID());",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "gives the handler the id of the x-request-id header"
+  },
+  {
+    "id": "pipe-guard-off",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(pathname, response, requestId);\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/hooks/sentry-test rendered as a"
+  },
+  {
+    "id": "pipe-guard-405",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return response.status === 200",
+    "replace": "  return false",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/hooks/sentry-test rendered as a"
+  },
+  {
+    "id": "pipe-guard-404",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    : errorJson(response.status, \"not_found\", requestId);",
+    "replace": "    : errorJson(405, \"method_not_allowed\", requestId);",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page shell of 404 under /api/ with the R09 404"
+  },
+  {
+    "id": "pipe-guard-path",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  if (!pathname.startsWith(\"/api/\") || !html) return response;",
+    "replace": "  if (!html) return response;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page and an API answer that is not HTML untouched"
+  },
+  {
+    "id": "pipe-guard-html",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  if (!pathname.startsWith(\"/api/\") || !html) return response;",
+    "replace": "  if (!pathname.startsWith(\"/api/\")) return response;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page and an API answer that is not HTML untouched"
+  },
+  {
+    "id": "pipe-guard-case",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": ".toLowerCase().startsWith(\"text/html\")",
+    "replace": ".startsWith(\"text/html\")",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/public/markets rendered as a Text/HTML"
+  },
+  {
+    "id": "pipe-error-no-store",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "{ status, headers: { \"cache-control\": \"no-store\" } }",
+    "replace": "{ status }",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers GET /api/public/markets rendered as a"
+  },
+  {
+    "id": "route-404-body",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "    return errorJson(404, \"not_found\", requestId);",
+    "replace": "    return new Response(null, { status: 404 });",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers the R09 404 with the request id when the token is unset"
+  },
+  {
+    "id": "route-404-id",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
+    "find": "    return errorJson(404, \"not_found\", requestId);",
+    "replace": "    return errorJson(404, \"not_found\", crypto.randomUUID());",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "through handle, refuses no token with the id of x-request-id"
+  },
+  {
+    "id": "sentry-cap-lines",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".split(\"\\n\", MAX_STACK_LINES)",
+    "replace": ".split(\"\\n\")",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-line",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "frameOf(line.slice(0, MAX_LINE))",
+    "replace": "frameOf(line)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-message",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      value: String(message).slice(0, MAX_MESSAGE),",
+    "replace": "      value: String(message),",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-type",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      type: String(name).slice(0, MAX_LINE),",
+    "replace": "      type: String(name),",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
+  },
+  {
+    "id": "sentry-cap-thrown",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "value: String(error).slice(0, MAX_MESSAGE)",
+    "replace": "value: String(error)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "caps the message, the stack and each line before any pattern runs"
   }
 ]

@@ -41,9 +41,11 @@ function setup(options: {
   const waitUntil = vi.fn<PipelineContext["waitUntil"]>();
   const report = vi.fn<PipelineDeps["report"]>(() => Promise.resolve());
   const rendered: string[] = [];
+  const renderIds: string[] = [];
   const ctx: PipelineContext = { env: { MOP_ENV: options.env }, waitUntil };
   const deps: PipelineDeps = {
-    render: (request) => {
+    render: (request, requestId) => {
+      renderIds.push(requestId);
       rendered.push(`${request.method} ${new URL(request.url).pathname}`);
       return Promise.resolve(options.render?.(request) ?? new Response("<html></html>"));
     },
@@ -53,6 +55,7 @@ function setup(options: {
   };
   return {
     rendered,
+    renderIds,
     waitUntil,
     report,
     run: (request: Request) => handle(request, ctx, deps),
@@ -121,6 +124,58 @@ describe("request id", () => {
       expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/);
     },
   );
+
+  it("gives the handler the id of the x-request-id header (H39 (1))", async () => {
+    const { run, renderIds } = setup({});
+    const response = await run(get("/api/hooks/sentry-test", { method: "POST" }));
+    expect(renderIds).toEqual([response.headers.get("x-request-id")]);
+  });
+});
+
+describe("a path under /api/ never answers the page shell (H39 (2))", () => {
+  const shell =
+    (status: number, type = "text/html; charset=utf-8") =>
+    () =>
+      new Response("<!doctype html><html></html>", { status, headers: { "content-type": type } });
+  const body = z.object({
+    error: z.object({ code: z.string(), message: z.string(), requestId: z.string() }),
+  });
+
+  it.each([
+    ["/api/hooks/sentry-test", "text/html; charset=utf-8"],
+    ["/api/public/markets", "Text/HTML"],
+  ])("answers GET %s rendered as a %s page with the R09 405", async (path, type) => {
+    const response = await setup({ render: shell(200, type) }).run(get(path));
+    expect(response.status).toBe(405);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.parse(await response.json()).error).toEqual({
+      code: "method_not_allowed",
+      message: "This address does not accept that method.",
+      requestId: response.headers.get("x-request-id"),
+    });
+  });
+
+  it("answers a page shell of 404 under /api/ with the R09 404", async () => {
+    const response = await setup({ render: shell(404) }).run(get("/api/hooks/nothing-here"));
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body.parse(await response.json()).error).toMatchObject({
+      code: "not_found",
+      requestId: response.headers.get("x-request-id"),
+    });
+  });
+
+  it("leaves a page and an API answer that is not HTML untouched", async () => {
+    const page = await setup({ render: shell(200) }).run(get("/california"));
+    expect(page.status).toBe(200);
+    expect(page.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    const json = await setup({ render: () => Response.json({ ok: true }) }).run(
+      get("/api/public/markets"),
+    );
+    expect(json.status).toBe(200);
+    expect(await json.json()).toEqual({ ok: true });
+  });
 });
 
 describe("rule 6: never cached", () => {

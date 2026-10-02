@@ -63,6 +63,11 @@ const MAX_VALUE = 200;
 // One event per fingerprint per window in each isolate (INT-12).
 const WINDOW_MS = 60_000;
 const SEND_TIMEOUT_MS = 2_000;
+// H39 (3): a browser's text reaches this module through B3's client-error route, so every input
+// is cut to these sizes before a pattern runs over it.
+const MAX_MESSAGE = 2_000;
+const MAX_STACK_LINES = 50;
+const MAX_LINE = 500;
 
 const lastSent = new Map<string, number>();
 let pausedUntil = 0;
@@ -107,23 +112,39 @@ export function scrubEvent(event: SentryEvent): SentryEvent {
   };
 }
 
-const FRAME = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/;
+const DIGITS = /^\d+$/;
+
+/** `at fn (file:line:col)` or `at file:line:col`, read with string operations in linear time. */
+function frameOf(line: string): StackFrame[] {
+  const text = line.trimStart();
+  if (!text.startsWith("at ")) return [];
+  let location = text.slice(3);
+  let fn = "?";
+  const open = location.indexOf(" (");
+  if (open > 0 && location.endsWith(")")) {
+    fn = location.slice(0, open);
+    location = location.slice(open + 2, -1);
+  }
+  const colAt = location.lastIndexOf(":");
+  const lineAt = location.lastIndexOf(":", colAt - 1);
+  const lineno = location.slice(lineAt + 1, colAt);
+  const colno = location.slice(colAt + 1);
+  if (lineAt <= 0 || !DIGITS.test(lineno) || !DIGITS.test(colno)) return [];
+  return [
+    {
+      function: fn,
+      filename: location.slice(0, lineAt),
+      lineno: Number(lineno),
+      colno: Number(colno),
+    },
+  ];
+}
 
 /** Frames of a V8 stack, the throwing frame first. */
 function framesOf(stack: string | undefined): StackFrame[] {
-  return (stack ?? "").split("\n").flatMap((line) => {
-    const match = FRAME.exec(line);
-    return match
-      ? [
-          {
-            function: match[1] ?? "?",
-            filename: match[2] ?? "?",
-            lineno: Number(match[3]),
-            colno: Number(match[4]),
-          },
-        ]
-      : [];
-  });
+  return (stack ?? "")
+    .split("\n", MAX_STACK_LINES)
+    .flatMap((line) => frameOf(line.slice(0, MAX_LINE)));
 }
 
 /**
@@ -132,12 +153,14 @@ function framesOf(stack: string | undefined): StackFrame[] {
  */
 function describeThrown(error: unknown): { type: string; value: string; stack?: string } {
   try {
-    if (!(error instanceof Error)) return { type: typeof error, value: String(error) };
+    if (!(error instanceof Error)) {
+      return { type: typeof error, value: String(error).slice(0, MAX_MESSAGE) };
+    }
     // Plain JavaScript can put any value in these fields.
     const { name, message, stack }: { name: unknown; message: unknown; stack?: unknown } = error;
     return {
-      type: String(name),
-      value: String(message),
+      type: String(name).slice(0, MAX_LINE),
+      value: String(message).slice(0, MAX_MESSAGE),
       ...(typeof stack === "string" && { stack }),
     };
   } catch {

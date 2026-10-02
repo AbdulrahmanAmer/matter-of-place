@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { CaptureOptions, SentryEvent } from "../../src/server/lib/sentry";
 
+// Spies that call through, so a test can see what text reaches the masking pattern.
+vi.mock("../../src/server/lib/log", { spy: true });
+
 const DSN = "https://publickey123@o42.ingest.us.sentry.io/4507";
 const ENVELOPE_URL = "https://o42.ingest.us.sentry.io/api/4507/envelope/";
 
@@ -29,7 +32,9 @@ const Envelope = z.object({
           z.object({
             type: z.string(),
             value: z.string(),
-            stacktrace: z.object({ frames: z.array(z.object({ function: z.string() })) }),
+            stacktrace: z.object({
+              frames: z.array(z.object({ function: z.string(), filename: z.string() })),
+            }),
           }),
         ),
       }),
@@ -421,5 +426,31 @@ describe("one event per fingerprint and the rate limits (INT-12)", () => {
     await vi.advanceTimersByTimeAsync(1_001);
     await captureException(new RangeError("another problem"), { ...OPTIONS, route: "/other" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("bounded input (H39 (3))", () => {
+  it("caps the message, the stack and each line before any pattern runs", async () => {
+    const { captureException } = await load();
+    const { maskEmails } = await import("../../src/server/lib/log");
+    vi.mocked(maskEmails).mockClear();
+    const error = new Error("m".repeat(5_000));
+    error.name = "N".repeat(5_000);
+    error.stack = [
+      "at " + "a:1:1 (".repeat(4_000) + "x",
+      `    at long (${"f".repeat(1_000)}.js:1:2)`,
+      ...Array.from(
+        { length: 80 },
+        (_, index) => `    at f${String(index)} (/app/a.js:${String(index + 1)}:1)`,
+      ),
+    ].join("\n");
+    await captureException(error, OPTIONS);
+    await captureException("s".repeat(5_000), { ...OPTIONS, route: "/other" });
+    const frames = sent().envelope.event.exception.values[0]?.stacktrace.frames ?? [];
+    // 50 lines: the crafted one and the cut one hold no frame, 48 do.
+    expect(frames).toHaveLength(48);
+    expect(frames.map((frame) => frame.filename)).not.toContain(`${"f".repeat(1_000)}.js`);
+    const longest = Math.max(...vi.mocked(maskEmails).mock.calls.map(([text]) => text.length));
+    expect(longest).toBeLessThanOrEqual(2_000);
   });
 });

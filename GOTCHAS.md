@@ -638,7 +638,7 @@ Entry template
 - added: 2026-10-02
 
 ## P-070 · A Bash heredoc that carries a script or an edit drops its backslashes: `\|` becomes `|`, and the file is written wrong without an error
-- symptom: a Node fix script written inline with a quoted heredoc (`<<'EOF'`) turned the Markdown table escape `\\|` into `|` in six table cells, which split each cell in two. The registry rework of B1b g2 (regex and path text with backslashes) was lost the same way. P-008 names single-quoted arguments; this is the same collapse inside a heredoc, where it is easier to believe the quoting protects the text.
+- symptom: a Node fix script written inline with a quoted heredoc (`<<'EOF'`) turned the Markdown table escape `\\|` into `|` in six table cells, which split each cell in two. The registry rework of B1b g2 (regex and path text with backslashes) was lost the same way. Hit again in the B1b g4 close-out with `node -e "..."`: a test appended through it wrote `].join("` and a real line break instead of `].join("\n")`, and prettier failed with `Unterminated string literal`. P-008 names single-quoted arguments; this is the same collapse inside a heredoc, where it is easier to believe the quoting protects the text.
 - cause: the Bash tool on this machine rewrites backslashes before the shell sees the command, so a quoted delimiter does not preserve them.
 - rule: any text that contains a backslash (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`) goes in with the Write or Edit tool, never through a heredoc or an inline script. After a scripted rewrite of such a file, read back the changed lines (`git diff`) before trusting it.
 - proof: `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the `type` row keeps its escapes); the same row written through a heredoc printed `"Estate" | "Residence"` with no backslash.
@@ -753,7 +753,7 @@ Entry template
 ## P-081 · A registry entry written from memory does not match: prettier rewrites the `find`, vitest words and truncates the `expect`
 - symptom: in B1b g4 three entries of `tests/mutations/B1b.json` failed their replay although the mutation was right. One `find` held the non-2xx log line of `sentry.ts` on one line, but prettier had split it over two, so it occurred zero times. One `expect` said "not to have property"; vitest prints `to not have property "request"`. In the fix round a case named `... X-Sentry-Rate-Limits header whose longest window is 120 seconds` went red for the right reason and still failed the replay: vitest printed `... header whose lo…`, cut at about 80 characters, in both the `×` line and the `FAIL` line.
 - cause: `find` was copied from the code as typed, not from the file after `prettier --write`; `expect` was copied from the test title or from memory, not from the runner's output, and vitest shortens long test names when the output is not a wide terminal.
-- rule: run `bunx prettier --write` on the changed files before writing any `find`, and take `find` from the file on disk. Take `expect` from the red run's real output. Keep a test title under about 75 characters, or match only its first words. Replay every new entry with a runner that asserts `find` occurs once and the output matches `expect` before you call it watched-fail.
+- rule: run `bunx prettier --write` on the changed files before writing any `find`, and take `find` from the file on disk. Take `expect` from the red run's real output. `expect` is a regular expression (B4.md line 86, `--expect "<regex>"`): a replay runner that matches it as plain text reports entries such as `q` and `am` as not red (15 false reports in the g4 close-out), so match with `new RegExp(expect)`, and escape `.`, `*`, `?`, `(` in a new entry or end it before them. Keep a test title under about 75 characters, or match only its first words. Replay every new entry with a runner that asserts `find` occurs once and the output matches `expect` before you call it watched-fail.
 - proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` with the rate-limits parse replaced by `return 60;` prints `× pauses every send for the window named by an X-Sentry-Rate-Limits header whose lo…` with the old title; with the title `X-Sentry-Rate-Limits 30 and 120` the replay of entry `sentry-rate-limits` prints `RED sentry-rate-limits: exit=1 expect=true`.
 - added: 2026-10-02
 
@@ -777,7 +777,7 @@ Entry template
 - symptom: B1b line 131 puts the bearer check of `sentry-test` in the route file; the first g4 build followed it. STANDARDS R11 and the folder-map row `src/routes/` say an API route file is one wrapper line. The fix round moved the logic to `src/server/hooks/sentry-test.ts` and rewrote the route, its test imports and six registry entries. P-078 covered body shapes only, so it gave no warning.
 - cause: plan file lines were written before STANDARDS; a builder reads the plan's file line as the file's content.
 - rule: before writing any file a plan names, check its line against the folder map (STANDARDS section 1) and R11 as well as R09 (P-078): an API route file holds one wrapper line, its logic goes to `src/server/<domain>/<name>.ts` (`hooks/` for `api/hooks/*`, as B3's `hooks/resend.ts` and B8's `hooks/ops-health.ts`). STANDARDS binds; name the stale plan line to the orchestrator in the slice log.
-- proof: `git grep -c "" -- app/src/routes/api/hooks/sentry-test.ts` → `11` (definition, one STUB line, one handler line, no logic); `git grep -n "timingSafeEqual" -- app/src/routes` → nothing.
+- proof: `git grep -c "" -- app/src/routes/api/hooks/sentry-test.ts` → `12` (definition, one STUB line, one handler call that prettier wraps over two lines, no logic); `git grep -n "timingSafeEqual" -- app/src/routes` → nothing.
 - added: 2026-10-02
 
 ## P-084 · Five plans call `captureException` without the options it really takes
@@ -792,8 +792,9 @@ Entry template
 - severity: warn
 - symptom: under `cf:preview`, `curl -s -D - http://127.0.0.1:8788/api/hooks/sentry-test` (a POST-only route) → `HTTP/1.1 200 OK`, `Content-Type: text/html; charset=utf-8`, 6807 bytes of app shell; `/api/hooks/nothing-here` → 404. A route meant to be inert is not.
 - cause: the file is also a router route; a method with no server handler falls through to the SSR render, which finds the route and renders it with no component (TanStack behaviour, inferred from the answers, not read in the source).
-- rule: every API route file is reachable by `GET`; a POST-only hook must not depend on `GET` being a 404. Which owner makes non-handled methods answer an R09 405 or 404 (the pipeline or one wrapper every API route uses) is a ruling for the orchestrator; until then each new API route's smoke or test states its `GET` answer.
-- proof: `bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/api/hooks/sentry-test` → `200 text/html; charset=utf-8` (2026-10-02).
+- rule: ruled in ASSUMED H39 (2) and built in B1b g4 close-out: `handle()` in `src/server/lib/pipeline.ts` turns a `text/html` answer under `/api/` into R09 JSON with `no-store` (405 `method_not_allowed` when it rendered 200, otherwise its own status with `not_found`). Never remove that guard; B3's and B7's wrappers add `Allow` where they know the methods.
+- proof: `bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/api/hooks/sentry-test` → `405 application/json` (before the guard: `200 text/html; charset=utf-8`, 2026-10-02); registry entries `pipe-guard-off` and `pipe-guard-405` turn `tests/unit/pipeline.test.ts` red.
+- enforced-by: tests/unit/pipeline.test.ts (`a path under /api/ never answers the page shell`, part of `bun run check`)
 - added: 2026-10-02
 
 ## G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws
@@ -803,4 +804,18 @@ Entry template
 - cause: `String(value)`, `error.message` and `value instanceof Error` all run user code; the try around the fetch did not cover building the event.
 - rule: a function promised never to throw reads the thrown value inside its own try (`describeThrown` in `sentry.ts`, fixed text `unprintable value`) before it records anything, and its tests throw a null-prototype object, a throwing getter, a proxy and an Error whose `name` is not a string.
 - proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` passes; registry entries `sentry-unprintable` and `sentry-non-string` turn it red (`promise rejected "TypeError: Cannot convert object to primi…" instead of resolving` before the fix).
+- added: 2026-10-02
+
+## P-085 · Lint refuses `String()` of a value typed `string`: read an Error's fields as `unknown` first
+- symptom: the first `describeThrown` in `sentry.ts` (B1b g4, second fix round) converted `String(error.name)` and `String(error.message)` so a non-string name could not throw later; `bun run lint` failed with `Passing a string to String() does not change the type or value of the string  @typescript-eslint/no-unnecessary-type-conversion` on both, and the function was rewritten.
+- cause: `Error["name"]` and `Error["message"]` are typed `string`, though plain JavaScript can put any value there (`Object.assign(new Error(), { name: 5 })`); `strictTypeChecked` judges the type, not the runtime.
+- rule: when runtime values may break their declared type, widen them on purpose before converting: `const { name, message }: { name: unknown; message: unknown } = error;` then `String(name)`. Never answer the rule with a cast or an `eslint-disable`.
+- proof: a scratch `src/server/lib/zz-scratch.ts` holding `export function describe(error: Error): string { return String(error.name) + String(error.message); }` → `cd app && bunx eslint --max-warnings 0 src/server/lib/zz-scratch.ts; echo $?` prints the `no-unnecessary-type-conversion` error twice and `1` (measured 2026-10-02); `bunx eslint --max-warnings 0 src/server/lib/sentry.ts` → exit `0`.
+- added: 2026-10-02
+
+## P-086 · `vitest/expect-expect` refuses a test whose `expect` calls live in a helper
+- symptom: the B1b g4 close-out moved the R09 404 checks of `sentry-test-route.test.ts` into an `async function expectNotFound(response, id)` full of `expect`; `bunx eslint` failed with `Test has no assertions  vitest/expect-expect` on the two tests that only called it, and the helper was rewritten.
+- cause: the rule looks for `expect` (or a configured assert function name) inside the test's own body; `eslint.config.js` names no helper.
+- rule: a helper returns what it read (`answerOf(response)` returning status, headers and the parsed body) and the test asserts it with one `expect(...).toEqual(...)`. Do not add helper names to the rule's config to make a test pass.
+- proof: a scratch `tests/unit/zz-scratch.test.ts` with `function check(value: number) { expect(value).toBe(1); }` and `it("checks in a helper", () => { check(1); });` → `cd app && bunx eslint --max-warnings 0 tests/unit/zz-scratch.test.ts; echo $?` prints `Test has no assertions  vitest/expect-expect` and `1` (measured 2026-10-02); `bunx eslint --max-warnings 0 tests/unit/sentry-test-route.test.ts` → exit `0`.
 - added: 2026-10-02

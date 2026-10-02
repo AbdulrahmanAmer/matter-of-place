@@ -9,8 +9,8 @@ export interface PipelineContext {
 }
 
 export interface PipelineDeps {
-  /** Runs the request through the router and the server routes. */
-  render: (request: Request) => Promise<Response>;
+  /** Runs the request through the router and the server routes, which read the id (H39 (1)). */
+  render: (request: Request, requestId: string) => Promise<Response>;
   /** The cache hook B3 fills. It must return a response whose headers can be set. */
   cache: (request: Request, render: () => Promise<Response>) => Promise<Response>;
   getFlags: () => Promise<Flags>;
@@ -66,6 +66,24 @@ function requestIdOf(request: Request): string {
   return inbound !== null && REQUEST_ID.test(inbound) ? inbound : crypto.randomUUID();
 }
 
+const ERROR_MESSAGES = {
+  not_found: "There is nothing at this address.",
+  method_not_allowed: "This address does not accept that method.",
+  server: "Something went wrong. Please try again in a moment.",
+} as const;
+
+/** The R09 error body, never stored. B3's `toErrorResponse` in `errors.ts` takes this over. */
+export function errorJson(
+  status: number,
+  code: keyof typeof ERROR_MESSAGES,
+  requestId: string,
+): Response {
+  return Response.json(
+    { error: { code, message: ERROR_MESSAGES[code], requestId } },
+    { status, headers: { "cache-control": "no-store" } },
+  );
+}
+
 function calmServerError(request: Request, pathname: string, requestId: string): Response {
   const readsPage = request.method === "GET" || request.method === "HEAD";
   const wantsHtml =
@@ -77,16 +95,19 @@ function calmServerError(request: Request, pathname: string, requestId: string):
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
       })
-    : Response.json(
-        {
-          error: {
-            code: "server",
-            message: "Something went wrong. Please try again in a moment.",
-            requestId,
-          },
-        },
-        { status: 500 },
-      );
+    : errorJson(500, "server", requestId);
+}
+
+/**
+ * H39 (2): the router renders an API route file that has no handler for the method as a page.
+ * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status.
+ */
+function apiShellGuard(pathname: string, response: Response, requestId: string): Response {
+  const html = (response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html");
+  if (!pathname.startsWith("/api/") || !html) return response;
+  return response.status === 200
+    ? errorJson(405, "method_not_allowed", requestId)
+    : errorJson(response.status, "not_found", requestId);
 }
 
 /**
@@ -106,7 +127,7 @@ export async function handle(
   let response: Response;
   try {
     flags = await deps.getFlags();
-    const render = () => deps.render(request);
+    const render = () => deps.render(request, requestId);
     response =
       !neverCached(request, pathname) && isPageRequest(pathname)
         ? await deps.cache(request, render)
@@ -116,6 +137,7 @@ export async function handle(
     ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
     response = calmServerError(request, pathname, requestId);
   }
+  response = apiShellGuard(pathname, response, requestId);
 
   const headers = response.headers;
   headers.set("x-request-id", requestId);
