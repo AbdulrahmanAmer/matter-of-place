@@ -14,3 +14,10 @@ Step 2:
 - The merge kept vars; vite.config.ts unchanged.
 Gate: `bun run check` exit 0 (prettier fixed on the runbook), `bun run build` ok.
 Note: runbook is at app/docs/runbooks/delivery.md (STANDARDS folder map: docs/ lives under the app); the brief said docs/runbooks/delivery.md.
+
+Rework after review (wrangler.toml omitted plan line 117 content): added `compatibility_date = "2026-09-30"`, `compatibility_flags = ["nodejs_compat"]`, a commented `routes` block for Stage 5, and a marker comment for B8b's `[triggers] crons`. Step 1 proofs re-run, same results (private repo true, plan name empty for lack of the `user` scope, subdomain holy-meadow-4327 in the runbook).
+- `bun run build` then `node -e "...c.name,c.compatibility_date,..."` ->
+  `matter-of-place 2026-09-30 ["nodejs_compat"] {"MOP_ENV":"production","MEDIA_PUBLIC_BASE":"https://matterofplace.com/media"} {"enabled":true} undefined undefined`
+  (before the fix the date printed 2026-10-02, the build day)
+- `grep -n "queues\|browser\|images\|durable\|kv_namespaces" wrangler.toml` -> no output, exit 1
+- `bun run check` -> exit 0 (4 tests passed)

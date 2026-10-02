@@ -1,4 +1,14 @@
 name = "matter-of-place"
+compatibility_date = "2026-09-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Stage 5 custom domain: uncomment when matterofplace.com moves to this zone.
+# routes = [
+#   { pattern = "matterofplace.com", custom_domain = true },
+#   { pattern = "www.matterofplace.com", custom_domain = true },
+# ]
+
+# B8b adds the [triggers] crons line here.
 
 [vars]
 MOP_ENV = "production"
