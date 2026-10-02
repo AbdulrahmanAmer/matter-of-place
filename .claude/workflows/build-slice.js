@@ -1,7 +1,7 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end: size it into groups, a Sonnet 5.5 builder at high effort builds each group (Opus 5.5 for critical groups), an Opus 5.5 reviewer at high effort tries to refute it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } first closes a group that was built and rejected. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } (or a list of them) first closes groups that were built and rejected; give them ids such as c6 and pass only: ["c6"] to close without building further. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish; mark the critical ones', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log (Sonnet high; Opus high for a critical group)', model: 'sonnet' },
@@ -112,7 +112,9 @@ if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stop
 let groups = sized.groups
 // A group that was built and then rejected is closed first: closeOut = { id, steps, title, critical, defects }.
 // Its steps are already in the slice log, so the sizing left them out; the builder gets the reviewer's defects.
-if (a.closeOut) groups = [{ id: a.closeOut.id, steps: a.closeOut.steps, title: a.closeOut.title, files: [], proof: `every proof of plan steps ${a.closeOut.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(a.closeOut.critical), needsOrchestrator: '', openDefects: a.closeOut.defects }, ...groups]
+// closeOut may be one object or a list; give each an id the sizing cannot produce (c6, c7) so `only` can name it.
+const closing = [].concat(a.closeOut || []).map((c) => ({ id: c.id, steps: c.steps, title: c.title, files: [], proof: `every proof of plan steps ${c.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(c.critical), needsOrchestrator: '', openDefects: c.defects }))
+groups = [...closing, ...groups]
 const MAX_FIX = Number.isInteger(a.maxFixRounds) ? a.maxFixRounds : 3
 if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))
 if (a.only) groups = groups.filter((g) => a.only.includes(g.id))

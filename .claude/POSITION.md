@@ -668,3 +668,17 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Actions minutes: one CI run so far, about 3 billed minutes (P-009 line: 2,000 a month).
 - Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 6 of 6 (the last on the bank only); g5 2 of 3; g6 3 of 3.
 - NEXT: merge main into `slice/b1b`, then `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine", closeOut: { id: "g6", steps: "5", ... } } })`.
+
+## 2026-10-02 15:55 EDT · B1b: step 5 (g6) and step 5b (g7) both built and rejected; ruling H42; closing both next
+- The run of 14:53 EDT (`wf_f5c085e7-212`) did NOT close g6: it used a copy of the workflow without `closeOut`
+  (P-110). It built g7 (step 5b, merge gate: `app/scripts/merge-gate.mjs`, the `merge-gate` job of ci.yml,
+  `workspace/05-plans/merge-gate.mjs`), three reviews, two defects open (the merge script is under no format, lint or
+  type gate; two refusals untested). g6's four defects are still open (check-migrations patterns and tests, one bank
+  entry, the Dependabot note).
+- Ruling H42: documents-only pull requests pass the merge gate; the merge script joins the app's gates; the
+  destructive-change check follows STANDARDS R17; Dependabot unproven until on main; start saved workflows by scriptPath.
+- NEXT: merge main into `slice/b1b`; run the saved workflow BY scriptPath with
+  `closeOut: [c6 (step 5), c7 (step 5b)]`, `only: ["c6","c7"]`; verify the run's script copy holds `closing`;
+  then the orchestrator's own proofs for steps 4b, 5 and 5b; then `gh pr ready 22` and
+  `node workspace/05-plans/merge-gate.mjs 22` from the lane (the first merge of slice work into main).
+- The bank on main gained P-110; on the slice branch it holds up to P-109 and G-027: the next lane number is P-111.
