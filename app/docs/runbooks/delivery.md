@@ -165,7 +165,8 @@ The project setting "Prevent Storing of IP Addresses" (`scrubIPAddresses`) is of
 
 `POST /api/hooks/sentry-test` throws a marked error (its message holds `test@example.com`, which must arrive as
 `[email]`) when the bearer equals `SENTRY_TEST_TOKEN`, compared in constant time; otherwise, and whenever the secret is
-unset, it answers 404. Locally:
+unset, it answers 404. The route file is one wrapper line; the check lives in `src/server/hooks/sentry-test.ts`.
+Locally:
 
 ```
 # app/.dev.vars (git-ignored, values from .env, never printed): MOP_ENV=local, SENTRY_DSN, SENTRY_TEST_TOKEN (= PREVIEW_SENTRY_TEST_TOKEN)

@@ -7,6 +7,7 @@ const bytesOf = (input: string | Uint8Array): Uint8Array<ArrayBuffer> =>
   typeof input === "string" ? encoder.encode(input) : new Uint8Array(input);
 
 /** @public */
+// STUB(B3): first used by src/server/hooks/resend.ts (Svix signature) and the upload grant
 export async function hmacSha256(
   key: string | Uint8Array,
   message: string | Uint8Array,
@@ -35,26 +36,31 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /** @public */
+// STUB(B8): first used by src/server/lib/hmac.ts (signBody, verifyBody)
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 /** @public */
+// STUB(B3): first used by src/server/lib/ids.ts (hashKey, re-export)
 export async function sha256Hex(input: string | Uint8Array): Promise<string> {
   return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytesOf(input))));
 }
 
-/** @public B15's UUID v5 delivery id is the only user. */
+/** @public */
+// STUB(B15): first used by src/server/omnikom/payload.ts (UUID v5 delivery id), its only user
 export async function sha1Bytes(input: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-1", bytesOf(input)));
 }
 
 /** @public */
+// STUB(B3): first used by src/server/hooks/resend.ts (the whsec_ secret and v1 signatures)
 export function fromBase64(text: string): Uint8Array {
   return Uint8Array.from(atob(text), (char) => char.charCodeAt(0));
 }
 
 /** @public */
+// STUB(B3): first used by src/server/lib/ids.ts (newToken) and the upload grant
 export function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -62,6 +68,7 @@ export function toBase64Url(bytes: Uint8Array): string {
 }
 
 /** @public */
+// STUB(B3): first used by src/server/lib/ids.ts (newToken)
 export function randomToken(bytes = 32): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
@@ -72,6 +79,7 @@ const aesKey = (key: Uint8Array, usage: "encrypt" | "decrypt") =>
   crypto.subtle.importKey("raw", bytesOf(key), "AES-GCM", false, [usage]);
 
 /** @public A fresh 12-byte IV followed by the ciphertext and its tag. */
+// STUB(B5): first used by src/server/subscribers/confirm-email.ts (sealed confirm token)
 export async function aesGcmSeal(key: Uint8Array, plaintext: Uint8Array): Promise<Uint8Array> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const sealed = new Uint8Array(
@@ -88,6 +96,7 @@ export async function aesGcmSeal(key: Uint8Array, plaintext: Uint8Array): Promis
 }
 
 /** @public Null when the data was changed or sealed with another key. */
+// STUB(B5): first used by src/server/subscribers/confirm-email.ts (sealed confirm token)
 export async function aesGcmOpen(key: Uint8Array, sealed: Uint8Array): Promise<Uint8Array | null> {
   const cryptoKey = await aesKey(key, "decrypt");
   try {

@@ -587,7 +587,7 @@
   {
     "id": "route-compare",
     "test": "tests/unit/sentry-test-route.test.ts",
-    "file": "src/routes/api/hooks/sentry-test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
     "find": "!timingSafeEqual(bytes(bearer), bytes(token))",
     "replace": "false",
     "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
@@ -596,7 +596,7 @@
   {
     "id": "route-scheme",
     "test": "tests/unit/sentry-test-route.test.ts",
-    "file": "src/routes/api/hooks/sentry-test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
     "find": "/^Bearer (.+)$/",
     "replace": "/^(?:Bearer )?(.+)$/",
     "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
@@ -605,10 +605,91 @@
   {
     "id": "route-throw",
     "test": "tests/unit/sentry-test-route.test.ts",
-    "file": "src/routes/api/hooks/sentry-test.ts",
+    "file": "src/server/hooks/sentry-test.ts",
     "find": "  throw new SentryTestError(\"Sentry test error for test@example.com\");",
     "replace": "  return new Response(null, { status: 204 });",
     "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
     "expect": "answers 500 with the request id and no-store through handle, and reports the error"
+  },
+  {
+    "id": "crypto-iv",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));",
+    "replace": "const iv = new Uint8Array(IV_BYTES);",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "starts every seal with a fresh 12-byte IV"
+  },
+  {
+    "id": "crypto-sha1",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "crypto.subtle.digest(\"SHA-1\", bytesOf(input))",
+    "replace": "crypto.subtle.digest(\"SHA-256\", bytesOf(input))",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "gives the FIPS 180-2 value for sha1 of abc"
+  },
+  {
+    "id": "sentry-fp-route",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[options.route, type, top ?",
+    "replace": "[type, top ?",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another route"
+  },
+  {
+    "id": "sentry-fp-class",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[options.route, type, top ?",
+    "replace": "[options.route, top ?",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another error class"
+  },
+  {
+    "id": "sentry-fp-frame",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "top ? `${top.function}@${top.filename}:${String(top.lineno)}` : \"\"",
+    "replace": "\"\"",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends the same message again at once from another first stack frame"
+  },
+  {
+    "id": "sentry-retry-after",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "return Number.parseInt(response.headers.get(\"retry-after\") ?? \"\", 10) || 60;",
+    "replace": "return 60;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "pauses every send for the window named by a 429 with Retry-After: 120"
+  },
+  {
+    "id": "sentry-rate-limits",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "return Math.max(0, ...limits.split(\",\").map((limit) => Number.parseInt(limit, 10) || 0));",
+    "replace": "return 60;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "named by X-Sentry-Rate-Limits 30 and 120"
+  },
+  {
+    "id": "sentry-tag-mask",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "[name, scrubText(value)]",
+    "replace": "[name, value]",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "masks an address in a tag value"
+  },
+  {
+    "id": "sentry-frame-order",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "stacktrace: { frames: [...frames].reverse() },",
+    "replace": "stacktrace: { frames },",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "lists the frames oldest first, so the throwing frame is last"
   }
 ]

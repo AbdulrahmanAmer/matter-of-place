@@ -5,6 +5,7 @@ import {
   fromBase64,
   hmacSha256,
   randomToken,
+  sha1Bytes,
   sha256Hex,
   timingSafeEqual,
   toBase64Url,
@@ -93,6 +94,10 @@ describe("hashes and encodings", () => {
     );
   });
 
+  it("gives the FIPS 180-2 value for sha1 of abc", async () => {
+    expect(toHex(await sha1Bytes(text("abc")))).toBe("a9993e364706816aba3e25717850c26c9cd0d89d");
+  });
+
   it("makes a random token of 43 base64url characters", () => {
     const token = randomToken();
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -110,6 +115,15 @@ describe("aesGcmSeal and aesGcmOpen", () => {
 
   it("opens what it sealed", async () => {
     expect(await aesGcmOpen(key, await aesGcmSeal(key, message))).toEqual(message);
+  });
+
+  it("starts every seal with a fresh 12-byte IV", async () => {
+    const first = await aesGcmSeal(key, message);
+    const second = await aesGcmSeal(key, message);
+    // IV, ciphertext of the same length as the message, then the 16-byte tag.
+    expect(first).toHaveLength(12 + message.length + 16);
+    expect(first.subarray(0, 12)).not.toEqual(second.subarray(0, 12));
+    expect(first.subarray(12)).not.toEqual(second.subarray(12));
   });
 
   it("returns null when one byte was changed", async () => {

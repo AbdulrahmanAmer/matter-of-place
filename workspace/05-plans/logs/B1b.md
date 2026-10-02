@@ -200,3 +200,36 @@ Proofs, in `app/` (real output):
 - `bun run build` -> exit 0, `built in 1.18s`, `built in 637ms`, `built in 472ms`, `Generated .output/server/wrangler.json`
 
 UNPROVEN: `waitUntil` finishing the report on a deployed Worker (proved under `wrangler dev` only; step 7's production test); `crypto.ts` under Deno (B3 step 3b's `deno check`). `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+
+## g4 · steps 3b-4
+
+Fix round after the review of `0e39bc9` (seven defects).
+
+What changed:
+- `crypto.ts`: each of the nine `/** @public */` exports now has its `// STUB(<slice>): first used by ...` line above it (invariant 16, R04, C04): `hmacSha256`, `sha256Hex`, `fromBase64`, `toBase64Url`, `randomToken` B3; `aesGcmSeal`, `aesGcmOpen` B5; `toHex` B8; `sha1Bytes` B15. When that slice closes without using the export, `bun run stubs` fails.
+- `crypto.test.ts`: `sha1Bytes` has the FIPS 180-2 vector for `abc`; two seals of one message with one key differ in IV and ciphertext and are 12 + n + 16 bytes long (nonce reuse is red now).
+- `sentry.test.ts`: the default fingerprint is tested term by term (same message from another route, another error class at the same frame, another first frame: two sends each); the pause window is tested at 60 and 120 seconds for both `Retry-After` and `X-Sentry-Rate-Limits` (`30:transaction:key, 120:error:key` takes the longest); a tag value with an address arrives as `[email]`; frames arrive oldest first.
+- STANDARDS over the plan (R11, folder map row `src/routes/`): B1b line 131 puts the bearer check in the route file, STANDARDS says an API route file is one wrapper line, and STANDARDS binds. The logic moved to `src/server/hooks/sentry-test.ts` (`handleSentryTest(request, token)`, folder map domain `hooks`, as B3's `hooks/resend.ts` and B8's `hooks/ops-health.ts`); the route file is `POST: ({ request }) => handleSentryTest(request, process.env["SENTRY_TEST_TOKEN"])`. Orchestrator: B1b line 131 is stale.
+- `GOTCHAS.md`: P-081 (registry `find` from the formatted file, `expect` from real output, vitest truncates titles at about 80 characters, measured in this round), P-082 (`JSON.parse` and string rejections in tests), G-021 (a new route file fails tsc until a build regenerates the route tree).
+
+Files touched outside the group's list, and why: `src/server/hooks/sentry-test.ts` (new, the R11 move above); `tests/mutations/B1b.json` (route entries now point at the moved file, nine new entries for the new tests, R49, P-079); `GOTCHAS.md` (standing order, C25).
+
+Handoff to the orchestrator (plans this group may not edit):
+- `captureException` takes `dsn: string | undefined` as a required key (R14: `sentry.ts` reads no environment). Stale plan lines: B8.md:124 ("gains the optional `dsn`": it exists; B8 passes `dsn: Deno.env.get("SENTRY_DSN")`, which already type-checks, B8.md:66); B3.md:89 (`{ requestId, route }`: also needs `env`, `release`, `dsn`), B3.md:95 (needs `dsn`), B17.md:16 (`{ route }`: needs `requestId`, `env`, `release`, `dsn`), B8b.md:127 (`{ ...opts, route: "keepwarm" }`: `opts` must carry `requestId`, `env`, `release`, `dsn`), B5.md:59 already passes `dsn` from `ctx.env.SENTRY_DSN`. Each will fail `tsc` when built as written, which is the safe failure; the plan text should say the real shape.
+- Ruling needed (R09): the 404 of `sentry-test` has an empty body because `handle` (g3's `pipeline.ts`) passes the original request to `deps.render` and the handler never sees the minted request id. Either the pipeline hands the id to render (g3's file), or R09 exempts this inert 404. The response does carry `x-request-id`.
+
+Proofs, in `app/` (real output):
+- `bunx vitest run tests/unit/log.test.ts tests/unit/crypto.test.ts` -> `Test Files  2 passed (2)  Tests  23 passed (23)`
+- `grep -rn "crypto.subtle" src | grep -v "src/server/lib/crypto.ts"` -> nothing (`lines: 0`)
+- `bunx vitest run tests/unit/sentry.test.ts tests/unit/sentry-test-route.test.ts` -> `Tests  26 passed (26)`
+- `.dev.vars` compared with `.env` without printing: `dsn matches .env`, `token matches .env`, `MOP_ENV=local`; `bun run build` exit 0; `bun run cf:preview` -> `Using secrets defined in .output\server\.dev.vars`, `Ready on http://127.0.0.1:8788`
+- `curl -s -X POST -H "authorization: Bearer $PREVIEW_SENTRY_TEST_TOKEN" http://127.0.0.1:8788/api/hooks/sentry-test` -> `HTTP 500`, `{"error":{"code":"server","message":"Something went wrong. Please try again in a moment.","requestId":"ce9420b9-0ce3-4a00-9dd1-6eb44a411e6e"}}`, `Cache-Control: no-store`, `x-request-id: ce9420b9-0ce3-4a00-9dd1-6eb44a411e6e`; wrong bearer -> `HTTP 404`
+- issues query `request_id:ce9420b9-...` -> `issues: 1 (after 1 polls)`, `issue id: 7767612319`; events query `&full=true` -> `events: 1`, tags `request_id/env/release/side: ce9420b9-0ce3-4a00-9dd1-6eb44a411e6e local dev worker`, `user: null`, `request entry: none`, `exception value: SentryTestError | Sentry test error for [email]`, `ip/cookie/authorization count: 0`, `email count: 0`
+- stop (P-042): `stopped node.exe 23000`, `stopped node.exe 8956`, two `workerd` stopped, `listeners on 8788: 0`, `workerd left: 0`
+- keys: `curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" ".../keys/" | node -e "...map(k=>k.name).join(',')"` -> `job-runner,Default`; `job-runner {"window":3600,"count":20} active true`, `Default {"window":3600,"count":50} active true`; the runbook table lists both with these limits
+- watched-fail, every g4 entry of `tests/mutations/B1b.json` replayed (find asserted once, saved bytes restored): `replayed 29, failures 0`, among them (am), (b), (e), (r), (au) and the new `crypto-iv`, `crypto-sha1`, `sentry-fp-route`, `sentry-fp-class`, `sentry-fp-frame`, `sentry-retry-after`, `sentry-rate-limits`, `sentry-tag-mask`, `sentry-frame-order`; the reviewer's five mutations of `sentry.ts` and two of `crypto.ts` are among them and are red
+- `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (21 path entries, 80 process entries)`
+- `bun run check` -> exit 0: `layout: OK (577 files)`, eslint silent, knip `Configuration hints (4)` (g3's), `Found 0 clones.`, `stubs: 13 markers, 0 on closed slices`, `All matched files use Prettier code style!`, `Test Files  11 passed (11)  Tests  150 passed (150)`
+- `bun run build` -> exit 0, `built in 2.22s`, `built in 1.60s`, `built in 1.08s`, `Generated .output/server/wrangler.json`
+
+UNPROVEN: `waitUntil` finishing the report on a deployed Worker (proved under `wrangler dev` only; step 7); `crypto.ts` under Deno (B3 step 3b's `deno check`). `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).

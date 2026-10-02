@@ -749,3 +749,26 @@ Entry template
 - rule: in a test that needs the timeout under fake timers, `vi.spyOn(AbortSignal, "timeout")` with an `AbortController` aborted from a (faked) `setTimeout`, and let the fake `fetch` take the signal as optional so a mutation that drops the signal hangs instead of failing a parse (`tests/unit/sentry.test.ts`).
 - proof: `cd app && bunx vitest run tests/unit/sentry.test.ts -t "never answers"` passes in milliseconds; registry entry `r` (no `AbortSignal.timeout`) turns it red with `Test timed out in 5000ms`.
 - added: 2026-10-02
+
+## P-081 · A registry entry written from memory does not match: prettier rewrites the `find`, vitest words and truncates the `expect`
+- symptom: in B1b g4 three entries of `tests/mutations/B1b.json` failed their replay although the mutation was right. One `find` held the non-2xx log line of `sentry.ts` on one line, but prettier had split it over two, so it occurred zero times. One `expect` said "not to have property"; vitest prints `to not have property "request"`. In the fix round a case named `... X-Sentry-Rate-Limits header whose longest window is 120 seconds` went red for the right reason and still failed the replay: vitest printed `... header whose lo…`, cut at about 80 characters, in both the `×` line and the `FAIL` line.
+- cause: `find` was copied from the code as typed, not from the file after `prettier --write`; `expect` was copied from the test title or from memory, not from the runner's output, and vitest shortens long test names when the output is not a wide terminal.
+- rule: run `bunx prettier --write` on the changed files before writing any `find`, and take `find` from the file on disk. Take `expect` from the red run's real output. Keep a test title under about 75 characters, or match only its first words. Replay every new entry with a runner that asserts `find` occurs once and the output matches `expect` before you call it watched-fail.
+- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` with the rate-limits parse replaced by `return 60;` prints `× pauses every send for the window named by an X-Sentry-Rate-Limits header whose lo…` with the old title; with the title `X-Sentry-Rate-Limits 30 and 120` the replay of entry `sentry-rate-limits` prints `RED sentry-rate-limits: exit=1 expect=true`.
+- added: 2026-10-02
+
+## P-082 · Lint refuses `JSON.parse` results and string rejections in tests, not only console spies
+- symptom: the first lint run of `tests/unit/sentry.test.ts` failed on values read from `JSON.parse` and on a fake fetch that rejected with a string. P-076 names only `vi.spyOn(console, method)` over a union, so it did not warn about either.
+- cause: `JSON.parse` returns `any`, so any use of it trips `no-unsafe-assignment` and `no-unsafe-member-access` (strictTypeChecked); `Promise.reject("text")` trips `prefer-promise-reject-errors`. Tests are linted with the same type-aware rules as `src`.
+- rule: in a test, parse JSON into `unknown` (`const parseJson = (text: string): unknown => JSON.parse(text)`) and read it through a Zod schema; reject only with an `Error` (`Promise.reject(new TypeError("network down"))`). Run `bunx eslint --max-warnings 0 <new test file>` before the first full check.
+- proof: a scratch `tests/unit/zz-scratch.test.ts` holding `const parsed = JSON.parse('{"a":1}'); expect(parsed.a).toBe(1);` and `await expect(Promise.reject("plain text")).rejects.toBe("plain text");` → `bunx eslint --max-warnings 0` prints `no-unsafe-assignment`, `no-unsafe-member-access` and `prefer-promise-reject-errors`, exit 1 (measured 2026-10-02); `bunx eslint --max-warnings 0 tests/unit/sentry.test.ts` → exit 0.
+- added: 2026-10-02
+
+## G-021 · A new route file fails the typecheck until a build regenerates the route tree
+- paths: app/src/routes/**
+- severity: warn
+- symptom: `bun run check` failed on a new `src/routes/api/hooks/sentry-test.ts` with `Argument of type '"/api/hooks/sentry-test"' is not assignable to parameter of type 'keyof FileRoutesByPath | undefined'`, although the file was right. A `bun run build` made it pass.
+- cause: `createFileRoute(path)` is typed by `src/routeTree.gen.ts`, which only the router plugin writes, during `vite build` or `vite dev` (G-001). `bun run check` runs `tsc` first and never runs the plugin.
+- rule: after adding, renaming or deleting a route file, run `bun run build` (or have `bun run dev` running) before `bun run check`, and commit the regenerated `src/routeTree.gen.ts` with the route. Never edit the generated file to make tsc pass.
+- proof: a scratch `src/routes/api/hooks/zz-scratch.ts` with `createFileRoute("/api/hooks/zz-scratch")` → `cd app && bunx tsc -p tsconfig.json --noEmit` prints that TS2345 error and exits 2 (measured 2026-10-02); deleting the file restores exit 0.
+- added: 2026-10-02

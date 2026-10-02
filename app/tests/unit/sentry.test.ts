@@ -81,6 +81,14 @@ function boom(): Error {
   return new TypeError("the same failure");
 }
 
+function boomElsewhere(): Error {
+  return new TypeError("the same failure");
+}
+
+function failWith(kind: ErrorConstructor): Error {
+  return new kind("the same failure");
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
@@ -205,6 +213,20 @@ describe("captureException", () => {
     expect(envelope.event).not.toHaveProperty("fingerprint");
   });
 
+  it("lists the frames oldest first, so the throwing frame is last", async () => {
+    const { captureException } = await load();
+    await captureException(boom(), OPTIONS);
+    const frames = sent().envelope.event.exception.values[0]?.stacktrace.frames ?? [];
+    expect(frames.at(-1)?.function).toBe("boom");
+    expect(frames[0]?.function).not.toBe("boom");
+  });
+
+  it("masks an address in a tag value", async () => {
+    const { captureException } = await load();
+    await captureException(new Error("x"), { ...OPTIONS, route: "/people/jane@example.com" });
+    expect(sent().envelope.event.tags["route"]).toBe("/people/[email]");
+  });
+
   it("sends side, fingerprint and level when given", async () => {
     const { captureException } = await load();
     await captureException(new Error("quota"), {
@@ -287,6 +309,35 @@ describe("one event per fingerprint and the rate limits (INT-12)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    {
+      name: "another route",
+      first: () => boom(),
+      second: () => boom(),
+      secondRoute: "/other",
+    },
+    {
+      name: "another error class",
+      first: () => failWith(TypeError),
+      second: () => failWith(RangeError),
+      secondRoute: OPTIONS.route,
+    },
+    {
+      name: "another first stack frame",
+      first: () => boom(),
+      second: () => boomElsewhere(),
+      secondRoute: OPTIONS.route,
+    },
+  ])(
+    "sends the same message again at once from $name (route, class and first frame)",
+    async ({ first, second, secondRoute }) => {
+      const { captureException } = await load();
+      await captureException(first(), OPTIONS);
+      await captureException(second(), { ...OPTIONS, route: secondRoute });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it("sends two errors with different fingerprints twice", async () => {
     const { captureException } = await load();
     await captureException(boom(), { ...OPTIONS, fingerprint: ["alert", "a"] });
@@ -295,18 +346,36 @@ describe("one event per fingerprint and the rate limits (INT-12)", () => {
   });
 
   it.each([
-    { name: "a 429 with Retry-After: 60", status: 429, headers: { "retry-after": "60" } },
     {
-      name: "an X-Sentry-Rate-Limits header",
+      name: "a 429 with Retry-After: 60",
+      status: 429,
+      headers: { "retry-after": "60" },
+      seconds: 60,
+    },
+    {
+      name: "a 429 with Retry-After: 120",
+      status: 429,
+      headers: { "retry-after": "120" },
+      seconds: 120,
+    },
+    {
+      name: "X-Sentry-Rate-Limits 60",
       status: 200,
       headers: { "x-sentry-rate-limits": "60:error:key" },
+      seconds: 60,
     },
-  ])("pauses every send for the window named by $name", async ({ status, headers }) => {
+    {
+      name: "X-Sentry-Rate-Limits 30 and 120",
+      status: 200,
+      headers: { "x-sentry-rate-limits": "30:transaction:key, 120:error:key" },
+      seconds: 120,
+    },
+  ])("pauses every send for the window named by $name", async ({ status, headers, seconds }) => {
     const { captureException } = await load();
     answer = () => Promise.resolve(new Response(null, { status, headers }));
     await captureException(new Error("first"), OPTIONS);
     answer = () => Promise.resolve(new Response(null, { status: 200 }));
-    await vi.advanceTimersByTimeAsync(59_000);
+    await vi.advanceTimersByTimeAsync(seconds * 1000 - 1000);
     await captureException(new RangeError("another problem"), { ...OPTIONS, route: "/other" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1_001);
