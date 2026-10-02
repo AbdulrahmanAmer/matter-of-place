@@ -609,3 +609,58 @@ For the orchestrator (rulings needed; not built, so nothing was changed quietly)
 - `lastSent` in `sentry.ts` now holds keys of at most about 5,000 characters (10 parts of 500), but its count is bounded only by distinct errors within 60 s in one isolate (B3's edge rate limit on `/api/public/*` bounds the browser's share). Not measured.
 
 UNPROVEN: `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream dropped by the `/api/` guard is released without cost on a deployed Worker. `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+
+## g5 · steps 4b
+
+Built: a page whose request the router refuses (Accept holds neither `text/html` nor `*/*`, Start's bare 500) now answers 406 `not_acceptable` with the R09 body and `no-store` (ASSUMED H41 (1)). knip hints for `src/routeTree.gen.ts` and `src/router.tsx` cleared. Files: `app/src/server/lib/pipeline.ts`, `app/tests/unit/pipeline.test.ts`, `app/tests/mutations/B1b.json`, `app/knip.json`, `app/docs/runbooks/delivery.md`, plus `GOTCHAS.md` (G-025 rewritten for the 406, P-093 added).
+
+Findings:
+- The first run of the new 406 test failed on `cache-control`: the 406 is not a 5xx, so the page branch stamped `public, max-age=0, must-revalidate` over the `no-store` that `errorJson` sets. Fix: `neverCached` lists status 406 (its docstring says so); registry entry `pipe-406-no-store` turns the test red without it.
+- The plan's letters (bm) and (bn) were already registry ids from step 2b (`http-client.test.ts` `price`, `stubs.ts` walk). The new entries are `bm-page-refusal` and `bn-page-406-all` (GOTCHAS P-093). Entry `pipe-refusal-off` had a `find` that no longer parsed once the condition became `const refused = await refusedByRouter(request, response);`; rewritten (P-090).
+- `knip` exits 0 with two hints that stay: `src/db/types.ts` (B2 creates it) and `supabase/functions/*/index.ts` (B8); listed in the runbook with the slice that clears each.
+- The runbook now says what H41 (2) and (3) accept: `//` gets Start's bare 308 and a trailing slash under `/api/` the router's 307, neither with `x-request-id` or security headers.
+- A stray `python3 - <<EOF` with an empty heredoc hung the shell for 120 seconds (the Windows store stub waits on stdin); nothing was written by it. Edits went through the Edit tool.
+
+Proof 1: `cd app && bunx vitest run tests/unit/pipeline.test.ts`
+```
+ Test Files  1 passed (1)
+      Tests  81 passed (81)
+```
+
+Proof 2: `bun run build`, `bun run cf:preview` (MOP_ENV=local in `.dev.vars`), then
+`curl -s -D h.txt -o b.json -w "%{http_code} %{content_type}" -H "Accept: application/json" http://127.0.0.1:8788/`
+```
+406 application/json
+Cache-Control: no-store
+X-Frame-Options: DENY
+x-request-id: f5b9faa6-0900-44ad-8f23-c70ef4e9d579
+{"error":{"code":"not_acceptable","message":"This address answers with a web page only.","requestId":"f5b9faa6-0900-44ad-8f23-c70ef4e9d579"}}
+```
+The body `requestId` equals the `x-request-id` header. Same address, other Accept values (same run):
+```
+Accept: text/html                          200 text/html; charset=utf-8
+no Accept header                           200 text/html; charset=utf-8
+/sitemap.xml with Accept: application/json 200 application/xml; charset=utf-8
+GET /api/hooks/sentry-test, Accept json    405 application/json
+```
+Stopped by the parent `node.exe`/`bun.exe` (P-042): `listeners on 8788: 0`, `workerd left: 0`.
+
+Proof 3: `cd app && bun run knip; echo exit=$?`
+```
+$ knip
+Configuration hints (2)
+src/db/types.ts                  knip.json  Remove from ignore
+supabase/functions/*/index.ts    knip.json  Refine entry pattern (no matches)
+exit 0
+```
+`grep -c "routeTree.gen.ts\|router.tsx"` on that output prints `0`.
+
+Proof 4: `bun run check` exit 0 (layout, typecheck, lint, knip, jscpd, stubs 15 markers 0 on closed slices, prettier, vitest 11 files 188 tests passed); `bun run build` exit 0; `node workspace/05-plans/check-gotchas.mjs` prints `check-gotchas: OK (25 path entries, 91 process entries)`.
+
+Watched-fails (replayed with the runner whose text is in the g4 close-out block of this log, `node ../scratch/replay.mjs <id>`; `--check` prints `checked 121, bad 0`; all 37 entries on `pipeline.ts` replayed `RED`, `not red 0`):
+- (bm) `bm-page-refusal`: `} else if (refused) {` becomes `} else if (false) {`. Red: `FAIL ... answers a page asked for with Accept application/json with the R09 406`, `AssertionError: expected 500 to be 406`. Restored.
+- (bn) `bn-page-406-all`: the same line becomes `} else if (!underApi) {`. Red: `FAIL ... leaves a page asked for with Accept text/html as it is`, `AssertionError: expected 406 to be 200` (the page-and-API case fails too). Restored.
+- `pipe-406-no-store`: `response.status >= 500 || response.status === 406` becomes `response.status >= 500`. Red on the 406 test. Restored.
+- `pipe-refusal-off`: `const refused = false;`. Red on `answers the router's refusal of GET with Accept application/json with the R09 405`. Restored.
+
+UNPROVEN: the 406 on a deployed Worker (only `cf:preview` was run); whether B3's cache module stores a response that `neverCached` marks 406 (the pipeline never passes it to the store, since the status is decided after the hook returns).

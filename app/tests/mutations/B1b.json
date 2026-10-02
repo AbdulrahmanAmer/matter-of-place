@@ -939,10 +939,37 @@
     "id": "pipe-refusal-off",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "(await refusedByRouter(request, response))",
-    "replace": "false",
+    "find": "const refused = await refusedByRouter(request, response);",
+    "replace": "const refused = false;",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "answers the router's refusal of"
+  },
+  {
+    "id": "bm-page-refusal",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (refused) {\n",
+    "replace": "  } else if (false) {\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page asked for with Accept application/json with the R09 406"
+  },
+  {
+    "id": "bn-page-406-all",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (refused) {\n",
+    "replace": "  } else if (!underApi) {\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves a page asked for with Accept text/html as it is"
+  },
+  {
+    "id": "pipe-406-no-store",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "response.status >= 500 || response.status === 406",
+    "replace": "response.status >= 500",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page asked for with Accept application/json with the R09 406"
   },
   {
     "id": "pipe-refusal-405",

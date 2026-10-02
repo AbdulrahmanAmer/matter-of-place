@@ -77,6 +77,13 @@ step 3 on the built Worker).
 - An unhandled error answers the calm 500: the HTML page for a GET or HEAD outside `/api/` that accepts HTML, otherwise
   `{ "error": { "code": "server", "message": "...", "requestId": "..." } }` (STANDARDS R09; the plan's shorter shape
   had no `message`, GOTCHAS P-078). Both carry `x-request-id` and `no-store`.
+- A request the router refuses because its `Accept` holds neither `text/html` nor `*/*` (Start answers a bare 500
+  `{"error":"Only HTML requests are supported here"}`, GOTCHAS G-025) gets R09 JSON with `no-store`: under `/api/` 405
+  `method_not_allowed` when an API route file matches the path, else 404 `not_found`; on a page 406 `not_acceptable`
+  (ASSUMED H41 (1)). A page asked for with `Accept: text/html` is untouched.
+- Two answers come from Start itself and carry no `x-request-id` and no security header, accepted as they are (ASSUMED
+  H41): a path that starts with `//` gets a bare 308 to the single-slash path before any of our code runs, and a
+  trailing slash under `/api/` gets the router's 307 to the path without it. H1's header sweep leaves `//` paths out.
 - The Content-Security-Policy ships as `Content-Security-Policy-Report-Only`; a policy already on the response (a hit
   stored by B3) is never overwritten.
 - Until B3 lands, the cache hook is a pass-through and the flags are empty (the stub markers in `src/start.ts` name
@@ -108,6 +115,17 @@ A second block for the same path replaces the first. Measured on 2026-10-02 with
 `/assets/*` block in our file (it would be dead text) and no security header sits in a path Nitro also writes
 (GOTCHAS G-017). The immutable lifetime of fingerprinted assets is Nitro's rule; `scripts/smoke.mjs` (step 6) checks it
 on a preview, and `headers.test.ts` fails if a block for `/assets/*` is added.
+
+### Knip configuration hints that stay
+
+`bun run knip` exits 0 and prints two hints, each about a file a later slice creates (ASSUMED H41 (6), GOTCHAS P-065).
+A hint that names a file that exists today is a defect and was cleared in step 4b (`src/routeTree.gen.ts`,
+`src/router.tsx`).
+
+| Hint                                        | Cleared by                                                     |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `src/db/types.ts`: remove from `ignore`     | B2, when `bun run gen:types` writes the file and knip finds it |
+| `supabase/functions/*/index.ts`: no matches | B8, when `supabase/functions/job-runner/index.ts` exists       |
 
 ## Preview the built Worker on this machine
 

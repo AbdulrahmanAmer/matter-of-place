@@ -233,6 +233,29 @@ describe("a path under /api/ never answers the page shell (H39 (2))", () => {
     );
     expect([response.status, await response.text()]).toEqual([render().status, rendered]);
   });
+
+  it("answers a page asked for with Accept application/json with the R09 406", async () => {
+    const response = await setup({ render: refusal }).run(
+      get("/california", { headers: { accept: "application/json" } }),
+    );
+    expect(response.status).toBe(406);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    expect(body.parse(await response.json()).error).toEqual({
+      code: "not_acceptable",
+      message: "This address answers with a web page only.",
+      requestId: response.headers.get("x-request-id"),
+    });
+  });
+
+  it("leaves a page asked for with Accept text/html as it is", async () => {
+    const response = await setup({ render: shell(200) }).run(
+      get("/california", { headers: { accept: "text/html" } }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+  });
 });
 
 describe("rule 6: never cached", () => {

@@ -76,7 +76,8 @@ export function isPageRequest(pathname: string): boolean {
 
 /**
  * Architecture 13 rule 6. Without `response` it answers for the request alone, which decides
- * whether the cache hook may run; with it, also for a cookie or a 5xx.
+ * whether the cache hook may run; with it, also for a cookie, a 5xx or the 406 that depends on
+ * the request's `Accept`.
  */
 export function neverCached(request: Request, pathname: string, response?: Response): boolean {
   const search = new URL(request.url).searchParams;
@@ -87,7 +88,8 @@ export function neverCached(request: Request, pathname: string, response?: Respo
     NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
     search.has("preview") ||
     search.has("draft_token") ||
-    (response !== undefined && (response.headers.has("set-cookie") || response.status >= 500))
+    (response !== undefined &&
+      (response.headers.has("set-cookie") || response.status >= 500 || response.status === 406))
   );
 }
 
@@ -99,6 +101,7 @@ function requestIdOf(request: Request): string {
 const ERROR_MESSAGES = {
   not_found: "There is nothing at this address.",
   method_not_allowed: "This address does not accept that method.",
+  not_acceptable: "This address answers with a web page only.",
   server: "Something went wrong. Please try again in a moment.",
 } as const;
 
@@ -186,10 +189,13 @@ export async function handle(
     ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
     response = calmServerError(request, underApi, requestId);
   }
-  if (underApi && (await refusedByRouter(request, response))) {
+  const refused = await refusedByRouter(request, response);
+  if (refused && underApi) {
     response = deps.isApiRoute(path)
       ? errorJson(405, "method_not_allowed", requestId)
       : errorJson(404, "not_found", requestId);
+  } else if (refused) {
+    response = errorJson(406, "not_acceptable", requestId);
   }
   response = apiShellGuard(underApi, response, requestId);
 
