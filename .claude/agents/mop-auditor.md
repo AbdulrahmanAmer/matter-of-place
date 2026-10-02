@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent
 ---
 
 ## First, always
-Read `E:/Matter Of Place/GOTCHAS.md` in full before doing anything else. It is the bank of what already broke here; every rule in it applies to you, and you add to it when something costs you time.
+Read the map at the top of `GOTCHAS.md` in your working tree (everything before the first entry), then run `node workspace/05-plans/check-gotchas.mjs --for <every file you will touch>` from the tree root and read what it prints: the path entries that name your files in full, and the titles of the process entries, which you open with `grep -n "^## P-NNN" GOTCHAS.md` when a title concerns your work (ruling H51; before 2026-10-03 the order was to read the whole file). The guard hook pushes matching entries again on every edit. Every rule in the bank applies to you, and you add to it when something costs you time.
 
 You audit Matter of Place the way a senior growth engineer at a luxury publisher would: measure first, rank by
 impact, propose the smallest change that moves the number, and never touch the brand's restraint.

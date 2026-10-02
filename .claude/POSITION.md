@@ -840,3 +840,11 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   sealed paper copy before step 8's escrow deletes it from the laptop. P-502 banked (Git Bash path conversion).
 - Step 7's production secrets are NOT pre-settable: the production Worker does not exist until B3b (H49); the dev
   Worker's secrets come from CI. So item 3 removes one stop (step 8 part A), not two.
+
+## 2026-10-03 02:40 +0300 · Restart kit complete (H51); still PARKED, waiting for the operator's go
+- H51: agents read the bank map plus `check-gotchas.mjs --for <files>` (agent bodies, workflow rules, CLAUDE.md
+  changed); `test` script caps workers at 2 and gives 60 s timeouts (bun run check on main: 404 passed, exit 0).
+- `workspace/05-plans/restart.json` = the four lane launches with exact arguments. ON GO: fetch and merge origin/main
+  in each lane, then launch all four by scriptPath in one message, then the six plan audits (H50 item 1).
+- The stopped run wf_689ef72f-fa9 is NOT resumed; its work is the c7 close-out in restart.json (two items; the third
+  is on main).
