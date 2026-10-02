@@ -1,12 +1,12 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end: size it into groups, a Sonnet 5.5 builder at high effort builds each group (Opus 5.5 for critical groups), an Opus 5.5 reviewer at high effort tries to refute it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } (or a list of them) first closes groups that were built and rejected; give them ids such as c6 and pass only: ["c6"] to close without building further. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } (or a list of them) first closes groups that were built and rejected; give them ids such as c6 and pass only: ["c6"] to close without building further. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from). Lanes side by side (ruling H45): previewPort: 8798 gives the lane its own port, bankBase: { P: 300, G: 100 } its own gotcha numbers, branch: "slice/b2" its branch. A review rejects only on a blocking defect; follow-ups are banked or listed by one agent and the group is accepted.',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish; mark the critical ones', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log (Sonnet high; Opus high for a critical group)', model: 'sonnet' },
     { title: 'Review', detail: 'a fresh Opus reviewer re-runs the proofs and tries to refute the claim of done', model: 'opus' },
-    { title: 'Fix', detail: 'the builder repairs what the reviewer refuted, three rounds at most unless maxFixRounds says otherwise', model: 'sonnet' },
+    { title: 'Fix', detail: 'the builder repairs the blocking defects, three rounds at most unless maxFixRounds says otherwise; follow-ups are banked or listed by one agent', model: 'sonnet' },
   ],
 }
 
@@ -23,7 +23,9 @@ const slice = a.slice
 if (!slice || !/^(B|H|L)[0-9a-z]+$/i.test(slice)) throw new Error('args.slice is required, for example { slice: "B1b" }')
 const planPath = `${ROOT}/workspace/05-plans/${slice}.md`
 const logPath = `${ROOT}/workspace/05-plans/logs/${slice}.md`
-const branch = `slice/${slice.toLowerCase()}`
+const branch = a.branch || `slice/${slice.toLowerCase()}`
+const followPath = `${ROOT}/workspace/05-plans/logs/${slice}-followups.md`
+const PORT = a.previewPort || 8788
 
 const GROUPS = {
   type: 'object',
@@ -62,7 +64,7 @@ const BUILD = {
     unproven: { type: 'array', items: { type: 'string' } },
     blockedOn: { type: 'string' },
     gotchasAdded: { type: 'array', items: { type: 'string' }, description: 'ids of the GOTCHAS.md entries you added, for example P-064; empty only if nothing cost you more than a few minutes' },
-    costTime: { type: 'array', items: { type: 'string' }, description: 'everything that took a second attempt, a workaround or a correction of the plan, one line each; empty if truly nothing' },
+    costTime: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, entry: { type: 'string', description: 'the id of the GOTCHAS.md entry that banks this cost (P-123 or G-045), new or existing; never empty' } }, required: ['what', 'entry'] }, description: 'everything that took a second attempt, a workaround or a correction of the plan, each with the gotcha entry that banks it; empty if truly nothing' },
     memory: { type: 'string' },
   },
   required: ['status', 'filesChanged', 'commits', 'proofs', 'watchedFail', 'unproven', 'blockedOn', 'gotchasAdded', 'costTime', 'memory'],
@@ -73,7 +75,7 @@ const REVIEW = {
   properties: {
     verdict: { type: 'string', enum: ['accept', 'reject'] },
     reran: { type: 'array', items: { type: 'object', properties: { command: { type: 'string' }, observed: { type: 'string' }, pass: { type: 'boolean' } }, required: ['command', 'observed', 'pass'] } },
-    defects: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, what: { type: 'string' }, evidence: { type: 'string' } }, required: ['file', 'what', 'evidence'] } },
+    defects: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, what: { type: 'string' }, evidence: { type: 'string' }, blocking: { type: 'boolean', description: 'true only for the kinds the brief lists as blocking; everything else is a follow-up' } }, required: ['file', 'what', 'evidence', 'blocking'] } },
   },
   required: ['verdict', 'reran', 'defects'],
 }
@@ -86,6 +88,8 @@ const RULES = `Standing rules for this project (they overrule habit):
 ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the repository (a lane of the 48-hour build, S54). Every path you read or write is under it. Never read, edit, check out or run git in ${MAIN}: other lanes and the orchestrator work there. A Supabase CLI command that needs the project link runs \`supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"\` in this tree's app folder first (the link is per folder). Never push an unmerged migration to mop-dev from a lane (ASSUMED section H, ruling DB-01): your database proof is the \`db\` job of CI on your pull request.\n`}- ${ROOT}/workspace/05-plans/STANDARDS.md binds every line you write: its folder map says where each file lives (a file that fits no row stops you: say so, do not invent a folder), its rules and mechanical gates are part of every proof. ASSUMED section H (the engineering review rulings) overrules older plan text; when a plan line cites a finding id (for example DB-01), its full text is in ${ROOT}/workspace/05-plans/review/${slice}.md.
 - Write only what the step needs. No dead code, no speculative option or abstraction, no comment that restates the code, no swallowed error, no TODO left behind, no file outside the folder map, nothing committed that is build output, a log or a scratch file.- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge, never force-push, never rewrite pushed history.
 - One writer per file: touch only the files your group names, plus ${logPath} (append only).
+- Lanes run side by side (ruling H45). The local preview port of this lane is ${PORT}: wherever a plan step, a script or a gotcha says 8788, use ${PORT} here (\`wrangler dev --config .output/server/wrangler.json --port ${PORT}\` after copying .dev.vars as the cf:preview script does). Stop only the processes you started, by their own process id; never stop every node or workerd process, another lane may be serving its own preview.${a.bankBase ? ` Gotcha numbers in this lane start at P-${a.bankBase.P} and G-${a.bankBase.G}: take the next free number at or above them, so two lanes never hand out the same number.` : ''}
+- Each cost you list under costTime names the gotcha entry that banks it. A cost without an entry is not finished work.
 - Every new test is watched-fail: break the code it covers, see it red for the right reason, restore.
 - A red result is a valid result. Paste real output. Words to use: UNPROVEN, NOT DONE, BLOCKED. Two failed approaches to one obstacle ends the attempt: record BLOCKED and what would unblock it.
 - Copy is calm and brief with no em dashes. Never edit src/routeTree.gen.ts by hand.`
@@ -126,7 +130,7 @@ The plan is ${planPath}. Read it in full, then ${ROOT}/workspace/05-plans/STANDA
 Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
 Proof you must run and paste: ${g.proof}
 
-${defects ? `A fresh reviewer rejected the previous attempt. Fix exactly these defects, then re-run every proof:\n${JSON.stringify(defects, null, 1)}\n` : `Start: \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" checkout ${branch} 2>/dev/null || git -C "${ROOT}" checkout -b ${branch} ${BASE}\`. Confirm the branch before you write.`}
+${defects ? `A fresh reviewer rejected the previous attempt. Fix exactly the defects marked blocking (or all of them when none carries the mark), then re-run every proof. A defect marked "blocking": false is a follow-up: fix it only when it is a small change inside your own files, otherwise leave it, another agent records it.\n${JSON.stringify(defects, null, 1)}\n` : `Start: \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" checkout ${branch} 2>/dev/null || git -C "${ROOT}" checkout -b ${branch} ${BASE}\`. Confirm the branch before you write.`}
 Build the steps in order. After each step run its proof. When the group is proven: run \`bun run check\` and \`bun run build\` in the app folder, commit on ${branch} with a message that names the slice and steps, push the branch (\`git push -u origin ${branch}\`).
 Append to ${logPath} a block headed "## ${g.id} · steps ${g.steps}" with each proof command and its real output (trim long output, never trim the failing part).
 If the plan is wrong, do not build something else quietly: stop, say what is wrong, and return status "blocked".`
@@ -140,22 +144,28 @@ The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs
 2. Try to refute "done": an invariant of the plan the code breaks, a proof that passes for the wrong reason, a test that cannot fail, a file the group should have created that is missing, a convention in AGENTS.md that is broken, a secret or an em dash in the diff, Docker assumed, R2 or a second database or an Anthropic key assumed (rulings H33, H34, H35).
 3. Run \`bun run check\` in the app folder.
 4. Read ${ROOT}/workspace/05-plans/STANDARDS.md and go through its reviewer checklist line by line against the diff, and check every new or moved file against its folder map. A broken rule of STANDARDS.md is a defect: name the rule and the line. So is code the step did not ask for: dead code, an unused export, a speculative option, a comment that restates the code, a swallowed error, a leftover TODO, a scratch or generated file in the commit.
-5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${ROOT}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${ROOT}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${ROOT} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so the author adds it.
-Verdict "accept" only if every proof reproduced and you found no defect that breaks the contract or the standards. Taste alone is not a defect.`
+5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${ROOT}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${ROOT}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${ROOT} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so it gets added.
+6. Mark every defect blocking or not (ruling ASSUMED H45 (1)). Blocking, true: behaviour that breaks the plan's Contract, an invariant or a rule of STANDARDS.md in the group's own files; a proof that fails, or a test that stays green when the thing it covers is removed; a risk to security or to data; a regression of something that worked; a false statement in a runbook or in the log. Follow-up, false: a missing gotcha entry; a stale line in a plan or document that is not this group's file (it is the orchestrator's to fold); a weakness the plan does not ask this step to close; a note for a later slice; anything you would accept without. Before you mark a defect blocking, name to yourself the concrete input or event that makes it go wrong for this product; if you cannot, it is a follow-up. Do not hunt for ever finer cases in a helper script once its contract holds: say what it does not cover in one follow-up.
+Verdict "reject" only when at least one defect is blocking or a proof did not reproduce. Otherwise "accept", and list the follow-ups: one agent banks or records every one of them, none is dropped. Taste alone is not a defect.`
 
 // S62: Sonnet 5.5 at high effort builds; Opus 5.5 at high effort builds a critical group and reviews every group.
 const builderModel = (g) => (a.builderModel === 'opus' || g.critical || (a.opusGroups || []).includes(g.id) ? 'opus' : 'sonnet')
-// A review that rejects only because costs are missing from the gotcha bank has passed the code: a bank agent adds
-// the entries and the group closes without another build and review round. The orchestrator checks the entries.
-const bankOnly = (r) => Boolean(r && r.verdict === 'reject' && r.defects.length && r.defects.every((d) => /GOTCHAS\.md$/.test(String(d.file))))
+// Ruling H45 (1): only a blocking defect costs a build and review round. A review whose defects are all follow-ups
+// (a missing gotcha entry, a stale line in someone else's file, a weakness the plan does not ask the step to close)
+// has passed the code: one agent banks or records every follow-up and the group is accepted. The orchestrator reads
+// the follow-ups file and folds it before the slice closes, so nothing is dropped.
+const isBank = (d) => /GOTCHAS\.md$/.test(String(d.file))
+const blocks = (r) => Boolean(r && r.verdict === 'reject' && (r.defects.length === 0 || r.reran.some((x) => !x.pass) || r.defects.some((d) => d.blocking !== false && !isBank(d))))
+const followUps = (r) => (r ? r.defects.filter((d) => d.blocking === false || isBank(d)) : [])
 const bankPrompt = (g, defects) => `${RULES}
 
-Group ${g.id} of slice ${slice} (plan steps ${g.steps}) passed its code review: a fresh reviewer found no defect in the code, only costs that have no entry in the gotcha bank.
-Add those entries to ${ROOT}/GOTCHAS.md. Change no other file, except to append to ${logPath} a short block headed "## ${g.id} · bank close-out" that names the entries.
-Take the next free number above the highest in the file. Give each entry the lines its neighbours have (symptom, cause, rule, proof, added) and a proof a reader can run.
+Group ${g.id} of slice ${slice} (plan steps ${g.steps}) passed its code review: a fresh reviewer found no blocking defect, only follow-ups. Record every one of them; change no code.
+1. A follow-up whose file is GOTCHAS.md is a cost with no entry in the gotcha bank: add the entry to ${ROOT}/GOTCHAS.md with the lines its neighbours have (symptom, cause, rule, proof, added) and a proof a reader can run.
+2. Every other follow-up goes, word for word with its evidence, under a heading "## ${g.id} · steps ${g.steps}" appended to ${followPath} (create the file with a first line "# ${slice} follow-ups: the orchestrator folds or assigns each before the slice closes" when it does not exist).
+3. Append to ${logPath} a short block headed "## ${g.id} · follow-ups recorded" that names the gotcha entries and counts the other follow-ups.
 Then run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}, commit on ${branch}, push, and report the entry ids in gotchasAdded.
 
-The missing entries, as the reviewer wrote them:\n${JSON.stringify(defects, null, 1)}`
+The follow-ups, as the reviewer wrote them:\n${JSON.stringify(defects, null, 1)}`
 const out = []
 for (const g of groups) {
   if (g.blocked) {
@@ -163,23 +173,26 @@ for (const g of groups) {
     log(`${g.id} (steps ${g.steps}) BLOCKED on ${g.blockedOn}`)
     continue
   }
-  let built = await agent(buildPrompt(g, g.openDefects || null), { label: `${g.openDefects ? 'close' : 'build'}:${slice}:${g.id}`, phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
+  // The label carries the steps so the progress board (workspace/05-plans/board.mjs) can read the journal.
+  const tag = (kind) => `${kind}:${slice}:${g.id}:${g.steps}`
+  let built = await agent(buildPrompt(g, g.openDefects || null), { label: tag(g.openDefects ? 'close' : 'build'), phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
   if (!built) { out.push({ group: g.id, steps: g.steps, status: 'failed', blockedOn: 'builder agent died' }); break }
   let review = null
   let rounds = 0
   if (built.status !== 'blocked') {
-    review = await agent(reviewPrompt(g, built), { label: `review:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    while (review && review.verdict === 'reject' && !bankOnly(review) && rounds < MAX_FIX) {
+    review = await agent(reviewPrompt(g, built), { label: tag('review'), phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+    while (blocks(review) && rounds < MAX_FIX) {
       rounds++
-      const fixed = await agent(buildPrompt(g, review.defects), { label: `fix${rounds}:${slice}:${g.id}`, phase: 'Fix', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
+      const fixed = await agent(buildPrompt(g, review.defects), { label: tag(`fix${rounds}`), phase: 'Fix', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
       if (!fixed) break
       built = fixed
-      review = await agent(reviewPrompt(g, built), { label: `review${rounds + 1}:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+      review = await agent(reviewPrompt(g, built), { label: tag(`review${rounds + 1}`), phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
     }
   }
   let bankClosed = null
-  if (bankOnly(review)) bankClosed = await agent(bankPrompt(g, review.defects), { label: `bank:${slice}:${g.id}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
-  const accepted = Boolean(review && (review.verdict === 'accept' || (bankClosed && bankClosed.status === 'done')))
+  const passed = Boolean(review && !blocks(review))
+  if (passed && followUps(review).length) bankClosed = await agent(bankPrompt(g, followUps(review)), { label: tag('bank'), phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+  const accepted = passed && (!followUps(review).length || Boolean(bankClosed && bankClosed.status === 'done'))
   out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, builder: builderModel(g), critical: Boolean(g.critical), built, review, bankClosed, needsOrchestrator: g.needsOrchestrator })
   log(`${g.id} (steps ${g.steps}): ${built.status}, review ${review ? review.verdict : 'not run'}, fix rounds ${rounds}`)
   if (!accepted) { log(`stopping after ${g.id}: later groups depend on it`); break }

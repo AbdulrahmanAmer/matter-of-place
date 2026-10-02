@@ -34,7 +34,7 @@ and 4 plans.
 
 | Phase | Lanes (each is one builder session at a time, reviewed by a fresh context) |
 |---|---|
-| 0 Spine, one lane | B1b, then B2, then B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the lanes open) |
+| 0 Spine, two lanes while they do not depend on each other (ruling H45 (4), 2026-10-02) | Delivery: the rest of B1b (steps 6 to 11) · Database: B2, which depends only on B1b steps 1 to 3 · then one lane: B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the phase 1 lanes open) |
 | 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
 | 2 One lane | H1 on everything, then L1: the launch switch of the one database (ASSUMED H35), production secrets, deploy, matterofplace.com routed to the Worker |
 
