@@ -354,11 +354,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ### Property (`src/domain/property.ts`)
 
-**Type Definitions:**
-- `CampaignTier`: "Editorial" | "Feature" | "Reach" | "Campaign"
-- `ListingStatus`: "Illustrative" | "Active" | "Off-market" | "Under offer" | "Sold"
-- `PropertyType`: "Estate" | "Residence" | "Townhouse" | "Waterfront" | "Farmhouse" | "Apartment" | "Penthouse"
-- `SubmissionSource`: "Editorial" | "Submission"
+**Schema:** `propertySchema` (Zod); `Property` is `z.infer<typeof propertySchema>`. The enumerations are inline `z.enum` values in that schema, not named types; `GalleryImage` and `PropertyVideo` are the only other exported types in the file.
 
 **Property Fields:**
 | Field | Type | Notes |
@@ -381,11 +377,11 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | interiorSqFt | number | Interior square footage |
 | lotAcres | number | Lot size in acres |
 | yearBuilt | number | Construction year |
-| type | PropertyType | Property type |
+| type | "Estate" \| "Residence" \| "Townhouse" \| "Waterfront" \| "Farmhouse" \| "Apartment" \| "Penthouse" | Property type |
 | style | string | Architectural style |
 | architect | string | Optional: credited architect |
 | designer | string | Optional: credited interior designer |
-| status | ListingStatus | Current status |
+| status | "Illustrative" \| "Active" \| "Off-market" \| "Under offer" \| "Sold" | Current status |
 | heroImage | string | Hero photograph path |
 | gallery | GalleryImage[] | Array of gallery images |
 | video | PropertyVideo | Optional: film asset |
@@ -396,9 +392,9 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | listingUrl | string | Optional: listing URL |
 | heroRank | number | Optional: home page hero position |
 | featuredRank | number | Optional: home page featured grid position |
-| campaignTier | CampaignTier | Campaign tier |
+| campaignTier | "Editorial" \| "Feature" \| "Reach" \| "Campaign" | Campaign tier |
 | publishedAt | string | ISO date published |
-| source | SubmissionSource | Editorial or Submission |
+| source | "Editorial" \| "Submission" | Editorial or Submission |
 | related | string[] | Optional: hand-picked related property slugs |
 
 **GalleryImage:**
@@ -437,12 +433,12 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | currency | string | ISO 4217 currency code |
 | intro | string | Market introduction copy |
 | places | string[] | Places the market covers |
-| regions | Region[] | Array of Region objects |
+| regions | object[] | Array of region objects |
 | notes | Note[] | "How we read this market" notes |
-| guide | MarketGuide | Market guide (neighborhoods, needs, service) |
+| guide | object | Market guide (neighborhoods, needs, service) |
 | image | string | Editorial hero photograph |
 
-**Region:**
+**regions[]** (file-local `regionSchema`):
 - slug: RegionSlug
 - name: string
 - intro: string
@@ -453,12 +449,12 @@ Weekend-ready homes within reach of the city, with land and privacy.
 - label: string
 - text: string
 
-**MarketGuide:**
-- neighborhoods: Neighborhood[]
+**guide** (file-local `marketGuideSchema`):
+- neighborhoods: object[]
 - needs: Note[]
 - service: Note[]
 
-**Neighborhood:**
+**guide.neighborhoods[]** (file-local `neighborhoodSchema`):
 - name: string
 - region: RegionSlug
 - text: string
@@ -467,8 +463,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ### Story (`src/domain/story.ts`)
 
-**Type Definitions:**
-- `StoryCategory`: "Architecture" | "Interiors" | "Places" | "Stories"
+**Schema:** `storySchema` (Zod); `Story` is `z.infer<typeof storySchema>`. `category` is an inline `z.enum`, not a named type.
 
 **Story Fields:**
 | Field | Type | Notes |
@@ -477,7 +472,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 | slug | string | URL-friendly identifier |
 | title | string | Story title |
 | deck | string | One-sentence standfirst |
-| category | StoryCategory | Story category |
+| category | "Architecture" \| "Interiors" \| "Places" \| "Stories" | Story category |
 | market | MarketSlug | "california" \| "florida" \| "new-york" |
 | image | string | Hero photograph |
 | body | string[] | Body (one paragraph per entry) |

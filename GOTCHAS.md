@@ -608,3 +608,17 @@ Entry template
 - rule: restore a mutated file by writing back the bytes saved before the edit (`cp` to a scratch folder first, or the replay runner). Use `git checkout --` only on a file that `git status --short` shows clean.
 - proof: `git status --short app/src/domain/property.ts` before a mutation prints ` M ...`: copy the file aside first.
 - added: 2026-10-02
+
+## P-069 · `useEffectEvent` is in React 19.2 and in its types, but `eslint-plugin-react-hooks` 5.2.0 does not know it
+- symptom: to fire a view event once per key without a lint disable, `use-track-view.ts` first used `useEffectEvent`. It type-checks (`@types/react` 19.2 has it) and the build passes, but `react-hooks/exhaustive-deps` reports `React Hook useEffect has a missing dependency: 'fire'`; adding `fire` to the dependency array restarts the effect on every render, because the plugin treats an event function as an ordinary one. The first approach was dropped and the hook rewritten.
+- cause: `app/package.json` pins `eslint-plugin-react-hooks` `^5.2.0`, whose effect-event recognition is compiled out: `isUseEffectEventIdentifier` returns `false` in `node_modules/eslint-plugin-react-hooks/cjs/eslint-plugin-react-hooks.development.js` (line 159). The latest on npm is 7.1.1; whether it handles the hook was not tried here (UNPROVEN).
+- rule: until the plugin is raised on purpose (a dependency change with its own proof), do not use `useEffectEvent`. Keep the latest value in a ref, assign it in an effect without a dependency array, and read the ref inside the effect that must fire once (`src/hooks/use-track-view.ts`). Never answer the warning with an `eslint-disable` (a disable with no finding behind it is itself an error).
+- proof: put `const fire = useEffectEvent(() => { track(event, data); }); useEffect(() => { fire(); }, [key]);` in a scratch file under `app/src/hooks/` and run `cd app && bunx eslint --max-warnings 0 <file>; echo $?` → the `exhaustive-deps` warning on `'fire'` and exit 1; `bunx eslint --max-warnings 0 src/hooks/use-track-view.ts; echo $?` → exit 0.
+- added: 2026-10-02
+
+## P-070 · A Bash heredoc that carries a script or an edit drops its backslashes: `\|` becomes `|`, and the file is written wrong without an error
+- symptom: a Node fix script written inline with a quoted heredoc (`<<'EOF'`) turned the Markdown table escape `\\|` into `|` in six table cells, which split each cell in two. The registry rework of B1b g2 (regex and path text with backslashes) was lost the same way. P-008 names single-quoted arguments; this is the same collapse inside a heredoc, where it is easier to believe the quoting protects the text.
+- cause: the Bash tool on this machine rewrites backslashes before the shell sees the command, so a quoted delimiter does not preserve them.
+- rule: any text that contains a backslash (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`) goes in with the Write or Edit tool, never through a heredoc or an inline script. After a scripted rewrite of such a file, read back the changed lines (`git diff`) before trusting it.
+- proof: `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the `type` row keeps its escapes); the same row written through a heredoc printed `"Estate" | "Residence"` with no backslash.
+- added: 2026-10-02
