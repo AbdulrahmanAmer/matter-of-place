@@ -34,6 +34,8 @@ Worker addresses: preview `https://pr-<n>.holy-meadow-4327.workers.dev`, dev
 | deno          | 2.8.1   | same                                                                                                                                                                                                                     |
 | wrangler      | 4.145.0 | pinned exactly as a devDependency in step 3, so `bun run cf:preview` and `bunx wrangler` in `app/` use it; E11 says 4.145.0; `bunx wrangler` outside the folder resolved 4.146.0 on 2026-10-02. Dependabot moves the pin |
 
+`bun run test` passes `--testTimeout=60000 --hookTimeout=60000` (ruling H49 (3)): with two lanes building on this laptop, tests that spawn processes ran past vitest's 5 s default and read as failures (GOTCHAS G-031); CI runners are not loaded and keep their speed.
+
 ## Free plan consequences
 
 - Branch protection of `main` is not available: `gh api repos/AbdulrahmanAmer/matter-of-place/branches/main/protection`
@@ -268,8 +270,11 @@ invariant 6a). Both jobs check out the commit that `ci` tested (`github.event.wo
   `MOP_ENV` from `HAS_DB`, pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, waits for ten
   answers in a row, smokes `https://matter-of-place-dev.holy-meadow-4327.workers.dev` and rolls back on a red smoke.
   It also runs on `workflow_dispatch` from `main`, for the rollback rehearsal.
-- `production` waits for `dev` (`needs: dev`), so the database is migrated before the production Worker deploys and a
-  red `dev` skips it. It links no project and pushes no migration. It builds with the repository variables
+- `production` runs only while the repository variable `PRODUCTION_DEPLOY` is `on` (ruling H49 (1)). Production never
+  shows an illustrative property, and until B3b's coming-soon mode is on `main` a production build would show the
+  illustrative catalogue, so the orchestrator keeps the variable `off` (`gh variable list`) and sets it to `on` with
+  `gh variable set PRODUCTION_DEPLOY --body on` once B3b has merged; until then a merge deploys `dev` only. It waits for
+  `dev` (`needs: dev`), so the database is migrated before the production Worker deploys and a red `dev` skips it. It links no project and pushes no migration. It builds with the repository variables
   (`VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_TURNSTILE_SITE_KEY`), deploys `matter-of-place` with `MOP_ENV` left at
   the `wrangler.toml` default `production`, waits, smokes `https://matter-of-place.holy-meadow-4327.workers.dev` and
   rolls back on a red smoke. Its only secrets are `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
@@ -278,9 +283,9 @@ Both pass `SENTRY_RELEASE` (the tested commit) and `MEDIA_PUBLIC_BASE`: the dev 
 for production its `workers.dev` origin plus `/media` until L1 sets the repository variable `MOP_LAUNCHED` to `true`
 at the domain cut-over, then `https://matterofplace.com/media` (H33 (4)). No workflow line changes for the cut-over.
 
-While the repository variable `VITE_API_BASE_URL` is absent (ruling H48, until B3's last step sets it), the production
-build takes the local services adapter like every preview, so `matter-of-place` serves the illustrative content under
-`MOP_ENV=production` on its `workers.dev` address (noindex) until B3b hides it.
+While the repository variable `VITE_API_BASE_URL` is absent (ruling H48, until B3's last step sets it), a production
+build takes the local services adapter like every preview, which is the illustrative content; that is why `production`
+waits for `PRODUCTION_DEPLOY`.
 
 ### The deploy guard
 
@@ -296,10 +301,19 @@ over new. A `superseded` line in a run's log is expected after such a re-run, no
 
 A first deploy of a Worker name answers Cloudflare's own 404 now and then for about 20 seconds (GOTCHAS P-137), so
 both jobs wait for ten answers with `x-request-id` in a row, at most 180 s, before the smoke. When any step after the
-deploy fails (the secrets push of `dev`, the wait or the smoke), the step `rollback` runs `bunx wrangler rollback --name <worker> --message
-"smoke failed <sha>" --yes` with the deploy token (Workers Scripts Write is enough, ASSUMED E1) and the job ends red.
-GitHub's failed-run email to the owner is the alert; there is no automatic retry, and the fix is a new commit. On the
-very first deploy of a Worker there is no earlier version, so the rollback fails too.
+deploy fails (the secrets push of `dev`, the wait or the smoke), the step `rollback` runs with the deploy token
+(Workers Scripts Write is enough, ASSUMED E1) and the job ends red. GitHub's failed-run email to the owner is the
+alert; there is no automatic retry, and the fix is a new commit.
+
+The rollback of `dev` names its target (ruling H49 (2)). Before the deploy, the step `current` reads the version
+serving 100 percent from `bunx wrangler deployments list --name matter-of-place-dev --json` and prints `serving: <id>`;
+the rollback runs `bunx wrangler rollback <id> --name matter-of-place-dev --message "smoke failed <sha>" --yes` and
+prints `rolled back to <id>`. Without an id, wrangler 4.145 takes the newest deployment but one
+(`fetchDefaultRollbackVersionId`), and in `dev` that is the deploy of the failing code, because the secrets push made
+the newest deployment. When the Worker does not exist yet Cloudflare answers code 10007, the step prints
+`serving: none`, and a red smoke then ends with `first deploy: nothing to roll back to`. Any other answer of the list
+fails the step before the deploy. `production` pushes no secret after its deploy, so its rollback without an id
+returns to the version that served before it.
 
 Rehearsal of the rollback step (DO-09, step 7b): `gh workflow run deploy.yml --ref main -f rehearse_rollback=true`
 runs `dev` alone with `SMOKE_FORCE_FAIL=1`, so its smoke prints `smoke forced to fail (SMOKE_FORCE_FAIL)`, the rollback

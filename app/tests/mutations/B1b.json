@@ -3327,8 +3327,8 @@
     "id": "hy-cleanup-exit",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "            exit 1\n",
-    "replace": "",
+    "find": "            printf '%s\\n' \"$out\"\n            exit 1\n",
+    "replace": "            printf '%s\\n' \"$out\"\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview-cleanup deletes pr-<n> and forgives only"
   },
@@ -3480,8 +3480,8 @@
     "id": "hy-main-event",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'\n",
-    "replace": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'\n",
+    "find": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "replace": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && vars.PRODUCTION_DEPLOY == 'on'\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× dev and production deploy only the commit ci passed on main"
   },
@@ -3615,8 +3615,8 @@
     "id": "hy-dev-db-order",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
-    "replace": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n",
+    "find": "      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      # The version serving now is the rollback target. The secrets step below makes a deployment\n      # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers\n      # code 10007 for a Worker that does not exist yet: then there is no target.\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
+    "replace": "      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      # The version serving now is the rollback target. The secrets step below makes a deployment\n      # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers\n      # code 10007 for a Worker that does not exist yet: then there is no target.\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× dev pushes main's migrations before its deploy"
   },
@@ -3637,5 +3637,86 @@
     "replace": "      group: production-${{ vars.CI_HEAVY }}\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× production and dev never read CI_HEAVY"
+  },
+  {
+    "id": "hy-prod-deploy-off",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "replace": "\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production runs only while PRODUCTION_DEPLOY is on"
+  },
+  {
+    "id": "hy-prod-deploy-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "github.ref == 'refs/heads/main')\n",
+    "replace": "github.ref == 'refs/heads/main') && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production runs only while PRODUCTION_DEPLOY is on"
+  },
+  {
+    "id": "hy-rollback-no-id",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "bunx wrangler rollback \"$PREVIOUS\" --name matter-of-place-dev",
+    "replace": "bunx wrangler rollback --name matter-of-place-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-rollback-first-ok",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "echo \"first deploy: nothing to roll back to\"\n            exit 1\n",
+    "replace": "echo \"first deploy: nothing to roll back to\"\n            exit 0\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-current-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
+    "replace": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-any-error",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then",
+    "replace": "elif true; then",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-not-serving",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "select(.percentage == 100)",
+    "replace": "select(.percentage > 0)",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-target",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "PREVIOUS: ${{ steps.current.outputs.version }}",
+    "replace": "PREVIOUS: ${{ steps.deploy.outputs.version }}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-test-timeout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"test\": \"vitest run --testTimeout=60000 --hookTimeout=60000\",",
+    "replace": "\"test\": \"vitest run\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× the test script gives every test and hook 60 s"
   }
 ]

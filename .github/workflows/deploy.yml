@@ -8,8 +8,9 @@ name: deploy
 # 2,000 minutes a month of GOTCHAS P-009, and one pr-<n> Worker per open ready pull request from
 # the Workers free plan.
 # Deploys from main (B1b step 7): once ci passes on a push to main, dev and then production deploy
-# that commit (invariant 6a). Cost (C22), estimated from the preview job until the first merge is
-# measured (UNPROVEN): about 1 minute each, so 2 Actions minutes per code push to main, from the
+# that commit (invariant 6a); production only while PRODUCTION_DEPLOY is on (H49 (1)). Cost (C22),
+# estimated from the preview job until the first merge is measured (UNPROVEN): about 1 minute
+# each, so 1 Actions minute per code push to main while production is off and 2 after, from the
 # same P-009 line; two Workers of the free plan.
 on:
   pull_request:
@@ -263,6 +264,26 @@ jobs:
           bunx supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF" --password "$DEV_SUPABASE_DB_PASSWORD"
           bun run db:push
       # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).
+      # The version serving now is the rollback target. The secrets step below makes a deployment
+      # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers
+      # code 10007 for a Worker that does not exist yet: then there is no target.
+      - name: current
+        id: current
+        if: steps.guard.outputs.superseded != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>"$RUNNER_TEMP/current.err"); then
+            version=$(printf '%s' "$out" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')
+          elif grep -q "code: 10007" "$RUNNER_TEMP/current.err"; then
+            version=""
+          else
+            cat "$RUNNER_TEMP/current.err"
+            exit 1
+          fi
+          echo "serving: ${version:-none}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: build
         if: steps.guard.outputs.superseded != 'true'
         env:
@@ -310,21 +331,29 @@ jobs:
         env:
           SMOKE_FORCE_FAIL: ${{ inputs.rehearse_rollback && '1' || '' }}
         run: node scripts/smoke.mjs "$URL"
-      # GitHub's failed-run email is the alert; no retry, the fix is a new commit. A first deploy
-      # has no earlier version, so this step fails too.
+      # GitHub's failed-run email is the alert; no retry, the fix is a new commit.
       - name: rollback
         if: failure() && steps.deploy.outcome == 'success'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler rollback --name matter-of-place-dev --message "smoke failed $SHA" --yes
+          PREVIOUS: ${{ steps.current.outputs.version }}
+        run: |
+          if [ -z "$PREVIOUS" ]; then
+            echo "first deploy: nothing to roll back to"
+            exit 1
+          fi
+          bunx wrangler rollback "$PREVIOUS" --name matter-of-place-dev --message "smoke failed $SHA" --yes
+          echo "rolled back to $PREVIOUS"
 
   # Deploys only the commit ci passed on a push to main (invariant 6a), after dev has migrated the
   # one database (needs: dev, H35). It links no project, pushes no migration and deploys no Edge
-  # Function (invariant 13).
+  # Function (invariant 13). Production never shows an illustrative property: the job stays off
+  # until the orchestrator sets PRODUCTION_DEPLOY to on, once coming-soon mode (B3b) is on main
+  # (H49 (1)).
   production:
     needs: dev
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && vars.PRODUCTION_DEPLOY == 'on'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

@@ -19,7 +19,7 @@
     "lint:fix": "eslint . --fix --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --fix --max-warnings 0 workspace/05-plans/merge-gate.mjs",
     "format": "prettier --config .prettierrc --write . ../workspace/05-plans/merge-gate.mjs",
     "format:check": "prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs",
-    "test": "vitest run",
+    "test": "vitest run --testTimeout=60000 --hookTimeout=60000",
     "check": "bun run layout && bun run typecheck && bun run lint && bun run knip && bun run jscpd && bun run stubs && bun run format:check && bun run test",
     "knip": "knip",
     "jscpd": "jscpd",

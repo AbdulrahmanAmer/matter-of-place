@@ -184,6 +184,10 @@ describe("toolchain (GS-07)", () => {
     const age = /^minimumReleaseAge\s*=\s*(\d+)/m.exec(read(join(APP, "bunfig.toml")))?.[1];
     expect(Number(age)).toBeGreaterThanOrEqual(86400);
   });
+
+  it("the test script gives every test and hook 60 s on a loaded laptop (H49 (3))", () => {
+    expect(packageJson.scripts["test"]).toBe("vitest run --testTimeout=60000 --hookTimeout=60000");
+  });
 });
 
 describe("workflows (invariants 1, 8, 13 to 15; R54, R56, R58)", () => {
@@ -527,8 +531,31 @@ const ADDRESS: Record<string, string> = {
   dev: "https://matter-of-place-dev.holy-meadow-4327.workers.dev",
   production: "https://matter-of-place.holy-meadow-4327.workers.dev",
 };
+const PRODUCTION_ON = "vars.PRODUCTION_DEPLOY == 'on'";
 const GUARDED = "steps.guard.outputs.superseded != 'true'";
 const ROLLBACK_IF = "failure() && steps.deploy.outcome == 'success'";
+const DEV_CURRENT = [
+  `if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>"$RUNNER_TEMP/current.err"); then`,
+  `  version=$(printf '%s' "$out" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')`,
+  `elif grep -q "code: 10007" "$RUNNER_TEMP/current.err"; then`,
+  `  version=""`,
+  "else",
+  `  cat "$RUNNER_TEMP/current.err"`,
+  "  exit 1",
+  "fi",
+  'echo "serving: ${version:-none}"',
+  'echo "version=$version" >> "$GITHUB_OUTPUT"',
+  "",
+].join("\n");
+const DEV_ROLLBACK = [
+  'if [ -z "$PREVIOUS" ]; then',
+  '  echo "first deploy: nothing to roll back to"',
+  "  exit 1",
+  "fi",
+  'bunx wrangler rollback "$PREVIOUS" --name matter-of-place-dev --message "smoke failed $SHA" --yes',
+  'echo "rolled back to $PREVIOUS"',
+  "",
+].join("\n");
 const MainTriggers = z.object({
   workflow_run: z.object({
     workflows: z.array(z.string()),
@@ -556,7 +583,7 @@ describe("deploy.yml production and dev jobs (step 7)", () => {
     }).toEqual({
       trigger: { workflows: ["ci"], types: ["completed"], branches: ["main"] },
       dev: `(${ON_MAIN}) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')`,
-      production: ON_MAIN,
+      production: `${ON_MAIN} && ${PRODUCTION_ON}`,
       ref: MAIN_JOBS.map((job) => COMMIT[job]),
       depth: [0, 0],
       sha: [true, true],
@@ -617,7 +644,7 @@ describe("deploy.yml production and dev jobs (step 7)", () => {
         ordered: true,
         waitsForTen: true,
         rollbackIf: ROLLBACK_IF,
-        rollback: rollbackOf("matter-of-place-dev"),
+        rollback: DEV_ROLLBACK,
       },
       production: {
         address: true,
@@ -629,6 +656,30 @@ describe("deploy.yml production and dev jobs (step 7)", () => {
       rehearsal: "${{ inputs.rehearse_rollback && '1' || '' }}",
       input: { type: "boolean", default: false },
     });
+  });
+
+  it("dev rolls back to the version that served before its deploy (H49 (2))", () => {
+    const steps = stepsOf("dev");
+    const current = steps.findIndex((step) => step.id === "current");
+    const rollback = steps.find((step) => step.name === "rollback");
+    expect({
+      when: steps[current]?.if,
+      reads: steps[current]?.run,
+      beforeDeploy: current >= 0 && current < steps.findIndex((step) => step.id === "deploy"),
+      target: rollback?.env?.["PREVIOUS"],
+    }).toEqual({
+      when: GUARDED,
+      reads: DEV_CURRENT,
+      beforeDeploy: true,
+      target: "${{ steps.current.outputs.version }}",
+    });
+  });
+
+  it("production runs only while PRODUCTION_DEPLOY is on, dev always (H49 (1))", () => {
+    expect({
+      production: String(deployJob("production")?.if).split(" && ").at(-1),
+      dev: String(deployJob("dev")?.if).includes("PRODUCTION_DEPLOY"),
+    }).toEqual({ production: PRODUCTION_ON, dev: false });
   });
 
   it("dev pushes main's migrations before its deploy, only when there are any (13)", () => {
