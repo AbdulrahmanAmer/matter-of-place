@@ -1118,3 +1118,12 @@ Entry template
 - proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` → `Tests  89 passed (89)`; registry entries `cm-routine-cascade`, `cm-routine-other-schema` and `cm-routine-order` turn it red; `node ../scratch/c6r6-probe.mjs ../scratch/cm-saved-r5.mjs` (text in the B1b log, c6 round 6) → `cases 18, bad 10`, and on the current script `cases 18, bad 0`.
 - enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
 - added: 2026-10-02
+
+## G-031 · The type-aware lint test has the default 5000 ms limit and goes red on a loaded laptop with no lint fault
+- paths: app/tests/unit/hygiene.test.ts
+- severity: warn
+- symptom: during the B1b c6 round 6 review `cd app && bun run check` exited 1 with `Error: Test timed out in 5000ms.` at `tests/unit/hygiene.test.ts:543:3` and `Tests  1 failed | 333 passed | 8 skipped (342)`; the next two runs exited 0 on the same bytes. The test is `lint is type-aware, zero-warning and refuses the named rules`. It cost the review two extra full check runs and timing runs, and a reader sees a lint regression that is not there.
+- cause: the test builds an `ESLint` with `projectService` (a type-aware program) and sets no timeout of its own, so vitest's 5000 ms default applies. Alone it takes about 1.5 s (1471 to 1489 ms measured), 1513 to 1698 ms in the full suite; with other lanes running on this shared laptop it took 5056 ms once. CI's check job has the same exposure on a slow runner.
+- rule: a test that starts ESLint with `projectService` (or any type-aware program) carries its own timeout in the third argument of `it`, sized for a loaded machine, not the default. Until this one does, a red `Test timed out in 5000ms` at that line with every other test green is this flake: run `bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware"` alone, and if it passes in about 1.5 s run `bun run check` again; never edit lint rules or `eslint.config.js` for it. A second red on a quiet machine is a real fault.
+- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware" --reporter=verbose` → `✓ ... lint is type-aware, zero-warning and refuses the named rules 1489ms` and `Tests  1 passed | 37 skipped (38)` (measured 2026-10-02); `grep -n "lint is type-aware" GOTCHAS.md workspace/05-plans/logs/B1b.md` finds this entry.
+- added: 2026-10-02

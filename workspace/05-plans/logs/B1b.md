@@ -2422,3 +2422,8 @@ console.log(`cases ${String(Object.keys(cases).length)}, bad ${String(bad)}`);
 UNPROVEN: Dependabot (`dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Argument types of a dropped and a created function are not compared (now in the runbook's "does not read" list).
 
 GOTCHAS: G-030 added; G-029 proof count updated.
+
+## c6 · bank close-out
+The review of c6 round 6 found no defect in the code, only a cost with no entry: `bun run check` once failed with `Test timed out in 5000ms.` at `tests/unit/hygiene.test.ts:543` (the type-aware lint test, default vitest limit, loaded laptop) and passed on the next two runs. Under H43 (5) this is a bank-only rejection.
+
+GOTCHAS: G-031 added.
