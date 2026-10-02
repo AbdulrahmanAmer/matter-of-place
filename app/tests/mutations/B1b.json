@@ -430,5 +430,185 @@
     "replace": "  return new Response(response.body, response);\n}",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "is the one the render produced, so a router redirect keeps its options"
+  },
+  {
+    "id": "am",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n  let difference = 0;",
+    "replace": "  return crypto.subtle.timingSafeEqual(a, b);\n  let difference = 0;",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "TypeError: crypto\\.subtle\\.timingSafeEqual is not a function"
+  },
+  {
+    "id": "crypto-length",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "is false for different lengths"
+  },
+  {
+    "id": "crypto-hmac",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "{ name: \"HMAC\", hash: \"SHA-256\" }",
+    "replace": "{ name: \"HMAC\", hash: \"SHA-384\" }",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "matches RFC 4231 case 1"
+  },
+  {
+    "id": "crypto-sha256",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "crypto.subtle.digest(\"SHA-256\", bytesOf(input))",
+    "replace": "crypto.subtle.digest(\"SHA-1\", bytesOf(input))",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "gives the FIPS 180-2 value for sha256 of abc"
+  },
+  {
+    "id": "crypto-base64url",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": ".replace(/=+$/, \"\")",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "writes base64url without padding"
+  },
+  {
+    "id": "crypto-open-null",
+    "test": "tests/unit/crypto.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch {\n    return new Uint8Array();\n  }",
+    "run": "bunx vitest run tests/unit/crypto.test.ts",
+    "expect": "returns null when one byte was changed"
+  },
+  {
+    "id": "b",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    user: NO_GEO,\n    level: event.level,",
+    "replace": "    user: NO_GEO,\n    request: event.request,\n    level: event.level,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "to not have property \"request\""
+  },
+  {
+    "id": "e",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    user: NO_GEO,\n",
+    "replace": "    user: event.user,\n",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "lets no personal data through and keeps the request id"
+  },
+  {
+    "id": "r",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "gives up on a fetch that never answers after 2 seconds"
+  },
+  {
+    "id": "au",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  if (lastSent.has(key)) return;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends 100 identical throws within a minute once, and again after 61 seconds"
+  },
+  {
+    "id": "sentry-pause",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    if (pause > 0) pausedUntil = Date.now() + pause * 1000;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "pauses every send for the window named by a 429 with Retry-After: 60"
+  },
+  {
+    "id": "sentry-mask",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "maskEmails(text).slice(0, max);",
+    "replace": "text.slice(0, max);",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "posts one envelope to the DSN's envelope URL with the tags and a masked message"
+  },
+  {
+    "id": "sentry-truncate",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "const MAX_VALUE = 200;",
+    "replace": "const MAX_VALUE = 2000;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "expected .* to have a length of 200"
+  },
+  {
+    "id": "sentry-infer-ip",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "settings: { infer_ip: \"never\" }",
+    "replace": "settings: { infer_ip: \"auto\" }",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "expected 'auto' to be 'never'"
+  },
+  {
+    "id": "sentry-side",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "side: options.side ?? \"worker\",",
+    "replace": "side: \"worker\",",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends side, fingerprint and level when given"
+  },
+  {
+    "id": "sentry-no-dsn",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  if (!options.dsn) return;\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "returns at once without a DSN"
+  },
+  {
+    "id": "sentry-failed-log",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    if (!response.ok)\n      logLine(\"error\", \"sentry_send_failed\", { requestId, status: response.status });\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "resolves on a 500 answer and logs one sentry_send_failed"
+  },
+  {
+    "id": "route-compare",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/routes/api/hooks/sentry-test.ts",
+    "find": "!timingSafeEqual(bytes(bearer), bytes(token))",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers 404 for a wrong bearer"
+  },
+  {
+    "id": "route-scheme",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/routes/api/hooks/sentry-test.ts",
+    "find": "/^Bearer (.+)$/",
+    "replace": "/^(?:Bearer )?(.+)$/",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers 404 for the token without the Bearer scheme"
+  },
+  {
+    "id": "route-throw",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/routes/api/hooks/sentry-test.ts",
+    "find": "  throw new SentryTestError(\"Sentry test error for test@example.com\");",
+    "replace": "  return new Response(null, { status: 204 });",
+    "run": "bunx vitest run tests/unit/sentry-test-route.test.ts",
+    "expect": "answers 500 with the request id and no-store through handle, and reports the error"
   }
 ]

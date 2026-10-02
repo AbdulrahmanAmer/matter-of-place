@@ -1,6 +1,7 @@
 import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 import { z } from "zod";
 import { handle, type PipelineContext } from "./server/lib/pipeline";
+import { captureException } from "./server/lib/sentry";
 
 // Nitro puts the Worker's bound `waitUntil` on the request (`augmentReq`). The Start dev server
 // has no Worker, so there a promise is simply started and left to finish.
@@ -27,8 +28,13 @@ const pipeline = createMiddleware({ type: "request" }).server(({ request, next }
       cache: (_request, render) => render(),
       // STUB(B3b): getFlags(db) from src/server/lib/flags.ts
       getFlags: () => Promise.resolve({}),
-      // STUB(B1b step 4): captureException from src/server/lib/sentry.ts
-      report: () => Promise.resolve(),
+      report: (error, info) =>
+        captureException(error, {
+          ...info,
+          dsn: process.env["SENTRY_DSN"],
+          env: process.env["MOP_ENV"] ?? "production",
+          release: process.env["SENTRY_RELEASE"] ?? "dev",
+        }),
     },
   ),
 );

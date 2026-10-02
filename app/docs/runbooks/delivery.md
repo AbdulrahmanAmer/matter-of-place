@@ -79,8 +79,8 @@ step 3 on the built Worker).
   had no `message`, GOTCHAS P-078). Both carry `x-request-id` and `no-store`.
 - The Content-Security-Policy ships as `Content-Security-Policy-Report-Only`; a policy already on the response (a hit
   stored by B3) is never overwritten.
-- Until B3 lands, the cache hook is a pass-through, the flags are empty, and error reports are not sent (the stub
-  markers in `src/start.ts` name each replacement; the Sentry client arrives in step 4).
+- Until B3 lands, the cache hook is a pass-through and the flags are empty (the stub markers in `src/start.ts` name
+  each replacement). Unhandled errors go to Sentry through `captureException` (section Sentry below).
 
 ### Where `waitUntil` and the environment come from
 
@@ -89,7 +89,8 @@ Nitro lists the module as external only for its own final bundle (GOTCHAS G-018)
 the request instead: Nitro's `augmentReq` puts the Worker's bound `waitUntil` on it. Measured in step 3 under
 `wrangler dev`: the parse succeeded on every request. `process.env.MOP_ENV` is populated from the Worker variables and
 secrets by `nodejs_compat`, so `start.ts` reads it there. Under `bun run dev` there is no Worker and no `waitUntil`;
-the fallback starts the promise and leaves it. A Sentry event reaching Sentry (step 4) is the proof that `waitUntil` ran.
+the fallback starts the promise and leaves it. Step 4's test event reached Sentry from `wrangler dev`, so `waitUntil`
+ran the report to completion there; on a deployed Worker that stays UNPROVEN until step 7's production test.
 
 ### Static asset headers
 
@@ -123,3 +124,58 @@ read it). Stop it by its parent process, not by `workerd` alone (GOTCHAS P-042);
 Checks measured in step 3 with an empty `.dev.vars`: no `X-Robots-Tag` on `127.0.0.1:8788` or with
 `Host: matterofplace.com`, `noindex, nofollow` with `Host: pr-1.holy-meadow-4327.workers.dev`; with
 `MOP_ENV=local` the first request is `noindex, nofollow` as well.
+
+## Sentry
+
+Organisation `matter-of-place`, project `javascript-tanstackstart-react` (ASSUMED E9, E21). The Worker and the job
+runner send through two client keys, so Worker noise cannot starve the runner's reports (INT-12):
+
+| Key name     | Used by                                                                       | Source copy in `.env`   | Per-key limit                        |
+| ------------ | ----------------------------------------------------------------------------- | ----------------------- | ------------------------------------ |
+| `Default`    | the Worker (Worker secret `SENTRY_DSN`, key of `PREVIEW_WORKER_SECRETS_JSON`) | `SENTRY_DSN`            | 50 errors per 3600 s (ASSUMED value) |
+| `job-runner` | the job runner (function secret `SENTRY_DSN`, set by B8 step 5)               | `SENTRY_DSN_JOB_RUNNER` | 20 errors per 3600 s (ASSUMED value) |
+
+Spike protection is on for the project. Read all of it back with the read-only token `SENTRY_AUTH_TOKEN` (`.env`,
+loaded without printing):
+
+```
+curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/matter-of-place/javascript-tanstackstart-react/keys/"
+#   2026-10-02: job-runner active, rateLimit {"window":3600,"count":20}; Default active, rateLimit {"window":3600,"count":50}
+curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/matter-of-place/javascript-tanstackstart-react/"
+#   options "quotas:spike-protection-disabled": false
+```
+
+The client is `src/server/lib/sentry.ts`, a hand-written envelope sender (no SDK). Each event carries the tags
+`request_id`, `route`, `env`, `release` (`SENTRY_RELEASE`, `dev` when unset) and `side`; one event per
+fingerprint per 60 seconds leaves an isolate, and a `429` or `X-Sentry-Rate-Limits` answer pauses every send for the
+window it names. A failed send is one `sentry_send_failed` log line, never a retry.
+
+Personal data stays out (GS-03). `scrubEvent` keeps an allow-list of fields and masks email-shaped text as `[email]`.
+Two lines exist because Sentry adds data on its side, measured on 2026-10-02 with the test route:
+
+- without `sdk.settings.infer_ip: "never"` the stored event held `user.ip_address` (the sender's IP) for a
+  `javascript` event;
+- with that setting the IP was gone, but `user.geo` (city and country) was still looked up from the connection IP.
+  Relay skips the lookup when the event already holds a geo object, so the event carries `user: { geo: {} }`; with
+  both, Sentry stored `user: null`.
+
+The project setting "Prevent Storing of IP Addresses" (`scrubIPAddresses`) is off; it covers the IP only, not geo.
+
+### Test that an error reaches Sentry
+
+`POST /api/hooks/sentry-test` throws a marked error (its message holds `test@example.com`, which must arrive as
+`[email]`) when the bearer equals `SENTRY_TEST_TOKEN`, compared in constant time; otherwise, and whenever the secret is
+unset, it answers 404. Locally:
+
+```
+# app/.dev.vars (git-ignored, values from .env, never printed): MOP_ENV=local, SENTRY_DSN, SENTRY_TEST_TOKEN (= PREVIEW_SENTRY_TEST_TOKEN)
+bun run build && bun run cf:preview
+curl -s -X POST -H "authorization: Bearer $PREVIEW_SENTRY_TEST_TOKEN" http://127.0.0.1:8788/api/hooks/sentry-test
+#   HTTP 500 {"error":{"code":"server","message":"...","requestId":"<id>"}}
+curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/projects/matter-of-place/javascript-tanstackstart-react/issues/?query=request_id:<id>"
+curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/organizations/matter-of-place/issues/<issue id>/events/?query=request_id:<id>&full=true"
+```
+
+The issue appears within about 20 seconds. On production, set the secret only for the test and delete it right after:
+`bunx wrangler secret put SENTRY_TEST_TOKEN --name matter-of-place`, then `bunx wrangler secret delete SENTRY_TEST_TOKEN
+--name matter-of-place`.

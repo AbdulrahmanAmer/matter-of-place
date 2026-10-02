@@ -733,3 +733,19 @@ Entry template
 - rule: a group's file list for a step that adds a test includes `tests/mutations/<slice>.json`, and one that creates a file knip reported as "no matches" includes `knip.json`. A watched-fail that is not yet a registry entry makes the status `partial`, never `done`. Entries are written in the registry's format and replayed by a runner that asserts `find` occurs once.
 - proof: `git grep -c "tests/unit/pipeline.test.ts" -- app/tests/mutations/B1b.json` → at least `1`; `cd app && bun run knip | grep -c "src/start.ts"` → `0`.
 - added: 2026-10-02
+
+## G-020 · Sentry adds the sender's IP and city to a hand-built event unless the event forbids it
+- paths: app/src/server/lib/sentry.ts
+- severity: warn
+- symptom: B1b step 4's first stored test event, sent with `user` dropped by `scrubEvent`, came back from the Sentry API with `user.ip_address` set to the laptop's IP and `user.geo` (city, country). With `sdk.settings.infer_ip: "never"` the IP was gone but the geo stayed. Two rebuild-and-read cycles before the event was clean.
+- cause: Relay infers `user.ip_address` from the connection for a `javascript` event (legacy inference), and `normalize_user_geoinfo` (relay-event-normalization `event.rs`) looks up geo from the connection IP whatever `infer_ip` says, unless the event already holds a geo object. The project setting "Prevent Storing of IP Addresses" only stops the IP inference, not the geo lookup.
+- rule: every event `scrubEvent` returns carries `sdk.settings.infer_ip: "never"` and `user: { geo: {} }`; a unit test is never the proof of what Sentry stores, the stored event read back through the API is (`user` must be `null`).
+- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` passes, and registry entry `sentry-infer-ip` turns it red; the step 4 event read with `.../issues/<id>/events/?query=request_id:<id>&full=true` prints `user null` and `grep -c "ip_address\|cookie\|authorization"` → `0`.
+- added: 2026-10-02
+
+## P-080 · Vitest fake timers do not drive Node's `AbortSignal.timeout`
+- symptom: a probe test with `vi.useFakeTimers()`, `AbortSignal.timeout(2000)` and `vi.advanceTimersByTimeAsync(2500)` printed `expected false to be true` for `signal.aborted`: the signal never fires, so a "fetch that never answers" case built on it hangs until the test's own 5 s timeout.
+- cause: Node creates the timeout signal on its internal timers, which `@sinonjs/fake-timers` does not replace.
+- rule: in a test that needs the timeout under fake timers, `vi.spyOn(AbortSignal, "timeout")` with an `AbortController` aborted from a (faked) `setTimeout`, and let the fake `fetch` take the signal as optional so a mutation that drops the signal hangs instead of failing a parse (`tests/unit/sentry.test.ts`).
+- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts -t "never answers"` passes in milliseconds; registry entry `r` (no `AbortSignal.timeout`) turns it red with `Test timed out in 5000ms`.
+- added: 2026-10-02
