@@ -488,6 +488,15 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
     }).toEqual({ found: true, ordered: true, urlDefinitions: 1 });
   });
 
+  it("preview waits for ten answers of the Worker in a row before the smoke (P-137)", () => {
+    const run = deployJob("preview")?.steps.find((step) => step.name === "wait")?.run ?? "";
+    expect({
+      resets: /else\s+ok=0\s+fi/.test(run),
+      tenInARow: run.includes('if [ "$ok" -ge 10 ]; then'),
+      failsAtTheEnd: run.trimEnd().endsWith("exit 1"),
+    }).toEqual({ resets: true, tenInARow: true, failsAtTheEnd: true });
+  });
+
   it("preview-cleanup deletes pr-<n> and forgives only a Worker that never existed", () => {
     const run = deployJob("preview-cleanup")?.steps.find((step) => step.name === "delete");
     expect({

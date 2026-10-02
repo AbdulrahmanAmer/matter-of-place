@@ -1205,3 +1205,17 @@ Entry template
 - rule: a `git grep` proof over files the change creates runs after `git add` (or with `--untracked`); P-049's advice to search with `git grep` assumes the files are tracked.
 - proof: in a scratch repository, `printf 'R2_X\n' > new.yml && git grep -c R2_; echo $?` → `1`, and `git grep --untracked -c R2_` → `new.yml:1` (git 2.55.0).
 - added: 2026-10-02
+
+## P-136 · GitHub ignores `GOTCHAS.md merge=union`: a lane that appends to the bank while main does gets a "dirty" pull request and no pull_request run at all
+- symptom: after B1b g1 pushed a commit to `slice/b1b` and opened probe PR #47 from it, no `ci` or `deploy` run started in ten minutes, on either pull request. `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/47 --jq '[.mergeable, .mergeable_state]'` printed `false dirty`, while `git merge-tree --write-tree origin/main slice/b1b` on the laptop exited 0. Main had appended P-500 to the end of the bank and the lane had appended P-134 and P-135.
+- cause: `.gitattributes` holds `GOTCHAS.md merge=union`, a custom merge driver that only local git applies; GitHub's test merge uses no driver, so two appends at the end of the file conflict there. With no test merge commit, GitHub starts no `pull_request` workflow.
+- rule: when a pull request shows no run a minute after a push, read `mergeable_state` before anything else; `dirty` means bring main into the lane with a merge commit (P-072; the orchestrator does it when the builder's brief forbids merges). A probe branch that must run now is cut from `origin/main` with only the files under test checked out from the lane.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/47 --jq '[.mergeable, .mergeable_state] | @tsv'` → `false	dirty`; `git merge-tree --write-tree origin/main slice/b1b >/dev/null; echo $?` → `0` (both 2026-10-02); probe PR #50, cut from `origin/main`, answered `true` and ran.
+- added: 2026-10-02
+
+## P-137 · A Worker name deployed for the first time answers Cloudflare's own 404 now and then for about 20 seconds
+- symptom: probe PR #44's preview smoked `pr-44` two seconds after its first deploy: every URL answered 404 with `cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0` and no header of ours. With a wait for one answer of ours (PR #50), the next twelve requests still mixed that 404 with our answers.
+- cause: the new `workers.dev` route reaches the edge gradually. Measured from the laptop with a throwaway Worker (`pr-990003`, deployed 19:15:33 UTC, one request a second): 404 at 2 s, ours at 6 s, 404 at 11, 13 and 17 s, then ours on all 145 requests from 21 s. A redeploy of an existing name does not show it.
+- rule: before smoking a Worker name's first deploy, wait for ten answers of ours in a row (every answer of ours carries `x-request-id`), at most 180 s; the `wait` step of `deploy.yml`'s `preview` does this, and step 7's first deploy of `matter-of-place` and `matter-of-place-dev` needs the same. Never let the smoke itself retry a wrong answer.
+- proof: `bash ../scratch/g1s6-propagation2.sh pr-990003` from `app/` with `.env` loaded (text in `workspace/05-plans/logs/B1b.md`, g1 block) → the trace above; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "ten answers"` passes, and registry entries `hy-wait-reset`, `hy-wait-ten` and `hy-wait-fails` turn it red.
+- added: 2026-10-02

@@ -3288,6 +3288,33 @@
     "expect": "× preview deploys, then sets the secrets, then smokes"
   },
   {
+    "id": "hy-wait-reset",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "            else\n              ok=0\n            fi\n",
+    "replace": "            fi\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
+    "id": "hy-wait-ten",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "if [ \"$ok\" -ge 10 ]; then",
+    "replace": "if [ \"$ok\" -ge 1 ]; then",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
+    "id": "hy-wait-fails",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n          exit 1\n",
+    "replace": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
     "id": "hy-cleanup-forgive",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
