@@ -830,3 +830,13 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   After each run's notification: read the journal, record the ledger (`progress.json`), run own probes on main in a batch.
 - Operator decisions still open: GitHub Actions spending limit (about 20 dollars); the Claude budget at the reset
   (about 270 million tokens for the remaining 238 steps at today's rate).
+
+## 2026-10-03 02:05 +0300 · Decisions on the restart list; backup key pair generated (B1b step 8 part A)
+- Operator accepted items 1, 3, 5, 6 of the restart list; item 2 (agents read the bank map plus matching entries, not
+  the whole file) and item 4 (two test workers per lane) answered, awaiting his word.
+- Step 8 part A done by the orchestrator: `creds/backup-recipient.key` (git-ignored, on this laptop only) and
+  `app/backup-recipient.pem` (CN=mop-backup, valid to 2036-09-29) generated with `openssl req -x509 -newkey rsa:4096`;
+  encrypt and decrypt round trip proved. The OPERATOR must store the private key in his password manager and as a
+  sealed paper copy before step 8's escrow deletes it from the laptop. P-502 banked (Git Bash path conversion).
+- Step 7's production secrets are NOT pre-settable: the production Worker does not exist until B3b (H49); the dev
+  Worker's secrets come from CI. So item 3 removes one stop (step 8 part A), not two.
