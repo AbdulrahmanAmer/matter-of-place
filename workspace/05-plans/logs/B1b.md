@@ -1633,3 +1633,181 @@ for (const [name, sql] of Object.entries(cases)) {
 UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is still not on `main`, HTTP 404). The scan has met no real migration yet (B2 writes the first). Not handled, by choice: SQL inside a string that a DO block builds with `format()` and `||` is read piece by piece, so a statement split across two literals is missed; a DO block's `raise notice 'drop table ...'` is refused (it errs on the refusing side).
 
 GOTCHAS: G-028 (the scan is a lexer; compare a rewritten gate with the old one on the same inputs), P-112 (a row two mechanisms protect cannot be watched red by one mutation), P-113 (a ruling that changes a gate's rule: grep every plan for the rule's words) added.
+
+## c6 · steps 5
+
+Review round 3 of the c6 close-out: four defects. Commits on `slice/b1b`: `7fd8359` (the work), `73b0b80` and `3628418` (type-error watched-fail and its revert), `f210345` and `bf2d457` (engines watched-fail and its revert); `git diff --quiet 7fd8359 HEAD` exit 0 after each revert.
+
+1. Uneven coverage fixed by refusing by default. `scripts/check-migrations.mjs` now treats every `drop <object>` and every `alter <object> ... rename` at the start of a statement as destructive (`START`: the text start, or after `begin`, `then`, `else`, `loop` inside a DO or function body), with named exceptions only: `drop trigger` (R17) and `drop policy`; renames of a policy, trigger, index or constraint. So `drop schema ... cascade`, `drop sequence`, `drop extension`, `drop domain`, `drop procedure`, `drop foreign table` and `alter schema|sequence|... rename` need the header. `alter foreign table` is read like `alter table`; a composite type's `drop attribute` and `alter attribute ... type` count. A NOT NULL add counts a `default` only when it is not `set default` (`on delete set default`). A function or procedure body created in the file is read when another statement calls it (`select f()`, `perform f()` in a DO block, `create trigger ... execute function f()`), not when the statement only creates, alters, drops, grants, revokes or comments on it.
+2. Column named `type` fixed: the column type rule reads `alter column <name>` or, without the keyword, a first word that is not `column`, so `alter column type set default 'x'` and `alter column type drop not null` pass, and `alter column type type text` is still refused.
+3. GOTCHAS: P-114 (`gh run list --commit` needs the full SHA) and P-115 (the reviewer's cost: a backslash typed through the shell into probe SQL; build it with `String.fromCharCode(92)`) added; also G-029 (refuse by default, optional keywords) and P-116 (vitest cuts an `it.each` `$name` at 40 characters, found in this round's replay) added; G-026's proof moved to the new row that carries `cm-comments`.
+
+Behaviour that changed on purpose, for the orchestrator to see: `alter publication <p> drop table <t>` (and `alter extension ... drop ...`) passed no longer get refused: the round-2 scan matched `drop table` anywhere in a statement; the anchored rule reads only a statement that is itself a drop. They take a member out of a set and drop no object or data. A ruling can reverse it (one rule plus the row `a table taken out of a publication`). `drop policy` stays allowed as before (round 2 did not list it). Open from round 2, unchanged: the `drop function` conflict with B2.md:71, B2.md:93 and B10.md:166 (P-113) still needs a ruling. Plan lines touched by the new kinds: `git grep -n -i -E "drop (schema|sequence|extension|domain|procedure|owned|role)|alter publication|drop attribute|on delete set default" -- workspace/05-plans ':!workspace/05-plans/logs'` → only B2.md:96, the `db:reset` script's own SQL (`drop schema public cascade`), which runs outside migrations and is not scanned.
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+Probe `node ../scratch/c6r3-probe.mjs [<script>]` (text below). On this round's script, `cases 39, bad 0`. On the round-2 script (`git show ee06839:app/scripts/check-migrations.mjs`, saved as `../scratch/check-migrations-ee06839.mjs`), `cases 39, bad 17`:
+```
+BAD 0  drop schema cascade
+BAD 0  drop sequence
+BAD 0  alter schema rename
+BAD 0  alter sequence rename
+BAD 0  not null add with on delete set default
+BAD 0  create function then select
+BAD 0  create function then call in DO
+BAD 0  alter foreign table drop column
+BAD 0  drop foreign table
+BAD 0  drop extension
+BAD 0  drop domain
+BAD 0  drop procedure
+BAD 0  composite drop attribute
+BAD 0  composite attribute type
+BAD 1  default on column named type  | destructive change (column type)
+BAD 1  drop not null on column named type  | destructive change (column type)
+BAD 1  publication drop table  | destructive change (drop table)
+cases 39, bad 17
+```
+The only input the round-2 script refused and this one passes is `publication drop table` (on purpose, above). `node ../scratch/c6r-probe.mjs` (round 2) → 19 of 19 `ok`; `node ../scratch/c6-probe.mjs` (c6) → the same 16 refusals and 7 allowed.
+
+`tests/unit/check-migrations.test.ts`: 20 new rows, one replaced. Refused: drop schema, drop sequence, a drop of any other object (`drop extension`), drop foreign table, schema and sequence renames, a drop column of a foreign table, a type change of a column named type, a NOT NULL column whose key sets default, a drop table after THEN in a DO block, a function body called in the same file, a composite type attribute drop and type change. Allowed: drop policy, a default and a drop not null on a column named type, a table taken out of a publication, a grant on a function that drops a table, a set not null named in a string, a down header that drops the new column. `a drop table named in a string` became `a set not null named in a string`: with drops anchored, the string blanking and the anchor both protect the old input (P-112), and `set not null` is matched anywhere, so only the blanking decides. For the same reason `cm-comments` now carries `a down header that drops the new column` and `cm-prefix-order` carries the clean-tree row. `tests/mutations/B1b.json`: 21 new `cm-` entries, 19 rewritten (17 whose `find` moved, P-090, and the `expect` of `cm-comments` and `cm-string-drop`). The first replay printed `NOT RED` for `cm-comments`, `cm-string-drop` (both protected twice, fixed as above), `cm-type-named-type-drop` and `cm-declares-grant`: red for the right reason, but vitest printed `a dropped NOT NULL on a column named ty…` and `a grant on a function whose body drops …` (P-116); both names are now 40 characters or fewer.
+
+```
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+ Test Files  2 passed (2)
+      Tests  95 passed | 8 skipped (103)
+$ node ../scratch/replay.mjs --check
+checked 264, bad 0
+$ node ../scratch/replay.mjs <all 73 entries whose file is scripts/check-migrations.mjs>
+RED cm-comments: exit=1 expect=true | × a down header that drops the new column needs no contract-of header 7ms
+RED cm-prefix-order: exit=1 expect=true | × passes a clean tree and a new file after the newest on main 12ms
+RED cm-drop-table: exit=1 expect=true | × a drop table needs the contract-of header 7ms
+RED cm-string-drop: exit=1 expect=true | × a set not null named in a string needs no contract-of header 1ms
+RED cm-drop-schema: exit=1 expect=true | × a drop schema needs the contract-of header 14ms
+RED cm-drop-sequence: exit=1 expect=true | × a drop sequence needs the contract-of header 14ms
+RED cm-drop-any: exit=1 expect=true | × a drop of any other object needs the contract-of header 14ms
+RED cm-drop-foreign: exit=1 expect=true | × a drop foreign table needs the contract-of header 14ms
+RED cm-allow-policy-drop: exit=1 expect=true | × a drop policy needs no contract-of header 17ms
+RED cm-statement-start: exit=1 expect=true | × a drop table after THEN in a DO block needs the contract-of header 17ms
+RED cm-start-anchor: exit=1 expect=true | × a table taken out of a publication needs no contract-of header 1ms
+RED cm-rename-schema: exit=1 expect=true | × a schema rename needs the contract-of header 15ms
+RED cm-rename-sequence: exit=1 expect=true | × a sequence rename needs the contract-of header 15ms
+RED cm-rename-skip-table: exit=1 expect=true | × a constraint rename needs no contract-of header 12ms
+RED cm-alter-foreign: exit=1 expect=true | × a drop column of a foreign table needs the contract-of header 14ms
+RED cm-type-named-type: exit=1 expect=true | × a default on a column named type needs no contract-of header 14ms
+RED cm-type-named-type-drop: exit=1 expect=true | × a drop not null on a column named type needs no contract-of header 2ms
+RED cm-type-of-type: exit=1 expect=true | × a type change of a column named type needs the contract-of header 15ms
+RED cm-not-null-set-default: exit=1 expect=true | × a NOT NULL column whose key sets default needs the contract-of header 16ms
+RED cm-called-body: exit=1 expect=true | × a function body called in the same file needs the contract-of header 13ms
+RED cm-declares-grant: exit=1 expect=true | × a grant on a function that drops a table needs no contract-of header 13ms
+RED cm-declares-create: exit=1 expect=true | × a function body that drops a table needs no contract-of header 13ms
+RED cm-drop-attribute: exit=1 expect=true | × a composite type attribute drop needs the contract-of header 13ms
+RED cm-attribute-type: exit=1 expect=true | × a composite type attribute type change needs the contract-of header 12ms
+  (the other 49 entries, ap and cm-, each RED with its own title, rewritten ones included: cm-drop-view, cm-drop-mview,
+   cm-drop-type, cm-drop-function, cm-drop-index, cm-allow-trigger, cm-alter-anywhere, cm-type-column, cm-type-bare,
+   cm-rename-view, cm-rename-mview, cm-rename-type, cm-rename-function, cm-allow-policy-rename, cm-allow-trigger-rename,
+   cm-allow-index-rename)
+replayed 73, not red 0
+$ node ../scratch/c6-map.mjs | tail -1
+titles 65, without an entry 0
+$ cmp scripts/check-migrations.mjs ../scratch/cm-saved-r3.mjs && echo same-bytes
+same-bytes
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines" ; ls ../.github/dependabot.yml
+{ bun: '1.3.13', node: '24.x' }
+../.github/dependabot.yml
+$ node ../scratch/replay.mjs ao bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 114ms
+replayed 5, not red 0
+```
+CI on `7fd8359` (run 37017992017, `pull_request`, success): `check success`, `build success`, `merge-gate skipped`; steps of `check`: `engines`, `Run actions/cache@...`, `Run bun install --frozen-lockfile`, `migration-order` (`$ node scripts/check-migrations.mjs` / `no migrations`), `Run bun run check`, `audit`, all `success`; no job named `audit` or `deno`. `gh run download 37017992017 -n build-output -D scratch/c6r3-art` → `nitro.json package-lock.json package.json public server`, `server/wrangler.json` name `matter-of-place`.
+Watched-fail (d), type error: `73b0b80` appends `const x: number = "a";` to `src/lib/strings.ts` (diff before the commit: `+const x: number = "a";`). Run 37018258702: `failure`, `check failure`, `build success`; `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.`, `##[error]Process completed with exit code 2.` Revert `3628418`: run 37018393064 `success` (`check success`, `build success`).
+Watched-fail, engines: `f210345` sets `engines.bun` to `1.3.12` (`+    "bun": "1.3.12",`). Run 37018573640: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `##[error]Process completed with exit code 1.`); cache, install, `migration-order` and `bun run check` `skipped`. Revert `bf2d457`: run 37018683658 `success` (`check success`, `build success`).
+Gates on the work tree of `7fd8359`: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files 14 passed (14)`, `Tests 310 passed | 8 skipped (318)`); `bun run build` exit 0 (three `built in` lines, `src/routeTree.gen.ts` unchanged); from the lane root `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (29 path entries, 114 process entries)`. The first `bun run check` failed `scripts/check-migrations.mjs(235,21): error TS2532: Object is possibly 'undefined'.` on `DROP.exec(text)?.[1].replace` (R02's `noUncheckedIndexedAccess`); fixed with `?.[1]?.replace`, then the registry check and the full replay above were run again on the fixed bytes.
+
+`scratch/c6r3-probe.mjs` (lane-root `scratch/`, git-ignored, run from `app/`; P-088)
+```js
+// node ../scratch/c6r3-probe.mjs [<path to check-migrations.mjs>]   (from app/)
+// The review's round-3 cases and the earlier probe cases; prints the failure count of each.
+// A backslash is built with String.fromCharCode(92), never typed (GOTCHAS P-115).
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+
+const target = resolve(process.argv[2] ?? "scripts/check-migrations.mjs");
+const { checkMigrations } = await import(pathToFileURL(target).href);
+const bs = String.fromCharCode(92);
+const fn = "create function f() returns void language plpgsql as $$ begin drop table notes; end $$;";
+
+const cases = {
+  "MUST 1  drop schema cascade": "drop schema old cascade;",
+  "MUST 1  drop sequence": "drop sequence notes_seq;",
+  "MUST 1  alter schema rename": "alter schema old rename to archive;",
+  "MUST 1  alter sequence rename": "alter sequence notes_seq rename to memos_seq;",
+  "MUST 1  not null add with on delete set default":
+    "alter table notes add owner uuid not null references people (id) on delete set default;",
+  "MUST 1  create function then select": `${fn}\nselect f();`,
+  "MUST 1  create function then call in DO": `${fn}\ndo $$ begin perform f(); end $$;`,
+  "MUST 1  alter foreign table drop column": "alter foreign table remote_notes drop column body;",
+  "MUST 1  drop foreign table": "drop foreign table remote_notes;",
+  "MUST 1  drop extension": "drop extension pg_trgm;",
+  "MUST 1  drop domain": "drop domain email_address;",
+  "MUST 1  drop procedure": "drop procedure p();",
+  "MUST 1  then drop table in DO": "do $$ begin if true then drop table notes; end if; end $$;",
+  "MUST 1  composite drop attribute": "alter type address drop attribute zip;",
+  "MUST 1  composite attribute type": "alter type address alter attribute zip type text;",
+  "MUST 1  type change of column named type": "alter table notes alter column type type text;",
+  "MUST 1  block comment then drop column": "/* note */ alter table notes drop column body;",
+  "MUST 1  string with -- then drop column":
+    "alter table notes add column mark text default 'a--b';\nalter table notes drop column body;",
+  "MUST 1  do block drop column":
+    "do $$ begin if exists (select 1) then alter table notes drop column body; end if; end $$;",
+  "MUST 1  do block execute drop column":
+    "do $$ begin execute 'alter table notes drop column body'; end $$;",
+  "MUST 1  view rename": "alter view v_notes rename to v_memos;",
+  "MUST 1  enum value rename": "alter type note_kind rename value 'a' to 'b';",
+  "MUST 1  function rename": "alter function public.f(int) rename to g;",
+  "MUST 0  default on column named type": "alter table notes alter column type set default 'x';",
+  "MUST 0  drop not null on column named type": "alter table notes alter column type drop not null;",
+  "MUST 0  drop policy": "drop policy if exists notes_read on notes;",
+  "MUST 0  drop trigger": "drop trigger notes_touch on notes;",
+  "MUST 0  publication drop table": "alter publication supabase_realtime drop table notes;",
+  "MUST 0  create function then grant": `${fn}\ngrant execute on function f() to service_role;`,
+  "MUST 0  create function only": fn,
+  "MUST 0  not null add with a real default":
+    "alter table notes add owner uuid not null default gen_random_uuid() references people (id) on delete set default;",
+  "MUST 0  rename in comment-on string": "comment on table notes is 'rename later';",
+  "MUST 0  alter policy rename": "alter policy p on notes rename to q;",
+  "MUST 0  alter index rename": "alter index notes_body_idx rename to notes_text_idx;",
+  "MUST 0  constraint rename": "alter table notes rename constraint a to b;",
+  "MUST 0  serial not null": "alter table notes add column y serial not null;",
+  "MUST 0  nested block comment": "/* a /* b */ drop table notes; */ create table memos (id uuid);",
+  "MUST 0  escape string": `comment on table notes is E'it${bs}'s; drop table notes';`,
+  "MUST 1  escape string ending in two backslashes": `comment on table notes is E'a${bs}${bs}';\ndrop table notes;`,
+};
+let bad = 0;
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({
+    changed: [],
+    added: [file],
+    mainPrefixes: ["20261002100000"],
+    readFile: () => `-- irreversible: x\nset lock_timeout = '5s';\n${sql}\n`,
+  });
+  const want = Number(name.slice(5, 6));
+  const ok = failures.length === want;
+  bad += ok ? 0 : 1;
+  console.log(`${ok ? "ok " : "BAD"} ${String(failures.length)}  ${name.slice(8)}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+console.log(`cases ${String(Object.keys(cases).length)}, bad ${String(bad)}`);
+```
+
+UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Not handled, by choice, each on the side named: SQL a DO block or a called body builds with `format()` and `||` is read piece by piece, so a statement split across two literals is missed; a function whose name is quoted (`"F"()`) or whose body is called only through dynamic SQL is not tracked; a DML statement that fires a trigger created in an earlier migration does not read that trigger's body; a `raise notice 'drop table ...'` inside a DO block is refused; a table created with the same name as a function of the file (`create table f (...)`) counts as a call.
+
+GOTCHAS: G-029, P-114, P-115, P-116 added; G-026's proof updated.
