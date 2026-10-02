@@ -3887,3 +3887,6 @@ Step 6 status after H48: the smoke of a deployed preview exits 0, the `preview: 
 - `grep -c "HAS_DB"` at least 4: step 7 (H48 (2)).
 
 GOTCHAS: no new entry; P-134 gains the H48 sentence. The 51-entry replay ran past the tool's 10-minute ceiling and was moved to the background; a bounded wait loop on the output file read it (P-027, no rework).
+
+## c1 · follow-ups recorded
+The review of group c1 (steps 6) found no blocking defect and five follow-ups; no code changed. One was a cost with no entry in the bank: GOTCHAS.md gains P-502 (a replay of every registry entry outlasts the 10-minute tool ceiling; `scratch/replay.mjs` reads `tests/mutations` from the cwd). The other four are in `workspace/05-plans/logs/B1b-followups.md` under "## c1 · steps 6" for the orchestrator to fold or assign (the H48 clause cited in this log, the repeated and stale lines of the delivery runbook, the stale `VITE_API_BASE_URL` contract line, the proofs that rest on git-ignored scratch scripts). `node workspace/05-plans/check-gotchas.mjs` -> check-gotchas: OK (32 path entries, 132 process entries).
