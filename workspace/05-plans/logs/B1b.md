@@ -1117,3 +1117,129 @@ NOT DONE (unchanged, a worker never merges):
 - The new refusal path was proved by unit tests, mutations and the shim against another repository's PR; it has not run against a red PR of this repository (no red PR exists, and a deliberately red one costs Actions minutes).
 
 GOTCHAS: P-106 and P-107 added; P-104 reworded to the new rule.
+
+## g7 · steps 5b (fix round 2: two defects of the review)
+
+Commit `b698925` on `slice/b1b` (draft PR #22), plus the commit that carries this block. Files: `workspace/05-plans/merge-gate.mjs`, `app/tests/unit/merge-gate.test.ts`, `app/tests/mutations/B1b.json`, `GOTCHAS.md` (P-108, P-109), this log. `app/scripts/merge-gate.mjs`, `hygiene.test.ts` and `ci.yml` needed no change.
+
+What changed:
+- Defect 1, `workspace/05-plans/merge-gate.mjs`: the claim "the check data cannot tell it from a normal one" was wrong. `gh pr checks --json` has a `link` per row (`.../actions/runs/<run>/job/<id>`), and `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<id>` lists every step with its `conclusion`. `mergeGate` now reads `bucket,workflow,name,link`; for each `pass` row with an Actions link it reads the steps, drops the runner's own (`Set up job`, `Complete job`, `Post ...`) and prints `all steps skipped: <workflow> <job>` when at least one step remains and every one is `skipped`. As the plan says (line 112, DO-04) it prints and does not block; a failed read of the steps refuses (`merge-gate: cannot read the steps of <workflow> <job>: <error>`), nothing is written before the last refusal. A row without a job link (a status from another app) reads nothing.
+- Defect 2, `app/tests/mutations/B1b.json`: 10 entries (200 now, `--check` bad 0). The four tests the review named: `mg-skipping` and `mg-order` (the happy path: `skipping` must not block, and the status must be posted before the merge), `mg-ok`, `mg-inprogress`, `mg-nopr-gather`. The five for the four new cases of this round: `mg-steps-every`, `mg-steps-bookkeeping`, `mg-steps-empty`, `mg-steps-fail`, `mg-steps-link`.
+- `app/tests/unit/merge-gate.test.ts`: 27 cases (4 new): a passed job with every real step skipped is printed and the merge still runs; a job that ran one step, or that has only the runner's steps, is not printed; unreadable steps refuse with no write call; a check with no job link reads nothing. The fake `run` answers the jobs API by job id and 404s an unknown one.
+
+Limit, not hidden: a job whose setup steps ran (checkout, setup-bun, install) while only its work steps were skipped is not "all skipped" by this measure, because the data has no notion of a setup step. B4's `e2e` and step 6's `preview` have `HAS_DB`-gated steps; whether those jobs skip their steps or the whole job is for their groups to prove. If the plan wants those printed too, line 112 must say "every job with a skipped step" and the output becomes `skipped steps: <job>: <names>`; I did not build that without the plan.
+
+Proof 1: `cd app && bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  57 passed | 8 skipped (65)
+```
+
+Proof 2, watched-fail (aq) and the ten new entries replayed (`node ../scratch/replay.mjs <ids>` from `app/`, the runner of the g4 close-out block; `git status --short` identical before and after):
+```
+RED aq: exit=1 expect=true | × refuses a failed e2e and names it 9ms
+RED mg-skipping: exit=1 expect=true | × posts the status and merges when every check passes or is skipped 10ms
+RED mg-order: exit=1 expect=true | × posts the status and merges when every check passes or is skipped 9ms
+RED mg-ok: exit=1 expect=true | × passes when the merge-gate status and every required check are success 9ms
+RED mg-inprogress: exit=1 expect=true | × refuses a check that has not finished 8ms
+RED mg-nopr-gather: exit=1 expect=true | × says no pull request when the commit has none 1ms
+RED mg-steps-every: exit=1 expect=true | × prints no job that ran a step, or that has no step but the runner's 8ms
+RED mg-steps-bookkeeping: exit=1 expect=true | × prints a passed job whose steps were all skipped, and still merges 9ms
+RED mg-steps-empty: exit=1 expect=true | × prints no job that ran a step, or that has no step but the runner's 7ms
+RED mg-steps-fail: exit=1 expect=true | × refuses when the steps of a passed job cannot be read, and writes nothing 9ms
+RED mg-steps-link: exit=1 expect=true | × reads no steps for a check that is not a job of ours 1ms
+replayed 11, not red 0
+```
+The mutations: `mg-skipping` makes `skipping` block (`blocked = true;`); `mg-order` runs `gh pr merge` before the status POST; `mg-ok` returns `ok: false`; `mg-inprogress` reads an unfinished run as `success`; `mg-nopr-gather` returns a pull request when none was merged; `mg-steps-every` uses `some` for `every`; `mg-steps-bookkeeping` stops dropping the runner's steps; `mg-steps-empty` drops `work.length > 0`; `mg-steps-fail` ignores a failed steps read; `mg-steps-link` reads steps for a row with no job link (it asks for job `undefined`, the fake answers 404, the gate refuses).
+
+Proof 3, the review's own check, every test title mapped to the registry (script text below; `NONE` is the `it.each` template, which `mg-bucket` and `mg-bucket-pending` cover):
+```
+// node ../scratch/g7r2-map.mjs   (from app/)
+import { readFileSync } from "node:fs";
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+const source = readFileSync("tests/unit/merge-gate.test.ts", "utf8");
+const titles = [...source.matchAll(/\bit(?:\.each\([^)]*\))?\(\s*"([^"]+)"/g)].map((m) => m[1]);
+let none = 0;
+for (const title of titles) {
+  const ids = entries
+    .filter((e) => e.test === "tests/unit/merge-gate.test.ts" && title.includes(e.expect.replace(/\\/g, "")))
+    .map((e) => e.id);
+  if (ids.length === 0) none += 1;
+  console.log(`${ids.length === 0 ? "NONE" : ids.join(",")}  <-  ${title}`);
+}
+console.log(`titles ${titles.length}, without an entry ${none}`);
+```
+```
+mg-ok  <-  passes when the merge-gate status and every required check are success
+mg-inprogress  <-  refuses a check that has not finished
+mg-nopr-gather  <-  says no pull request when the commit has none
+mg-skipping,mg-order  <-  posts the status and merges when every check passes or is skipped
+NONE  <-  refuses a %s check although gh pr checks --json exits 0, and writes nothing
+titles 25, without an entry 1
+```
+(the four titles the review named, and the one `NONE`; the other 20 lines are in the run output).
+
+Proof 4, the new read path against the real `gh` (a shim that reads through real `gh pr view`, `gh pr checks` and the jobs API, treats the draft as ready and prints, instead of running, the git calls and the two writes; script text below; PR #22 at `b698925`):
+```
+// node scratch/g7r2-shim.mjs 22   (from the lane root)
+import { spawnSync } from "node:child_process";
+import { mergeGate } from "../workspace/05-plans/merge-gate.mjs";
+const pr = process.argv[2];
+const run = (command, args) => {
+  const write = args[0] === "api" && args[1] === "-X";
+  if (command === "git" || write || (args[0] === "pr" && args[1] === "merge")) {
+    console.log(`SHIM would run: ${command} ${args.join(" ")}`);
+    return { status: 0, out: "", err: "" };
+  }
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  const out = result.stdout.trim();
+  const shown = args[0] === "pr" && args[1] === "view" ? out.replace("\ttrue", "\tfalse") : out;
+  console.log(`SHIM read: ${command} ${args.slice(0, 3).join(" ")} -> exit ${result.status}, ${out.split("\n").length} row(s)`);
+  return { status: result.status, out: shown, err: result.stderr.trim() };
+};
+const { code, lines } = mergeGate(pr, run);
+for (const line of lines) console.log(line);
+console.log(`exit ${code}`);
+```
+```
+SHIM read: gh pr view 22 -> exit 0, 1 row(s)
+SHIM would run: git fetch --quiet origin main pull/22/head
+SHIM would run: git merge-base --is-ancestor origin/main b698925d481de018b5bbc38059a2a2135cf2a937
+SHIM read: gh pr checks 22 -> exit 0, 3 row(s)
+SHIM read: gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/110839873886 --jq -> exit 0, 15 row(s)
+SHIM read: gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/110839873709 --jq -> exit 0, 14 row(s)
+SHIM would run: gh api -X POST repos/AbdulrahmanAmer/matter-of-place/statuses/b698925d481de018b5bbc38059a2a2135cf2a937 -f state=success -f context=merge-gate
+SHIM would run: gh pr merge 22 --merge --match-head-commit b698925d481de018b5bbc38059a2a2135cf2a937
+skipped: ci merge-gate
+
+exit 0
+```
+The two real jobs (`check`, `build`) each ran real steps, so nothing is printed as all skipped, which is right. No job of this repository has skipped every step yet, so the printed line is proved by the unit fixtures (the TSV shape is the real one: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/110835524574 --jq '.steps[] | [.name, .conclusion] | @tsv'` prints `Set up job	success` ... `Complete job	success`) and by `skipped` being the real step conclusion (a vitest-dev/vitest run lists steps `Test Examples`, `Unit Test UI` with conclusion `skipped`).
+
+Proof 5, the probe PR #26 (draft, cut from `origin/main~1` = `ae1d7dc`, one code commit `d2f1724`), the script run from `slice/b1b` (P-105):
+```
+$ node workspace/05-plans/merge-gate.mjs 26 ; echo "exit $?"      (still a draft)
+mark ready first
+exit 1
+$ gh pr ready 26 ; node workspace/05-plans/merge-gate.mjs 26 ; echo "exit $?"
+✓ Pull request AbdulrahmanAmer/matter-of-place#26 is marked as "ready for review"
+rebase first
+exit 1
+$ git merge-base --is-ancestor origin/main origin/gate-probe ; echo $?      (origin/main abaa02d, probe d2f1724)
+1
+$ gh api repos/.../commits/d2f1724.../status --jq '.statuses | length'
+0
+$ gh pr close 26 --delete-branch   -> ✓ Closed pull request #26 ... ✓ Deleted branch gate-probe
+$ git ls-remote --heads origin
+abaa02de74944bfc2f0a39825849da50628bb840	refs/heads/main
+b698925d481de018b5bbc38059a2a2135cf2a937	refs/heads/slice/b1b
+```
+
+Proof 6: `cd app && bun run check` exit 0 (`Test Files 14 passed (14)`, `Tests 251 passed | 8 skipped (259)`); `bun run build` exit 0 (three `built in` lines, `routeTree.gen.ts` unchanged); `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (27 path entries, 107 process entries)`. CI on `b698925` (run 37007735766, `pull_request`): `build success`, `check success`, `merge-gate skipped`.
+
+NOT DONE (a worker never merges, standing rule of this lane; PR #22 is also still a draft, so the script would answer `mark ready first`):
+- The merge of the B1b pull request with `node workspace/05-plans/merge-gate.mjs 22` and the `merge-gate success` of that merge's `ci` run on `main` (`gh run view <id> --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'`). UNPROVEN until the orchestrator runs it: the job's `GITHUB_TOKEN` rights on `commits/<sha>/pulls`, `status` and `check-runs`, that `CI_HEAVY` reaches it, and that the first merge leaves one run per name or a latest run that is `success`.
+- `all steps skipped` against a real job that skipped every step: no such job exists in this repository yet (it becomes testable with B4's `e2e` and step 6's `preview`).
+- The new refusal paths have not run against a red PR of this repository.
+
+GOTCHAS: P-108 (a limit written into a log without asking the API) and P-109 (map every test title to a registry entry before reporting) added.
