@@ -1432,5 +1432,32 @@
     "replace": "'runner',b,n);process.exit(0)}",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "the check job compares the runner with engines before installing"
+  },
+  {
+    "id": "hy-gh-direct",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: gh api user && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "hy-gh-script",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: node ../workspace/05-plans/ready.mjs && bun audit",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
+  },
+  {
+    "id": "hy-gh-token-elsewhere",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "        run: bun audit\n",
+    "replace": "        env:\n          GH_TOKEN: ${{ github.token }}\n        run: echo \"${{ secrets.OTHER_TOKEN }}\" | gh auth login --with-token && bun audit\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: audit"
   }
 ]

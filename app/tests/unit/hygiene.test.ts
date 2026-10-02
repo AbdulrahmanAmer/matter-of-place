@@ -47,18 +47,15 @@ const PackageJson = z.object({
  * text is everything outside the `jobs:` map: its `env:` and `concurrency:` reach every job.
  */
 function splitWorkflow(text: string): { head: string; jobText: Map<string, string> } {
-  const document = parseDocument(text);
-  const root = document.contents;
-  const jobs = document.get("jobs", true);
+  const root = parseDocument(text).contents;
   const jobsPair = isMap(root)
     ? root.items.find((pair) => isScalar(pair.key) && pair.key.value === "jobs")
     : undefined;
-  if (!isMap(jobs) || !jobs.range || !isScalar(jobsPair?.key)) {
-    throw new Error("workflow has no jobs map");
-  }
+  const jobs = jobsPair?.value;
+  if (!isScalar(jobsPair?.key) || !isMap(jobs)) throw new Error("workflow has no jobs map");
   const end = jobs.range[2];
   const starts = jobs.items.map((pair) => {
-    if (!isScalar(pair.key) || !pair.key.range) throw new Error("job key is not a scalar");
+    if (!isScalar(pair.key)) throw new Error("job key is not a scalar");
     return { name: String(pair.key.value), start: pair.key.range[0] };
   });
   return {
@@ -100,6 +97,19 @@ function pullRequestReaches(workflow: WorkflowFile, job: JobDef): boolean {
   const condition = typeof job.if === "string" ? job.if.replace(/^\$\{\{|\}\}$/g, "").trim() : "";
   if (condition === "") return true;
   return !condition.split("||").every((branch) => OTHER_EVENT.test(branch.trim()));
+}
+
+/** Invariant 15: a step calls gh when its run: does, or when it runs a script that spawns gh. */
+const GH_COMMAND = /(^|[\s;&|(`])gh\s+[a-z]/m;
+const GH_SPAWN = /["'`]gh["'`]|`gh\s/;
+const TOKEN_ELSEWHERE = /GH_TOKEN=|GITHUB_TOKEN=|gh auth login|\$\{\{\s*(secrets\.|github\.token)/;
+function callsGh(run: string): boolean {
+  const scripts = [...run.matchAll(/\bnode\s+([\w./-]+\.m?js)\b/g)].flatMap((match) =>
+    match[1] === undefined ? [] : [join(APP, match[1])],
+  );
+  return (
+    GH_COMMAND.test(run) || scripts.some((path) => existsSync(path) && GH_SPAWN.test(read(path)))
+  );
 }
 
 const packageJson = PackageJson.parse(JSON.parse(read(join(APP, "package.json"))));
@@ -207,6 +217,20 @@ describe("workflows (invariants 1, 8, 13 to 15; R54, R56, R58)", () => {
           .filter((step) => step.uses?.startsWith("actions/checkout@"))
           .filter((step) => step.with?.["persist-credentials"] !== false)
           .map(() => `${w.file} ${name}`),
+      ),
+    );
+    expect(loose).toEqual([]);
+  });
+
+  it("a step that calls gh reads GH_TOKEN from its env and nowhere else (15)", () => {
+    const loose = workflows.flatMap((w) =>
+      jobsOf(w).flatMap(([name, job]) =>
+        job.steps
+          .filter((step) => callsGh(step.run ?? ""))
+          .filter(
+            (step) => step.env?.["GH_TOKEN"] === undefined || TOKEN_ELSEWHERE.test(step.run ?? ""),
+          )
+          .map((step) => `${w.file} ${name}: ${step.name ?? step.run ?? ""}`),
       ),
     );
     expect(loose).toEqual([]);
