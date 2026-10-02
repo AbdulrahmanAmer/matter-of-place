@@ -256,6 +256,78 @@ request 2, closing it 1, on top of `ci.yml`.
 `wrangler secret bulk` (4.145.0) deletes a key whose value is `null` in the JSON it reads (`bunx wrangler secret bulk
 --help`); a key that is simply absent stays on the Worker.
 
+## Deploys from main
+
+`.github/workflows/deploy.yml` deploys from `main` only after `ci` passed on a push to `main` (`workflow_run` of `ci`,
+invariant 6a). Both jobs check out the commit that `ci` tested (`github.event.workflow_run.head_sha`; on this event
+`github.sha` is the newest `main`, not necessarily the tested one).
+
+- `dev` deploys `matter-of-place-dev`. When `main` holds a migration it first links the one project and runs
+  `bun run db:push` (the one database step of the workflow, invariant 13); a failed push ends the job before the
+  Worker deploy. It builds like a preview (the Turnstile test key, `VITE_API_BASE_URL` from `HAS_DB`), deploys with
+  `MOP_ENV` from `HAS_DB`, pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, waits for ten
+  answers in a row, smokes `https://matter-of-place-dev.holy-meadow-4327.workers.dev` and rolls back on a red smoke.
+  It also runs on `workflow_dispatch` from `main`, for the rollback rehearsal.
+- `production` waits for `dev` (`needs: dev`), so the database is migrated before the production Worker deploys and a
+  red `dev` skips it. It links no project and pushes no migration. It builds with the repository variables
+  (`VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_TURNSTILE_SITE_KEY`), deploys `matter-of-place` with `MOP_ENV` left at
+  the `wrangler.toml` default `production`, waits, smokes `https://matter-of-place.holy-meadow-4327.workers.dev` and
+  rolls back on a red smoke. Its only secrets are `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+Both pass `SENTRY_RELEASE` (the tested commit) and `MEDIA_PUBLIC_BASE`: the dev Worker's own origin plus `/media`, and
+for production its `workers.dev` origin plus `/media` until L1 sets the repository variable `MOP_LAUNCHED` to `true`
+at the domain cut-over, then `https://matterofplace.com/media` (H33 (4)). No workflow line changes for the cut-over.
+
+While the repository variable `VITE_API_BASE_URL` is absent (ruling H48, until B3's last step sets it), the production
+build takes the local services adapter like every preview, so `matter-of-place` serves the illustrative content under
+`MOP_ENV=production` on its `workers.dev` address (noindex) until B3b hides it.
+
+### The deploy guard
+
+The first step after the checkout of both jobs is `node scripts/deploy-guard.mjs <sha>` (gate G24). It runs
+`git rev-list <sha>..origin/main -- . ':!workspace' ':!launch' ':!*.md'` from the repository root: a commit listed
+there is a newer code commit already on `main`, whose own run deploys it. Then the guard prints `superseded <sha>`,
+writes `superseded=true` to `$GITHUB_OUTPUT` and every later step is skipped; the job ends green and deploys nothing.
+Otherwise it prints `deploying <sha>`. A commit that only changes `workspace/`, `launch/` or Markdown files runs no CI
+(`paths-ignore` of `ci.yml`) and supersedes nothing. So a re-run of an older green `ci` run never deploys old code
+over new. A `superseded` line in a run's log is expected after such a re-run, not a fault.
+
+### Smoke, rollback and the alert
+
+A first deploy of a Worker name answers Cloudflare's own 404 now and then for about 20 seconds (GOTCHAS P-137), so
+both jobs wait for ten answers with `x-request-id` in a row, at most 180 s, before the smoke. When any step after the
+deploy fails (the secrets push of `dev`, the wait or the smoke), the step `rollback` runs `bunx wrangler rollback --name <worker> --message
+"smoke failed <sha>" --yes` with the deploy token (Workers Scripts Write is enough, ASSUMED E1) and the job ends red.
+GitHub's failed-run email to the owner is the alert; there is no automatic retry, and the fix is a new commit. On the
+very first deploy of a Worker there is no earlier version, so the rollback fails too.
+
+Rehearsal of the rollback step (DO-09, step 7b): `gh workflow run deploy.yml --ref main -f rehearse_rollback=true`
+runs `dev` alone with `SMOKE_FORCE_FAIL=1`, so its smoke prints `smoke forced to fail (SMOKE_FORCE_FAIL)`, the rollback
+step runs, and `bunx wrangler deployments list --name matter-of-place-dev` shows the previous version active. A second
+run with `rehearse_rollback=false` deploys the current commit again. `production` never runs on `workflow_dispatch`.
+
+### By hand, from the owner's shell
+
+With `.env` loaded without printing it (ASSUMED E10), from `app/`:
+
+- A production secret, once the Worker exists (secrets persist across deploys): `printf %s "$SENTRY_DSN" | bunx
+wrangler secret put SENTRY_DSN --name matter-of-place`. The other production secrets are B3 step 8's.
+- Roll back to a chosen version: `bunx wrangler versions list --name matter-of-place`, then `bunx wrangler rollback
+<version-id> --name matter-of-place --message "<reason>"`. The deploy token can do this (Workers Scripts Write).
+- Deploy without Actions (out of minutes): `bun run build && bun run deploy:prod --var
+MEDIA_PUBLIC_BASE:https://matter-of-place.holy-meadow-4327.workers.dev/media`. `deploy:prod` passes
+  `SENTRY_RELEASE` as the checked-out commit; without the extra `--var` the Worker keeps the `wrangler.toml` default
+  `https://matterofplace.com/media`, right only after the domain cut-over.
+
+### CPU time per request
+
+The free Workers plan allows 10 ms of CPU per request (P-009). Measure from the owner's shell with the local admin
+token (the deploy token cannot tail, ASSUMED E1): start `bunx wrangler tail matter-of-place --format json`, request
+`/`, `/properties`, `/california`, `/markets` and `/submit` five times each, and read the `cpuTime` of each event.
+Compare with ASSUMED E3 (home 6 to 52 ms, collection 10 to 24 ms on the throwaway Worker). A first request above the
+limit after a catalog version bump on the 100-property fixture is the revisit trigger of architecture section 13;
+that case waits for B2's snapshot-budget fixture and B3's `getCatalog`.
+
 ## Sentry
 
 Organisation `matter-of-place`, project `javascript-tanstackstart-react` (ASSUMED E9, E21). The Worker and the job

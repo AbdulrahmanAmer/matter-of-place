@@ -17,6 +17,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 
 const Value = z.union([z.string(), z.number(), z.boolean()]);
 const Step = z.object({
+  id: z.string().optional(),
   name: z.string().optional(),
   if: z.string().optional(),
   uses: z.string().optional(),
@@ -515,43 +516,173 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
   });
 });
 
-describe.skipIf(deployJob("production") === undefined || deployJob("dev") === undefined)(
-  "deploy.yml production and dev jobs (skipped until step 7 writes them)",
-  () => {
-    it("production deploys only what ci passed on main (invariant 6a)", () => {
-      const text = deploy?.text ?? "";
-      expect([
-        text.includes("workflow_run"),
-        text.includes("workflows: [ci]"),
-        text.includes("conclusion == 'success'"),
-      ]).toEqual([true, true, true]);
-    });
+const MAIN_JOBS = ["dev", "production"];
+const ON_MAIN =
+  "github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'";
+const COMMIT: Record<string, string> = {
+  dev: "${{ github.event.workflow_run.head_sha || github.sha }}",
+  production: "${{ github.event.workflow_run.head_sha }}",
+};
+const ADDRESS: Record<string, string> = {
+  dev: "https://matter-of-place-dev.holy-meadow-4327.workers.dev",
+  production: "https://matter-of-place.holy-meadow-4327.workers.dev",
+};
+const GUARDED = "steps.guard.outputs.superseded != 'true'";
+const ROLLBACK_IF = "failure() && steps.deploy.outcome == 'success'";
+const MainTriggers = z.object({
+  workflow_run: z.object({
+    workflows: z.array(z.string()),
+    types: z.array(z.string()),
+    branches: z.array(z.string()),
+  }),
+  workflow_dispatch: z.object({
+    inputs: z.object({ rehearse_rollback: z.object({ type: z.string(), default: z.boolean() }) }),
+  }),
+});
+const stepsOf = (job: string) => deployJob(job)?.steps ?? [];
 
-    it("dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a)", () => {
-      expect([
-        has("dev", "--name matter-of-place-dev"),
-        has("dev", MOP_ENV_FLAG),
-        has("dev", HAS_DB_ENV),
-        has("dev", API_BASE),
-        ...["dev", "production"].map((job) => has(job, "--var MEDIA_PUBLIC_BASE:")),
-      ]).toEqual(Array<boolean>(6).fill(true));
+describe("deploy.yml production and dev jobs (step 7)", () => {
+  it("dev and production deploy only the commit ci passed on main (6a, 11)", () => {
+    const checkout = (job: string) =>
+      stepsOf(job).find((step) => step.uses?.startsWith("actions/checkout@"))?.with;
+    expect({
+      trigger: MainTriggers.parse(deploy?.data.on).workflow_run,
+      dev: deployJob("dev")?.if,
+      production: deployJob("production")?.if,
+      ref: MAIN_JOBS.map((job) => checkout(job)?.["ref"]),
+      depth: MAIN_JOBS.map((job) => checkout(job)?.["fetch-depth"]),
+      sha: MAIN_JOBS.map((job) => has(job, `SHA: ${COMMIT[job] ?? ""}`)),
+      release: MAIN_JOBS.map((job) => has(job, "--var SENTRY_RELEASE:$SHA ")),
+    }).toEqual({
+      trigger: { workflows: ["ci"], types: ["completed"], branches: ["main"] },
+      dev: `(${ON_MAIN}) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')`,
+      production: ON_MAIN,
+      ref: MAIN_JOBS.map((job) => COMMIT[job]),
+      depth: [0, 0],
+      sha: [true, true],
+      release: [true, true],
     });
+  });
 
-    it("production needs dev and touches no database (13)", () => {
-      const touches = ["db:push", "supabase link", "functions deploy"].filter((word) =>
-        has("production", word),
-      );
-      expect({ needsDev: has("production", "needs: dev"), touches }).toEqual({
-        needsDev: true,
-        touches: [],
-      });
+  it("dev and production run the guard first and every later step waits on it (G24)", () => {
+    const loose = MAIN_JOBS.flatMap((job) => {
+      const steps = stepsOf(job);
+      const first = steps[1];
+      const guard =
+        first?.id === "guard" && first.run === 'node scripts/deploy-guard.mjs "$SHA"'
+          ? []
+          : [`${job}: the step after checkout is not the guard`];
+      const ungated = steps
+        .slice(2)
+        .filter((step) => !(step.if?.includes(GUARDED) === true || step.if === ROLLBACK_IF))
+        .map((step) => `${job}: ${step.name ?? step.uses ?? step.run ?? ""}`);
+      return [...guard, ...ungated];
     });
+    expect(loose).toEqual([]);
+  });
 
-    it("production and dev never read CI_HEAVY (invariant 14)", () => {
-      expect(["production", "dev"].filter((job) => has(job, "CI_HEAVY"))).toEqual([]);
+  it("dev and production wait, smoke their own address, then roll back (G22, P-137)", () => {
+    const view = (job: string) => {
+      const steps = stepsOf(job);
+      const at = (test: (step: (typeof steps)[number]) => boolean) => steps.findIndex(test);
+      const deployAt = at((step) => step.id === "deploy");
+      const waitAt = at((step) => step.name === "wait");
+      const smokeAt = at((step) => step.run === 'node scripts/smoke.mjs "$URL"');
+      const wait = steps[waitAt]?.run ?? "";
+      const rollback = steps.at(-1);
+      return {
+        address: has(job, `URL: ${ADDRESS[job] ?? ""}\n`),
+        ordered:
+          deployAt >= 0 && deployAt < waitAt && waitAt < smokeAt && smokeAt === steps.length - 2,
+        waitsForTen:
+          wait.includes(`curl -s -o /dev/null -D - "$URL/" | grep -qi '^x-request-id:'`) &&
+          /else\s+ok=0\s+fi/.test(wait) &&
+          wait.includes('if [ "$ok" -ge 10 ]; then') &&
+          wait.trimEnd().endsWith("exit 1"),
+        rollbackIf: rollback?.if,
+        rollback: rollback?.run,
+      };
+    };
+    const rollbackOf = (worker: string) =>
+      `bunx wrangler rollback --name ${worker} --message "smoke failed $SHA" --yes`;
+    const smoke = stepsOf("dev").find((step) => step.name === "smoke");
+    expect({
+      dev: view("dev"),
+      production: view("production"),
+      rehearsal: smoke?.env?.["SMOKE_FORCE_FAIL"],
+      input: MainTriggers.parse(deploy?.data.on).workflow_dispatch.inputs.rehearse_rollback,
+    }).toEqual({
+      dev: {
+        address: true,
+        ordered: true,
+        waitsForTen: true,
+        rollbackIf: ROLLBACK_IF,
+        rollback: rollbackOf("matter-of-place-dev"),
+      },
+      production: {
+        address: true,
+        ordered: true,
+        waitsForTen: true,
+        rollbackIf: ROLLBACK_IF,
+        rollback: rollbackOf("matter-of-place"),
+      },
+      rehearsal: "${{ inputs.rehearse_rollback && '1' || '' }}",
+      input: { type: "boolean", default: false },
     });
-  },
-);
+  });
+
+  it("dev pushes main's migrations before its deploy, only when there are any (13)", () => {
+    const steps = stepsOf("dev");
+    const push = steps.findIndex((step) => step.run?.includes("bun run db:push") === true);
+    expect({
+      detects: steps
+        .find((step) => step.id === "migrations")
+        ?.run?.includes("git ls-files 'supabase/migrations/*.sql' | grep -q ."),
+      when: steps[push]?.if,
+      link: steps[push]?.run?.includes(
+        'bunx supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF" --password "$DEV_SUPABASE_DB_PASSWORD"',
+      ),
+      beforeDeploy: push >= 0 && push < steps.findIndex((step) => step.id === "deploy"),
+    }).toEqual({
+      detects: true,
+      when: `${GUARDED} && steps.migrations.outputs.has_migrations == 'true'`,
+      link: true,
+      beforeDeploy: true,
+    });
+  });
+
+  it("dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a)", () => {
+    expect([
+      has("dev", "--name matter-of-place-dev"),
+      has("dev", MOP_ENV_FLAG),
+      has("dev", HAS_DB_ENV),
+      has("dev", API_BASE),
+      ...["dev", "production"].map((job) => has(job, "--var MEDIA_PUBLIC_BASE:")),
+    ]).toEqual(Array<boolean>(6).fill(true));
+  });
+
+  it("production needs dev, touches no database and reads only the deploy token (13, 15)", () => {
+    const touches = ["db:push", "supabase link", "functions deploy"].filter((word) =>
+      has("production", word),
+    );
+    const secrets = [...textOf(deploy, "production").matchAll(/secrets\.(\w+)/g)].map(
+      (match) => match[1],
+    );
+    expect({
+      needsDev: has("production", "needs: dev"),
+      touches,
+      secrets: [...new Set(secrets)],
+    }).toEqual({
+      needsDev: true,
+      touches: [],
+      secrets: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+    });
+  });
+
+  it("production and dev never read CI_HEAVY (invariant 14)", () => {
+    expect(["production", "dev"].filter((job) => has(job, "CI_HEAVY"))).toEqual([]);
+  });
+});
 
 describe.skipIf(backup === undefined)("backup.yml (skipped until step 8 writes it)", () => {
   it("encrypts to the public certificate and records the run (DO-02, G32, 17, DB-11)", () => {

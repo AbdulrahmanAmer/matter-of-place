@@ -3890,3 +3890,239 @@ GOTCHAS: no new entry; P-134 gains the H48 sentence. The 51-entry replay ran pas
 
 ## c1 · follow-ups recorded
 The review of group c1 (steps 6) found no blocking defect and five follow-ups; no code changed. One was a cost with no entry in the bank: GOTCHAS.md gains P-502 (a replay of every registry entry outlasts the 10-minute tool ceiling; `scratch/replay.mjs` reads `tests/mutations` from the cwd). The other four are in `workspace/05-plans/logs/B1b-followups.md` under "## c1 · steps 6" for the orchestrator to fold or assign (the H48 clause cited in this log, the repeated and stale lines of the delivery runbook, the stale `VITE_API_BASE_URL` contract line, the proofs that rest on git-ignored scratch scripts). `node workspace/05-plans/check-gotchas.mjs` -> check-gotchas: OK (32 path entries, 132 process entries).
+
+## g1 · steps 7
+Builder of group g1, step 7: the `dev` and `production` jobs of `deploy.yml`, `scripts/deploy-guard.mjs`, the `deploy:prod` script and the step 7 cases of `hygiene.test.ts`. The file and unit parts are built and proved here; the live parts (the first deploys, secrets on the Workers, production Sentry, watched-fail (p), the guard on the real workflow, the manual rollback, CPU) run after the orchestrator merges, because `workflow_run` and `workflow_dispatch` only start from a workflow on `main`. Branch `slice/b1b`, `origin/main` (`e6e88a2`) was already in it at the start (`git merge-base --is-ancestor origin/main HEAD` true), so no merge was needed. Pull request #43 (draft) carries it.
+
+Files: `.github/workflows/deploy.yml` (triggers `workflow_run` of `ci` on `main` and `workflow_dispatch` with `rehearse_rollback`; jobs `dev` and `production`), `app/scripts/deploy-guard.mjs`, `app/tests/unit/deploy-guard.test.ts` (6 tests), `app/tests/unit/hygiene.test.ts` (the step 7 block now runs: 7 tests, 4 new), `app/package.json` (script `deploy:prod`), `app/tests/mutations/B1b.json` (33 new entries, 12 moved entries re-anchored; `--check` 367 → 400), `app/docs/runbooks/delivery.md` (section "Deploys from main": the two jobs, the guard and how to read `superseded`, smoke, rollback and the alert, the rehearsal, hand steps, CPU recipe), `GOTCHAS.md` (P-503 new, P-132 hit again).
+
+Built differently from the plan text, for the orchestrator:
+- Plan line 109 deploys `dev` with `--var SENTRY_RELEASE:${{ github.event.workflow_run.head_sha }}`, which is empty on `workflow_dispatch` (the rollback rehearsal of 7b). Built with a job env `SHA: ${{ github.event.workflow_run.head_sha || github.sha }}`, the same expression the plan gives the checkout and the guard, and `--var SENTRY_RELEASE:$SHA` in both jobs.
+- Not in the plan: a `wait` step before each smoke (ten answers with `x-request-id` in a row, at most 180 s, GOTCHAS P-137). Neither `matter-of-place` nor `matter-of-place-dev` exists yet (`bunx wrangler deployments list --name matter-of-place` → `This Worker does not exist on your account. [code: 10007]`, the same for `-dev`, 2026-10-02), so the first merge is a first deploy of both names.
+- The rollback lines carry `--yes` (`wrangler rollback --help`: `-y, --yes  Automatically accept defaults to prompts`), so a prompt cannot hang the job. A failed wait or a failed `secrets` push of `dev` also triggers the rollback (`failure() && steps.deploy.outcome == 'success'`, as the plan writes).
+- The smoke of `production` targets `https://matter-of-place.holy-meadow-4327.workers.dev` before and after the domain cut-over (the address keeps answering, noindex). L1 may add a smoke of the domain.
+- NEEDS A RULING BEFORE THE MERGE: with `VITE_API_BASE_URL` removed by H48, the `production` build takes the local services adapter, so `matter-of-place` serves the illustrative catalogue under `MOP_ENV=production` on its `workers.dev` address (noindex, linked from nowhere) until B3 sets the variable and B3b hides illustrative content. CLAUDE.md says production shows no illustrative property, ever. Without H48 the same build would answer 500 on the catalogue pages (P-134) and the first deploy could not roll back. Options: accept it until B3b (the address is not the domain), or hold the merge of step 7 until B3/B3b. The code does not decide this.
+- Stale facts, as the brief says, not blocking: ASSUMED E1 lists a storage write permission for R2 on the deploy token and E8 an R2 line (H33). The runbook calls the token's rollback power "Workers Scripts Write is enough, ASSUMED E1", UNPROVEN until the manual rollback after the merge.
+- C23 asks a deploy-path change to update `rollback.md`; that file is H1's and does not exist yet. The delivery runbook holds the rollback steps meanwhile.
+- PERF-03 (CPU of the first request after a catalog bump on the 100-property fixture) is BLOCKED until B2's `tests/db/snapshot-budget.db.test.ts` fixture and B3's `getCatalog` exist.
+
+### Local proofs
+
+`cd app && bunx vitest run tests/unit/deploy-guard.test.ts` (output file `scratch/g1s7-vitest-guard.txt`)
+```
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+```
+
+Watched-fail (av): bytes of `scripts/deploy-guard.mjs` copied to `scratch/g1s7-guard.saved`; `sed` turned `return revListOutput.trim() !== "";` into `return false;` (`grep -c "return false;"` printed `1`); restored by copy (`cmp` printed nothing, `restored`). `bunx vitest run tests/unit/deploy-guard.test.ts` (output file `scratch/g1s7-av-red.txt`, exit 1):
+```
+
+ RUN  v5.0.2 E:/mop-build/spine/app
+
+ ❯ tests/unit/deploy-guard.test.ts (6 tests | 3 failed) 2872ms
+   ❯ supersededBy (2)
+     × a listed commit supersedes the deployed one 10ms
+   ❯ deploy-guard.mjs on a repository whose origin/main moved on (4)
+     × is superseded once a newer code commit is on main 826ms
+     × is superseded by a newer commit outside app, such as a workflow 629ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/deploy-guard.test.ts > supersededBy > a listed commit supersedes the deployed one
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/deploy-guard.test.ts:18:72
+     16| describe("supersededBy", () => {
+     17|   it("a listed commit supersedes the deployed one", () => {
+     18|     expect(supersededBy("4b825dc642cb6eb9a060e54bf8d69288fbee4904\n"))…
+       |                                                                        ^
+     19|   });
+     20|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/unit/deploy-guard.test.ts > deploy-guard.mjs on a repository whose origin/main moved on > is superseded once a newer code commit is on main
+AssertionError: expected { status: +0, …(2) } to deeply equal { status: +0, …(2) }
+
+- Expected
++ Received
+
+  {
+-   "output": "superseded=true
++   "output": "superseded=false
+  ",
+    "status": 0,
+-   "stdout": "superseded a0f495567d28e3248bde4adf9c929468c22a6394
++   "stdout": "deploying a0f495567d28e3248bde4adf9c929468c22a6394
+  ",
+  }
+
+ ❯ tests/unit/deploy-guard.test.ts:82:29
+     80|     commit("workspace/notes.txt");
+     81|     commit("app/src/b.ts");
+     82|     expect(guard(deployed)).toEqual({
+       |                             ^
+     83|       status: 0,
+     84|       stdout: `superseded ${deployed}\n`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/unit/deploy-guard.test.ts > deploy-guard.mjs on a repository whose origin/main moved on > is superseded by a newer commit outside app, such as a workflow
+AssertionError: expected { status: +0, …(2) } to deeply equal { status: +0, …(2) }
+
+- Expected
++ Received
+
+  {
+-   "output": "superseded=true
++   "output": "superseded=false
+  ",
+    "status": 0,
+-   "stdout": "superseded 3954b7b0effc0dd139b71fdad51984e843f68cf0
++   "stdout": "deploying 3954b7b0effc0dd139b71fdad51984e843f68cf0
+  ",
+  }
+
+ ❯ tests/unit/deploy-guard.test.ts:92:29
+     90|     const deployed = commit("app/src/a.ts");
+     91|     commit(".github/workflows/ci.yml");
+     92|     expect(guard(deployed)).toEqual({
+       |                             ^
+     93|       status: 0,
+     94|       stdout: `superseded ${deployed}\n`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 3 passed (6)
+   Start at  23:37:51
+   Duration  3.14s (tests 98%, transform 1%, import 1%)
+```
+
+`cd app && bunx vitest run tests/unit/hygiene.test.ts` (output file `scratch/g1s7-vitest-hygiene.txt`; the 3 skipped are `backup.yml` and the job runner, steps 8 and B8)
+```
+ Test Files  1 passed (1)
+      Tests  49 passed | 3 skipped (52)
+```
+
+Registry: `cd app && node ../scratch/replay.mjs --check` first printed 12 `BAD` lines (`ar`, `ar-dev-key`, `hy-preview-mop-env`, `hy-preview-api-base`, `hy-preview-turnstile`, `hy-preview-order`, `hy-preview-url-once`, `hy-preview-wait`, `hy-wait-reset`, `hy-wait-ten`, `hy-wait-fails`, `hy-cleanup-waits`: `find occurs 2 times` or `3 times`, the dev and production jobs repeat preview lines, P-132). Each was re-anchored on a line only the preview holds; then `checked 400, bad 0`. The baseline of every new and moved entry on the unmutated tree, then the replay (runner text in the g4 close-out block; output files `scratch/g1s7-baseline.txt`, `scratch/g1s7-replay.txt`):
+```
+baseline 45, loose 0
+RED ar: exit=1 expect=true | × no job a pull request can reach references a database, production or backup secret 19ms
+RED ar-dev-key: exit=1 expect=true | × no job a pull request can reach references a database, production or backup secret 21ms
+RED hy-preview-mop-env: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 13ms
+RED hy-preview-api-base: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 14ms
+RED hy-preview-turnstile: exit=1 expect=true | × preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11) 19ms
+RED hy-preview-order: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 14ms
+RED hy-preview-url-once: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 23ms
+RED hy-preview-wait: exit=1 expect=true | × preview deploys, then sets the secrets, then smokes, then comments 14ms
+RED hy-wait-reset: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 17ms
+RED hy-wait-ten: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 12ms
+RED hy-wait-fails: exit=1 expect=true | × preview waits for ten answers of the Worker in a row before the smoke (P-137) 9ms
+RED hy-cleanup-waits: exit=1 expect=true | × preview-cleanup deletes pr-<n> and forgives only a Worker that never existed 9ms
+RED av: exit=1 expect=true | × a listed commit supersedes the deployed one 8ms
+RED dg-workspace: exit=1 expect=true | × deploys when main gained only workspace, launch and Markdown commits 974ms
+RED dg-launch: exit=1 expect=true | × deploys when main gained only workspace, launch and Markdown commits 1015ms
+RED dg-md: exit=1 expect=true | × deploys when main gained only workspace, launch and Markdown commits 959ms
+RED dg-range: exit=1 expect=true | × is superseded once a newer code commit is on main 1053ms
+RED dg-root: exit=1 expect=true | × is superseded by a newer commit outside app, such as a workflow 666ms
+RED dg-output: exit=1 expect=true | × is superseded once a newer code commit is on main 884ms
+RED dg-usage: exit=1 expect=true | × refuses a SHA that is not 40 hex characters 388ms
+RED w: exit=1 expect=true | × dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a) 1ms
+RED w-dev: exit=1 expect=true | × dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a) 1ms
+RED w-old-name: exit=1 expect=true | × no workflow names R2 or a media base variable (H33) 9ms
+RED bf: exit=1 expect=true | × production needs dev, touches no database and reads only the deploy token (13, 15) 36ms
+RED bf-needs: exit=1 expect=true | × production needs dev, touches no database and reads only the deploy token (13, 15) 23ms
+RED bg: exit=1 expect=true | × dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a) 20ms
+RED hy-main-trigger: exit=1 expect=true | × dev and production deploy only the commit ci passed on main (6a, 11) 13ms
+RED hy-main-event: exit=1 expect=true | × dev and production deploy only the commit ci passed on main (6a, 11) 12ms
+RED hy-main-ref: exit=1 expect=true | × dev and production deploy only the commit ci passed on main (6a, 11) 15ms
+RED hy-main-release: exit=1 expect=true | × dev and production deploy only the commit ci passed on main (6a, 11) 11ms
+RED hy-main-dispatch: exit=1 expect=true | × dev and production deploy only the commit ci passed on main (6a, 11) 11ms
+RED hy-guard-first: exit=1 expect=true | × dev and production run the guard first and every later step waits on it (G24) 10ms
+RED hy-guard-gate: exit=1 expect=true | × dev and production run the guard first and every later step waits on it (G24) 9ms
+RED hy-guard-rollback: exit=1 expect=true | × dev and production run the guard first and every later step waits on it (G24) 9ms
+RED hy-smoke-url: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 12ms
+RED hy-smoke-wait-dev: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 12ms
+RED hy-smoke-wait-prod: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 11ms
+RED hy-smoke-order: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 11ms
+RED hy-smoke-rehearse: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 12ms
+RED hy-rollback-name: exit=1 expect=true | × dev and production wait, smoke their own address, then roll back (G22, P-137) 14ms
+RED hy-dev-db-when: exit=1 expect=true | × dev pushes main's migrations before its deploy, only when there are any (13) 10ms
+RED hy-dev-db-detect: exit=1 expect=true | × dev pushes main's migrations before its deploy, only when there are any (13) 9ms
+RED hy-dev-db-order: exit=1 expect=true | × dev pushes main's migrations before its deploy, only when there are any (13) 10ms
+RED hy-prod-secrets: exit=1 expect=true | × production needs dev, touches no database and reads only the deploy token (13, 15) 9ms
+RED hy-main-ci-heavy: exit=1 expect=true | × production and dev never read CI_HEAVY (invariant 14) 9ms
+replayed 45, not red 0
+```
+Watched-fails of the plan: (av) is entry `av`; (w) is `w` (production flag), `w-dev` (dev flag) and `w-old-name` (`--var MEDIA_BASE_URL:x` in `preview`); (bf) is `bf` (`bun run db:push` in `production`) and `bf-needs` (`needs: dev` deleted); (bg) is `bg`. Every title of the step 7 block and of `deploy-guard.test.ts` has at least one entry above. Watched-fail (p) and the guard on the real workflow are post-merge, `kind: manual` once run.
+
+Greps of the brief (repository root; `deploy.yml` is tracked, P-135) (output file `scratch/g1s7-greps.txt`):
+```
+$ grep -n "workflow_run\|workflows: \[ci\]\|conclusion == 'success'\|workflow_run.head_sha" .github/workflows/deploy.yml
+18:  workflow_run:
+19:    workflows: [ci]
+205:    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+215:      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+219:      # The commit ci passed; on workflow_run, github.sha is the newest main, not necessarily it.
+223:          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+327:    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+336:      SHA: ${{ github.event.workflow_run.head_sha }}
+341:          ref: ${{ github.event.workflow_run.head_sha }}
+$ grep -F -c -- '--var MEDIA_PUBLIC_BASE:' .github/workflows/deploy.yml
+3
+$ grep -c "MEDIA_BASE_URL\|db:push.*confirm-production" .github/workflows/deploy.yml
+0
+$ (cd app && grep -c "HAS_DB" ../.github/workflows/deploy.yml)
+7
+$ git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows; echo "exit $?"
+exit 1
+$ git ls-files --error-unmatch .github/workflows/deploy.yml
+.github/workflows/deploy.yml
+```
+
+Workflow lint (P-503): `scratch/actionlint/actionlint.exe -shellcheck= .github/workflows/deploy.yml; echo "actionlint exit $?"` → `actionlint exit 0` (actionlint 1.7.12 from its GitHub release; on a copy with `needs: devv` it printed `job "production" needs job "devv" which does not exist in this workflow [job-needs]`, exit 1).
+
+`deploy:prod`, not deployed: `cd app && bun run deploy:prod --dry-run` (output file `scratch/g1s7-deploy-prod-dry.txt`, exit 0)
+```
+$ wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE:$(git rev-parse HEAD) --dry-run
+env.MOP_ENV ("production")                                     Environment Variable      
+env.MEDIA_PUBLIC_BASE ("https://matterofplace.com/media")      Environment Variable      
+env.SENTRY_RELEASE ("(hidden)")                                Environment Variable      
+--dry-run: exiting now.
+```
+Wrangler hides the value, so the expansion was shown with a scratch `package.json` whose script is `node -e "console.log(process.argv[1])" SENTRY_RELEASE:$(git rev-parse HEAD)`: `bun run x` printed `SENTRY_RELEASE:60f36547c7b2bba8268b39cff21556104dd23e84`, and `git rev-parse HEAD` printed the same SHA.
+
+`cd app && bun run check` (output file `scratch/g1s7-check.txt`, exit 0)
+```
+layout: OK (595 files)
+Configuration hints (2)
+src/db/types.ts                  knip.json  Remove from ignore               
+supabase/functions/*/index.ts    knip.json  Refine entry pattern (no matches)
+No duplicates found.
+stubs: 15 markers, 0 on closed slices
+All matched files use Prettier code style!
+ Test Files  16 passed (16)
+      Tests  393 passed | 3 skipped (396)
+```
+`cd app && bun run build; echo "build exit $?"` (output file `scratch/g1s7-build.txt`) → `build exit 0`, last line `You can deploy this build using npx nitro deploy --prebuilt`.
+
+### After the merge (orchestrator): NOT DONE here, the commands of step 7
+- `gh run view <deploy run id> --log | grep -F "MEDIA_PUBLIC_BASE:"` shows both Workers with their own origin plus `/media`; `gh run view <deploy run id> --json jobs --jq '.jobs[] | [.name,.startedAt,.completedAt] | @tsv'` shows `production` starting after `dev` completed, and `--jq '.jobs[] | [.name,.conclusion] | @tsv'` shows `dev` and `production` `success`.
+- `gh run list --workflow ci.yml --branch main --limit 1 --json headSha,conclusion` and `gh run list --workflow deploy.yml --event workflow_run --limit 1 --json headSha,conclusion` show the same SHA, both `success`.
+- `node scripts/smoke.mjs https://matter-of-place.holy-meadow-4327.workers.dev` and `...matter-of-place-dev...` exit 0; `curl -sI https://matter-of-place.holy-meadow-4327.workers.dev/ | grep -i x-robots-tag` → `noindex, nofollow`.
+- `printf %s "$SENTRY_DSN" | bunx wrangler secret put SENTRY_DSN --name matter-of-place`, then `bunx wrangler secret list --name matter-of-place` lists `SENTRY_DSN`; `bunx wrangler secret list --name matter-of-place-dev` lists the six bundle names.
+- Production Sentry with a one-off `SENTRY_TEST_TOKEN` (put, POST answers 500 with a `requestId`, the two Sentry API reads show `env` `production` and `release` the deployed SHA, delete, POST answers 404).
+- Watched-fail (p): a type-error commit on `main` leaves `ci` red and `production` skipped, then the revert deploys.
+- The guard on the real workflow: `gh run rerun <older ci run id>` gives `superseded <sha>` in both `guard` steps and `gh run view <id> --log | grep -c "wrangler deploy"` → 0.
+- Manual rollback with the deploy token: `bunx wrangler versions list --name matter-of-place` and `bunx wrangler rollback <previous-id> --name matter-of-place`.
+- CPU: `bunx wrangler tail matter-of-place --format json` while requesting `/`, `/properties`, `/california`, `/markets`, `/submit` five times each, compared with E3; PERF-03 BLOCKED as above.
+
+GOTCHAS: P-503 added (actionlint is not on this laptop and `bunx actionlint` runs nothing; lint a workflow that only runs after a merge with the release binary). P-132 gains a "hit again" line (12 finds repeated by the new jobs). `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (32 path entries, 133 process entries)`.

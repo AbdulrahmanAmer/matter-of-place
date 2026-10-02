@@ -3120,8 +3120,8 @@
     "id": "ar",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
-    "replace": "      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n",
+    "find": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
+    "replace": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× no job a pull request can reach references a database"
   },
@@ -3129,8 +3129,8 @@
     "id": "ar-dev-key",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
-    "replace": "      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}\n",
+    "find": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
+    "replace": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× no job a pull request can reach references a database"
   },
@@ -3219,8 +3219,8 @@
     "id": "hy-preview-mop-env",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "--var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }}",
-    "replace": "--var MOP_ENV:preview",
+    "find": "--name pr-${{ github.event.number }} --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }}",
+    "replace": "--name pr-${{ github.event.number }} --var MOP_ENV:preview",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
   },
@@ -3228,8 +3228,8 @@
     "id": "hy-preview-api-base",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}",
-    "replace": "VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}",
+    "find": "workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "replace": "workers.dev\n          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
   },
@@ -3255,8 +3255,8 @@
     "id": "hy-preview-turnstile",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA",
-    "replace": "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}",
+    "find": "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "replace": "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build\n      # On a pull request",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
   },
@@ -3264,8 +3264,8 @@
     "id": "hy-preview-order",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: secrets\n",
-    "replace": "      - name: smoke-early\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: secrets\n",
+    "find": "answers the calm 500.\n      - name: secrets\n",
+    "replace": "answers the calm 500.\n      - name: smoke-early\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: secrets\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview deploys, then sets the secrets, then smokes"
   },
@@ -3273,8 +3273,8 @@
     "id": "hy-preview-url-once",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: smoke\n",
-    "replace": "      - run: echo \"PREVIEW_URL=https://example.com\" >> \"$GITHUB_ENV\"\n      - name: smoke\n",
+    "find": "      - name: smoke\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n",
+    "replace": "      - run: echo \"PREVIEW_URL=https://example.com\" >> \"$GITHUB_ENV\"\n      - name: smoke\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview deploys, then sets the secrets, then smokes"
   },
@@ -3282,8 +3282,8 @@
     "id": "hy-preview-wait",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: wait\n",
-    "replace": "      - name: smoke-first\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: wait\n",
+    "find": "      - name: wait\n        run: |\n",
+    "replace": "      - name: smoke-first\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: wait\n        run: |\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview deploys, then sets the secrets, then smokes"
   },
@@ -3291,8 +3291,8 @@
     "id": "hy-wait-reset",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "            else\n              ok=0\n            fi\n",
-    "replace": "            fi\n",
+    "find": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n",
+    "replace": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            fi\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview waits for ten answers of the Worker in a row"
   },
@@ -3300,8 +3300,8 @@
     "id": "hy-wait-ten",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "if [ \"$ok\" -ge 10 ]; then",
-    "replace": "if [ \"$ok\" -ge 1 ]; then",
+    "find": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n            if [ \"$ok\" -ge 10 ]; then",
+    "replace": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n            if [ \"$ok\" -ge 1 ]; then",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview waits for ten answers of the Worker in a row"
   },
@@ -3309,8 +3309,8 @@
     "id": "hy-wait-fails",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n          exit 1\n",
-    "replace": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n",
+    "find": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n          exit 1\n      - name: smoke\n        run:",
+    "replace": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n      - name: smoke\n        run:",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview waits for ten answers of the Worker in a row"
   },
@@ -3336,9 +3336,306 @@
     "id": "hy-cleanup-waits",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      cancel-in-progress: false\n",
-    "replace": "      cancel-in-progress: true\n",
+    "find": "      group: preview-${{ github.event.number }}\n      cancel-in-progress: false\n",
+    "replace": "      group: preview-${{ github.event.number }}\n      cancel-in-progress: true\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview-cleanup deletes pr-<n> and forgives only"
+  },
+  {
+    "id": "av",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "  return revListOutput.trim() !== \"\";",
+    "replace": "  return false;",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× a listed commit supersedes the deployed one"
+  },
+  {
+    "id": "dg-workspace",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "\":!workspace\", ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-launch",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "\":!launch\", ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-md",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": ", \":!*.md\"",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-range",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "`${sha}..origin/main`",
+    "replace": "`origin/main..${sha}`",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded once a newer code commit is on main"
+  },
+  {
+    "id": "dg-root",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "    cwd: root,\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded by a newer commit outside app, such as a workflow"
+  },
+  {
+    "id": "dg-output",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "appendFileSync(output, `superseded=${String(superseded)}\\n`);",
+    "replace": "appendFileSync(output, \"superseded=false\\n\");",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded once a newer code commit is on main"
+  },
+  {
+    "id": "dg-usage",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "/^[0-9a-f]{40}$/",
+    "replace": "/^[0-9a-f]{7,40}$/",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× refuses a SHA that is not 40 hex characters"
+  },
+  {
+    "id": "w",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED == 'true' && 'https://matterofplace.com/media' || 'https://matter-of-place.holy-meadow-4327.workers.dev/media' }}",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "w-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "w-old-name",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media",
+    "replace": "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media --var MEDIA_BASE_URL:x",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× no workflow names R2 or a media base variable"
+  },
+  {
+    "id": "bf",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "replace": "      - if: steps.guard.outputs.superseded != 'true'\n        run: bun run db:push\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "bf-needs",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "  production:\n    needs: dev\n",
+    "replace": "  production:\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "bg",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n",
+    "replace": "VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "hy-main-trigger",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    workflows: [ci]\n",
+    "replace": "    workflows: [deploy]\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-event",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'\n",
+    "replace": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          ref: ${{ github.event.workflow_run.head_sha }}\n",
+    "replace": "          ref: ${{ github.sha }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-release",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED",
+    "replace": "--var SENTRY_RELEASE:${{ github.sha }} --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-dispatch",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')",
+    "replace": "(github.event_name == 'workflow_dispatch')",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-guard-first",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          ref: ${{ github.event.workflow_run.head_sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - name: guard\n        id: guard\n        run: node scripts/deploy-guard.mjs \"$SHA\"\n",
+    "replace": "          ref: ${{ github.event.workflow_run.head_sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - name: guard\n        id: guard\n        run: echo superseded=false >> \"$GITHUB_OUTPUT\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-guard-gate",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev",
+    "replace": "      - name: build\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-guard-rollback",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure() && steps.deploy.outcome == 'success'\n",
+    "replace": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure()\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-smoke-url",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      URL: https://matter-of-place.holy-meadow-4327.workers.dev\n",
+    "replace": "      URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-wait-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          exit 1\n      # rehearse_rollback forces",
+    "replace": "      # rehearse_rollback forces",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-wait-prod",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          exit 1\n      # The workers.dev address",
+    "replace": "      # The workers.dev address",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          SMOKE_FORCE_FAIL: ${{ inputs.rehearse_rollback && '1' || '' }}\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-rehearse",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "SMOKE_FORCE_FAIL: ${{ inputs.rehearse_rollback && '1' || '' }}",
+    "replace": "SMOKE_FORCE_FAIL: \"\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-rollback-name",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "rollback --name matter-of-place --message",
+    "replace": "rollback --name matter-of-place-dev --message",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-dev-db-when",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n",
+    "replace": "        if: steps.guard.outputs.superseded != 'true'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-dev-db-detect",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "git ls-files 'supabase/migrations/*.sql' | grep -q .",
+    "replace": "git ls-files 'supabase/migrations' | grep -q .",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-dev-db-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
+    "replace": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-prod-secrets",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE",
+    "replace": "          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n          EXTRA: ${{ secrets.SENTRY_AUTH_TOKEN }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "hy-main-ci-heavy",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      group: production\n",
+    "replace": "      group: production-${{ vars.CI_HEAVY }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production and dev never read CI_HEAVY"
   }
 ]

@@ -27,6 +27,7 @@
     "layout": "node scripts/check-layout.mjs",
     "migrations:check": "node scripts/check-migrations.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "deploy:prod": "wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE:$(git rev-parse HEAD)",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "overrides": {
