@@ -122,6 +122,11 @@ add(ahead === "0\t0" ? "PASS" : "FAIL", "in sync with origin/main", ahead.replac
 // 8. plans, agents, harness
 const cp = run("node", [join(here, "check-plans.mjs"), "--require-trace"]);
 add(cp.code === 0 ? "PASS" : "FAIL", "check-plans", cp.out.trim().split(/\r?\n/).pop());
+// the gotcha bank is well formed, and its guard hook answers for the workspace and for a build lane (P-051)
+const cg = run("node", [join(here, "check-gotchas.mjs")]);
+add(cg.code === 0 ? "PASS" : "FAIL", "check-gotchas", cg.out.trim().split(/\r?\n/).pop());
+const gg = run("node", [join(ROOT, ".claude", "hooks", "gotcha-guard.test.mjs")]);
+add(gg.code === 0 ? "PASS" : "FAIL", "gotcha guard hook", gg.out.trim().split(/\r?\n/).pop());
 for (const f of [".claude/agents/mop-builder.md", ".claude/agents/mop-designer.md", ".claude/agents/mop-scout.md", ".claude/agents/mop-auditor.md", ".claude/workflows/build-slice.js", "workspace/05-plans/RUNBOOK.md", "GOTCHAS.md", "PROJECT-STATE.md", ".claude/POSITION.md"]) {
   add(existsSync(join(ROOT, f)) ? "PASS" : "FAIL", `file ${f}`);
 }

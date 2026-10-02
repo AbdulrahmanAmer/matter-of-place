@@ -7,13 +7,25 @@ before every Edit or Write and pushes the matching entries into the session (sev
 they are read by `mop-work` at session start.
 
 Rules for the bank itself
-- Numbers are unique and never reused: before adding, `grep -c "^## P-" GOTCHAS.md` and take the next free number (P-030 is next as of 2026-09-30). Duplicates from parallel workers get renumbered by the orchestrator, never silently merged.
-- Add an entry the same day something wastes more than 30 minutes or breaks after a push. Do not wait for a retro.
-- Keep it under 40 live entries. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
+- Numbers are unique and never reused: before adding, `grep -c "^## P-" GOTCHAS.md` and take the next free number (the highest number in the file plus one; P-019 and P-020 were never used and stay unused). `node workspace/05-plans/check-gotchas.mjs` fails on a number used twice, on an entry without rule, proof or added, and on a path entry without paths or severity: run it after every change to this file. Duplicates from parallel workers get renumbered by the orchestrator, never silently merged.
+- Add an entry in the same turn something costs more than a few minutes or breaks after a push (CLAUDE.md). Do not wait for a retro.
+- Keep it under 40 live path entries (G entries without `enforced-by:`; there are 14 today). Process entries (P) are not injected, every worker reads them once, so each one must still be true: when the thing it describes is gone, shrink it to a retired line and keep the number. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
   injected (the mechanism enforces it, the prose just documents it).
 - One `paths:` line, comma separated, project-relative globs (`**` and `*`). Severity is `block` only when an edit
   is never legitimate; otherwise `warn`.
 - `proof:` is a command and the output that shows the rule holds. No proof, no entry.
+
+Read this first if you are about to build (2026-10-02)
+- Where a file goes, the 60 rules and what a machine checks: `workspace/05-plans/STANDARDS.md`. Rulings that overrule plan text: `workspace/05-plans/ASSUMED.md` section H. Measured facts about this machine: section E.
+- Your tree: a lane is a git worktree outside this folder (P-051); two workers never share one tree (P-011); a stale branch is checked before use (P-022).
+- The database: never Docker here (P-038); only `main` reaches `mop-dev` once lanes are open (P-050); migrations are the only schema (G-010); names change in three files together (G-004).
+- Secrets: never printed, never in a `VITE_*` name (G-006); how one gets into `.env` unseen (P-055); account-wide tokens are the operator's (P-037).
+- The shell on this machine: absolute paths (P-013); no leading `sleep`, bounded waits (P-046, P-027, P-014); Git Bash rewrites arguments that start with `/` (P-015, P-048) and mangles quotes in inline scripts (P-008: write the script to a file); search with `git grep`, never `grep -r` (P-049); line endings are LF and are checked with `git ls-files --eol` (G-008, P-057); `npx` can fail, use `bunx` (P-002).
+- Rendering and images: Chrome with the GPU off for anything we commit or compare (P-052); frames eat disk (P-016); fixed UI is judged from viewport shots (P-021); the logo comes from `brand/`, never retyped (G-015, P-053).
+- The site code: generated route tree never edited (G-001); routes read through `services` (G-005); tokens only, no hex (G-007); titles (G-003); contrast (G-013); no third-party request before consent (G-014).
+- Delivery: workflows only at the repository root (G-012); no branch protection, so the merge gate is the rule (P-028, P-060); free-tier limits are hard walls (P-009, G-011); a cache key carries everything that changes the page (P-041).
+- Outside services: Resend (P-054); Cloudflare and Zoho first-run quirks (P-034, P-035); a push can fail for a few seconds (P-033).
+- Before you say done: run every proof again, three times when the claim is "nothing changes" (P-059); a rejected or timed-out call may have run (P-056); "unused" is a claim about the whole repository (P-039); a plan names real catalog names (P-031) and every capability traces to a file and a proof (P-043, P-044).
 
 Entry template
 ```
@@ -102,12 +114,12 @@ Entry template
 - proof: `git config core.autocrlf` → false; `git ls-files --eol | grep -c crlf` → 0.
 - added: 2026-09-30
 
-## G-009 · Lovable history is append-only
+## G-009 · Pushed history is never rewritten
 - paths: .git/**
 - severity: warn
-- symptom: Lovable loses the project history after a force push, rebase or squash of pushed commits.
-- cause: Lovable mirrors the connected branch (AGENTS.md). Not connected today, but the rule stands so it never has to be re-learned.
-- rule: never rewrite pushed history on `main`; fix forward.
+- symptom: a force push, a rebase or a squash of pushed commits breaks every lane and every open pull request that started from the old commits, and removes the evidence the position file cites by commit id.
+- cause: three lanes and the orchestrator build from `origin/main` at the same time; the rule began as a Lovable requirement (the repository is no longer connected to Lovable, CLAUDE.md) and stays for this reason.
+- rule: never rewrite pushed history on any branch; fix forward. Merge with a merge commit (P-060).
 - proof: `git log --oneline origin/main` is a strict prefix of `git log --oneline main`.
 - added: 2026-09-30
 
@@ -116,7 +128,7 @@ Entry template
 - severity: warn
 - symptom: an agent implements `schema.sql`, Cloudflare Queues or request-time image resizing "because the docs say so".
 - cause: those docs were written for an MVP; the CEO-approved spec (2026-09-30) is `workspace/02-tech-stack/tech-stack.md`.
-- rule: read `docs/` for intent only. Schema comes from `supabase/migrations`, jobs from pgmq + GitHub Actions, images from variants made at publish. Update or delete a docs page when the built thing diverges; never the other way round.
+- rule: read `docs/` for intent only (the sketch folders `architecture/`, `brief/`, `database/`, `decisions/`, `deploy/`). Schema comes from `supabase/migrations`, jobs from pgmq and GitHub Actions, image variants are made once when a photograph is attached (ASSUMED G66). Runbooks are the one part of `docs/` that is ours: `docs/runbooks/<name>.md`. Update or delete a sketch page when the built thing diverges, as the plans say; never build from it.
 - proof: `grep -rn "Cloudflare Queues\|cdn-cgi/image" src supabase` → no hits in built code.
 - added: 2026-09-30
 
@@ -146,17 +158,18 @@ Entry template
 - Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; R2 10 GB, zero egress; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
 - Workers free: at most 50 outbound subrequests per invocation (vendor documentation, UNPROVEN here); every Supabase RPC, Storage call and Turnstile call counts (JOB-03, E2E-02, PERF-07). A per-photograph loop inside an admin request breaks at about 22 photographs, so such loops run as jobs (B7's `copy_submission_media`); B3 signs at most 20 upload URLs per request; a render callback's `onResult` makes a fixed number of calls whatever the photo count (B9 `render_variants`: `apply_media_variants`, one Storage remove, `clear_media_staging`). Proof once built: `bunx vitest run tests/unit/subrequest-budget.test.ts`.
 - Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
-- Resend free: 3,000 emails/month, 100/day, audience up to 1,000 contacts.
+- Resend free: 3,000 emails/month, 100/day, 1,000 marketing contacts, 3 domains (all three used: root, `notify`, `notes`), 30-day data retention (pricing page read 2026-10-02, ASSUMED E20).
 - GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes). Once B9 step 10 runs, the billed minutes of one 40-photograph `render_variants` run are written here (JOB-08); until then UNPROVEN.
 - Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
+- proof: the vendors' pricing pages on the dates named; for the measured ones, ASSUMED section E (E1 to E20) holds the command and its output. `node workspace/05-plans/ready.mjs` prints the lines that are switched on.
 - added: 2026-09-30
 
-## P-001 · agent-os stage 0 refuses `src/**` even though the app is one folder down
-- symptom: an Edit under `app/src/` is denied with "STAGE 0 (SHAPE) does not allow writing".
-- rule: it is a sequencing gate. Put the finding in POSITION.md or GOTCHAS.md, and ask the operator to advance the STAGE line in PROJECT-STATE.md when the stage gate is met. Do not work around it in `workspace/`.
-- proof: `python ~/.agent-os/scripts/agent_os.py check "app/src/routes/index.tsx"` → denied.
+## P-001 · (retired 2026-10-02) agent-os stage 0 refused `src/**`
+- rule: nothing to do. The project is at STAGE 3 (BUILD) and writes under `app/src/` are allowed. If a stage gate ever refuses a write again, it is a sequencing gate: record the finding and ask the operator to advance the stage, do not work around it.
+- proof: `node workspace/05-plans/ready.mjs` prints `PASS  PROJECT-STATE stage 3 (BUILD)`.
 - added: 2026-09-30
+
 
 ## P-002 · `npx` on this machine can fail with `ECOMPROMISED Lock compromised`
 - symptom: `npx -y <pkg>` dies after minutes with the npm cache lock error (seen while plugin installs ran concurrently).
@@ -196,13 +209,13 @@ Entry template
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
 - cause: agent definitions are read at session start; the context-inheriting `fork` type is not in this Claude Code build.
-- rule: a specific model + effort for a worker in the same session = headless `claude -p --model <id> --effort <level> --dangerously-skip-permissions --output-format json` with the brief piped on stdin (`cat brief.md | claude -p …`), run in the background with `CLAUDE_SYNC_SKIP=1 CLAUDE_LEARN_SKIP=1`. "All my context" for a worker = the brief lists the files to read (CLAUDE.md, PROJECT-STATE, POSITION, GOTCHAS, tech-stack); it cannot inherit the transcript.
+- rule: agent definitions are read at session start, so a new `.claude/agents/*.md` works from the next session. Inside a session, give a worker its model with the Agent tool's `model` field or a Workflow agent's `model` and `effort` options (both exist in this build, used all through 2026-10-02); the headless `claude -p` route with the brief piped on stdin is the fallback. A worker inherits nothing from the transcript: its brief names the files to read (GOTCHAS, the slice plan, STANDARDS, the spec sections).
 - proof: `ls launch/producer-run.json` exists after the headless producer starts; in-session `Agent` with the new type fails until restart.
 - added: 2026-09-30
 
 ## P-011 · Two workers, one working tree: a branching agent moves the whole tree
 - symptom: `git branch --show-current` → `chore/remove-lovable` while the orchestrator still has uncommitted doc changes on "main"; anything committed now lands on the worker's branch, and `git add -A` by the worker sweeps the orchestrator's files into its PR.
-- rule: commit and push main work BEFORE spawning any agent that branches; while a branching worker runs, check the branch before every commit and never commit off `main`; never `git stash` or checkout under a running worker. Two branching workers at once need `git worktree` each.
+- rule: commit and push main work BEFORE spawning any agent that branches; while a branching worker runs in this tree, check the branch before every commit and never `git stash` or checkout under it. Workers that run side by side each get their own git worktree outside this folder (P-051); the build's lanes are exactly that.
 - proof: `git branch --show-current` → `main` before a commit on main.
 - added: 2026-09-30
 
@@ -304,7 +317,7 @@ Entry template
 
 ## P-028 · Free private GitHub repos have no branch protection
 - symptom: `gh api -X PUT repos/.../branches/main/protection` → HTTP 403 "Upgrade to GitHub Pro or make this repository public".
-- rule: protection of `main` is a CI rule, not a GitHub setting, until the plan changes: `deploy.yml` runs only after `ci.yml` passes on the same SHA, and nobody force-pushes (G-009). Plan B1b step 9 records this as BLOCKED.
+- rule: protection of `main` is our own rule, not a GitHub setting: the operator declined GitHub Pro on 2026-10-02 (ASSUMED H5), so B1b step 9 stays BLOCKED. The orchestrator merges only through `node workspace/05-plans/merge-gate.mjs <pr>` once B1b step 5b has written it (it refuses a head that does not contain `origin/main` and any failing check), `deploy.yml` runs only after `ci.yml` passes on the same commit, and nobody force-pushes (G-009).
 - proof: the 403 above, observed 2026-09-30.
 - added: 2026-09-30
 
@@ -377,14 +390,14 @@ Entry template
 ## P-037 · The agent may not create account-wide access tokens in a dashboard; the operator does that step
 - symptom: opening Supabase's "Create legacy token" form from the browser tool was refused by the permission classifier ("Credential Materialization"). Cloudflare's account token was also created by the operator's own press.
 - cause: creating a full-access credential is an operator action by policy, whatever tool is used.
-- rule: for any full-access token the agent prepares everything around it (the `.env` marker, the page open, the name to type) and the operator presses the create button and pastes the value into `.env`. Narrow tokens derived from one the operator already issued (for example `mop-github-actions` minted with `mop-admin`) went through. Do not look for another route to the denied action.
+- rule: for an account-wide token (Cloudflare, Supabase, GitHub) the agent prepares everything around it (the `.env` marker, the page open, the name to type) and the operator presses the create button and pastes the value into `.env`. Narrow tokens derived from one the operator already issued went through. Where the operator delegated the whole setup of one service in words (Resend, 2026-10-02), the agent may create that service's key, and only by the unseen route of P-055. Do not look for another route to a denied action.
 - proof: `.env` holds the marker `SUPABASE_ACCESS_TOKEN=PASTE_SUPABASE_ACCESS_TOKEN_HERE` until the operator fills it; `grep -c PASTE_SUPABASE .env`.
 - added: 2026-10-01
 
 ## P-038 · Never Docker on this machine: no `supabase start`, no Docker Desktop (S50)
 - symptom: a readiness command that launched Docker Desktop was stopped by the operator: "never use docker use my laptop".
 - cause: the plans assumed the Supabase local stack (B2 named Docker Desktop as a dependency). The operator's laptop is his working machine and Docker is not allowed on it.
-- rule: nothing starts Docker here. Schema goes to `mop-dev` with `supabase db push`; types come from `supabase gen types typescript --project-id`; Edge Functions deploy with `--use-api`; config with `supabase config push`; ad hoc SQL through the Supabase connector. Tests that need a clean database use a throwaway cluster from the native PostgreSQL 18 (`initdb` in a temp folder) or a scratch schema on `mop-dev`; tests that need pg_cron, pgmq or pg_net run on `mop-dev` only. A plan step that says Docker is a plan defect: fix the plan first.
+- rule: nothing starts Docker on the operator's laptop: no `supabase start`, no Docker Desktop, in the main folder or in a lane. GitHub's hosted runners are not this machine and may run containers: the per-pull-request database proof is the CI `db` job on an ephemeral Supabase stack (ASSUMED H1). On the laptop, schema reaches `mop-dev` with `bun run db:push` from `main` only once lanes are open (P-050; while one lane is open it may push under the G34 lock with `MOP_SINGLE_LANE=1`); types come from `supabase gen types typescript --project-id`; Edge Functions deploy with `--use-api`; config with `supabase config push`. A local test that needs no Supabase extension may use a throwaway cluster of the native PostgreSQL 18 (`initdb` in a temp folder). A plan step that needs Docker on this machine is a plan defect: stop and say so.
 - proof: `grep -n -i "docker\|supabase start\|db reset" workspace/05-plans/*.md` shows only lines that say Docker is not used.
 - added: 2026-10-01
 
@@ -479,4 +492,74 @@ Entry template
 - cause: a letter outside the font's character set; two shapes that meet on an antialiased edge.
 - rule: never set the wordmark as live text. Use the outlined SVG from `brand/logo/wordmark/` (its Λ is Jost Light's "A" without the crossbar). When a slice touches the wordmark or the emblem component, replace the text with the outlined paths and take the emblem geometry from `brand/logo/emblem/`. Regenerate brand assets only with `node launch/tools/brand-build.mjs`.
 - proof: `grep -rl "<text" brand/logo | wc -l` prints 0; the generator's check tool `node launch/tools/brand-wordmark-check.mjs` renders the site's text beside the outline.
+- added: 2026-10-02
+
+## P-051 · Build lanes are git worktrees outside the repository folder, and half the tooling assumed one folder
+- symptom: the gotcha guard said nothing for a file under `E:/mop-build/spine/` (it measured every path against the workspace folder); a lane has no `.env`, no `node_modules` and no Supabase link; `git worktree add <path> main` is refused while `main` is checked out (P-023).
+- cause: a worktree is a second copy of the tracked files only. Everything git ignores stays behind, and anything that computes paths from the workspace root sees the lane as "outside".
+- rule: a lane is made with `git worktree add --detach E:/mop-build/<lane> origin/main`, then `cp .env` into it (it is ignored there too), `bun install --frozen-lockfile` in its `app/`, and `supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"` in its `app/` before any CLI command that needs the link. Before a slice starts in a lane, move it to the newest main: `git -C E:/mop-build/<lane> fetch -q origin && git -C E:/mop-build/<lane> checkout --detach origin/main`. A builder in a lane never reads, edits or runs git in `E:/Matter Of Place`. The guard now finds the tree a file belongs to by walking up to the folder that holds `GOTCHAS.md` and `.git`.
+- proof: `node .claude/hooks/gotcha-guard.test.mjs` → `gotcha-guard: OK (6 cases)`; with the old hook the two lane cases print `FAIL ... silent`.
+- added: 2026-10-02
+
+## P-052 · Headless Chrome with the GPU on does not render the same pixels twice
+- symptom: three runs of the brand generator rewrote 2 to 5 PNG files each time with no input changed; one 256 px image rendered 40 times in one Chrome session gave 19 different hashes. A sub-agent had reported "second run changes nothing"; that run was luck.
+- cause: Chrome's default GPU rasteriser is not deterministic. With software rendering all 40 renders were identical.
+- rule: every script that screenshots or captures frames for a file we commit, compare or hash (brand assets, B9 social templates and OG images, B12 reel frames, email shots, visual baselines) launches Chrome with `--disable-gpu --disable-gpu-rasterization --disable-accelerated-2d-canvas --use-gl=disabled`. A generator counts as deterministic only after three runs in a row change nothing.
+- proof: `node launch/tools/brand-build.mjs` three times → `brand-build: 98 files, 0 written or changed` each time.
+- added: 2026-10-02
+
+## P-053 · A gap between two shapes can be real geometry, not antialiasing
+- symptom: a light hairline inside the emblem where its two planes meet, in every large render.
+- cause: the two paths were assumed to share an edge. They do not: one edge runs to (34,16) at slope 0.423, the other to (48,21) at slope 0.4, which leaves a wedge up to 0.6 units wide.
+- rule: before calling a gap "antialiasing", measure the two edges. Shapes that must meet either share the exact same points or the lower one runs under the upper one. Take the emblem from `brand/logo/emblem/`, never retype its paths (G-015).
+- proof: pixel column of `brand/logo/emblem/emblem-on-bone-2048.png` at x=741 → grey (150,147,141) then dark (39,39,36), no Bone stripe between them.
+- added: 2026-10-02
+
+## P-054 · Resend: what the account really does (measured 2026-10-02)
+- symptom: a key made with "Sending access" answered 401 `restricted_api_key` for `/domains`, `/audiences`, `/broadcasts`, `/contacts` and `/webhooks`; the DNS records Resend issues differ by domain (CNAME `send` and `rsend` for the root; MX and TXT on `send.<sub>` plus CNAME `rsend.<sub>` for a subdomain); the free plan holds 3 domains and all are used; one API call in a script failed with `connect ETIMEDOUT` and worked on the next try.
+- cause: Resend has two key scopes only; its DNS scheme changed; outbound calls from this laptop time out now and then.
+- rule: the runner's key is full access, one per environment (ASSUMED H28). Read the records to write from the API answer of the domain, never from memory or an older plan. No fourth domain exists to add. Every script that calls an outside API from this laptop retries a failed connection three times with a short pause before it reports failure. Sender addresses are ruling H29.
+- proof: with the key loaded from `.env`, `curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains` lists `notes.matterofplace.com`, `notify.matterofplace.com` and `matterofplace.com`, each `verified` (ASSUMED E17, E18, E20).
+- added: 2026-10-02
+
+## P-055 · A secret shown once in a dashboard can reach `.env` without ever being displayed
+- symptom: the Resend dashboard shows a new key in a masked field with a "Copy to clipboard" button; reading the page or taking a screenshot after "Show value" would put the secret in the transcript.
+- cause: secrets must never be printed, pasted in chat or read by the model (project rule), yet the key has to land in `.env`.
+- rule: read the page with the interactive filter only (password fields stay masked), click the copy button, then run a script that takes the clipboard, checks its shape with a pattern, writes it under its name in `.env`, clears the clipboard and prints only the name and the length. Where the provider's API returns the secret (a webhook signing secret), let a script write it to `.env` straight from the answer. Check a stored secret by length and by a harmless API call, never by printing it. This is done only when the operator delegated the setup of that account in words; an account-wide token of another service is still the operator's step (P-037).
+- proof: `tr -d '\r' < .env | awk -F= '/^RESEND_(API_KEY|WEBHOOK_SECRET)=/{print $1, "length", length($0)-length($1)-1}'` → `RESEND_API_KEY length 36`, `RESEND_WEBHOOK_SECRET length 38`.
+- added: 2026-10-02
+
+## P-056 · A tool call the operator interrupts may already have run
+- symptom: a command that created the lane worktree, copied `.env` and installed dependencies was reported as rejected; minutes later `git worktree list` showed the lane, complete.
+- cause: the rejection arrived after the command had started. The report describes the approval, not the state of the disk.
+- rule: after any rejected, interrupted or timed-out call, look at the real state (the file, `git status`, `git worktree list`, the remote) before repeating or reporting. Say plainly what exists.
+- proof: `git worktree list` → `E:/mop-build/spine ... (detached HEAD)` after the rejected call.
+- added: 2026-10-02
+
+## P-057 · Git Bash `grep -c $'\r'` counts every line; it does not detect CRLF
+- symptom: a line-ending check reported hundreds of carriage returns in every changed file, and in files nobody had touched.
+- cause: in this shell that pattern matches each line. The files were LF.
+- rule: check line endings with `git ls-files --eol <files>` (`w/lf` is the working tree) or with `node -e` reading the bytes. Never with `grep $'\r'`.
+- proof: `git ls-files --eol GOTCHAS.md` → `i/lf    w/lf    attr/text=auto eol=lf`.
+- added: 2026-10-02
+
+## P-058 · One writer per file is fast and leaves disagreements between files
+- symptom: seven writers folded one review into 21 plans in parallel. Each passed the checker alone. The pass that came after them still had 93 edits to apply that writers could not make in files they did not own, and 25 names or values that two writers had chosen differently (a route helper under two names, one job created by two slices, a CI job that one plan made a step).
+- cause: a finding that touches several files is applied by several writers who cannot see each other's choice.
+- rule: a parallel write over shared facts always ends with one agent that owns every file: it applies the handoffs, greps each name the change introduced across all documents and makes every occurrence identical, then runs the checker. Files the writers must not touch (PLAN.md, ASSUMED.md, scripts) come back as refused handoffs: the orchestrator applies those itself in the same hour. A workflow with more agents than slots starts the last ones only when a slot frees: plan for it.
+- proof: journal of workflow `wf_38d40906-2cd`: `handoffsApplied 93`, `mismatchesFixed 25`, `handoffsRefused 6`.
+- added: 2026-10-02
+
+## P-059 · A sub-agent's "it passes" is one sample; re-run the gate yourself, more than once when the claim is "nothing changes"
+- symptom: the brand generator was reported idempotent (second run, 0 files changed). The orchestrator's three runs changed 5, 2 and 5 files. Earlier, "ready to build" had been declared from a gate that did not check what mattered (P-044).
+- cause: a claim about absence (nothing changes, nothing left, no mismatch) needs more than one observation, and the author of a change shares its blind spot.
+- rule: the orchestrator re-runs every proof before accepting a unit. For determinism, three runs. For "no leftover", a search across the whole repository with `git grep`, not the folder the worker looked at (P-039). A red re-run goes back to the same worker with the real output, and the fix must remove the cause, not hide it (no skip-if-exists, no tolerance).
+- proof: `node launch/tools/brand-build.mjs` → `5 written or changed`, `2 written or changed`, `5 written or changed` before the fix; `0`, `0`, `0` after.
+- added: 2026-10-02
+
+## P-060 · Merging and cleaning branches from this machine
+- symptom: `git push origin --delete <branch>` printed `error: failed to push some refs` for branches GitHub had already removed; a stale local list of remote branches made merged branches look alive.
+- cause: remote-tracking refs are a local cache.
+- rule: merge with `gh pr merge <n> --merge` (never squash or rebase a pushed branch: history is not rewritten), then `git checkout main && git pull origin main`, delete the branch, and `git fetch --prune`. The truth about remote branches is `git ls-remote --heads origin`. From B1b step 5b on, merges go only through `node workspace/05-plans/merge-gate.mjs <pr>`.
+- proof: `git ls-remote --heads origin` → `refs/heads/main` only.
 - added: 2026-10-02

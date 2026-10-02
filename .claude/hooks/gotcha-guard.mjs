@@ -3,7 +3,7 @@
 // Reads GOTCHAS.md, finds entries whose `paths:` globs match the file about to be written, and
 // pushes them into the session: severity `block` denies the edit, `warn` adds the entry as context.
 // Fails open: any error, missing file or unparseable payload → exit 0 with no output.
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -44,11 +44,25 @@ try {
   const payload = JSON.parse(raw || "{}");
   const fp = payload?.tool_input?.file_path || payload?.tool_input?.notebook_path;
   if (!fp) process.exit(0);
-  const rel = relative(root, resolve(fp)).replace(/\\/g, "/");
+  // The file may sit in this workspace or in a build lane: a git worktree of the same repository in another folder
+  // (S54, GOTCHAS P-051). Its own tree root is the nearest ancestor that holds both GOTCHAS.md and .git.
+  let tree = null;
+  for (let dir = dirname(resolve(fp)); ; dir = dirname(dir)) {
+    if (existsSync(resolve(dir, "GOTCHAS.md")) && existsSync(resolve(dir, ".git"))) { tree = dir; break; }
+    if (dirname(dir) === dir) break;
+  }
+  if (!tree) process.exit(0);
+  const rel = relative(tree, resolve(fp)).replace(/\\/g, "/");
   if (rel.startsWith("..")) process.exit(0);
 
-  const entries = parseEntries(readFileSync(resolve(root, "GOTCHAS.md"), "utf8"))
-    .filter((e) => !e.enforced && e.globs.some((g) => globToRegExp(g).test(rel)));
+  // The bank on the workspace's branch is the newest; a lane's own copy may hold entries its builder just added.
+  const seen = new Set();
+  const all = [];
+  for (const bank of [resolve(root, "GOTCHAS.md"), resolve(tree, "GOTCHAS.md")]) {
+    if (!existsSync(bank)) continue;
+    for (const e of parseEntries(readFileSync(bank, "utf8"))) if (!seen.has(e.title)) { seen.add(e.title); all.push(e); }
+  }
+  const entries = all.filter((e) => !e.enforced && e.globs.some((g) => globToRegExp(g).test(rel)));
   if (!entries.length) process.exit(0);
 
   const blocks = entries.filter((e) => e.severity === "block");

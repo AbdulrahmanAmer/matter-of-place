@@ -527,3 +527,9 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Orchestrator re-verification found two defects, both fixed by the agent and re-verified: GPU rasterisation made PNGs differ between runs (now software rendering, three runs print `0 written or changed`), and a real sliver between the emblem planes (light plane now runs under the dark one).
 - Site defect banked as G-015: the wordmark "A" is a Greek lambda Jost lacks, so browsers draw it in Arial; the app emblem and favicon still have the sliver. To fix when a slice touches those components.
 - STANDARDS folder map, README and CLAUDE.md name `brand/`. The build is still paused by the operator; the lane `E:/mop-build/spine` must be moved to the newest `origin/main` before B1b starts.
+
+## 2026-10-02 · Gotcha bank brought up to date for the build (operator request); BUILD STILL PAUSED
+- GOTCHAS.md: a builder map at the top ("Read this first if you are about to build"), nine stale entries corrected (G-009, G-010, P-001 retired, P-009, P-010, P-011, P-028, P-037, P-038), ten added (P-051 to P-060: lanes, GPU-off rendering, sliver geometry, Resend facts, unseen secrets, interrupted calls, CRLF check, one-writer-per-file, re-running proofs, merging).
+- Hook fix: `.claude/hooks/gotcha-guard.mjs` was silent for every file in a build lane; it now finds the tree a file belongs to. Self-test `.claude/hooks/gotcha-guard.test.mjs` (watched-fail against the old hook: 2 wrong answers).
+- New checker `workspace/05-plans/check-gotchas.mjs` (found P-009 without a proof; fixed). `ready.mjs` now runs it and the hook self-test.
+- A Sonnet scout audit of the bank reported no contradiction and "every entry has a proof"; both were wrong (P-059). The stale entries were found by reading them.
