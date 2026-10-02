@@ -738,3 +738,15 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   the month's allowance does not cover 253 steps: watch it, builders push once per group.
 - NEXT after the merge: new draft PR for `slice/b1b`; run build-slice BY scriptPath for B1b (root spine, steps 6 on) and
   for B2 (root E:/mop-build/db, branch slice/b2, previewPort 8798, bankBase {P:300,G:100}) at the same time.
+
+## 2026-10-02 21:12 +0300 · B1b steps 1 to 5b are on main through the merge gate; two lanes start
+- Step 5b ACCEPTED: review 4 had no blocking code defect; bank entry P-133 added by the orchestrator; own proofs in the
+  lane: `bun run check` exit 0 (588 files, 350 tests passed, 8 skipped), `bun run build` exit 0; mutation of
+  `documentsOnly` (always pass) gave 5 red rows, restored, 40 passed. The gate refused PR 22 while its checks were
+  pending (`merge-gate: checks are not all green`, exit 1), then merged it when they were green: main `719657f`.
+- Follow-up of step 5b, not built: pin `scripts.lint` by exact equality in hygiene.test.ts (fold before B1b closes).
+- Second lane created: `E:/mop-build/db` (detached at 719657f, own .env, .dev.vars, bun install). The builder creates
+  branch `slice/b2`. Port 8798, bank numbers from P-300 and G-100.
+- NEXT: both runs by scriptPath: B1b { root spine } and B2 { root db, previewPort 8798, bankBase {P:300,G:100} }.
+  On each stop: own proofs, ledger, merge the accepted work through `node workspace/05-plans/merge-gate.mjs <pr>`.
+  The dependabot.yml is on main now: watch for Dependabot pull requests, each one spends Actions minutes.
