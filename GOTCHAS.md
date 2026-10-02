@@ -1191,3 +1191,10 @@ Entry template
 - rule: anchor an edit of a registry entry on its `"id"` line or its `replace` line, never on its `expect`.
 - proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
 - added: 2026-10-02
+
+## P-300 · Knip refuses a dependency no file imports yet and a system binary a script spawns, so a plan's "add the tools first" step fails `bun run check`
+- symptom: B2 step 1 adds `supabase`, `sharp`, `heic-convert`, `@supabase/supabase-js`, `pg` and `@types/pg` and writes `scripts/psql-dev.mjs`. `bun run knip` then printed `Unused devDependencies (4)` (`@supabase/supabase-js`, `heic-convert`, `sharp`, `supabase`) and `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1. The group's file list did not hold `knip.json`, so the binary could not be declared, and the group stopped with `bun run check` red.
+- cause: the plan was written before the knip gate (B1b step 2b, R04). Knip counts a dependency as used only when a file imports it or a `package.json` script names its binary; `bun x supabase` inside a script and `psql` (a scoop binary, not an npm package) are invisible to it or unlisted.
+- rule: add a dependency in the step whose code first imports it (sharp and heic-convert with step 12's image library, `@supabase/supabase-js` with its first importer), and add it to `trustedDependencies` in the same commit; a CLI used only from inside a script gets its plan-named `package.json` script (`db:lint` names `supabase`). The group that first spawns a binary no npm package provides (psql, pg_dump, ffmpeg) names it in `ignoreBinaries` of `knip.json` itself, says so in the slice log and goes on (ruling H46 (1)); stopping BLOCKED on that one line stood the lane still for a whole build.
+- proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1; `bun run knip` with `"ignoreBinaries": ["psql"]` in `knip.json` → exit 0 (measured 2026-10-02, B2 c1).
+- added: 2026-10-02

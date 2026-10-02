@@ -1,0 +1,132 @@
+[
+  {
+    "id": "rg-ref-differ",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": " || new Set(refs).size !== 1) {",
+    "replace": ") {",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*refuses: linked ref differs"
+  },
+  {
+    "id": "rg-ref-unset",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "if (refs.some((ref) => ref === undefined || ref === \"\") || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*refuses: all three unset"
+  },
+  {
+    "id": "rg-foreign-none",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return remoteVersions.filter((version) => !local.has(version));",
+    "replace": "return [];",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*returns the applied versions that have no local file"
+  },
+  {
+    "id": "rg-foreign-all",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return remoteVersions.filter((version) => !local.has(version));",
+    "replace": "return remoteVersions.filter((version) => version !== \"\");",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*returns nothing when every applied version has a file"
+  },
+  {
+    "id": "rg-cron-space",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "schedule\\(\\s*'",
+    "replace": "schedule\\('",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*finds every scheduled job name across the migration texts"
+  },
+  {
+    "id": "rg-cron-unique",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return [...new Set(names)];",
+    "replace": "return names;",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*finds every scheduled job name across the migration texts"
+  },
+  {
+    "id": "anp-production",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  if (isProductionEnvironment(environment)) throw new Error(\"refusing: production database\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*throws when settings\\.environment is production"
+  },
+  {
+    "id": "anp-exact",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  return value === \"production\";",
+    "replace": "  return String(value).trim().toLowerCase() === \"production\";",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*is true only for exactly production"
+  },
+  {
+    "id": "anp-missing-table",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "    if (!isMissingRelation(error)) throw error;",
+    "replace": "    throw error;",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*resolves on no settings table"
+  },
+  {
+    "id": "anp-swallow",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "    if (!isMissingRelation(error)) throw error;",
+    "replace": "    if (!isMissingRelation(error)) console.error(error);",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*rethrows any other database error"
+  },
+  {
+    "id": "anp-no-url",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  if (dbUrl === undefined || dbUrl === \"\") throw new Error(\"refusing: DEV_DB_URL is not set\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*refuses without a database URL"
+  },
+  {
+    "id": "anp-guarded-call",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/db-reset-dev.mjs",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "  void assertNotProduction;",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  },
+  {
+    "id": "anp-guarded-import",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/db-reset-dev.mjs",
+    "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";",
+    "replace": "const { assertNotProduction } = await import(\"./lib/\" + \"assert-not-production.mjs\");",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  }
+]
