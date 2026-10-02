@@ -114,7 +114,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 |---|---|---|---|
 | V1 | closed | 2026-09-30 | PR #2 merged; check, build, render gate green; 22 of 26 defects fixed |
 | B1a | closed | 2026-10-01 | PR #1 and PR #3 merged: Lovable removed, plain Vite, first test, brand favicon; the repository is not connected to Lovable (ASSUMED E13) |
-| B1b | in progress | | started 2026-10-02 07:15 EDT in the lane `E:/mop-build/spine`; steps 1, 2, 2b, 3, 3b, 4 and 4b accepted, each after an Opus review; step 5 (CI) built, three reviews, four defects open, being closed |
+| B1b | in progress | | started 2026-10-02 07:15 EDT in the lane `E:/mop-build/spine`; steps 1, 2, 2b, 3, 3b, 4 and 4b accepted, each after an Opus review; step 5 (CI) and step 5b (merge gate) built, each rejected three times, being closed with ruling H42 |
 | B2 | not started | | |
 | B3 | not started | | |
 | B3b | not started | | |
