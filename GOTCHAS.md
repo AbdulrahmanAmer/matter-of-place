@@ -1354,3 +1354,10 @@ Entry template
 - rule: run such a command with `MSYS_NO_PATHCONV=1` in front, or write the argument with a doubled slash (`//CN=...`). Check the first attempt's output files before trusting them: a failed run can leave a half-written file behind.
 - proof: `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`.
 - added: 2026-10-03
+
+## P-503 · A lane without a bank number base takes the next number after everyone else's entries
+- symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
+- cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
+- rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
+- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
+- added: 2026-10-03
