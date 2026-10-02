@@ -606,7 +606,7 @@ Entry template
 - symptom: B1b step 2b was sized from numbers the plan had written before the gates existed. Measured on the new configuration: 78 lint problems (plan: about 56), 21 unused exports and 20 unused types (plan: 12 and 11). `knip.json` copied as the plan wrote it prints 5 configuration hints (`src/routeTree.gen.ts` and `src/db/types.ts` in `ignore` that need no ignoring, entries `src/start.ts` and `supabase/functions/*/index.ts` that match no file yet, `src/router.tsx` redundant). The first watched-fail pass had the wrong `expect` for the missing-assertion test ("at least one assertion"; vitest prints "expected any number of assertion, but got none"), so one run was wasted.
 - cause: estimates and expected texts were written from memory, not from output.
 - rule: before sizing a gate step, run each new tool with its new config on the real tree and count by rule; take every watched-fail `expect` from the tool's printed text, never from memory; treat knip's configuration hints as defects to remove when the files they name exist (B1b step 3 creates `src/start.ts`, step 8 the job runner).
-- proof: `cd app && bun run knip | grep -c "Configuration hints"` prints `1` today and `0` once `start.ts` and `supabase/functions/job-runner/index.ts` exist and the `ignore` and `router.tsx` lines are trimmed.
+- proof: `cd app && bun run knip | grep -c "Configuration hints"` prints `1` before step 3 (the line counts the header, one block however many hints it lists); after step 4b the block lists 2 hints (`src/db/types.ts`, cleared by B2, and `supabase/functions/*/index.ts`, cleared by B8) and `bun run knip | grep -c "routeTree.gen.ts\|router.tsx"` prints `0`.
 - added: 2026-10-02
 
 ## P-066 · A watched-fail registry entry must be one the owning runner can replay: no invented kind, no empty `find`
@@ -885,4 +885,11 @@ Entry template
 - cause: the letters were handed out one by one over several steps and the plan never says which are taken.
 - rule: before adding an entry, list the ids (`node -e "console.log(require('./tests/mutations/B1b.json').map(e=>e.id).join(' '))"`); when the plan's letter is taken, keep the letter as the prefix of a descriptive id (`bm-page-refusal`) and say so in the slice log. Never reuse or rename an existing id.
 - proof: `cd app && node -e "const ids=require('./tests/mutations/B1b.json').map(e=>e.id);console.log(ids.length-new Set(ids).size)"` → `0`.
+- added: 2026-10-02
+
+## P-094 · `python3 -` (a script on stdin, or an empty heredoc) opens the interactive prompt here and spins until the tool's timeout
+- symptom: in B1b g5 a `python3 - <<EOF` with an empty body hung the shell for 120 seconds and wrote nothing; the edit was redone with the Edit tool. The first diagnosis, "the Windows Store stub waits on stdin", was wrong: `python3` resolves to `.../WindowsApps/python3` but runs Python 3.14.2.
+- cause: with no script text on stdin, `python3 -` starts the interactive prompt; the Bash tool has no console, so the prompt fails with `OSError: [WinError 6] The handle is invalid` and restarts in a loop (measured: 10 MB of the same traceback in 8 seconds).
+- rule: do not run python in this project (P-070 already sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`, and never `python3 -` or a heredoc.
+- proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (measured 2026-10-02; the unbounded run printed 10.5 MB).
 - added: 2026-10-02

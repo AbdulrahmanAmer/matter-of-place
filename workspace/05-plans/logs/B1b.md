@@ -619,7 +619,7 @@ Findings:
 - The plan's letters (bm) and (bn) were already registry ids from step 2b (`http-client.test.ts` `price`, `stubs.ts` walk). The new entries are `bm-page-refusal` and `bn-page-406-all` (GOTCHAS P-093). Entry `pipe-refusal-off` had a `find` that no longer parsed once the condition became `const refused = await refusedByRouter(request, response);`; rewritten (P-090).
 - `knip` exits 0 with two hints that stay: `src/db/types.ts` (B2 creates it) and `supabase/functions/*/index.ts` (B8); listed in the runbook with the slice that clears each.
 - The runbook now says what H41 (2) and (3) accept: `//` gets Start's bare 308 and a trailing slash under `/api/` the router's 307, neither with `x-request-id` or security headers.
-- A stray `python3 - <<EOF` with an empty heredoc hung the shell for 120 seconds (the Windows store stub waits on stdin); nothing was written by it. Edits went through the Edit tool.
+- A stray `python3 - <<EOF` with an empty heredoc hung the shell for 120 seconds; nothing was written by it. Edits went through the Edit tool. Banked as P-094 in the fix round below (the cause is the interactive prompt looping, not the Store stub).
 
 Proof 1: `cd app && bunx vitest run tests/unit/pipeline.test.ts`
 ```
@@ -664,3 +664,9 @@ Watched-fails (replayed with the runner whose text is in the g4 close-out block 
 - `pipe-refusal-off`: `const refused = false;`. Red on `answers the router's refusal of GET with Accept application/json with the R09 405`. Restored.
 
 UNPROVEN: the 406 on a deployed Worker (only `cf:preview` was run); whether B3's cache module stores a response that `neverCached` marks 406 (the pipeline never passes it to the store, since the status is decided after the hook returns).
+
+### g5 · steps 4b, fix round (reviewer defects)
+
+- GOTCHAS: P-094 added for the `python3 -` hang (measured: `python3` is Python 3.14.2 behind the WindowsApps path; fed `-` with an empty stdin it opens the interactive prompt, fails with `OSError: [WinError 6] The handle is invalid` and loops, 10.5 MB of traceback in 8 seconds). P-065's proof updated: knip prints 2 hints after step 4b, none naming `routeTree.gen.ts` or `router.tsx`. `node workspace/05-plans/check-gotchas.mjs` prints `check-gotchas: OK (25 path entries, 92 process entries)`.
+- For the orchestrator's within-slice fold (H41 (7)); files owned by others, not touched here: `workspace/05-plans/B1b.md` line 120 still lists `src/router.tsx` in the `knip.json` entries and `src/routeTree.gen.ts` in its ignores (step 4b removed both); `workspace/05-plans/B3.md` line 80 lists `errorCodes` without `not_acceptable: 406` (H41 (1)); `pipeline.ts` says B3's `toErrorResponse` takes the code over.
+- Re-run, same tree, same build: `bunx vitest run tests/unit/pipeline.test.ts` 81 passed. `bun run cf:preview`: `curl -s -D h.txt -o b.json -w "%{http_code} %{content_type}" -H "Accept: application/json" http://127.0.0.1:8788/` printed `406 application/json`, `Cache-Control: no-store`, header `x-request-id: 59cee20c-9d71-40d4-ad59-8fb57fa510cd` and body `requestId` the same; `Accept: text/html` printed `200 text/html; charset=utf-8`. Wrangler stopped by its parent: `listeners on 8788: 0`, `workerd left: 0`. `bun run knip` exit 0, two hints (`src/db/types.ts`, `supabase/functions/*/index.ts`). `bun run check` exit 0 (11 files, 188 tests); `bun run build` exit 0. Replay: `--check` `checked 121, bad 0`; `bm-page-refusal` RED (`× answers a page asked for with Accept application/json with the R09 406`); `bn-page-406-all` RED (`× leaves a page asked for with Accept text/html as it is`); both restored (`git status` shows no change under `app/`).
