@@ -1025,3 +1025,10 @@ Entry template
 - rule: after editing a saved workflow, start it with `scriptPath` pointing at the file, not by name, and before waiting on it run `grep -c <new word> <the run's script copy>`; a count of 0 means stop the run. An argument a workflow does not know is ignored silently, so a wrong copy looks like a normal run.
 - proof: `grep -c closeOut` printed 3 for `.claude/workflows/build-slice.js` and 0 for `workflows/scripts/build-slice-wf_f5c085e7-212.js`.
 - added: 2026-10-02
+
+## P-111 · A hand-applied mutation that did not apply, or applied the wrong text, makes the red or green result a lie
+- symptom: in B1b g6 a positive-control mutation of `scripts/check-migrations.mjs` was applied with `node -e`; the command did not print the mutated text, and the shell-escaped regular expression lost its backslashes (it wrote `/drops+column/i`), so the suite went red for a reason that had nothing to do with the rule under test. The report counted it as a watched-fail; a reviewer found the cost with no bank entry.
+- cause: a `replace` whose search text does not occur changes nothing and reports nothing, and inline shell text loses backslashes (P-008, P-070). Without printing the mutated line, a green run can mean "the test is blind" or "the patch never applied", and a red run can mean "broken for the wrong reason".
+- rule: a mutation applied by hand prints (or greps) its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged after the replace, before any red or green result is read. Prefer a registry entry replayed by the runner (it asserts the single occurrence, compares the output with `expect` as a regular expression and restores the saved bytes, P-081, P-090); write the entry with the Edit tool, never through the shell.
+- proof: `cd app && node ../scratch/replay.mjs --check` (runner text in `workspace/05-plans/logs/B1b.md`) → `checked 223, bad 0`; the same with one `find` of a `cm-` entry changed to text that is not in the file prints `BAD <id>: find occurs 0 times` and exits 1 instead of reporting a result (measured 2026-10-02 in B1b c6, entry restored after).
+- added: 2026-10-02

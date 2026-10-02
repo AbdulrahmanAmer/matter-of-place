@@ -40,6 +40,20 @@ Worker addresses: preview `https://pr-<n>.holy-meadow-4327.workers.dev`, dev
   answers HTTP 403 `Upgrade to GitHub Pro or make this repository public to enable this feature` (GOTCHAS P-028).
 - Environments with required reviewers are not available on a private repository of this plan (ASSUMED E9).
 
+## Dependabot
+
+`.github/dependabot.yml` asks for grouped minor and patch pull requests every Monday at 06:00 America/New_York, for the
+app (`bun`, directory `/app`) and for the workflow pins (`github-actions`, directory `/`). GitHub reads the file only
+from the default branch: on 2026-10-02
+`gh api 'repos/AbdulrahmanAmer/matter-of-place/contents/.github/dependabot.yml?ref=main'` answers HTTP 404, because
+the file is still on `slice/b1b` only.
+
+UNPROVEN until the file is on `main` and the first Monday after that (ruling ASSUMED H42 (4)). Then
+`gh pr list --author "app/dependabot" --state all` lists at least one pull request, and that run shows whether the
+`bun` ecosystem name is accepted (ASSUMED; the plan's fallback is `npm` on the same directory, recorded here if used).
+A Dependabot pull request gets no Actions secrets, so `scripts/merge-gate.mjs` does not require `preview` on it
+(invariant 8).
+
 ## Decision for step 9: branch protection
 
 BLOCKED. Free private repositories have no branch protection and the operator declined GitHub Pro (ASSUMED H5, about

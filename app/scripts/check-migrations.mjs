@@ -8,10 +8,29 @@ const PREFIX = /^(\d{14})_/;
 const CONTRACT_HEADER = /^-- contract-of: \d{14}\b/m;
 const HEADER_LINES = 30;
 const LINE_COMMENT = /--.*$/gm;
-// Destructive DDL needs a contract migration (DB-08, STANDARDS R17); dropping a function or a
-// trigger stays allowed, so neither is listed.
-const DESTRUCTIVE =
-  /\bdrop\s+table\b|\bdrop\s+column\b|\brename\s+column\b|\brename\s+to\b|\balter\s+column\s+\S+\s+(?:set\s+data\s+)?type\b|\bset\s+not\s+null\b/i;
+// Destructive DDL needs a contract migration (DB-08, STANDARDS R17, ruling ASSUMED H42 (3)).
+// Dropping a trigger or a constraint stays allowed. Postgres makes the COLUMN keyword optional,
+// so the column rules read each clause of an `alter table` statement.
+/** @type {[string, RegExp][]} */
+const STATEMENT_RULES = [
+  ["drop table", /\bdrop\s+table\b/i],
+  ["drop view", /\bdrop\s+(?:materialized\s+)?view\b/i],
+  ["drop type", /\bdrop\s+type\b/i],
+  ["drop function", /\bdrop\s+function\b/i],
+  ["drop index", /\bdrop\s+index\b/i],
+  ["rename", /\brename\b/i],
+  ["set not null", /\bset\s+not\s+null\b/i],
+];
+const ALTER_TABLE = /^alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"[^"]*"|[^\s"])+\s+/i;
+/** @type {[string, RegExp][]} */
+const CLAUSE_RULES = [
+  ["drop column", /^drop\s+(?!constraint\b)/i],
+  ["column type", /^alter\s+(?:column\s+)?(?:"[^"]*"|[^\s"])+\s+(?:set\s+data\s+)?type\b/i],
+  [
+    "not null column without a default",
+    /^add\s+(?!constraint\b|check\b)(?![\s\S]*\b(?:default|generated)\b)[\s\S]*\bnot\s+null\b/i,
+  ],
+];
 
 /**
  * @param {string} path
@@ -19,6 +38,55 @@ const DESTRUCTIVE =
  */
 function prefixOf(path) {
   return PREFIX.exec(basename(path))?.[1];
+}
+
+/**
+ * Splits `text` on `separator` outside parentheses and quotes.
+ * @param {string} text
+ * @param {string} separator
+ * @returns {string[]}
+ */
+function splitTopLevel(text, separator) {
+  /** @type {string[]} */
+  const parts = [];
+  let depth = 0;
+  let quote = "";
+  let start = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote !== "") {
+      if (char === quote) {
+        quote = "";
+      }
+    } else if (char === "'" || char === '"') {
+      quote = char;
+    } else if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+    } else if (char === separator && depth === 0) {
+      parts.push(text.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  parts.push(text.slice(start).trim());
+  return parts;
+}
+
+/**
+ * The destructive kinds in a migration's statements, comments already removed.
+ * @param {string} statements
+ * @returns {string[]}
+ */
+function destructiveKinds(statements) {
+  const clauses = splitTopLevel(statements, ";").flatMap((statement) => {
+    const head = ALTER_TABLE.exec(statement);
+    return head === null ? [] : splitTopLevel(statement.slice(head[0].length), ",");
+  });
+  return [
+    ...STATEMENT_RULES.filter(([, rule]) => rule.test(statements)),
+    ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))),
+  ].map(([kind]) => kind);
 }
 
 /**
@@ -45,9 +113,10 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
     const header = text.split("\n").slice(0, HEADER_LINES).join("\n");
     // The `-- down:` header of an expand migration names its drop; comments are not DDL.
     const statements = text.replace(LINE_COMMENT, "");
-    if (DESTRUCTIVE.test(statements) && !CONTRACT_HEADER.test(header)) {
+    const kinds = destructiveKinds(statements);
+    if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {
       failures.push(
-        `destructive change without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,
+        `destructive change (${kinds.join(", ")}) without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,
       );
     }
   }
