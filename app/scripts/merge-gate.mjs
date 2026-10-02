@@ -14,7 +14,7 @@ export const REQUIRED_PR_CHECKS = ["check", "build", "db", "e2e", "preview"];
 /**
  * @typedef {{ number: number, author: string }} PullRequest
  * @typedef {{ context: string, state: string }} CommitStatus
- * @typedef {{ name: string, status: string, conclusion: string | null }} CheckRun
+ * @typedef {{ id: number, name: string, status: string, conclusion: string | null }} CheckRun
  * @typedef {{
  *   sha: string,
  *   pr: PullRequest | null,
@@ -49,6 +49,23 @@ export function jobKeys(text) {
 }
 
 /**
+ * The check runs of one SHA hold one run per workflow run: the draft run, a cancelled one and a
+ * re-run all stay beside the one that counts. The latest (highest id) of a name is the verdict.
+ * @param {CheckRun[]} checkRuns
+ * @param {string} name
+ * @returns {CheckRun | undefined}
+ */
+function latestRun(checkRuns, name) {
+  return checkRuns
+    .filter((run) => run.name === name)
+    .reduce(
+      (/** @type {CheckRun | undefined} */ latest, run) =>
+        latest === undefined || run.id > latest.id ? run : latest,
+      undefined,
+    );
+}
+
+/**
  * The rule of invariant 6b, after the merge: the pull request head carries the `merge-gate`
  * status posted by workspace/05-plans/merge-gate.mjs and every required check concluded
  * `success` on it. `lines` holds each refusal first, then the printed exceptions.
@@ -70,16 +87,17 @@ export function evaluateMergeGate({ sha, pr, statuses, checkRuns, definedJobs, c
       notes.push("preview not required: author is dependabot[bot]");
       continue;
     }
-    const runs = checkRuns.filter((run) => run.name === job);
-    if (runs.length === 0) failures.push(refuse(`${job} missing`));
-    for (const run of runs) {
-      const conclusion = run.conclusion ?? run.status;
-      if (conclusion === "success") continue;
-      if (conclusion === "skipped" && ciHeavy === "off" && HEAVY.includes(job)) {
-        notes.push(`heavy check skipped (CI_HEAVY=off): ${job}`);
-      } else {
-        failures.push(refuse(`${job} ${conclusion}`));
-      }
+    const run = latestRun(checkRuns, job);
+    if (run === undefined) {
+      failures.push(refuse(`${job} missing`));
+      continue;
+    }
+    const conclusion = run.conclusion ?? run.status;
+    if (conclusion === "success") continue;
+    if (conclusion === "skipped" && ciHeavy === "off" && HEAVY.includes(job)) {
+      notes.push(`heavy check skipped (CI_HEAVY=off): ${job}`);
+    } else {
+      failures.push(refuse(`${job} ${conclusion}`));
     }
   }
   const verified =
@@ -137,9 +155,10 @@ export function gatherInput({ sha, gh, workflows, ciHeavy }) {
       "--paginate",
       `repos/${REPO}/commits/${headSha}/check-runs?per_page=100`,
       "--jq",
-      '.check_runs[] | [.name, .status, (.conclusion // "")] | @tsv',
+      '.check_runs[] | [.id, .name, .status, (.conclusion // "")] | @tsv',
     ]),
-  ).map(([name = "", status = "", conclusion = ""]) => ({
+  ).map(([id = "", name = "", status = "", conclusion = ""]) => ({
+    id: Number(id),
     name,
     status,
     conclusion: conclusion === "" ? null : conclusion,

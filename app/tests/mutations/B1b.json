@@ -1500,8 +1500,8 @@
     "id": "mg-missing",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "scripts/merge-gate.mjs",
-    "find": "if (runs.length === 0) failures.push",
-    "replace": "if (runs.length < 0) failures.push",
+    "find": "failures.push(refuse(`${job} missing`));",
+    "replace": "notes.push(\"missing\");",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "refuses a required check that has no run on the head"
   },
@@ -1648,5 +1648,68 @@
     "replace": "/^ {2}(\\w+):/",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "reads the same job names as the YAML parser"
+  },
+  {
+    "id": "mg-latest-run",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "latest === undefined || run.id > latest.id ? run : latest,",
+    "replace": "latest === undefined ? run : latest,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "judges the latest run of a name, wherever the list puts it"
+  },
+  {
+    "id": "mg-latest-order",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "latest === undefined || run.id > latest.id ? run : latest,",
+    "replace": "latest === undefined || run.id < latest.id ? run : latest,",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses when the latest run failed, whatever an older run of the name did"
+  },
+  {
+    "id": "mg-bucket",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (bucket !== \"skipping\") blocked = true;",
+    "replace": "if (checks.status !== 0) blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a fail check although gh pr checks --json exits 0"
+  },
+  {
+    "id": "mg-bucket-pending",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (bucket !== \"skipping\") blocked = true;",
+    "replace": "if (bucket === \"fail\") blocked = true;",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pending check although gh pr checks --json exits 0"
+  },
+  {
+    "id": "mg-nochecks",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (checks.status !== 0 || rows.length === 0) {",
+    "replace": "if (checks.status !== 0 && rows.length > 0) {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a pull request that has no checks, and writes nothing"
+  },
+  {
+    "id": "mg-draft",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (draft === \"true\") return refuse(\"mark ready first\");",
+    "replace": "if (draft === \"never\") return refuse(\"mark ready first\");",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a draft and a head that does not contain origin/main"
+  },
+  {
+    "id": "mg-rebase",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (ancestor.status === 1) return refuse(\"rebase first\");",
+    "replace": "if (ancestor.status === 99) return refuse(\"rebase first\");",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a draft and a head that does not contain origin/main"
   }
 ]

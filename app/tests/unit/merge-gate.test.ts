@@ -5,13 +5,15 @@ import {
   gatherInput,
   jobKeys,
 } from "../../scripts/merge-gate.mjs";
+import { mergeGate } from "../../../workspace/05-plans/merge-gate.mjs";
 
 const SHA = "abaa02de74944bfc2f0a39825849da50628bb840";
 const HEAD = "0a59cc26632faeb8313bebcca9d20a407ba943c5";
 const PR = { number: 23, author: "AbdulrahmanAmer" };
 const DEFINED = ["check", "build", "db", "e2e", "preview", "merge-gate"];
 
-const run = (name: string, conclusion: string | null, status = "completed") => ({
+const run = (name: string, conclusion: string | null, status = "completed", id = 1) => ({
+  id,
   name,
   status,
   conclusion,
@@ -117,6 +119,34 @@ describe("evaluateMergeGate", () => {
   });
 });
 
+describe("evaluateMergeGate, a head with several runs of one check", () => {
+  const rest = GREEN.filter((r) => r.name !== "preview" && r.name !== "e2e");
+
+  it("judges the latest run of a name, wherever the list puts it", () => {
+    const earlier = [
+      run("preview", "skipped", "completed", 5),
+      run("e2e", "cancelled", "completed", 6),
+    ];
+    const later = [
+      run("preview", "success", "completed", 9),
+      run("e2e", "success", "completed", 8),
+    ];
+    expect([
+      evaluate({ checkRuns: [...rest, ...earlier, ...later] }).lines,
+      evaluate({ checkRuns: [...later, ...earlier, ...rest] }).lines,
+    ]).toEqual([[OK], [OK]]);
+  });
+
+  it("refuses when the latest run failed, whatever an older run of the name did", () => {
+    const checkRuns = [
+      ...GREEN.filter((r) => r.name !== "build"),
+      run("build", "success", "completed", 5),
+      run("build", "failure", "completed", 9),
+    ];
+    expect(evaluate({ checkRuns }).lines).toEqual([`unverified merge ${SHA}: build failure`]);
+  });
+});
+
 describe("jobKeys", () => {
   it("reads the job keys of the jobs map and nothing else", () => {
     const text = [
@@ -150,7 +180,7 @@ describe("gatherInput", () => {
   // Recorded from `gh api` with the --jq filters of scripts/merge-gate.mjs (2026-10-02).
   const PULLS = `${SHA}\t23\t${HEAD}\tAbdulrahmanAmer\n`;
   const STATUS = "merge-gate\tsuccess\n";
-  const RUNS = "check\tcompleted\tsuccess\nbuild\tin_progress\t\n";
+  const RUNS = "11\tcheck\tcompleted\tsuccess\n12\tbuild\tin_progress\t\n";
 
   function gather(pulls = PULLS) {
     const calls: string[] = [];
@@ -180,7 +210,7 @@ describe("gatherInput", () => {
     }).toEqual({
       pr: PR,
       statuses: GATE,
-      checkRuns: [run("check", "success"), run("build", null, "in_progress")],
+      checkRuns: [run("check", "success", "completed", 11), run("build", null, "in_progress", 12)],
       definedJobs: ["check", "build"],
       ciHeavy: "off",
       calls: [
@@ -200,5 +230,69 @@ describe("gatherInput", () => {
     expect(evaluateMergeGate(gather("").input).lines).toEqual([
       `unverified merge ${SHA}: no pull request`,
     ]);
+  });
+});
+
+describe("workspace/05-plans/merge-gate.mjs", () => {
+  const HEAD_SHA = "0a59cc26632faeb8313bebcca9d20a407ba943c5";
+  const WRITES = ["gh api -X", "gh pr merge"];
+
+  function gate(
+    checks: { status: number; out: string },
+    view = `${HEAD_SHA}\tfalse`,
+    ancestor = 0,
+  ) {
+    const calls: string[] = [];
+    const result = mergeGate("22", (command, args) => {
+      calls.push(`${command} ${args.slice(0, 2).join(" ")}`);
+      const empty = { status: 0, out: "", err: "" };
+      if (command === "git") return { ...empty, status: args[0] === "merge-base" ? ancestor : 0 };
+      if (args[1] === "view") return { ...empty, out: view };
+      if (args[1] === "checks") return { ...empty, ...checks };
+      return empty;
+    });
+    return { ...result, calls, writes: calls.filter((call) => WRITES.includes(call)) };
+  }
+
+  it("posts the status and merges when every check passes or is skipped", () => {
+    const { code, lines, writes } = gate({
+      status: 0,
+      out: "pass\tci\tcheck\nskipping\tci\tmerge-gate",
+    });
+    expect({ code, lines, writes }).toEqual({
+      code: 0,
+      lines: ["skipped: ci merge-gate", ""],
+      writes: WRITES,
+    });
+  });
+
+  it.each(["fail", "pending", "cancel"])(
+    "refuses a %s check although gh pr checks --json exits 0, and writes nothing",
+    (bucket) => {
+      const { code, lines, writes } = gate({
+        status: 0,
+        out: `pass\tci\tcheck\n${bucket}\tci\te2e`,
+      });
+      expect({ code, lines, writes }).toEqual({
+        code: 1,
+        lines: [`${bucket}: ci e2e`, "merge-gate: checks are not all green"],
+        writes: [],
+      });
+    },
+  );
+
+  it("refuses a pull request that has no checks, and writes nothing", () => {
+    const { code, writes } = gate({ status: 1, out: "" });
+    expect({ code, writes }).toEqual({ code: 1, writes: [] });
+  });
+
+  it("refuses a draft and a head that does not contain origin/main before it reads a check", () => {
+    const pass = { status: 0, out: "pass\tci\tcheck" };
+    const draft = gate(pass, `${HEAD_SHA}\ttrue`);
+    const behind = gate(pass, undefined, 1);
+    expect({
+      lines: [draft.lines, behind.lines],
+      readChecks: [...draft.calls, ...behind.calls].includes("gh pr checks"),
+    }).toEqual({ lines: [["mark ready first"], ["rebase first"]], readChecks: false });
   });
 });
