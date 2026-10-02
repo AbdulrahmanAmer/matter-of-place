@@ -718,3 +718,23 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   The build started 2026-10-02 07:15 +0300.
 - Run `wf_8262884e-e63` (c6 additions under H43/H44, then c7) was still working in the lane when this was written;
   the lane's last commit then: "B1b c7 round 2, step 5b: slice log with the proofs".
+
+## 2026-10-02 21:45 +0300 · Board updates itself; pace ruling H45; step 5 accepted; step 5b passed code review
+- Operator: "make the progress board auto update whenever something finishes" and "we kind of need to speed up the
+  output of the code. So figure that out". Both done as mechanisms:
+  - `board.mjs` reads the journals of the build runs (accepted the moment a review ends), shows each run's agents and the
+    lane commits, and the page polls `/version` every 15 s and reloads on change. `progress.json` = what the orchestrator
+    re-ran itself. After a code change to board.mjs the server must be restarted (data changes need no restart).
+  - H45: only a blocking defect costs a fix round (reviewer marks each defect; follow-ups go to
+    `workspace/05-plans/logs/<slice>-followups.md` and the bank, by one agent); `costTime` items are `{what, entry}`;
+    hardening beyond the plan goes to H1; lanes open by dependency: B2 starts now in `E:/mop-build/db`, branch
+    `slice/b2`, port 8798, bank base P-300/G-100; `GOTCHAS.md merge=union`.
+- Measured (scratchpad trace/timing.mjs): 13.7 h, agents busy ~13 h, 32 reviews, 29 rejections; first build+review ~27 min.
+- Run `wf_8262884e-e63` ended: c6 (step 5) ACCEPTED (own probe 27 cases bad 0, 89 tests, CI green; in the ledger).
+  c7 (step 5b): review 4 found no blocking code defect: one bank entry (an Edit anchor matched two registry entries) and
+  one follow-up (pin `scripts.lint` by exact equality). OWED by the orchestrator: add that bank entry in the lane, own
+  proofs of 5b, merge main into the lane, `gh pr ready 22`, `node workspace/05-plans/merge-gate.mjs 22`.
+- Actions: 69 runs, about 66 minutes of wall time since 2026-10-01 (roughly 140 billed minutes of 2,000). At this rate
+  the month's allowance does not cover 253 steps: watch it, builders push once per group.
+- NEXT after the merge: new draft PR for `slice/b1b`; run build-slice BY scriptPath for B1b (root spine, steps 6 on) and
+  for B2 (root E:/mop-build/db, branch slice/b2, previewPort 8798, bankBase {P:300,G:100}) at the same time.

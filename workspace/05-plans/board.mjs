@@ -6,11 +6,14 @@
 //   node workspace/05-plans/board.mjs --port N   another port
 //   node workspace/05-plans/board.mjs --check    print the numbers, exit 1 when the ledger is wrong
 //
-// What counts: a step is "accepted" only when progress.json says so, and the orchestrator writes it
-// there after a fresh reviewer accepted the step and its proofs were re-run. Built is not accepted.
+// What counts: a step is accepted once a fresh reviewer accepted it. The page reads that from the
+// journals of the build runs, so it moves without anyone typing. progress.json is the orchestrator's
+// ledger: the steps whose proofs it re-ran itself. Built is not accepted.
 import { createServer } from "node:http";
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -82,8 +85,14 @@ function readLanes() {
       const path = block.match(/^worktree (.+)$/m)?.[1];
       const branch = block.match(/^branch refs\/heads\/(.+)$/m)?.[1];
       if (!path || !branch || resolve(path) === ROOT) continue;
-      const [when, subject] = git(path, ["log", "-1", "--format=%ct%x09%s"]).trim().split("\t");
-      lanes.push({ path, branch, at: Number(when) * 1000, subject });
+      const commits = git(path, ["log", "-5", "--format=%ct%x09%s"])
+        .trim()
+        .split("\n")
+        .map((line) => {
+          const [when, subject] = line.split("\t");
+          return { at: Number(when) * 1000, subject };
+        });
+      lanes.push({ path, branch, commits });
     }
   } catch {
     // git is not required for the numbers; the page says nothing about lanes when it fails
@@ -92,12 +101,121 @@ function readLanes() {
   return lanes;
 }
 
+/** "9-10", "3b and 4", "5b": the step ids of the plan a group's text names, in plan order. */
+function expandSteps(text, slice) {
+  const all = slice.steps.map((s) => s.id);
+  const ids = new Set();
+  for (const m of String(text).matchAll(/(\d+[a-z]?)(?:\s*(?:-|–|to)\s*(\d+[a-z]?))?/g)) {
+    const from = all.indexOf(m[1]);
+    const to = m[2] ? all.indexOf(m[2]) : from;
+    if (from >= 0 && to >= from) for (const id of all.slice(from, to + 1)) ids.add(id);
+  }
+  return [...ids];
+}
+
+const KINDS = [
+  [/^build$/, () => "Builder builds"],
+  [/^close$/, () => "Builder closes the open defects of"],
+  [/^fix(\d+)$/, (m) => `Builder, fix round ${m[1]} for`],
+  [/^review(\d*)$/, (m) => `Reviewer, round ${m[1] || "1"}, checks`],
+  [/^bank$/, () => "Gotcha bank entries added for"],
+];
+
+/**
+ * The build workflow writes one journal per run under this project's Claude folder. Each line is an
+ * agent that started or returned, so the journals say what was accepted without anyone typing it.
+ * A later run overrules an earlier one on the same step.
+ */
+function readRuns(ledger, byId, now) {
+  const auto = new Map();
+  const runsSeen = [];
+  try {
+    const project = join(homedir(), ".claude", "projects", ROOT.replace(/[^A-Za-z0-9]/g, "-"));
+    const since = new Date(ledger.started).getTime();
+    const journals = [];
+    for (const session of readdirSync(project)) {
+      const runs = join(project, session, "subagents", "workflows");
+      if (!existsSync(runs)) continue;
+      for (const run of readdirSync(runs)) {
+        const file = join(runs, run, "journal.jsonl");
+        if (existsSync(file) && statSync(file).mtimeMs >= since) journals.push({ file, at: statSync(file).mtimeMs });
+      }
+    }
+    journals.sort((a, b) => a.at - b.at);
+    for (const journal of journals) {
+      const lines = readFileSync(journal.file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          try {
+            return JSON.parse(line);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+      const results = new Map(lines.filter((l) => l.type === "result").map((l) => [l.agentId, l.result ?? {}]));
+      const named = { ...(ledger.runGroups ?? {}) };
+      for (const result of results.values()) {
+        for (const group of result.groups ?? []) named[group.id] = group.steps;
+      }
+      const groups = new Map();
+      const runEvents = [];
+      for (const line of lines) {
+        if (line.type !== "started" || !line.label || line.label.startsWith("size:")) continue;
+        const [kind, sliceId, groupId, stepText] = line.label.split(":");
+        const slice = byId.get(sliceId);
+        if (!slice) continue;
+        const steps = expandSteps(stepText ?? named[groupId] ?? "", slice);
+        if (!steps.length) continue;
+        const result = results.get(line.agentId);
+        const group = groups.get(groupId) ?? { slice, steps, accepted: false };
+        groups.set(groupId, group);
+        const isReview = kind.startsWith("review");
+        if ((isReview && result?.verdict === "accept") || (kind === "bank" && result?.status === "done")) {
+          group.accepted = true;
+        }
+        const words = KINDS.map(([re, say]) => (kind.match(re) ? say(kind.match(re)) : null)).find(Boolean) ?? kind;
+        const outcome = !result
+          ? "running now"
+          : isReview
+            ? result.verdict === "accept"
+              ? "accepted"
+              : `sent back with ${(result.defects ?? []).length} point${(result.defects ?? []).length === 1 ? "" : "s"} to fix`
+            : kind === "bank"
+              ? "done, the step is accepted"
+              : "finished, goes to review";
+        runEvents.push({
+          text: `${words} ${slice.id} step${steps.length > 1 ? "s" : ""} ${steps.join(", ")}`,
+          outcome,
+          running: !result,
+        });
+      }
+      for (const group of groups.values()) {
+        for (const id of group.steps) {
+          auto.set(`${group.slice.id}:${id}`, group.accepted ? "accepted" : "in review");
+        }
+      }
+      if (runEvents.length) {
+        const sliceIds = [...new Set([...groups.values()].map((g) => g.slice.id))].join(", ");
+        runsSeen.push({ title: `Build run for ${sliceIds}`, lastActivity: journal.at, events: runEvents.reverse().slice(0, 10) });
+      }
+    }
+  } catch {
+    // no journals: the ledger alone decides
+  }
+  // Show every run written in the last two hours (lanes run side by side), or else the newest one.
+  const fresh = runsSeen.filter((run) => now - run.lastActivity < 2 * 3_600_000);
+  return { auto, runs: (fresh.length ? fresh : runsSeen.slice(-1)).reverse() };
+}
+
 export function collect(now = new Date()) {
   const errors = [];
   const slices = readSlices();
   const ledger = JSON.parse(readFileSync(join(HERE, "progress.json"), "utf8"));
   const trace = JSON.parse(readFileSync(join(HERE, "trace.json"), "utf8"));
   const byId = new Map(slices.map((s) => [s.id, s]));
+  const runs = readRuns(ledger, byId, now.getTime());
 
   for (const id of Object.keys(ledger.slices)) {
     if (!byId.has(id)) errors.push(`progress.json names slice ${id}, which PLAN.md does not list`);
@@ -113,12 +231,23 @@ export function collect(now = new Date()) {
     for (const id of accepted) {
       if (inReview.has(id)) errors.push(`${slice.id}: step ${id} is both accepted and in review`);
     }
+    // The ledger is the orchestrator's own word (proofs re-run). The journals add, with no one
+    // typing, what a reviewer accepted since and what is being built or reviewed right now.
     for (const step of slice.steps) {
-      step.state = accepted.has(step.id) ? "accepted" : inReview.has(step.id) ? "in review" : "not started";
+      const seenInRun = runs.auto.get(`${slice.id}:${step.id}`);
+      step.checked = accepted.has(step.id);
+      step.state = step.checked
+        ? "accepted"
+        : seenInRun === "accepted"
+          ? "accepted"
+          : inReview.has(step.id) || seenInRun === "in review"
+            ? "in review"
+            : "not started";
     }
     slice.note = entry.note ?? "";
     slice.total = slice.steps.length;
     slice.accepted = slice.steps.filter((s) => s.state === "accepted").length;
+    slice.unchecked = slice.steps.filter((s) => s.state === "accepted" && !s.checked).length;
     slice.inReview = slice.steps.filter((s) => s.state === "in review").length;
     slice.percent = pct(slice.accepted, slice.total);
     slice.state =
@@ -129,14 +258,17 @@ export function collect(now = new Date()) {
           : slice.accepted + slice.inReview > 0
             ? "in progress"
             : "not started";
-    if (slice.total > 0 && slice.state !== slice.planStatus) {
-      errors.push(`${slice.id}: PLAN.md says "${slice.planStatus}", the ledger gives "${slice.state}"`);
+    const ledgerState =
+      accepted.size === slice.total ? "closed" : accepted.size + inReview.size > 0 ? "in progress" : "not started";
+    if (slice.total > 0 && ledgerState !== slice.planStatus) {
+      errors.push(`${slice.id}: PLAN.md says "${slice.planStatus}", the ledger gives "${ledgerState}"`);
     }
   }
 
   const counted = slices.filter((s) => s.total > 0);
   const total = counted.reduce((sum, s) => sum + s.total, 0);
   const accepted = counted.reduce((sum, s) => sum + s.accepted, 0);
+  const unchecked = counted.reduce((sum, s) => sum + s.unchecked, 0);
   const inReview = counted.reduce((sum, s) => sum + s.inReview, 0);
 
   const seen = new Map();
@@ -189,9 +321,11 @@ export function collect(now = new Date()) {
     generated: now.toISOString(),
     updated: ledger.updated,
     now: ledger.now,
+    paceNote: ledger.paceNote ?? "",
     overall: {
       total,
       accepted,
+      unchecked,
       inReview,
       percent: pct(accepted, total),
       slices: counted.length,
@@ -207,8 +341,22 @@ export function collect(now = new Date()) {
     areas,
     waiting: ledger.waiting,
     worktrees: readLanes(),
+    runs: runs.runs,
     errors: [...new Set(errors)],
   };
+}
+
+/** Changes when anything a reader would notice changes; the page reloads itself on a new value. */
+export function versionOf(data) {
+  const seen = {
+    overall: data.overall,
+    now: data.now,
+    events: data.runs.map((run) => run.events),
+    errors: data.errors,
+    commits: data.worktrees.map((w) => w.commits[0]?.subject),
+    steps: data.slices.map((s) => s.steps.map((step) => step.state)),
+  };
+  return createHash("sha1").update(JSON.stringify(seen)).digest("hex").slice(0, 12);
 }
 
 const esc = (value) =>
@@ -227,7 +375,7 @@ function ago(ms, now) {
   return `${hours} hours ago`;
 }
 
-export function render(data, auto) {
+export function render(data, version) {
   const o = data.overall;
   const now = new Date(data.generated);
   // The laptop's own clock with its offset from UTC written out: the shell here prints "EDT" for
@@ -238,7 +386,7 @@ export function render(data, auto) {
   const paceLine =
     pace.hoursPerStep === null
       ? "No step is accepted yet, so there is no pace to report."
-      : `Pace so far: ${o.accepted} steps accepted in ${pace.hours} hours on one lane, about ${pace.hoursPerStep} hours a step. At that pace the remaining ${o.total - o.accepted} steps would take about ${pace.remainingHoursOneLane} hours on one lane. Phase 1 runs three lanes side by side; that pace is unproven.`;
+      : `Pace so far: ${o.accepted} steps accepted in ${pace.hours} hours, about ${pace.hoursPerStep} hours a step. At that pace the remaining ${o.total - o.accepted} steps would take about ${pace.remainingHoursOneLane} hours. ${data.paceNote}`;
 
   const laneRows = data.lanes
     .map(
@@ -266,19 +414,32 @@ export function render(data, auto) {
         `<details id="slice-${esc(s.id)}"><summary>${esc(s.id)}, ${esc(s.title)}: ${s.accepted} of ${s.total} steps accepted, ${s.percent}%</summary><ol class="steps">${s.steps
           .map(
             (step) =>
-              `<li class="${step.state.replace(" ", "-")}"><strong>Step ${esc(step.id)}, ${esc(step.state)}${step.waiting ? ", has a part that waits on an outside account" : ""}.</strong> ${esc(step.text)}</li>`,
+              `<li class="${step.state.replace(" ", "-")}"><strong>Step ${esc(step.id)}, ${esc(step.state)}${step.state === "accepted" && !step.checked ? " by the reviewer, the orchestrator's re-run is pending" : ""}${step.waiting ? ", has a part that waits on an outside account" : ""}.</strong> ${esc(step.text)}</li>`,
           )
           .join("")}</ol></details>`,
     )
     .join("\n");
+  const events = data.runs
+    .map(
+      (run) =>
+        `<h3>${esc(run.title)}, newest first</h3><p class="meta">Its journal was last written ${esc(ago(run.lastActivity, now.getTime()))}.</p><ol class="events">${run.events
+          .map((e) => `<li${e.running ? ' class="running"' : ""}>${esc(e.text)}: <strong>${esc(e.outcome)}</strong>.</li>`)
+          .join("")}</ol>`,
+    )
+    .join("");
   const worktrees = data.worktrees.length
-    ? `<ul>${data.worktrees
+    ? data.worktrees
         .map(
           (w) =>
-            `<li>Build lane <code>${esc(w.branch)}</code>: last commit ${esc(ago(w.at, now.getTime()))}: ${esc(w.subject)}</li>`,
+            `<h3>Latest commits in the build lane <code>${esc(w.branch)}</code></h3><ul>${w.commits
+              .map((c) => `<li>${esc(ago(c.at, now.getTime()))}: ${esc(c.subject)}</li>`)
+              .join("")}</ul>`,
         )
-        .join("")}</ul>`
+        .join("")
     : "<p>No build lane is open.</p>";
+  const pending = o.unchecked
+    ? ` ${o.unchecked} of the accepted steps ${o.unchecked === 1 ? "is" : "are"} accepted by the reviewer and still wait${o.unchecked === 1 ? "s" : ""} for the orchestrator's own re-run.`
+    : "";
   const errors = data.errors.length
     ? `<section class="errors" role="alert"><h2>The ledger has ${data.errors.length} error${data.errors.length === 1 ? "" : "s"}</h2><ul>${data.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></section>`
     : "";
@@ -288,7 +449,6 @@ export function render(data, auto) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${auto ? `<meta http-equiv="refresh" content="${auto}">` : ""}
 <title>${o.percent}% · Matter of Place build</title>
 <style>
 @font-face { font-family: "Jost"; src: url("/fonts/jost.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
@@ -301,6 +461,11 @@ main { max-width: 1120px; margin: 0 auto; padding: 40px 20px 80px; }
 h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; line-height: 1.15; margin: 0; }
 h1 { font-size: 44px; }
 h2 { font-size: 30px; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); }
+h3 { font-size: 17px; font-weight: 500; margin: 28px 0 0; }
+.events { padding-left: 22px; }
+.events li { margin: 6px 0; color: var(--soft); }
+.events li.running, .events li strong { color: var(--ink); }
+.events li strong { font-weight: 500; }
 p { margin: 12px 0; max-width: 78ch; }
 .lead { font-size: 21px; }
 .figure { font-family: "Cormorant Garamond", Georgia, serif; font-size: 112px; line-height: 1; margin: 28px 0 4px; }
@@ -334,13 +499,15 @@ ul { padding-left: 22px; }
 <main>
 <h1>Matter of Place build progress</h1>
 <p class="figure" aria-hidden="true">${o.percent}%</p>
-<p class="lead">${o.percent} percent complete: ${o.accepted} of ${o.total} steps are accepted, and ${o.inReview} more are built and in review. ${o.slicesClosed} of ${o.slices} slices are closed.</p>
+<p class="lead">${o.percent} percent complete: ${o.accepted} of ${o.total} steps are accepted, and ${o.inReview} more ${o.inReview === 1 ? "is" : "are"} being built or reviewed. ${o.slicesClosed} of ${o.slices} slices are closed.${pending}</p>
 <span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span>
-<p class="meta">Page made ${esc(clock)}. Ledger last written ${esc(data.updated)}. <a href="${auto ? "/" : "/?auto=60"}">${auto ? "Stop reloading every minute" : "Reload this page every minute"}</a>.</p>
+<p class="meta" id="live" role="status">Page made ${esc(clock)}. It reloads by itself when a step, a review or a commit changes; nobody has to update it.</p>
 ${errors}
 
 <h2>What is happening now</h2>
 <p>${esc(data.now)}</p>
+<p class="meta">The paragraph above is the orchestrator's note, last written ${esc(data.updated)}. Everything below it is read live from the build.</p>
+${events}
 ${worktrees}
 <p>${esc(paceLine)}</p>
 
@@ -378,9 +545,21 @@ ${data.waiting.map((w) => `<li><strong>${esc(w.what)}.</strong> ${esc(w.why)}</l
 ${details}
 
 <h2>How this is counted</h2>
-<p>A step counts as accepted only after a second model, in a fresh context, tried to refute it and accepted it, and the orchestrator re-ran its proofs. A step that is built but still under review counts as in review, not as done. Steps differ in size, so the percentage is a count of steps, not of hours.</p>
-<p>The numbers come from four files in <code>workspace/05-plans</code>: the plan files (the steps), <code>PLAN.md</code> (the slice list), <code>trace.json</code> (the planned pieces) and <code>progress.json</code> (which steps are accepted). The page reads them again on every load. The same numbers as data: <a href="/data.json">data.json</a>.</p>
+<p>A step counts as accepted once a second model, in a fresh context, tried to refute it and accepted it. The page reads that from the build's own journal, so it moves the moment a review ends. The orchestrator then re-runs the step's proofs and writes the step into the ledger; a step still waiting for that re-run is marked as such. A step that is being built or reviewed is not counted as done. Steps differ in size, so the percentage is a count of steps, not of hours.</p>
+<p>The numbers come from the plan files (the steps), <code>PLAN.md</code> (the slice list), <code>trace.json</code> (the planned pieces), <code>progress.json</code> (the ledger) and the journals of the build runs. The same numbers as data: <a href="/data.json">data.json</a>.</p>
 </main>
+<script>
+// Ask the server every 15 seconds whether anything changed; reload only when it did.
+const shown = ${JSON.stringify(version)};
+setInterval(async () => {
+  try {
+    const answer = await fetch("/version", { cache: "no-store" });
+    if (answer.ok && (await answer.text()) !== shown) location.reload();
+  } catch {
+    // the board is not running; keep the page as it is
+  }
+}, 15000);
+</script>
 </body>
 </html>`;
 }
@@ -388,7 +567,8 @@ ${details}
 function summary(data) {
   const o = data.overall;
   return [
-    `overall: ${o.accepted} of ${o.total} steps accepted (${o.percent}%), ${o.inReview} in review, ${o.slicesClosed} of ${o.slices} slices closed`,
+    `overall: ${o.accepted} of ${o.total} steps accepted (${o.percent}%), ${o.unchecked} of them not yet re-run by the orchestrator, ${o.inReview} in review, ${o.slicesClosed} of ${o.slices} slices closed`,
+    ...data.runs.flatMap((run) => run.events.slice(0, 3).map((e) => `${run.title}: ${e.text}: ${e.outcome}`)),
     ...data.lanes.map((l) => `lane ${l.phase} ${l.lane}: ${l.accepted} of ${l.total} (${l.percent}%)`),
     ...data.areas.map((a) => `area ${a.label}: ${a.pieces} pieces, ${a.percent}%`),
   ].join("\n");
@@ -415,11 +595,13 @@ function main() {
       } else if (url.pathname === "/data.json") {
         response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
         response.end(JSON.stringify(collect(), null, 1));
+      } else if (url.pathname === "/version") {
+        response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+        response.end(versionOf(collect()));
       } else if (url.pathname === "/") {
-        const seconds = Number(url.searchParams.get("auto"));
-        const auto = Number.isInteger(seconds) && seconds >= 15 && seconds <= 3600 ? seconds : 0;
+        const data = collect();
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(render(collect(), auto));
+        response.end(render(data, versionOf(data)));
       } else {
         response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
         response.end("Not found");
