@@ -1459,3 +1459,177 @@ console.log(`restored: ${String(readFileSync(path).equals(saved))}`);
 UNPROVEN: Dependabot (above). The new rules have not met a real migration yet (B2 writes the first); B2's `tests/db/migration-headers.test.ts` checks the header's version against `origin/main`, this script checks only its shape.
 
 GOTCHAS: P-111 added.
+
+## c6 · steps 5
+
+Review round 2 of the c6 close-out: three defects. Commits on `slice/b1b`: `e10236b` (the work), `06839f7` and `f1fce32` (type-error watched-fail and its revert), `65bf95e` and `ccd935f` (engines watched-fail and its revert); the tree at `ccd935f` equals `e10236b` (`git diff --quiet e10236b HEAD` exit 0, checked after each revert).
+
+1. Regression fixed. `scripts/check-migrations.mjs` no longer reads raw text with regular expressions: `statementsOf` lexes each file once. Line comments and nested block comments go; every string (with `E'...'` backslash escapes), quoted name and dollar-quoted body (any `$tag$`) is blanked in the statement text and kept as a literal. A DO block's literals are scanned as SQL, its strings too (`execute '...'` is how a DO block runs conditional DDL); a function body is not scanned, because it runs later. `alter table` is found anywhere in a statement, so a DO body's `if ... then alter table ... drop column` is read. The three inputs of the review are refused again (probe below).
+2. False positives removed. A word inside a string, a comment or a function body is never matched. `rename` is destructive only as a clause of `alter table` (column, table, the form without `COLUMN`; `rename constraint` is allowed) and in `alter view`, `alter materialized view`, `alter type` (enum value) and `alter function`. Renames of policies, triggers, indexes and constraints are allowed. A new `serial`, `smallserial`, `bigserial` (or `serial2/4/8`) NOT NULL column counts as having a default. Function rename stays destructive on purpose: the previous Worker calls RPCs by name, the same reason H42 (3) gives `drop function`; it follows whatever ruling settles item 3 below.
+3. The `drop function` conflict, surfaced (ruling needed, nothing in c6 is built around it): H42 (3) makes `drop function` destructive and the script refuses it without `-- contract-of:`. Lines that depend on the old rule:
+   - `workspace/05-plans/B2.md:71` (invariant 14): "`drop function` and `drop trigger` stay allowed (F16 re-apply and signature changes need them)".
+   - `workspace/05-plans/B2.md:93`: `scripts/db-fn.mjs` prepends `drop function if exists public.<name>(<old argument types>);` whenever a signature changes.
+   - `workspace/05-plans/B10.md:166`: `approve_asset`'s signature change relies on exactly that prepend.
+   - `workspace/05-plans/B2.md:74`: B2's migrations must pass this `migration-order` step.
+   - `workspace/05-plans/review/B2.md:173` and `review/B10.md:127` say the same as B2.md 71 and 93.
+   Effect if nothing changes: the first signature-changing `db:fn` migration (B10 at the latest; B8 and B8b also run `db:fn`) goes red at `migration-order`, or its builder writes a `-- contract-of:` header that means nothing for a function re-apply. Options for the orchestrator: (a) amend H42 (3) to allow `drop function` again (R17's own text) and delete the rule (one line plus the `cm-drop-function`, `cm-allow-trigger` and `cm-rename-function` entries and two rows); (b) keep it and give `db:fn` migrations a header that names the function re-apply, which both this script and B2's test accept.
+   More stale lines: STANDARDS R17 ("dropping a function or trigger stays allowed"; its `Enforced by:` note says B1b names the header `-- contract:`, the script reads `-- contract-of:`); B1b.md line 137 (c) and line 155 (shorter pattern list, one `drop column` case); B2.md lines 71 and 116: B2's `migration-headers.test.ts` strips every dollar-quoted body, DO blocks included, so it would pass the DO-block case this script refuses, and its pattern `rename\s+to` refuses a policy or trigger rename this script allows. The two checks disagree until B2 follows this scan or a ruling picks one.
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+Probe (`node ../scratch/c6r-probe.mjs [<script>]`, text below; `ok` means the count is the one the case needs, `MUST 1` refused, `MUST 0` allowed). On the c6 version (`git show 8fe1df0:app/scripts/check-migrations.mjs`), 4 of 19 `ok`:
+```
+BAD 0  block comment then drop column
+BAD 0  string with -- then drop column
+BAD 0  do block drop column
+BAD 0  do block execute drop column
+BAD 1  rename in comment-on string  | destructive change (rename)
+BAD 1  alter policy rename  | destructive change (rename)
+BAD 1  alter trigger rename  | destructive change (rename)
+BAD 1  alter index rename  | destructive change (rename)
+BAD 1  constraint rename  | destructive change (rename)
+BAD 1  serial not null  | destructive change (not null column
+BAD 1  bigserial not null  | destructive change (not null column
+BAD 1  create function body drop table temp  | destructive change (drop table)
+BAD 1  function body drop index/type/view/rename  | destructive change (drop view, drop type, drop index, rename)
+BAD 1  nested block comment  | destructive change (drop table)
+BAD 1  escape string  | destructive change (drop table)
+```
+On the version before c6 (`33d3d4e`), 11 of 19 `ok` (it refused the first four cases; it missed `enum value rename` and flagged the policy, trigger and index renames, function bodies, the nested comment and the escape string). On `e10236b`, 19 of 19:
+```
+ok  1  block comment then drop column  | destructive change (drop column)
+ok  1  string with -- then drop column  | destructive change (drop column)
+ok  1  do block drop column  | destructive change (drop column)
+ok  1  do block execute drop column  | destructive change (drop column)
+ok  1  view rename  | destructive change (rename)
+ok  1  materialized view rename  | destructive change (rename)
+ok  1  enum value rename  | destructive change (rename)
+ok  1  function rename  | destructive change (rename)
+ok  0  rename in comment-on string
+ok  0  alter policy rename
+ok  0  alter trigger rename
+ok  0  alter index rename
+ok  0  constraint rename
+ok  0  serial not null
+ok  0  bigserial not null
+ok  0  create function body drop table temp
+ok  0  function body drop index/type/view/rename
+ok  0  nested block comment
+ok  0  escape string
+```
+`node ../scratch/c6-probe.mjs` (the c6 cases, text in the block above) prints the same 16 refusals and 7 allowed as before.
+
+`tests/unit/check-migrations.test.ts`: 18 new rows. Refused: view, materialized view, enum value and function renames, a drop column inside a DO block, a drop column run by EXECUTE, a DO block after a block comment, a drop after a string holding two dashes. Allowed: serial and bigserial NOT NULL columns, a drop table named in a string, policy, trigger, index and constraint renames, a function body that drops a table, a drop inside a nested block comment, a drop inside an escape string. The review's `rename in a string` case is in the probe, not in the test: the lexer and the narrowed rename rule both protect it, so no single mutation turns it red (GOTCHAS P-112); `a drop table named in a string` carries the string rule instead, and `a DO block after a block comment` carries the comment rule (`^do` needs the comment gone). `tests/mutations/B1b.json`: 20 new `cm-` entries; 7 entries whose `find` moved were rewritten (`cm-comments`, `cm-rename-column`, `cm-rename-bare`, `cm-rename-table`, `cm-split-parens`, `cm-split-quotes`, `cm-allow-default`; P-090). The first replay printed `NOT RED cm-do-execute: exit=1 expect=false`: the mutation was red for the right reason, but vitest cut the 73-character title to `... EXECUTE in a DO bl…` (P-081); the row is now `a drop column run by EXECUTE`.
+
+```
+$ node ../scratch/replay.mjs --check
+checked 243, bad 0
+$ node ../scratch/replay.mjs ap cm-applied ... cm-allow-bigserial      (all 52 ap and cm- entries)
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 8ms
+RED cm-applied: exit=1 expect=true | × refuses an edited applied migration 7ms
+  (30 earlier cm- entries, each RED with its own title, as in the c6 block above)
+RED cm-block-comment: exit=1 expect=true | × a DO block after a block comment needs the contract-of header 7ms
+RED cm-comment-nesting: exit=1 expect=true | × a drop inside a nested block comment needs no contract-of header 7ms
+RED cm-string-dashes: exit=1 expect=true | × a drop after a string holding two dashes needs the contract-of header 1ms
+RED cm-string-drop: exit=1 expect=true | × a drop table named in a string needs no contract-of header 1ms
+RED cm-escape-string: exit=1 expect=true | × a drop inside an escape string needs no contract-of header 8ms
+RED cm-do-block: exit=1 expect=true | × a drop column inside a DO block needs the contract-of header 7ms
+RED cm-do-execute: exit=1 expect=true | × a drop column run by EXECUTE needs the contract-of header 7ms
+RED cm-function-body: exit=1 expect=true | × a function body that drops a table needs no contract-of header 1ms
+RED cm-dollar-tag: exit=1 expect=true | × a function body that drops a table needs no contract-of header 7ms
+RED cm-alter-anywhere: exit=1 expect=true | × a drop column inside a DO block needs the contract-of header 7ms
+RED cm-rename-view: exit=1 expect=true | × a view rename needs the contract-of header 10ms
+RED cm-rename-mview: exit=1 expect=true | × a materialized view rename needs the contract-of header 7ms
+RED cm-rename-type: exit=1 expect=true | × an enum value rename needs the contract-of header 7ms
+RED cm-rename-function: exit=1 expect=true | × a function rename needs the contract-of header 7ms
+RED cm-allow-policy-rename: exit=1 expect=true | × a policy rename needs no contract-of header 10ms
+RED cm-allow-trigger-rename: exit=1 expect=true | × a trigger rename needs no contract-of header 1ms
+RED cm-allow-index-rename: exit=1 expect=true | × an index rename needs no contract-of header 2ms
+RED cm-allow-constraint-rename: exit=1 expect=true | × a constraint rename needs no contract-of header 7ms
+RED cm-allow-serial: exit=1 expect=true | × a new serial NOT NULL column needs no contract-of header 7ms
+RED cm-allow-bigserial: exit=1 expect=true | × a new bigserial NOT NULL column needs no contract-of header 7ms
+replayed 52, not red 0
+$ node ../scratch/c6-map.mjs | tail -1
+titles 46, without an entry 0
+$ cmp scripts/check-migrations.mjs ../scratch/cm-saved.mjs && echo same-bytes      (no mutation left behind)
+same-bytes
+```
+Plan step 5 proofs:
+```
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+ Test Files  2 passed (2)
+      Tests  76 passed | 8 skipped (84)
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines" ; ls ../.github/dependabot.yml
+{ bun: '1.3.13', node: '24.x' }
+../.github/dependabot.yml
+$ node ../scratch/replay.mjs ao bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 111ms
+replayed 5, not red 0
+```
+CI on `e10236b` (run 37013961513, `pull_request`, success): `build success`, `check success`, `merge-gate skipped`; steps of `check`: `engines`, `Run actions/cache`, `Run bun install --frozen-lockfile`, `migration-order` (log `$ node scripts/check-migrations.mjs` / `no migrations`), `Run bun run check`, `audit`, all `success`; no job named `audit` or `deno`. `gh run download 37013961513 -n build-output -D scratch/c6r-art` → `nitro.json package-lock.json package.json public server`, `server/wrangler.json` name `matter-of-place`.
+Watched-fail (d), type error: `06839f7` appends `const x: number = "a";` to `src/lib/strings.ts` (diff printed before the commit: `+const x: number = "a";`). Run 37014323477: `check failure`, `build success`; `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.`, `Process completed with exit code 2.` Revert `f1fce32`: run 37014438315 `check success`, `build success`.
+Watched-fail, engines: `65bf95e` sets `engines.bun` to `1.3.12` (`+    "bun": "1.3.12",`). Run 37014595290: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `Process completed with exit code 1.`); cache, install and `migration-order` `skipped`. Revert `ccd935f`: run 37014708495 `check success`, `build success`.
+Gates on `e10236b`: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files 14 passed (14)`, `Tests 291 passed | 8 skipped (299)`); `bun run build` exit 0 (three `built in` lines, `src/routeTree.gen.ts` unchanged); from the lane root `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (28 path entries, 111 process entries)`.
+
+`scratch/c6r-probe.mjs` (lane-root `scratch/`, git-ignored, run from `app/`; P-088)
+```js
+// node ../scratch/c6r-probe.mjs [<path to check-migrations.mjs>]   (from app/)
+// Feeds the review's cases and the new ones to checkMigrations and prints the failure count of each.
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+
+const target = resolve(process.argv[2] ?? "scripts/check-migrations.mjs");
+const { checkMigrations } = await import(pathToFileURL(target).href);
+
+const cases = {
+  "MUST 1  block comment then drop column": "/* note */ alter table notes drop column body;",
+  "MUST 1  string with -- then drop column":
+    "alter table notes add column mark text default 'a--b';\nalter table notes drop column body;",
+  "MUST 1  do block drop column":
+    "do $$ begin if exists (select 1) then alter table notes drop column body; end if; end $$;",
+  "MUST 1  do block execute drop column":
+    "do $$ begin execute 'alter table notes drop column body'; end $$;",
+  "MUST 1  view rename": "alter view v_notes rename to v_memos;",
+  "MUST 1  materialized view rename": "alter materialized view mv_notes rename to mv_memos;",
+  "MUST 1  enum value rename": "alter type note_kind rename value 'a' to 'b';",
+  "MUST 1  function rename": "alter function public.f(int) rename to g;",
+  "MUST 0  rename in comment-on string": "comment on table notes is 'rename later';",
+  "MUST 0  alter policy rename": "alter policy p on notes rename to q;",
+  "MUST 0  alter trigger rename": "alter trigger t on notes rename to u;",
+  "MUST 0  alter index rename": "alter index notes_body_idx rename to notes_text_idx;",
+  "MUST 0  constraint rename": "alter table notes rename constraint a to b;",
+  "MUST 0  serial not null": "alter table notes add column y serial not null;",
+  "MUST 0  bigserial not null": "alter table notes add column y bigserial not null;",
+  "MUST 0  create function body drop table temp":
+    "create function f() returns void language plpgsql as $body$ begin drop table if exists notes_old; end $body$;",
+  "MUST 0  function body drop index/type/view/rename":
+    "create function f() returns void language plpgsql as $$ begin drop index i; drop type t; drop view v; alter table x rename to y; end $$;",
+  "MUST 0  nested block comment": "/* a /* b */ drop table notes; */ create table memos (id uuid);",
+  "MUST 0  escape string": "comment on table notes is E'it\\'s; drop table notes';",
+};
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({
+    changed: [],
+    added: [file],
+    mainPrefixes: ["20261002100000"],
+    readFile: () => `-- irreversible: x\nset lock_timeout = '5s';\n${sql}\n`,
+  });
+  const want = Number(name.slice(5, 6));
+  const verdict = failures.length === want ? "ok " : "BAD";
+  console.log(`${verdict} ${String(failures.length)}  ${name.slice(8)}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+```
+
+UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is still not on `main`, HTTP 404). The scan has met no real migration yet (B2 writes the first). Not handled, by choice: SQL inside a string that a DO block builds with `format()` and `||` is read piece by piece, so a statement split across two literals is missed; a DO block's `raise notice 'drop table ...'` is refused (it errs on the refusing side).
+
+GOTCHAS: G-028 (the scan is a lexer; compare a rewritten gate with the old one on the same inputs), P-112 (a row two mechanisms protect cannot be watched red by one mutation), P-113 (a ruling that changes a gate's rule: grep every plan for the rule's words) added.
