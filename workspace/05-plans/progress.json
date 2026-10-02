@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
   "updated": "2026-10-03 00:50, laptop time (UTC+3)",
-  "now": "PARKED on 2026-10-03 at 00:50 (UTC+3) at the operator's request (weekly usage at 98 percent). No builder is running. Everything accepted is on GitHub: B1b steps 1 to 5b and B2 steps 1 to 3 are on main; B1b steps 6 and 7 are accepted on the branch slice/b1b (pull request 43, draft), together with a saved, unproven draft of step 7's three additions by ruling H49. The build resumes where .claude/POSITION.md says.",
+  "now": "Parked on 3 October at 00:50 (UTC+3) at the operator's request. Nothing is running. All accepted work is on GitHub: B1b steps 1 to 5b and B2 steps 1 to 3 on main, B1b steps 6 and 7 on the branch slice/b1b.",
   "paceNote": "That pace was one lane, with every review finding costing a full fix round. From 2026-10-02 21:15 (UTC+3) two lanes run side by side and only a blocking finding costs a round (ruling H45). The new pace is unproven until it has been measured.",
   "runGroups": {
     "c6": "5",

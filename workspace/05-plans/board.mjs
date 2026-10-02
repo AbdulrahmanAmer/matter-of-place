@@ -439,17 +439,6 @@ export function render(data, version, snapshot = false) {
     )
     .join("\n");
   const remainingHours = pace.hoursPerStep === null ? null : Math.round(pace.hoursPerStep * (o.total - o.accepted));
-  const finish = `<section class="finish" aria-labelledby="finish-h">
-<h2 id="finish-h">To the finish line</h2>
-<p class="figure" aria-hidden="true">${o.percent}%</p>
-<p class="lead">${o.percent} percent of the way to launch: ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, across ${o.slices} slices of which ${o.slicesClosed} ${o.slicesClosed === 1 ? "is" : "are"} closed.</p>
-<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span>
-<ul>
-${data.arms.map((arm) => `<li><strong>${esc(arm.label)}:</strong> ${arm.ownPercent}% of its own pieces, ${arm.percent}% counting what it cannot work without, ${arm.remaining} of ${arm.total} pieces to go.</li>`).join("\n")}
-</ul>
-<p>${remainingHours === null ? "No pace is measured yet." : `At the measured pace of ${pace.hoursPerStep} hours a step, the ${o.total - o.accepted} remaining steps are about ${remainingHours} hours of building on one lane. ${esc(data.paceNote)}`}</p>
-<p class="meta">The finish line is every step of every slice accepted, hardened (H1) and switched on (L1). A step counts only after a second model in a fresh context accepted it. Steps differ in size, so this is a count of steps, not of hours.</p>
-</section>`;
   // The laptop's own clock with its offset from UTC written out: the shell here prints "EDT" for
   // Egypt Daylight Time, which reads as US Eastern (GOTCHAS P-130).
   const offset = -now.getTimezoneOffset() / 60;
@@ -521,116 +510,191 @@ ${snapshot ? "" : '@font-face { font-family: "Jost"; src: url("/fonts/jost.woff2
 :root { --bg: #F5F2EB; --ink: #11110F; --line: #C9C0B2; --soft: #575751; --mid: #8B877F; --panel: #EEEAE1; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; } }
 :root[data-theme="dark"] { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; }
-.finish { border-top: 1px solid var(--line); margin-top: 56px; }
-.finish h2 { border: 0; margin-top: 20px; }
-.finish ul { padding-left: 22px; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 "Jost", "Segoe UI", system-ui, sans-serif; }
-main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 80px; }
-h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; line-height: 1.15; margin: 0; }
-h1 { font-size: 44px; }
-h2 { font-size: 30px; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); }
-h3 { font-size: 17px; font-weight: 500; margin: 28px 0 0; }
-.events { padding-left: 22px; }
-.events li { margin: 6px 0; color: var(--soft); }
-.events li.running, .events li strong { color: var(--ink); }
-.events li strong { font-weight: 500; }
-p { margin: 12px 0; max-width: 78ch; }
-.lead { font-size: 21px; }
-.figure { font-family: "Cormorant Garamond", Georgia, serif; font-size: 112px; line-height: 1; margin: 28px 0 4px; }
-.meta { color: var(--soft); font-size: 15px; }
-a { color: inherit; }
-a:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-.wrap { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; margin-top: 16px; font-size: 16px; }
-caption { text-align: left; color: var(--soft); font-size: 15px; padding-bottom: 8px; }
-th, td { text-align: left; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-thead th { font-weight: 500; color: var(--soft); font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; }
-tbody th { font-weight: 500; white-space: nowrap; }
-.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 "Jost", "Segoe UI", system-ui, sans-serif; }
+.shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+.side { border-right: 1px solid var(--line); padding: 28px 16px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 24px; }
+.brand { font-family: "Cormorant Garamond", Georgia, serif; font-size: 24px; line-height: 1.1; }
+.brand span { display: block; font: 13px/1.4 "Jost", system-ui, sans-serif; color: var(--soft); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 6px; }
+nav { display: flex; flex-direction: column; gap: 2px; }
+nav button { font: inherit; color: var(--soft); background: none; border: 0; border-left: 2px solid transparent; text-align: left; padding: 8px 12px; cursor: pointer; }
+nav button:hover { color: var(--ink); }
+nav button[aria-current="page"] { color: var(--ink); border-left-color: var(--ink); }
+nav button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.side-meta { margin-top: auto; color: var(--soft); font-size: 13px; }
+main { padding: 32px 32px 80px; max-width: 1180px; }
+h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 34px; line-height: 1.1; margin: 0 0 4px; }
+h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 22px; line-height: 1.2; margin: 0 0 8px; }
+h3 { font-size: 15px; font-weight: 500; margin: 24px 0 6px; }
+p { margin: 8px 0; }
+.meta { color: var(--soft); font-size: 14px; }
+.hero { display: grid; grid-template-columns: auto 1fr; gap: 8px 32px; align-items: end; margin: 28px 0 8px; }
+.figure { font-family: "Cormorant Garamond", Georgia, serif; font-size: 96px; line-height: 0.9; margin: 0; }
+.lead { font-size: 19px; margin: 0 0 10px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
+.tile { border: 1px solid var(--line); padding: 16px 18px 14px; min-width: 0; }
+.tile .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 44px; line-height: 1; margin: 6px 0 4px; }
+.tile .meta { margin: 0; }
+.tile.wide { grid-column: 1 / -1; }
 .bar { display: flex; width: 160px; height: 8px; background: var(--line); margin-top: 9px; }
 .bar .done { background: var(--ink); }
 .bar .review { background: var(--mid); }
-.bar.big { width: 100%; height: 12px; margin: 16px 0 8px; }
-details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.bar.big { width: 100%; height: 10px; margin: 8px 0 0; }
+.bar.full { width: 100%; }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 15px; }
+caption { text-align: left; color: var(--soft); font-size: 14px; padding-bottom: 8px; }
+th, td { text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th { font-weight: 500; color: var(--soft); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+tbody th { font-weight: 500; white-space: nowrap; }
+.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+details { border-bottom: 1px solid var(--line); padding: 10px 0; }
 summary { cursor: pointer; font-weight: 500; }
-.steps { margin: 12px 0 4px; padding-left: 28px; list-style: none; }
-.steps li { margin: 8px 0; color: var(--soft); }
+.steps { margin: 10px 0 4px; padding-left: 24px; list-style: none; }
+.steps li { margin: 6px 0; color: var(--soft); font-size: 15px; }
 .steps li.accepted { color: var(--ink); }
 .steps li strong { font-weight: 500; color: var(--ink); }
-.errors { border: 1px solid var(--ink); padding: 4px 20px 12px; margin-top: 28px; background: var(--panel); }
-.errors h2 { border: 0; margin-top: 12px; padding-top: 0; }
+.events { padding-left: 20px; margin: 4px 0; }
+.events li { margin: 5px 0; color: var(--soft); font-size: 15px; }
+.events li.running, .events li strong { color: var(--ink); }
+.events li strong { font-weight: 500; }
+.errors { border: 1px solid var(--ink); padding: 4px 18px 10px; margin: 20px 0; background: var(--panel); }
+ul { padding-left: 20px; }
 code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
-ul { padding-left: 22px; }
+.view[hidden] { display: none; }
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 20px 16px 12px; gap: 12px; min-width: 0; }
+  nav { flex-direction: row; overflow-x: auto; gap: 0; min-width: 0; }
+  nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; }
+  nav button[aria-current="page"] { border-bottom-color: var(--ink); }
+  .side-meta { display: none; }
+  main { padding: 20px 16px 60px; }
+  .hero { grid-template-columns: 1fr; }
+  .figure { font-size: 72px; }
+}
 </style>
 </head>
 <body>
+<div class="shell">
+<aside class="side">
+<div class="brand">Matter of Place<span>Build board</span></div>
+<nav aria-label="Views">
+<button type="button" data-view="overview" aria-current="page">Overview</button>
+<button type="button" data-view="arms">Arms</button>
+<button type="button" data-view="lanes">Lanes</button>
+<button type="button" data-view="slices">Slices</button>
+<button type="button" data-view="steps">Every step</button>
+<button type="button" data-view="activity">Activity</button>
+<button type="button" data-view="waiting">Waiting on you</button>
+<button type="button" data-view="method">How it is counted</button>
+</nav>
+<p class="side-meta">${snapshot ? `Snapshot, ${esc(clock)}` : `Live. ${esc(clock)}`}</p>
+</aside>
 <main>
-<h1>Matter of Place build progress</h1>
-<p class="figure" aria-hidden="true">${o.percent}%</p>
-<p class="lead">${o.percent} percent complete: ${o.accepted} of ${o.total} steps are accepted, and ${o.inReview} more ${o.inReview === 1 ? "is" : "are"} being built or reviewed. ${o.slicesClosed} of ${o.slices} slices are closed.${pending}</p>
-<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span>
-<p class="meta" id="live" role="status">${snapshot ? `Snapshot taken ${esc(clock)}. The live board runs on the build laptop and updates itself; this copy shows the state at that moment.` : `Page made ${esc(clock)}. It reloads by itself when a step, a review or a commit changes; nobody has to update it.`}</p>
+<section class="view" id="view-overview" aria-labelledby="h-overview">
+<h1 id="h-overview">Overview</h1>
+<p class="meta" role="status">${snapshot ? `Snapshot taken ${esc(clock)}.` : `Reloads by itself when anything changes. ${esc(clock)}.`}</p>
 ${errors}
+<div class="hero">
+<p class="figure" aria-hidden="true">${o.percent}%</p>
+<div><p class="lead">${o.percent} percent to launch. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
+<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span></div>
+</div>
+<div class="tiles">
+${data.arms.map((arm) => `<div class="tile"><h2>${esc(arm.label)}</h2><p class="big">${arm.percent}%</p><p class="meta">to launch · own ${arm.ownPercent}% · ${arm.remaining} pieces to go</p><span class="bar full" aria-hidden="true"><span class="done" style="width:${arm.percent}%"></span></span></div>`).join("\n")}
+</div>
+<div class="tiles">
+<div class="tile wide"><h2>Now</h2><p>${esc(data.now)}</p><p class="meta">Orchestrator's note, ${esc(data.updated)}.</p></div>
+<div class="tile"><h2>Finish line</h2><p class="big">${o.total - o.accepted}</p><p class="meta">steps to go${remainingHours === null ? "" : ` · about ${remainingHours} hours at the measured pace of ${pace.hoursPerStep} h a step`}</p></div>
+<div class="tile"><h2>Slices</h2><p class="big">${o.slicesClosed} of ${o.slices}</p><p class="meta">closed</p></div>
+<div class="tile"><h2>Lanes</h2><p class="big">${data.worktrees.length}</p><p class="meta">open on the build laptop</p></div>
+</div>
+</section>
 
-<h2>What is happening now</h2>
-<p>${esc(data.now)}</p>
-<p class="meta">The paragraph above is the orchestrator's note, last written ${esc(data.updated)}. Everything below it is read live from the build.</p>
-${events}
-${worktrees}
-<p>${esc(paceLine)}</p>
-
-<h2>By phase and lane</h2>
+<section class="view" id="view-arms" aria-labelledby="h-arms" hidden>
+<h1 id="h-arms">Arms</h1>
+<p class="meta">"Own" is the arm's pieces built. "To launch" adds the arms it cannot work without: the database counts toward the website and the admin portal, the backend toward both, deployment toward all.</p>
 <div class="wrap"><table>
-<caption>Phase 0 runs two lanes side by side, then one. Phase 1 opens three lanes. Phase 2 is hardening and launch.</caption>
-<thead><tr><th scope="col">Lane</th><th scope="col">Slices</th><th scope="col">Steps accepted</th><th scope="col">In review</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
-<tbody>
-${laneRows}
-</tbody></table></div>
-
-<h2>By slice</h2>
-<div class="wrap"><table>
-<caption>A slice is one plan file. Its steps are built in order. Each slice name links to its step list below.</caption>
-<thead><tr><th scope="col">Slice</th><th scope="col">What it is</th><th scope="col">State</th><th scope="col">Steps accepted</th><th scope="col">In review</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
-<tbody>
-${sliceRows}
-</tbody></table></div>
-
-<h2>By arm of the product</h2>
-<div class="wrap"><table>
-<caption>Every planned piece of the product belongs to one arm. "Its own" weighs an arm's pieces by how far the slice that builds each one is accepted. "To launch" adds the pieces of the arms it cannot work without: the database counts toward the website and the admin portal, the backend toward both, deployment toward all.</caption>
-<thead><tr><th scope="col">Arm</th><th scope="col">What it covers</th><th scope="col">Pieces</th><th scope="col">Its own</th><th scope="col">Cannot work without</th><th scope="col">Pieces to go, counting those</th><th scope="col">To launch</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
+<thead><tr><th scope="col">Arm</th><th scope="col">Covers</th><th scope="col">Pieces</th><th scope="col">Own</th><th scope="col">Needs</th><th scope="col">To go</th><th scope="col">To launch</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
 <tbody>
 ${armRows}
 </tbody></table></div>
+</section>
 
-<h2>Waiting on you</h2>
-<p>None of these holds the build back today.</p>
+<section class="view" id="view-lanes" aria-labelledby="h-lanes" hidden>
+<h1 id="h-lanes">Lanes</h1>
+<p class="meta">Phase 0 runs two lanes, then one. Phase 1 opens three. Phase 2 hardens and launches.</p>
+<div class="wrap"><table>
+<thead><tr><th scope="col">Lane</th><th scope="col">Slices</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
+<tbody>
+${laneRows}
+</tbody></table></div>
+</section>
+
+<section class="view" id="view-slices" aria-labelledby="h-slices" hidden>
+<h1 id="h-slices">Slices</h1>
+<p class="meta">One slice is one plan file, built in step order.</p>
+<div class="wrap"><table>
+<thead><tr><th scope="col">Slice</th><th scope="col">What</th><th scope="col">State</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
+<tbody>
+${sliceRows}
+</tbody></table></div>
+</section>
+
+<section class="view" id="view-steps" aria-labelledby="h-steps" hidden>
+<h1 id="h-steps">Every step</h1>
+<p class="meta">Open a slice to read its steps and their state.</p>
+${details}
+</section>
+
+<section class="view" id="view-activity" aria-labelledby="h-activity" hidden>
+<h1 id="h-activity">Activity</h1>
+${events || '<p class="meta">No build run in the last two hours.</p>'}
+${worktrees}
+<h3>Pace</h3>
+<p>${esc(paceLine)}</p>
+</section>
+
+<section class="view" id="view-waiting" aria-labelledby="h-waiting" hidden>
+<h1 id="h-waiting">Waiting on you</h1>
+<p class="meta">None of these holds the build back today.</p>
 <ul>
 ${data.waiting.map((w) => `<li><strong>${esc(w.what)}.</strong> ${esc(w.why)}</li>`).join("\n")}
 </ul>
+</section>
 
-<h2>Every step</h2>
-${details}
-
-${finish}
-
-<h2>How this is counted</h2>
-<p>A step counts as accepted once a second model, in a fresh context, tried to refute it and accepted it. The page reads that from the build's own journal, so it moves the moment a review ends. The orchestrator then re-runs the step's proofs and writes the step into the ledger; a step still waiting for that re-run is marked as such. A step that is being built or reviewed is not counted as done. Steps differ in size, so the percentage is a count of steps, not of hours.</p>
-<p>The numbers come from the plan files (the steps), <code>PLAN.md</code> (the slice list), <code>trace.json</code> (the planned pieces), <code>progress.json</code> (the ledger) and the journals of the build runs. The same numbers as data: <a href="/data.json">data.json</a>.</p>
+<section class="view" id="view-method" aria-labelledby="h-method" hidden>
+<h1 id="h-method">How it is counted</h1>
+<p>A step counts once a second model, in a fresh context, tried to refute it and accepted it. The board reads that from the build's own journal. The orchestrator then re-runs the step's proofs; a step still waiting for that is marked. Built or in review is not done.</p>
+<p>Every planned piece of the product belongs to one arm. An arm's own percentage weighs its pieces by how far the slice building each one is accepted. Its percentage to launch adds the pieces of the arms it cannot work without.</p>
+<p>The finish line is every step accepted, hardened (H1) and switched on (L1). Steps differ in size, so percentages count steps and pieces, not hours. Sources: the plan files, PLAN.md, trace.json, progress.json and the build journals.${snapshot ? "" : ' Data: <a href="/data.json">data.json</a>.'}</p>
+</section>
 </main>
-${snapshot ? "" : `<script>
-// Ask the server every 15 seconds whether anything changed; reload only when it did.
-const shown = ${JSON.stringify(version)};
+</div>
+<script>
+// One view at a time; the choice lives in the address and, when the browser allows it, in local storage.
+const views = [...document.querySelectorAll(".view")];
+const buttons = [...document.querySelectorAll("nav button")];
+function show(name) {
+  if (!views.some((v) => v.id === "view-" + name)) name = "overview";
+  for (const v of views) v.hidden = v.id !== "view-" + name;
+  for (const b of buttons) b.dataset.view === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current");
+  try { localStorage.setItem("board-view", name); } catch {}
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+}
+for (const b of buttons) b.addEventListener("click", () => show(b.dataset.view));
+let start = location.hash.slice(1);
+if (!start) { try { start = localStorage.getItem("board-view") || ""; } catch {} }
+show(start || "overview");
+${snapshot ? "" : `const shown = ${JSON.stringify(version)};
 setInterval(async () => {
   try {
     const answer = await fetch("/version", { cache: "no-store" });
     if (answer.ok && (await answer.text()) !== shown) location.reload();
-  } catch {
-    // the board is not running; keep the page as it is
-  }
-}, 15000);
-</script>`}
+  } catch {}
+}, 15000);`}
+</script>
 </body>
 </html>`;
 }
