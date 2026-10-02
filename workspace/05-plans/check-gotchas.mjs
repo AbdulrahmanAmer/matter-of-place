@@ -28,6 +28,29 @@ function globToRegExp(glob) {
   return new RegExp("^" + re + "$");
 }
 
+// `--for <path> [<path>...]`: what an agent reads instead of the whole bank (ruling H51): the map at the top,
+// every path entry that names one of its files in full, and one line per process entry so a title it recognises
+// can be opened with `grep -n "^## P-123" GOTCHAS.md`. The guard hook pushes matching entries again on every edit.
+const forAt = process.argv.indexOf("--for");
+if (forAt >= 0) {
+  const files = process.argv.slice(forAt + 1).map((f) => f.replace(/\\/g, "/").replace(/^\.\//, ""));
+  const blocks = md.split(/\n(?=## )/);
+  const first = blocks.findIndex((b) => /^## (G|P)-\d+ · /.test(b));
+  const out = [blocks.slice(0, first).join("\n").trimEnd(), "", `## Path entries for: ${files.join(", ")}`];
+  const titles = [];
+  for (const block of blocks.slice(first)) {
+    const head = block.match(/^## ((G|P)-\d+) · (.+)$/m);
+    if (!head) continue;
+    if (head[2] === "P") { titles.push(`- ${head[1]} · ${head[3]}`); continue; }
+    const paths = (block.match(/^- paths(?: \([^)]*\))?:\s*(.+)$/m) || [])[1] || "";
+    const globs = paths.split(",").map((s) => s.trim()).filter(Boolean);
+    if (files.some((f) => globs.some((glob) => globToRegExp(glob).test(f) || globToRegExp(glob).test(`app/${f}`)))) out.push("", block.trimEnd());
+  }
+  out.push("", "## Process entries (titles; open one with grep -n \"^## P-NNN\" GOTCHAS.md)", ...titles);
+  console.log(out.join("\n"));
+  process.exit(0);
+}
+
 const errors = [];
 const warns = [];
 const seen = new Map();

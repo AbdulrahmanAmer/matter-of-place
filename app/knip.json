@@ -6,5 +6,6 @@
     "supabase/functions/*/index.ts",
     "tests/**/*.{ts,tsx}"
   ],
-  "ignore": ["src/db/types.ts"]
+  "ignore": ["src/db/types.ts"],
+  "ignoreBinaries": ["psql"]
 }

@@ -75,7 +75,8 @@ bun run dev       # http://localhost:8080
   reviewed by a fresh Opus 5.5 reviewer at high effort. Audits of the plans and spec and their fixes run on Opus 5.5 at
   high effort (operator, 2026-10-01). Haiku only for plain extraction. Never spawn Fable children. No worker runs below
   high effort.
-  Every worker prompt begins with "Read E:\Matter Of Place\GOTCHAS.md in full first" (the agent bodies say it too);
+  Every worker reads the bank map and `node workspace/05-plans/check-gotchas.mjs --for <its files>` first (ruling H51,
+  operator 2026-10-03; the agent bodies say it);
   a worker that hits a banked gotcha again is a prompt defect, fix the prompt.
 - Anything deterministic (image resize, carousel render, sitemap, reports) becomes a script, not a prompt.
 - Design, video and social creative go through `mop-designer` (Sonnet as creative director with the brand DNA).

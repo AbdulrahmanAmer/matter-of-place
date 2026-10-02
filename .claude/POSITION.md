@@ -783,3 +783,68 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   the orchestrator merges PR 43 through the gate (steps 6 and 7), then relaunches B1b for 7b, 8, 9-10, 11.
 - B1b steps on main so far: 1 to 5b. Accepted but not merged: 6, 7 (PR 43, draft).
 - Ledger: progress.json still says 5b was the last accepted; the board reads 6 and 7 from the journals.
+
+## 2026-10-03 00:50 +0300 · PARKED at the operator's request (weekly usage 98 percent). Resume from here.
+- STATE ON GITHUB (origin/main `ecae323` plus this checkpoint): B1b steps 1 to 5b and B2 steps 1, 1b, 2, 3 merged
+  through the merge gate. `slice/b1b` (PR #43, draft, mergeable at last check) holds B1b steps 6 and 7 accepted by
+  review and re-run by the orchestrator, plus WIP commit `88994da`: the builder for step 7's H49 additions (production
+  switch, rollback target, test timeouts) was stopped mid-work; its files are saved, NOT PROVEN, `bun run check` not run.
+- LANES ON DISK: `E:/mop-build/spine` (branch slice/b1b, clean after the WIP commit) and `E:/mop-build/db` (branch
+  slice/b2, clean, at main). Merge driver for GOTCHAS.md is in the clone config and .git/info/attributes (H48 (4)).
+- DATABASE: `mop-dev` holds migrations 1 to 3 (pushed by the db lane under H45 (5)). Nothing else changed.
+- GITHUB SETTINGS: variables VITE_SITE_URL, VITE_TURNSTILE_SITE_KEY, PRODUCTION_DEPLOY=off; VITE_API_BASE_URL removed
+  until B3 (H48). Dependabot PRs 38 to 42 open, rebase disabled (H47). Actions minutes: about 200 billed of 2,000.
+- BOARD: `node workspace/05-plans/board.mjs` serves http://127.0.0.1:8790 (start it again after a restart).
+- TO RESUME, in this order:
+  1. Delivery lane: `Workflow({ scriptPath: "E:/Matter Of Place/.claude/workflows/build-slice.js", args: { slice: "B1b",
+     root: "E:/mop-build/spine", only: ["c7"], closeOut: [{ id: "c7", steps: "7", critical: true, title: "finish the WIP
+     of H49 (1) (2) (3)", defects: [<the three H49 items, as in run wf_689ef72f-fa9>] }] } })`. Then own proofs, merge
+     main into the lane, `gh pr ready 43`, `node workspace/05-plans/merge-gate.mjs 43`, then run B1b again (7b, 8, 9-10, 11).
+  2. Database lane: run B2 again (`root: "E:/mop-build/db", previewPort: 8798, bankBase: { P: 300, G: 100 }`); the
+     sizing leaves steps 1 to 3 out. On its stops: own proofs, merge through the gate, merge main into the lane.
+  3. After each accepted group: progress.json (accepted), PLAN status row, this file.
+- Open rulings to carry: H48 (B3 sets VITE_API_BASE_URL back), H49 (PRODUCTION_DEPLOY on at B3b's close), H47
+  (Dependabot at H1), H45 (6) (gate self-edit at H1). Follow-ups: `workspace/05-plans/logs/B1b-followups.md` and
+  `B2-followups.md` in the lanes, folded before each slice closes (H41 (7)).
+
+## 2026-10-03 01:08 +0300 · Board: arms with dependency-aware percentages, finish-line box, snapshot export
+- `board.mjs`: table "By arm of the product" (Website, Admin portal, Backend logic and automation, Database,
+  Deployment and operations; each with its own percent and a to-launch percent that adds the arms it cannot work
+  without, piece-weighted from trace.json), a final "To the finish line" box, and `--export <file>` that writes a
+  standalone snapshot (Google Fonts, no polling) for the claude.ai artifact the operator shares with his partner.
+  Republish the artifact with `node workspace/05-plans/board.mjs --export <file>` then the Artifact tool with its url.
+- A run whose journal is silent for 45 minutes reads as stopped, not running.
+
+## 2026-10-03 01:50 +0300 · Pipeline optimised for the restart (H50); four lanes ready on disk; still PARKED
+- build-slice.js: lanes merge themselves through the gate when the slice is done (`mergeEach`, `noMerge` options);
+  every group starts by merging origin/main; groups of 2 to 3 steps; designer groups run on mop-designer. Validated
+  by scratchpad trace/validate-workflow.mjs (parses; accept logic 8 cases, bad 0). NOT yet exercised on a real run.
+- Lanes on disk, all at main 62c6c9c with .env, .dev.vars and packages: spine (slice/b1b at 88994da WIP), db
+  (slice/b2), tests (detached), design (detached). Merge driver for the bank active in all four.
+- RESTART COMMANDS (run all four in one message; the board shows them live):
+  1. Workflow({ scriptPath: "E:/Matter Of Place/.claude/workflows/build-slice.js", args: { slice: "B1b", root: "E:/mop-build/spine",
+     closeOut: [{ id: "c7", steps: "7", critical: true, title: "finish the WIP of H49 (1) (2) (3)", defects: [<the three H49 items, see run wf_689ef72f-fa9>] }] } })
+  2. ... { slice: "B2", root: "E:/mop-build/db", previewPort: 8798, bankBase: { P: 300, G: 100 } }
+  3. ... { slice: "B4", root: "E:/mop-build/tests", previewPort: 8808, bankBase: { P: 400, G: 150 } }  (branch slice/b4 is created by the builder)
+  4. ... { slice: "B9", root: "E:/mop-build/design", previewPort: 8818, bankBase: { P: 700, G: 250 } }  (steps 1 and 2 are designer steps; later groups block on B8)
+  After each run's notification: read the journal, record the ledger (`progress.json`), run own probes on main in a batch.
+- Operator decisions still open: GitHub Actions spending limit (about 20 dollars); the Claude budget at the reset
+  (about 270 million tokens for the remaining 238 steps at today's rate).
+
+## 2026-10-03 02:05 +0300 · Decisions on the restart list; backup key pair generated (B1b step 8 part A)
+- Operator accepted items 1, 3, 5, 6 of the restart list; item 2 (agents read the bank map plus matching entries, not
+  the whole file) and item 4 (two test workers per lane) answered, awaiting his word.
+- Step 8 part A done by the orchestrator: `creds/backup-recipient.key` (git-ignored, on this laptop only) and
+  `app/backup-recipient.pem` (CN=mop-backup, valid to 2036-09-29) generated with `openssl req -x509 -newkey rsa:4096`;
+  encrypt and decrypt round trip proved. The OPERATOR must store the private key in his password manager and as a
+  sealed paper copy before step 8's escrow deletes it from the laptop. P-502 banked (Git Bash path conversion).
+- Step 7's production secrets are NOT pre-settable: the production Worker does not exist until B3b (H49); the dev
+  Worker's secrets come from CI. So item 3 removes one stop (step 8 part A), not two.
+
+## 2026-10-03 02:40 +0300 · Restart kit complete (H51); still PARKED, waiting for the operator's go
+- H51: agents read the bank map plus `check-gotchas.mjs --for <files>` (agent bodies, workflow rules, CLAUDE.md
+  changed); `test` script caps workers at 2 and gives 60 s timeouts (bun run check on main: 404 passed, exit 0).
+- `workspace/05-plans/restart.json` = the four lane launches with exact arguments. ON GO: fetch and merge origin/main
+  in each lane, then launch all four by scriptPath in one message, then the six plan audits (H50 item 1).
+- The stopped run wf_689ef72f-fa9 is NOT resumed; its work is the c7 close-out in restart.json (two items; the third
+  is on main).
