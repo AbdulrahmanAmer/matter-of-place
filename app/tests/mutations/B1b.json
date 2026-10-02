@@ -1183,8 +1183,8 @@
     "id": "cm-comments",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "const statements = text.replace(LINE_COMMENT, \"\");",
-    "replace": "const statements = text;",
+    "find": "if (pair === \"--\") {",
+    "replace": "if (false) {",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "passes a clean tree and a new file after the newest on main"
   },
@@ -1228,8 +1228,8 @@
     "id": "cm-rename-column",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\s+(?!column\\b)/i],",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?!constraint\\b|column\\b)/i],",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a rename column needs the contract-of header"
   },
@@ -1237,8 +1237,8 @@
     "id": "cm-rename-bare",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\s+(?:column|to)\\b/i],",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?:column|to)\\b/i],",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a rename written without COLUMN needs the contract-of header"
   },
@@ -1246,8 +1246,8 @@
     "id": "cm-rename-table",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\s+(?!to\\b)/i],",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+(?!constraint\\b|to\\b)/i],",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a table rename needs the contract-of header"
   },
@@ -1300,8 +1300,8 @@
     "id": "cm-split-parens",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "depth += 1;",
-    "replace": "depth += 0;",
+    "find": "if (char === \"(\") {\n      depth += 1;",
+    "replace": "if (char === \"(\") {\n      depth += 0;",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a new NOT NULL column without COLUMN needs the contract-of header"
   },
@@ -1309,8 +1309,8 @@
     "id": "cm-split-quotes",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "} else if (char === \"'\" || char === '\"') {",
-    "replace": "} else if (false) {",
+    "find": "literals.push(body);\n      text += \"''\";",
+    "replace": "literals.push(body);\n      text += sql.slice(index, end);",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a new NOT NULL column without COLUMN needs the contract-of header"
   },
@@ -1363,8 +1363,8 @@
     "id": "cm-allow-default",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "(?![\\s\\S]*\\b(?:default|generated)\\b)",
-    "replace": "",
+    "find": "\\b(?:default|generated|",
+    "replace": "\\b(?:generated|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a new NOT NULL column with a default needs no contract-of header"
   },
@@ -1430,6 +1430,186 @@
     "replace": "/^-- contract-of: \\d+/m",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "refuses a contract-of header without a 14-digit version"
+  },
+  {
+    "id": "cm-block-comment",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "index = blockCommentEnd(sql, index);",
+    "replace": "index += 1;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a DO block after a block comment"
+  },
+  {
+    "id": "cm-comment-nesting",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (depth === 0) {",
+    "replace": "if (depth <= 1) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop inside a nested block comment"
+  },
+  {
+    "id": "cm-string-dashes",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop after a string holding two dashes"
+  },
+  {
+    "id": "cm-string-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "} else if (char === \"'\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table named in a string needs no"
+  },
+  {
+    "id": "cm-escape-string",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const escaped = /[eE]/.test(previous)",
+    "replace": "const escaped = false && /[eE]/.test(previous)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop inside an escape string"
+  },
+  {
+    "id": "cm-do-block",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "inDoBlock",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column inside a DO block"
+  },
+  {
+    "id": "cm-do-execute",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "DO_BLOCK.test(text)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column run by EXECUTE needs"
+  },
+  {
+    "id": "cm-function-body",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "inDoBlock || DO_BLOCK.test(text)",
+    "replace": "true",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table"
+  },
+  {
+    "id": "cm-dollar-tag",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/\\$(?:[A-Za-z_][A-Za-z0-9_]*)?\\$/y",
+    "replace": "/\\$\\$/y",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table"
+  },
+  {
+    "id": "cm-alter-anywhere",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const ALTER_TABLE = /\\balter",
+    "replace": "const ALTER_TABLE = /^alter",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column inside a DO block"
+  },
+  {
+    "id": "cm-rename-view",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:view|materialized\\s+view|type|function)",
+    "replace": "(?:materialized\\s+view|type|function)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a view rename needs"
+  },
+  {
+    "id": "cm-rename-mview",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:view|materialized\\s+view|type|function)",
+    "replace": "(?:view|type|function)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a materialized view rename"
+  },
+  {
+    "id": "cm-rename-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:view|materialized\\s+view|type|function)",
+    "replace": "(?:view|materialized\\s+view|function)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an enum value rename"
+  },
+  {
+    "id": "cm-rename-function",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:view|materialized\\s+view|type|function)",
+    "replace": "(?:view|materialized\\s+view|type)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function rename"
+  },
+  {
+    "id": "cm-allow-policy-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
+    "replace": "[\"rename\", /\\brename\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a policy rename"
+  },
+  {
+    "id": "cm-allow-trigger-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
+    "replace": "[\"rename\", /\\brename\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a trigger rename"
+  },
+  {
+    "id": "cm-allow-index-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
+    "replace": "[\"rename\", /\\brename\\b/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "an index rename"
+  },
+  {
+    "id": "cm-allow-constraint-rename",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "[\"rename\", /^rename\\s+(?!constraint\\b)/i],",
+    "replace": "[\"rename\", /^rename\\s+/i],",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename"
+  },
+  {
+    "id": "cm-allow-serial",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "|(?:small|big)?serial[248]?",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new serial NOT NULL column"
+  },
+  {
+    "id": "cm-allow-bigserial",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:small|big)?serial",
+    "replace": "serial",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a new bigserial NOT NULL column"
   },
   {
     "id": "hy-checkout",

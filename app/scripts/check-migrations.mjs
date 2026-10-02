@@ -7,10 +7,10 @@ const DIR = "supabase/migrations";
 const PREFIX = /^(\d{14})_/;
 const CONTRACT_HEADER = /^-- contract-of: \d{14}\b/m;
 const HEADER_LINES = 30;
-const LINE_COMMENT = /--.*$/gm;
 // Destructive DDL needs a contract migration (DB-08, STANDARDS R17, ruling ASSUMED H42 (3)).
-// Dropping a trigger or a constraint stays allowed. Postgres makes the COLUMN keyword optional,
-// so the column rules read each clause of an `alter table` statement.
+// Dropping a trigger or a constraint and renaming a policy, trigger, index or constraint stay
+// allowed. Postgres makes the COLUMN keyword optional, so the column rules read each clause of an
+// `alter table` statement.
 /** @type {[string, RegExp][]} */
 const STATEMENT_RULES = [
   ["drop table", /\bdrop\s+table\b/i],
@@ -18,19 +18,24 @@ const STATEMENT_RULES = [
   ["drop type", /\bdrop\s+type\b/i],
   ["drop function", /\bdrop\s+function\b/i],
   ["drop index", /\bdrop\s+index\b/i],
-  ["rename", /\brename\b/i],
+  ["rename", /\balter\s+(?:view|materialized\s+view|type|function)\b[\s\S]*\brename\b/i],
   ["set not null", /\bset\s+not\s+null\b/i],
 ];
-const ALTER_TABLE = /^alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"[^"]*"|[^\s"])+\s+/i;
+const ALTER_TABLE = /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"[^"]*"|[^\s"])+\s+/i;
 /** @type {[string, RegExp][]} */
 const CLAUSE_RULES = [
   ["drop column", /^drop\s+(?!constraint\b)/i],
+  ["rename", /^rename\s+(?!constraint\b)/i],
   ["column type", /^alter\s+(?:column\s+)?(?:"[^"]*"|[^\s"])+\s+(?:set\s+data\s+)?type\b/i],
   [
     "not null column without a default",
-    /^add\s+(?!constraint\b|check\b)(?![\s\S]*\b(?:default|generated)\b)[\s\S]*\bnot\s+null\b/i,
+    /^add\s+(?!constraint\b|check\b)(?![\s\S]*\b(?:default|generated|(?:small|big)?serial[248]?)\b)[\s\S]*\bnot\s+null\b/i,
   ],
 ];
+// A DO block runs its body while the migration runs; a function body runs later and is not read.
+const DO_BLOCK = /^do\b/i;
+const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
+const WORD_CHAR = /[A-Za-z0-9_$]/;
 
 /**
  * @param {string} path
@@ -41,52 +46,149 @@ function prefixOf(path) {
 }
 
 /**
- * Splits `text` on `separator` outside parentheses and quotes.
- * @param {string} text
- * @param {string} separator
- * @returns {string[]}
+ * The index just after the block comment that opens at `start`; Postgres nests block comments.
+ * @param {string} sql
+ * @param {number} start
+ * @returns {number}
  */
-function splitTopLevel(text, separator) {
-  /** @type {string[]} */
-  const parts = [];
+function blockCommentEnd(sql, start) {
   let depth = 0;
-  let quote = "";
-  let start = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (quote !== "") {
-      if (char === quote) {
-        quote = "";
-      }
-    } else if (char === "'" || char === '"') {
-      quote = char;
-    } else if (char === "(") {
+  let index = start;
+  while (index < sql.length) {
+    const pair = sql.slice(index, index + 2);
+    if (pair === "/*") {
       depth += 1;
-    } else if (char === ")") {
+      index += 2;
+    } else if (pair === "*/") {
       depth -= 1;
-    } else if (char === separator && depth === 0) {
-      parts.push(text.slice(start, index).trim());
-      start = index + 1;
+      index += 2;
+      if (depth === 0) {
+        return index;
+      }
+    } else {
+      index += 1;
     }
   }
-  parts.push(text.slice(start).trim());
-  return parts;
+  return index;
 }
 
 /**
- * The destructive kinds in a migration's statements, comments already removed.
- * @param {string} statements
+ * The text of the quoted run that opens at `start`, and the index after its closing quote.
+ * A doubled quote reads as a close and a new open, which keeps the text whole for the scan.
+ * @param {string} sql
+ * @param {number} start
+ * @param {boolean} backslash an `E'...'` string, where a backslash escapes the next character
+ * @returns {{ body: string, end: number }}
+ */
+function quoted(sql, start, backslash) {
+  const quote = sql.charAt(start);
+  let index = start + 1;
+  while (index < sql.length && sql.charAt(index) !== quote) {
+    index += backslash && sql.charAt(index) === "\\" ? 2 : 1;
+  }
+  return { body: sql.slice(start + 1, index), end: index + 1 };
+}
+
+/**
+ * Splits SQL into statements. Comments go; every string, quoted name and dollar-quoted body is
+ * replaced by an empty one in `text`, and the string and body texts are kept in `literals`.
+ * @param {string} sql
+ * @returns {{ text: string, literals: string[] }[]}
+ */
+function statementsOf(sql) {
+  /** @type {{ text: string, literals: string[] }[]} */
+  const statements = [];
+  let text = "";
+  /** @type {string[]} */
+  let literals = [];
+  let index = 0;
+  while (index < sql.length) {
+    const char = sql.charAt(index);
+    const pair = sql.slice(index, index + 2);
+    const previous = sql.charAt(index - 1);
+    DOLLAR_TAG.lastIndex = index;
+    const tag = char === "$" && !WORD_CHAR.test(previous) ? DOLLAR_TAG.exec(sql) : null;
+    if (pair === "--") {
+      const newline = sql.indexOf("\n", index);
+      index = newline === -1 ? sql.length : newline;
+    } else if (pair === "/*") {
+      text += " ";
+      index = blockCommentEnd(sql, index);
+    } else if (char === "'") {
+      const escaped = /[eE]/.test(previous) && !WORD_CHAR.test(sql.charAt(index - 2));
+      const { body, end } = quoted(sql, index, escaped);
+      literals.push(body);
+      text += "''";
+      index = end;
+    } else if (char === '"') {
+      text += '""';
+      index = quoted(sql, index, false).end;
+    } else if (tag !== null) {
+      const close = sql.indexOf(tag[0], index + tag[0].length);
+      const end = close === -1 ? sql.length : close;
+      literals.push(sql.slice(index + tag[0].length, end));
+      text += "''";
+      index = end + tag[0].length;
+    } else if (char === ";") {
+      statements.push({ text: text.trim(), literals });
+      text = "";
+      literals = [];
+      index += 1;
+    } else {
+      text += char;
+      index += 1;
+    }
+  }
+  statements.push({ text: text.trim(), literals });
+  return statements.filter((statement) => statement.text !== "");
+}
+
+/**
+ * Splits the actions of an `alter table` statement on the commas outside parentheses.
+ * @param {string} text
  * @returns {string[]}
  */
-function destructiveKinds(statements) {
-  const clauses = splitTopLevel(statements, ";").flatMap((statement) => {
-    const head = ALTER_TABLE.exec(statement);
-    return head === null ? [] : splitTopLevel(statement.slice(head[0].length), ",");
+function clausesOf(text) {
+  /** @type {string[]} */
+  const clauses = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text.charAt(index);
+    if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      clauses.push(text.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  clauses.push(text.slice(start).trim());
+  return clauses;
+}
+
+/**
+ * The destructive kinds in `sql`. Inside a DO block every string is read as SQL too, because
+ * `execute '<statement>'` is how a DO block runs conditional DDL.
+ * @param {string} sql
+ * @param {boolean} inDoBlock
+ * @returns {string[]}
+ */
+function destructiveKinds(sql, inDoBlock) {
+  return statementsOf(sql).flatMap(({ text, literals }) => {
+    const head = ALTER_TABLE.exec(text);
+    const clauses = head === null ? [] : clausesOf(text.slice(head.index + head[0].length));
+    const own = [
+      ...STATEMENT_RULES.filter(([, rule]) => rule.test(text)),
+      ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))),
+    ].map(([kind]) => kind);
+    const inner =
+      inDoBlock || DO_BLOCK.test(text)
+        ? literals.flatMap((literal) => destructiveKinds(literal, true))
+        : [];
+    return [...own, ...inner];
   });
-  return [
-    ...STATEMENT_RULES.filter(([, rule]) => rule.test(statements)),
-    ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))),
-  ].map(([kind]) => kind);
 }
 
 /**
@@ -111,9 +213,7 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
     }
     const text = readFile(file);
     const header = text.split("\n").slice(0, HEADER_LINES).join("\n");
-    // The `-- down:` header of an expand migration names its drop; comments are not DDL.
-    const statements = text.replace(LINE_COMMENT, "");
-    const kinds = destructiveKinds(statements);
+    const kinds = [...new Set(destructiveKinds(text, false))];
     if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {
       failures.push(
         `destructive change (${kinds.join(", ")}) without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,
