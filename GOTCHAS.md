@@ -907,7 +907,7 @@ Entry template
 - symptom: the first `checkMigrations` of B1b step 5 refused a plain expand migration: its R16 header `-- down: drop table notes` matched `drop table`, so every new table would have needed a `-- contract-of:` header. The fixture caught it before any migration existed.
 - cause: the destructive scan ran over the whole file text; R16 makes the `-- down:` line of every reversible create name the drop that undoes it.
 - rule: scan the statements with `--` line comments removed; read the `-- contract-of:` header from the raw first 30 lines. A change to the scan keeps the fixture whose `-- down:` names a drop.
-- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes; registry entry `cm-comments` (no comment stripping) turns `passes a clean tree and a new file after the newest on main` red.
+- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes; registry entry `cm-comments` (no comment stripping) turns `a down header that drops the new column needs no contract-of header` red (the clean-tree row is also held by the statement-start anchor of G-029, so it no longer goes red on this mutation alone, P-112).
 - enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
 - added: 2026-10-02
 
@@ -1055,4 +1055,35 @@ Entry template
 - cause: the stale lines were searched in the files the ruling names, not in every plan that uses the same words.
 - rule: after building a ruling that changes what a gate accepts, run `git grep -n -i "<each pattern word>" -- workspace/05-plans` and list every line that depends on the old behaviour in the slice log as a conflict for the orchestrator, with the file and line. A conflict between a ruling and another slice's mechanism is not resolved by the builder: build the ruling, report the conflict, mark it in `blockedOn`.
 - proof: `git grep -n "drop function" -- workspace/05-plans/B2.md workspace/05-plans/B10.md` → `B2.md:71`, `B2.md:93`, `B10.md:166` (2026-10-02).
+- added: 2026-10-02
+
+## G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through
+- paths: app/scripts/check-migrations.mjs
+- severity: warn
+- symptom: B1b c6 round 2 refused `drop table`, `view`, `type`, `function` and `index` by name, so a reviewer passed `drop schema old cascade` (every table in it gone), `drop sequence`, `alter schema ... rename`, `alter sequence ... rename` and `alter foreign table ... drop column` with no `-- contract-of:` header. The same round refused `alter column type set default 'x'` as a column type change: with `COLUMN` optional, the regex read the keyword `column` as the column name and the column `type` as the keyword (events.type, jobs.type and submission_media.type exist in the plans). A NOT NULL add whose foreign key says `on delete set default` counted as having a default, and `create function f() ... ; select f();` ran a body the scan never read.
+- cause: a list of kinds is only as complete as its author's memory; an optional keyword lets a regex backtrack into a different reading of the same words.
+- rule: refuse every `drop <object>` and every `alter <object> ... rename` at the start of a statement (`START`: the text start, or after `begin`, `then`, `else`, `loop`), and name the exceptions instead (drop trigger or policy; rename of a policy, trigger, index or constraint). A rule with an optional keyword says what may follow when the keyword is absent (`(?:column\s+|(?!column\s))`). A function body is read when another statement of the file calls it (not when it is only granted, commented, altered or dropped). Run the earlier version on the same inputs first (G-028).
+- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes (64 rows); registry entries `cm-drop-schema`, `cm-drop-any`, `cm-rename-schema`, `cm-alter-foreign`, `cm-type-named-type`, `cm-not-null-set-default`, `cm-called-body` and `cm-declares-grant` turn it red; `node ../scratch/c6r3-probe.mjs ../scratch/check-migrations-ee06839.mjs` (text in the B1b log, c6 round 3) prints `cases 39, bad 17` for the round-2 script and `cases 39, bad 0` for this one.
+- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
+- added: 2026-10-02
+
+## P-114 · `gh run list --commit` matches only the full 40-character SHA
+- symptom: after a push, `gh run list --commit e10236b --json databaseId --jq length` printed `0` although the run existed, and the watch looked like a run that never started.
+- cause: the flag compares the run's `head_sha` with the text as given; a short SHA matches nothing and gh prints no warning.
+- rule: pass `--commit "$(git rev-parse HEAD)"` (or the full SHA), never the short form from `git log --oneline`. An empty answer from `gh run list` is not evidence that no run exists until the SHA is the full one.
+- proof: `gh run list --commit e10236b --json databaseId --jq length` → `0`; `gh run list --commit e10236bf7dfdb9ccd13fc6959ddb7d76cf457ed0 --json databaseId --jq length` → `1` (gh 2.92.0, measured 2026-10-02).
+- added: 2026-10-02
+
+## P-115 · A probe input with a backslash typed through the shell makes correct code look wrong
+- symptom: the reviewer of B1b c6 round 2 wrote a probe holding `E'a\\\\'` in a quoted heredoc to test the escape-string lexer; the file got `E'a\\'`, the scan gave an answer that looked like a lexer miss, and tracing it took minutes. P-070 says the heredoc loses backslashes; it does not say the loss lands in the test input, where it reads as a defect of the code under test.
+- cause: the Bash tool halves doubled backslashes before the shell sees the text, quoted delimiter or not.
+- rule: a probe or test input that needs a backslash builds it in code (`String.fromCharCode(92)`) or is written with the Write tool; never type escapes through Bash. When a lexer or parser "misses" an input with a backslash, print the input's bytes (`od -c`) before blaming the code.
+- proof: a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` on it → `E ' a \ \ '` (two backslashes where four were typed, measured 2026-10-02); `scratch/c6r3-probe.mjs` builds its escape cases with `String.fromCharCode(92)` and prints `ok  1  escape string ending in two backslashes`.
+- added: 2026-10-02
+
+## P-116 · Vitest cuts an `it.each` `$name` value at 40 characters
+- symptom: two new rows of `check-migrations.test.ts` went red for the right reason and still failed the replay: the output said `a dropped NOT NULL on a column named ty… needs no contract-of header`, so an `expect` holding the whole name did not match. P-081 says titles are cut at about 80 characters; for an interpolated `$name` the limit is 40, whatever the terminal width.
+- cause: vitest formats each interpolated value with a 40-character threshold before it builds the title.
+- rule: keep every `it.each` row name at 40 characters or fewer (count them before the first replay), or end the `expect` before the 40th character of the name.
+- proof: a scratch `tests/unit/zz-scratch.test.ts` with `it.each([{ name: "0123456789012345678901234567890123456789X" }])("$name ends here", ({ name }) => { expect(name).toBe(""); });` → `cd app && bunx vitest run tests/unit/zz-scratch.test.ts` prints `× 012345678901234567890123456789012345678… ends here` (measured 2026-10-02, file deleted after).
 - added: 2026-10-02

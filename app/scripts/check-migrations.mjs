@@ -8,32 +8,62 @@ const PREFIX = /^(\d{14})_/;
 const CONTRACT_HEADER = /^-- contract-of: \d{14}\b/m;
 const HEADER_LINES = 30;
 // Destructive DDL needs a contract migration (DB-08, STANDARDS R17, ruling ASSUMED H42 (3)).
-// Dropping a trigger or a constraint and renaming a policy, trigger, index or constraint stay
-// allowed. Postgres makes the COLUMN keyword optional, so the column rules read each clause of an
-// `alter table` statement.
+// Every drop and rename of an object counts, except dropping a trigger (R17) or a policy and
+// renaming a policy, trigger, index or constraint. A statement starts the text, or follows a
+// PL/pgSQL keyword inside a DO or function body.
+const START = String.raw`(?:^|\b(?:begin|then|else|loop)\s+)`;
+const DROP = new RegExp(
+  String.raw`${START}drop\s+(?!trigger\b|policy\b)(materialized\s+view|foreign\s+table|\w+)`,
+  "i",
+);
 /** @type {[string, RegExp][]} */
 const STATEMENT_RULES = [
-  ["drop table", /\bdrop\s+table\b/i],
-  ["drop view", /\bdrop\s+(?:materialized\s+)?view\b/i],
-  ["drop type", /\bdrop\s+type\b/i],
-  ["drop function", /\bdrop\s+function\b/i],
-  ["drop index", /\bdrop\s+index\b/i],
-  ["rename", /\balter\s+(?:view|materialized\s+view|type|function)\b[\s\S]*\brename\b/i],
+  [
+    "rename",
+    new RegExp(
+      String.raw`${START}alter\s+(?!policy\b|trigger\b|index\b|(?:foreign\s+)?table\b)[\s\S]*\brename\b`,
+      "i",
+    ),
+  ],
+  [
+    "drop attribute",
+    new RegExp(String.raw`${START}alter\s+type\b[\s\S]*\bdrop\s+attribute\b`, "i"),
+  ],
+  [
+    "attribute type",
+    new RegExp(String.raw`${START}alter\s+type\b[\s\S]*\balter\s+attribute\b`, "i"),
+  ],
   ["set not null", /\bset\s+not\s+null\b/i],
 ];
-const ALTER_TABLE = /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"[^"]*"|[^\s"])+\s+/i;
+// Postgres makes the COLUMN keyword optional, so the column rules read each clause of the
+// statement, and a column may be named `type`.
+const ALTER_TABLE =
+  /\balter\s+(?:foreign\s+)?table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"[^"]*"|[^\s"])+\s+/i;
 /** @type {[string, RegExp][]} */
 const CLAUSE_RULES = [
   ["drop column", /^drop\s+(?!constraint\b)/i],
   ["rename", /^rename\s+(?!constraint\b)/i],
-  ["column type", /^alter\s+(?:column\s+)?(?:"[^"]*"|[^\s"])+\s+(?:set\s+data\s+)?type\b/i],
+  [
+    "column type",
+    /^alter\s+(?:column\s+|(?!column\s))(?:"[^"]*"|[^\s"])+\s+(?:set\s+data\s+)?type\b/i,
+  ],
   [
     "not null column without a default",
-    /^add\s+(?!constraint\b|check\b)(?![\s\S]*\b(?:default|generated|(?:small|big)?serial[248]?)\b)[\s\S]*\bnot\s+null\b/i,
+    /^add\s+(?!constraint\b|check\b)(?![\s\S]*\b(?:default|generated|(?:small|big)?serial[248]?)\b(?<!\bset\s+default))[\s\S]*\bnot\s+null\b/i,
   ],
 ];
-// A DO block runs its body while the migration runs; a function body runs later and is not read.
+// A DO block runs its body while the migration runs. A function body runs when it is called, so
+// it is read when another statement of the same file names the function, apart from the
+// statements that only declare, grant or describe it.
 const DO_BLOCK = /^do\b/i;
+const CREATE_FUNCTION = new RegExp(
+  String.raw`${START}create\s+(?:or\s+replace\s+)?(?:function|procedure)\s+(?:[\w$]+\s*\.\s*)?([A-Za-z_][\w$]*)\s*\(`,
+  "i",
+);
+const DECLARES = new RegExp(
+  String.raw`${START}(?:create\s+(?:or\s+replace\s+)?(?:function|procedure)|(?:alter|drop)\s+(?:function|procedure|routine)|grant|revoke|comment)\b`,
+  "i",
+);
 const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
 const WORD_CHAR = /[A-Za-z0-9_$]/;
 
@@ -169,25 +199,60 @@ function clausesOf(text) {
 }
 
 /**
- * The destructive kinds in `sql`. Inside a DO block every string is read as SQL too, because
- * `execute '<statement>'` is how a DO block runs conditional DDL.
- * @param {string} sql
+ * The bodies of the functions and procedures the statements create, by lower-case name.
+ * @param {{ text: string, literals: string[] }[]} statements
+ * @returns {Map<string, string[]>}
+ */
+function bodiesOf(statements) {
+  /** @type {Map<string, string[]>} */
+  const bodies = new Map();
+  for (const { text, literals } of statements) {
+    const name = CREATE_FUNCTION.exec(text)?.[1];
+    if (name !== undefined) {
+      bodies.set(name.toLowerCase(), literals);
+    }
+  }
+  return bodies;
+}
+
+/**
+ * The destructive kinds in the statements. Inside a DO block or a called body every string is
+ * read as SQL too, because `execute '<statement>'` is how such a body runs conditional DDL.
+ * @param {{ text: string, literals: string[] }[]} statements
  * @param {boolean} inDoBlock
+ * @param {Map<string, string[]>} bodies functions of the file a statement may call
  * @returns {string[]}
  */
-function destructiveKinds(sql, inDoBlock) {
-  return statementsOf(sql).flatMap(({ text, literals }) => {
+function destructiveKinds(statements, inDoBlock, bodies) {
+  /**
+   * @param {string} literal
+   * @param {Map<string, string[]>} callable
+   */
+  const read = (literal, callable) => destructiveKinds(statementsOf(literal), true, callable);
+  return statements.flatMap(({ text, literals }) => {
     const head = ALTER_TABLE.exec(text);
     const clauses = head === null ? [] : clausesOf(text.slice(head.index + head[0].length));
+    const dropped = DROP.exec(text)?.[1]?.replace(/^(?:materialized|foreign)\s+/i, "");
     const own = [
-      ...STATEMENT_RULES.filter(([, rule]) => rule.test(text)),
-      ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))),
-    ].map(([kind]) => kind);
+      ...(dropped === undefined ? [] : [`drop ${dropped.toLowerCase()}`]),
+      ...STATEMENT_RULES.filter(([, rule]) => rule.test(text)).map(([kind]) => kind),
+      ...CLAUSE_RULES.filter(([, rule]) => clauses.some((clause) => rule.test(clause))).map(
+        ([kind]) => kind,
+      ),
+    ];
     const inner =
-      inDoBlock || DO_BLOCK.test(text)
-        ? literals.flatMap((literal) => destructiveKinds(literal, true))
-        : [];
-    return [...own, ...inner];
+      inDoBlock || DO_BLOCK.test(text) ? literals.flatMap((literal) => read(literal, bodies)) : [];
+    const called = DECLARES.test(text)
+      ? []
+      : [...bodies]
+          .filter(([name]) =>
+            new RegExp(String.raw`\b${name.replaceAll("$", "\\$")}\s*\(`, "i").test(text),
+          )
+          .flatMap(([name, body]) => {
+            const others = new Map([...bodies].filter(([other]) => other !== name));
+            return body.flatMap((literal) => read(literal, others));
+          });
+    return [...own, ...inner, ...called];
   });
 }
 
@@ -213,7 +278,8 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
     }
     const text = readFile(file);
     const header = text.split("\n").slice(0, HEADER_LINES).join("\n");
-    const kinds = [...new Set(destructiveKinds(text, false))];
+    const statements = statementsOf(text);
+    const kinds = [...new Set(destructiveKinds(statements, false, bodiesOf(statements)))];
     if (kinds.length > 0 && !CONTRACT_HEADER.test(header)) {
       failures.push(
         `destructive change (${kinds.join(", ")}) without "-- contract-of: <14-digit version>" in its first ${String(HEADER_LINES)} lines: ${file}`,

@@ -1186,14 +1186,23 @@
     "find": "if (pair === \"--\") {",
     "replace": "if (false) {",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a down header that drops the new column needs no"
+  },
+  {
+    "id": "cm-prefix-order",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (prefix === undefined || prefix <= latest) {",
+    "replace": "if (prefix === undefined || prefix >= latest) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "passes a clean tree and a new file after the newest on main"
   },
   {
     "id": "cm-drop-table",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"drop table\", /\\bdrop\\s+table\\b/i],",
-    "replace": "",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|table\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop table needs the contract-of header"
   },
@@ -1255,8 +1264,8 @@
     "id": "cm-type-column",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"column type\", /^alter\\s+(?:column\\s+)?",
-    "replace": "[\"column type\", /^alter\\s+(?!column\\b)",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?!column\\s)",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a column type change needs the contract-of header"
   },
@@ -1264,8 +1273,8 @@
     "id": "cm-type-bare",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"column type\", /^alter\\s+(?:column\\s+)?",
-    "replace": "[\"column type\", /^alter\\s+column\\s+",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+column\\s+",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a type change written without COLUMN needs the contract-of header"
   },
@@ -1318,8 +1327,8 @@
     "id": "cm-drop-view",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"drop view\", /\\bdrop\\s+(?:materialized\\s+)?view\\b/i],",
-    "replace": "",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|view\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop view needs the contract-of header"
   },
@@ -1327,8 +1336,8 @@
     "id": "cm-drop-mview",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "/\\bdrop\\s+(?:materialized\\s+)?view\\b/i",
-    "replace": "/\\bdrop\\s+view\\b/i",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|materialized\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop materialized view needs the contract-of header"
   },
@@ -1336,8 +1345,8 @@
     "id": "cm-drop-type",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"drop type\", /\\bdrop\\s+type\\b/i],",
-    "replace": "",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|type\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop type needs the contract-of header"
   },
@@ -1345,8 +1354,8 @@
     "id": "cm-drop-function",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"drop function\", /\\bdrop\\s+function\\b/i],",
-    "replace": "",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|function\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop function needs the contract-of header"
   },
@@ -1354,8 +1363,8 @@
     "id": "cm-drop-index",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"drop index\", /\\bdrop\\s+index\\b/i],",
-    "replace": "",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|index\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop index needs the contract-of header"
   },
@@ -1372,8 +1381,8 @@
     "id": "cm-allow-trigger",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "/\\bdrop\\s+function\\b/i",
-    "replace": "/\\bdrop\\s+(?:function|trigger)\\b/i",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!policy\\b)(",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop trigger needs no contract-of header"
   },
@@ -1465,7 +1474,7 @@
     "find": "} else if (char === \"'\") {",
     "replace": "} else if (false) {",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
-    "expect": "a drop table named in a string needs no"
+    "expect": "a set not null named in a string needs no"
   },
   {
     "id": "cm-escape-string",
@@ -1516,8 +1525,8 @@
     "id": "cm-alter-anywhere",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "const ALTER_TABLE = /\\balter",
-    "replace": "const ALTER_TABLE = /^alter",
+    "find": "const ALTER_TABLE =\n  /\\balter",
+    "replace": "const ALTER_TABLE =\n  /^alter",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop column inside a DO block"
   },
@@ -1525,8 +1534,8 @@
     "id": "cm-rename-view",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "(?:view|materialized\\s+view|type|function)",
-    "replace": "(?:materialized\\s+view|type|function)",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!view\\b|policy\\b|trigger\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a view rename needs"
   },
@@ -1534,8 +1543,8 @@
     "id": "cm-rename-mview",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "(?:view|materialized\\s+view|type|function)",
-    "replace": "(?:view|type|function)",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!materialized\\b|policy\\b|trigger\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a materialized view rename"
   },
@@ -1543,8 +1552,8 @@
     "id": "cm-rename-type",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "(?:view|materialized\\s+view|type|function)",
-    "replace": "(?:view|materialized\\s+view|function)",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!type\\b|policy\\b|trigger\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "an enum value rename"
   },
@@ -1552,8 +1561,8 @@
     "id": "cm-rename-function",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "(?:view|materialized\\s+view|type|function)",
-    "replace": "(?:view|materialized\\s+view|type)",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!function\\b|policy\\b|trigger\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a function rename"
   },
@@ -1561,8 +1570,8 @@
     "id": "cm-allow-policy-rename",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\b/i],",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!trigger\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a policy rename"
   },
@@ -1570,8 +1579,8 @@
     "id": "cm-allow-trigger-rename",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\b/i],",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!policy\\b|index\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a trigger rename"
   },
@@ -1579,8 +1588,8 @@
     "id": "cm-allow-index-rename",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "[\"rename\", /\\balter\\s+(?:view|materialized\\s+view|type|function)\\b[\\s\\S]*\\brename\\b/i],",
-    "replace": "[\"rename\", /\\brename\\b/i],",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!policy\\b|trigger\\b|",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "an index rename"
   },
@@ -1610,6 +1619,186 @@
     "replace": "serial",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a new bigserial NOT NULL column"
+  },
+  {
+    "id": "cm-drop-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|schema\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop schema needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-sequence",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b|policy\\b|sequence\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop sequence needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-any",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(materialized\\s+view|foreign\\s+table|\\w+)",
+    "replace": "(materialized\\s+view|foreign\\s+table|table|view|type|function|index|schema|sequence)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop of any other object needs the contract-of header"
+  },
+  {
+    "id": "cm-drop-foreign",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(materialized\\s+view|foreign\\s+table|\\w+)",
+    "replace": "(materialized\\s+view|\\w+)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop foreign table needs the contract-of header"
+  },
+  {
+    "id": "cm-allow-policy-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!trigger\\b|policy\\b)(",
+    "replace": "(?!trigger\\b)(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop policy needs no contract-of header"
+  },
+  {
+    "id": "cm-statement-start",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const START = String.raw`(?:^|\\b(?:begin|then|else|loop)\\s+)`;",
+    "replace": "const START = String.raw`(?:^)`;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop table after THEN in a DO block needs the contract-of header"
+  },
+  {
+    "id": "cm-start-anchor",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const START = String.raw`(?:^|\\b(?:begin|then|else|loop)\\s+)`;",
+    "replace": "const START = String.raw`\\b`;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a table taken out of a publication needs no contract-of header"
+  },
+  {
+    "id": "cm-rename-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!schema\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a schema rename needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-sequence",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|",
+    "replace": "(?!sequence\\b|policy\\b|trigger\\b|index\\b|",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a sequence rename needs the contract-of header"
+  },
+  {
+    "id": "cm-rename-skip-table",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?!policy\\b|trigger\\b|index\\b|(?:foreign\\s+)?table\\b)",
+    "replace": "(?!policy\\b|trigger\\b|index\\b)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a constraint rename needs no contract-of header"
+  },
+  {
+    "id": "cm-alter-foreign",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/\\balter\\s+(?:foreign\\s+)?table\\s+",
+    "replace": "/\\balter\\s+table\\s+",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop column of a foreign table needs the contract-of header"
+  },
+  {
+    "id": "cm-type-named-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?:column\\s+)?",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a default on a column named type needs no contract-of header"
+  },
+  {
+    "id": "cm-type-named-type-drop",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "/^alter\\s+(?:column\\s+|(?!column\\s))",
+    "replace": "/^alter\\s+(?:column\\s+)?",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop not null on a column named type needs no contract-of header"
+  },
+  {
+    "id": "cm-type-of-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:column\\s+|(?!column\\s))(?:\"",
+    "replace": "(?:column\\s+|(?!column\\s))(?!type\\s)(?:\"",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a type change of a column named type needs the contract-of header"
+  },
+  {
+    "id": "cm-not-null-set-default",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?<!\\bset\\s+default)",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a NOT NULL column whose key sets default needs the contract-of header"
+  },
+  {
+    "id": "cm-called-body",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const called = DECLARES.test(text)",
+    "replace": "const called = true",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body called in the same file needs the contract-of header"
+  },
+  {
+    "id": "cm-declares-grant",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "|grant|revoke|comment)",
+    "replace": "|revoke|comment)",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a grant on a function that drops a table needs no contract-of header"
+  },
+  {
+    "id": "cm-declares-create",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(?:create\\s+(?:or\\s+replace\\s+)?(?:function|procedure)|(?:alter",
+    "replace": "(?:(?:alter",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function body that drops a table needs no contract-of header"
+  },
+  {
+    "id": "cm-drop-attribute",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "\\bdrop\\s+attribute\\b",
+    "replace": "\\bdrop\\s+attributes\\b",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a composite type attribute drop needs the contract-of header"
+  },
+  {
+    "id": "cm-attribute-type",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "\\balter\\s+attribute\\b",
+    "replace": "\\balter\\s+attributes\\b",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a composite type attribute type change needs the contract-of header"
   },
   {
     "id": "hy-checkout",

@@ -10,7 +10,7 @@ const DROP =
   "-- irreversible: data goes\nset lock_timeout = '5s';\nalter table notes drop column body;\n";
 
 // Every destructive kind of STANDARDS R17 and ruling ASSUMED H42 (3), then the places a text scan
-// can lose one: a DO block, a comment before it, a string that holds `--`.
+// can lose one: a DO block, a comment before it, a string that holds `--`, a called function body.
 const DESTRUCTIVE = [
   { name: "a drop table", kind: "drop table", sql: "drop table public.notes;" },
   { name: "a drop column", kind: "drop column", sql: "alter table notes drop column body;" },
@@ -96,6 +96,51 @@ const DESTRUCTIVE = [
     kind: "drop column",
     sql: "alter table notes add column mark text default 'a--b';\nalter table notes drop column body;",
   },
+  { name: "a drop schema", kind: "drop schema", sql: "drop schema old cascade;" },
+  { name: "a drop sequence", kind: "drop sequence", sql: "drop sequence notes_seq;" },
+  { name: "a drop of any other object", kind: "drop extension", sql: "drop extension pg_trgm;" },
+  { name: "a drop foreign table", kind: "drop table", sql: "drop foreign table remote_notes;" },
+  { name: "a schema rename", kind: "rename", sql: "alter schema old rename to archive;" },
+  {
+    name: "a sequence rename",
+    kind: "rename",
+    sql: "alter sequence notes_seq rename to memos_seq;",
+  },
+  {
+    name: "a drop column of a foreign table",
+    kind: "drop column",
+    sql: "alter foreign table remote_notes drop column body;",
+  },
+  {
+    name: "a type change of a column named type",
+    kind: "column type",
+    sql: "alter table notes alter column type type text;",
+  },
+  {
+    name: "a NOT NULL column whose key sets default",
+    kind: "not null column without a default",
+    sql: "alter table notes add owner uuid not null references people (id) on delete set default;",
+  },
+  {
+    name: "a drop table after THEN in a DO block",
+    kind: "drop table",
+    sql: "do $$ begin if true then drop table notes; end if; end $$;",
+  },
+  {
+    name: "a function body called in the same file",
+    kind: "drop table",
+    sql: "create function f() returns void language plpgsql as $$ begin drop table notes; end $$;\nselect public.f();",
+  },
+  {
+    name: "a composite type attribute drop",
+    kind: "drop attribute",
+    sql: "alter type address drop attribute zip;",
+  },
+  {
+    name: "a composite type attribute type change",
+    kind: "attribute type",
+    sql: "alter type address alter attribute zip type text;",
+  },
 ];
 
 // Changes R17 leaves to an ordinary migration.
@@ -117,7 +162,14 @@ const ALLOWED = [
     name: "a new bigserial NOT NULL column",
     sql: "alter table notes add column y bigserial not null;",
   },
-  { name: "a drop table named in a string", sql: "comment on table notes is 'drop table later';" },
+  {
+    name: "a set not null named in a string",
+    sql: "comment on column notes.body is 'set not null later';",
+  },
+  {
+    name: "a down header that drops the new column",
+    sql: "-- down: alter table notes drop column mark\nalter table notes add column mark text;",
+  },
   { name: "a policy rename", sql: "alter policy notes_read on notes rename to notes_select;" },
   { name: "a trigger rename", sql: "alter trigger notes_touch on notes rename to notes_stamp;" },
   { name: "an index rename", sql: "alter index notes_body_idx rename to notes_text_idx;" },
@@ -136,6 +188,23 @@ const ALLOWED = [
   {
     name: "a drop inside an escape string",
     sql: "comment on table notes is E'it\\'s; drop table notes';",
+  },
+  { name: "a drop policy", sql: "drop policy if exists notes_read on notes;" },
+  {
+    name: "a default on a column named type",
+    sql: "alter table notes alter column type set default 'x';",
+  },
+  {
+    name: "a drop not null on a column named type",
+    sql: "alter table notes alter column type drop not null;",
+  },
+  {
+    name: "a table taken out of a publication",
+    sql: "alter publication supabase_realtime drop table notes;",
+  },
+  {
+    name: "a grant on a function that drops a table",
+    sql: "create function f() returns void language plpgsql as $$ begin drop table notes; end $$;\ngrant execute on function f() to service_role;",
   },
 ];
 
