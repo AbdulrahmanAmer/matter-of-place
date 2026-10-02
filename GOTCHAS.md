@@ -1094,3 +1094,17 @@ Entry template
 - rule: read a capture group as `regex.exec(text)?.[n]?.<member>` or into a variable compared with `undefined`; never `!` or a cast. Write the `?.` before the first `bun run check`, then write any registry `find` from the file as it stands after the fix (P-090).
 - proof: a scratch `app/tests/unit/zz-scratch.ts` holding `export const width = /a(b)/.exec("ab")?.[1].length;` → `cd app && bunx tsc -p tsconfig.json --noEmit; echo $?` prints `tests/unit/zz-scratch.ts(1,22): error TS2532: Object is possibly 'undefined'.` and `2`; with `?.[1]?.length` → `0` (measured 2026-10-02, file deleted after).
 - added: 2026-10-02
+
+## P-118 · Vitest prints one diff block for several failures with the same error
+- symptom: four table rows went red and the output showed three diff blocks. A filter written to read the reason of each red row missed lines, and a first log draft guessed why the counts differed.
+- cause: Vitest groups failures that carry an identical error from the same line (rows of one `it.each`) under one diff: it lists their `FAIL` lines together above a single block. Two separate `it` cases with the same message keep a block each (measured both ways).
+- rule: count red tests by the lines that start with `×` or `FAIL`, never by diff blocks, and read each row's reason from its own `×` line or by running that row alone (`-t "<title>"`). Write a count in a log only after counting those lines.
+- proof: a test file with `it.each([{ name: "a" }, { name: "b" }, { name: "c" }])("row $name", () => { expect(["x"]).toEqual([]); })` run with `bunx vitest run <file>` prints three `×` lines, three `FAIL` lines and one `- Expected` block.
+- added: 2026-10-02
+
+## P-119 · Patching a patch script by text fails on the escaped backticks inside its template literal
+- symptom: a second script meant to correct two lines inside a first script stopped with `anchor not found`, and the commands after a `;` in the same shell line ran anyway against a branch that was never created.
+- cause: the first script holds its text in a template literal, where every backtick is written with a backslash in front; the anchor was typed as the text reads after writing, not as the file holds it. The chain mixed `&&` with `;` (P-064 again).
+- rule: change a scratch script with the Edit tool, which shows the file as it is. One shell line is one `&&` chain from start to end; nothing follows a `;`.
+- proof: `grep -c 'proof: a test file with \`it.each' <scratchpad>/trace/ruling-h43.mjs` prints 1 only when the backslash is part of the pattern.
+- added: 2026-10-02
