@@ -30,7 +30,7 @@ Lovable; backend, automations, social, newsletter and the audit agent are not bu
 
 ## The approved stack (2026-09-30) — build only this; details in workspace/02-tech-stack/tech-stack.md
 One Cloudflare Worker (site + `/api/*` + `/admin`), Supabase (Postgres via versioned migrations + generated types, Auth
-magic links, private uploads bucket, pgmq + pg_cron jobs), R2 for photos with variants made once, when a photograph is attached (ASSUMED G66), GitHub
+magic links, Storage for every file: a private bucket for uploads, a public bucket for published media served on our own domain at `/media/<key>`, a private bucket for documents (S57: no R2; ASSUMED H33), variants made once, when a photograph is attached (G66), pgmq + pg_cron jobs), GitHub
 Actions for CI, deploys and heavy renders (images, ffmpeg reels), Resend (email + Place Notes), Stripe links after
 acceptance, Meta Graph API direct, Sentry, GA4 + Search Console, Turnstile. Free tier first; no paid feature without a
 settled decision. `app/docs/**` is the Lovable sketch: read for intent, never build from it.
@@ -56,7 +56,9 @@ catalog JSON are cached under a key of release and catalog version; never add a 
 
 **No Docker on this machine, ever (S50).** No `supabase start`, no Docker Desktop. The database is the cloud project
 `mop-dev` (`supabase db push`, `gen types --project-id`, `functions deploy --use-api`) plus the native PostgreSQL 18 for
-throwaway tests. R2 is off until the operator turns it on; nothing may assume a bucket exists.
+throwaway tests.
+
+**No R2, one database, no model key in the cloud (S57, S60, S58).** Files live in Supabase Storage (ASSUMED H33). There is one Supabase project: it is the build database until the launch switch and production after it; no `mop-prod` exists, and after the switch every destructive or test command refuses (H35). Captions are written through the operator's Claude account by a runner on this laptop; there is no Anthropic API key (H34).
 
 ## Commands (run inside `app/`, bun is installed)
 ```

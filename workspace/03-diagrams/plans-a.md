@@ -20,8 +20,7 @@ flowchart TD
   s11["11. Edge rules with cf-edge.mjs<br/>script and unit test today, live run BLOCKED on L1 domain attach"]
   s1 --> s2 --> s3 --> s4 --> s5 --> s6 --> s7 --> s8 --> s9 --> s10 --> s11
   a6["A6 Sentry project"] -.-> s4
-  b2p["mop-prod exists, created at L1 step 1: prod db push and prod backup"] -.-> s7 & s8
-  r2s["R2 switched on by the operator: backup copy to mop-backups"] -.-> s8
+  b2p["L1 launch switch: the one database becomes production, H35"] -.-> s7 & s8
   a1["A1 Cloudflare account and token"] -.-> s6
   l1d["L1 domain attach"] -.-> s11
 ```
@@ -31,7 +30,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   t1["1. Supabase CLI, config.toml, scripts"]
-  t2["2. Link mop-dev, config push, mop-prod BLOCKED until launch"]
+  t2["2. Link mop-dev, config push, the one project, H35"]
   subgraph SCHEMA["Migrations, in file order"]
     t3["3. Extensions, enums, people, audit, role helpers, database test harness"]
     t4["4. Catalog tables and schema manifest test"]
@@ -39,12 +38,12 @@ flowchart TD
     t6["6. Analytics monthly partitions"]
     t7["7. Commercial tables, editorial gate, workflow.ts"]
     t8["8. Catalog version triggers and the two public reads"]
-    t9["9. RLS, grants, storage bucket, role matrix test"]
+    t9["9. RLS, grants, three storage buckets, role matrix test"]
   end
   t10["10. Settings defaults, gen types, domain rows, enum equality"]
   t11["11. Watched-fail of drift guard and G-004 sweep"]
   t12["12. Image library, then seed.ts reference and full, images skipped"]
-  t13["13. variants CLI, fixtures and tests, R2 part BLOCKED until R2 is on"]
+  t13["13. variants CLI, fixtures and tests, upload to bucket media"]
   t14["14. Close-out: db push check, dev seed, delete schema.sql, runbook"]
   t1 --> t2 --> t3 --> t4 --> t5 --> t6 --> t7 --> t8 --> t9 --> t10 --> t11 --> t12 --> t13 --> t14
   b1b["B1b steps 1 to 3"] -.-> t1

@@ -30,7 +30,7 @@ flowchart LR
     E16[invoice.voided] --> S14[notify_admin]
   end
   subgraph PUBLISH[Publishing events]
-    E8[property.published] --> P1[bump_catalog_version, also opens a coming-soon market] & P0[purge_cache] & P2[render_variants: photo sizes, no approval] & P3[render_cover] & P4[render_carousel] & P5[render_story] & P6[write_captions Haiku] & P7[build_newsletter_block, light] & P8[render_reel, Campaign only] & P9[send_email standalone, Campaign only, needs approval]
+    E8[property.published] --> P1[bump_catalog_version, also opens a coming-soon market] & P0[purge_cache] & P2[render_variants: photo sizes, no approval] & P3[render_cover] & P4[render_carousel] & P5[render_story] & P6[write_captions Haiku, class local, laptop runner] & P7[build_newsletter_block, light] & P8[render_reel, Campaign only] & P9[send_email standalone, Campaign only, needs approval]
     E9[property.unpublished] --> P11[bump_catalog_version] & P12[purge_cache]
     TD[On a takedown, B7's unpublish_property cancels queued post jobs itself, not a recipe step] -.-> E9
     E10[asset.approved] --> C1[post_meta: Instagram now, Facebook when enabled] & CX[post_x] & CL[post_linkedin] & C2[queue_digest mode add, newsletter_block only]
@@ -79,7 +79,7 @@ flowchart TB
   NH --> NHJ[newsletter hygiene: bounces, complaints, re-permission]
   WCT[Worker cron trigger in wrangler.toml] --> KW --> KWJ[keep-warm: one state RPC, so the free Supabase project never pauses]
   RTN[Saturday cloud routine, B14] --> AU --> AUJ[mop-auditor: measure, report, patch PR]
-  BY[backup.yml schedule in GitHub Actions] --> BK --> BKJ[pg_dump encrypted, workflow artifact, R2 copy once R2 is on]
+  BY[backup.yml schedule in GitHub Actions] --> BK --> BKJ[pg_dump encrypted, workflow artifact, the only copy, H33]
   WIN[posting windows per channel] --> PM[post_meta, post_x and post_linkedin wait for the window before publishing]
 ```
 

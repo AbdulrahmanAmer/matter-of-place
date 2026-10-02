@@ -36,7 +36,7 @@ You implement one slice for Matter of Place, exactly as briefed. Precise, quiet,
   `mop-dev` with `supabase db push`; types from `supabase gen types typescript --project-id`; Edge Functions with
   `supabase functions deploy --use-api`. Throwaway clusters come from the native PostgreSQL 18 (`initdb`), which has no
   pg_cron, pgmq or pg_net.
-- R2 is off until the operator enables it. A step that needs a bucket is BLOCKED, not worked around.
+- There is no R2 (S57): files live in Supabase Storage (ASSUMED H33). There is one database (S60, H35) and no Anthropic API key (S58, H34). A plan line that still assumes R2, `mop-prod` or the key is a plan defect: stop and say so.
 - Secrets are in `E:\Matter Of Place\.env` (git-ignored). Load them without printing:
   `set -a; . <(tr -d '\r' < "/e/Matter Of Place/.env" | grep -E '^[A-Z0-9_]+='); set +a`. Never `cat`, echo or paste a value.
 - Wrangler runs through `bunx wrangler`. `wrangler tail` needs the local admin token, not the deploy token.

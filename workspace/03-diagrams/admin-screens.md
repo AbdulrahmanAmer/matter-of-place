@@ -71,7 +71,7 @@ sequenceDiagram
   R->>D: jobs(send_email declined)
   D-->>U: job id, JobWatcher shows queued → done
   M-->>E: email delivered event via Resend webhook → timeline
-  Note over E,M: Accept is the same shape, then Issue invoice → invoice_pdf job (PDF to the private invoices bucket, not R2) and send_email invoice → Mark paid → Activate → Scheduled
+  Note over E,M: Accept is the same shape, then Issue invoice → invoice_pdf job (PDF to the private Storage bucket documents, H33) and send_email invoice → Mark paid → Activate → Scheduled
 ```
 
 ## 3. Publish to channels (screens 8, 10, 12, 13)
@@ -83,7 +83,7 @@ flowchart TB
   REC --> J1[bump_catalog_version, opens a coming-soon market, + purge_cache: light]
   REC --> J2[render_variants: heavy → Actions]
   REC --> J3[render_cover, carousel, story: heavy]
-  REC --> J4[write_captions: light, Haiku]
+  REC --> J4[write_captions: class local, Haiku through the laptop caption runner, H34]
   REC --> J5[build_newsletter_block: light]
   REC --> J6[render_reel: heavy, Campaign tier only]
   REC --> J7[send_email standalone: Campaign tier only, waits for approval]

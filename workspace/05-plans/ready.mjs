@@ -66,7 +66,7 @@ if (env.CLOUDFLARE_API_TOKEN && acct) {
   const toks = await cf(`/accounts/${acct}/tokens?per_page=50`);
   const ci = (toks.result || []).find((t) => t.name === "mop-github-actions");
   const perms = ci ? ci.policies.flatMap((p) => p.permission_groups.map((g) => g.name)).sort() : [];
-  const want = ["Workers KV Storage Read", "Workers R2 Storage Write", "Workers Scripts Write"];
+  const want = ["Workers KV Storage Read", "Workers Scripts Write"]; // R2 is not used (S57); the token may still carry the old R2 permission
   add(ci && ci.status === "active" && want.every((w) => perms.includes(w)) ? "PASS" : "FAIL", "Cloudflare deploy token mop-github-actions", ci ? perms.join(", ") : "not found");
   const z = await cf(`/zones?name=matterofplace.com`);
   add(z.result?.[0]?.status === "active" ? "PASS" : "FAIL", "zone matterofplace.com", z.result?.[0]?.status);
@@ -74,8 +74,6 @@ if (env.CLOUDFLARE_API_TOKEN && acct) {
   add(sub.success ? "PASS" : "FAIL", "workers.dev subdomain", sub.result?.subdomain || sub.errors?.[0]?.message);
   const w = await cf(`/accounts/${acct}/challenges/widgets`);
   add((w.result || []).some((x) => x.domains.includes("matterofplace.com")) ? "PASS" : "FAIL", "Turnstile widget", (w.result || []).map((x) => x.name).join(", "));
-  const r2 = await cf(`/accounts/${acct}/r2/buckets`);
-  add(r2.success ? "PASS" : "WAIT", "R2 storage", r2.success ? "enabled" : "off by the operator's decision (S50): blocks B1b step 8, media variants, reels, backups");
 }
 
 // 4. Supabase
@@ -84,10 +82,9 @@ if (env.SUPABASE_ACCESS_TOKEN) {
     const r = await fetch("https://api.supabase.com/v1/projects", { headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` } });
     const j = await r.json();
     const dev = Array.isArray(j) ? j.find((p) => p.id === env.DEV_SUPABASE_PROJECT_REF) : null;
-    add(dev?.status === "ACTIVE_HEALTHY" ? "PASS" : "FAIL", "Supabase access token and mop-dev", dev ? `${dev.name} ${dev.status}` : `http ${r.status}`);
-    add(Array.isArray(j) && j.some((p) => p.name === "mop-prod") ? "PASS" : "WAIT", "Supabase mop-prod", "created at launch: blocks L1 and the production deploy job's db push");
+    add(dev?.status === "ACTIVE_HEALTHY" ? "PASS" : "FAIL", "Supabase access token and the one database (S60)", dev ? `${dev.name} ${dev.status}` : `http ${r.status}`);
   } catch (e) {
-    add("FAIL", "Supabase access token and mop-dev", String(e.message || e));
+    add("FAIL", "Supabase access token and the one database (S60)", String(e.message || e));
   }
   const q = run("psql", ["-h", env.DEV_SUPABASE_POOLER_HOST, "-p", "5432", "-U", env.DEV_SUPABASE_POOLER_USER, "-d", "postgres", "-Atc", "select current_setting('server_version')"], {
     env: { ...process.env, PGPASSWORD: env.DEV_SUPABASE_DB_PASSWORD, PGSSLMODE: "require", PGCONNECT_TIMEOUT: "15" },
@@ -145,17 +142,18 @@ if (full) {
 // 10. operator inputs that block named slices only
 const waits = [
   ["RESEND_API_KEY", "Resend account and API key", "B5 email, B11 newsletter"],
-  ["ANTHROPIC_API_KEY", "Anthropic API key", "B9 write_captions"],
-  ["X_CLIENT_ID", "X developer app", "B10 post_x"],
-  ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app", "B10 post_linkedin"],
-  ["META_APP_SECRET", "Meta app through the partner", "B10 post_meta"],
-  ["OMNIKOM_WEBHOOK_URL", "Omnikom endpoint and secret", "B15 step 7"],
-  ["UPTIME_API_KEY", "uptime monitor account", "B14, H1, L1"],
+  ["X_CLIENT_ID", "X developer app (at the end, S59)", "B10 post_x"],
+  ["LINKEDIN_CLIENT_ID", "LinkedIn company page and app (at the end, S59)", "B10 post_linkedin"],
+  ["META_APP_SECRET", "Meta app through the partner (at the end, S59)", "B10 post_meta"],
+  ["UPTIME_API_KEY", "uptime monitor account (the operator signs up, the orchestrator sets it up, S59)", "B14, H1, L1"],
   ["SENTRY_AUTH_TOKEN", "Sentry user token (org:read, project:read, event:read)", "the stored-event checks of H1 and L1 (launch only)"],
   ["GITHUB_DISPATCH_TOKEN", "fine-grained GitHub token for render dispatch", "B8 step 7, B9 renders in Actions"],
-  ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods", "B6 invoice issue, B16"],
+  ["LEGAL_ENTITY_NAME", "Omnikom legal entity, address, payment methods (last phase, S59)", "B6 invoice issue, B16"],
 ];
 for (const [key, what, blocks] of waits) add(env[key] ? "PASS" : "WAIT", what, env[key] ? "" : `blocks ${blocks}`);
+// H34: captions are written by the Claude command line tool on this laptop
+const cl = run(env.CAPTIONS_CLI || "claude", ["--version"]);
+add(!cl.missing && cl.code === 0 ? "PASS" : "WAIT", "Claude CLI for the caption runner (H34)", !cl.missing && cl.code === 0 ? firstLine(cl.out) : "blocks B9 live captions and L1");
 
 const pad = Math.max(...rows.map((r) => r.name.length));
 for (const r of rows) console.log(`${r.state}  ${r.name.padEnd(pad)}  ${r.detail || ""}`.trimEnd());

@@ -155,9 +155,10 @@ Entry template
 # Process and tooling gotchas (no paths; loaded by `mop-work`, not injected)
 
 ## P-009 · Free-tier limits we are designing inside (measured 2026-09; re-check quarterly)
-- Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; R2 10 GB, zero egress; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
+- Cloudflare Workers free: 100k requests/day, 10 ms CPU per request; Turnstile and one rate-limit rule free; Image transformations free only to 5k/month (we do not use them).
 - Workers free: at most 50 outbound subrequests per invocation (vendor documentation, UNPROVEN here); every Supabase RPC, Storage call and Turnstile call counts (JOB-03, E2E-02, PERF-07). A per-photograph loop inside an admin request breaks at about 22 photographs, so such loops run as jobs (B7's `copy_submission_media`); B3 signs at most 20 upload URLs per request; a render callback's `onResult` makes a fixed number of calls whatever the photo count (B9 `render_variants`: `apply_media_variants`, one Storage remove, `clear_media_staging`). Proof once built: `bunx vitest run tests/unit/subrequest-budget.test.ts`.
-- Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month, 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
+- Supabase free: 500 MB database, 1 GB storage, 5 GB egress/month (since S57 every photograph, asset and reel lives in that 1 GB and every cache miss of `/media/<key>` spends that egress; one Worker request is spent per image view; ASSUMED H33), 50k monthly auth users, 500k Edge Function calls; project pauses after 7 idle days (keep-warm cron on Cloudflare).
+- Storage, measured later: once B9 step 10 runs, the bytes one 40-photograph property stores in the bucket `media` are written beside the 1 GB line; until then UNPROVEN (the CTO's estimate is about twenty properties).
 - Resend free: 3,000 emails/month, 100/day, 1,000 marketing contacts, 3 domains (all three used: root, `notify`, `notes`), 30-day data retention (pricing page read 2026-10-02, ASSUMED E20).
 - GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes). Once B9 step 10 runs, the billed minutes of one 40-photograph `render_variants` run are written here (JOB-08); until then UNPROVEN.
 - Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.

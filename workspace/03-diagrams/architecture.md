@@ -22,11 +22,11 @@ flowchart LR
   ADM --> SF
   HK --> SF
   SF --> DB[(Postgres)]
-  SF --> ST[(Supabase Storage: private buckets submissions and invoices)]
-  SF --> R2[(R2, off until the operator enables it)]
+  SF --> ST[(Supabase Storage, H33: private submissions and documents, public media served at /media/key)]
   DB --> EV[(events, written in the same transaction)] --> RE[Recipe engine: fanoutEvent after commit, runner sweep] --> J[(jobs)] --> Q[[pgmq]] --> RUN[[Edge Function job runner, pg_cron every minute]]
   RUN -->|"heavy: render_variants, render_cover, render_carousel, render_story, render_reel, render_og_static"| GH
-  RUN -->|light| STEPS[light steps: send_email, notify_admin, write_captions, build_newsletter_block, post_meta, post_x, post_linkedin, queue_digest, webhook_omnikom, bump_catalog_version, purge_cache]
+  RUN -->|light| STEPS[light steps: send_email, notify_admin, build_newsletter_block, post_meta, post_x, post_linkedin, queue_digest, webhook_omnikom, bump_catalog_version, purge_cache]
+  J -->|local, H34| CAPR[[Caption runner on the operator's laptop: write_captions through the Claude CLI]]
 ```
 
 ## 2. Data model v2
@@ -86,7 +86,7 @@ erDiagram
     text invoice_number
     text status
     uuid paid_marked_by
-    text invoice_r2_key "PDF path in the private invoices bucket, not R2"
+    text invoice_file_key "PDF path in the private bucket documents, H33"
   }
   jobs {
     uuid id PK
@@ -181,5 +181,5 @@ flowchart LR
   STALE -.-> V
   WARM[Warm page view: zero database calls] -.-> EC
   KW[Keep-warm every 10 minutes: one state RPC, keeps the free database awake] -.-> D1
-  MEDIA[Photographs: R2 variants under content-hashed keys, immutable, once R2 is on] -.-> B
+  MEDIA[Photographs: Storage bucket media at /media/key, content-hashed keys, immutable, H33] -.-> B
 ```

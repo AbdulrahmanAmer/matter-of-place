@@ -1378,7 +1378,7 @@
  {
   "dimension": "automation-engine",
   "kind": "mechanism",
-  "id": "retries, backoff, dead state, r2_unavailable retry_at, NonRetryableError",
+  "id": "retries, backoff, dead state, storage_unavailable retry_at (H33 (2)), NonRetryableError",
   "plan": "B8",
   "files": [
    "src/server/jobs/backoff.ts",
@@ -1901,7 +1901,7 @@
  {
   "dimension": "content-pipelines",
   "kind": "column",
-  "id": "stories/markets/regions image nullable and image_variants jsonb; property_media.r2_key and staging_path; properties.og_image_key and video",
+  "id": "stories/markets/regions image nullable and image_variants jsonb; property_media.media_key and staging_path; properties.og_image_key and video",
   "plan": "B2",
   "files": [
    "supabase/migrations/20261001090300_catalog.sql"
@@ -1966,10 +1966,10 @@
  {
   "dimension": "content-pipelines",
   "kind": "library",
-  "id": "mediaUrl(key), r2Configured, r2_unavailable",
+  "id": "mediaUrl(key, { absolute }), storageUnavailable, storage_unavailable, deleteObjects(bucket, keys) (H33 (2), (4))",
   "plan": "B3",
   "files": [
-   "src/server/lib/r2.ts"
+   "src/server/lib/media-store.ts"
   ],
   "hasProof": true
  },
@@ -2193,11 +2193,11 @@
  {
   "dimension": "content-pipelines",
   "kind": "script-lib",
-  "id": "content-hashed media keys and R2 uploads (mediaKey, putIfMissing, putStable, getObject, bucketFor from MOP_ENV)",
+  "id": "content-hashed media keys and Storage uploads to bucket media (mediaKey, putIfMissing(bucket, ...), getObject(bucket, ...); H33 (2), (3))",
   "plan": "B9",
   "files": [
    "scripts/lib/media-key.mjs",
-   "scripts/lib/r2.mjs",
+   "scripts/lib/media-store.mjs",
    "scripts/lib/shoot.mjs",
    "scripts/lib/png-size.mjs"
   ],
@@ -2395,7 +2395,7 @@
  {
   "dimension": "content-pipelines",
   "kind": "step",
-  "id": "write_captions (Haiku, POST https://api.anthropic.com/v1/messages; instagram, x, linkedin variants; alt text; slide_alts; jobs.result.usage)",
+  "id": "write_captions (Haiku through the headless Claude CLI on the operator's laptop, execution class local, H34; instagram, x, linkedin variants; alt text; slide_alts; jobs.result.usage)",
   "plan": "B9",
   "files": [
    "src/server/jobs/steps/write-captions.ts",
@@ -2488,7 +2488,7 @@
  {
   "dimension": "content-pipelines",
   "kind": "workflow",
-  "id": "render.yml additions for B9 (Chrome path, Fonts present, R2 credential secrets)",
+  "id": "render.yml additions for B9 (Chrome path, Fonts present)",
   "plan": "B9",
   "files": [
    ".github/workflows/render.yml"
@@ -2508,7 +2508,7 @@
  {
   "dimension": "content-pipelines",
   "kind": "workflow",
-  "id": "render.yml render job (MOP_ENV and MEDIA_BASE_URL from client_payload.env; render-job.mjs scriptFor; post-callback.mjs)",
+  "id": "render.yml render job (MOP_ENV from inputs.job env, Storage upload secrets of the one project, H33 (5); render-job.mjs scriptFor; post-callback.mjs)",
   "plan": "B8",
   "files": [
    ".github/workflows/render.yml",
@@ -5185,7 +5185,7 @@
  {
   "dimension": "data",
   "kind": "table/columns",
-  "id": "payments (base columns, invoice_r2_key holds the Storage path), campaigns (payment_id), campaign_reports",
+  "id": "payments (base columns, invoice_file_key holds the path in bucket documents, H33 (1), (2)), campaigns (payment_id), campaign_reports",
   "plan": "B2",
   "files": [
    "supabase/migrations/20261001090600_commercial.sql",
@@ -5230,7 +5230,7 @@
  {
   "dimension": "data",
   "kind": "table/columns",
-  "id": "property_media (r2_key nullable, staging_path, check r2_key or staging_path, variants)",
+  "id": "property_media (media_key nullable, staging_path, check media_key or staging_path, variants)",
   "plan": "B2",
   "files": [
    "supabase/migrations/20261001090300_catalog.sql",
@@ -5773,9 +5773,10 @@
  {
   "dimension": "decisions",
   "kind": "completion-map",
-  "id": "A12 Anthropic API key (anthropic_key_missing retry)",
+  "id": "A12 no model key: captions through the operator's Claude account on the laptop (S58, H34)",
   "plan": "B9",
   "files": [
+   "scripts/captions-runner.ts",
    "src/server/jobs/steps/write-captions.ts",
    "scripts/caption-golden.ts"
   ],
@@ -5837,7 +5838,7 @@
  {
   "dimension": "decisions",
   "kind": "completion-map",
-  "id": "A2 Supabase mop-dev (mop-prod at launch)",
+  "id": "A2 Supabase: the one project mop-dev, production after the launch switch (S60, H35)",
   "plan": "L1",
   "files": [
    "supabase/config.toml"
@@ -6204,7 +6205,7 @@
  {
   "dimension": "decisions",
   "kind": "completion-map",
-  "id": "Stage 4 nightly backup (artifact today, mop-backups when R2 on)",
+  "id": "Stage 4 nightly backup (workflow artifact, the only copy, H33 (7))",
   "plan": "B1b",
   "files": [
    ".github/workflows/backup.yml"
@@ -6275,7 +6276,7 @@
  {
   "dimension": "decisions",
   "kind": "decision",
-  "id": "S11/G25 R2 originals + variants once at publish (render_variants)",
+  "id": "S11/G25/H33 stripped master and variants made once in bucket media (render_variants)",
   "plan": "B9",
   "files": [
    "src/server/jobs/steps/render-variants.ts",
@@ -6769,7 +6770,7 @@
  {
   "dimension": "decisions",
   "kind": "decision",
-  "id": "S32/G26 invoice PDF in private Supabase bucket invoices (no R2)",
+  "id": "S32/G26/H33 invoice PDF in the private Supabase bucket documents (B2's migration 11)",
   "plan": "B6",
   "files": [
    "supabase/migrations/<ts>_invoicing.sql",
@@ -7076,20 +7077,20 @@
  {
   "dimension": "decisions",
   "kind": "decision",
-  "id": "S50/E8 R2 off: r2.ts tolerant of missing secrets, r2_unavailable",
+  "id": "S57/H33 Storage without R2: one media-store module, storage_unavailable only for a run-time outage",
   "plan": "B3",
   "files": [
-   "src/server/lib/r2.ts"
+   "src/server/lib/media-store.ts"
   ],
   "hasProof": true
  },
  {
   "dimension": "decisions",
   "kind": "decision",
-  "id": "S50/G52 media bucket derived from MOP_ENV",
+  "id": "H33 (2) the bucket is the first argument of every media-store call, never derived from MOP_ENV",
   "plan": "B9",
   "files": [
-   "scripts/lib/r2.mjs"
+   "scripts/lib/media-store.mjs"
   ],
   "hasProof": true
  },
@@ -7309,7 +7310,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "backup",
-  "id": "nightly pg_dump, openssl encryption, artifact mop-<target>-dump, R2 mop-backups (BLOCKED R2), backup.enabled switch, claim_schedule('backup')",
+  "id": "nightly pg_dump, openssl encryption, artifact mop-<target>-dump (the only copy, H33 (7)), backup.enabled switch, claim_schedule('backup')",
   "plan": "B1b",
   "files": [
    ".github/workflows/backup.yml"
@@ -7460,7 +7461,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "function-secret",
-  "id": "mop-prod PROD_FUNCTION_SECRETS set in L1 1d",
+  "id": "PROD_FUNCTION_SECRETS set on the one project in L1 1d (H35 (8))",
   "plan": "L1",
   "files": [
    "scripts/launch/preflight.mjs"
@@ -7478,7 +7479,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "function-secret",
-  "id": "R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, MEDIA_BASE_URL (mop-dev, BLOCKED R2), ANTHROPIC_API_KEY",
+  "id": "MEDIA_PUBLIC_BASE (function secret of the one project, H33 (2), (4))",
   "plan": "B9",
   "files": [],
   "hasProof": true
@@ -7506,38 +7507,18 @@
  {
   "dimension": "delivery-ops",
   "kind": "github-secret",
-  "id": "CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, SUPABASE_ACCESS_TOKEN, DEV_SUPABASE_PROJECT_REF, DEV_SUPABASE_DB_PASSWORD, DEV_SUPABASE_SERVICE_ROLE_KEY, PREVIEW_WORKER_SECRETS_JSON",
+  "id": "CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN, DEV_SUPABASE_PROJECT_REF, DEV_SUPABASE_DB_PASSWORD, DEV_SUPABASE_SERVICE_ROLE_KEY, PREVIEW_WORKER_SECRETS_JSON",
   "plan": "exists",
   "files": [],
   "hasProof": true
  },
  {
   "dimension": "delivery-ops",
-  "kind": "github-secret",
-  "id": "PROD_SUPABASE_PROJECT_REF, PROD_SUPABASE_DB_PASSWORD, PROD_SUPABASE_DB_URL",
-  "plan": "L1",
-  "files": [],
-  "hasProof": true
- },
- {
-  "dimension": "delivery-ops",
   "kind": "github-variable",
-  "id": "DEV_MEDIA_BASE_URL",
-  "plan": "B9",
+  "id": "MOP_LAUNCHED, MOP_DB_PRODUCTION",
+  "plan": "L1",
   "files": [
-   ".github/workflows/render.yml",
    ".github/workflows/deploy.yml"
-  ],
-  "hasProof": true
- },
- {
-  "dimension": "delivery-ops",
-  "kind": "github-variable",
-  "id": "PROD_MEDIA_BASE_URL, MOP_LAUNCHED",
-  "plan": "L1",
-  "files": [
-   ".github/workflows/deploy.yml",
-   ".github/workflows/render.yml"
   ],
   "hasProof": true
  },
@@ -7562,7 +7543,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "hardening",
-  "id": "CSP flip csp_enforce (mop-dev in H1, mop-prod in L1 step 8)",
+  "id": "CSP flip csp_enforce (mop-dev in H1, the production stage in L1 step 8)",
   "plan": "H1",
   "files": [
    "src/server/lib/headers.ts"
@@ -7625,7 +7606,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "launch",
-  "id": "L1 steps 0-10 (gate, mop-prod provision, rehearsal, deploy, DNS cut-over, coming-soon verify, watchers, first property, week one, HSTS preload)",
+  "id": "L1 steps 0-10 (gate, launch switch on the one database, rehearsal, deploy, DNS cut-over, coming-soon verify, watchers, first property, week one, HSTS preload)",
   "plan": "L1",
   "files": [
    "scripts/launch/preflight.mjs",
@@ -7661,7 +7642,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "local-env",
-  "id": "PROD_DB_URL, PROD_SUPABASE_SERVICE_ROLE_KEY, PROD_RATE_LIMIT_SALT, PROD_CONFIRM_TOKEN_SECRET, PROD_PREVIEW_TOKEN_SECRET, PROD_JOB_RUNNER_SECRET, PROD_RESEND_WEBHOOK_SECRET, REHEARSAL_AGENT_KEY",
+  "id": "PROD_RATE_LIMIT_SALT, PROD_CONFIRM_TOKEN_SECRET, PROD_PREVIEW_TOKEN_SECRET, PROD_CSRF_SECRET, PROD_JOB_RUNNER_SECRET, PROD_OPS_HEALTH_TOKEN, PROD_RESEND_API_KEY, PROD_RESEND_WEBHOOK_SECRET, REHEARSAL_AGENT_KEY",
   "plan": "L1",
   "files": [],
   "hasProof": true
@@ -8021,13 +8002,12 @@
  {
   "dimension": "delivery-ops",
   "kind": "script",
-  "id": "scripts/assert-coming-soon.mjs, set-environment.ts, with-coming-soon.ts, lib/seed-guard.mjs",
+  "id": "scripts/assert-coming-soon.mjs, set-environment.ts, with-coming-soon.ts",
   "plan": "B3b",
   "files": [
    "scripts/assert-coming-soon.mjs",
    "scripts/set-environment.ts",
-   "scripts/with-coming-soon.ts",
-   "scripts/lib/seed-guard.mjs"
+   "scripts/with-coming-soon.ts"
   ],
   "hasProof": true
  },
@@ -8275,10 +8255,10 @@
  {
   "dimension": "delivery-ops",
   "kind": "script",
-  "id": "scripts/lib/r2.mjs (bucketFor MOP_ENV), media-key.mjs, png-size.mjs, shoot.mjs",
+  "id": "scripts/lib/media-store.mjs (Storage REST client), media-key.mjs, png-size.mjs, shoot.mjs",
   "plan": "B9",
   "files": [
-   "scripts/lib/r2.mjs",
+   "scripts/lib/media-store.mjs",
    "scripts/lib/media-key.mjs",
    "scripts/lib/png-size.mjs",
    "scripts/lib/shoot.mjs"
@@ -8493,7 +8473,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "worker-var",
-  "id": "MOP_ENV, MEDIA_BASE_URL, SENTRY_RELEASE",
+  "id": "MOP_ENV, MEDIA_PUBLIC_BASE, SENTRY_RELEASE",
   "plan": "B1b",
   "files": [
    "wrangler.toml",
@@ -8601,7 +8581,7 @@
  {
   "dimension": "delivery-ops",
   "kind": "workflow-change",
-  "id": "render.yml fonts check, CHROME_PATH, R2 secrets",
+  "id": "render.yml fonts check, CHROME_PATH",
   "plan": "B9",
   "files": [
    ".github/workflows/render.yml"
@@ -9566,7 +9546,7 @@
  {
   "dimension": "producers",
   "kind": "env-name",
-  "id": "MEDIA_BASE_URL (G3, G47)",
+  "id": "MEDIA_PUBLIC_BASE (H33 (2), (4); replaced MEDIA_BASE_URL of G3)",
   "plan": "B1b",
   "files": [
    ".github/workflows/deploy.yml"
@@ -10001,7 +9981,7 @@
    "src/server/lib/errors.ts",
    "src/server/lib/events.ts",
    "src/server/lib/ids.ts",
-   "src/server/lib/r2.ts",
+   "src/server/lib/media-store.ts",
    "src/server/lib/ratelimit.ts",
    "src/server/lib/runtime-env.ts",
    "src/server/lib/turnstile.ts",
@@ -10017,7 +9997,9 @@
    "src/server/submissions/reconcile.ts",
    "src/server/submissions/service.ts",
    "src/server/subscribers/service.ts",
-   "src/styles/components/turnstile.css"
+   "src/styles/components/turnstile.css",
+   "src/routes/media.$.ts",
+   "src/server/public/media.ts"
   ],
   "hasProof": true
  },
@@ -10663,10 +10645,10 @@
  {
   "dimension": "producers",
   "kind": "function",
-  "id": "mediaUrl / r2Configured / r2Unavailable (F18)",
+  "id": "mediaUrl / storageUnavailable / deleteObjects(bucket, keys) (F18, H33 (2))",
   "plan": "B3",
   "files": [
-   "src/server/lib/r2.ts"
+   "src/server/lib/media-store.ts"
   ],
   "hasProof": true
  },
@@ -10693,10 +10675,10 @@
  {
   "dimension": "producers",
   "kind": "function",
-  "id": "putIfMissing / bucket from MOP_ENV (G52)",
+  "id": "putIfMissing(bucket, key, body, type) / getObject(bucket, key) (H33 (2), (3))",
   "plan": "B9",
   "files": [
-   "scripts/lib/r2.mjs"
+   "scripts/lib/media-store.mjs"
   ],
   "hasProof": true
  },
@@ -11394,7 +11376,6 @@
   "plan": "B3b",
   "files": [
    "scripts/assert-coming-soon.mjs",
-   "scripts/lib/seed-guard.mjs",
    "scripts/set-environment.ts",
    "scripts/with-coming-soon.ts"
   ],
@@ -11492,7 +11473,7 @@
    "scripts/caption-golden.ts",
    "scripts/lib/media-key.mjs",
    "scripts/lib/png-size.mjs",
-   "scripts/lib/r2.mjs",
+   "scripts/lib/media-store.mjs",
    "scripts/lib/shoot.mjs",
    "scripts/og-static.ts",
    "scripts/render-cover.mjs",
@@ -11930,14 +11911,15 @@
    "tests/unit/log.test.ts",
    "tests/unit/mappers.test.ts",
    "tests/unit/public-pipeline.test.ts",
-   "tests/unit/r2.test.ts",
+   "tests/unit/media-store.test.ts",
    "tests/unit/readpath.test.ts",
    "tests/unit/reconcile.test.ts",
    "tests/unit/redirects.test.ts",
    "tests/unit/resend-signature.test.ts",
    "tests/unit/router-hydration.test.ts",
    "tests/unit/routes-parity.test.ts",
-   "tests/unit/state.test.ts"
+   "tests/unit/state.test.ts",
+   "tests/unit/media-route.test.ts"
   ],
   "hasProof": true
  },
@@ -11963,7 +11945,6 @@
    "tests/unit/flags.test.ts",
    "tests/unit/interest-form.test.tsx",
    "tests/unit/no-image.test.tsx",
-   "tests/unit/seed-guard.test.ts",
    "tests/unit/visibility.test.ts"
   ],
   "hasProof": true
@@ -12012,7 +11993,6 @@
    "tests/unit/factories.test.ts",
    "tests/unit/perf-budget.test.ts",
    "tests/unit/routes-covered.test.ts",
-   "tests/unit/service-guard.test.ts",
    "tests/unit/state-machine.test.ts",
    "tests/unit/watchfail.test.ts",
    "tests/WATCHED-FAIL.md"
@@ -12342,7 +12322,7 @@
  {
   "dimension": "public-api",
   "kind": "mechanism",
-  "id": "error shape and codes (bad_request, validation, forbidden, not_found, gone, method_not_allowed, payload_too_large, rate_limited, server, unavailable, r2_unavailable)",
+  "id": "error shape and codes (bad_request, validation, forbidden, not_found, gone, method_not_allowed, payload_too_large, rate_limited, server, unavailable, storage_unavailable)",
   "plan": "B3",
   "files": [
    "src/server/lib/errors.ts",
@@ -14450,7 +14430,7 @@
  {
   "dimension": "automation-engine",
   "kind": "system-job",
-  "id": "takedown_media: R2 delete, URL purge, posts marked (E2E-01)",
+  "id": "takedown_media: Storage remove with deleteObjects(\"media\", keys), /media/<key> URL purge, posts marked (E2E-01, H33 (6))",
   "plan": "B8",
   "files": [
    "src/server/jobs/system/takedown-media.ts"
@@ -15251,6 +15231,82 @@
   "files": [
    "supabase/migrations/<ts>_audit_reads.sql",
    "scripts/audit/lint-report.mjs"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "script-lib",
+  "id": "assertNotProduction: one production guard and its guardedScripts test (ruling H35 (5))",
+  "plan": "B2",
+  "files": [
+   "scripts/lib/assert-not-production.mjs",
+   "tests/unit/assert-not-production.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "route",
+  "id": "GET and HEAD /media/<key>: serveMedia through mediaCached and readPublicObject, no database query (ruling H33 (4))",
+  "plan": "B3",
+  "files": [
+   "src/routes/media.$.ts",
+   "src/server/public/media.ts",
+   "tests/unit/media-route.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "library",
+  "id": "media-store.ts unit tests: relative and absolute mediaUrl, storage_unavailable, deleteObjects batches (ruling H33 (2))",
+  "plan": "B3",
+  "files": [
+   "src/server/lib/media-store.ts",
+   "tests/unit/media-store.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "script",
+  "id": "caption runner on the operator's laptop: claims local write_captions jobs, runs the headless Claude CLI named by CAPTIONS_CLI (ruling H34 (3))",
+  "plan": "B9",
+  "files": [
+   "scripts/captions-runner.ts",
+   "tests/unit/assets/captions-runner.test.ts",
+   "tests/fixtures/claude-stub.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "script",
+  "id": "Windows scheduled task MatterOfPlace Captions every 15 minutes (ruling H34 (4))",
+  "plan": "B9",
+  "files": [
+   "scripts/install-captions-task.ps1"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "content-pipelines",
+  "kind": "script",
+  "id": "caption runner in the launch switch: the orchestrator registers the scheduled task with the operator's word (ruling H34 (4))",
+  "plan": "L1",
+  "files": [
+   "scripts/install-captions-task.ps1"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "trigger",
+  "id": "settings_email_share: the mail share follows settings.environment, production share at the launch switch (ruling H35 (4))",
+  "plan": "B5",
+  "files": [
+   "supabase/sql/functions/settings_email_share.sql"
   ],
   "hasProof": true
  }

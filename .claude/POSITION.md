@@ -539,3 +539,26 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - He asked to be asked for the go, and how the build runs in parallel. Answer given: spine in one lane (B1b, B2, B3, B4 gates), then three lanes side by side, design work alongside from the start, then hardening and launch in one lane.
 - BEFORE the slices they touch: one plan pass must fold S57 (ten slices carry an R2 step), S58 (B9 captions, B8 step catalog) and the answer to S60 into the plans. B1b steps 1 to 5 are not touched by them and can start first.
 - Lane `E:/mop-build/spine` is behind main: `git -C E:/mop-build/spine fetch -q origin && git -C E:/mop-build/spine checkout --detach origin/main` before starting.
+
+## 2026-10-02 07:10 EDT · Three operator decisions folded into the plans; accounts finalised; ASKING FOR THE GO
+- Decisions: S57 no R2 (files in Supabase Storage: buckets `submissions`, `media`, `documents`; public address
+  `/media/<key>`; ruling H33), S58 captions through the operator's Claude account on the laptop (`scripts/captions-runner.ts`,
+  class `local`, no Anthropic key; H34), S60 ONE database (no `mop-prod`; the launch switch in L1; guard
+  `scripts/lib/assert-not-production.mjs`; H35), S59 who supplies what and when.
+- Workflow `wf_68546a1d-bca`: seven Opus writers plus a consistency pass rewrote 21 plans and the specs: 33 handoffs
+  applied, 24 mismatches fixed, 48 steps unblocked, trace list 1,287 to 1,292 items. Decisions recorded as ASSUMED H36,
+  amendments to older rows as H37. Orchestrator files brought in line (ready.mjs, readiness-table.mjs, CLAUDE.md,
+  build-slice.js, mop-builder.md, GOTCHAS P-009, PLAN.md).
+- Accounts done today: Sentry end to end (E21: two client keys with limits, spike protection, read-only token),
+  GitHub render dispatch token with no expiration by the operator's word (E22), Resend (E17 to E20), Zoho aliases (E19).
+  R2 secrets deleted from GitHub and `.env`.
+- STILL THE OPERATOR'S, none blocks the start: uptime monitor sign-up; legal entity and payment facts (last phase);
+  X, LinkedIn and Meta apps (at the end). The orchestrator's when the build reaches them: Google Analytics and Search
+  Console, CF_ANALYTICS_TOKEN, the production Resend key, the captions scheduled task (with the operator's word).
+- BEFORE B1b STARTS: move the lane to main and refresh its secrets copy:
+  `git -C E:/mop-build/spine fetch -q origin && git -C E:/mop-build/spine checkout --detach origin/main && cp .env E:/mop-build/spine/.env`,
+  then `bun install --frozen-lockfile` in its `app/`. Then, ONLY on the operator's "go":
+  `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })`.
+- UNPROVEN: about 240 steps in the time left (deadline 2026-10-04 00:00 EDT); three lanes merging cleanly; how many
+  properties fit in 1 GB of Storage; that a rewrite of this size left no contradiction (no audit round was run after it;
+  the checker passes and the old names are gone except in lines that say they were removed).

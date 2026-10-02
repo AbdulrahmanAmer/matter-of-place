@@ -13,7 +13,7 @@ flowchart LR
   CLS -->|"sitemap, robots, llms, feeds"| DOC["public, max-age=3600, s-maxage=3600"]
   CLS -->|"/admin, /api/admin, /api/hooks, POST, 5xx"| AD["private, no-store"]
   CLS -->|fingerprinted asset| AS["public, max-age=31536000, immutable"]
-  CLS -->|photograph variant| IM["R2 under content-hashed keys: public, max-age=31536000, immutable, once R2 is on. No Vary Accept"]
+  CLS -->|photograph variant| IM["/media/key from Storage bucket media, content-hashed keys: public, max-age=31536000, immutable. No Vary Accept"]
   PG & AP & DOC & AD & AS & IM --> H["Common headers on all: CSP by inline-script hashes, stored with the cached page, never a per-request nonce. HSTS, nosniff, Referrer-Policy strict-origin-when-cross-origin, X-Frame-Options DENY, Permissions-Policy, COOP same-origin, CORP same-site"]
   H --> CSP{CSP mode}
   CSP -->|"week one: report-only"| RPT["reports to /api/public/csp-report, stored as csp_report events"]
@@ -55,7 +55,7 @@ flowchart LR
     W4[robots.txt dynamic, humans.txt]
   end
   subgraph FEEDS[Discovery]
-    S1[sitemap.xml: one urlset, image entries once R2 is on, no redirected or taken-down path]
+    S1[sitemap.xml: one urlset, image entries at /media/key, no redirected or taken-down path]
     S2[llms.txt and llms-full.txt]
     S3[feed.xml RSS 2.0 and feed.json with autodiscovery]
     S4[JSON-LD: Organization, WebSite with SearchAction, BreadcrumbList, RealEstateListing, Article, FAQPage]
