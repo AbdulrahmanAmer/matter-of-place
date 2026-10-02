@@ -1106,5 +1106,259 @@
     "replace": "fullPath.startsWith(\"/nothing/\")",
     "run": "bun run build && bun run cf:preview, then MSYS_NO_PATHCONV=1 bash ../scratch/accept.sh",
     "expect": "application/json   GET    /api/hooks/sentry-test       404"
+  },
+  {
+    "id": "bd",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.json",
+    "find": "\"noUncheckedIndexedAccess\": true,",
+    "replace": "\"noUncheckedIndexedAccess\": false,",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "\"noUncheckedIndexedAccess\""
+  },
+  {
+    "id": "f",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"bun\": \"1.3.13\",",
+    "replace": "\"bun\": \"1.3.14\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "setup-bun 1\\.3\\.13, engines\\.bun 1\\.3\\.14"
+  },
+  {
+    "id": "g",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/dependabot.yml",
+    "find": "directory: \"/app\"\n    schedule:\n      interval: \"weekly\"",
+    "replace": "directory: \"/app\"\n    schedule:\n      interval: \"daily\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bun /app daily"
+  },
+  {
+    "id": "ao",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+    "replace": "actions/upload-artifact@v4",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "uses: actions/upload-artifact@v4"
+  },
+  {
+    "id": "ap",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (prefix === undefined || prefix <= latest) {",
+    "replace": "if (prefix === undefined) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses an added file with an older timestamp than main"
+  },
+  {
+    "id": "cm-applied",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const failures = changed.map(",
+    "replace": "const failures = [].map(",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses an edited applied migration"
+  },
+  {
+    "id": "cm-destructive",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "if (DESTRUCTIVE.test(statements) && !CONTRACT_HEADER.test(header)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a drop column without the contract-of header"
+  },
+  {
+    "id": "cm-header-lines",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "text.split(\"\\n\").slice(0, HEADER_LINES)",
+    "replace": "text.split(\"\\n\")",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "refuses a contract-of header below line 30"
+  },
+  {
+    "id": "cm-comments",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const statements = text.replace(LINE_COMMENT, \"\");",
+    "replace": "const statements = text;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "passes a clean tree and a new file after the newest on main"
+  },
+  {
+    "id": "hy-checkout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "fetch-depth: 0\n          persist-credentials: false",
+    "replace": "fetch-depth: 0\n          persist-credentials: true",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every actions/checkout sets persist-credentials: false"
+  },
+  {
+    "id": "hy-permissions",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\npermissions: {}\n",
+    "replace": "\npermissions: read-all\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow sets top-level permissions"
+  },
+  {
+    "id": "hy-timeout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "timeout-minutes: 10",
+    "replace": "timeout-minutez: 10",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every job sets timeout-minutes"
+  },
+  {
+    "id": "hy-concurrency",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "\nconcurrency:\n",
+    "replace": "\nconcurrencz:\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow has a workflow-level concurrency or one on every job"
+  },
+  {
+    "id": "hy-working-directory",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "working-directory: app",
+    "replace": "working-directory: src",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every workflow runs in app"
+  },
+  {
+    "id": "hy-one-build",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "- run: bun run check",
+    "replace": "- run: bun run check && bun run build",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bun run build runs in exactly one ci\\.yml job"
+  },
+  {
+    "id": "hy-mop-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit # group: mop-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no ci\\.yml job reads or writes mop-dev"
+  },
+  {
+    "id": "hy-pr-secret",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml check: secrets\\.DEV_SUPABASE_"
+  },
+  {
+    "id": "hy-r2",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "run: bun audit",
+    "replace": "run: bun audit R2_BUCKET",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "no workflow names R2 or a media base variable"
+  },
+  {
+    "id": "hy-ready",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "types: [opened, synchronize, reopened, ready_for_review]",
+    "replace": "types: [opened, synchronize, reopened]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "ci\\.yml is named ci and runs on pull requests marked ready for review"
+  },
+  {
+    "id": "hy-template",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/pull_request_template.md",
+    "find": "- [ ] new public read\n",
+    "replace": "- [ ] new read\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "names every extension path of tech-stack section 5"
+  },
+  {
+    "id": "hy-wrangler",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "wrangler.toml",
+    "find": "[observability]",
+    "replace": "[[kv_namespaces]]\nbinding = \"CACHE\"\n\n[observability]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "holds no secret and no paid binding"
+  },
+  {
+    "id": "hy-lint-warnings",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": "\"lint\": \"eslint . --max-warnings 0\",",
+    "replace": "\"lint\": \"eslint .\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-lint-floating",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "eslint.config.js",
+    "find": "  \"no-console\": \"error\",\n};",
+    "replace": "  \"no-console\": \"error\",\n  \"@typescript-eslint/no-floating-promises\": \"off\",\n};",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "lint is type-aware, zero-warning and refuses the named rules"
+  },
+  {
+    "id": "hy-subtle",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const subtle = crypto.subtle;\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "only src/server/lib/crypto\\.ts calls crypto\\.subtle"
+  },
+  {
+    "id": "hy-check-js",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "tsconfig.scripts.json",
+    "find": "\"checkJs\": true,",
+    "replace": "\"checkJs\": false,",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "tsconfig\\.scripts\\.json extends tsconfig\\.json and checks JavaScript"
+  },
+  {
+    "id": "hy-release-age",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "bunfig.toml",
+    "find": "minimumReleaseAge = 86400",
+    "replace": "minimumReleaseAge = 3600",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "bunfig\\.toml keeps minimumReleaseAge of at least 86400"
+  },
+  {
+    "id": "d",
+    "kind": "manual",
+    "test": "ci.yml job check on the draft pull request",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nconst x: number = \"a\";\n",
+    "run": "commit, push slice/b1b, gh run watch <id>",
+    "expect": "Type 'string' is not assignable to type 'number'"
+  },
+  {
+    "id": "ci-engines",
+    "kind": "manual",
+    "test": "ci.yml job check, step engines, on the draft pull request",
+    "file": "package.json",
+    "find": "\"bun\": \"1.3.13\",",
+    "replace": "\"bun\": \"1.3.14\",",
+    "run": "commit, push slice/b1b, gh run watch <id>",
+    "expect": "engines \\{\"bun\":\"1\\.3\\.14\",\"node\":\"24\\.x\"\\} runner 1\\.3\\.13 24"
   }
 ]
