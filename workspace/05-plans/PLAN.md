@@ -108,6 +108,11 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 - Every new test is watched-fail before it counts. Every slice ends with `bun run check`, `bun run build` and its own proof.
 - `node workspace/05-plans/check-plans.mjs` must print OK before any plan change is committed (P-031).
 - Cross-slice conflicts are settled in ASSUMED.md §A; a builder who finds a new one stops and writes it there.
+- `progress.json` is the ledger of accepted steps. The orchestrator writes a step into it in the same change as the status
+  row below, only after the fresh review accepted it and its proofs were re-run, and `node workspace/05-plans/board.mjs --check`
+  must print `board: OK`. The operator reads it as a page: `node workspace/05-plans/board.mjs` serves http://127.0.0.1:8790.
+- Every time in these files is the laptop's clock, UTC+3. "EDT" in older lines is the shell's label for Egypt Daylight Time,
+  not US Eastern (GOTCHAS P-130); new lines carry the numeric offset.
 - The orchestrator re-runs the slice's verification before marking it closed here:
 
 | Slice | Status | Closed on | Proof |

@@ -707,3 +707,14 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   main passes, `truncate` passes. The last two are ruling H44.
 - NEXT: the run started by scriptPath with closeOut c6 (H43 (1), (4); H44 (1), (2)) and c7 (H42 (1), (2), two untested
   refusals), `only: ["c6","c7"]`. Then own proofs of 5b, `gh pr ready 22`, `node workspace/05-plans/merge-gate.mjs 22`.
+
+## 2026-10-02 20:35 +0300 · Progress board built and served (operator's request); every "EDT" in these files is UTC+3
+- `workspace/05-plans/board.mjs` (server and `--check`) and `workspace/05-plans/progress.json` (the ledger of accepted
+  steps, the lane map, what waits on the operator). Served at http://127.0.0.1:8790 by a background shell of this
+  session; after a restart of the session start it again with `node workspace/05-plans/board.mjs`.
+- KEEP THE LEDGER CURRENT: each time a group is accepted, move its steps to `accepted` in progress.json, rewrite `now`
+  and `updated`, run `node workspace/05-plans/board.mjs --check`, in the same PR as the PLAN.md status row.
+- P-130 (main bank): the shell prints "EDT" for Egypt Daylight Time. All earlier "EDT" times are laptop time, UTC+3.
+  The build started 2026-10-02 07:15 +0300.
+- Run `wf_8262884e-e63` (c6 additions under H43/H44, then c7) was still working in the lane when this was written;
+  the lane's last commit then: "B1b c7 round 2, step 5b: slice log with the proofs".
