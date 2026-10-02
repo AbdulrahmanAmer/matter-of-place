@@ -1273,3 +1273,19 @@ Entry template
 - rule: the bank merges by entry, never by text: `workspace/05-plans/merge-gotchas.mjs` is the merge driver (clone config `merge.gotchas.driver`, `.git/info/attributes` and `.gitattributes`). After any merge that touches the bank run `node workspace/05-plans/check-gotchas.mjs`. A lane brings main in itself when its pull request shows a conflict (ruling H48 (3)).
 - proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree, and `git config merge.gotchas.driver` prints the driver line.
 - added: 2026-10-02
+
+## P-310 · Every Bash tool shell here already exports `CLOUDFLARE_API_TOKEN`, so the `db` test project refuses to start
+- symptom: the first `bunx vitest run --project db tests/db/migration-headers.test.ts` in B2 g3, in a shell with the dev profile loaded, printed `No test files found, exiting with code 1` and `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)`. Nothing in the command had loaded that name.
+- cause: the shell the harness starts inherits `CLOUDFLARE_API_TOKEN` from the user environment, and `tests/db/global-setup.ts` calls `guardEnv()` first (SEC-08), as it must. A fresh shell is not a clean shell on this laptop. The `No test files found` line is vitest's wording for a global setup that threw; the cause is the `Error:` line under it.
+- rule: run every database test, `bun run test:db` and any script that calls `guardEnv()` as `env -u CLOUDFLARE_API_TOKEN <command>` after `eval "$(node scripts/load-env.mjs --profile dev)"`. Never weaken the guard or unset the name in a config file. When vitest prints `No test files found` for a path that exists, read the `Error:` line first.
+- proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
+
+## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
+- paths: app/supabase/migrations/**
+- severity: warn
+- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
+- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
+- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
+- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
