@@ -112,3 +112,4 @@ Full ledger: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [
 | `workspace/07-admin-platform/` | the 25 admin screens |
 | `workspace/08-visual-pass/` | the site visual audit and fixes (merged) |
 | `launch/` | the launch film work (paused), motion bible, gate |
+| `brand/` | the brand assets: logo (emblem, wordmark, lockups) as SVG and PNG, icons, palette, the four typefaces; `brand/README.md` describes every file; regenerate with `node launch/tools/brand-build.mjs` |
