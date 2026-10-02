@@ -750,3 +750,14 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - NEXT: both runs by scriptPath: B1b { root spine } and B2 { root db, previewPort 8798, bankBase {P:300,G:100} }.
   On each stop: own proofs, ledger, merge the accepted work through `node workspace/05-plans/merge-gate.mjs <pr>`.
   The dependabot.yml is on main now: watch for Dependabot pull requests, each one spends Actions minutes.
+
+## 2026-10-02 21:46 +0300 · Two lanes running; B2 step 1 restarted as a close-out under ruling H46
+- Runs, both by scriptPath: delivery lane `wf_62638ec8-9fb` (task `wwzja2b3i`, B1b step 6 building; groups g1(6)
+  g2(7, 7b) g3(8) g4(9, 10) g5(11), each needs the orchestrator after it); database lane `wf_ac56aaaf-a73` (task
+  `wyljkduyd`, close-out c1 = B2 step 1, then the rest of B2).
+- The first B2 run (`wf_4502d779-a93`) stopped BLOCKED on one line of knip.json. H46: a gate's configuration is not a
+  second writer; a dependency arrives with its first import. P-500 on main (orchestrator numbers from P-500 / G-200).
+- Times written by hand in the two blocks above (21:45, 21:25) were guesses ahead of the clock: the real times were
+  about 21:05 and 20:55 +0300. Run `date` before writing a time (P-130).
+- On each stop: own proofs, ledger (`progress.json`), merge through `node workspace/05-plans/merge-gate.mjs <pr>`,
+  merge main into the lane, restart the lane's run at once. The board needs nothing from the orchestrator to move.

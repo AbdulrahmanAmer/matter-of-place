@@ -1191,3 +1191,10 @@ Entry template
 - rule: anchor an edit of a registry entry on its `"id"` line or its `replace` line, never on its `expect`.
 - proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
 - added: 2026-10-02
+
+## P-500 · A builder stops BLOCKED on a one-line entry in a gate's configuration
+- symptom: the first group of B2 finished its files, then reported BLOCKED and committed nothing: `bun run check` failed only at knip with `Unlisted binaries (1) psql scripts/psql-dev.mjs`, and `app/knip.json` was not in the group's file list. The lane stood still until the orchestrator read the result.
+- cause: "one writer per file" was read as forbidding any file outside the list, the gates' own configuration included. A new script that spawns a system binary always needs such an entry, and no plan lists it.
+- rule: a builder adds the smallest entry for its own files to a gate's configuration and says so in the log (ruling H46 (1)); the build workflow's standing rules say it. When writing a plan step that adds a script spawning a system binary, name `knip.json` in its files.
+- proof: `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
+- added: 2026-10-02
