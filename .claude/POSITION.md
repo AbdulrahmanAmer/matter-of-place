@@ -533,3 +533,9 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Hook fix: `.claude/hooks/gotcha-guard.mjs` was silent for every file in a build lane; it now finds the tree a file belongs to. Self-test `.claude/hooks/gotcha-guard.test.mjs` (watched-fail against the old hook: 2 wrong answers).
 - New checker `workspace/05-plans/check-gotchas.mjs` (found P-009 without a proof; fixed). `ready.mjs` now runs it and the hook self-test.
 - A Sonnet scout audit of the bank reported no contradiction and "every entry has a proof"; both were wrong (P-059). The stale entries were found by reading them.
+
+## 2026-10-02 05:15 EDT · Operator answered the waiting list (S57 to S60); WAITING FOR HIS "GO" AND ONE ANSWER
+- S57 no R2 (CTO default: Supabase Storage, 1 GB wall told to him). S58 captions through his Claude account on the laptop. S59 who supplies what and when. S60 OPEN: one database or two (CTO recommends two; nothing needed from him).
+- He asked to be asked for the go, and how the build runs in parallel. Answer given: spine in one lane (B1b, B2, B3, B4 gates), then three lanes side by side, design work alongside from the start, then hardening and launch in one lane.
+- BEFORE the slices they touch: one plan pass must fold S57 (ten slices carry an R2 step), S58 (B9 captions, B8 step catalog) and the answer to S60 into the plans. B1b steps 1 to 5 are not touched by them and can start first.
+- Lane `E:/mop-build/spine` is behind main: `git -C E:/mop-build/spine fetch -q origin && git -C E:/mop-build/spine checkout --detach origin/main` before starting.
