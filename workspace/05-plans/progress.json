@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-02 21:46, laptop time (UTC+3)",
-  "now": "Two lanes are building side by side. Delivery: the rest of slice B1b, from step 6 (smoke test and preview deploys) to the production deploy and backups. Database: slice B2, from its first step. The first nine steps of B1b are on main, merged through the new merge gate.",
+  "updated": "2026-10-03 00:50, laptop time (UTC+3)",
+  "now": "PARKED on 2026-10-03 at 00:50 (UTC+3) at the operator's request (weekly usage at 98 percent). No builder is running. Everything accepted is on GitHub: B1b steps 1 to 5b and B2 steps 1 to 3 are on main; B1b steps 6 and 7 are accepted on the branch slice/b1b (pull request 43, draft), together with a saved, unproven draft of step 7's three additions by ruling H49. The build resumes where .claude/POSITION.md says.",
   "paceNote": "That pace was one lane, with every review finding costing a full fix round. From 2026-10-02 21:15 (UTC+3) two lanes run side by side and only a blocking finding costs a round (ruling H45). The new pace is unproven until it has been measured.",
   "runGroups": {
     "c6": "5",
@@ -24,7 +24,18 @@
         "4",
         "4b",
         "5",
-        "5b"
+        "5b",
+        "6",
+        "7"
+      ],
+      "inReview": []
+    },
+    "B2": {
+      "accepted": [
+        "1",
+        "1b",
+        "2",
+        "3"
       ],
       "inReview": []
     }

@@ -783,3 +783,26 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   the orchestrator merges PR 43 through the gate (steps 6 and 7), then relaunches B1b for 7b, 8, 9-10, 11.
 - B1b steps on main so far: 1 to 5b. Accepted but not merged: 6, 7 (PR 43, draft).
 - Ledger: progress.json still says 5b was the last accepted; the board reads 6 and 7 from the journals.
+
+## 2026-10-03 00:50 +0300 · PARKED at the operator's request (weekly usage 98 percent). Resume from here.
+- STATE ON GITHUB (origin/main `ecae323` plus this checkpoint): B1b steps 1 to 5b and B2 steps 1, 1b, 2, 3 merged
+  through the merge gate. `slice/b1b` (PR #43, draft, mergeable at last check) holds B1b steps 6 and 7 accepted by
+  review and re-run by the orchestrator, plus WIP commit `88994da`: the builder for step 7's H49 additions (production
+  switch, rollback target, test timeouts) was stopped mid-work; its files are saved, NOT PROVEN, `bun run check` not run.
+- LANES ON DISK: `E:/mop-build/spine` (branch slice/b1b, clean after the WIP commit) and `E:/mop-build/db` (branch
+  slice/b2, clean, at main). Merge driver for GOTCHAS.md is in the clone config and .git/info/attributes (H48 (4)).
+- DATABASE: `mop-dev` holds migrations 1 to 3 (pushed by the db lane under H45 (5)). Nothing else changed.
+- GITHUB SETTINGS: variables VITE_SITE_URL, VITE_TURNSTILE_SITE_KEY, PRODUCTION_DEPLOY=off; VITE_API_BASE_URL removed
+  until B3 (H48). Dependabot PRs 38 to 42 open, rebase disabled (H47). Actions minutes: about 200 billed of 2,000.
+- BOARD: `node workspace/05-plans/board.mjs` serves http://127.0.0.1:8790 (start it again after a restart).
+- TO RESUME, in this order:
+  1. Delivery lane: `Workflow({ scriptPath: "E:/Matter Of Place/.claude/workflows/build-slice.js", args: { slice: "B1b",
+     root: "E:/mop-build/spine", only: ["c7"], closeOut: [{ id: "c7", steps: "7", critical: true, title: "finish the WIP
+     of H49 (1) (2) (3)", defects: [<the three H49 items, as in run wf_689ef72f-fa9>] }] } })`. Then own proofs, merge
+     main into the lane, `gh pr ready 43`, `node workspace/05-plans/merge-gate.mjs 43`, then run B1b again (7b, 8, 9-10, 11).
+  2. Database lane: run B2 again (`root: "E:/mop-build/db", previewPort: 8798, bankBase: { P: 300, G: 100 }`); the
+     sizing leaves steps 1 to 3 out. On its stops: own proofs, merge through the gate, merge main into the lane.
+  3. After each accepted group: progress.json (accepted), PLAN status row, this file.
+- Open rulings to carry: H48 (B3 sets VITE_API_BASE_URL back), H49 (PRODUCTION_DEPLOY on at B3b's close), H47
+  (Dependabot at H1), H45 (6) (gate self-edit at H1). Follow-ups: `workspace/05-plans/logs/B1b-followups.md` and
+  `B2-followups.md` in the lanes, folded before each slice closes (H41 (7)).
