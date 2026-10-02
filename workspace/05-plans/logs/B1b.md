@@ -2427,3 +2427,177 @@ GOTCHAS: G-030 added; G-029 proof count updated.
 The review of c6 round 6 found no defect in the code, only a cost with no entry: `bun run check` once failed with `Test timed out in 5000ms.` at `tests/unit/hygiene.test.ts:543` (the type-aware lint test, default vitest limit, loaded laptop) and passed on the next two runs. Under H43 (5) this is a bank-only rejection.
 
 GOTCHAS: G-031 added.
+
+## c7 · steps 5b
+Close-out of group g7 under ruling H42 (1) and (2), fixing the three defects of the rejected round. Commit `7dcd402` on `slice/b1b`.
+
+What changed
+- `workspace/05-plans/merge-gate.mjs` (H42 (1)): when `gh pr checks` exits non-zero with `no checks reported` on stderr, it reads `ci.yml` from `origin/main` (`git show origin/main:.github/workflows/ci.yml`, so a pull request cannot widen the list itself), takes the `paths-ignore` of the `pull_request` trigger (written there as one flow list of double-quoted strings; any other form is refused), reads `gh pr view <pr> --json changedFiles,files --jq '.changedFiles, .files[].path'` and merges only if every path matches a pattern; it prints `documents only: no check expected`. Refused: any other pull request with no check, an unreadable `ci.yml`, a pattern with a wildcard other than `**` and `*`, a file list shorter than `changedFiles` (`files` holds at most 100 paths), an empty list, an unreadable file list. Any other non-zero exit of `gh pr checks` is refused as before.
+- H42 (2): `tsconfig.scripts.json` includes the script; `package.json` `lint` (and `lint:fix`) run a second ESLint pass from the repository root, `cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs` (ESLint calls any file above its base path external and only warns); `format` and `format:check` pass `--config .prettierrc` and name the file; `eslint.config.js` adds the root-relative path to the `scripts/**` block and gives `prettier/prettier` the options read from `.prettierrc` for it. The first lint found 8 `restrict-template-expressions` errors in the script (numbers and `string | undefined` in template literals), fixed with `String()` and destructuring defaults.
+- `tests/unit/merge-gate.test.ts`: the stub takes an options object and can fail each call; new cases for the status POST failing (nothing merged), `gh pr merge` failing (exit 1), and nine no-check cases that read the real `.github/workflows/ci.yml`. The case "refuses a pull request that has no checks" is now "refuses when the checks cannot be read" (`HTTP 502`, not the no-checks text); entry `mg-nochecks` follows it.
+- `tests/mutations/B1b.json`: 18 new entries (`mg-post-fail`, `mg-merge-fail`, `mg-docs-*`, `mg-gate-*`); `hy-lint-warnings` rewritten to the new `lint` line (P-090).
+
+Proofs (run in `app/` unless noted)
+
+`bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  69 passed | 8 skipped (77)
+```
+
+`node ../scratch/replay.mjs --check` → `checked 308, bad 0` (first run: `BAD hy-lint-warnings: find occurs 0 times`, rewritten).
+
+`node ../scratch/replay.mjs hy-lint-warnings mg-nochecks mg-post-fail mg-merge-fail mg-docs-nochecks mg-docs-every mg-docs-anchor mg-docs-root mg-docs-main mg-docs-ci-read mg-docs-wildcard mg-docs-unread mg-docs-count mg-docs-empty mg-docs-files-read`
+```
+RED hy-lint-warnings: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules 1505ms
+RED mg-nochecks: exit=1 expect=true | × refuses when the checks cannot be read, and writes nothing 9ms
+RED mg-post-fail: exit=1 expect=true | × refuses and merges nothing when posting the status fails 10ms
+RED mg-merge-fail: exit=1 expect=true | × exits 1 when gh pr merge fails 10ms
+RED mg-docs-nochecks: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 10ms
+RED mg-docs-every: exit=1 expect=true | × refuses a pull request with no check that changes app/src/start.ts 9ms
+RED mg-docs-anchor: exit=1 expect=true | × refuses a pull request with no check that changes app/a.mdx 10ms
+RED mg-docs-root: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 11ms
+RED mg-docs-main: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 14ms
+RED mg-docs-ci-read: exit=1 expect=true | × refuses when ci.yml cannot be read on origin/main 10ms
+RED mg-docs-wildcard: exit=1 expect=true | × refuses when paths-ignore holds a wildcard the gate does not read 10ms
+RED mg-docs-unread: exit=1 expect=true | × refuses when paths-ignore holds a wildcard the gate does not read 11ms
+RED mg-docs-count: exit=1 expect=true | × refuses when gh lists fewer files than the pull request changes 11ms
+RED mg-docs-empty: exit=1 expect=true | × refuses a pull request with no check and no changed file 11ms
+RED mg-docs-files-read: exit=1 expect=true | × refuses when the changed files cannot be read 11ms
+replayed 15, not red 0
+```
+
+`node ../scratch/replay.mjs mg-gate-type mg-gate-lint mg-gate-format mg-gate-format-config mg-gate-lint-prettier` (the two format entries first ran with an `expect` that also matched the echoed command line; tightened to prettier's `[warn]` line and replayed again)
+```
+RED mg-gate-type: exit=2 expect=true | ../workspace/05-plans/merge-gate.mjs(17,7): error TS2322: Type 'string' is not assignable to type 'number'.
+RED mg-gate-lint: exit=1 expect=true | 17:1  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked
+RED mg-gate-lint-prettier: exit=1 expect=true | 226:26  error  Replace `"usage:·node·workspace/05-plans/merge-gate.mjs·<pr>\n"` with `⏎······"usage:·node·workspace/05-plans/merge-gate.mjs·
+RED mg-gate-format: exit=1 expect=true | [warn] ../workspace/05-plans/merge-gate.mjs
+RED mg-gate-format-config: exit=1 expect=true | [warn] ../workspace/05-plans/merge-gate.mjs
+```
+
+Why they are red (the diff of the red run, `node <scratchpad>/c7-why.mjs <ids>`, text below):
+```
+== mg-post-fail
+      Tests  1 failed | 38 passed (39)
+-   "code": 1,
++   "code": 0,
+-     "merge-gate: posting the status failed: HTTP 403",
++     "",
++     "gh pr merge",
+== mg-merge-fail
+      Tests  1 failed | 38 passed (39)
+-   "code": 1,
++   "code": 0,
+== mg-docs-anchor
+      Tests  1 failed | 38 passed (39)
+-   "code": 1,
++   "code": 0,
+-     "merge-gate: no checks reported and app/a.mdx is not a document",
++     "documents only: no check expected",
++     "",
++   ],
++   "writes": [
++     "gh api -X",
++     "gh pr merge",
+== mg-docs-wildcard
+      Tests  1 failed | 38 passed (39)
+-     "merge-gate: no checks, and the paths-ignore of ci.yml is unread",
++     "merge-gate: no checks reported and launch/film/notes.txt is not a document",
+```
+
+The gate was blind before: with the rejected round's `include` and the `mg-gate-type` type error, `bun run typecheck` exits 0 (`node <scratchpad>/c7-before.mjs`):
+```
+mutated tsconfig.scripts.json
+mutated ../workspace/05-plans/merge-gate.mjs
+typecheck exit 0 with the old include and a type error in the gate
+restored
+```
+Before the change, from `app/`: `bunx prettier --find-config-path ../workspace/05-plans/merge-gate.mjs` → `[error] Can not find configure file for "../workspace/05-plans/merge-gate.mjs".`, `bunx prettier --check ../workspace/05-plans/merge-gate.mjs` → `Code style issues found`, exit 1 (with `--config .prettierrc`: `All matched files use Prettier code style!`), `bunx eslint --max-warnings 0 ../workspace/05-plans/merge-gate.mjs` → `0:0  warning  File ignored because outside of base path`, exit 1.
+
+Title map, `node ../scratch/g7r2-map.mjs | tail -1` → `titles 34, without an entry 2`: the two `it.each` templates (`refuses a %s check ...`, covered by `mg-bucket` and `mg-bucket-pending`; `refuses a pull request with no check that changes %s`, covered by `mg-docs-every` and `mg-docs-anchor`).
+
+`bun run check` → exit 0; the gate lines of its output:
+```
+$ tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json
+$ eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs
+$ prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs
+All matched files use Prettier code style!
+ Test Files  14 passed (14)
+      Tests  346 passed | 8 skipped (354)
+```
+`bun run build` → exit 0 (`You can deploy this build using npx nitro deploy --prebuilt`).
+
+CI on the pushed head, run `37033505757` (`gh run view 37033505757 --json conclusion,jobs --jq '.conclusion, (.jobs[] | [.name,.conclusion] | @tsv)'`):
+```
+success
+check	success
+build	success
+merge-gate	skipped
+```
+and its `check` log holds the same three gate lines, so the second lint pass runs on the Linux runner too.
+
+Probes (from the repository root, script run on `slice/b1b`, P-105)
+- Code probe, PR #30: `git switch -c gate-probe origin/main~1` (`f57c9b2`), one commit to `app/src/lib/cx.ts`, `gh pr create --draft`. `node workspace/05-plans/merge-gate.mjs 30` → `mark ready first`, exit 1; after `gh pr ready 30` → `rebase first`, exit 1; `gh pr close 30 --delete-branch`.
+- Documents probe, PR #31: `git switch -c gate-probe-docs origin/main`, one line added to `workspace/README.md`, not a draft. `gh pr checks 31` → `no checks reported on the 'gate-probe-docs' branch`, exit 1. `node workspace/05-plans/merge-gate.mjs 31` → `merge-gate: no checks, and ci.yml cannot be read: fatal: path '.github/workflows/ci.yml' exists on disk, but not in 'origin/main'`, exit 1; the head carries `0` statuses and the PR stayed `OPEN`, unmerged; `gh pr close 31 --delete-branch`. This proves the real stderr of gh matches `NO_CHECKS` and the gate refuses while `main` has no `ci.yml`.
+- `git ls-remote --heads origin` → `refs/heads/main` and `refs/heads/slice/b1b` only.
+
+Scratch scripts (session scratchpad, not committed; P-088)
+```js
+// c7-before.mjs, run from app/
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+const edits = [
+  { file: "tsconfig.scripts.json", find: ', "../workspace/05-plans/merge-gate.mjs"', replace: "" },
+  {
+    file: "../workspace/05-plans/merge-gate.mjs",
+    find: 'const CI_YML = ".github/workflows/ci.yml";',
+    replace: '/** @type {number} */\nconst CI_YML = ".github/workflows/ci.yml";',
+  },
+];
+const saved = edits.map((e) => readFileSync(e.file));
+try {
+  for (const e of edits) {
+    const text = readFileSync(e.file, "utf8");
+    if (text.split(e.find).length !== 2) throw new Error(`find not once in ${e.file}`);
+    writeFileSync(e.file, text.replace(e.find, () => e.replace));
+    console.log(`mutated ${e.file}`);
+  }
+  let exit = 0;
+  try { execSync("bun run typecheck", { stdio: "pipe" }); } catch (error) { exit = error.status ?? 1; }
+  console.log(`typecheck exit ${exit} with the old include and a type error in the gate`);
+} finally {
+  edits.forEach((e, i) => writeFileSync(e.file, saved[i]));
+  console.log("restored");
+}
+```
+```js
+// c7-why.mjs <id> ..., run from app/: apply a registry entry, run it, print the diff lines, restore
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+for (const id of process.argv.slice(2)) {
+  const e = entries.find((entry) => entry.id === id);
+  const saved = readFileSync(e.file);
+  const text = saved.toString("utf8");
+  if (text.split(e.find).length !== 2) throw new Error(`${id}: find not once`);
+  writeFileSync(e.file, text.replace(e.find, () => e.replace));
+  let out = "";
+  try { out = execSync(e.run, { encoding: "utf8", stdio: "pipe" }); }
+  catch (error) { out = `${error.stdout ?? ""}${error.stderr ?? ""}`; }
+  finally { writeFileSync(e.file, saved); }
+  const why = out.replace(/\u001b\[[0-9;]*m/g, "").split("\n")
+    .filter((line) => /^\s*[-+] {2,}\S|Tests {2}/.test(line)).slice(0, 10);
+  console.log(`== ${id}\n${why.join("\n")}`);
+}
+```
+
+For the orchestrator
+- H42 (1)'s evidence was confounded (P-120): PRs 21 and 23 had no check because `origin/main` holds no workflow; PR 23 changed `.claude/workflows/build-slice.js`, which is not a document, so under the built rule it would be refused. Until B1b merges, the gate refuses every pull request with no check (`ci.yml cannot be read`), the orchestrator's chore PRs included; after the merge, a `.claude/**` change gets a `ci` run.
+- Conflict between H42 (1) and H42 (2): `ci.yml` ignores `workspace/**`, so a pull request that changes only `workspace/05-plans/merge-gate.mjs` starts no `ci` run, and the gate itself calls it documents only. Its format, lint and type gates then run only in the author's local `bun run check`, never in CI. A decision is needed (for example a `paths-ignore` that keeps this one file, which GitHub's filter allows only through `paths` with `!`, and which this reader refuses today).
+- Stale plan line: B1b line 112 says "`gh pr checks <pr>` must exit 0"; P-106 (the `--json` form exits 0 whatever the buckets) and H42 (1) (no checks: exit 1 and a documents-only merge) replace it.
+- The `*` to `[^/]*` mapping is not observable with `ci.yml`'s patterns (`**/*.md` reads the same with `.*`), so no test can watch it fail; it is kept because GitHub's `*` does not cross a slash.
+
+NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: the documents-only merge on the real repository (it needs `ci.yml` on `main`); the post-merge `merge-gate` job's first run.
+
+GOTCHAS: G-032 and P-120 added; P-070 and P-090 hit again (noted in the entries).
