@@ -568,3 +568,17 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Started: `Workflow({ name: "build-slice", args: { slice: "B1b", root: "E:/mop-build/spine" } })` in the lane `E:/mop-build/spine` (branch `slice/b1b` from origin/main). The workflow stops after a rejected group or when a group needs the orchestrator; resume with `startAt`.
 - Orchestrator duty per group: re-run its proofs (three times when the claim is that nothing changes, P-059), read the diff against STANDARDS.md, merge through a pull request, update the status table at the end of PLAN.md, record Actions minutes before each phase (P-048).
 - Order after B1b: B2, B3, B4 steps 1 to 8 (phase 0), then three lanes (PLAN.md "48-hour full build").
+
+## 2026-10-02 07:30 EDT · B1b is building (run `wf_29e2899b-5e5`, group g1 started)
+- Two starts stopped at sizing on "unmet dependencies" that were partial waits (P-061). Fixed for good: the saved
+  workflow now stops only when no group can run. The running B1b was resumed with `ignoreDependencies: true` after the
+  orchestrator read the five items: GitHub Pro (step 9), the custom domain (step 11 live proof), B8b's backup schedule
+  row (step 8 Part B1), B2 and B3 (two later proofs in steps 6 and 7), and the operator storing the backup private key
+  offline (step 8). None stops the slice.
+- Sizing: 13 groups g1 (steps 1-2), g2 (2b), g3 (3), g4 (3b), g5 (4), g6 (5), g7 (5b), g8 (6), g9 (7), g10 (7b),
+  g11 (8), g12 (9-10), g13 (11). The workflow stops after a rejected group or one that needs the orchestrator
+  (g7 merge gate, g9 first production deploy, g10 or g11 backup). Resume with
+  `Workflow({ scriptPath: <the run's script>, resumeFromRunId: "wf_29e2899b-5e5", args: { slice: "B1b", root: "E:/mop-build/spine", ignoreDependencies: true, startAt: "<group>" } })`
+  or a fresh run of the saved workflow with `startAt`.
+- OPERATOR ACTION COMING at step 8: store the backup private key (`creds/backup-recipient.key`) offline before the
+  laptop copy is deleted.

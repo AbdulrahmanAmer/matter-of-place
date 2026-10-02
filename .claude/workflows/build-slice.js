@@ -1,7 +1,7 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end with Sonnet workers: size it into groups, build each group, review it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from).',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log', model: 'sonnet' },
@@ -101,7 +101,10 @@ Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/wo
 if (!sized) throw new Error('sizing agent failed')
 log(`${slice}: ${sized.groups.length} groups, ${sized.groups.filter((g) => g.blocked).length} blocked, unmet dependencies: ${sized.unmetDependencies.join('; ') || 'none'}`)
 if (a.dryRun) return { slice, dryRun: true, ...sized }
-if (sized.unmetDependencies.length && !a.ignoreDependencies) return { slice, stopped: 'unmet dependencies', ...sized }
+// The stop rule is mechanical (GOTCHAS P-061): what the sizing agent lists as unmet is information for the
+// orchestrator; the slice stops here only when not one group can run, or when the orchestrator asks for a strict stop.
+if (!sized.groups.some((g) => !g.blocked)) return { slice, stopped: 'no group can run', ...sized }
+if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stopped: 'unmet dependencies (strict)', ...sized }
 
 let groups = sized.groups
 if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))
