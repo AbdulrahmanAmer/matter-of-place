@@ -11,7 +11,7 @@
 // ledger: the steps whose proofs it re-ran itself. Built is not accepted.
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -32,6 +32,17 @@ const AREAS = {
   producers: "Code, tests and settings each slice writes",
   decisions: "Decisions carried into the build",
 };
+// The arms of the product, as the operator names them. Every planned piece (trace.json) belongs to one arm
+// through its area. An arm's own percentage weighs its pieces by how far the slice that builds each one has
+// been accepted. Its percentage to launch adds the pieces of the arms it cannot work without (`needs`), so
+// the database's progress counts toward the website and the admin portal, and the backend's toward both.
+const ARMS = [
+  { key: "website", label: "Website", what: "pages, forms, the public API they call, SEO, legal pages", dimensions: ["public-site", "public-api"], needs: ["database", "backend", "delivery"] },
+  { key: "admin", label: "Admin portal", what: "screens, actions, roles and permissions", dimensions: ["admin"], needs: ["database", "backend", "delivery"] },
+  { key: "backend", label: "Backend logic and automation", what: "jobs, recipes, cross-wiring, content pipelines, email", dimensions: ["automation-engine", "content-pipelines", "email"], needs: ["database", "delivery"] },
+  { key: "database", label: "Database", what: "tables, functions, triggers, policies, migrations", dimensions: ["data"], needs: ["delivery"] },
+  { key: "delivery", label: "Deployment and operations", what: "CI, deploys, backups, monitoring, the launch switch", dimensions: ["delivery-ops"], needs: [] },
+];
 const FONTS = {
   "/fonts/jost.woff2": "brand/typography/jost/jost-variable.woff2",
   "/fonts/cormorant.woff2": "brand/typography/cormorant-garamond/cormorant-garamond-variable.woff2",
@@ -59,9 +70,12 @@ function readSlices() {
     const file = join(HERE, `${id}.md`);
     let title = id;
     let steps = [];
+    let dependsOn = [];
     if (existsSync(file)) {
       const text = readFileSync(file, "utf8");
       title = (text.match(/^# (.+)$/m)?.[1] ?? id).replace(/^\S+\s+[—-]\s+/, "");
+      const depends = text.split("\n").find((line) => line.includes("Depends on:"))?.split("Depends on:")[1] ?? "";
+      dependsOn = [...new Set([...depends.matchAll(/\b(B\d+b?|H1|L1)\b/g)].map((m) => m[1]).filter((dep) => dep !== id))];
       steps = (text.split(/^## Steps/m)[1] ?? "")
         .split(/^## /m)[0]
         .split("\n")
@@ -69,7 +83,7 @@ function readSlices() {
         .filter(Boolean)
         .map((m) => ({ id: m[1], text: shorten(m[2]), waiting: /BLOCKED/.test(m[2]) }));
     }
-    slices.push({ id, title, planStatus: cells[2], closedOn: cells[3], steps });
+    slices.push({ id, title, planStatus: cells[2], closedOn: cells[3], steps, dependsOn });
   }
   return slices;
 }
@@ -176,8 +190,12 @@ function readRuns(ledger, byId, now) {
           group.accepted = true;
         }
         const words = KINDS.map(([re, say]) => (kind.match(re) ? say(kind.match(re)) : null)).find(Boolean) ?? kind;
+        // No agent of the build has run longer than 36 minutes; a journal silent for 45 is a stopped run.
+        const stale = now - journal.at > 45 * 60_000;
         const outcome = !result
-          ? "running now"
+          ? stale
+            ? "no result recorded: the run was stopped"
+            : "running now"
           : isReview
             ? result.verdict === "accept"
               ? "accepted"
@@ -190,7 +208,7 @@ function readRuns(ledger, byId, now) {
         runEvents.push({
           text: `${words} ${slice.id} step${steps.length > 1 ? "s" : ""} ${steps.join(", ")}`,
           outcome,
-          running: !result,
+          running: !result && !stale,
         });
       }
       for (const group of groups.values()) {
@@ -317,6 +335,37 @@ export function collect(now = new Date()) {
     if (!(item.dimension in AREAS)) errors.push(`trace.json: area "${item.dimension}" has no label in board.mjs`);
   }
 
+  const pieceDone = (item) => {
+    if (item.plan === "exists") return 1;
+    const slice = byId.get(item.plan);
+    return slice && slice.total ? slice.accepted / slice.total : 0;
+  };
+  const own = new Map(
+    ARMS.map((arm) => {
+      const items = trace.filter((item) => arm.dimensions.includes(item.dimension));
+      return [arm.key, { pieces: items.length, done: items.reduce((sum, item) => sum + pieceDone(item), 0) }];
+    }),
+  );
+  const arms = ARMS.map((arm) => {
+    const path = new Set([arm.key]);
+    for (const key of path) for (const need of ARMS.find((x) => x.key === key)?.needs ?? []) path.add(need);
+    const pieces = [...path].reduce((sum, key) => sum + own.get(key).pieces, 0);
+    const done = [...path].reduce((sum, key) => sum + own.get(key).done, 0);
+    const mine = own.get(arm.key);
+    return {
+      key: arm.key,
+      label: arm.label,
+      what: arm.what,
+      pieces: mine.pieces,
+      ownPercent: pct(mine.done, mine.pieces),
+      needs: [...path].filter((key) => key !== arm.key).map((key) => ARMS.find((x) => x.key === key).label),
+      total: pieces,
+      accepted: Math.round(done),
+      remaining: Math.round(pieces - done),
+      percent: pct(done, pieces),
+    };
+  });
+
   const hours = (now.getTime() - new Date(ledger.started).getTime()) / 3_600_000;
   const pace = accepted > 0 && hours > 0 ? hours / accepted : null;
   return {
@@ -341,6 +390,7 @@ export function collect(now = new Date()) {
     lanes,
     slices,
     areas,
+    arms,
     waiting: ledger.waiting,
     worktrees: readLanes(),
     runs: runs.runs,
@@ -354,6 +404,7 @@ export function versionOf(data) {
     overall: data.overall,
     now: data.now,
     events: data.runs.map((run) => run.events),
+    arms: data.arms.map((arm) => arm.percent),
     errors: data.errors,
     commits: data.worktrees.map((w) => w.commits[0]?.subject),
     steps: data.slices.map((s) => s.steps.map((step) => step.state)),
@@ -377,14 +428,32 @@ function ago(ms, now) {
   return `${hours} hours ago`;
 }
 
-export function render(data, version) {
+export function render(data, version, snapshot = false) {
   const o = data.overall;
   const now = new Date(data.generated);
+  const pace = data.pace;
+  const armRows = data.arms
+    .map(
+      (arm) =>
+        `<tr><th scope="row">${esc(arm.label)}</th><td>${esc(arm.what)}</td><td class="num">${arm.pieces}</td><td class="num">${arm.ownPercent}%</td><td>${esc(arm.needs.join(", ") || "nothing else")}</td><td class="num">${arm.remaining} of ${arm.total}</td><td class="num">${arm.percent}%</td><td>${bar(arm.accepted, 0, arm.total)}</td></tr>`,
+    )
+    .join("\n");
+  const remainingHours = pace.hoursPerStep === null ? null : Math.round(pace.hoursPerStep * (o.total - o.accepted));
+  const finish = `<section class="finish" aria-labelledby="finish-h">
+<h2 id="finish-h">To the finish line</h2>
+<p class="figure" aria-hidden="true">${o.percent}%</p>
+<p class="lead">${o.percent} percent of the way to launch: ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, across ${o.slices} slices of which ${o.slicesClosed} ${o.slicesClosed === 1 ? "is" : "are"} closed.</p>
+<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span>
+<ul>
+${data.arms.map((arm) => `<li><strong>${esc(arm.label)}:</strong> ${arm.ownPercent}% of its own pieces, ${arm.percent}% counting what it cannot work without, ${arm.remaining} of ${arm.total} pieces to go.</li>`).join("\n")}
+</ul>
+<p>${remainingHours === null ? "No pace is measured yet." : `At the measured pace of ${pace.hoursPerStep} hours a step, the ${o.total - o.accepted} remaining steps are about ${remainingHours} hours of building on one lane. ${esc(data.paceNote)}`}</p>
+<p class="meta">The finish line is every step of every slice accepted, hardened (H1) and switched on (L1). A step counts only after a second model in a fresh context accepted it. Steps differ in size, so this is a count of steps, not of hours.</p>
+</section>`;
   // The laptop's own clock with its offset from UTC written out: the shell here prints "EDT" for
   // Egypt Daylight Time, which reads as US Eastern (GOTCHAS P-130).
   const offset = -now.getTimezoneOffset() / 60;
   const clock = `${new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(now)}, laptop time (UTC${offset >= 0 ? "+" : ""}${offset})`;
-  const pace = data.pace;
   const paceLine =
     pace.hoursPerStep === null
       ? "No step is accepted yet, so there is no pace to report."
@@ -401,12 +470,6 @@ export function render(data, version) {
       s.total
         ? `<tr><th scope="row"><a href="#slice-${esc(s.id)}">${esc(s.id)}</a></th><td>${esc(s.title)}</td><td class="num">${esc(s.state)}</td><td class="num">${s.accepted} of ${s.total}</td><td class="num">${s.inReview}</td><td class="num">${s.percent}%</td><td>${bar(s.accepted, s.inReview, s.total)}</td></tr>`
         : `<tr><th scope="row">${esc(s.id)}</th><td>${esc(s.note || s.title)}</td><td>${esc(s.state)}</td><td class="num">not counted</td><td class="num"></td><td class="num"></td><td></td></tr>`,
-    )
-    .join("\n");
-  const areaRows = data.areas
-    .map(
-      (a) =>
-        `<tr><th scope="row">${esc(a.label)}</th><td class="num">${a.pieces}</td><td class="num">${a.percent}%</td><td>${bar(a.percent, 0, 100)}</td></tr>`,
     )
     .join("\n");
   const details = data.slices
@@ -451,15 +514,19 @@ export function render(data, version) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${o.percent}% · Matter of Place build</title>
+<title>${snapshot ? "Build Progress Board" : `${o.percent}% · Matter of Place build`}</title>
+${snapshot ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap">' : ""}
 <style>
-@font-face { font-family: "Jost"; src: url("/fonts/jost.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Cormorant Garamond"; src: url("/fonts/cormorant.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+${snapshot ? "" : '@font-face { font-family: "Jost"; src: url("/fonts/jost.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }\n@font-face { font-family: "Cormorant Garamond"; src: url("/fonts/cormorant.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }'}
 :root { --bg: #F5F2EB; --ink: #11110F; --line: #C9C0B2; --soft: #575751; --mid: #8B877F; --panel: #EEEAE1; }
-@media (prefers-color-scheme: dark) { :root { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; } }
+:root[data-theme="dark"] { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; }
+.finish { border-top: 1px solid var(--line); margin-top: 56px; }
+.finish h2 { border: 0; margin-top: 20px; }
+.finish ul { padding-left: 22px; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 "Jost", "Segoe UI", system-ui, sans-serif; }
-main { max-width: 1120px; margin: 0 auto; padding: 40px 20px 80px; }
+main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 80px; }
 h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; line-height: 1.15; margin: 0; }
 h1 { font-size: 44px; }
 h2 { font-size: 30px; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); }
@@ -503,7 +570,7 @@ ul { padding-left: 22px; }
 <p class="figure" aria-hidden="true">${o.percent}%</p>
 <p class="lead">${o.percent} percent complete: ${o.accepted} of ${o.total} steps are accepted, and ${o.inReview} more ${o.inReview === 1 ? "is" : "are"} being built or reviewed. ${o.slicesClosed} of ${o.slices} slices are closed.${pending}</p>
 <span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span>
-<p class="meta" id="live" role="status">Page made ${esc(clock)}. It reloads by itself when a step, a review or a commit changes; nobody has to update it.</p>
+<p class="meta" id="live" role="status">${snapshot ? `Snapshot taken ${esc(clock)}. The live board runs on the build laptop and updates itself; this copy shows the state at that moment.` : `Page made ${esc(clock)}. It reloads by itself when a step, a review or a commit changes; nobody has to update it.`}</p>
 ${errors}
 
 <h2>What is happening now</h2>
@@ -515,7 +582,7 @@ ${worktrees}
 
 <h2>By phase and lane</h2>
 <div class="wrap"><table>
-<caption>Phase 0 runs on one lane. Phase 1 opens three lanes side by side. Phase 2 is hardening and launch.</caption>
+<caption>Phase 0 runs two lanes side by side, then one. Phase 1 opens three lanes. Phase 2 is hardening and launch.</caption>
 <thead><tr><th scope="col">Lane</th><th scope="col">Slices</th><th scope="col">Steps accepted</th><th scope="col">In review</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
 <tbody>
 ${laneRows}
@@ -529,12 +596,12 @@ ${laneRows}
 ${sliceRows}
 </tbody></table></div>
 
-<h2>By area of the product</h2>
+<h2>By arm of the product</h2>
 <div class="wrap"><table>
-<caption>Every planned piece of the product belongs to one slice. An area's percentage is the share of its pieces that sit in accepted steps, weighted by how far each piece's slice has been accepted.</caption>
-<thead><tr><th scope="col">Area</th><th scope="col">Planned pieces</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
+<caption>Every planned piece of the product belongs to one arm. "Its own" weighs an arm's pieces by how far the slice that builds each one is accepted. "To launch" adds the pieces of the arms it cannot work without: the database counts toward the website and the admin portal, the backend toward both, deployment toward all.</caption>
+<thead><tr><th scope="col">Arm</th><th scope="col">What it covers</th><th scope="col">Pieces</th><th scope="col">Its own</th><th scope="col">Cannot work without</th><th scope="col">Pieces to go, counting those</th><th scope="col">To launch</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
 <tbody>
-${areaRows}
+${armRows}
 </tbody></table></div>
 
 <h2>Waiting on you</h2>
@@ -546,11 +613,13 @@ ${data.waiting.map((w) => `<li><strong>${esc(w.what)}.</strong> ${esc(w.why)}</l
 <h2>Every step</h2>
 ${details}
 
+${finish}
+
 <h2>How this is counted</h2>
 <p>A step counts as accepted once a second model, in a fresh context, tried to refute it and accepted it. The page reads that from the build's own journal, so it moves the moment a review ends. The orchestrator then re-runs the step's proofs and writes the step into the ledger; a step still waiting for that re-run is marked as such. A step that is being built or reviewed is not counted as done. Steps differ in size, so the percentage is a count of steps, not of hours.</p>
 <p>The numbers come from the plan files (the steps), <code>PLAN.md</code> (the slice list), <code>trace.json</code> (the planned pieces), <code>progress.json</code> (the ledger) and the journals of the build runs. The same numbers as data: <a href="/data.json">data.json</a>.</p>
 </main>
-<script>
+${snapshot ? "" : `<script>
 // Ask the server every 15 seconds whether anything changed; reload only when it did.
 const shown = ${JSON.stringify(version)};
 setInterval(async () => {
@@ -561,7 +630,7 @@ setInterval(async () => {
     // the board is not running; keep the page as it is
   }
 }, 15000);
-</script>
+</script>`}
 </body>
 </html>`;
 }
@@ -572,7 +641,7 @@ function summary(data) {
     `overall: ${o.accepted} of ${o.total} steps accepted (${o.percent}%), ${o.unchecked} of them not yet re-run by the orchestrator, ${o.inReview} in review, ${o.slicesClosed} of ${o.slices} slices closed`,
     ...data.runs.flatMap((run) => run.events.slice(0, 3).map((e) => `${run.title}: ${e.text}: ${e.outcome}`)),
     ...data.lanes.map((l) => `lane ${l.phase} ${l.lane}: ${l.accepted} of ${l.total} (${l.percent}%)`),
-    ...data.areas.map((a) => `area ${a.label}: ${a.pieces} pieces, ${a.percent}%`),
+    ...data.arms.map((arm) => `arm ${arm.label}: own ${arm.ownPercent}% of ${arm.pieces} pieces; to launch ${arm.percent}% (${arm.remaining} of ${arm.total} pieces to go, counting ${arm.needs.join(", ") || "nothing else"})`),
   ].join("\n");
 }
 
@@ -584,6 +653,13 @@ function main() {
     for (const error of data.errors) console.error(`error: ${error}`);
     console.log(data.errors.length ? `board: ${data.errors.length} error(s)` : "board: OK");
     process.exit(data.errors.length ? 1 : 0);
+  }
+  const exportAt = args.indexOf("--export");
+  if (exportAt >= 0) {
+    const data = collect();
+    writeFileSync(args[exportAt + 1], render(data, versionOf(data), true));
+    console.log(`board: snapshot written to ${args[exportAt + 1]} (${data.overall.percent}%)`);
+    return;
   }
   const at = args.indexOf("--port");
   const port = at >= 0 ? Number(args[at + 1]) : 8790;
