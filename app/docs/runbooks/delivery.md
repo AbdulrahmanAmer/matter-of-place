@@ -190,6 +190,51 @@ Checks measured in step 3 with an empty `.dev.vars`: no `X-Robots-Tag` on `127.0
 `Host: matterofplace.com`, `noindex, nofollow` with `Host: pr-1.holy-meadow-4327.workers.dev`; with
 `MOP_ENV=local` the first request is `noindex, nofollow` as well.
 
+## Smoke
+
+`node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]` (`bun run smoke <baseUrl>`) is the last step of
+every deploy job (gate G22). It prints one line per URL and exits 1 naming each failing one:
+
+- `/`, `/properties`, `/markets`, `/california`, `/stories`, `/submit`, `/contact`, `/sitemap.xml` answer 200 with
+  `x-request-id`, `nosniff` and `X-Frame-Options: DENY`;
+- `X-Robots-Tag: noindex, nofollow` on every `.workers.dev` host, none on `matterofplace.com`, and the flag on any
+  other host (default noindex); a flag that contradicts the host exits 2 before any request;
+- `/` answers `max-age=0, must-revalidate`, and a second request of `/` carries another request id;
+- the first `/assets/*.js` of the home page answers `immutable, max-age=31536000` with `nosniff` (Nitro's rule), and
+  `/media/tiburon-waterline.mp4` answers `max-age=604800` (our `public/_headers`);
+- `POST /api/hooks/sentry-test` answers `Cache-Control` exactly `no-store`, whatever its status.
+
+Requests do not follow redirects, so a redirect is a failure. A refused connection is retried twice, one second
+apart (GOTCHAS P-054). `SMOKE_FORCE_FAIL=1` prints `smoke forced to fail (SMOKE_FORCE_FAIL)` and exits 1 before any
+request; the `dev` job uses it to rehearse its rollback (DO-09).
+
+## Previews
+
+`.github/workflows/deploy.yml` runs three jobs on a pull request into `main`. Each refuses a fork and Dependabot, and
+none links, migrates or reads the database (invariant 13).
+
+- `preview-db` runs on every push, drafts included. When the pull request changes a `supabase/migrations/*.sql` file
+  since it left `main` (`git diff base...head`, three dots, so a migration that only `main` gained does not count), it
+  posts one comment starting `preview-db:` and never a second. The preview runs against `main`'s schema until the
+  migration merges (DB-01).
+- `preview` runs once the pull request is ready for review and `CI_HEAVY` is not `off`. It builds with the HAS_DB
+  switch (invariant 13a), deploys the Worker `pr-<n>` with `MOP_ENV`, `SENTRY_RELEASE` (the merge commit) and
+  `MEDIA_PUBLIC_BASE`, then pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, runs the
+  smoke against `https://pr-<n>.holy-meadow-4327.workers.dev` and comments that address once (`preview: <url>`).
+- `preview-cleanup` runs when the pull request closes and deletes `pr-<n>`. It shares the preview's concurrency group
+  and waits, so a preview still deploying cannot bring the Worker back after the delete. A pull request closed before
+  any preview has no Worker; Cloudflare answers `This Worker does not exist on this account. [code: 10090]` (measured
+  2026-10-02 with `bunx wrangler delete --name pr-990001 --force`, exit 1), and only that answer is forgiven.
+
+Until B3 serves `/api/public/*`, a preview built while the bundle holds a database pair is in live mode and its catalog
+pages answer 500. Measured 2026-10-02 under `bun run cf:preview` on a build with `VITE_API_BASE_URL=/api/public`: `/`,
+`/properties`, `/markets`, `/california` and `/stories` answered `500 text/html`, `/sitemap.xml` `500 application/json`,
+`/submit` and `/contact` 200. The server render calls the API with a relative address, which a Worker cannot fetch. So
+the preview smoke stays red on those URLs until B3 lands, or until the orchestrator rules otherwise.
+
+`wrangler secret bulk` (4.145.0) deletes a key whose value is `null` in the JSON it reads (`bunx wrangler secret bulk
+--help`); a key that is simply absent stays on the Worker.
+
 ## Sentry
 
 Organisation `matter-of-place`, project `javascript-tanstackstart-react` (ASSUMED E9, E21). The Worker and the job

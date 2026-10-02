@@ -1191,3 +1191,17 @@ Entry template
 - rule: anchor an edit of a registry entry on its `"id"` line or its `replace` line, never on its `expect`.
 - proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
 - added: 2026-10-02
+
+## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
+- symptom: B1b step 6 builds the `pr-<n>` preview in live mode whenever `PREVIEW_WORKER_SECRETS_JSON` holds `SUPABASE_URL` (invariant 13a, true today), and expects its smoke to pass. Under `bun run cf:preview` a build with `VITE_API_BASE_URL=/api/public` answered `500 text/html` on `/`, `/properties`, `/markets`, `/california` and `/stories`, and `500 application/json` on `/sitemap.xml`; `/submit` and `/contact` answered 200.
+- cause: the http services adapter fetches `${baseUrl}${path}` with the relative base `/api/public`; inside the Worker's server render a relative address cannot be fetched, and the routes it would reach are B3's and do not exist yet. The plan's landing order puts B1b steps 6 and 7 before B3, so it assumed a deploy before B3 smokes green.
+- rule: before a plan step deploys and smokes a build, build it with the same `VITE_*` values the workflow passes and smoke it locally under `cf:preview`; a preview, dev or production smoke of a live-mode build is red until B3 lands. A smoke that names those URLs is that gap, not a smoke defect: report it, do not weaken the smoke or change the build mode without a ruling.
+- proof: `cd app && VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/properties` → `500 text/html; charset=utf-8` (measured 2026-10-02); the same after a plain `bun run build` → `200 text/html; charset=utf-8`.
+- added: 2026-10-02
+
+## P-135 · `git grep` does not search a file git does not track: a new file's "prints nothing" proves nothing
+- symptom: the B1b step 6 proof `git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows` was first run while the new `deploy.yml` was still untracked; it printed nothing because it never read the file.
+- cause: `git grep` searches the tracked files of the work tree only, unless `--untracked` is given.
+- rule: a `git grep` proof over files the change creates runs after `git add` (or with `--untracked`); P-049's advice to search with `git grep` assumes the files are tracked.
+- proof: in a scratch repository, `printf 'R2_X\n' > new.yml && git grep -c R2_; echo $?` → `1`, and `git grep --untracked -c R2_` → `new.yml:1` (git 2.55.0).
+- added: 2026-10-02

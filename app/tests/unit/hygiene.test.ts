@@ -18,6 +18,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 const Value = z.union([z.string(), z.number(), z.boolean()]);
 const Step = z.object({
   name: z.string().optional(),
+  if: z.string().optional(),
   uses: z.string().optional(),
   run: z.string().optional(),
   env: z.record(Value).optional(),
@@ -370,56 +371,175 @@ describe("workflows (invariants 1, 8, 13 to 15; R54, R56, R58)", () => {
   });
 });
 
-describe.skipIf(deploy === undefined)("deploy.yml (skipped until step 6 writes it)", () => {
-  it("preview refuses forks and Dependabot (invariants 6 and 8)", () => {
-    const condition = String(deploy?.data.jobs["preview"]?.if);
-    expect([
-      condition.includes("github.event.pull_request.head.repo.full_name == github.repository"),
-      condition.includes("dependabot[bot]"),
-    ]).toEqual([true, true]);
+const PR_JOBS = ["preview-db", "preview", "preview-cleanup"];
+const deployJob = (job: string) => deploy?.data.jobs[job];
+const has = (job: string, needle: string) => textOf(deploy, job).includes(needle);
+const HAS_DB_ENV =
+  "HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}";
+const API_BASE = "VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}";
+const MOP_ENV_FLAG = "--var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }}";
+
+describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", () => {
+  it("runs on pull requests into main, marked ready and closed", () => {
+    const types = PullRequestTrigger.parse(deploy?.data.on).pull_request.types;
+    expect(["ready_for_review", "closed"].filter((type) => !types.includes(type))).toEqual([]);
   });
 
-  it("production deploys only what ci passed on main (invariant 6a)", () => {
-    const text = deploy?.text ?? "";
-    expect([
-      text.includes("workflow_run"),
-      text.includes("workflows: [ci]"),
-      text.includes("conclusion == 'success'"),
-      PullRequestTrigger.parse(deploy?.data.on).pull_request.types.includes("ready_for_review"),
-    ]).toEqual([true, true, true, true]);
+  it("every pull request job refuses forks and Dependabot (invariants 6 and 8)", () => {
+    const loose = PR_JOBS.filter((job) => {
+      const condition = String(deployJob(job)?.if);
+      return !(
+        condition.includes("github.event.pull_request.head.repo.full_name == github.repository") &&
+        condition.includes("github.actor != 'dependabot[bot]'")
+      );
+    });
+    expect(loose).toEqual([]);
   });
 
-  it("dev deploys matter-of-place-dev and preview and dev switch on HAS_DB (G19, 13a)", () => {
-    const has = (job: string, needle: string) => textOf(deploy, job).includes(needle);
-    expect([
-      has("dev", "--name matter-of-place-dev"),
-      has("dev", "MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }}"),
-      ...["preview", "dev"].flatMap((job) => [
-        has(job, "HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}"),
-        has(job, "VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}"),
-      ]),
-      ...["preview", "dev", "production"].map((job) => has(job, "--var MEDIA_PUBLIC_BASE:")),
-    ]).toEqual(Array<boolean>(9).fill(true));
+  it("preview-db and preview skip a closed pull request and cleanup runs only on one", () => {
+    expect(PR_JOBS.map((job) => String(deployJob(job)?.if).split(" && ")[0])).toEqual([
+      "github.event.action != 'closed'",
+      "github.event.action != 'closed'",
+      "github.event.action == 'closed'",
+    ]);
   });
 
-  it("production needs dev, and neither production nor preview-db touches the database (13)", () => {
-    const touches = ["production", "preview-db"].flatMap((job) =>
-      ["db:push", "supabase link", "functions deploy"]
-        .filter((word) => textOf(deploy, job).includes(word))
-        .map((word) => `${job}: ${word}`),
+  it("pull request jobs read only the secrets the plan names (13, 15)", () => {
+    const allowed: Record<string, string[]> = {
+      "preview-db": [],
+      preview: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "PREVIEW_WORKER_SECRETS_JSON"],
+      "preview-cleanup": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+    };
+    const extra = PR_JOBS.flatMap((job) =>
+      [...textOf(deploy, job).matchAll(/secrets\.(\w+)/g)]
+        .map((match) => match[1] ?? "")
+        .filter((name) => !(allowed[job] ?? []).includes(name))
+        .map((name) => `${job}: ${name}`),
     );
-    expect({ needsDev: textOf(deploy, "production").includes("needs: dev"), touches }).toEqual({
-      needsDev: true,
+    expect({ extra, preview: has("preview", "secrets.PREVIEW_WORKER_SECRETS_JSON") }).toEqual({
+      extra: [],
+      preview: true,
+    });
+  });
+
+  it("preview-db comments once, on a changed migration only, and touches no database (13)", () => {
+    const comment = deployJob("preview-db")?.steps.find((step) => step.name === "comment");
+    const touches = ["db:push", "supabase link", "functions deploy", "supabase "].filter((word) =>
+      has("preview-db", word),
+    );
+    expect({
+      diff: has(
+        "preview-db",
+        `git diff --name-only "$BASE...$HEAD" -- 'supabase/migrations/*.sql'`,
+      ),
+      when: comment?.if,
+      once: comment?.run?.includes(`select(startswith("preview-db:"))`),
+      body: comment?.run?.includes(`--body "preview-db: this preview runs against main's schema`),
+      touches,
+    }).toEqual({
+      diff: true,
+      when: "steps.migrations.outputs.changed == 'true'",
+      once: true,
+      body: true,
       touches: [],
     });
   });
 
-  it("production and dev never read CI_HEAVY (invariant 14)", () => {
-    expect(["production", "dev"].filter((job) => textOf(deploy, job).includes("CI_HEAVY"))).toEqual(
-      [],
-    );
+  it("preview builds and deploys pr-<n> on the HAS_DB switch with the merge commit (13a, 11)", () => {
+    expect({
+      env: has("preview", HAS_DB_ENV),
+      apiBase: has("preview", API_BASE),
+      mopEnv: has("preview", MOP_ENV_FLAG),
+      name: has("preview", "--name pr-${{ github.event.number }}"),
+      release: has("preview", "--var SENTRY_RELEASE:${{ github.sha }}"),
+      media: has(
+        "preview",
+        "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media",
+      ),
+      turnstile: has("preview", "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA"),
+    }).toEqual({
+      env: true,
+      apiBase: true,
+      mopEnv: true,
+      name: true,
+      release: true,
+      media: true,
+      turnstile: true,
+    });
+  });
+
+  it("preview deploys, then sets the secrets, then smokes, then comments", () => {
+    const steps = deployJob("preview")?.steps ?? [];
+    const at = (test: (run: string) => boolean) => steps.findIndex((step) => test(step.run ?? ""));
+    const order = [
+      at((run) => run.startsWith("bunx wrangler deploy ")),
+      at((run) => run.includes('>> "$GITHUB_ENV"')),
+      at((run) => run.includes("bunx wrangler secret bulk --name pr-${{ github.event.number }}")),
+      at((run) => run === 'node scripts/smoke.mjs "$PREVIEW_URL"'),
+      at((run) => run.includes('gh pr comment "$PR" --body "preview: $PREVIEW_URL"')),
+    ];
+    expect({
+      found: order.every((index) => index >= 0),
+      ordered: order.every((index, i) => i === 0 || index > (order[i - 1] ?? 0)),
+      urlDefinitions: (deploy?.text.match(/PREVIEW_URL=/g) ?? []).length,
+    }).toEqual({ found: true, ordered: true, urlDefinitions: 1 });
+  });
+
+  it("preview-cleanup deletes pr-<n> and forgives only a Worker that never existed", () => {
+    const run = deployJob("preview-cleanup")?.steps.find((step) => step.name === "delete");
+    expect({
+      worker: run?.env?.["WORKER"],
+      delete: run?.run?.includes('bunx wrangler delete --name "$WORKER" --force'),
+      forgiven: run?.run?.match(/code: \d+/g),
+      failsOtherwise: run?.run?.includes("exit 1"),
+      waits: textOf(deploy, "preview-cleanup").includes("cancel-in-progress: false"),
+    }).toEqual({
+      worker: "pr-${{ github.event.number }}",
+      delete: true,
+      forgiven: ["code: 10090"],
+      failsOtherwise: true,
+      waits: true,
+    });
   });
 });
+
+describe.skipIf(deployJob("production") === undefined || deployJob("dev") === undefined)(
+  "deploy.yml production and dev jobs (skipped until step 7 writes them)",
+  () => {
+    it("production deploys only what ci passed on main (invariant 6a)", () => {
+      const text = deploy?.text ?? "";
+      expect([
+        text.includes("workflow_run"),
+        text.includes("workflows: [ci]"),
+        text.includes("conclusion == 'success'"),
+      ]).toEqual([true, true, true]);
+    });
+
+    it("dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a)", () => {
+      expect([
+        has("dev", "--name matter-of-place-dev"),
+        has("dev", MOP_ENV_FLAG),
+        has("dev", HAS_DB_ENV),
+        has("dev", API_BASE),
+        ...["dev", "production"].map((job) => has(job, "--var MEDIA_PUBLIC_BASE:")),
+      ]).toEqual(Array<boolean>(6).fill(true));
+    });
+
+    it("production needs dev and touches no database (13)", () => {
+      const touches = ["db:push", "supabase link", "functions deploy"].filter((word) =>
+        has("production", word),
+      );
+      expect({ needsDev: has("production", "needs: dev"), touches }).toEqual({
+        needsDev: true,
+        touches: [],
+      });
+    });
+
+    it("production and dev never read CI_HEAVY (invariant 14)", () => {
+      expect(["production", "dev"].filter((job) => has(job, "CI_HEAVY"))).toEqual([]);
+    });
+  },
+);
 
 describe.skipIf(backup === undefined)("backup.yml (skipped until step 8 writes it)", () => {
   it("encrypts to the public certificate and records the run (DO-02, G32, 17, DB-11)", () => {

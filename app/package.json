@@ -26,6 +26,7 @@
     "stubs": "bun run scripts/stubs.ts",
     "layout": "node scripts/check-layout.mjs",
     "migrations:check": "node scripts/check-migrations.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "overrides": {
