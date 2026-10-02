@@ -1811,3 +1811,182 @@ console.log(`cases ${String(Object.keys(cases).length)}, bad ${String(bad)}`);
 UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Not handled, by choice, each on the side named: SQL a DO block or a called body builds with `format()` and `||` is read piece by piece, so a statement split across two literals is missed; a function whose name is quoted (`"F"()`) or whose body is called only through dynamic SQL is not tracked; a DML statement that fires a trigger created in an earlier migration does not read that trigger's body; a `raise notice 'drop table ...'` inside a DO block is refused; a table created with the same name as a function of the file (`create table f (...)`) counts as a call.
 
 GOTCHAS: G-029, P-114, P-115, P-116 added; G-026's proof updated.
+
+## c6 · steps 5
+
+Review round 4 of the c6 close-out: four defects. Commits on `slice/b1b`: `850b0d8` (the work), `e2a0320` and `ba13e17` (type-error watched-fail and its revert), `c5b498f` and `e998d48` (engines watched-fail and its revert); `git diff --quiet 850b0d8 HEAD` exit 0 after each revert. The log block and a P-111 line are committed after them.
+
+1. Backtracking into a run of blanks fixed in one place: `statementsOf` now collapses every run of blanks in a statement's text to one space (strings, quoted names and bodies are already blanked, so no literal changes). With one space, `\s+` has nothing to give back, so the negative lookaheads of the rename rule (`alter\s+(?!policy\b|...)`) and of the clause rules (`^drop\s+(?!constraint\b)`, `^rename\s+(?!constraint\b)`, `^add\s+(?!constraint\b|check\b)`) see the next word. It also covers a block comment between two words (`alter /* c */ trigger ...`, refused in round 3 because the comment's space and the blanks made a run). No regex changed, so no registry `find` moved (P-090).
+2. `bodiesOf` keeps every body of a name created twice (`create or replace function f()` dropping a table, `select f();`, a harmless second `create or replace`): refused now. Union, not order: a file that creates a harmless `f`, then a dropping one, then calls it was already refused; a file that creates a dropping body and replaces it before any call is refused too (conservative side).
+3. GOTCHAS: P-117 added (a capture group read through `?.[1]` is `string | undefined` under `noUncheckedIndexedAccess`; the round-3 cost). G-029's proof now names the real output, `Tests  70 passed (70)` (64 rows: 38 refused, 26 allowed; plus 6 single tests), the five new entries and this round's probe; its rule names the backtracking case and the twice-created body. P-111 gained a line: this round's own hand mutation through `node -e` lost its backslashes and was stopped by the once-only guard (`Error: find count 0`) before any write.
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+Probe `node ../scratch/c6r4-probe.mjs [<script>]` (text below). Round-3 script (`git show HEAD:app/scripts/check-migrations.mjs` at `b0522a0`, saved as `../scratch/check-migrations-b0522a0.mjs`) → `cases 16, bad 10`; round-2 script (`../scratch/check-migrations-ee06839.mjs`) → `cases 16, bad 6`; this round → `cases 16, bad 0`:
+```
+== round3 (b0522a0)
+BAD 1  alter  trigger rename  | destructive change (rename)
+BAD 1  alter newline index rename  | destructive change (rename)
+BAD 1  alter  policy rename  | destructive change (rename)
+BAD 1  alter  table rename constraint  | destructive change (rename)
+BAD 1  alter table rename  constraint  | destructive change (rename)
+BAD 1  drop  constraint  | destructive change (drop column)
+BAD 1  add newline constraint check not null  | destructive change (not null column
+BAD 1  add  check not null  | destructive change (not null column
+ok  0  drop  trigger
+BAD 1  alter /* c */ trigger rename  | destructive change (rename)
+ok  1  alter  view rename  | destructive change (rename)
+ok  1  drop  column  | destructive change (drop column)
+ok  1  add newline not null  | destructive change (not null column
+BAD 0  create or replace twice
+ok  1  create twice, called last  | destructive change (drop table)
+ok  0  create twice, never called
+cases 16, bad 10
+== round2 (ee06839): the clause cases (rename  constraint, drop  constraint, both add cases) and both twice-created cases BAD
+cases 16, bad 6
+== this round: every line ok
+cases 16, bad 0
+```
+No input either earlier version passed is refused now. The round-3 probe on this round's script: `node ../scratch/c6r3-probe.mjs` → `cases 39, bad 0`; `node ../scratch/c6r-probe.mjs` → 19 of 19 `ok`.
+
+`tests/unit/check-migrations.test.ts`: five new rows. Allowed: `a trigger rename after two spaces` (the rename rule decides), `a constraint rename after two spaces` (the `rename` clause rule), `a drop constraint after two spaces` (the `drop column` clause rule), `an added constraint after a line break` (the NOT NULL add rule); each input is decided by one rule and protected only by the one-space step (P-112). Refused: `a function created twice and called` (`drop table`). Every name is 40 characters or fewer (P-116). `tests/mutations/B1b.json`: five new entries; `cm-one-space-rename`, `cm-one-space-clause-rename`, `cm-one-space-drop` and `cm-one-space-add` share the mutation (`text: statement.text.replace(/\s+/g, " ")` becomes `text: statement.text`) and each expects its own row; `cm-bodies-twice` puts back `bodies.set(name, literals);`.
+
+```
+$ bunx vitest run tests/unit/check-migrations.test.ts
+      Tests  70 passed (70)
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+      Tests  100 passed | 8 skipped (108)
+$ node ../scratch/replay.mjs --check
+checked 269, bad 0
+$ node ../scratch/replay.mjs <all 78 entries whose file is scripts/check-migrations.mjs>
+RED cm-one-space-rename: exit=1 expect=true | × a trigger rename after two spaces needs no contract-of header 7ms
+RED cm-one-space-clause-rename: exit=1 expect=true | × a constraint rename after two spaces needs no contract-of header 1ms
+RED cm-one-space-drop: exit=1 expect=true | × a drop constraint after two spaces needs no contract-of header 1ms
+RED cm-one-space-add: exit=1 expect=true | × an added constraint after a line break needs no contract-of header 1ms
+RED cm-bodies-twice: exit=1 expect=true | × a function created twice and called needs the contract-of header 8ms
+  (the other 73 entries, ap and cm-, each RED with its own title)
+replayed 78, not red 0
+$ node ../scratch/c6r4-one.mjs cm-one-space-rename
+mutated: .map((statement) => ({ ...statement, text: statement.text }))
+× a trigger rename after two spaces needs no contract-of header 7ms
+× a constraint rename after two spaces needs no contract-of header 1ms
+× a drop constraint after two spaces needs no contract-of header 1ms
+× an added constraint after a line break needs no contract-of header 1ms
++   "destructive change (rename) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_change.sql",
++   "destructive change (drop column) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_change.
++   "destructive change (not null column without a default) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/
+Tests  4 failed | 66 passed (70)
+$ node ../scratch/c6r4-one.mjs cm-bodies-twice
+mutated: bodies.set(name, literals);
+× a function created twice and called needs the contract-of header 8ms
+-   "destructive change (drop table) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_change.s
+Tests  1 failed | 69 passed (70)
+$ cmp scripts/check-migrations.mjs ../scratch/cm-saved-r4.mjs && echo same-bytes
+same-bytes
+$ node ../scratch/c6-map.mjs | tail -1
+titles 70, without an entry 0
+$ node ../scratch/replay.mjs ao ap bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 8ms
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 122ms
+replayed 6, not red 0
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines" ; ls ../.github/dependabot.yml
+{ bun: '1.3.13', node: '24.x' }
+../.github/dependabot.yml
+$ cd .. && node workspace/05-plans/check-gotchas.mjs
+check-gotchas: OK (29 path entries, 115 process entries)
+```
+The `c6r4-one` output shows three `+` lines for four red rows because vitest groups failures with the same error: the full output (dumped to a file) lists `FAIL ... a trigger rename after two spaces ...` and `FAIL ... a constraint rename after two spaces ...` on two lines above one shared diff, `+   "destructive change (rename) without ...`.
+
+CI on `850b0d8` (run 37021011790, `pull_request`, success): `check success`, `build success`, `merge-gate skipped`; steps of `check`: `engines`, `Run actions/cache@...`, `Run bun install --frozen-lockfile`, `migration-order` (`$ node scripts/check-migrations.mjs` / `no migrations`), `Run bun run check` (`tests/unit/check-migrations.test.ts (70 tests)`), `audit`, all `success`; no job named `audit` or `deno`. `gh run download 37021011790 -n build-output -D scratch/c6r4-art` → `nitro.json package-lock.json package.json public server`, `server/wrangler.json` name `matter-of-place`.
+Watched-fail (d), type error: `e2a0320` appends `const x: number = "a";` to `src/lib/strings.ts` (`+const x: number = "a";`). Run 37021230696: `failure`, `check failure`, `build success`; `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.`, `##[error]Process completed with exit code 2.` Revert `ba13e17`: run 37021357512 `success` (`check success`, `build success`).
+Watched-fail, engines: `c5b498f` sets `engines.bun` to `1.3.12` (`-    "bun": "1.3.13",` / `+    "bun": "1.3.12",`). Run 37021556434: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `##[error]Process completed with exit code 1.`); cache, install, `migration-order`, `bun run check` and `audit` `skipped`. Revert `e998d48`: run 37021661983 `success` (`check success`, `build success`).
+Gates on the work tree of `850b0d8`: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files 14 passed (14)`, `Tests 315 passed | 8 skipped (323)`); `bun run build` exit 0 (three `built in` lines, `src/routeTree.gen.ts` unchanged).
+
+`scratch/c6r4-probe.mjs` (lane-root `scratch/`, git-ignored, run from `app/`; P-088)
+```js
+// node ../scratch/c6r4-probe.mjs [<path to check-migrations.mjs>]   (from app/)
+// The review's round-4 cases: runs of whitespace before an excepted object, and a function
+// created twice. Prints the failure count of each against what it must be.
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+
+const target = resolve(process.argv[2] ?? "scripts/check-migrations.mjs");
+const { checkMigrations } = await import(pathToFileURL(target).href);
+const dropping = "create or replace function f() returns void language plpgsql as $$ begin drop table notes; end $$;";
+const harmless = "create or replace function f() returns void language sql as $$ select 1 $$;";
+
+const cases = {
+  "MUST 0  alter  trigger rename": "alter  trigger notes_touch on notes rename to notes_stamp;",
+  "MUST 0  alter newline index rename": "alter\n  index notes_body_idx rename to notes_text_idx;",
+  "MUST 0  alter  policy rename": "alter  policy notes_read on notes rename to notes_select;",
+  "MUST 0  alter  table rename constraint": "alter  table notes rename constraint a to b;",
+  "MUST 0  alter table rename  constraint": "alter table notes rename  constraint a to b;",
+  "MUST 0  drop  constraint": "alter table notes drop  constraint c;",
+  "MUST 0  add newline constraint check not null":
+    "alter table notes add\n  constraint c check (body is not null);",
+  "MUST 0  add  check not null": "alter table notes add  check (body is not null);",
+  "MUST 0  drop  trigger": "drop  trigger notes_touch on notes;",
+  "MUST 0  alter /* c */ trigger rename": "alter /* c */ trigger t on notes rename to u;",
+  "MUST 1  alter  view rename": "alter  view v_notes rename to v_memos;",
+  "MUST 1  drop  column": "alter table notes drop  column body;",
+  "MUST 1  add newline not null": "alter table notes add\n  y text not null;",
+  "MUST 1  create or replace twice": `${dropping}\nselect f();\n${harmless}`,
+  "MUST 1  create twice, called last": `${harmless}\n${dropping}\nselect f();`,
+  "MUST 0  create twice, never called": `${dropping}\n${harmless}`,
+};
+let bad = 0;
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({
+    changed: [],
+    added: [file],
+    mainPrefixes: ["20261002100000"],
+    readFile: () => `-- irreversible: x\nset lock_timeout = '5s';\n${sql}\n`,
+  });
+  const want = Number(name.slice(5, 6));
+  const ok = failures.length === want;
+  bad += ok ? 0 : 1;
+  console.log(`${ok ? "ok " : "BAD"} ${String(failures.length)}  ${name.slice(8)}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+console.log(`cases ${String(Object.keys(cases).length)}, bad ${String(bad)}`);
+```
+
+`scratch/c6r4-one.mjs` (same folder; applies one registry entry, prints the mutated line and the red reason, restores the bytes)
+```js
+// node ../scratch/c6r4-one.mjs <id>   (from app/)
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const entry = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8")).find((e) => e.id === process.argv[2]);
+const saved = readFileSync(entry.file);
+const text = saved.toString("utf8");
+if (text.split(entry.find).length !== 2) throw new Error("find does not occur exactly once");
+const mutated = text.replace(entry.find, () => entry.replace);
+if (mutated === text) throw new Error("mutation changed nothing");
+writeFileSync(entry.file, mutated);
+try {
+  console.log("mutated:", mutated.split("\n").find((l) => l.includes(entry.replace)).trim());
+  let out = "";
+  try {
+    out = execSync(`${entry.run} 2>&1`, { encoding: "utf8" });
+  } catch (error) {
+    out = String(error.stdout);
+  }
+  console.log(out.split("\n").filter((l) => /×|Tests |destructive change/.test(l)).map((l) => l.trim().slice(0, 150)).join("\n"));
+} finally {
+  writeFileSync(entry.file, saved);
+}
+```
+
+UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Open from round 2, unchanged: the `drop function` conflict with B2.md:71, B2.md:93 and B10.md:166 (P-113) still needs a ruling. Not handled, by choice, as in round 3 (`format()` and `||` pieces, quoted function names, triggers from earlier migrations, `raise notice 'drop table ...'` refused, a table named like a function counts as a call).
+
+GOTCHAS: P-117 added; G-029 rule and proof corrected; P-111 extended.
