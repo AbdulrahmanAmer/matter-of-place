@@ -145,6 +145,17 @@ Verdict "accept" only if every proof reproduced and you found no defect that bre
 
 // S62: Sonnet 5.5 at high effort builds; Opus 5.5 at high effort builds a critical group and reviews every group.
 const builderModel = (g) => (a.builderModel === 'opus' || g.critical || (a.opusGroups || []).includes(g.id) ? 'opus' : 'sonnet')
+// A review that rejects only because costs are missing from the gotcha bank has passed the code: a bank agent adds
+// the entries and the group closes without another build and review round. The orchestrator checks the entries.
+const bankOnly = (r) => Boolean(r && r.verdict === 'reject' && r.defects.length && r.defects.every((d) => /GOTCHAS\.md$/.test(String(d.file))))
+const bankPrompt = (g, defects) => `${RULES}
+
+Group ${g.id} of slice ${slice} (plan steps ${g.steps}) passed its code review: a fresh reviewer found no defect in the code, only costs that have no entry in the gotcha bank.
+Add those entries to ${ROOT}/GOTCHAS.md. Change no other file, except to append to ${logPath} a short block headed "## ${g.id} · bank close-out" that names the entries.
+Take the next free number above the highest in the file. Give each entry the lines its neighbours have (symptom, cause, rule, proof, added) and a proof a reader can run.
+Then run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}, commit on ${branch}, push, and report the entry ids in gotchasAdded.
+
+The missing entries, as the reviewer wrote them:\n${JSON.stringify(defects, null, 1)}`
 const out = []
 for (const g of groups) {
   if (g.blocked) {
@@ -158,7 +169,7 @@ for (const g of groups) {
   let rounds = 0
   if (built.status !== 'blocked') {
     review = await agent(reviewPrompt(g, built), { label: `review:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    while (review && review.verdict === 'reject' && rounds < MAX_FIX) {
+    while (review && review.verdict === 'reject' && !bankOnly(review) && rounds < MAX_FIX) {
       rounds++
       const fixed = await agent(buildPrompt(g, review.defects), { label: `fix${rounds}:${slice}:${g.id}`, phase: 'Fix', model: builderModel(g), effort: 'high', agentType: 'mop-builder', schema: BUILD })
       if (!fixed) break
@@ -166,8 +177,10 @@ for (const g of groups) {
       review = await agent(reviewPrompt(g, built), { label: `review${rounds + 1}:${slice}:${g.id}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
     }
   }
-  const accepted = Boolean(review && review.verdict === 'accept')
-  out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, builder: builderModel(g), critical: Boolean(g.critical), built, review, needsOrchestrator: g.needsOrchestrator })
+  let bankClosed = null
+  if (bankOnly(review)) bankClosed = await agent(bankPrompt(g, review.defects), { label: `bank:${slice}:${g.id}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+  const accepted = Boolean(review && (review.verdict === 'accept' || (bankClosed && bankClosed.status === 'done')))
+  out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, builder: builderModel(g), critical: Boolean(g.critical), built, review, bankClosed, needsOrchestrator: g.needsOrchestrator })
   log(`${g.id} (steps ${g.steps}): ${built.status}, review ${review ? review.verdict : 'not run'}, fix rounds ${rounds}`)
   if (!accepted) { log(`stopping after ${g.id}: later groups depend on it`); break }
   if (g.needsOrchestrator) { log(`stopping after ${g.id}: the orchestrator must act: ${g.needsOrchestrator}`); break }

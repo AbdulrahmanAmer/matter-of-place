@@ -682,3 +682,19 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   then the orchestrator's own proofs for steps 4b, 5 and 5b; then `gh pr ready 22` and
   `node workspace/05-plans/merge-gate.mjs 22` from the lane (the first merge of slice work into main).
 - The bank on main gained P-110; on the slice branch it holds up to P-109 and G-027: the next lane number is P-111.
+
+## 2026-10-02 18:05 EDT · B1b: step 5 passed its code review (c6, four rounds); ruling H43; closing c6 (drop function) and c7 next
+- Run `wf_7cfdf68c-0c8` (started by scriptPath, verified label `close:B1b:c6`): c6 went four reviews. Rounds 1 to 3
+  found real defects in `app/scripts/check-migrations.mjs` (a regression on `drop column`, false positives on the
+  word rename, whitespace backtracking, a column named type, a function created twice); it is now a small SQL lexer,
+  331 lines, 70 tests, 78 registry entries, CI runs green and two watched-fails red on GitHub. Review 4 found no code
+  defect, only one cost without a bank entry: the orchestrator added it (P-118, lane). c7 (step 5b) did NOT run.
+- Ruling H43: `drop function` is allowed when the same file creates the name again (B2 invariant 14, db:fn), refused
+  otherwise; publication and extension membership pass; B2's migration-headers test imports the scan; the scan's
+  limits are accepted and go in the runbook; a review that rejects only on the bank closes with a bank agent.
+- The saved workflow gained `bankOnly` / `bankPrompt` / `bankClosed`.
+- Rejections: g5 2 of 3; g6 3 of 3; g7 3 of 3; c6 4 of 4 (the last on the bank only).
+- NEXT: merge main into `slice/b1b`; orchestrator's own proofs of step 5; run by scriptPath with
+  `closeOut: [c6 (H43 (1) and (4)), c7 (the three defects of step 5b under H42 (1) and (2))]`, `only: ["c6","c7"]`;
+  then own proofs of 5b, `gh pr ready 22`, `node workspace/05-plans/merge-gate.mjs 22` from the lane.
+- The lane bank holds up to P-118 and G-029: the next lane number is P-119.
