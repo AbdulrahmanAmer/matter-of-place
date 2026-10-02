@@ -74,6 +74,9 @@ step 3 on the built Worker).
   the `Host` header through, so `curl -H "Host: matterofplace.com"` is a real test of the rule.
 - `Cache-Control: no-store` is set, never merged, on every write, `/api/admin/*`, `/api/hooks/*`, `/admin`, preview-token
   URLs, responses with `Set-Cookie` and every 5xx. HTML pages answer `public, max-age=0, must-revalidate`.
+- An unhandled error answers the calm 500: the HTML page for a GET or HEAD outside `/api/` that accepts HTML, otherwise
+  `{ "error": { "code": "server", "message": "...", "requestId": "..." } }` (STANDARDS R09; the plan's shorter shape
+  had no `message`, GOTCHAS P-078). Both carry `x-request-id` and `no-store`.
 - The Content-Security-Policy ships as `Content-Security-Policy-Report-Only`; a policy already on the response (a hit
   stored by B3) is never overwritten.
 - Until B3 lands, the cache hook is a pass-through, the flags are empty, and error reports are not sent (the stub
@@ -90,16 +93,20 @@ the fallback starts the promise and leaves it. A Sentry event reaching Sentry (s
 
 ### Static asset headers
 
-`public/_headers` holds three blocks: `/*` (the security headers, once), `/assets/*` (`Cache-Control: public,
-max-age=31536000, immutable`) and `/media/*` (`Cache-Control: public, max-age=604800`). The build copies the file and
-Nitro appends its own `/assets/*` rule, so a full `cmp` fails; the proof is a prefix compare:
+`public/_headers` holds two blocks: `/*` (the security headers, once) and `/media/*` (`Cache-Control: public,
+max-age=604800`). Nitro appends the `/assets/*` rule itself (`Cache-Control: public, max-age=31536000, immutable`), so a
+full `cmp` fails; the proof is a prefix compare:
 
 ```
 bun run build
 cmp -n "$(wc -c < public/_headers)" public/_headers .output/public/_headers
 ```
 
-A second block for the same path replaces the first, which is why no security header sits in `/assets/*` (GOTCHAS G-017).
+A second block for the same path replaces the first. Measured on 2026-10-02 with our own `/assets/*` block set to
+`max-age=3600` in the built file: the served asset still answered Nitro's `max-age=31536000, immutable`. So there is no
+`/assets/*` block in our file (it would be dead text) and no security header sits in a path Nitro also writes
+(GOTCHAS G-017). The immutable lifetime of fingerprinted assets is Nitro's rule; `scripts/smoke.mjs` (step 6) checks it
+on a preview, and `headers.test.ts` fails if a block for `/assets/*` is added.
 
 ## Preview the built Worker on this machine
 

@@ -83,10 +83,8 @@ describe("cspFor", () => {
 describe("public/_headers", () => {
   const rules = parseHeadersFile();
 
-  it("makes fingerprinted assets immutable for a year", () => {
-    const cache = rules.get("/assets/*")?.get("Cache-Control");
-    expect(cache).toContain("immutable");
-    expect(cache).toContain("max-age=31536000");
+  it("leaves /assets/* to the rule Nitro appends, because a second block for a path replaces ours", () => {
+    expect(rules.has("/assets/*")).toBe(false);
   });
 
   it("keeps bundled media for a week", () => {
@@ -98,10 +96,7 @@ describe("public/_headers", () => {
     expect(Object.fromEntries(rules.get("/*") ?? [])).toEqual(expected);
   });
 
-  it.each(["/assets/*", "/media/*"])(
-    "sets nothing but Cache-Control on %s, so no header repeats",
-    (path) => {
-      expect([...(rules.get(path)?.keys() ?? [])]).toEqual(["Cache-Control"]);
-    },
-  );
+  it("sets nothing but Cache-Control on /media/*, so no header repeats", () => {
+    expect([...(rules.get("/media/*")?.keys() ?? [])]).toEqual(["Cache-Control"]);
+  });
 });

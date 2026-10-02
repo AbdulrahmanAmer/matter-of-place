@@ -3,7 +3,6 @@
   "entry": [
     "src/routes/**/*.{ts,tsx}",
     "src/router.tsx",
-    "src/start.ts",
     "scripts/**/*.{ts,mjs}",
     "supabase/functions/*/index.ts",
     "tests/**/*.{ts,tsx}"

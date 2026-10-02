@@ -186,6 +186,16 @@ describe("rule 6: never cached", () => {
     expect(response.headers.get("cache-control")).toBe("public, max-age=0, must-revalidate");
   });
 
+  it.each([
+    ["/api/public/markets", "public, max-age=60"],
+    ["/sitemap.xml", "public, max-age=3600"],
+  ])("leaves the Cache-Control of %s alone, because it is not a page", async (path, lifetime) => {
+    const { run } = setup({
+      render: () => new Response("x", { headers: { "cache-control": lifetime } }),
+    });
+    expect((await run(get(path))).headers.get("cache-control")).toBe(lifetime);
+  });
+
   it("exposes the browser lifetime of each kind", () => {
     expect(browserCacheControl("html")).toBe("public, max-age=0, must-revalidate");
     expect(browserCacheControl("json")).toBe("public, max-age=60");
@@ -272,6 +282,8 @@ describe("X-Robots-Tag by host (G19)", () => {
     [`matter-of-place-dev.${WORKERS}`, "preview"],
     ["127.0.0.1:8788", "local"],
     ["127.0.0.1:8788", "preview"],
+    [`Pr-1.${WORKERS.toUpperCase()}`, "production"],
+    [`pr-1.${WORKERS}:443`, "production"],
   ];
   const indexable: [string, string | undefined][] = [
     ["matterofplace.com", "production"],
@@ -309,7 +321,9 @@ describe("an unhandled error", () => {
   const failing = () => {
     throw new Error("boom");
   };
-  const body = z.object({ error: z.object({ code: z.string(), requestId: z.string() }) });
+  const body = z.object({
+    error: z.object({ code: z.string(), message: z.string(), requestId: z.string() }),
+  });
 
   it("answers the calm 500 once, reports it inside waitUntil and never stores it", async () => {
     const { run, waitUntil, report } = setup({ render: failing });
@@ -351,6 +365,7 @@ describe("an unhandled error", () => {
       expect(response.headers.get("content-type")).toContain("application/json");
       expect(body.parse(await response.json()).error).toEqual({
         code: "server",
+        message: "Something went wrong. Please try again in a moment.",
         requestId: response.headers.get("x-request-id"),
       });
     }

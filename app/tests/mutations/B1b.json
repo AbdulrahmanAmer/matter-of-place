@@ -214,5 +214,221 @@
     "replace": "  return ROOTS.flatMap((root) => {\n    try {\n      return walk(root);\n    } catch {\n      return [];\n    }\n  })",
     "run": "bunx vitest run tests/unit/stubs.test.ts",
     "expect": "expected \\+0 not to be \\+0"
+  },
+  {
+    "id": "a",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "\"frame-ancestors\": [\"'none'\"],",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "to contain 'frame-ancestors"
+  },
+  {
+    "id": "j",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      return [directive, ...sources, ...extra].join(\" \");",
+    "replace": "      return [directive, ...sources, ...extra, ...(directive === \"script-src\" ? [\"'nonce-abc'\"] : [])].join(\" \");",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "never uses a nonce, because HTML is cached"
+  },
+  {
+    "id": "k",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "max-age=604800",
+    "replace": "max-age=3600",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "keeps bundled media for a week"
+  },
+  {
+    "id": "k-assets",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "/media/*\n  Cache-Control: public, max-age=604800",
+    "replace": "/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n\n/media/*\n  Cache-Control: public, max-age=604800",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "leaves /assets/\\* to the rule Nitro appends"
+  },
+  {
+    "id": "x-static-security",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "X-Frame-Options: DENY",
+    "replace": "X-Frame-Options: SAMEORIGIN",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "carries the same security headers as the Worker on every static file"
+  },
+  {
+    "id": "m",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "\"max-age=31536000; includeSubDomains\"",
+    "replace": "\"max-age=31536000\"",
+    "run": "bunx vitest run tests/unit/headers.test.ts",
+    "expect": "sets HSTS to one year with subdomains and no preload"
+  },
+  {
+    "id": "an",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "  return text.replace(EMAIL, \"[email]\");",
+    "replace": "  return text;",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "to be '/contact/\\[email\\]'"
+  },
+  {
+    "id": "log-mask-field",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "      typeof value === \"string\" ? maskEmails(value) : value,",
+    "replace": "      value,",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "masks an email in a field and emits no email-shaped string"
+  },
+  {
+    "id": "log-level",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/lib/log.ts",
+    "find": "  if (level === \"error\") console.error(line);",
+    "replace": "  if (level === \"error\") console.log(line);",
+    "run": "bunx vitest run tests/unit/log.test.ts",
+    "expect": "sends each level to its console method"
+  },
+  {
+    "id": "h",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => deps.render(request);",
+    "replace": "    const render = async () => {\n      const rendered = await deps.render(request);\n      rendered.headers.set(\"x-request-id\", requestId);\n      return rendered;\n    };",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "never stores the request id or a security header, and returns both"
+  },
+  {
+    "id": "i",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "forces no-store on GET /api/admin/properties"
+  },
+  {
+    "id": "l",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (!(hasPolicy && name.startsWith(\"Content-Security-Policy\"))) headers.set(name, value);",
+    "replace": "    headers.set(name, value);",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps the policy a hit carries and does not add the default beside it"
+  },
+  {
+    "id": "n",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    search.has(\"preview\") ||\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "skips the cache hook and answers no-store for a preview token: /property/x\\?preview=t"
+  },
+  {
+    "id": "q",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "export function isIndexableHost(host: string, mopEnv: string): boolean {",
+    "replace": "export function isIndexableHost(host: string, mopEnv: string): boolean {\n  return host !== mopEnv;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks matter-of-place\\.holy-meadow-4327\\.workers\\.dev noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-workers",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "  return !name.endsWith(\".workers.dev\");",
+    "replace": "  return name.length > 0;",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks pr-1\\.holy-meadow-4327\\.workers\\.dev noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-lowercase",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "host.toLowerCase().replace(",
+    "replace": "host.replace(",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks Pr-1\\.HOLY-MEADOW-4327\\.WORKERS\\.DEV noindex under MOP_ENV production"
+  },
+  {
+    "id": "q-port",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "host.toLowerCase().replace(/:\\d+$/, \"\")",
+    "replace": "host.toLowerCase()",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "marks pr-1\\.holy-meadow-4327\\.workers\\.dev:443 noindex under MOP_ENV production"
+  },
+  {
+    "id": "u",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\");",
+    "replace": "    (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\") &&\n    pathname === \"\";",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers a page request that accepts HTML with the HTML page and the id"
+  },
+  {
+    "id": "u-message",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "            message: \"Something went wrong. Please try again in a moment.\",\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers JSON for an API path, a write, or a client that does not accept HTML"
+  },
+  {
+    "id": "z",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "export function isPageRequest(pathname: string): boolean {",
+    "replace": "export function isPageRequest(pathname: string): boolean {\n  return pathname !== \"\";",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps /robots\\.txt away from the cache hook and still adds the headers"
+  },
+  {
+    "id": "aa",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    headers.set(\"cache-control\", \"no-store\");",
+    "replace": "    headers.append(\"cache-control\", \"no-store\");",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "replaces the handler's Cache-Control on POST /api/public/inquiries with exactly no-store \\(G65\\)"
+  },
+  {
+    "id": "aa-nonpage",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (isPageRequest(pathname)) {",
+    "replace": "  } else {",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "leaves the Cache-Control of /sitemap\\.xml alone, because it is not a page"
+  },
+  {
+    "id": "x-escape",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/error-page.ts",
+    "find": "requestId.replace(/[&<>\"']/g, (char) => ESCAPES[char] ?? char)",
+    "replace": "requestId",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "escapes the id in the HTML page"
+  },
+  {
+    "id": "x-redirect",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  return response;\n}",
+    "replace": "  return new Response(response.body, response);\n}",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "is the one the render produced, so a router redirect keeps its options"
   }
 ]

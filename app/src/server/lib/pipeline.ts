@@ -77,7 +77,16 @@ function calmServerError(request: Request, pathname: string, requestId: string):
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
       })
-    : Response.json({ error: { code: "server", requestId } }, { status: 500 });
+    : Response.json(
+        {
+          error: {
+            code: "server",
+            message: "Something went wrong. Please try again in a moment.",
+            requestId,
+          },
+        },
+        { status: 500 },
+      );
 }
 
 /**

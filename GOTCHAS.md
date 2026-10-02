@@ -663,8 +663,8 @@ Entry template
 - severity: warn
 - symptom: B1b step 3 said "Nitro copies the file unchanged" and proved it with `cmp public/_headers .output/public/_headers`. The build prints "Adding Nitro fallback to _headers" and appends `/assets/*` with `cache-control: public, max-age=31536000, immutable`, so the compare exits 1. With our own `/assets/*` block holding the security headers, `curl -I` on `/assets/<file>.js` under `wrangler dev` showed only Nitro's Cache-Control and none of the security headers.
 - cause: the Cloudflare preset's `writeCFHeaders` appends the route-rule headers after the file unless a line matches `^/\* ` (a slash, a star and a space; the Write tool and editors strip that trailing space, so the bypass cannot be kept). A second block for the same path won as a whole (observed under wrangler 4.145.0; the mechanism is inferred, not read).
-- rule: the security headers live in a `/*` block, a path Nitro does not use; `/assets/*` and `/media/*` carry `Cache-Control` only, so no header repeats. Prove the copy with a prefix compare, never a full one.
-- proof: after `bun run build`, `cmp -n "$(wc -c < public/_headers)" public/_headers .output/public/_headers; echo $?` → 0; `bunx vitest run tests/unit/headers.test.ts` goes red when a security header is moved into the `/assets/*` block.
+- rule: the security headers live in a `/*` block, a path Nitro does not use; `/media/*` carries `Cache-Control` only, so no header repeats. `public/_headers` holds no `/assets/*` block at all: Nitro appends one (`public, max-age=31536000, immutable`) and, measured 2026-10-02, a block of ours for the same path is dead text (our value set to `max-age=3600` in the built file, the served asset still answered `max-age=31536000, immutable`). Prove the copy with a prefix compare, never a full one.
+- proof: after `bun run build`, `cmp -n "$(wc -c < public/_headers)" public/_headers .output/public/_headers; echo $?` → 0; `bunx vitest run tests/unit/headers.test.ts` goes red when a block for `/assets/*` is put back (registry entry `k-assets`) or a security header is moved out of `/*`.
 - added: 2026-10-02
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
@@ -681,4 +681,55 @@ Entry template
 - cause: with `--env-file`, wrangler 4.145.0 skips its `.dev.vars` lookup and resolves each file against the folder of `--config` (`.output/server/`), while the file is also opened from the current folder; one relative path cannot satisfy both. A build replaces `.output/`, so the file cannot live there.
 - rule: `cf:preview` copies the file next to the built config and lets wrangler read it by default: `cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788`. B3's `scripts/dev-vars.mjs` keeps writing `app/.dev.vars`. Stop wrangler by its parent process (P-042).
 - proof: with `MOP_ENV=local` in `app/.dev.vars`, `bun run cf:preview` logs `Using secrets defined in .output\server\.dev.vars` and `curl -sI http://127.0.0.1:8788/ | grep -i x-robots-tag` → `x-robots-tag: noindex, nofollow`; with an empty file the same request has no such header.
+- added: 2026-10-02
+
+## G-019 · Creating `src/start.ts` turns off TanStack's default CSRF check for server functions
+- paths: app/src/start.ts
+- severity: warn
+- symptom: nothing visible. B1b step 3 created `src/start.ts` for the request pipeline; from that moment TanStack stops applying its own CSRF middleware to server functions, and no test, type or lint rule notices.
+- cause: `createStartHandler` sets `requestMiddleware: hasStartInstance ? startOptions.requestMiddleware : [defaultCsrfMiddleware]`: the default applies only to a project with no start file (`node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js`, line 238).
+- rule: `start.ts` registers `createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === "serverFn" })` in `requestMiddleware` after the pipeline middleware. A later slice that edits that list (B3, B7, B17) keeps `csrf` in it; dropping it silently removes CSRF protection from every server function.
+- proof: `git grep -n "createCsrfMiddleware" -- app/src/start.ts` → the import and the `csrf` constant; `grep -c "defaultCsrfMiddleware" app/node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js` → `2`.
+- added: 2026-10-02
+
+## P-074 · A plan step called a module that a later step creates
+- symptom: B1b step 3 has `pipeline.ts` call `captureException` from `sentry.ts`, which step 4 creates (`ls app/src/server/lib/` has no `sentry.ts` at step 3), so the step could not build or be tested as written.
+- cause: the plan listed the file contents of one step and the order of steps separately, and nobody ran the imports against the order.
+- rule: when a step needs something a later step creates, give the dependency to the caller as a member of the injected `deps` (here `report`), carry a STUB marker with the replacing step on the line above the stand-in (STANDARDS R04, C04), and say so in the slice log. Never create the later file early with a guess of its contents.
+- proof: `git grep -n "STUB(B1b" -- app/src/start.ts` → the marker above `report`; `git grep -c "captureException" -- app/src` → `1` (that marker line only) until step 4 replaces the stand-in.
+- added: 2026-10-02
+
+## P-075 · A test case from a plan cannot always be built: `Headers` rejects a newline in a value
+- symptom: the plan's inbound request id case `abc\nSet-Cookie: x` throws before the test runs: `TypeError: Headers.append: "abc` newline `Set-Cookie: x" is an invalid header value.`
+- cause: the platform refuses control characters in a header value, so the case describes a request no client can send through `fetch` or `Request`.
+- rule: write the closest attack the platform accepts (`abc; Set-Cookie: x`, a 65 character id, a non-ASCII id) and say in the log that the plan's literal case cannot be built. Prove an input rule on values that survive the `Headers` constructor.
+- proof: `node -e "try{new Headers({'x-request-id':'abc'+String.fromCharCode(10)+'x'})}catch(e){console.log(e.name)}"` → `TypeError`; `bunx vitest run tests/unit/pipeline.test.ts` passes `replaces an inbound id that does not match: abc; Set-Cookie: x`.
+- added: 2026-10-02
+
+## P-076 · `vi.spyOn(console, method)` over a union of methods gives the implementation an `any` parameter and the lint refuses it
+- symptom: `vi.spyOn(console, method).mockImplementation((line) => { lines.push(line); })` inside `for (const method of METHODS)` fails `bun run lint` with `Unsafe argument of type any assigned to a parameter of type string  @typescript-eslint/no-unsafe-argument`; the first version of `log.test.ts` and `pipeline.test.ts` were written that way and both had to be rewritten.
+- cause: spying on a union of keys picks no single overload, so the callback's parameters are `any`.
+- rule: annotate the parameter `(line: unknown)` and convert with `String(line)`; type a `vi.fn` by its signature (`vi.fn<PipelineContext["waitUntil"]>()`), never with a bare `vi.fn()` assigned to a typed member. Run `bun run lint` on a new test file before the first full check.
+- proof: a scratch `tests/unit/` file with `vi.spyOn(console, method).mockImplementation((line) => { lines.push(line); })` in a loop over `["log", "warn", "error"] as const` → `bunx eslint --max-warnings 0 <file>; echo $?` prints the `no-unsafe-argument` error and `1`; `bunx eslint --max-warnings 0 tests/unit/log.test.ts` → exit `0`.
+- added: 2026-10-02
+
+## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
+- symptom: B1b step 3 pins wrangler 4.145.0 (E11), yet `bunx wrangler --version` printed 4.146.0 in an earlier session, and the group's gate was written for 4.145.0.
+- cause: `bunx` uses the dependency of the folder it runs in; outside `app/` there is none and it fetches the newest release. The runbook was the only place that said which one is pinned.
+- rule: an exact version goes into `devDependencies` and the runbook table names it; every plan command that runs the tool starts in `app/`. A mismatch between the plan's number and what a clean resolve gives is recorded in the runbook and in this bank, and the pin moves only through Dependabot with the proofs re-run.
+- proof: `cd app && bunx wrangler --version` → `4.145.0`; the same command in an empty scratch folder → `4.146.0` (2026-10-02).
+- added: 2026-10-02
+
+## P-078 · A plan's response shape can contradict STANDARDS: STANDARDS binds, and the plan line gets fixed
+- symptom: B1b step 3 and step 4 give the calm 500 as `{"error":{"code":"server","requestId":"..."}}`; STANDARDS R09 and B3 line 42 require `{ error: { code, message, issues?, requestId } }`. The first build followed the plan and a reviewer rejected it.
+- cause: the plan line was written before R09 and was not brought into line with it.
+- rule: a body shape is checked against R09 before it is written; where the plan is shorter than the standard, build the standard (here `message` was added: `Something went wrong. Please try again in a moment.`), and tell the orchestrator which plan lines are stale (B1b lines 126 and 176).
+- proof: `git grep -n "code: \"server\"" -- app/src/server/lib/pipeline.ts` → the object with `message`; `bunx vitest run tests/unit/pipeline.test.ts` passes `answers JSON for an API path, a write, or a client that does not accept HTML`, and registry entry `u-message` turns it red.
+- added: 2026-10-02
+
+## P-079 · A group that adds tests must own `tests/mutations/<slice>.json`, and a missing registry entry is not "done"
+- symptom: the first step 3 report said "done" while its three test files had no entry in `tests/mutations/B1b.json` (R49, C08); the 17 mutations lived in a scratch spec outside the repository and could not be replayed. The same report left knip's `src/start.ts` configuration hint (P-065) because `knip.json` was not in its file list.
+- cause: the group's file list was copied from the plan's file lines, which do not name the registry or `knip.json`.
+- rule: a group's file list for a step that adds a test includes `tests/mutations/<slice>.json`, and one that creates a file knip reported as "no matches" includes `knip.json`. A watched-fail that is not yet a registry entry makes the status `partial`, never `done`. Entries are written in the registry's format and replayed by a runner that asserts `find` occurs once.
+- proof: `git grep -c "tests/unit/pipeline.test.ts" -- app/tests/mutations/B1b.json` → at least `1`; `cd app && bun run knip | grep -c "src/start.ts"` → `0`.
 - added: 2026-10-02
