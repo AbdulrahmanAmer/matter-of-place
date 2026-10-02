@@ -126,6 +126,25 @@ function framesOf(stack: string | undefined): StackFrame[] {
   });
 }
 
+/**
+ * What a thrown value says about itself. Reading it can throw (a null-prototype object, a
+ * throwing getter, a proxy), and then the event carries a fixed text instead.
+ */
+function describeThrown(error: unknown): { type: string; value: string; stack?: string } {
+  try {
+    if (!(error instanceof Error)) return { type: typeof error, value: String(error) };
+    // Plain JavaScript can put any value in these fields.
+    const { name, message, stack }: { name: unknown; message: unknown; stack?: unknown } = error;
+    return {
+      type: String(name),
+      value: String(message),
+      ...(typeof stack === "string" && { stack }),
+    };
+  } catch {
+    return { type: typeof error, value: "unprintable value" };
+  }
+}
+
 function parseDsn(dsn: string): { url: string; key: string } | null {
   try {
     const url = new URL(dsn);
@@ -164,8 +183,8 @@ export async function captureException(error: unknown, options: CaptureOptions):
 
   const now = Date.now();
   if (now < pausedUntil) return;
-  const type = error instanceof Error ? error.name : typeof error;
-  const frames = framesOf(error instanceof Error ? error.stack : undefined);
+  const { type, value, stack } = describeThrown(error);
+  const frames = framesOf(stack);
   const top = frames[0];
   const key =
     options.fingerprint?.join(":") ??
@@ -195,7 +214,7 @@ export async function captureException(error: unknown, options: CaptureOptions):
       values: [
         {
           type,
-          value: error instanceof Error ? error.message : String(error),
+          value,
           // Sentry lists frames oldest first.
           stacktrace: { frames: [...frames].reverse() },
         },

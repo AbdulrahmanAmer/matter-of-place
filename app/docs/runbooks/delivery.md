@@ -166,7 +166,10 @@ The project setting "Prevent Storing of IP Addresses" (`scrubIPAddresses`) is of
 `POST /api/hooks/sentry-test` throws a marked error (its message holds `test@example.com`, which must arrive as
 `[email]`) when the bearer equals `SENTRY_TEST_TOKEN`, compared in constant time; otherwise, and whenever the secret is
 unset, it answers 404. The route file is one wrapper line; the check lives in `src/server/hooks/sentry-test.ts`.
-Locally:
+Two open points, measured 2026-10-02 under `cf:preview`: the 404 has an empty body, because the route never sees the
+request id the pipeline mints (STANDARDS R09 wants `{ error: { code, message, requestId } }`; ruling pending), and a
+`GET` on the same path answers 200 with the empty page shell, as TanStack does for any API route file without a `GET`
+handler (GOTCHAS G-022). Neither reaches Sentry or reveals the token. Locally:
 
 ```
 # app/.dev.vars (git-ignored, values from .env, never printed): MOP_ENV=local, SENTRY_DSN, SENTRY_TEST_TOKEN (= PREVIEW_SENTRY_TEST_TOKEN)

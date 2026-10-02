@@ -772,3 +772,35 @@ Entry template
 - rule: after adding, renaming or deleting a route file, run `bun run build` (or have `bun run dev` running) before `bun run check`, and commit the regenerated `src/routeTree.gen.ts` with the route. Never edit the generated file to make tsc pass.
 - proof: a scratch `src/routes/api/hooks/zz-scratch.ts` with `createFileRoute("/api/hooks/zz-scratch")` → `cd app && bunx tsc -p tsconfig.json --noEmit` prints that TS2345 error and exits 2 (measured 2026-10-02); deleting the file restores exit 0.
 - added: 2026-10-02
+
+## P-083 · A plan's "the route file does X" line can contradict R11 and the folder map: check where a file's logic goes before writing it
+- symptom: B1b line 131 puts the bearer check of `sentry-test` in the route file; the first g4 build followed it. STANDARDS R11 and the folder-map row `src/routes/` say an API route file is one wrapper line. The fix round moved the logic to `src/server/hooks/sentry-test.ts` and rewrote the route, its test imports and six registry entries. P-078 covered body shapes only, so it gave no warning.
+- cause: plan file lines were written before STANDARDS; a builder reads the plan's file line as the file's content.
+- rule: before writing any file a plan names, check its line against the folder map (STANDARDS section 1) and R11 as well as R09 (P-078): an API route file holds one wrapper line, its logic goes to `src/server/<domain>/<name>.ts` (`hooks/` for `api/hooks/*`, as B3's `hooks/resend.ts` and B8's `hooks/ops-health.ts`). STANDARDS binds; name the stale plan line to the orchestrator in the slice log.
+- proof: `git grep -c "" -- app/src/routes/api/hooks/sentry-test.ts` → `11` (definition, one STUB line, one handler line, no logic); `git grep -n "timingSafeEqual" -- app/src/routes` → nothing.
+- added: 2026-10-02
+
+## P-084 · Five plans call `captureException` without the options it really takes
+- symptom: `captureException(error, options)` needs `dsn`, `requestId`, `route`, `env` and `release` (`sentry.ts` reads no environment, R14). B3.md:89 and :95, B17.md:16, B8b.md:127 and B8.md:124 give shorter shapes or call `dsn` optional and new. Recorded only in the B1b log until a reviewer asked for it here.
+- cause: the plans were written against the plan's signature, which had no `dsn`; the built signature added it.
+- rule: a slice that reports to Sentry passes all five keys; read the signature from `app/src/server/lib/sentry.ts` (`CaptureOptions`), never from a plan line. `tsc` refuses a missing key, which is the safe failure; do not make a key optional to fit a plan line.
+- proof: `git grep -n "dsn: string | undefined;" -- app/src/server/lib/sentry.ts` → one line in `CaptureOptions`; a scratch `tests/unit/zz-scratch.ts` calling it without `dsn` → `cd app && bunx tsc -p tsconfig.json --noEmit` prints `TS2345 ... Property 'dsn' is missing in type ... but required in type 'CaptureOptions'` and exits 2 (measured 2026-10-02).
+- added: 2026-10-02
+
+## G-022 · An API route file with no `GET` handler answers a `GET` with 200 and the empty page shell
+- paths: app/src/routes/api/**
+- severity: warn
+- symptom: under `cf:preview`, `curl -s -D - http://127.0.0.1:8788/api/hooks/sentry-test` (a POST-only route) → `HTTP/1.1 200 OK`, `Content-Type: text/html; charset=utf-8`, 6807 bytes of app shell; `/api/hooks/nothing-here` → 404. A route meant to be inert is not.
+- cause: the file is also a router route; a method with no server handler falls through to the SSR render, which finds the route and renders it with no component (TanStack behaviour, inferred from the answers, not read in the source).
+- rule: every API route file is reachable by `GET`; a POST-only hook must not depend on `GET` being a 404. Which owner makes non-handled methods answer an R09 405 or 404 (the pipeline or one wrapper every API route uses) is a ruling for the orchestrator; until then each new API route's smoke or test states its `GET` answer.
+- proof: `bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/api/hooks/sentry-test` → `200 text/html; charset=utf-8` (2026-10-02).
+- added: 2026-10-02
+
+## G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws
+- paths: app/src/server/lib/sentry.ts
+- severity: warn
+- symptom: `captureException(Object.create(null), opts)` rejected with `TypeError: Cannot convert object to primitive value`; a throwing `message` getter and a proxy whose `getPrototypeOf` throws (so `instanceof` throws) rejected too. In the Worker the rejection lands in `waitUntil` and the event is lost; the fingerprint was already recorded, so the next 60 s of the same failure were dropped. Every test threw an `Error`, so none saw it.
+- cause: `String(value)`, `error.message` and `value instanceof Error` all run user code; the try around the fetch did not cover building the event.
+- rule: a function promised never to throw reads the thrown value inside its own try (`describeThrown` in `sentry.ts`, fixed text `unprintable value`) before it records anything, and its tests throw a null-prototype object, a throwing getter, a proxy and an Error whose `name` is not a string.
+- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` passes; registry entries `sentry-unprintable` and `sentry-non-string` turn it red (`promise rejected "TypeError: Cannot convert object to primi…" instead of resolving` before the fix).
+- added: 2026-10-02

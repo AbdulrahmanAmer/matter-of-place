@@ -233,3 +233,36 @@ Proofs, in `app/` (real output):
 - `bun run build` -> exit 0, `built in 2.22s`, `built in 1.60s`, `built in 1.08s`, `Generated .output/server/wrangler.json`
 
 UNPROVEN: `waitUntil` finishing the report on a deployed Worker (proved under `wrangler dev` only; step 7); `crypto.ts` under Deno (B3 step 3b's `deno check`). `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+
+## g4 · steps 3b-4
+
+Second fix round, after the review of `00b78f2` (four defects).
+
+What changed:
+1. `sentry.ts` never throws on the thrown value. `String()` of a null-prototype object, a throwing `message` getter and a proxy whose `getPrototypeOf` throws (so `instanceof` throws) each made `captureException` reject. New `describeThrown(error)` reads type, message and stack inside its own try, before the fingerprint is recorded; a value it cannot read becomes type `typeof value` and the text `unprintable value`; an Error whose `name` or `message` is not a string is converted with `String()` (typed `unknown` on purpose, so lint accepts the conversion). Four new cases in `sentry.test.ts`; registry entries `sentry-unprintable` and `sentry-non-string`.
+2. R09 on the `sentry-test` 404: NOT FIXED, ruling still needed. The body stays empty because `handle` (g3's `pipeline.ts`) calls `deps.render(request)` and no handler can know the id the pipeline mints; the fix needs a file outside this group (for example `render: (request, requestId)` in `PipelineDeps`, with `start.ts` passing the id to the route through TanStack's request context), or R09 exempts this inert 404. The status of this group is therefore `partial` (P-079), not `done`.
+3. Bank: P-083 (a plan's "route file does X" line checked against R11 and the folder map, the move of the bearer check), P-084 (five plans call `captureException` without `dsn`, `env` or `release`), G-022 (an API route file with no `GET` handler answers `GET` with 200 and the page shell), G-023 (the "never throws" defect above).
+4. `routes/api/hooks/sentry-test.ts` carries `// STUB(B3): SENTRY_TEST_TOKEN read through src/server/lib/env.ts (R14), as start.ts reads MOP_ENV`. Handoff to B3: `start.ts` reads `MOP_ENV`, `SENTRY_DSN` and `SENTRY_RELEASE` from `process.env` the same way, and has no marker for it (not this group's file). The `GET` answer of 200 with the page shell is measured below and recorded in the runbook and G-022; which owner turns unhandled methods on API routes into an R09 404 or 405 is for the orchestrator.
+
+Files touched outside the group's list: `tests/mutations/B1b.json` (two entries, P-079), `GOTCHAS.md` (standing order).
+
+Proofs, in `app/` (real output):
+- red before the fix: `bunx vitest run tests/unit/sentry.test.ts` -> `× resolves and sends one event for a null-prototype object`, `AssertionError: promise rejected "TypeError: Cannot convert object to primi…" instead of resolving`; the same for `an Error whose message getter throws` (`promise rejected "Error: no message"`) and `a proxy that refuses instanceof` (`promise rejected "Error: no prototype"`); `Tests  3 failed | 19 passed (22)`
+- `bunx vitest run tests/unit/log.test.ts tests/unit/crypto.test.ts` -> `Test Files  2 passed (2)`, `Tests  23 passed (23)`
+- `grep -rn "crypto.subtle" src | grep -v "src/server/lib/crypto.ts"` -> nothing (`lines: 0`)
+- `bunx eslint --print-config <file> | grep -c 'Deno-loaded file: import with the .ts extension'` -> `log.ts: 3`, `log-events.ts: 3`, `crypto.ts: 3`, `sentry.ts: 3`
+- `bunx vitest run tests/unit/sentry.test.ts tests/unit/sentry-test-route.test.ts` -> `Test Files  2 passed (2)`, `Tests  30 passed (30)`
+- `.dev.vars` compared with `.env` without printing: `dsn matches .env`, `token matches .env`, `MOP_ENV=local`, git-ignored; `bun run build` exit 0; `bun run cf:preview` -> wrangler 4.145.0, `Using secrets defined in .output\server\.dev.vars`, `Ready on http://127.0.0.1:8788`
+- `curl -s -X POST -H "authorization: Bearer $PREVIEW_SENTRY_TEST_TOKEN" http://127.0.0.1:8788/api/hooks/sentry-test` -> `HTTP/1.1 500 Internal Server Error`, `Cache-Control: no-store`, `x-request-id: 7c65fe41-cf31-4548-a90f-a49737b59d29`, body `{"error":{"code":"server","message":"Something went wrong. Please try again in a moment.","requestId":"7c65fe41-cf31-4548-a90f-a49737b59d29"}}`
+- wrong bearer -> `HTTP/1.1 404 Not Found`, `Content-Length: 0`, `x-request-id: ae98fe08-...`, body bytes 0 (the open R09 point)
+- `GET` on the same path -> `HTTP/1.1 200 OK`, `Content-Type: text/html; charset=utf-8`, `Cache-Control: no-store`, `x-robots-tag: noindex, nofollow`, body bytes 6807; `/api/hooks/nothing-here` -> `404 text/html; charset=utf-8`
+- issues query `request_id:7c65fe41-...` -> `poll 1: issues 1`, issue `7767612319 | SentryTestError: Sentry test error for [email]`; events query `&full=true` -> `events 1`, tags `{"request_id":"7c65fe41-cf31-4548-a90f-a49737b59d29","env":"local","release":"dev","side":"worker"}`, `user null`, `request entry false`, `exception SentryTestError | Sentry test error for [email]`, `ip/cookie/authorization count: 0`, `test@example.com count: 0`, `[email] count: 3`
+- stop (P-042): `stopped node.exe 10560`, `stopped node.exe 22104`, `listeners on 8788: 0`, `workerd left: 0`
+- keys: `curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" ".../keys/" | node -e "...map(k=>k.name).join(',')"` -> `job-runner,Default`; `job-runner {"window":3600,"count":20} active true`, `Default {"window":3600,"count":50} active true`; the runbook table lists both with these limits
+- watched-fail, every g4 entry of `tests/mutations/B1b.json` replayed by a scratch runner outside the repository (find asserted once, saved bytes restored, `git status` unchanged): `replayed 31, failures 0`, among them (am) `TypeError: crypto.subtle.timingSafeEqual is not a function`, (b) `to not have property "request"`, (e) `× lets no personal data through and keeps the request id`, (r) `× gives up on a fetch that never answers after 2 seconds 5003ms`, (au) `× sends 100 identical throws within a minute once, and again after 61 seconds`, and the new `sentry-unprintable` (`× resolves and sends one event for a null-prototype object`) and `sentry-non-string` (`× sends an Error whose name and message are not strings`)
+- `cd app && bunx tsc -p tsconfig.json --noEmit` with a scratch call without `dsn` -> `TS2345 ... Property 'dsn' is missing ... but required in type 'CaptureOptions'`, exit 2; scratch file removed
+- `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (23 path entries, 82 process entries)`
+- `bun run check` -> exit 0: `layout: OK (577 files)`, eslint silent, knip `Configuration hints (4)` (g3's), `Found 0 clones.`, `stubs: 14 markers, 0 on closed slices`, `All matched files use Prettier code style!`, `Test Files  11 passed (11)`, `Tests  154 passed (154)`
+- `bun run build` -> exit 0, `built in 1.42s`, `built in 699ms`, `built in 464ms`, `Generated .output/server/wrangler.json`
+
+NOT DONE: the R09 body of the 404 (ruling needed, item 2). UNPROVEN: `waitUntil` finishing the report on a deployed Worker (proved under `wrangler dev` only; step 7); `crypto.ts` under Deno (B3 step 3b's `deno check`). `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).

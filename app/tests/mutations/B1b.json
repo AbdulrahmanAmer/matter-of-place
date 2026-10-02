@@ -691,5 +691,23 @@
     "replace": "stacktrace: { frames },",
     "run": "bunx vitest run tests/unit/sentry.test.ts",
     "expect": "lists the frames oldest first, so the throwing frame is last"
+  },
+  {
+    "id": "sentry-unprintable",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    return { type: typeof error, value: \"unprintable value\" };",
+    "replace": "    throw new Error(\"unprintable\");",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "resolves and sends one event for a null-prototype object"
+  },
+  {
+    "id": "sentry-non-string",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "      type: String(name),\n      value: String(message),",
+    "replace": "      type: name as string,\n      value: message as string,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "sends an Error whose name and message are not strings"
   }
 ]

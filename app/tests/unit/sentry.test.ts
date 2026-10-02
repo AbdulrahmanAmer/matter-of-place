@@ -294,6 +294,46 @@ describe("captureException", () => {
     ]);
     expect(otherConsole).toEqual([]);
   });
+
+  it.each([
+    { name: "a null-prototype object", value: (): unknown => Object.create(null) },
+    {
+      name: "an Error whose message getter throws",
+      value: (): unknown =>
+        Object.defineProperty(new Error("x"), "message", {
+          get() {
+            throw new Error("no message");
+          },
+        }),
+    },
+    {
+      name: "a proxy that refuses instanceof",
+      value: (): unknown =>
+        new Proxy(
+          {},
+          {
+            getPrototypeOf() {
+              throw new Error("no prototype");
+            },
+          },
+        ),
+    },
+  ])("resolves and sends one event for $name", async ({ value }) => {
+    const { captureException } = await load();
+    await expect(captureException(value(), OPTIONS)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sent().envelope.event.exception.values[0]).toMatchObject({
+      type: "object",
+      value: "unprintable value",
+    });
+  });
+
+  it("sends an Error whose name and message are not strings", async () => {
+    const { captureException } = await load();
+    const error = Object.assign(new Error("x"), { name: 5, message: 6 });
+    await expect(captureException(error, OPTIONS)).resolves.toBeUndefined();
+    expect(sent().envelope.event.exception.values[0]).toMatchObject({ type: "5", value: "6" });
+  });
 });
 
 describe("one event per fingerprint and the rate limits (INT-12)", () => {
