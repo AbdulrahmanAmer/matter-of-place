@@ -10,7 +10,11 @@ const DB_URL = "postgresql://postgres.ref:secret@127.0.0.1:5432/postgres";
 const IMPORTS_GUARD = /from\s+["'][^"']*\/assert-not-production\.mjs["']/;
 
 // Every destructive or test command (B2 invariant 23). Steps 3 and 12 and later slices append the files they create.
-const guardedScripts = ["scripts/db-reset-dev.mjs"];
+const guardedScripts = [
+  "scripts/db-reset-dev.mjs",
+  "tests/fixtures/db.ts",
+  "tests/db/global-setup.ts",
+];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {
   code: "42P01",
