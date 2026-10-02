@@ -100,4 +100,3 @@ function getStrings(locale: Locale = defaultLocale): Strings {
 
 /** Convenience accessor for the default locale. */
 export const t = getStrings();
-const x: number = "a";
