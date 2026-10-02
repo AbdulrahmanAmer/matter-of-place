@@ -1289,3 +1289,10 @@ Entry template
 - rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
 - proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
 - added: 2026-10-03
+
+## P-502 · Git Bash rewrites an argument that starts with a slash into a Windows path
+- symptom: `openssl req ... -subj "/CN=mop-backup"` failed with `This name is not in that format: 'C:/Program Files/Git/CN=mop-backup'`. The shell had turned `/CN=...` into a path before openssl saw it.
+- cause: MSYS path conversion applies to any argument that looks like an absolute POSIX path, subjects and URL paths included (same family as the `gh api` leading slash, P-048).
+- rule: run such a command with `MSYS_NO_PATHCONV=1` in front, or write the argument with a doubled slash (`//CN=...`). Check the first attempt's output files before trusting them: a failed run can leave a half-written file behind.
+- proof: `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`.
+- added: 2026-10-03
