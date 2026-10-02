@@ -64,9 +64,14 @@ H44 (1)).
 
 Destructive means: every drop and every rename of an object, a column type change, `set not null`, a new NOT NULL
 column without a default, and `truncate` (H44 (2)). These pass: dropping a trigger or a policy; renaming a policy,
-trigger, index or constraint; dropping a function or procedure when the same file creates one of every name it drops,
-which is how `bun run db:fn` changes a signature (H43 (1)); `alter publication ... drop table` and
-`alter extension ... drop`, because they take an object out of a list and lose nothing (H43 (2)).
+trigger, index or constraint; dropping a function or procedure when a later statement of the same file creates one of
+every schema and name it drops, which is how `bun run db:fn` changes a signature (H43 (1)); `alter publication ... drop
+table` and `alter extension ... drop`, because they take an object out of a list and lose nothing (H43 (2)).
+
+The function drop passes only in the form `db:fn` writes. A drop with `cascade` always needs the header: it also
+removes every view, policy, column default and stored generated column that uses the function, and the file does not
+create those again. Without `cascade` Postgres refuses the drop while anything depends on the function. A create that
+comes before the drop does not count, because the drop could remove it.
 
 What the scan does not read (H43 (4), H44 (2)). A reviewer reads every migration that uses any of these:
 
@@ -74,7 +79,11 @@ What the scan does not read (H43 (4), H44 (2)). A reviewer reads every migration
 - a function named in quotes;
 - a trigger created by an earlier migration, whose function this file changes;
 - a table whose name equals a function's name, which reads as a call of that function;
-- `delete from`: a change to data, not to the schema.
+- `delete from`: a change to data, not to the schema;
+- the argument types of a dropped and a created function: a drop of `f(int)` passes when the file creates any `f`
+  after it;
+- `set search_path`: a function name without a schema is read as `public`;
+- a function created inside a DO block or by `execute`: it never counts as created, so the drop before it is refused.
 
 ## Decision for step 9: branch protection
 

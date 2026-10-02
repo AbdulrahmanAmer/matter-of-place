@@ -10,20 +10,22 @@ const HEADER_LINES = 30;
 // Destructive DDL needs a contract migration (DB-08, STANDARDS R17, rulings ASSUMED H42 (3), H43,
 // H44). Every drop and rename of an object counts, and `truncate`, except dropping a trigger (R17)
 // or a policy, renaming a policy, trigger, index or constraint, and dropping a function or
-// procedure the same file creates again. A statement starts the text, or follows a PL/pgSQL
-// keyword inside a DO or function body.
+// procedure that a later statement of the same file creates again, without `cascade`. A statement
+// starts the text, or follows a PL/pgSQL keyword inside a DO or function body.
 const START = String.raw`(?:^|\b(?:begin|then|else|loop)\s+)`;
 const DROP = new RegExp(
   String.raw`${START}drop\s+(?!trigger\b|policy\b)(materialized\s+view|foreign\s+table|\w+)`,
   "i",
 );
 // `bun run db:fn` writes `drop function if exists public.<name>(<old types>);` before the new
-// `create function` when a signature changes (H43 (1)).
+// `create function` when a signature changes (H43 (1)). A drop with `cascade` also removes every
+// view, policy, default and generated column that uses the function, so it is never excepted.
 const ROUTINE_DROP = new RegExp(
   String.raw`${START}drop\s+(?:function|procedure|routine)\s+(?:if\s+exists\s+)?`,
   "i",
 );
-const ROUTINE_NAME = /^(?:[\w$]+\s*\.\s*)?([A-Za-z_][\w$]*)/;
+const ROUTINE_NAME = /^(?:([\w$]+)\s*\.\s*)?([A-Za-z_][\w$]*)/;
+const CASCADE = /\bcascade$/i;
 /** @type {[string, RegExp][]} */
 const STATEMENT_RULES = [
   [
@@ -66,7 +68,7 @@ const CLAUSE_RULES = [
 // statements that only declare, grant or describe it.
 const DO_BLOCK = /^do\b/i;
 const CREATE_FUNCTION = new RegExp(
-  String.raw`${START}create\s+(?:or\s+replace\s+)?(?:function|procedure)\s+(?:[\w$]+\s*\.\s*)?([A-Za-z_][\w$]*)\s*\(`,
+  String.raw`${START}create\s+(?:or\s+replace\s+)?(?:function|procedure)\s+(?:([\w$]+)\s*\.\s*)?([A-Za-z_][\w$]*)\s*\(`,
   "i",
 );
 const DECLARES = new RegExp(
@@ -221,7 +223,7 @@ function bodiesOf(statements) {
   /** @type {Map<string, string[]>} */
   const bodies = new Map();
   for (const { text, literals } of statements) {
-    const name = CREATE_FUNCTION.exec(text)?.[1]?.toLowerCase();
+    const name = CREATE_FUNCTION.exec(text)?.[2]?.toLowerCase();
     if (name !== undefined) {
       bodies.set(name, [...(bodies.get(name) ?? []), ...literals]);
     }
@@ -230,19 +232,55 @@ function bodiesOf(statements) {
 }
 
 /**
- * Whether the statement drops functions or procedures and the file creates one of every name
- * it drops. A name in quotes is blanked by the lexer, so it never counts as created.
+ * A routine name with its schema, in lower case; a name written without one is read as
+ * `public`, the schema the migrations create in.
+ * @param {string | undefined} schema
+ * @param {string} name
+ * @returns {string}
+ */
+function qualified(schema, name) {
+  return `${(schema ?? "public").toLowerCase()}.${name.toLowerCase()}`;
+}
+
+/**
+ * For each statement, the qualified names of the functions and procedures that the statements
+ * after it create.
+ * @param {{ text: string }[]} statements
+ * @returns {Set<string>[]}
+ */
+function createdAfter(statements) {
+  /** @type {Set<string>[]} */
+  const after = [];
+  /** @type {Set<string>} */
+  let names = new Set();
+  for (let index = statements.length - 1; index >= 0; index -= 1) {
+    after[index] = names;
+    const match = CREATE_FUNCTION.exec(statements[index]?.text ?? "");
+    const name = match?.[2];
+    if (name !== undefined) {
+      names = new Set([...names, qualified(match?.[1], name)]);
+    }
+  }
+  return after;
+}
+
+/**
+ * Whether the statement drops functions or procedures without `cascade`, and a later statement
+ * of the file creates one of every name it drops. A name in quotes is blanked by the lexer, so
+ * it never counts as created.
  * @param {string} text
- * @param {Set<string>} created
+ * @param {Set<string>} created names the statements after this one create
  * @returns {boolean}
  */
 function recreates(text, created) {
   const head = ROUTINE_DROP.exec(text);
   return (
     head !== null &&
+    !CASCADE.test(text) &&
     clausesOf(text.slice(head.index + head[0].length)).every((target) => {
-      const name = ROUTINE_NAME.exec(target)?.[1]?.toLowerCase();
-      return name !== undefined && created.has(name);
+      const match = ROUTINE_NAME.exec(target);
+      const name = match?.[2];
+      return name !== undefined && created.has(qualified(match?.[1], name));
     })
   );
 }
@@ -253,17 +291,20 @@ function recreates(text, created) {
  * @param {{ text: string, literals: string[] }[]} statements
  * @param {boolean} inDoBlock
  * @param {Map<string, string[]>} bodies functions of the file a statement may call
- * @param {Set<string>} created names of every function and procedure the file creates
+ * @param {(index: number) => Set<string>} createdLater names of the functions and procedures
+ *   the file creates after the statement at `index`; a body read inside one statement keeps
+ *   that statement's set
  * @returns {string[]}
  */
-function destructiveKinds(statements, inDoBlock, bodies, created) {
-  /**
-   * @param {string} literal
-   * @param {Map<string, string[]>} callable
-   */
-  const read = (literal, callable) =>
-    destructiveKinds(statementsOf(literal), true, callable, created);
-  return statements.flatMap(({ text, literals }) => {
+function destructiveKinds(statements, inDoBlock, bodies, createdLater) {
+  return statements.flatMap(({ text, literals }, index) => {
+    const created = createdLater(index);
+    /**
+     * @param {string} literal
+     * @param {Map<string, string[]>} callable
+     */
+    const read = (literal, callable) =>
+      destructiveKinds(statementsOf(literal), true, callable, () => created);
     const head = ALTER_TABLE.exec(text);
     const clauses = head === null ? [] : clausesOf(text.slice(head.index + head[0].length));
     const dropped = DROP.exec(text)?.[1]?.replace(/^(?:materialized|foreign)\s+/i, "");
@@ -316,7 +357,10 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
     const header = text.split("\n").slice(0, HEADER_LINES).join("\n");
     const statements = statementsOf(text);
     const bodies = bodiesOf(statements);
-    const kinds = [...new Set(destructiveKinds(statements, false, bodies, new Set(bodies.keys())))];
+    const after = createdAfter(statements);
+    const kinds = [
+      ...new Set(destructiveKinds(statements, false, bodies, (index) => after[index] ?? new Set())),
+    ];
     if (kinds.length > 0) {
       const version = CONTRACT_HEADER.exec(header)?.[1];
       if (version === undefined) {

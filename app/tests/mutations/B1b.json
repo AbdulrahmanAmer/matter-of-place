@@ -1867,8 +1867,8 @@
     "id": "cm-routine-schema",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "/^(?:[\\w$]+\\s*\\.\\s*)?([A-Za-z_][\\w$]*)/",
-    "replace": "/^([A-Za-z_][\\w$]*)/",
+    "find": "/^(?:([\\w$]+)\\s*\\.\\s*)?([A-Za-z_][\\w$]*)/",
+    "replace": "/^(?:([\\w$]+)\\s*\\.\\s*)??([A-Za-z_][\\w$]*)/",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop then create with a schema needs no contract-of header"
   },
@@ -1903,7 +1903,7 @@
     "id": "cm-routine-name",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "created.has(name)",
+    "find": "created.has(qualified(match?.[1], name))",
     "replace": "created.size > 0",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a function dropped, another created needs the contract-of header"
@@ -1921,10 +1921,73 @@
     "id": "cm-routine-alone",
     "test": "tests/unit/check-migrations.test.ts",
     "file": "scripts/check-migrations.mjs",
-    "find": "return name !== undefined && created.has(name);",
+    "find": "return name !== undefined && created.has(qualified(match?.[1], name));",
     "replace": "return true;",
     "run": "bunx vitest run tests/unit/check-migrations.test.ts",
     "expect": "a drop function needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-cascade",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "!CASCADE.test(text) &&",
+    "replace": "true &&",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop function cascade, then create needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-restrict",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const CASCADE = /\\bcascade$/i;",
+    "replace": "const CASCADE = /\\b(?:cascade|restrict)$/i;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop restrict, then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-cascade-word",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "const CASCADE = /\\bcascade$/i;",
+    "replace": "const CASCADE = /\\bcascade/i;",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a function whose name starts cascade needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-other-schema",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "`${(schema ?? \"public\").toLowerCase()}.${name.toLowerCase()}`",
+    "replace": "name.toLowerCase()",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop in another schema, then create needs the contract-of header"
+  },
+  {
+    "id": "cm-routine-public",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "schema ?? \"public\"",
+    "replace": "schema ?? \"\"",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a bare drop, then a public create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-case",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "`${(schema ?? \"public\").toLowerCase()}.${name.toLowerCase()}`",
+    "replace": "`${schema ?? \"public\"}.${name}`",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a drop in capitals, then create needs no contract-of header"
+  },
+  {
+    "id": "cm-routine-order",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "(index) => after[index] ?? new Set()",
+    "replace": "() => after[0] ?? new Set()",
+    "run": "bunx vitest run tests/unit/check-migrations.test.ts",
+    "expect": "a create, then a drop of the same name needs the contract-of header"
   },
   {
     "id": "cm-truncate",

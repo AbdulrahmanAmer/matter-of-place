@@ -12,7 +12,8 @@ const NEW_F = "create function f(a text) returns int language sql as $$ select 1
 
 // Every destructive kind of STANDARDS R17 and rulings ASSUMED H42 (3), H43 (1) and H44 (2), then
 // the places a text scan can lose one: a DO block, a comment before it, a string that holds `--`,
-// a called function body, a function created twice.
+// a called function body, a function created twice, a routine drop that cascades or is not
+// followed by a create of the same schema and name.
 const DESTRUCTIVE = [
   { name: "a drop table", kind: "drop table", sql: "drop table public.notes;" },
   { name: "a drop column", kind: "drop column", sql: "alter table notes drop column body;" },
@@ -163,6 +164,21 @@ const DESTRUCTIVE = [
     kind: "drop table",
     sql: `drop table f;\n${NEW_F}`,
   },
+  {
+    name: "a drop function cascade, then create",
+    kind: "drop function",
+    sql: `drop function f(int) cascade;\n${NEW_F}`,
+  },
+  {
+    name: "a drop in another schema, then create",
+    kind: "drop function",
+    sql: "drop function other.f(int);\ncreate function public.f(a text) returns int language sql as $$ select 1 $$;",
+  },
+  {
+    name: "a create, then a drop of the same name",
+    kind: "drop function",
+    sql: "create or replace function f(a text) returns int language sql as $$ select 1 $$;\ndrop function f(text);",
+  },
   { name: "a truncate", kind: "truncate", sql: "truncate table notes;" },
 ];
 
@@ -259,6 +275,16 @@ const ALLOWED = [
   {
     name: "a drop then create of one procedure",
     sql: "drop procedure p(int);\ncreate procedure p(a text) language sql as $$ select 1 $$;",
+  },
+  {
+    name: "a bare drop, then a public create",
+    sql: "drop function f(int);\ncreate function public.f(a text) returns int language sql as $$ select 1 $$;",
+  },
+  { name: "a drop in capitals, then create", sql: `DROP FUNCTION Public.F(int);\n${NEW_F}` },
+  { name: "a drop restrict, then create", sql: `drop function f(int) restrict;\n${NEW_F}` },
+  {
+    name: "a function whose name starts cascade",
+    sql: "drop function cascade_notes(int);\ncreate function cascade_notes(a text) returns int language sql as $$ select 1 $$;",
   },
   // Ruling ASSUMED H44 (2): the word in a comment or a string is not a statement.
   {
