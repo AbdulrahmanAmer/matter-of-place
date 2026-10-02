@@ -1990,3 +1990,227 @@ try {
 UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). Open from round 2, unchanged: the `drop function` conflict with B2.md:71, B2.md:93 and B10.md:166 (P-113) still needs a ruling. Not handled, by choice, as in round 3 (`format()` and `||` pieces, quoted function names, triggers from earlier migrations, `raise notice 'drop table ...'` refused, a table named like a function counts as a call).
 
 GOTCHAS: P-117 added; G-029 rule and proof corrected; P-111 extended.
+
+## c6 · steps 5
+
+Round 5 of the c6 close-out: the three additions of rulings ASSUMED H43 and H44 and the runbook limits. Commits on `slice/b1b`: `d937e39` (the work), `250d94f` and `304d820` (type-error watched-fail and its revert), `c6b578d` and `6bd1b3d` (engines watched-fail and its revert); `git diff --quiet d937e39 HEAD` exit 0 after each revert. This log block is committed after them.
+
+1. H43 (1): `recreates(text, created)` in `scripts/check-migrations.mjs`. A `drop function`, `drop procedure` or `drop routine` (with or without `if exists`, at a statement start as every other drop) adds no kind when every name it drops, split on the commas outside parentheses and read without a schema prefix, is a name some `create [or replace] function|procedure` of the same file creates (the names `bodiesOf` already collects, passed down as `created`). A name in quotes is blanked by the lexer and never counts as created, so it is refused. Order inside the file is not read: the ruling says "creates", and both orders are a signature change. `drop trigger` and `drop policy` unchanged.
+2. H44 (1): `CONTRACT_HEADER` captures the version; a destructive file whose version is not in `mainPrefixes` gets `contract-of names a version that is not on main: <file>`. Only a destructive file is checked, as the ruling says.
+3. H44 (2): `truncate` at a statement start is the kind `truncate`; the lexer keeps the word in a comment or a string out of the statement text, and a DO block or `execute '...'` reads it.
+4. Runbook: `app/docs/runbooks/delivery.md` section `Migration order check`: what is refused, what passes (trigger and policy drops, the excepted renames, the H43 (1) drop, `alter publication ... drop table` and `alter extension ... drop`), and what the scan does not read (`format()` and joined strings, a function named in quotes, a trigger from an earlier migration, a table named like a function, `delete from`).
+5. Tests: `tests/unit/check-migrations.test.ts` has 11 new rows and one new test. Refused: `a drop of two functions, one created`, `a function dropped, another created`, `a drop table named like a new function`, `a truncate`. Allowed: `a drop then create of one function`, `a drop then create with a schema`, `a drop if exists then create`, `the db:fn form of a signature change` (the orchestrator's probe input), `a drop then create of one procedure`, `a truncate inside a comment`, `a truncate inside a string`. New test: `refuses a contract-of version that is not on main`. `refuses a contract-of header without a 14-digit version` now asserts the exact message: with `toHaveLength(1)` the `cm-contract-digits` mutation would have stayed green, because the 6-digit version now gives the not-on-main failure instead. The refused row for the drop alone, `a drop function`, was already there; `cm-routine-alone` now guards it too. Every row name is 40 characters or fewer (P-116); the comment and string rows each hold a `;` so that one mechanism decides them (P-112).
+6. Registry `tests/mutations/B1b.json`: 14 new entries (`cm-routine-recreated`, `cm-routine-dbfn`, `cm-routine-schema`, `cm-routine-if-exists`, `cm-routine-procedure`, `cm-routine-every`, `cm-routine-name`, `cm-routine-table`, `cm-routine-alone`, `cm-truncate`, `cm-truncate-comment`, `cm-truncate-string`, `cm-contract-on-main`, `cm-contract-on-main-accept`). Three entries moved with the code (P-090), found by `--check` (`BAD cm-destructive`, `BAD cm-contract-header`, `BAD cm-contract-digits: find occurs 0 times`, `checked 269, bad 3`) and rewritten: `cm-destructive` now `if (kinds.length > 0) {` to `if (false) {`, `cm-contract-header` `if (version === undefined) {` to `if (true) {`, `cm-contract-digits` `/^-- contract-of: (\d{14})\b/m` to `/^-- contract-of: (\d+)/m`.
+7. GOTCHAS: G-029's proof count brought to `Tests  82 passed (82)`. No new entry: nothing in this round cost a second attempt beyond a constant renamed before the first run.
+
+### Proofs (run 2026-10-02, from `app/` unless noted)
+
+The orchestrator's probe, `node ../scratch/orch-cm-probe.mjs` (27 cases). Before, on `850b0d8`:
+```
+BAD  refused  drop function then create same name (H43: allowed)  -> destructive change (drop function) without "-- contract-of: <14-digit version>" in its fir
+INFO allowed  truncate
+INFO allowed  contract header names a version not on main
+cases 27, bad 1
+```
+After:
+```
+INFO refused  truncate  -> destructive change (truncate) without "-- contract-of: <14-digit version>" in its first 30
+INFO allowed  delete without where
+INFO refused  contract header names a version not on main  -> contract-of names a version that is not on main: supabase/migrations/20261003000000_probe.
+cases 27, bad 0
+```
+(every other line `ok`).
+
+This round's probe `node ../scratch/c6r5-probe.mjs [<script>]` (text below), on this script and on the round-4 script saved from `850b0d8` as `../scratch/check-migrations-850b0d8.mjs`:
+```
+== this round
+ok  0  drop function then create, schema and if exists
+ok  0  drop public.f, create f
+ok  0  drop routine, create function
+ok  0  create first, then drop the old signature
+ok  1  drop function alone  | destructive change (drop function)
+ok  1  drop procedure alone  | destructive change (drop procedure)
+ok  1  drop two, create one  | destructive change (drop function)
+ok  1  drop function inside a DO block, not created  | destructive change (drop function)
+ok  1  drop aggregate  | destructive change (drop aggregate)
+ok  1  truncate  | destructive change (truncate)
+ok  1  truncate, two tables  | destructive change (truncate)
+ok  1  truncate inside a DO block  | destructive change (truncate)
+ok  1  truncate run by EXECUTE  | destructive change (truncate)
+ok  0  truncate in a comment
+ok  0  truncate in a string
+ok  0  alter publication drop table
+ok  0  alter extension drop function
+ok  0  delete from (not read)
+ok  0  format() in a DO block (not read)
+ok  0  quoted function called (not read)
+ok  1  table named like a function reads as a call  | destructive change (drop table)
+ok  0  contract-of 20261001090000
+ok  1  contract-of 20269999000000  | contract-of names a version that is not on main: supabase/migrations/20261002110000_x.sql
+cases 23, bad 0
+== round 4 (850b0d8)
+BAD 1  drop function then create, schema and if exists  | destructive change (drop function)
+BAD 1  drop public.f, create f  | destructive change (drop function)
+BAD 1  drop routine, create function  | destructive change (drop routine)
+BAD 1  create first, then drop the old signature  | destructive change (drop function)
+BAD 0  truncate
+BAD 0  truncate, two tables
+BAD 0  truncate inside a DO block
+BAD 0  truncate run by EXECUTE
+BAD 0  contract-of 20269999000000
+cases 23, bad 9
+```
+G-028 check: the only inputs round 4 refused and this round passes are the four drop-then-create cases, which ruling H43 (1) allows. The earlier probes on this script: `node ../scratch/c6r4-probe.mjs` → `cases 16, bad 0`; `node ../scratch/c6r3-probe.mjs` → `cases 39, bad 0`; `node ../scratch/c6r-probe.mjs | grep -vc "^ok"` → `0`.
+
+```
+$ bunx vitest run tests/unit/check-migrations.test.ts
+      Tests  82 passed (82)
+$ bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts
+ Test Files  2 passed (2)
+      Tests  112 passed | 8 skipped (120)
+$ node ../scratch/replay.mjs --check
+checked 283, bad 0
+$ node ../scratch/replay.mjs cm-destructive cm-contract-header cm-contract-digits cm-routine-recreated cm-routine-dbfn cm-routine-schema cm-routine-if-exists cm-routine-procedure cm-routine-every cm-routine-name cm-routine-table cm-routine-alone cm-truncate cm-truncate-comment cm-truncate-string cm-contract-on-main cm-contract-on-main-accept
+RED cm-destructive: exit=1 expect=true | × a drop column needs the contract-of header 2ms
+RED cm-contract-header: exit=1 expect=true | × accepts a drop column with the contract-of header in its first 30 lines 8ms
+RED cm-contract-digits: exit=1 expect=true | × refuses a contract-of header without a 14-digit version 8ms
+RED cm-routine-recreated: exit=1 expect=true | × a drop then create of one function needs no contract-of header 7ms
+RED cm-routine-dbfn: exit=1 expect=true | × the db:fn form of a signature change needs no contract-of header 1ms
+RED cm-routine-schema: exit=1 expect=true | × a drop then create with a schema needs no contract-of header 8ms
+RED cm-routine-if-exists: exit=1 expect=true | × a drop if exists then create needs no contract-of header 8ms
+RED cm-routine-procedure: exit=1 expect=true | × a drop then create of one procedure needs no contract-of header 10ms
+RED cm-routine-every: exit=1 expect=true | × a drop of two functions, one created needs the contract-of header 8ms
+RED cm-routine-name: exit=1 expect=true | × a function dropped, another created needs the contract-of header 1ms
+RED cm-routine-table: exit=1 expect=true | × a drop table named like a new function needs the contract-of header 7ms
+RED cm-routine-alone: exit=1 expect=true | × a drop function needs the contract-of header 7ms
+RED cm-truncate: exit=1 expect=true | × a truncate needs the contract-of header 7ms
+RED cm-truncate-comment: exit=1 expect=true | × a truncate inside a comment needs no contract-of header 1ms
+RED cm-truncate-string: exit=1 expect=true | × a truncate inside a string needs no contract-of header 1ms
+RED cm-contract-on-main: exit=1 expect=true | × refuses a contract-of version that is not on main 8ms
+RED cm-contract-on-main-accept: exit=1 expect=true | × accepts a drop column with the contract-of header in its first 30 lines 8ms
+replayed 17, not red 0
+$ node ../scratch/replay.mjs <all 92 entries whose file is scripts/check-migrations.mjs>
+  (92 lines RED, each with its own title)
+replayed 92, not red 0
+$ cmp scripts/check-migrations.mjs ../scratch/cm-saved-r5.mjs && echo same-bytes
+same-bytes
+$ node ../scratch/c6-map.mjs | tail -1
+titles 82, without an entry 0
+$ node ../scratch/c6r4-one.mjs cm-routine-schema
+mutated: const ROUTINE_NAME = /^([A-Za-z_][\w$]*)/;
+× a drop then create with a schema needs no contract-of header 8ms
+× the db:fn form of a signature change needs no contract-of header 1ms
++   "destructive change (drop function) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_chang
+Tests  2 failed | 80 passed (82)
+$ node ../scratch/c6r4-one.mjs cm-routine-if-exists
+mutated: String.raw`${START}drop\s+(?:function|procedure|routine)\s+`,
+× a drop if exists then create needs no contract-of header 8ms
+× the db:fn form of a signature change needs no contract-of header 1ms
+Tests  2 failed | 80 passed (82)
+$ node ../scratch/c6r4-one.mjs cm-truncate-comment
+mutated: if (false) {
+× a down header that drops the new column needs no contract-of header 8ms
+× a truncate inside a comment needs no contract-of header 1ms
++   "destructive change (truncate) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_change.sql
+Tests  2 failed | 80 passed (82)
+$ node ../scratch/c6r4-one.mjs cm-contract-digits
+mutated: const CONTRACT_HEADER = /^-- contract-of: (\d+)/m;
+× refuses a contract-of header without a 14-digit version 7ms
+-   "destructive change (drop column) without \"-- contract-of: <14-digit version>\" in its first 30 lines: supabase/migrations/20261002110000_drop_bo
+Tests  1 failed | 81 passed (82)
+$ node ../scratch/replay.mjs ao ap bd f g hy-engines-gone
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 8ms
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 113ms
+replayed 6, not red 0
+$ node scripts/check-migrations.mjs ; echo "exit $?"
+no migrations
+exit 0
+$ git -C .. ls-files "app/bun.lock"
+app/bun.lock
+$ node -p "require('./package.json').engines"
+{ bun: '1.3.13', node: '24.x' }
+$ cd .. && node workspace/05-plans/check-gotchas.mjs
+check-gotchas: OK (29 path entries, 117 process entries)
+```
+
+CI on `d937e39` (run 37025909287, `pull_request`, success): `build success`, `check success`, `merge-gate skipped`; steps of `check`: `engines`, `Run actions/cache@...`, `Run bun install --frozen-lockfile`, `migration-order` (log `no migrations`), `Run bun run check` (log `tests/unit/check-migrations.test.ts (82 tests)`), `audit`, all `success`; no job named `audit` or `deno`. `gh run download 37025909287 -n build-output -D scratch/c6r5-art` → `nitro.json package-lock.json package.json public server`, `server/wrangler.json` name `matter-of-place`.
+Watched-fail (d), type error: `250d94f` appends `const x: number = "a";` to `src/lib/strings.ts`. Run 37026152606: `failure`, `check failure`, `build success`; `##[error]src/lib/strings.ts(103,7): error TS2322: Type 'string' is not assignable to type 'number'.`, `##[error]Process completed with exit code 2.` Revert `304d820`: run 37026288809 `success` (`check success`, `build success`).
+Watched-fail, engines: `c6b578d` sets `engines.bun` to `1.3.12` (`-    "bun": "1.3.13",` / `+    "bun": "1.3.12",`). Run 37026490972: `check failure` at step `engines` (`engines {"bun":"1.3.12","node":"24.x"} runner 1.3.13 24`, `##[error]Process completed with exit code 1.`); cache, install, `migration-order`, `bun run check` and `audit` `skipped`. Revert `6bd1b3d`: run 37026611262 `success` (`check success`, `build success`).
+Gates on the work tree of `d937e39`: `bun run check` exit 0 (`layout: OK (586 files)`, knip's two known hints of P-065, `No duplicates found.`, `stubs: 15 markers, 0 on closed slices`, `Test Files  14 passed (14)`, `Tests  327 passed | 8 skipped (335)`); `bun run build` exit 0 (three `built in` lines, `src/routeTree.gen.ts` unchanged).
+
+`scratch/c6r5-probe.mjs` (lane-root `scratch/`, git-ignored, run from `app/`; P-088)
+```js
+// node ../scratch/c6r5-probe.mjs [<path to check-migrations.mjs>]   (from app/)
+// The claims of the runbook section "Migration order check" and the round-5 rulings (H43 (1),
+// H44): each case prints its failure count against what the runbook says.
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+
+const target = resolve(process.argv[2] ?? "scripts/check-migrations.mjs");
+const { checkMigrations } = await import(pathToFileURL(target).href);
+const dropping = "create function notes() returns void language plpgsql as $$ begin drop table memos; end $$;";
+
+const cases = {
+  "MUST 0  drop function then create, schema and if exists":
+    "drop function if exists public.f(int);\ncreate function public.f(a int, b int) returns int language sql as $$ select 1 $$;",
+  "MUST 0  drop public.f, create f": "drop function public.f(int);\ncreate function f(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 0  drop routine, create function": "drop routine f(int);\ncreate function f(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 0  create first, then drop the old signature":
+    "create function f(a text) returns int language sql as $$ select 1 $$;\ndrop function f(int);",
+  "MUST 1  drop function alone": "drop function f(int);",
+  "MUST 1  drop procedure alone": "drop procedure p(int);",
+  "MUST 1  drop two, create one": "drop function f(int), g(int);\ncreate function f(a text) returns int language sql as $$ select 1 $$;",
+  "MUST 1  drop function inside a DO block, not created": "do $$ begin drop function f(int); end $$;",
+  "MUST 1  drop aggregate": "drop aggregate agg(int);",
+  "MUST 1  truncate": "truncate table notes;",
+  "MUST 1  truncate, two tables": "truncate notes, memos restart identity;",
+  "MUST 1  truncate inside a DO block": "do $$ begin if true then truncate notes; end if; end $$;",
+  "MUST 1  truncate run by EXECUTE": "do $$ begin execute 'truncate notes'; end $$;",
+  "MUST 0  truncate in a comment": "create table memos (id uuid); -- truncate notes",
+  "MUST 0  truncate in a string": "comment on table notes is 'truncate later';",
+  "MUST 0  alter publication drop table": "alter publication supabase_realtime drop table notes;",
+  "MUST 0  alter extension drop function": "alter extension pg_trgm drop function similarity(text, text);",
+  "MUST 0  delete from (not read)": "delete from notes;",
+  "MUST 0  format() in a DO block (not read)": "do $$ begin execute format('drop %s notes', 'table'); end $$;",
+  "MUST 0  quoted function called (not read)":
+    'create function "Wipe"() returns void language plpgsql as $$ begin drop table notes; end $$;\nselect "Wipe"();',
+  "MUST 1  table named like a function reads as a call": `${dropping}\ninsert into notes (id) values (1);`,
+};
+let bad = 0;
+for (const [name, sql] of Object.entries(cases)) {
+  const file = "supabase/migrations/20261002110000_x.sql";
+  const failures = checkMigrations({
+    changed: [],
+    added: [file],
+    mainPrefixes: ["20261002100000"],
+    readFile: () => `-- irreversible: x\nset lock_timeout = '5s';\n${sql}\n`,
+  });
+  const want = Number(name.slice(5, 6));
+  const ok = failures.length === want;
+  bad += ok ? 0 : 1;
+  console.log(`${ok ? "ok " : "BAD"} ${String(failures.length)}  ${name.slice(8)}${failures.length > 0 ? `  | ${failures[0].split(" without")[0]}` : ""}`);
+}
+const header = (version) =>
+  checkMigrations({
+    changed: [],
+    added: ["supabase/migrations/20261002110000_x.sql"],
+    mainPrefixes: ["20261001090000", "20261002100000"],
+    readFile: () => `-- contract-of: ${version}\n-- irreversible: x\nalter table notes drop column body;\n`,
+  });
+for (const [version, want] of [["20261001090000", 0], ["20269999000000", 1]]) {
+  const failures = header(version);
+  const ok = failures.length === want;
+  bad += ok ? 0 : 1;
+  console.log(`${ok ? "ok " : "BAD"} ${String(failures.length)}  contract-of ${version}${failures.length > 0 ? `  | ${failures[0]}` : ""}`);
+}
+console.log(`cases ${String(Object.keys(cases).length + 2)}, bad ${String(bad)}`);
+```
+`orch-cm-probe.mjs` is the orchestrator's file in the same folder; `replay.mjs` is in the g4 close-out block, `c6r4-one.mjs` in the round-4 block above.
+
+UNPROVEN: Dependabot (`gh pr list --author "app/dependabot" --state all --json number --jq length` → `0`; `dependabot.yml` is not on `main` yet). The scan has met no real migration yet (B2 writes the first). The P-113 conflict is settled by H43 (1) in this script; the B2 lines that still describe the old pattern list (B2.md:71 invariant 14, replaced by reference in H43 (3)) are the orchestrator's to fold.
+
+GOTCHAS: G-029 proof count updated; no new entry.
