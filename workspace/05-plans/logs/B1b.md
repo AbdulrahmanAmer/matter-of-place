@@ -3628,3 +3628,262 @@ NOT DONE or UNPROVEN in step 6:
 - `grep -c "HAS_DB"` at least 4: step 7.
 
 GOTCHAS: P-134, P-135, P-136, P-137 added.
+
+## c1 · steps 6
+Builder of group c1: finish the step 6 proofs that stopped on the live-mode 500s (P-134), under ruling H48. Start: `git fetch -q origin && git merge origin/main` (merge commit `539f456`, main at `e6e88a2`, the entry-aware bank driver of H48 (4) merged `GOTCHAS.md` cleanly; `node workspace/05-plans/check-gotchas.mjs` → `check-gotchas: OK (32 path entries, 131 process entries)`). Commits: `deccaac` (runbook, two lines of H48 (4)) and the commit that holds this block. `deploy.yml`, `smoke.mjs` and the tests did not change (H48 (1)). Pull request #43 stays a draft; `gh pr view 43 --json mergeable,mergeStateStatus` → `{"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE"}`.
+
+Files: `app/docs/runbooks/delivery.md` (section Previews: previews run on the local adapter until B3 sets `VITE_API_BASE_URL` again; a first-deployed Worker name is polled for ten answers in a row before the smoke; the P-134 paragraph now says what H48 did), `GOTCHAS.md` (P-134 gains one sentence: the ruling and the probes that smoked green), this block.
+
+### Local proofs (build with no `VITE_API_BASE_URL`, `bun run cf:preview` on 8788, `.dev.vars` holds `MOP_ENV=local`)
+
+`cd app && bun run build && bun run cf:preview & ; node scripts/smoke.mjs http://127.0.0.1:8788` (output file `scratch/c1s6-smoke-local.txt`)
+```
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/properties
+ok   http://127.0.0.1:8788/markets
+ok   http://127.0.0.1:8788/california
+ok   http://127.0.0.1:8788/stories
+ok   http://127.0.0.1:8788/submit
+ok   http://127.0.0.1:8788/contact
+ok   http://127.0.0.1:8788/sitemap.xml
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: OK http://127.0.0.1:8788
+exit 0
+```
+
+Watched-fail (c), live, again: the bytes of `scripts/smoke.mjs` and `src/server/lib/pipeline.ts` copied to `scratch/c1s6-*.saved`; by the Edit tool the check became `if (headers.get("skip") === null && false)` and the line `headers.set("x-request-id", requestId);` was deleted (`grep -c` printed `1` and `0`); rebuilt, previewed.
+
+`node scripts/smoke.mjs http://127.0.0.1:8788 (check skipped, header removed)` (output file `scratch/c1s6-c-skipped.txt`)
+```
+$ curl -sI http://127.0.0.1:8788/ | grep -ci x-request-id
+0
+$ node scripts/smoke.mjs http://127.0.0.1:8788   (check skipped, header removed)
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/properties
+ok   http://127.0.0.1:8788/markets
+ok   http://127.0.0.1:8788/california
+ok   http://127.0.0.1:8788/stories
+ok   http://127.0.0.1:8788/submit
+ok   http://127.0.0.1:8788/contact
+ok   http://127.0.0.1:8788/sitemap.xml
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: OK http://127.0.0.1:8788
+exit 0
+```
+
+Then `smoke.mjs` restored from its saved bytes (`grep -c 'x-request-id") === null' scripts/smoke.mjs` → 1), same mutated Worker (output file `scratch/c1s6-c-red.txt`):
+```
+$ node scripts/smoke.mjs http://127.0.0.1:8788   (check restored, header still removed)
+FAIL http://127.0.0.1:8788/: no x-request-id
+FAIL http://127.0.0.1:8788/properties: no x-request-id
+FAIL http://127.0.0.1:8788/markets: no x-request-id
+FAIL http://127.0.0.1:8788/california: no x-request-id
+FAIL http://127.0.0.1:8788/stories: no x-request-id
+FAIL http://127.0.0.1:8788/submit: no x-request-id
+FAIL http://127.0.0.1:8788/contact: no x-request-id
+FAIL http://127.0.0.1:8788/sitemap.xml: no x-request-id
+ok   http://127.0.0.1:8788/
+ok   http://127.0.0.1:8788/assets/index-CjMsGoTQ.js
+ok   http://127.0.0.1:8788/media/tiburon-waterline.mp4
+ok   http://127.0.0.1:8788/api/hooks/sentry-test
+smoke: FAILED 8: http://127.0.0.1:8788/ http://127.0.0.1:8788/properties http://127.0.0.1:8788/markets http://127.0.0.1:8788/california http://127.0.0.1:8788/stories http://127.0.0.1:8788/submit http://127.0.0.1:8788/contact http://127.0.0.1:8788/sitemap.xml
+exit 1
+```
+Then `pipeline.ts` restored from its saved bytes (`git status --short` showed only the runbook), `wrangler dev` stopped by its parent (`powershell -NoProfile -File ../scratch/g1s6-stop.ps1` → `stop 25796 node.exe`, `stop 26040 node.exe`, `listeners on 8788: 0`), the Worker rebuilt (`build exit 0`).
+
+### Unit tests and the registry
+
+`cd app && bunx vitest run tests/unit/smoke.test.ts tests/unit/hygiene.test.ts` (output file `scratch/c1s6-vitest.txt`)
+```
+ Test Files  2 passed (2)
+      Tests  63 passed | 7 skipped (70)
+exit 0
+```
+`node ../scratch/replay.mjs --check` → `checked 367, bad 0`. Replay of all 51 entries whose `file` is `scripts/smoke.mjs` or `deploy.yml` (`c` ... `hy-cleanup-waits`, the ids of the g1 block; (c), (aw), (o), (ar), (as) of Verification among them), last lines of `scratch/c1s6-replay.txt`:
+```
+RED hy-cleanup-waits: exit=1 expect=true | × preview-cleanup deletes pr-<n> and forgives only a Worker that never existed 13ms
+replayed 51, not red 0
+exit 0
+```
+`grep -c "^RED" scratch/c1s6-replay.txt` → `51`.
+
+### Gates
+
+`cd app && bun run check` (summary lines, colour codes stripped, output file `scratch/c1s6-check.txt`): `check exit 0`
+```
+layout: OK (592 files)
+stubs: 15 markers, 0 on closed slices
+All matched files use Prettier code style!
+ Test Files  15 passed (15)
+      Tests  380 passed | 7 skipped (387)
+```
+`cd app && bun run build` (output file `scratch/c1s6-build.txt`) → `build exit 0`.
+
+`Verification greps and the variables (repository root)` (output file `scratch/c1s6-greps.txt`)
+```
+$ git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows; echo "exit $?"
+exit 1
+$ grep -c "HAS_DB" .github/workflows/deploy.yml
+3
+$ gh variable list
+VITE_SITE_URL	https://matterofplace.com	2026-10-01T01:04:18Z
+VITE_TURNSTILE_SITE_KEY	0x4AAAAAAFKsPkQz7CGDYO7M	2026-10-01T01:17:48Z
+$ gh run list --commit deccaac5c3c0c8422ddd32bd62b26bdf7ad56964 --json workflowName,headBranch,conclusion --jq ".[] | [.workflowName,.headBranch,.conclusion] | @tsv"
+deploy	probe/b1b-c1-b	success
+deploy	probe/b1b-c1-a	success
+deploy	probe/b1b-c1-b	success
+ci	probe/b1b-c1-b	success
+ci	probe/b1b-c1-a	success
+deploy	probe/b1b-c1-a	success
+deploy	slice/b1b	success
+ci	slice/b1b	success
+```
+`grep -c HAS_DB` printing 3 is accepted for step 6 (H48 (2)); the fourth line is step 7's.
+
+### On GitHub: two ready probes at once (the slice PR #43 stays a draft)
+Branches `probe/b1b-c1-a` and `probe/b1b-c1-b` pushed at `deccaac` (the slice head, so the probes run exactly the slice's code), opened ready as PRs #53 and #54. Both previews were up at the same time, each its own Worker.
+
+`gh run view <deploy run> --json jobs; the comments; the merge commits` (output file `scratch/c1s6-probes-runs.txt`)
+```
+$ gh run view 37058900781 --json jobs --jq '.jobs[] | [.name,.conclusion,.startedAt,.completedAt] | @tsv'
+preview-db	success	2026-10-02T20:10:51Z	2026-10-02T20:11:08Z
+preview-cleanup	skipped	2026-10-02T20:10:48Z	2026-10-02T20:10:48Z
+preview	success	2026-10-02T20:11:13Z	2026-10-02T20:12:11Z
+$ gh run view 37058906822 --json jobs --jq '.jobs[] | [.name,.conclusion,.startedAt,.completedAt] | @tsv'
+preview-db	success	2026-10-02T20:10:54Z	2026-10-02T20:11:05Z
+preview-cleanup	skipped	2026-10-02T20:10:52Z	2026-10-02T20:10:51Z
+preview	success	2026-10-02T20:11:09Z	2026-10-02T20:12:05Z
+$ gh pr view 53 --json comments --jq '.comments[].body'
+preview: https://pr-53.holy-meadow-4327.workers.dev
+$ gh api repos/AbdulrahmanAmer/matter-of-place/pulls/53 --jq .merge_commit_sha
+8c309a99bd2fad2ee5510775c8eeba0014da855c
+$ gh pr view 54 --json comments --jq '.comments[].body'
+preview: https://pr-54.holy-meadow-4327.workers.dev
+$ gh api repos/AbdulrahmanAmer/matter-of-place/pulls/54 --jq .merge_commit_sha
+73f05a5a21879315c8025bbef95c5ebd4ea16ff3
+```
+One `preview: <url>` comment on each, and no `preview-db:` comment (no migration changed). `preview-db` finished before `preview` started on both.
+
+`preview-db` and `preview` job logs of PR #53 (output file `scratch/c1s6-pr53-logs.txt`; the deploy line shows `MOP_ENV:preview`, because `HAS_DB` is still true, while the build's `VITE_API_BASE_URL` is empty, which is H48 (1))
+```
+$ gh run view --job 111010320501 --log | grep -c "supabase "
+0
+$ gh run view --job 111010441045 --log | grep -E "VITE_API_BASE_URL:|SENTRY_RELEASE:|ten times|^.*(ok   |FAIL |smoke: )" (timestamps cut)
+  VITE_API_BASE_URL: 
+﻿2026-10-02T20:11:37.0346395Z ##[group]Run bunx wrangler deploy --config .output/server/wrangler.json --name pr-53 --var MOP_ENV:preview --var SENTRY_RELEASE:8c309a99bd2fad2ee5510775c8eeba0014da855c --var MEDIA_PUBLIC_BASE:https://pr-53.holy-meadow-4327.workers.dev/media
+^[[36;1mbunx wrangler deploy --config .output/server/wrangler.json --name pr-53 --var MOP_ENV:preview --var SENTRY_RELEASE:8c309a99bd2fad2ee5510775c8eeba0014da855c --var MEDIA_PUBLIC_BASE:https://pr-53.holy-meadow-4327.workers.dev/media^[[0m
+✨ 6 secrets successfully created
+^[[36;1m    echo "the Worker answered ten times in a row after $i requests"^[[0m
+^[[36;1mecho "the Worker did not answer ten times in a row in 180 s"^[[0m
+the Worker answered ten times in a row after 10 requests
+ok   https://pr-53.holy-meadow-4327.workers.dev/
+ok   https://pr-53.holy-meadow-4327.workers.dev/properties
+ok   https://pr-53.holy-meadow-4327.workers.dev/markets
+ok   https://pr-53.holy-meadow-4327.workers.dev/california
+ok   https://pr-53.holy-meadow-4327.workers.dev/stories
+ok   https://pr-53.holy-meadow-4327.workers.dev/submit
+ok   https://pr-53.holy-meadow-4327.workers.dev/contact
+ok   https://pr-53.holy-meadow-4327.workers.dev/sitemap.xml
+ok   https://pr-53.holy-meadow-4327.workers.dev/
+ok   https://pr-53.holy-meadow-4327.workers.dev/assets/index-CZd99-UE.js
+ok   https://pr-53.holy-meadow-4327.workers.dev/media/tiburon-waterline.mp4
+ok   https://pr-53.holy-meadow-4327.workers.dev/api/hooks/sentry-test
+smoke: OK https://pr-53.holy-meadow-4327.workers.dev
+```
+
+From the laptop, `.env` loaded without printing: `node scripts/smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev` for both (output files `scratch/c1s6-smoke-pr53.txt`, `scratch/c1s6-smoke-pr54.txt`, last two lines each):
+```
+smoke: OK https://pr-53.holy-meadow-4327.workers.dev
+exit 0
+smoke: OK https://pr-54.holy-meadow-4327.workers.dev
+exit 0
+```
+
+Sentry from the deployed preview, step 4's two API calls (`cd app && node ../scratch/g1s6-sentry-read.mjs https://pr-53.holy-meadow-4327.workers.dev`, output file `scratch/c1s6-pr53-sentry.txt`); `release` equals the `SENTRY_RELEASE` of the deploy line above. The g1 block cited this script without its text (P-088); here it is in full:
+```js
+// node ../scratch/g1s6-sentry-read.mjs <preview origin>
+// Needs PREVIEW_SENTRY_TEST_TOKEN and SENTRY_AUTH_TOKEN in the environment (loaded from .env, never printed).
+// Posts to the test hook, then reads the stored event back with the two Sentry API calls of B1b step 4.
+const origin = process.argv[2];
+const hook = await fetch(`${origin}/api/hooks/sentry-test`, {
+  method: "POST",
+  headers: { authorization: `Bearer ${process.env.PREVIEW_SENTRY_TEST_TOKEN}` },
+});
+const body = await hook.json();
+const requestId = body.error?.requestId;
+console.log(`POST ${origin}/api/hooks/sentry-test -> ${hook.status} code=${body.error?.code} requestId=${requestId} header=${hook.headers.get("x-request-id")}`);
+const auth = { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` };
+const base = "https://sentry.io/api/0";
+let issue;
+for (let i = 1; i <= 12 && issue === undefined; i += 1) {
+  await new Promise((done) => setTimeout(done, 10_000));
+  const res = await fetch(`${base}/projects/matter-of-place/javascript-tanstackstart-react/issues/?query=request_id:${requestId}`, { headers: auth });
+  const list = await res.json();
+  if (Array.isArray(list) && list.length > 0) issue = list[0];
+  console.log(`poll ${i}: issues ${Array.isArray(list) ? list.length : JSON.stringify(list)}`);
+}
+if (issue === undefined) process.exit(1);
+const res = await fetch(`${base}/organizations/matter-of-place/issues/${issue.id}/events/?query=request_id:${requestId}&full=true`, { headers: auth });
+const events = await res.json();
+const event = events[0];
+const tags = Object.fromEntries(event.tags.map((t) => [t.key, t.value]));
+console.log(`issue ${issue.id} events ${events.length}`);
+console.log(`tags request_id=${tags.request_id} env=${tags.env} release=${tags.release} side=${tags.side} route=${tags.route}`);
+console.log(`user ${JSON.stringify(event.user)}`);
+const raw = JSON.stringify(event);
+console.log(`ip_address|cookie|authorization count ${(raw.match(/ip_address|cookie|authorization/g) ?? []).length}`);
+```
+Its output:
+```
+POST https://pr-53.holy-meadow-4327.workers.dev/api/hooks/sentry-test -> 500 code=server requestId=126b25bd-2b2c-478e-9fc6-3686e0b853fe header=126b25bd-2b2c-478e-9fc6-3686e0b853fe
+poll 1: issues 0
+poll 2: issues 1
+issue 7767612319 events 1
+tags request_id=126b25bd-2b2c-478e-9fc6-3686e0b853fe env=preview release=8c309a99bd2fad2ee5510775c8eeba0014da855c side=worker route=/api/hooks/sentry-test
+user null
+ip_address|cookie|authorization count 0
+exit 0
+```
+
+Both probes closed with `gh pr close <n> --delete-branch`; `preview-cleanup` ran on each (output file `scratch/c1s6-gone.txt`; wrangler's banner, its `✘ [ERROR]` line with colour codes and its log-path line are cut, the code line is verbatim):
+```
+$ gh run view 37059254979 --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'
+preview-cleanup	success
+preview-db	skipped
+preview	skipped
+$ gh run view --job 111011498806 --log | grep -E 'Successfully deleted|no preview Worker'
+^[[36;1m  printf '%s\nno preview Worker %s\n' "$out" "$WORKER"^[[0m
+Successfully deleted pr-53
+$ gh run view 37059261512 --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'
+preview-cleanup	success
+preview-db	skipped
+preview	skipped
+$ gh run view --job 111011520425 --log | grep -E 'Successfully deleted|no preview Worker'
+^[[36;1m  printf '%s\nno preview Worker %s\n' "$out" "$WORKER"^[[0m
+Successfully deleted pr-54
+$ bunx wrangler deployments list --name pr-53
+  This Worker does not exist on your account. [code: 10007]
+exit 1
+$ curl -s -o /dev/null -w '%{http_code}' https://pr-53.holy-meadow-4327.workers.dev/
+404
+$ bunx wrangler deployments list --name pr-54
+  This Worker does not exist on your account. [code: 10007]
+exit 1
+$ curl -s -o /dev/null -w '%{http_code}' https://pr-54.holy-meadow-4327.workers.dev/
+404
+$ git ls-remote --heads origin | grep -c probe
+0
+```
+
+Step 6 status after H48: the smoke of a deployed preview exits 0, the `preview: <url>` comment is posted once, a second pull request gets its own Worker (two at once), each Worker is deleted on close. Still open, owned elsewhere:
+- `preview-db` posting its one comment on a changed migration, and the `dev` job's `db:push`: B2's first migration pull request.
+- The preview smoke in live mode: B3's last step sets `VITE_API_BASE_URL` back and proves it (H48 (1)).
+- `grep -c "HAS_DB"` at least 4: step 7 (H48 (2)).
+
+GOTCHAS: no new entry; P-134 gains the H48 sentence. The 51-entry replay ran past the tool's 10-minute ceiling and was moved to the background; a bounded wait loop on the output file read it (P-027, no rework).
