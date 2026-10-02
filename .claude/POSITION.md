@@ -628,3 +628,11 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   (c) merge main into `slice/b1b`; (d) continue with the saved workflow (step 5 onward).
 - Rejections so far: g1 1 of 2; g2 3 of 3; g3 1 of 2; g4 3 of 3. Every rejection named real defects.
 - The bank on the slice branch holds up to P-084 and G-023.
+
+## 2026-10-02 11:50 EDT · Plans folded for H38 and H39; H40 written; g4 close-out running in the lane
+- Workflow `wf_0686da14-107`: one Opus integrator rewrote the stale lines in 18 plan and spec files (request id through the
+  router context, the /api/ guard, Sentry caps and options, absolute `--env-file`, `_headers`, knip, export-back notes).
+  The orchestrator's own search finds 0 relative env-file commands, 0 captureException calls without options, 0 whole-file
+  cmp of _headers. H40 holds the two exceptions to R09 and the integrator's decisions.
+- NOT YET in the lane: merge main into `slice/b1b` only AFTER the g4 close-out (run `wf_2410162e-b5e`) returns, never
+  under a working builder (P-011). content-inventory.md may conflict (edited on both sides).
