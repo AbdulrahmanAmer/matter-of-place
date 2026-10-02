@@ -7926,6 +7926,16 @@
  },
  {
   "dimension": "delivery-ops",
+  "kind": "files",
+  "id": "Sentry test hook handler: bearer check, R09 404 with the request id (ruling H39 (5))",
+  "plan": "B1b",
+  "files": [
+   "src/server/hooks/sentry-test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
   "kind": "routine-env",
   "id": "AUDIT_AGENT_KEY, AUDIT_AGENT_KEY_DEV, SITE_URL, PSI_API_KEY, GOOGLE_SA_JSON_B64, GA4_PROPERTY_ID, CF_ANALYTICS_TOKEN, CF_ACCOUNT_ID, CF_ZONE_ID, UPTIME_API_KEY, SENTRY_AUTH_TOKEN, SENTRY_ORG, BING_WEBMASTER_API_KEY",
   "plan": "B14",

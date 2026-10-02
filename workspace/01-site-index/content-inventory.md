@@ -352,6 +352,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ## 6. Domain Types
 
+Since B1b step 2b (ASSUMED H38 (2)) the domain types are inferred from Zod schemas in their files. `Representation`, `Region`, `MarketGuide`, `Neighborhood`, `CampaignTier`, `ListingStatus`, `PropertyType`, `SubmissionSource` and `StoryCategory` below describe shapes, not exported type names: a plan that names one means the schema's inferred type, exported again where a second file needs it.
+
 ### Property (`src/domain/property.ts`)
 
 **Schema:** `propertySchema` (Zod); `Property` is `z.infer<typeof propertySchema>`. The enumerations are inline `z.enum` values in that schema, not named types; `GalleryImage` and `PropertyVideo` are the only other exported types in the file.
@@ -507,7 +509,7 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ### Contracts (`src/domain/contracts.ts`)
 
-Exports (B1b step 2b, knip): only names another file imports are exported. The enumerations and schemas below that are not named here are file-local: `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `submissionMediaSchema`, `searchQuerySchema` and `conciergeQuestionSchema`; a later slice exports one when it imports it. `submissionStates` and `editorialRoles` stay exported with a STUB marker for B2, which replaces them.
+Exports (B1b step 2b, knip): only names another file imports are exported. The enumerations and schemas below that are not named here are file-local: `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `submissionMediaSchema`, `searchQuerySchema` and `conciergeQuestionSchema`; a later slice exports one when it imports it. `submissionStates` and `editorialRoles` stay exported with a STUB marker for B2, which replaces them. The step that first imports one of them elsewhere adds `export` back (ASSUMED H38 (1)).
 
 **Schema Enumerations:**
 
