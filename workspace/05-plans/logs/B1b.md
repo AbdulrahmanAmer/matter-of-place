@@ -929,3 +929,116 @@ UNPROVEN:
 - Dependabot: `gh pr list --author "app/dependabot" --state all` prints nothing today; proved after the first Monday run (2026-10-05).
 - The `gh` case has never seen a real `gh` step: it is proved by mutations only until step 5b adds the `merge-gate` job. It detects `gh` called from a `run:` line or from a `node <script>` the step runs; a `gh` call reached through `bun run <name>` (a package script) is not followed.
 - The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases, and the heavy-job `if:` case, as in the earlier rounds.
+
+## g7 · steps 5b
+
+Group g7, the merge gate (invariant 6b, DO-04, T-03). Commit `f9954c0` on `slice/b1b` (draft PR #22), plus the commit that carries this block and GOTCHAS P-104 and P-105. Probe PR #24 was opened and closed, its branch `gate-probe` deleted.
+
+What changed:
+- `app/scripts/merge-gate.mjs` (new): exports `REQUIRED_PR_CHECKS` (`check build db e2e preview`), `evaluateMergeGate`, `jobKeys` and `gatherInput`; run directly it is the post-merge check. It uses only node and `gh` (no zod, no yaml: the CI job installs nothing), and reads `gh` output through `--jq` filters that emit tab-separated rows, so no `JSON.parse` result is ever typed `any`. A commit counts as a merged PR only when a PR's `merge_commit_sha` equals `GITHUB_SHA`. A required check that has no run is `<job> missing`; an unfinished one prints its status (`build in_progress`).
+- `workspace/05-plans/merge-gate.mjs` (new): refuses a draft (`mark ready first`), fetches `origin main` and `pull/<n>/head`, prints `rebase first` when `origin/main` is not an ancestor of the head, requires `gh pr checks` to exit 0 (it prints every failed, pending and skipped check first), posts the `merge-gate` status and runs `gh pr merge --merge --match-head-commit <sha>`.
+- `.github/workflows/ci.yml`: job `merge-gate` (`if: github.event_name == 'push'`, `timeout-minutes: 5`, permissions `contents`, `pull-requests`, `checks`, `statuses` all `read`, checkout, setup-node 24, `node scripts/merge-gate.mjs` with `GH_TOKEN` and `CI_HEAVY` in its env); the header comment states its cost (C22).
+- `app/tests/unit/merge-gate.test.ts` (new, 15 cases) and `app/tests/unit/hygiene.test.ts`: the merge gate describe is no longer skipped; the file imports `REQUIRED_PR_CHECKS` and `jobKeys` statically, keeps the case "every pull request job of ci.yml, and deploy.yml's preview, is a required check", and adds two: the `merge-gate` job runs on push only with exactly the four read permissions and runs the script, and `jobKeys` returns the same names as the YAML parser for every workflow. The step 5 `gh` case now sees a real `gh` step (see Proof 6).
+- `app/tests/mutations/B1b.json`: 21 entries, all `file` entries: `aq`, `aq-hygiene` (the two halves of Verification (aq)), `mg-required`, `mg-status`, `mg-missing`, `mg-defined`, `mg-dependabot`, `mg-dependabot-scope`, `mg-heavy`, `mg-heavy-scope`, `mg-nopr`, `mg-gather-merge-commit`, `mg-gather-head`, `mg-gather-conclusion`, `mg-jobkeys-margin`, `mg-jobkeys-stop`, `hy-mg-if`, `hy-mg-permissions`, `hy-mg-script`, `hy-mg-gh-token`, `hy-mg-jobkeys`.
+
+Proof 1: `cd app && bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  45 passed | 8 skipped (53)
+```
+(the 8 skipped are the `deploy.yml`, `backup.yml` and `deno.lock` cases of steps 6 to 8 and B8; the merge gate case moved out of them.)
+
+Proof 2, watched-fail (aq) and the rest, replayed with the runner of the g4 close-out block (`node ../scratch/replay.mjs <ids>` from `app/`; `--check` -> `checked 179, bad 0`; `git status --short` identical before and after):
+```
+RED aq: exit=1 expect=true | × refuses a failed e2e and names it 9ms
+RED aq-hygiene: exit=1 expect=true | × every pull request job of ci.yml, and deploy.yml's preview, is a required check 10ms
+RED mg-required: exit=1 expect=true | × names the pull request jobs, not the steps merged into them 9ms
+RED mg-status: exit=1 expect=true | × refuses a head without the merge-gate status, or with one that is not success 8ms
+RED mg-missing: exit=1 expect=true | × refuses a required check that has no run on the head 8ms
+RED mg-defined: exit=1 expect=true | × does not require a check that no workflow at the commit defines 9ms
+RED mg-dependabot: exit=1 expect=true | × does not require preview from Dependabot, and says so 8ms
+RED mg-dependabot-scope: exit=1 expect=true | × does not require preview from Dependabot, and says so 8ms
+RED mg-heavy: exit=1 expect=true | × refuses a skipped e2e unless CI_HEAVY is off, and never a skipped check or build 8ms
+RED mg-heavy-scope: exit=1 expect=true | × refuses a skipped e2e unless CI_HEAVY is off, and never a skipped check or build 8ms
+RED mg-nopr: exit=1 expect=true | × refuses a commit that is no merged pull request 8ms
+RED mg-gather-merge-commit: exit=1 expect=true | × ignores a pull request that only contains the commit and reads no head 9ms
+RED mg-gather-head: exit=1 expect=true | × finds the pull request merged as this commit and reads its head 10ms
+RED mg-gather-conclusion: exit=1 expect=true | × finds the pull request merged as this commit and reads its head 11ms
+RED mg-jobkeys-margin: exit=1 expect=true | × reads the job keys of the jobs map and nothing else 8ms
+RED mg-jobkeys-stop: exit=1 expect=true | × stops at the next top-level key 1ms
+RED hy-mg-if: exit=1 expect=true | × the merge-gate job runs on push only, with read access to pull requests, checks and statuses 2ms
+RED hy-mg-permissions: exit=1 expect=true | × the merge-gate job runs on push only, with read access to pull requests, checks and statuses 8ms
+RED hy-mg-script: exit=1 expect=true | × the merge-gate job runs on push only, with read access to pull requests, checks and statuses 9ms
+RED hy-mg-gh-token: exit=1 expect=true | × a step that calls gh reads GH_TOKEN from its env and nowhere else (15) 10ms
+RED hy-mg-jobkeys: exit=1 expect=true | × the gate reads the same job names as the YAML parser, in every workflow 9ms
+replayed 21, not red 0
+```
+`aq` makes `evaluateMergeGate` ignore conclusions (`const conclusion = "success";`) and the red-e2e fixture goes red; `aq-hygiene` adds a job `scratch` to `ci.yml` without listing it in `REQUIRED_PR_CHECKS` and `hygiene.test.ts` goes red. The appender that wrote the 21 entries was `scratch/g7-merge.mjs` (a one-off; the registry is the record, no proof replays it).
+
+Proof 3, the probe PR (cut from an older main), on `slice/b1b` after the probe was pushed:
+```
+$ git switch -c gate-probe origin/main~1 ; git merge-base --is-ancestor origin/main HEAD ; echo $?
+1                                  (HEAD ae1d7dc, origin/main abaa02d)
+$ gh pr create --draft --base main --head gate-probe ...   -> https://github.com/AbdulrahmanAmer/matter-of-place/pull/24
+$ gh pr ready 24                   -> ✓ Pull request AbdulrahmanAmer/matter-of-place#24 is marked as "ready for review"
+$ git switch slice/b1b ; node workspace/05-plans/merge-gate.mjs 24 ; echo "exit $?"
+rebase first
+exit 1
+$ gh api repos/AbdulrahmanAmer/matter-of-place/commits/<probe head>/status --jq '.statuses | length'
+0                                  (no merge-gate status was posted)
+$ gh pr close 24 --delete-branch   -> ✓ Closed pull request #24 ... ✓ Deleted branch gate-probe
+$ git ls-remote --heads origin
+abaa02de74944bfc2f0a39825849da50628bb840	refs/heads/main
+f9954c0c5fa0efc4f5f9996a4d8ceca60b257db2	refs/heads/slice/b1b
+```
+The probe commit appended one comment line to `app/src/lib/cx.ts` (no CI ran on it: `main` has no `ci.yml` yet). The script was run from `slice/b1b` because the probe branch predates it (GOTCHAS P-105).
+
+Proof 4, the other refusals of the orchestrator script, on the real draft PR #22 and with no argument:
+```
+$ node workspace/05-plans/merge-gate.mjs 22 ; echo "exit $?"
+mark ready first
+exit 1
+$ node workspace/05-plans/merge-gate.mjs ; echo "exit $?"
+usage: node workspace/05-plans/merge-gate.mjs <pr>
+exit 2
+```
+
+Proof 5, the post-merge script against the real API (`gh` login of the laptop; run from `app/`; these commits are not gate merges, so refusals are the expected answer, and they show that the three `gh api` calls and their `--jq` rows parse):
+```
+$ GITHUB_SHA=abaa02de74944bfc2f0a39825849da50628bb840 node scripts/merge-gate.mjs ; echo "exit $?"      (the merge of PR #23, no CI ran on it)
+unverified merge abaa02de74944bfc2f0a39825849da50628bb840: merge-gate missing
+unverified merge abaa02de74944bfc2f0a39825849da50628bb840: check missing
+unverified merge abaa02de74944bfc2f0a39825849da50628bb840: build missing
+exit 1
+$ GITHUB_SHA=94387e074ea36fa7179b2e58f7f9443e228e57d0 node scripts/merge-gate.mjs ; echo "exit $?"      (the lane head, not a merge commit)
+unverified merge 94387e074ea36fa7179b2e58f7f9443e228e57d0: no pull request
+exit 1
+$ env -u GITHUB_SHA node scripts/merge-gate.mjs ; echo "exit $?"
+merge-gate: GITHUB_SHA is not set
+exit 2
+```
+The fixtures of `merge-gate.test.ts` follow the real answers of `gh api repos/AbdulrahmanAmer/matter-of-place/commits/abaa02d.../pulls` (`<merge sha> TAB 23 TAB 0a59cc2... TAB AbdulrahmanAmer`, the first row is verbatim) and of `.../commits/94387e0.../check-runs` (`check TAB completed TAB success`), taken 2026-10-02; the `build TAB in_progress TAB (empty)` row is made up to cover a null conclusion, and the status row is the shape of the combined-status answer (the real one is empty today).
+
+Proof 6, CI on `f9954c0` (run 37004591303, event `pull_request`), `gh run view 37004591303 --json headSha,conclusion,jobs --jq '.headSha, .conclusion, (.jobs[] | [.name,.conclusion] | @tsv)'`:
+```
+f9954c0c5fa0efc4f5f9996a4d8ceca60b257db2
+success
+check	success
+build	success
+merge-gate	skipped
+```
+The workflow parses and the job is skipped on a pull request, as invariant 6b says (push to `main` only). The step 5 `gh` case, which had only mutations to stand on, now runs against the real `merge-gate` step (its `run` is `node scripts/merge-gate.mjs`, the script spawns `gh`) and goes red when `GH_TOKEN` leaves its env (`hy-mg-gh-token`).
+
+Proof 7: `cd app && bun run check` exit 0 (`layout: OK (586 files)`, knip `Configuration hints (2)` unchanged, `Found 0 clones.`, `stubs: 15 markers, 0 on closed slices`, `Test Files 14 passed (14)`, `Tests 239 passed | 8 skipped (247)`); `bun run build` exit 0 (three `built in` lines); `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (27 path entries, 103 process entries)`.
+
+NOT DONE:
+- The merge of the B1b pull request with `node workspace/05-plans/merge-gate.mjs 22` and the `merge-gate` job on that merge's `ci` run. The brief's standing rules forbid a worker to merge, and #22 holds a partial slice (steps 6 to 9 are not built). The orchestrator runs it when the slice is done: mark #22 ready, `git merge origin/main` into the lane if the script prints `rebase first`, `node workspace/05-plans/merge-gate.mjs 22`, then `gh run list --workflow ci.yml --branch main --limit 1 --json databaseId --jq '.[0].databaseId'` and `gh run view <id> --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'` must list `merge-gate success`. UNPROVEN until then: the job's `GITHUB_TOKEN` permissions on `commits/<sha>/pulls`, `status` and `check-runs` (proved here only with the laptop login), its cost (about 10 s, one billed minute, a guess in the `ci.yml` header), and that `CI_HEAVY` reaches it (`${{ vars.CI_HEAVY }}` is empty when the variable is absent, which the script reads as on).
+- A `job whose steps were all skipped` is printed as a `skipped:` line for every check of the `skipping` bucket of `gh pr checks`: a job skipped by its `if:`. A job that ran with every step skipped concludes `success` and the check data cannot tell it from a normal one.
+
+For the fold (stale plan lines, ASSUMED H and STANDARDS bind; no plan file was touched):
+- B1b.md line 138: `evaluateMergeGate` takes `sha` (it prints `unverified merge <sha>` and the no-pull-request case has no PR to carry it), its `pr` is `{ number, author }`, and `gatherInput({ sha, gh, workflows, ciHeavy })` and `jobKeys(text)` are exported beside it; when the verdict is ok the last line is `merge-gate: OK <sha> (pull request #<n>)`. A check of `REQUIRED_PR_CHECKS` with no run on the head is `<job> missing`.
+- B1b.md line 147 (`hygiene.test.ts`): name the two added cases (the job's trigger, permissions and script; `jobKeys` equals the YAML job names) and say the module is imported statically now that it exists.
+- B1b.md line 112 and invariant 6b: a PR with no checks at all (a docs-only or chore PR; `ci.yml` has `paths-ignore`) is refused by `gh pr checks`, GOTCHAS P-104; the orchestrator decides the exception.
+- `docs/runbooks/delivery.md` (not in this group's files): when it is written it needs the merge gate paragraph of its Files line (how to read an `unverified merge` line).
+
+GOTCHAS: P-104 (no checks on a docs-only PR make the gate refuse it) and P-105 (the probe branch and the lane tree) added.

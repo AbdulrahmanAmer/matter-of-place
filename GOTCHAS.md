@@ -976,3 +976,17 @@ Entry template
 - rule: a `map` that carries two or more values returns an object (`({ name, text })`) and the reader destructures `{ name, text }`. Never add `!` or a cast to quiet it, and never turn the flag off (`hygiene.test.ts` asserts it stays on).
 - proof: a scratch `app/tests/unit/zz-scratch.test.ts` holding `const rows = ["a", "b"].map((name) => [name, name.toUpperCase()]); const lengths = rows.map(([name, text]) => name.length + text.length);` → `cd app && bunx tsc -p tsconfig.json --noEmit; echo $?` prints `error TS18048: 'name' is possibly 'undefined'.`, the same for `'text'`, and `2`; the same file with `({ name, text: name.toUpperCase() })` and `({ name, text })` → `0` (measured 2026-10-02, file deleted after).
 - added: 2026-10-02
+
+## P-104 · The merge gate refuses a pull request that has no checks, so docs-only and chore PRs cannot use it yet
+- symptom: B1b step 5b makes `workspace/05-plans/merge-gate.mjs` require `gh pr checks <pr>` to exit 0. For a PR whose changed paths are all in `ci.yml`'s `paths-ignore` (`workspace/**`, `launch/**`, `**/*.md`) no workflow runs, and `gh pr checks` prints `no checks reported on the '<branch>' branch` and exits 1: the orchestrator's own chore PRs #21 and #23 would have been refused, and P-060 and RUNBOOK step 3 say every merge goes through the script.
+- cause: the plan wrote the check rule for code PRs. Until B1b step 6 adds `deploy.yml`, whose `preview` job has no `paths-ignore` in the plan, no job runs on a docs-only PR.
+- rule: the script is built as the plan says (exit 0 required, no special case written quietly). Until step 6 lands and a docs-only PR gets a `preview` check, a docs-only or chore PR is a decision for the orchestrator (amend invariant 6b with a stated exception, or give such PRs a check), recorded in the plan first.
+- proof: `gh pr checks 23; echo $?` → `no checks reported on the 'chore/b1b-g5-records' branch` and `1` (measured 2026-10-02); `node workspace/05-plans/merge-gate.mjs 22` on the draft lane PR → `mark ready first`, exit 1.
+- added: 2026-10-02
+
+## P-105 · The step 5b probe branch is cut from an older main that has no merge-gate script, and its tree is the lane tree
+- symptom: the plan's probe is `git switch -c gate-probe origin/main~1`, one commit, `gh pr create --draft`, `gh pr ready`, then `node workspace/05-plans/merge-gate.mjs <pr>`. On the probe branch that file does not exist (`origin/main` has none until the B1b merge), and the switch moves the whole lane tree: `git status` then showed the lane's ignored `scratch/` as untracked, because the older commit has no ignore line for it.
+- cause: the script is an orchestrator file that lives on the lane branch, and the probe branch predates it; a worktree has one checked-out branch at a time (P-011).
+- rule: commit and push the lane's work first, cut and push the probe, then `git switch slice/b1b` and run the script from there (it only needs the PR number; it fetches `origin main` and `pull/<n>/head` itself). Stage the probe's one commit by path, never `git add -A` (the lane `scratch/` is untracked there). Close it with `gh pr close <n> --delete-branch` and check `git ls-remote --heads origin`.
+- proof: `git ls-tree -r origin/main --name-only | grep -c "05-plans/merge-gate.mjs"` → `0` until the B1b merge; on `slice/b1b` after the probe `node workspace/05-plans/merge-gate.mjs 24` → `rebase first`, exit 1 (PR #24, closed, branch deleted).
+- added: 2026-10-02
