@@ -783,3 +783,82 @@ UNPROVEN:
 - The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases: proved only against stand-ins (Proof 8), watched-fail on the real files when steps 5b, 6, 8 and B8 land.
 - The heavy-job `if:` case passes with no `db`, `e2e` or `preview` job in any workflow (nothing to check yet); watched-fail when step 6 (`preview`) or B4 (`db`, `e2e`) lands.
 - `bun audit`: 12 advisories (10 high, 2 moderate) in the dependency tree, advisory until HARDEN; not triaged here.
+
+## g6 · steps 5
+
+Fix round after the reviewer's rejection (five defects). Commits `1cd0b53` (the fix), `d2357d6` and `4bd66a2` (the two deliberate red commits), `593448c` and `c5631a6` (their reverts), on `slice/b1b`, draft PR #22.
+
+What changed:
+- `hygiene.test.ts`: `splitWorkflow` returns each job's slice and the workflow's own text outside the `jobs:` map (`head`). The secret case scans `head` whenever any job of the workflow is reachable from a pull request; the invariant 13 case scans the whole `ci.yml` text for `group: mop-dev`, `DEV_SUPABASE_` and `SUPABASE_ACCESS_TOKEN` (defect 1, GOTCHAS G-027).
+- Two R54 cases the plan's Files line (line 147) does not list: `no run: line holds attacker-controllable context (R54)` (a `${{ }}` holding `github.event.*.title` or `.body`, `head.ref`, `github.head_ref` or `inputs.` inside any `run:` line) and `every bun install in a workflow is --frozen-lockfile (R54)` (defect 2). Stale plan line for the fold: B1b.md line 147 should name both clauses of STANDARDS R54 (GOTCHAS P-101).
+- `the check job compares the runner with engines before installing (8)`: finds the `engines` step of `check`, requires it before `bun install`, and runs its own `node -e` script twice: with `BUN_PIN` equal to `engines.bun` it exits 0, with `0.0.1` it exits 1 and prints `engines` (defect 5).
+- `ci.yml` header states its cost (C22): check 58 to 66 s, build 22 to 36 s, each billed rounded up to a minute, so 2 to 3 Actions minutes a run against the 2,000 a month of P-009 (defect 4). This round's runs agree: 36999309251 check 60 s, build 30 s; 36999788326 check 63 s, build 30 s.
+- 8 registry entries: `hy-workflow-env`, `hy-workflow-ref`, `hy-workflow-group`, `hy-untrusted-title`, `hy-untrusted-head-ref`, `hy-frozen`, `hy-engines-gone`, `hy-engines-exit`.
+- GOTCHAS: G-027 (job slices miss workflow-level env), P-100 (a lane-root scratch script cannot import an app package by bare name, the unbanked cost of the first round, defect 3), P-101 (a gate STANDARDS names must assert every clause; walk the C-lines).
+
+Proof 1: `cd app && bunx vitest run tests/unit/hygiene.test.ts tests/unit/check-migrations.test.ts`
+```
+ Test Files  2 passed (2)
+      Tests  32 passed | 9 skipped (41)
+```
+The 9 skipped are the same suites as before (deploy.yml 5, backup.yml 2, merge gate 1, job runner 1); the R02 compiler case runs.
+
+Proof 2: `cd app && node scripts/check-migrations.mjs; echo migrations=$?`
+```
+no migrations
+migrations=0
+```
+
+Proof 3: `git ls-files "app/bun.lock"` -> `app/bun.lock`.
+
+Proof 4, CI on the fix commit `1cd0b53`, run 36999309251: `gh run watch` exit 0; `gh run view 36999309251 --json jobs --jq '.jobs[] | [.name,.conclusion] | @tsv'`
+```
+check	success
+build	success
+```
+No job named `audit` or `deno`; check steps `engines`, `Run bun install --frozen-lockfile`, `migration-order`, `Run bun run check`, `audit` all `success` (the new engines case of `hygiene.test.ts` ran on the Linux runner under node 24 and passed). `gh run download 36999309251 -n build-output -D scratch/dl2` -> `nitro.json package-lock.json package.json public server`; `node -p "require('./scratch/dl2/server/wrangler.json').name"` -> `matter-of-place`.
+
+Proof 5, watched-fail (d) in CI: `d2357d6` appends `const x: number = "a";` to `app/src/lib/cx.ts`. Run 36999473817: `gh run watch --exit-status` exit 1, `build success`, `check failure`; `gh run view 36999473817 --log-failed`:
+```
+##[error]src/lib/cx.ts(5,7): error TS2322: Type 'string' is not assignable to type 'number'.
+##[error]src/lib/cx.ts(5,7): error TS6133: 'x' is declared but its value is never read.
+##[error]Process completed with exit code 2.
+```
+Reverted by `593448c`; run 36999566872: exit 0, `check success`, `build success`.
+
+Proof 6, watched-fail engines in CI: `4bd66a2` sets `engines.bun` to `1.3.14`. Run 36999703429: exit 1, `build success`, `check failure`; check steps `engines failure`, then cache, `bun install --frozen-lockfile` and `migration-order` `skipped`; the failed log:
+```
+engines {"bun":"1.3.14","node":"24.x"} runner 1.3.13 24
+##[error]Process completed with exit code 1.
+```
+Reverted by `c5631a6`; run 36999788326: exit 0, `check success`, `build success`.
+
+Proof 7, local watched-fails with the replay runner of the g4 close-out block (`node ../scratch/replay.mjs`, from `app/`): `--check` -> `checked 155, bad 0`. The 8 new entries:
+```
+RED hy-workflow-env: exit=1 expect=true | +   "ci.yml (workflow): secrets.DEV_SUPABASE_",
+RED hy-workflow-ref: exit=1 expect=true | × no ci.yml job reads or writes mop-dev, workflow env included (13) 9ms
+RED hy-workflow-group: exit=1 expect=true | × no ci.yml job reads or writes mop-dev, workflow env included (13) 9ms
+RED hy-untrusted-title: exit=1 expect=true | × no run: line holds attacker-controllable context (R54) 9ms
+RED hy-untrusted-head-ref: exit=1 expect=true | × no run: line holds attacker-controllable context (R54) 9ms
+RED hy-frozen: exit=1 expect=true | × every bun install in a workflow is --frozen-lockfile (R54) 12ms
+RED hy-engines-gone: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 115ms
+RED hy-engines-exit: exit=1 expect=true | × the check job compares the runner with engines before installing (8) 119ms
+replayed 8, not red 0
+```
+They are the reviewer's M1 (`hy-workflow-env`, `hy-workflow-ref`), M2 (`hy-untrusted-title`), M3 (`hy-frozen`) and M4 (`hy-engines-gone`), plus the concurrency group case the reviewer suspected. The 26 entries of the first round, replayed again: `replayed 26, not red 0`, among them
+```
+RED bd: exit=1 expect=true | +   "noUncheckedIndexedAccess",
+RED f: exit=1 expect=true | +     "ci.yml check setup-bun 1.3.13, engines.bun 1.3.14",
+RED g: exit=1 expect=true | AssertionError: expected [ 'bun /app daily', …(1) ] to deeply equal [ 'bun /app weekly', …(1) ]
+RED ao: exit=1 expect=true | +     "ci.yml: - uses: actions/upload-artifact@v4",
+RED ap: exit=1 expect=true | × refuses an added file with an older timestamp than main 14ms
+RED hy-mop-dev: exit=1 expect=true | × no ci.yml job reads or writes mop-dev, workflow env included (13) 9ms
+```
+`git status --short` was identical before and after both replays.
+
+Proof 8: `cd app && bun run check` exit 0 (`layout: OK (583 files)`, `stubs: 15 markers, 0 on closed slices`, `Test Files 13 passed (13)`, `Tests 220 passed | 9 skipped (229)`); `bun run build` exit 0 (three `built in` lines); `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (27 path entries, 99 process entries)`.
+
+UNPROVEN:
+- Dependabot: `gh pr list --author "app/dependabot" --state all --json number --jq length` -> `0` today; proved after the first Monday run (2026-10-05).
+- The skipped `deploy.yml`, `backup.yml`, merge gate and `deno.lock` cases, and the heavy-job `if:` case, as in the first round's list.
+- The engines step compares `BUN_PIN` (a literal kept equal to `engines.bun` and to setup-bun's `bun-version` by the pins case), not the output of `bun --version`; a setup-bun that installed another version than asked would pass it. Not a reviewer defect; named for the orchestrator.
