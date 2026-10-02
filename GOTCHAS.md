@@ -1218,4 +1218,9 @@ Entry template
 - cause: the new `workers.dev` route reaches the edge gradually. Measured from the laptop with a throwaway Worker (`pr-990003`, deployed 19:15:33 UTC, one request a second): 404 at 2 s, ours at 6 s, 404 at 11, 13 and 17 s, then ours on all 145 requests from 21 s. A redeploy of an existing name does not show it.
 - rule: before smoking a Worker name's first deploy, wait for ten answers of ours in a row (every answer of ours carries `x-request-id`), at most 180 s; the `wait` step of `deploy.yml`'s `preview` does this, and step 7's first deploy of `matter-of-place` and `matter-of-place-dev` needs the same. Never let the smoke itself retry a wrong answer.
 - proof: `bash ../scratch/g1s6-propagation2.sh pr-990003` from `app/` with `.env` loaded (text in `workspace/05-plans/logs/B1b.md`, g1 block) → the trace above; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "ten answers"` passes, and registry entries `hy-wait-reset`, `hy-wait-ten` and `hy-wait-fails` turn it red.
+## P-500 · A builder stops BLOCKED on a one-line entry in a gate's configuration
+- symptom: the first group of B2 finished its files, then reported BLOCKED and committed nothing: `bun run check` failed only at knip with `Unlisted binaries (1) psql scripts/psql-dev.mjs`, and `app/knip.json` was not in the group's file list. The lane stood still until the orchestrator read the result.
+- cause: "one writer per file" was read as forbidding any file outside the list, the gates' own configuration included. A new script that spawns a system binary always needs such an entry, and no plan lists it.
+- rule: a builder adds the smallest entry for its own files to a gate's configuration and says so in the log (ruling H46 (1)); the build workflow's standing rules say it. When writing a plan step that adds a script spawning a system binary, name `knip.json` in its files.
+- proof: `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
 - added: 2026-10-02

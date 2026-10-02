@@ -8,6 +8,9 @@ updates:
       time: "06:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 5
+    # No automatic rebase: every rebase re-runs CI, and main moves many times a day during the build
+    # (ruling H47). The updates are read and merged in H1.
+    rebase-strategy: "disabled"
     groups:
       app-minor-and-patch:
         update-types: ["minor", "patch"]
@@ -21,6 +24,7 @@ updates:
       time: "06:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
     groups:
       actions-minor-and-patch:
         update-types: ["minor", "patch"]
