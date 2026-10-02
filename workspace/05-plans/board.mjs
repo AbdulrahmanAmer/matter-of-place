@@ -184,7 +184,9 @@ function readRuns(ledger, byId, now) {
               : `sent back with ${(result.defects ?? []).length} point${(result.defects ?? []).length === 1 ? "" : "s"} to fix`
             : kind === "bank"
               ? "done, the step is accepted"
-              : "finished, goes to review";
+              : result.status === "blocked"
+                ? "stopped, it needs a ruling from the orchestrator"
+                : "finished, goes to review";
         runEvents.push({
           text: `${words} ${slice.id} step${steps.length > 1 ? "s" : ""} ${steps.join(", ")}`,
           outcome,
