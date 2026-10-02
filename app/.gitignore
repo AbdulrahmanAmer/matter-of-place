@@ -36,3 +36,4 @@ dist-ssr
 
 # Supabase CLI scratch
 supabase/.temp/
+supabase/.branches/

@@ -171,7 +171,6 @@ Entry template
 - proof: `node workspace/05-plans/ready.mjs` prints `PASS  PROJECT-STATE stage 3 (BUILD)`.
 - added: 2026-09-30
 
-
 ## P-002 · `npx` on this machine can fail with `ECOMPROMISED Lock compromised`
 - symptom: `npx -y <pkg>` dies after minutes with the npm cache lock error (seen while plugin installs ran concurrently).
 - rule: use `bunx <pkg>` for one-off CLIs; bun has its own cache. Use `bun install` in the codebase.
@@ -314,7 +313,6 @@ Entry template
 - rule: `git branch -f <branch> main` when the branch has no commits of its own, then checkout carries the dirty files across.
 - proof: `git log --oneline -1 fix/visual-pass` equals `git log --oneline -1 main`.
 - added: 2026-09-30
-
 
 ## P-028 · Free private GitHub repos have no branch protection
 - symptom: `gh api -X PUT repos/.../branches/main/protection` → HTTP 403 "Upgrade to GitHub Pro or make this repository public".
@@ -1192,6 +1190,76 @@ Entry template
 - proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
 - added: 2026-10-02
 
+## P-300 · Knip refuses a dependency no file imports yet and a system binary a script spawns, so a plan's "add the tools first" step fails `bun run check`
+- symptom: B2 step 1 adds `supabase`, `sharp`, `heic-convert`, `@supabase/supabase-js`, `pg` and `@types/pg` and writes `scripts/psql-dev.mjs`. `bun run knip` then printed `Unused devDependencies (4)` (`@supabase/supabase-js`, `heic-convert`, `sharp`, `supabase`) and `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1. The group's file list did not hold `knip.json`, so the binary could not be declared, and the group stopped with `bun run check` red.
+- cause: the plan was written before the knip gate (B1b step 2b, R04). Knip counts a dependency as used only when a file imports it or a `package.json` script names its binary; `bun x supabase` inside a script and `psql` (a scoop binary, not an npm package) are invisible to it or unlisted.
+- rule: add a dependency in the step whose code first imports it (sharp and heic-convert with step 12's image library, `@supabase/supabase-js` with its first importer), and add it to `trustedDependencies` in the same commit; a CLI used only from inside a script gets its plan-named `package.json` script (`db:lint` names `supabase`). The group that first spawns a binary no npm package provides (psql, pg_dump, ffmpeg) names it in `ignoreBinaries` of `knip.json` itself, says so in the slice log and goes on (ruling H46 (1)); stopping BLOCKED on that one line stood the lane still for a whole build.
+- proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1; `bun run knip` with `"ignoreBinaries": ["psql"]` in `knip.json` → exit 0 (measured 2026-10-02, B2 c1).
+- added: 2026-10-02
+
+## P-301 · A pull request that conflicts with main gets no CI run at all, and `gh pr checks` only says "no checks reported"
+- symptom: B2 c1 opened draft PR 49 from `slice/b2` (cut at fe027f4) and waited nine minutes for `ci`; `gh run list --commit <full sha>` printed `[]` and `gh pr checks 49` printed `no checks reported on the 'slice/b2' branch`, although `ci.yml` triggers on `opened` and the commit touches `app/`. `gh pr view 49 --json mergeable,mergeStateStatus` → `"mergeable":"CONFLICTING"`, `"mergeStateStatus":"DIRTY"`: the lane and main had both appended to `GOTCHAS.md` (P-300 here, P-500 there).
+- cause: a `pull_request` workflow runs on the PR's test merge commit; when GitHub cannot build it (a conflict), no run starts and nothing says why. Every lane appends to the bank, so a lane whose base is older than main's last bank entry is born conflicting (P-072).
+- rule: right after opening or pushing a pull request, read `gh pr view <n> --json mergeable,mergeStateStatus` before waiting on any check; `CONFLICTING` means no CI will come, so report it to the orchestrator (who merges main into the lane, P-072) instead of polling. An empty `gh run list` is not "CI is slow".
+- proof: `gh pr view 49 --json mergeable,mergeStateStatus` → `{"mergeStateStatus":"DIRTY","mergeable":"CONFLICTING"}` and `gh pr checks 49` → `no checks reported on the 'slice/b2' branch` (measured 2026-10-02, B2 c1).
+- added: 2026-10-02
+
+## P-302 · The union merge of main into a lane is clean on this laptop and still drops the last entry's `added` line
+- symptom: `git merge-tree --write-tree origin/main slice/b2` exits 0 with no conflict, but in the merged `GOTCHAS.md` P-500's `proof:` line is followed directly by `## P-300`: its `- added: 2026-10-02` line and the blank line after it are gone. `check-gotchas.mjs` then fails on P-500, or the entry ships broken when nobody runs it.
+- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; both sides end their last entry with the same `- added:` line, so union keeps it once, after the lane's block (the P-072 hazard, here without any conflict marker to warn).
+- rule: after every merge of main into a lane, clean or not, run `node workspace/05-plans/check-gotchas.mjs` before committing the merge, and restore the missing `added` line and the blank line by hand (main's entries first).
+- proof: `T=$(git merge-tree --write-tree origin/main slice/b2 | head -1); git show $T:GOTCHAS.md | grep -A5 "^## P-500" | grep -c "^- added"` prints 0 (it should print 1), and `git show $T:GOTCHAS.md | grep -B1 "^## P-300"` shows the `proof:` line of P-500 directly above the heading (measured 2026-10-02, B2 c1 review).
+- added: 2026-10-02
+
+## P-303 · A local `git merge-tree` is clean while GitHub reports the same merge CONFLICTING, because GitHub ignores merge drivers
+- symptom: P-301 says PR 49 conflicts in `GOTCHAS.md`, yet `git merge-tree --write-tree origin/main slice/b2` printed a tree and exited 0. A reviewer spent time looking for a conflict that the laptop cannot show. `gh pr view 49 --json mergeable` → `CONFLICTING` and no workflow starts.
+- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; the laptop's git applies it, GitHub's merge machinery does not, so both sides appending to the bank conflict there only.
+- rule: trust `gh pr view <n> --json mergeable,mergeStateStatus`, not a local merge test, for whether CI will run (P-301). When it says CONFLICTING and the local merge is clean, the cause is the bank: merge main into the lane with the union driver, then run `node workspace/05-plans/check-gotchas.mjs` (P-072, P-302) before committing.
+- proof: `git merge-tree --write-tree origin/main slice/b2 > /dev/null; echo $?` prints 0 while `gh pr view 49 --json mergeable` prints `{"mergeable":"CONFLICTING"}`; `grep -n GOTCHAS .gitattributes` prints `GOTCHAS.md merge=union` (measured 2026-10-02, B2 c1 review).
+- added: 2026-10-02
+
+## P-304 · A proof that says "run in a terminal" cannot run in the Bash tool: it has no console, and the first two ways to make one failed
+- symptom: B2 step 1b's proof is "`node scripts/load-env.mjs --profile dev` run in a terminal exits 1 printing no value". Every Bash tool call has its standard output on a pipe (`process.stdout.isTTY` is undefined), so the refusal path never runs there. The first console run, a `.cmd` started with `Start-Process`, wrote `ECHO is off.` instead of the exit code (`echo %errorlevel%> file` turns `1>` into a redirection of handle 1), and its screen capture died with `Missing ']' after array index expression` on `$cells[$y, $x].Character` in Windows PowerShell 5. A `sed` that was to write the control script dropped its backslashes (P-070) and silently ran the real script again.
+- cause: the harness gives commands no console; cmd reads a digit right before `>` as a handle number; PowerShell 5 does not parse a two-index array access inside a method call's argument list.
+- rule: prove terminal behaviour in a new console: a PowerShell file runs `Start-Process -FilePath cmd.exe -ArgumentList '/c', '<file>.cmd' -Wait -WindowStyle Minimized`; the `.cmd` (written with the Write tool) records `isTTY`, sends stderr to a file, writes the exit code as `> <file> echo exit=%errorlevel%`, then a PowerShell file copies the screen with `$Host.UI.RawUI.GetBufferContents(...)` read through `$cells.GetValue($y, $x)`. Check the copy for secret values with a script that prints counts only, and run a control `.cmd` that echoes a known line, so a blind capture shows up. The scripts' text is in `workspace/05-plans/logs/B2.md`, block "g1 · steps 1b".
+- proof: `node -e "console.log(process.stdout.isTTY)" | cat` in the Bash tool prints `undefined`; the console run of the log block prints `stdout isTTY=true`, `exit=1`, `values on screen: 0 of 4`, and its control prints `"export " on screen: true` (measured 2026-10-02, B2 g1 step 1b).
+- added: 2026-10-02
+
+## P-305 · Removing a generator's output by its folder took a tracked file with it
+- symptom: in B2 g1 step 1b a trial `bun run gen:types` wrote `app/src/db/types.ts`, and `rm -r src/db` to remove it also deleted the tracked `app/src/db/README.md` (`git status` printed ` D src/db/README.md`). An earlier `ls` of the folder had been misread as empty.
+- cause: a generator writes into a folder that already holds tracked files; deleting the folder deletes them too.
+- rule: remove only the file a trial run created, by name (`rm src/db/types.ts`), then read `git status --short` before going on; restore a deleted clean file with `git checkout -- <file>` (P-068: only when the file had no uncommitted work).
+- proof: `git ls-files app/src/db` → `app/src/db/README.md` (the folder is not the generator's alone).
+- added: 2026-10-02
+
+## P-306 · A stored Supabase CLI login on this laptop hides whether a command needs `SUPABASE_ACCESS_TOKEN`
+- symptom: the B2 step 2 proof says to run `bun run db:push` in a dev-profile shell "with no access token" to learn whether `supabase db push --linked` needs one after `link`. In that shell `process.env.SUPABASE_ACCESS_TOKEN` was undefined and the push still worked, but `bunx supabase projects list` printed four projects of other Omnikom accounts: the CLI had found a login of its own, so the pass proved nothing.
+- cause: the CLI takes a token from `SUPABASE_ACCESS_TOKEN`, else from the Windows Credential Manager entry `Supabase CLI:supabase` (`cmdkey /list`), which belongs to the operator and is not ours to delete or log out.
+- rule: to learn whether a CLI command needs the Management API token, give it a token that cannot work (`SUPABASE_ACCESS_TOKEN=sbp_` plus 40 zeros overrides the stored login) and run a control that must fail. Measured with CLI 2.119.0: `supabase migration list --linked` without `SUPABASE_DB_PASSWORD` prints `Initialising login role...` and fails 401; `bun run db:push` (it passes the database password) prints no such line and exits 0. So after `link`, `db push --linked` needs only the database password, and `link`, `config diff`, `config push` and a listing without the password need the token.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; export SUPABASE_ACCESS_TOKEN=sbp_0000000000000000000000000000000000000000; bunx supabase migration list --linked | head -2; bun run db:push | tail -1` → `DbConfigLoginRoleStatusError ... 401` for the first, `"message":"Remote database is up to date."` for the second (measured 2026-10-02, B2 g2).
+- added: 2026-10-02
+
+## P-307 · `supabase init` defaults differ from the live project, and `config push` writes every key the file declares
+- symptom: B2 step 2 says "`supabase config push` (auth URLs, sign-ups closed, storage limit)" and F20 says it has no dry-run. The file `supabase init` wrote declared 14 differences from `mop-dev`; pushing it unchanged would also have set the email OTP length 8 to 6, `max_frequency` 1m to 1s, email confirmations on to off, TOTP MFA on to off, the pooler 15 and 200 to 20 and 100, and Iceberg analytics on to off.
+- cause: the template is written for a local stack. CLI 2.119.0 has `supabase config diff` (no Docker; prints the changes as JSON on the last line), so F20 is stale for this CLI. `config push` asks per service and honours piped `y` or `--yes`; keys the file does not declare are left alone.
+- rule: run `bunx supabase config diff` before every `config push` and after it (it must list only what the plan means to change). A key the plan does not pin takes the live value in `config.toml`; a changed value is a decision. `config.toml` is read only by `config push` and the storage-limit test, so matching the live project costs nothing. The diff never lists `storage.image_transformation` (remote true, undeclared): left unchanged, free tier.
+- proof: `cd app && bunx supabase config diff | tail -1 | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(j.counts)'` (token loaded in that shell) → `{ update: 0, remote_only: 1, local_only: 0, total: 1 }` after the push; before the alignment it printed `update: 12` (measured 2026-10-02, B2 g2).
+- added: 2026-10-02
+
+## P-308 · P-307 is wrong in two places: CI starts a stack from `config.toml`, and `config diff` does list `storage.image_transformation`
+- symptom: P-307 says `config.toml` "is read only by `config push` and the storage-limit test, so matching the live project costs nothing", and that the diff "never lists `storage.image_transformation`". B4.md lines 15 and 103 and ASSUMED H1 (b) have the CI jobs `db` and `e2e` run `bunx supabase start` on this same file, so the hosted values copied in apply to that ephemeral stack too: email `max_frequency` 1m0s (a second magic link or OTP to one address inside 60 s can be refused), `otp_length` 8, confirmations on, TOTP on, and `[storage.analytics] enabled = true`, which the template marks as hosted only. `bunx supabase config diff` does print `["storage","image_transformation","enabled"]` as `remote_only` on every run. The behaviour on `mop-dev` is correct; only the banked rule misleads.
+- cause: P-307 was written from the `config push` side alone, before the CI jobs that start a stack from the same file were read. What `max_frequency` and `storage.analytics` do under `supabase start` is UNPROVEN: no Docker here (S50).
+- rule: `config.toml` has two readers, `config push` against `mop-dev` and `supabase start` in CI (B4). A value changed to match the live project is also a change to the CI stack: B4 reads the list above before its first `db` or `e2e` run, and a test that asks for a magic link twice for one address within 60 s expects a rate-limit error. Read P-307 with this entry; `remote_only: 1` in its proof is `storage.image_transformation`.
+- proof: `git grep -n "supabase start" -- workspace/05-plans/B4.md | cut -c1-60` → lines 15, 103, 117 and 118 start a stack; `grep -n -A1 "max_frequency\|^\[storage.analytics\]" app/supabase/config.toml` → `max_frequency = "1m0s"` and `enabled = true`; `cd app && bunx supabase config diff | tail -1 | grep -o image_transformation` → `image_transformation` (token loaded in that shell; measured 2026-10-02, g2 review).
+- added: 2026-10-02
+
+## P-309 · A quoted heredoc that fails with `unexpected EOF` writes nothing: the workaround is the same as P-070, the symptom is not
+- symptom: in B2 g2 a Bash command that carried text through a heredoc stopped with `unexpected EOF` and wrote no file. A search of the bank for that message finds nothing, because P-070 describes the other failure, backslashes dropped from text that is written.
+- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input.
+- rule: when a heredoc or `node -e` ends in `unexpected EOF`, nothing was written: do not retry with other quoting, put the text in with the Write or Edit tool (as P-070 says), then read `git status --short` before going on.
+- proof: `grep -n "unexpected EOF" GOTCHAS.md | cut -c1-40` → this entry's heading and symptom lines; `git grep -n "^## P-070" -- GOTCHAS.md` → the cause it shares (reviewer follow-up, B2 g2).
+- added: 2026-10-02
+
 ## P-500 · A builder stops BLOCKED on a one-line entry in a gate's configuration
 - symptom: the first group of B2 finished its files, then reported BLOCKED and committed nothing: `bun run check` failed only at knip with `Unlisted binaries (1) psql scripts/psql-dev.mjs`, and `app/knip.json` was not in the group's file list. The lane stood still until the orchestrator read the result.
 - cause: "one writer per file" was read as forbidding any file outside the list, the gates' own configuration included. A new script that spawns a system binary always needs such an entry, and no plan lists it.
@@ -1205,3 +1273,19 @@ Entry template
 - rule: the bank merges by entry, never by text: `workspace/05-plans/merge-gotchas.mjs` is the merge driver (clone config `merge.gotchas.driver`, `.git/info/attributes` and `.gitattributes`). After any merge that touches the bank run `node workspace/05-plans/check-gotchas.mjs`. A lane brings main in itself when its pull request shows a conflict (ruling H48 (3)).
 - proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree, and `git config merge.gotchas.driver` prints the driver line.
 - added: 2026-10-02
+
+## P-310 · Every Bash tool shell here already exports `CLOUDFLARE_API_TOKEN`, so the `db` test project refuses to start
+- symptom: the first `bunx vitest run --project db tests/db/migration-headers.test.ts` in B2 g3, in a shell with the dev profile loaded, printed `No test files found, exiting with code 1` and `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)`. Nothing in the command had loaded that name.
+- cause: the shell the harness starts inherits `CLOUDFLARE_API_TOKEN` from the user environment, and `tests/db/global-setup.ts` calls `guardEnv()` first (SEC-08), as it must. A fresh shell is not a clean shell on this laptop. The `No test files found` line is vitest's wording for a global setup that threw; the cause is the `Error:` line under it.
+- rule: run every database test, `bun run test:db` and any script that calls `guardEnv()` as `env -u CLOUDFLARE_API_TOKEN <command>` after `eval "$(node scripts/load-env.mjs --profile dev)"`. Never weaken the guard or unset the name in a config file. When vitest prints `No test files found` for a path that exists, read the `Error:` line first.
+- proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
+
+## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
+- paths: app/supabase/migrations/**
+- severity: warn
+- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
+- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
+- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
+- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
+- added: 2026-10-03

@@ -1,0 +1,774 @@
+[
+  {
+    "id": "rg-ref-differ",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": " || new Set(refs).size !== 1) {",
+    "replace": ") {",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*refuses: linked ref differs"
+  },
+  {
+    "id": "rg-ref-unset",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "if (refs.some((ref) => ref === undefined || ref === \"\") || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*refuses: all three unset"
+  },
+  {
+    "id": "rg-foreign-none",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return remoteVersions.filter((version) => !local.has(version));",
+    "replace": "return [];",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*returns the applied versions that have no local file"
+  },
+  {
+    "id": "rg-foreign-all",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return remoteVersions.filter((version) => !local.has(version));",
+    "replace": "return remoteVersions.filter((version) => version !== \"\");",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*returns nothing when every applied version has a file"
+  },
+  {
+    "id": "rg-cron-space",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "schedule\\(\\s*'",
+    "replace": "schedule\\('",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*finds every scheduled job name across the migration texts"
+  },
+  {
+    "id": "rg-cron-unique",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "return [...new Set(names)];",
+    "replace": "return names;",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts",
+    "expect": "× .*finds every scheduled job name across the migration texts"
+  },
+  {
+    "id": "anp-production",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  if (isProductionEnvironment(environment)) throw new Error(\"refusing: production database\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*throws when settings\\.environment is production"
+  },
+  {
+    "id": "anp-exact",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  return value === \"production\";",
+    "replace": "  return String(value).trim().toLowerCase() === \"production\";",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*is true only for exactly production"
+  },
+  {
+    "id": "anp-missing-table",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "    if (!isMissingRelation(error)) throw error;",
+    "replace": "    throw error;",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*resolves on no settings table"
+  },
+  {
+    "id": "anp-swallow",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "    if (!isMissingRelation(error)) throw error;",
+    "replace": "    if (!isMissingRelation(error)) console.error(error);",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*rethrows any other database error"
+  },
+  {
+    "id": "anp-no-url",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/assert-not-production.mjs",
+    "find": "  if (dbUrl === undefined || dbUrl === \"\") throw new Error(\"refusing: DEV_DB_URL is not set\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*refuses without a database URL"
+  },
+  {
+    "id": "anp-guarded-call",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/db-reset-dev.mjs",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "  void assertNotProduction;",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  },
+  {
+    "id": "anp-guarded-import",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/db-reset-dev.mjs",
+    "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";",
+    "replace": "const { assertNotProduction } = await import(\"./lib/\" + \"assert-not-production.mjs\");",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  },
+  {
+    "id": "qq-branch-none",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "export function findBranchMigrations(localFiles, mainFiles) {",
+    "replace": "export function findBranchMigrations(localFiles, mainFiles) {\n  if (localFiles.length >= 0) return [];",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*findBranchMigrations names files in one list and not the other"
+  },
+  {
+    "id": "qq-branch-local",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "    ...localFiles.filter((file) => !main.has(file)),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses branch migrations, naming the files, outside the single-lane"
+  },
+  {
+    "id": "qq-branch-main",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "    ...mainFiles.filter((file) => !local.has(file)),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*findBranchMigrations names files in one list and not the other"
+  },
+  {
+    "id": "qq-drift-none",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "    .filter(({ version, sha256 }) => current.has(version) && current.get(version) !== sha256)",
+    "replace": "    .filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses an applied file whose hash changed, naming the version"
+  },
+  {
+    "id": "qq-drift-equal",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "current.get(version) !== sha256)",
+    "replace": "current.get(version) === sha256)",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*findChecksumDrift names an applied version whose file hash changed"
+  },
+  {
+    "id": "rr-out-of-order-none",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  if (newest === undefined) return [];",
+    "replace": "  return [];",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses an older local version not yet applied, naming it"
+  },
+  {
+    "id": "rr-out-of-order-applied",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "version !== undefined && !applied.has(version) && version < newest",
+    "replace": "version !== undefined && version < newest",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*findOutOfOrder names an unapplied file older than the newest applied"
+  },
+  {
+    "id": "dp-foreign-reexport",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "export { findForeignMigrations } from \"./reset-guard.mjs\";",
+    "replace": "export const findForeignMigrations = () => [];",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*findForeignMigrations is the reset guard's, re-exported"
+  },
+  {
+    "id": "dp-files-sql",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "    .filter((name) => name.endsWith(\".sql\"))",
+    "replace": "    .filter((name) => name !== \"\")",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*migrationFiles keeps the sorted \\.sql names of git ls-tree lines"
+  },
+  {
+    "id": "dp-should-prod",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  return !singleLane || isProductionEnvironment(environment);",
+    "replace": "  return !singleLane;",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*shouldCheckBranch singleLane true, stage production: true"
+  },
+  {
+    "id": "dp-should-always",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  return !singleLane || isProductionEnvironment(environment);",
+    "replace": "  return singleLane || !singleLane;",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*shouldCheckBranch singleLane true, stage development: false"
+  },
+  {
+    "id": "dp-should-null",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  return !singleLane || isProductionEnvironment(environment);",
+    "replace": "  return !singleLane || environment !== \"development\";",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*shouldCheckBranch singleLane true, stage null: false"
+  },
+  {
+    "id": "dp-should-lane",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  return !singleLane || isProductionEnvironment(environment);",
+    "replace": "  return isProductionEnvironment(environment);",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*shouldCheckBranch singleLane false, stage development: true"
+  },
+  {
+    "id": "dp-should-never",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/lib/push-guard.mjs",
+    "find": "  return !singleLane || isProductionEnvironment(environment);",
+    "replace": "  return singleLane && !singleLane;",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*shouldCheckBranch singleLane false, stage production: true"
+  },
+  {
+    "id": "dp-remote-only",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    ...(foreign.length > 0",
+    "replace": "    ...(foreign.length > 99",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses a remote-only version, naming it"
+  },
+  {
+    "id": "dp-branch-refusal",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "      if (branch.length > 0) throw",
+    "replace": "      if (branch.length > 99) throw",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses branch migrations, naming the files, outside the single-lane"
+  },
+  {
+    "id": "nnn-single-lane-production",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    if (shouldCheckBranch({ singleLane: env[\"MOP_SINGLE_LANE\"] === \"1\", environment })) {",
+    "replace": "    if (env[\"MOP_SINGLE_LANE\"] !== \"1\") {",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*checks the branch with MOP_SINGLE_LANE=1 once the stage is production"
+  },
+  {
+    "id": "dp-single-lane-skip",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    if (shouldCheckBranch({ singleLane: env[\"MOP_SINGLE_LANE\"] === \"1\", environment })) {",
+    "replace": "    if (shouldCheckBranch({ singleLane: false, environment })) {",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*skips the branch check with MOP_SINGLE_LANE=1 before the launch switch"
+  },
+  {
+    "id": "dp-ref-check",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "  checkResetTarget({\n    linkedRef: io.linkedRef,",
+    "replace": "  ({\n    linkedRef: io.linkedRef,",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*refuses a target whose ref differs from the linked project"
+  },
+  {
+    "id": "dp-dry-run",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    if (io.supabase([\"db\", \"push\", \"--linked\", \"--dry-run\"], cliEnv) !== 0)",
+    "replace": "    if (cliEnv[\"SUPABASE_DB_PASSWORD\"] === \"\")",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*a clean state takes the lock, dry-runs, pushes and records every app"
+  },
+  {
+    "id": "dp-password",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    const cliEnv = { ...env, SUPABASE_DB_PASSWORD: password };",
+    "replace": "    const cliEnv = { ...env };",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*a clean state takes the lock, dry-runs, pushes and records every app"
+  },
+  {
+    "id": "dp-record",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    if (rows.length > 0) await db.record(rows);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*a clean state takes the lock, dry-runs, pushes and records every app"
+  },
+  {
+    "id": "dp-lock-held",
+    "kind": "file",
+    "test": "tests/unit/db-push-guard.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "    if (env[\"MOP_DEV_LOCK_HELD\"] !== \"1\") await db.lock();",
+    "replace": "    await db.lock();",
+    "run": "bunx vitest run --project unit tests/unit/db-push-guard.test.ts",
+    "expect": "× .*leaves the lock to its holder when MOP_DEV_LOCK_HELD=1"
+  },
+  {
+    "id": "aaa-backup",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "|^BACKUP_/;",
+    "replace": "/;",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*throws naming BACKUP_PASSPHRASE"
+  },
+  {
+    "id": "eg-prod",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "/^PROD_|",
+    "replace": "/",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*throws naming PROD_TURNSTILE_SECRET"
+  },
+  {
+    "id": "eg-access-token",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "|^SUPABASE_ACCESS_TOKEN$",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*throws naming SUPABASE_ACCESS_TOKEN"
+  },
+  {
+    "id": "eg-cloudflare",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "|^CLOUDFLARE_API_TOKEN$",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*throws naming CLOUDFLARE_API_TOKEN"
+  },
+  {
+    "id": "eg-edge",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "|^CF_EDGE_TOKEN$",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*throws naming CF_EDGE_TOKEN"
+  },
+  {
+    "id": "eg-dev-alone",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "  if (found.length > 0) {",
+    "replace": "  if (found.length >= 0) {",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*passes on DEV_DB_URL alone"
+  },
+  {
+    "id": "eg-anchor",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "^SUPABASE_ACCESS_TOKEN$|",
+    "replace": "^SUPABASE_ACCESS_TOKEN|",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*passes on dev names and a name that only contains an ops word"
+  },
+  {
+    "id": "eg-allow-ops",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "  if (allowOps) return;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*passes on every ops name with allowOps"
+  },
+  {
+    "id": "eg-process-env",
+    "kind": "file",
+    "test": "tests/unit/env-guard.test.ts",
+    "file": "scripts/lib/guard-env.mjs",
+    "find": "env = process.env }",
+    "replace": "env = {} }",
+    "run": "bunx vitest run --project unit tests/unit/env-guard.test.ts",
+    "expect": "× .*reads process\\.env when no environment is given"
+  },
+  {
+    "id": "eee-local-always",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "  return URL.canParse(url) && new URL(url).hostname === \"127.0.0.1\";",
+    "replace": "  return url !== \"\";",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts -t isLocalDbUrl",
+    "expect": "× .*isLocalDbUrl postgresql://postgres\\.hbok"
+  },
+  {
+    "id": "rg-local-never",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "  return URL.canParse(url) && new URL(url).hostname === \"127.0.0.1\";",
+    "replace": "  return url === \"\";",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts -t isLocalDbUrl",
+    "expect": "× .*isLocalDbUrl .* is true"
+  },
+  {
+    "id": "rg-local-prefix",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "new URL(url).hostname === \"127.0.0.1\";",
+    "replace": "new URL(url).hostname.startsWith(\"127.0.0.1\");",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts -t isLocalDbUrl",
+    "expect": "× .*isLocalDbUrl .* is false"
+  },
+  {
+    "id": "rg-local-substring",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "  return URL.canParse(url) && new URL(url).hostname === \"127.0.0.1\";",
+    "replace": "  return url.includes(\"localhost\") || url.includes(\"@127.0.0.1\");",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts -t isLocalDbUrl",
+    "expect": "× .*isLocalDbUrl postgresql://postgres:postgres@localhos"
+  },
+  {
+    "id": "rg-local-parse",
+    "kind": "file",
+    "test": "tests/unit/reset-guard.test.ts",
+    "file": "scripts/lib/reset-guard.mjs",
+    "find": "  return URL.canParse(url) && new URL(url).hostname",
+    "replace": "  return new URL(url).hostname",
+    "run": "bunx vitest run --project unit tests/unit/reset-guard.test.ts -t isLocalDbUrl",
+    "expect": "× .*isLocalDbUrl not a url is false"
+  },
+  {
+    "id": "o-commit",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "      await client.query(\"rollback\");",
+    "replace": "      await client.query(\"commit\");",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts -t \"leaves no row behind|withMutation\"",
+    "expect": "× .*leaves no row behind"
+  },
+  {
+    "id": "o-commit-probe",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "      await client.query(\"rollback\");",
+    "replace": "      await client.query(\"commit\");",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts -t \"leaves no row behind|withMutation\"",
+    "expect": "× .*withMutation: a probe function is callable inside"
+  },
+  {
+    "id": "h-with-mutation",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "    await db.query(sql);\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*withMutation: a probe function is callable inside"
+  },
+  {
+    "id": "h-db-now",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "\"select now() as now\"",
+    "replace": "\"select clock_timestamp() as now\"",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*dbNow equals now\\(\\) read in the same transaction"
+  },
+  {
+    "id": "h-role-off",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "  await db.query(`set local role ${role}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*anon gets an error on user_roles"
+  },
+  {
+    "id": "h-claims-off",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "  if (userId !== undefined) {",
+    "replace": "  if (userId === \"\") {",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*an admin made by createStaffUser holds admin"
+  },
+  {
+    "id": "h-role-in-false",
+    "kind": "sql",
+    "test": "tests/db/harness.db.test.ts",
+    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*an admin made by createStaffUser holds admin"
+  },
+  {
+    "id": "h-is-staff-false",
+    "kind": "sql",
+    "test": "tests/db/harness.db.test.ts",
+    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*an admin made by createStaffUser holds admin"
+  },
+  {
+    "id": "h-role-in-disabled",
+    "kind": "sql",
+    "test": "tests/db/harness.db.test.ts",
+    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles)) $$",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*a disabled admin holds no role and is not staff"
+  },
+  {
+    "id": "h-is-staff-disabled",
+    "kind": "sql",
+    "test": "tests/db/harness.db.test.ts",
+    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid()) $$",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*a disabled admin holds no role and is not staff"
+  },
+  {
+    "id": "h-cleanup-check",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "  if (cleanup === undefined) throw new Error(\"committed() needs a cleanup\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*throws without a cleanup before touching the database"
+  },
+  {
+    "id": "h-cleanup-order",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "  if (cleanup === undefined) throw new Error(\"committed() needs a cleanup\");\n  await assertNotProduction({ dbUrl: dbUrl() });\n",
+    "replace": "  await assertNotProduction({ dbUrl: dbUrl() });\n  if (cleanup === undefined) throw new Error(\"committed() needs a cleanup\");\n",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*throws without a cleanup before touching the database"
+  },
+  {
+    "id": "jj-lock",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "    if (takeLock) await client.query(`select pg_advisory_lock(${LOCK_KEY})`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*holds the mop-dev-tests lock while fn runs"
+  },
+  {
+    "id": "h-gs-guard-env",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/db/global-setup.ts",
+    "find": "  guardEnv();\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*aborts naming PROD_TURNSTILE_SECRET"
+  },
+  {
+    "id": "h-gs-unset",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/db/global-setup.ts",
+    "find": "  if (dbUrl === undefined || dbUrl === \"\") {",
+    "replace": "  if (dbUrl === \"\") {",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*refuses to start without DEV_DB_URL"
+  },
+  {
+    "id": "h-gs-host",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/db/global-setup.ts",
+    "find": "url.hostname !== POOLER_HOST || ",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*refuses the project's user on another host"
+  },
+  {
+    "id": "h-gs-user",
+    "kind": "file",
+    "test": "tests/db/harness.db.test.ts",
+    "file": "tests/db/global-setup.ts",
+    "find": " || user !== `postgres.${ref}`",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
+    "expect": "× .*refuses another user on the pooler"
+  },
+  {
+    "id": "mmm-committed",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "  await assertNotProduction({ dbUrl: dbUrl() });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  },
+  {
+    "id": "mmm-global-setup",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/db/global-setup.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd"
+  },
+  {
+    "id": "k-down-header",
+    "kind": "file",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261001090200_role_helpers.sql",
+    "find": "-- down:",
+    "replace": "-- undo:",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "× .*every migration opens with -- down: or -- irreversible:"
+  },
+  {
+    "id": "mh-lock-timeout",
+    "kind": "file",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261001090200_role_helpers.sql",
+    "find": "set lock_timeout = '5s';",
+    "replace": "set statement_timeout = '5s';\nset lock_timeout = '5s';",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "× .*first statement is set lock_timeout"
+  },
+  {
+    "id": "ss-drop-column",
+    "kind": "file",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261001090200_role_helpers.sql",
+    "find": "set lock_timeout = '5s';",
+    "replace": "set lock_timeout = '5s';\nalter table public.user_roles drop column display_name;",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "× .*no destructive change without -- contract-of:"
+  },
+  {
+    "id": "ss-contract-not-on-main",
+    "kind": "file",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261001090200_role_helpers.sql",
+    "find": "set lock_timeout = '5s';",
+    "replace": "-- contract-of: 20261001090100\nset lock_timeout = '5s';\nalter table public.user_roles drop column display_name;",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "contract-of names a version that is not on main: 20261001090200_role_helpers\\.sql"
+  },
+  {
+    "id": "tt-body",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create or replace function public.set_updated_at() returns trigger language plpgsql set search_path = '' as $$ begin return new; end; $$",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\"set_updated_at\","
+  },
+  {
+    "id": "fs-without-file",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create function public.__wf_extra() returns int language sql as 'select 1'",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\"__wf_extra\","
+  },
+  {
+    "id": "fs-file-edit",
+    "kind": "file",
+    "test": "tests/db/function-source.db.test.ts",
+    "file": "supabase/sql/functions/is_staff.sql",
+    "find": "      and r.disabled_at is null\n",
+    "replace": "      and r.disabled_at is not null\n",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\"is_staff\","
+  },
+  {
+    "id": "y-audit-trigger",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger audit_log_immutable on public.audit_log",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t audit_log",
+    "expect": "× .*audit_log refuses update as postgres"
+  },
+  {
+    "id": "y-audit-service-role",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.audit_log_immutable() returns trigger language plpgsql set search_path = '' as $$ begin if current_user = 'service_role' then return null; end if; raise exception 'append_only'; end; $$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t audit_log",
+    "expect": "× .*audit_log refuses delete as service_role"
+  },
+  {
+    "id": "u-set-updated-at",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger user_roles_set_updated_at on public.user_roles",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t updated_at",
+    "expect": "× .*set_updated_at stamps the transaction's now\\(\\)"
+  }
+]

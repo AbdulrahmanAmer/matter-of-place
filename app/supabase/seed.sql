@@ -1,0 +1,1 @@
+-- Rows are loaded by scripts/seed.ts (bun run seed), not here, because the seed uploads images to Storage.
