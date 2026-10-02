@@ -848,3 +848,13 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   in each lane, then launch all four by scriptPath in one message, then the six plan audits (H50 item 1).
 - The stopped run wf_689ef72f-fa9 is NOT resumed; its work is the c7 close-out in restart.json (two items; the third
   is on main).
+
+## 2026-10-03 02:35 +0300 · Dry runs of the two new lanes done; everything quiet; PARKED until the operator's go
+- B4 (tests lane) sizes into g1(1-2) g2(3-4) g3(5) g4(6) g5(7-8): g1 runs today; parts that need B2 steps 7 and 9,
+  B3 steps 7 to 9 and B3b are marked waiting inside their groups, not blocked. Lane port 8788 in the plan reads 8808 here.
+- B9 (design lane) sizes into g1(1, designer: still.mjs then BRIEF.md and 15 option PNGs with contact sheets), g2(2,
+  designer, BLOCKED on the CEO's pick of one option per template: the orchestrator sends the five sheets with
+  SendUserFile and records the pick as a PROJECT-STATE decision), g3 to g7 wait on that pick. So the design lane
+  produces the five sheets, then needs Dave's choice before it goes on.
+- Both dry runs were one read-only sizing agent each (about 120k tokens, 3 to 4 minutes); no builder ran; both lane
+  trees unchanged. Nothing runs now except the board server.
