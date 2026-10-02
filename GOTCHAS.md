@@ -564,3 +564,10 @@ Entry template
 - rule: merge with `gh pr merge <n> --merge` (never squash or rebase a pushed branch: history is not rewritten), then `git checkout main && git pull origin main`, delete the branch, and `git fetch --prune`. The truth about remote branches is `git ls-remote --heads origin`. From B1b step 5b on, merges go only through `node workspace/05-plans/merge-gate.mjs <pr>`.
 - proof: `git ls-remote --heads origin` → `refs/heads/main` only.
 - added: 2026-10-02
+
+## P-061 · The build workflow stopped before building: partial waits were counted as unmet dependencies
+- symptom: the first run of `build-slice` for B1b ended in three minutes with `stopped: unmet dependencies`. The list held B1a (closed, but missing from the status table of PLAN.md), three parts of later steps that wait on other slices or on the domain, and two stale lines of ASSUMED E10 (the R2 secrets, already deleted, and a secret said to be missing that exists).
+- cause: the sizing prompt said "list every dependency that is not met" without saying what a dependency is, and the documents it reads had not been brought up to date after the day's decisions.
+- rule: an unmet dependency is only what stops the whole slice. Parts that wait go into a group's `blockedOn`. Before a slice starts, the status table at the end of PLAN.md shows every closed slice, and ASSUMED section E matches `gh secret list` and `gh variable list`. The orchestrator may pass `ignoreDependencies: true` only after reading the list and writing why each item is not real.
+- proof: `gh secret list` shows no R2 name and shows `DEV_SUPABASE_SERVICE_ROLE_KEY`; the status table has the row `B1a | closed`.
+- added: 2026-10-02
