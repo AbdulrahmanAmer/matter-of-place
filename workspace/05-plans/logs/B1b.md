@@ -2601,3 +2601,362 @@ For the orchestrator
 NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: the documents-only merge on the real repository (it needs `ci.yml` on `main`); the post-merge `merge-gate` job's first run.
 
 GOTCHAS: G-032 and P-120 added; P-070 and P-090 hit again (noted in the entries).
+
+## c7 · steps 5b
+Round 2 of the close-out of g7 under ruling H42 (1) and (2), fixing the defects of the review of `7dcd402`. Commit `3afa483` on `slice/b1b` (tests, registry, bank); this block is the next commit.
+
+What changed
+- `tests/unit/merge-gate.test.ts`: `reads a single * as GitHub does: it matches no slash`. With `"launch/*"` in place of `"launch/**"` in the `ci.yml` text, `launch/notes.txt` passes and `launch/film/x.ts` is refused. Registry entry `mg-docs-star` maps `*` to `.*`.
+- `tests/unit/hygiene.test.ts`, describe `the orchestrator's merge script is under the app's gates (H42 (2), G-032)`: (1) `tsconfig.scripts.json` resolves `workspace/05-plans/merge-gate.mjs` among its files (`ts.getParsedCommandLineOfConfigFile`, so a glob that still covers it passes); (2) `lint` holds `&& cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs`, and `format:check` is exactly `prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs`; (3) the ESLint config resolved from the repository root gives `prettier/prettier` `[2, <.prettierrc>]` for the file (own timeout 20 s, G-031). Entries `hy-gate-include`, `hy-gate-lint`, `hy-gate-format-path`, `hy-gate-format-config` and `hy-gate-prettier`.
+- `GOTCHAS.md`: P-104 is now a retired line (H42 (1) is built). G-032 is `enforced-by: tests/unit/hygiene.test.ts`. New entries: P-121 (an `expect` that matches the passing run's output), P-122 (a `describe` that uses another one's helpers, or a missing import, fails only at run time), P-123 (output retyped or condensed into a log).
+- `merge-gate.mjs`, `package.json`, `eslint.config.js` and `tsconfig.scripts.json` are unchanged.
+
+Proofs (run in `app/` unless noted; every output block below was inserted from the file the command wrote, ANSI colour codes stripped, and checked with `in-log.mjs`)
+
+`bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts` (summary lines)
+```
+ Test Files  2 passed (2)
+      Tests  73 passed | 8 skipped (81)
+```
+
+`node ../scratch/replay.mjs --check`
+```
+checked 314, bad 0
+```
+
+The replay of every merge-gate entry and the five new hygiene entries, `node ../scratch/replay.mjs <the 50 mg- ids> hy-gate-include hy-gate-lint hy-gate-format-path hy-gate-format-config hy-gate-prettier`
+```
+RED mg-required: exit=1 expect=true | × names the pull request jobs, not the steps merged into them 9ms
+RED mg-status: exit=1 expect=true | × refuses a head without the merge-gate status, or with one that is not success 9ms
+RED mg-missing: exit=1 expect=true | × refuses a required check that has no run on the head 8ms
+RED mg-defined: exit=1 expect=true | × does not require a check that no workflow at the commit defines 10ms
+RED mg-dependabot: exit=1 expect=true | × does not require preview from Dependabot, and says so 9ms
+RED mg-dependabot-scope: exit=1 expect=true | × does not require preview from Dependabot, and says so 8ms
+RED mg-heavy: exit=1 expect=true | × refuses a skipped e2e unless CI_HEAVY is off, and never a skipped check or build 9ms
+RED mg-heavy-scope: exit=1 expect=true | × refuses a skipped e2e unless CI_HEAVY is off, and never a skipped check or build 9ms
+RED mg-nopr: exit=1 expect=true | × refuses a commit that is no merged pull request 9ms
+RED mg-gather-merge-commit: exit=1 expect=true | × ignores a pull request that only contains the commit and reads no head 11ms
+RED mg-gather-head: exit=1 expect=true | × finds the pull request merged as this commit and reads its head 11ms
+RED mg-gather-conclusion: exit=1 expect=true | × finds the pull request merged as this commit and reads its head 10ms
+RED mg-jobkeys-margin: exit=1 expect=true | × reads the job keys of the jobs map and nothing else 8ms
+RED mg-jobkeys-stop: exit=1 expect=true | × stops at the next top-level key 1ms
+RED mg-latest-run: exit=1 expect=true | × judges the latest run of a name, wherever the list puts it 8ms
+RED mg-latest-order: exit=1 expect=true | × refuses when the latest run failed, whatever an older run of the name did 1ms
+RED mg-bucket: exit=1 expect=true | × refuses a fail check although gh pr checks --json exits 0, and writes nothing 9ms
+RED mg-bucket-pending: exit=1 expect=true | × refuses a pending check although gh pr checks --json exits 0, and writes nothing 9ms
+RED mg-nochecks: exit=1 expect=true | × refuses when the checks cannot be read, and writes nothing 9ms
+RED mg-draft: exit=1 expect=true | × refuses a draft and a head that does not contain origin/main before it reads a check 9ms
+RED mg-rebase: exit=1 expect=true | × refuses a draft and a head that does not contain origin/main before it reads a check 9ms
+RED mg-skipping: exit=1 expect=true | × posts the status and merges when every check passes or is skipped 10ms
+RED mg-order: exit=1 expect=true | × posts the status and merges when every check passes or is skipped 10ms
+RED mg-ok: exit=1 expect=true | × passes when the merge-gate status and every required check are success 9ms
+RED mg-inprogress: exit=1 expect=true | × refuses a check that has not finished 8ms
+RED mg-nopr-gather: exit=1 expect=true | × says no pull request when the commit has none 2ms
+RED mg-steps-every: exit=1 expect=true | × prints no job that ran a step, or that has no step but the runner's 8ms
+RED mg-steps-bookkeeping: exit=1 expect=true | × prints a passed job whose steps were all skipped, and still merges 9ms
+RED mg-steps-empty: exit=1 expect=true | × prints no job that ran a step, or that has no step but the runner's 8ms
+RED mg-steps-fail: exit=1 expect=true | × refuses when the steps of a passed job cannot be read, and writes nothing 9ms
+RED mg-steps-link: exit=1 expect=true | × reads no steps for a check that is not a job of ours 1ms
+RED mg-post-fail: exit=1 expect=true | × refuses and merges nothing when posting the status fails 10ms
+RED mg-merge-fail: exit=1 expect=true | × exits 1 when gh pr merge fails 9ms
+RED mg-docs-nochecks: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 10ms
+RED mg-docs-every: exit=1 expect=true | × refuses a pull request with no check that changes app/src/start.ts 10ms
+RED mg-docs-anchor: exit=1 expect=true | × refuses a pull request with no check that changes app/a.mdx 12ms
+RED mg-docs-root: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 9ms
+RED mg-docs-main: exit=1 expect=true | × merges a documents-only pull request, read against ci.yml on origin/main 10ms
+RED mg-docs-ci-read: exit=1 expect=true | × refuses when ci.yml cannot be read on origin/main 10ms
+RED mg-docs-wildcard: exit=1 expect=true | × refuses when paths-ignore holds a wildcard the gate does not read 10ms
+RED mg-docs-star: exit=1 expect=true | × reads a single * as GitHub does: it matches no slash 11ms
+RED mg-docs-unread: exit=1 expect=true | × refuses when paths-ignore holds a wildcard the gate does not read 10ms
+RED mg-docs-count: exit=1 expect=true | × refuses when gh lists fewer files than the pull request changes 10ms
+RED mg-docs-empty: exit=1 expect=true | × refuses a pull request with no check and no changed file 10ms
+RED mg-docs-files-read: exit=1 expect=true | × refuses when the changed files cannot be read 9ms
+RED mg-gate-type: exit=2 expect=true | ../workspace/05-plans/merge-gate.mjs(17,7): error TS2322: Type 'string' is not assignable to type 'number'.
+RED mg-gate-lint: exit=1 expect=true | 17:1  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked 
+RED mg-gate-format: exit=1 expect=true | [warn] ../workspace/05-plans/merge-gate.mjs
+RED mg-gate-format-config: exit=1 expect=true | [warn] ../workspace/05-plans/merge-gate.mjs
+RED mg-gate-lint-prettier: exit=1 expect=true | 226:26  error  Replace `"usage:·node·workspace/05-plans/merge-gate.mjs·<pr>\n"` with `⏎······"usage:·node·workspace/05-plans/merge-gate.mjs·
+RED hy-gate-include: exit=1 expect=true | × tsconfig.scripts.json type-checks it 22ms
+RED hy-gate-lint: exit=1 expect=true | × lint runs on it from the repository root, and format:check reads .prettierrc for it 8ms
+RED hy-gate-format-path: exit=1 expect=true | × lint runs on it from the repository root, and format:check reads .prettierrc for it 8ms
+RED hy-gate-format-config: exit=1 expect=true | × lint runs on it from the repository root, and format:check reads .prettierrc for it 36ms
+RED hy-gate-prettier: exit=1 expect=true | × lint gives prettier/prettier the options of .prettierrc for it 1933ms
+replayed 55, not red 0
+```
+
+Why the six new entries are red, `node <scratchpad>/c7r-why.mjs mg-docs-star hy-gate-include hy-gate-lint hy-gate-format-path hy-gate-format-config hy-gate-prettier`
+```
+== mg-docs-star
+       × reads a single * as GitHub does: it matches no slash 10ms
+      Tests  1 failed | 39 passed (40)
+AssertionError: expected { lines: [ …(2) ], writes: [ …(2) ] } to deeply equal { …(2) }
+-     "merge-gate: no checks reported and launch/film/x.ts is not a document",
++     "documents only: no check expected",
++     "",
+-   "writes": [],
++   "writes": [
++     "gh api -X",
++     "gh pr merge",
++   ],
+== hy-gate-include
+     × tsconfig.scripts.json type-checks it 21ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected false to be true // Object.is equality
+== hy-gate-lint
+     × lint runs on it from the repository root, and format:check reads .prettierrc for it 12ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected { lint: false, …(1) } to deeply equal { lint: true, …(1) }
+-   "lint": true,
++   "lint": false,
+== hy-gate-format-path
+     × lint runs on it from the repository root, and format:check reads .prettierrc for it 10ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected { lint: true, …(1) } to deeply equal { lint: true, …(1) }
+-   "formatCheck": "prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs",
++   "formatCheck": "prettier --config .prettierrc --check .",
+== hy-gate-format-config
+     × lint runs on it from the repository root, and format:check reads .prettierrc for it 10ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected { lint: true, …(1) } to deeply equal { lint: true, …(1) }
+-   "formatCheck": "prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs",
++   "formatCheck": "prettier --check . ../workspace/05-plans/merge-gate.mjs",
+== hy-gate-prettier
+     × lint gives prettier/prettier the options of .prettierrc for it 1292ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+    "path": [
+    "message": "Array must contain at least 2 element(s)"
+```
+
+The `expect` of each new entry and of the five `mg-gate-*` entries matches nothing in the output of the unmutated run (P-121), `node ../scratch/replay.mjs --baseline mg-gate-type mg-gate-lint mg-gate-format mg-gate-format-config mg-gate-lint-prettier mg-docs-star hy-gate-include hy-gate-lint hy-gate-format-path hy-gate-format-config hy-gate-prettier`
+```
+CLEAN mg-docs-star
+CLEAN mg-gate-type
+CLEAN mg-gate-lint
+CLEAN mg-gate-format
+CLEAN mg-gate-format-config
+CLEAN mg-gate-lint-prettier
+CLEAN hy-gate-include
+CLEAN hy-gate-lint
+CLEAN hy-gate-format-path
+CLEAN hy-gate-format-config
+CLEAN hy-gate-prettier
+baseline 11, loose 0
+```
+Watched-fail of the baseline itself, `node <scratchpad>/loose-probe.mjs` (gives `mg-gate-format` the loose expect of the first c7 draft, restores the registry bytes):
+```
+exit 1
+LOOSE mg-gate-format | $ prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs
+baseline 1, loose 1
+
+restored
+```
+Its first run printed `CLEAN mg-gate-format` for that loose expect. `execSync` returns only stdout when the command passes, and bun writes its `$ <command>` echo to stderr. The baseline now reads both streams with `spawnSync` and matches the whole output, as the red mode does. That cost is in P-121.
+
+`bun run check` → exit 0 (head of the output and its last lines)
+```
+$ bun run layout && bun run typecheck && bun run lint && bun run knip && bun run jscpd && bun run stubs && bun run format:check && bun run test
+$ node scripts/check-layout.mjs
+layout: OK (586 files)
+$ tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json
+$ eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs
+$ knip
+Configuration hints (2)
+src/db/types.ts                  knip.json  Remove from ignore               
+supabase/functions/*/index.ts    knip.json  Refine entry pattern (no matches)
+...
+stubs: 15 markers, 0 on closed slices
+$ prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs
+Checking formatting...
+All matched files use Prettier code style!
+$ vitest run
+
+ RUN  v5.0.2 E:/mop-build/spine/app
+
+
+ Test Files  14 passed (14)
+      Tests  350 passed | 8 skipped (358)
+```
+`bun run build` → exit 0
+```
+[nitro] ✔ You can preview this build using npx vite preview
+[nitro] ✔ You can deploy this build using npx nitro deploy --prebuilt
+```
+
+CI on the pushed head `3afa483`, run `37037470163` (`gh run view 37037470163 --json conclusion,jobs --jq '.conclusion, (.jobs[] | [.name,.conclusion] | @tsv)'`). Its `check` log lists `✓ the orchestrator's merge script is under the app's gates (H42 (2), G-032) (3)`, so the new paths resolve on the Linux runner too.
+```
+success
+build	success
+check	success
+merge-gate	skipped
+```
+
+The plan's probe (step 5b; P-105: lane work committed and pushed first, the script run on `slice/b1b`): `git switch -c gate-probe origin/main~1` (`f57c9b2`), one line appended to `app/src/lib/cx.ts`, `gh pr create --draft` → PR #32, then from the repository root:
+```
+$ node workspace/05-plans/merge-gate.mjs 32   (draft)
+mark ready first
+exit 1
+✓ Pull request AbdulrahmanAmer/matter-of-place#32 is marked as "ready for review"
+$ node workspace/05-plans/merge-gate.mjs 32   (ready)
+rebase first
+exit 1
+$ gh api repos/AbdulrahmanAmer/matter-of-place/commits/$(gh pr view 32 --json headRefOid --jq .headRefOid)/statuses --jq length
+0
+✓ Closed pull request AbdulrahmanAmer/matter-of-place#32 (gate probe (B1b c7 round 2, closed unmerged))
+✓ Deleted branch gate-probe
+$ gh pr view 32 --json state --jq .state
+CLOSED
+$ git ls-remote --heads origin
+d686b5d072d759b19f1d38de113cb7cd8046ba17	refs/heads/main
+3afa48305a5af068debfdbde3fb913de8cfde579	refs/heads/slice/b1b
+```
+
+Scratch scripts (not committed; P-088). `scratch/replay.mjs` as it stands now (the `--baseline` mode is new in this round):
+```js
+// Replays watched-fail entries of tests/mutations/B1b.json from app/.
+// node ../scratch/replay.mjs --check          every file entry's find occurs exactly once
+// node ../scratch/replay.mjs <id> [<id> ...]  apply, run, expect red matching `expect`, restore
+// node ../scratch/replay.mjs --all            the same for every file entry run by vitest
+import { execSync, spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+const args = process.argv.slice(2);
+const files = entries.filter((e) => e.kind === undefined);
+const count = (text, find) => text.split(find).length - 1;
+
+if (args[0] === "--check") {
+  const bad = files.filter((e) => count(readFileSync(e.file, "utf8"), e.find) !== 1);
+  for (const e of bad) console.log(`BAD ${e.id}: find occurs ${count(readFileSync(e.file, "utf8"), e.find)} times`);
+  console.log(`checked ${files.length}, bad ${bad.length}`);
+  process.exit(bad.length === 0 ? 0 : 1);
+}
+
+if (args[0] === "--baseline") {
+  // An expect that matches the output of the unmutated run (a command echo, a file list) makes
+  // any non-zero exit of the mutated run count as red.
+  let loose = 0;
+  for (const e of files.filter((entry) => args.includes(entry.id))) {
+    // Both streams: bun writes its `$ <command>` echo to stderr, also when the run passes.
+    const result = spawnSync(e.run, { shell: true, encoding: "utf8" });
+    const out = `${result.stdout}${result.stderr}`;
+    const matched = new RegExp(e.expect).test(out);
+    if (matched) loose += 1;
+    const line = out.split("\n").find((l) => new RegExp(e.expect).test(l)) ?? "";
+    console.log(`${matched ? "LOOSE" : "CLEAN"} ${e.id}${matched ? ` | ${line.trim().slice(0, 140)}` : ""}`);
+  }
+  console.log(`baseline ${args.length - 1}, loose ${loose}`);
+  process.exit(loose === 0 ? 0 : 1);
+}
+
+const chosen =
+  args[0] === "--all"
+    ? files.filter((e) => e.run.startsWith("bunx vitest"))
+    : files.filter((e) => args.includes(e.id));
+let notRed = 0;
+for (const e of chosen) {
+  const saved = readFileSync(e.file);
+  const text = saved.toString("utf8");
+  if (count(text, e.find) !== 1) {
+    console.log(`BAD ${e.id}: find occurs ${count(text, e.find)} times`);
+    notRed += 1;
+    continue;
+  }
+  writeFileSync(e.file, text.replace(e.find, () => e.replace));
+  let exit = 0;
+  let out = "";
+  try {
+    out = execSync(e.run, { encoding: "utf8", stdio: "pipe" });
+  } catch (error) {
+    exit = error.status ?? 1;
+    out = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  } finally {
+    writeFileSync(e.file, saved);
+  }
+  const matched = new RegExp(e.expect).test(out);
+  const red = exit !== 0 && matched;
+  if (!red) notRed += 1;
+  const line = out.split("\n").find((l) => new RegExp(e.expect).test(l)) ?? "";
+  console.log(`${red ? "RED" : "NOT RED"} ${e.id}: exit=${exit} expect=${matched} | ${line.trim().slice(0, 140)}`);
+}
+console.log(`replayed ${chosen.length}, not red ${notRed}`);
+process.exit(notRed === 0 ? 0 : 1);
+```
+```js
+// c7r-why.mjs <id> ..., run from app/: apply a registry entry (find must occur once), run it,
+// print the failing test lines and the diff lines of the red run verbatim, restore the bytes.
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+for (const id of process.argv.slice(2)) {
+  const e = entries.find((entry) => entry.id === id);
+  if (e === undefined) throw new Error(`${id}: no such entry`);
+  const saved = readFileSync(e.file);
+  const text = saved.toString("utf8");
+  if (text.split(e.find).length !== 2) throw new Error(`${id}: find not once`);
+  writeFileSync(e.file, text.replace(e.find, () => e.replace));
+  let out = "";
+  try {
+    out = execSync(e.run, { encoding: "utf8", stdio: "pipe" });
+  } catch (error) {
+    out = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+  } finally {
+    writeFileSync(e.file, saved);
+  }
+  const why = out
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .split("\n")
+    .filter((line) =>
+      /^\s*×|^\s*[-+] {2,}\S|^\s*[-+] {4}"|Tests {2}|AssertionError|^(Expected|Received):|"(path|message)":/.test(line),
+    )
+    .slice(0, 14);
+  console.log(`== ${id}\n${why.join("\n")}`);
+}
+```
+```js
+// loose-probe.mjs, run from app/: give mg-gate-format the loose expect of the first c7 draft (the
+// file path alone), run the baseline, restore the registry bytes.
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const file = "tests/mutations/B1b.json";
+const saved = readFileSync(file);
+const entries = JSON.parse(saved.toString("utf8"));
+const entry = entries.find((e) => e.id === "mg-gate-format");
+entry.expect = "05-plans/merge-gate\\.mjs";
+writeFileSync(file, `${JSON.stringify(entries, null, 2)}\n`);
+try {
+  console.log(execSync("node ../scratch/replay.mjs --baseline mg-gate-format", { encoding: "utf8" }));
+} catch (error) {
+  console.log(`exit ${error.status}\n${error.stdout}`);
+} finally {
+  writeFileSync(file, saved);
+  console.log("restored");
+}
+```
+```js
+// node ../scratch/in-log.mjs <log> <output file> ...: each output file, as the command wrote it,
+// must occur byte for byte in the log (a pasted block, not a retyped or condensed one).
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
+
+const [log, ...outputs] = process.argv.slice(2);
+const text = readFileSync(log, "utf8");
+let missing = 0;
+for (const file of outputs) {
+  const output = readFileSync(file, "utf8").replace(/\n+$/, "");
+  const found = text.includes(output);
+  if (!found) missing += 1;
+  console.log(`${found ? "verbatim" : "NOT IN LOG"} ${basename(file)}`);
+}
+process.exit(missing === 0 ? 0 : 1);
+```
+
+For the orchestrator (not fixed here: each needs a ruling or a file outside this group)
+- The gate approves its own edits with no check (review defect 5). `ci.yml` ignores `workspace/**`, so a pull request that changes only `workspace/05-plans/merge-gate.mjs` starts no CI run, and `documentsOnly()` passes it as `documents only: no check expected`. The tests that import the script then never run on that pull request. H42 (2) is met to the letter (`bun run check` covers the file locally), but its purpose is not. Two options from the review: (a) the gate refuses the documents-only path for any changed file that the app's gates name (today `workspace/05-plans/merge-gate.mjs`), or (b) `ci.yml` uses `paths` with a negation so that file starts a run. The reader of the gate refuses any `paths-ignore` form other than one flow list, so (b) also changes the gate. Ruling needed.
+- A rename is judged by its new path only (review defect 6). `gh pr view --json files` lists a renamed file under its new path, with no old path (PR 7: `app/.env.example RENAMED`). `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/7/files` holds `previous_filename`. A pull request that moves a file from `app/src/` to `workspace/` therefore looks documents-only to the gate. UNPROVEN: whether GitHub's `paths-ignore` starts CI for such a rename. If it does, the gate never reaches this branch. H42 (1) names `--json files`, so closing the gap means changing the ruling: read `pulls/<n>/files` and judge the old and the new path of each file.
+- Stale plan line (review defect 7): B1b line 112 still says "`gh pr checks <pr>` must exit 0 (no failed and no pending check across `ci.yml` and `deploy.yml`)". P-106 (the `--json` form exits 0 whatever the buckets are) and H42 (1) (no check: documents only, or a refusal) replace it.
+
+NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository (it needs `ci.yml` on `main`); the first run of the post-merge `merge-gate` job.
+
+GOTCHAS: P-121, P-122 and P-123 added; P-104 retired; G-032 marked enforced.
