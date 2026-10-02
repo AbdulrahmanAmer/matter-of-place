@@ -32,6 +32,15 @@ export function findForeignMigrations(remoteVersions, localFiles) {
 }
 
 /**
+ * True only when the database URL's host is 127.0.0.1: the ephemeral stack of CI's `db` job (H1 b), never mop-dev.
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isLocalDbUrl(url) {
+  return URL.canParse(url) && new URL(url).hostname === "127.0.0.1";
+}
+
+/**
  * Names of the pg_cron jobs the migrations schedule, so a reset unschedules jobs of later slices without an edit here.
  * @param {string[]} sqlTexts
  * @returns {string[]}

@@ -1219,3 +1219,17 @@ Entry template
 - rule: trust `gh pr view <n> --json mergeable,mergeStateStatus`, not a local merge test, for whether CI will run (P-301). When it says CONFLICTING and the local merge is clean, the cause is the bank: merge main into the lane with the union driver, then run `node workspace/05-plans/check-gotchas.mjs` (P-072, P-302) before committing.
 - proof: `git merge-tree --write-tree origin/main slice/b2 > /dev/null; echo $?` prints 0 while `gh pr view 49 --json mergeable` prints `{"mergeable":"CONFLICTING"}`; `grep -n GOTCHAS .gitattributes` prints `GOTCHAS.md merge=union` (measured 2026-10-02, B2 c1 review).
 - added: 2026-10-02
+
+## P-304 · A proof that says "run in a terminal" cannot run in the Bash tool: it has no console, and the first two ways to make one failed
+- symptom: B2 step 1b's proof is "`node scripts/load-env.mjs --profile dev` run in a terminal exits 1 printing no value". Every Bash tool call has its standard output on a pipe (`process.stdout.isTTY` is undefined), so the refusal path never runs there. The first console run, a `.cmd` started with `Start-Process`, wrote `ECHO is off.` instead of the exit code (`echo %errorlevel%> file` turns `1>` into a redirection of handle 1), and its screen capture died with `Missing ']' after array index expression` on `$cells[$y, $x].Character` in Windows PowerShell 5. A `sed` that was to write the control script dropped its backslashes (P-070) and silently ran the real script again.
+- cause: the harness gives commands no console; cmd reads a digit right before `>` as a handle number; PowerShell 5 does not parse a two-index array access inside a method call's argument list.
+- rule: prove terminal behaviour in a new console: a PowerShell file runs `Start-Process -FilePath cmd.exe -ArgumentList '/c', '<file>.cmd' -Wait -WindowStyle Minimized`; the `.cmd` (written with the Write tool) records `isTTY`, sends stderr to a file, writes the exit code as `> <file> echo exit=%errorlevel%`, then a PowerShell file copies the screen with `$Host.UI.RawUI.GetBufferContents(...)` read through `$cells.GetValue($y, $x)`. Check the copy for secret values with a script that prints counts only, and run a control `.cmd` that echoes a known line, so a blind capture shows up. The scripts' text is in `workspace/05-plans/logs/B2.md`, block "g1 · steps 1b".
+- proof: `node -e "console.log(process.stdout.isTTY)" | cat` in the Bash tool prints `undefined`; the console run of the log block prints `stdout isTTY=true`, `exit=1`, `values on screen: 0 of 4`, and its control prints `"export " on screen: true` (measured 2026-10-02, B2 g1 step 1b).
+- added: 2026-10-02
+
+## P-305 · Removing a generator's output by its folder took a tracked file with it
+- symptom: in B2 g1 step 1b a trial `bun run gen:types` wrote `app/src/db/types.ts`, and `rm -r src/db` to remove it also deleted the tracked `app/src/db/README.md` (`git status` printed ` D src/db/README.md`). An earlier `ls` of the folder had been misread as empty.
+- cause: a generator writes into a folder that already holds tracked files; deleting the folder deletes them too.
+- rule: remove only the file a trial run created, by name (`rm src/db/types.ts`), then read `git status --short` before going on; restore a deleted clean file with `git checkout -- <file>` (P-068: only when the file had no uncommitted work).
+- proof: `git ls-files app/src/db` → `app/src/db/README.md` (the folder is not the generator's alone).
+- added: 2026-10-02

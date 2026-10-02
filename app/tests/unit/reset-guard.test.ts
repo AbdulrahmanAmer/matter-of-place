@@ -3,6 +3,7 @@ import {
   checkResetTarget,
   cronJobNames,
   findForeignMigrations,
+  isLocalDbUrl,
 } from "../../scripts/lib/reset-guard.mjs";
 
 const REF = "hbokkmpgpqhrnemgsqra";
@@ -57,6 +58,21 @@ describe("findForeignMigrations", () => {
         ],
       ),
     ).toEqual([]);
+  });
+});
+
+describe("isLocalDbUrl", () => {
+  it.each([
+    { url: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", local: true },
+    {
+      url: `postgresql://postgres.${REF}:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres`,
+      local: false,
+    },
+    { url: "postgresql://postgres:postgres@localhost.evil.example:54322/postgres", local: false },
+    { url: "postgresql://postgres:postgres@127.0.0.1.evil.example:54322/postgres", local: false },
+    { url: "not a url", local: false },
+  ])("isLocalDbUrl $url is $local", ({ url, local }) => {
+    expect(isLocalDbUrl(url)).toBe(local);
   });
 });
 
