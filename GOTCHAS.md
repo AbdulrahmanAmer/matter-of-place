@@ -9,7 +9,7 @@ they are read by `mop-work` at session start.
 Rules for the bank itself
 - Numbers are unique and never reused: before adding, `grep -c "^## P-" GOTCHAS.md` and take the next free number (the highest number in the file plus one; P-019 and P-020 were never used and stay unused). `node workspace/05-plans/check-gotchas.mjs` fails on a number used twice, on an entry without rule, proof or added, and on a path entry without paths or severity: run it after every change to this file. Duplicates from parallel workers get renumbered by the orchestrator, never silently merged.
 - Add an entry in the same turn something costs more than a few minutes or breaks after a push (CLAUDE.md). Do not wait for a retro.
-- Keep it under 40 live path entries (G entries without `enforced-by:`; there are 14 today). Process entries (P) are not injected, every worker reads them once, so each one must still be true: when the thing it describes is gone, shrink it to a retired line and keep the number. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
+- Keep it under 40 live path entries (G entries without `enforced-by:`; there are 15 today). Process entries (P) are not injected, every worker reads them once, so each one must still be true: when the thing it describes is gone, shrink it to a retired line and keep the number. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
   injected (the mechanism enforces it, the prose just documents it).
 - One `paths:` line, comma separated, project-relative globs (`**` and `*`). Severity is `block` only when an edit
   is never legitimate; otherwise `warn`.
@@ -570,4 +570,41 @@ Entry template
 - cause: the sizing prompt said "list every dependency that is not met" without saying what a dependency is, and the documents it reads had not been brought up to date after the day's decisions.
 - rule: an unmet dependency is only what stops the whole slice. Parts that wait go into a group's `blockedOn`. Before a slice starts, the status table at the end of PLAN.md shows every closed slice, and ASSUMED section E matches `gh secret list` and `gh variable list`. The orchestrator may pass `ignoreDependencies: true` only after reading the list and writing why each item is not real.
 - proof: `gh secret list` shows no R2 name and shows `DEV_SUPABASE_SERVICE_ROLE_KEY`; the status table has the row `B1a | closed`.
+- added: 2026-10-02
+
+## G-016 · The lint block for `scripts/**` cannot use the project service: it needs `project: ["./tsconfig.scripts.json"]`
+- paths: app/eslint.config.js, app/tsconfig.scripts.json
+- severity: warn
+- symptom: B1b plan block (g) and STANDARDS R01 say every type-aware block uses `projectService`. With it on the `scripts/**` block every script fails with "Parsing error: scripts/stubs.ts was not found by the project service. Consider either including it in the tsconfig.json or including it in allowDefaultProject".
+- cause: the project service resolves each file to the nearest `tsconfig.json`; `app/tsconfig.json` includes `src`, `tests` and the root configs, not `scripts/`. `tsconfig.scripts.json` is not "nearest" for any file.
+- rule: the `scripts/**/*.{ts,mjs}` block sets `projectService: false` and `project: ["./tsconfig.scripts.json"]`; the `src` and `tests` block keeps `projectService: true`. A new folder of linted code that no `tsconfig.json` includes needs its own `project` block the same way.
+- proof: `cd app && bunx eslint scripts/stubs.ts; echo $?` prints `0`; setting that block to `projectService: true` prints the parsing error above and exits 1.
+- added: 2026-10-02
+
+## P-065 · A plan's counts and a tool's config are estimates until the tool has run on the real tree
+- symptom: B1b step 2b was sized from numbers the plan had written before the gates existed. Measured on the new configuration: 78 lint problems (plan: about 56), 21 unused exports and 20 unused types (plan: 12 and 11). `knip.json` copied as the plan wrote it prints 5 configuration hints (`src/routeTree.gen.ts` and `src/db/types.ts` in `ignore` that need no ignoring, entries `src/start.ts` and `supabase/functions/*/index.ts` that match no file yet, `src/router.tsx` redundant). The first watched-fail pass had the wrong `expect` for the missing-assertion test ("at least one assertion"; vitest prints "expected any number of assertion, but got none"), so one run was wasted.
+- cause: estimates and expected texts were written from memory, not from output.
+- rule: before sizing a gate step, run each new tool with its new config on the real tree and count by rule; take every watched-fail `expect` from the tool's printed text, never from memory; treat knip's configuration hints as defects to remove when the files they name exist (B1b step 3 creates `src/start.ts`, step 8 the job runner).
+- proof: `cd app && bun run knip | grep -c "Configuration hints"` prints `1` today and `0` once `start.ts` and `supabase/functions/job-runner/index.ts` exist and the `ignore` and `router.tsx` lines are trimmed.
+- added: 2026-10-02
+
+## P-066 · A watched-fail registry entry must be one the owning runner can replay: no invented kind, no empty `find`
+- symptom: 16 of the 20 entries first written for `tests/mutations/B1b.json` used an invented `kind: "create"` with `"find": ""`. B4's `scripts/watchfail.mjs` (B4.md line 86) reads the file and asserts `find` occurs exactly once, and `mutation-registry.test.ts` rejects a file entry without a usable `find`, so none of them could be replayed.
+- cause: the plan's mutations say "a scratch file", and the author recorded them literally instead of expressing them in the runner's two kinds.
+- rule: every entry is a `file` entry on a tracked file with a `find` that occurs exactly once (a mutation that needs "a new file" edits an existing file inside the same lint scope), a `sql` entry, or `kind: "manual"` (recorded, not replayed). A rule whose scope has no tracked file yet (R14 in `src/server/**`) is `manual` until the first file of that scope lands. Replay the whole registry with a runner that checks the single occurrence before it trusts a result.
+- proof: `cd app && node -e "const a=require('./tests/mutations/B1b.json');console.log(a.filter(e=>e.kind==='create'||e.find==='').length)"` prints `0`.
+- added: 2026-10-02
+
+## P-067 · Clearing a baseline "by fixing" is not making the tool quiet: a validator that validates nothing, and exports a later plan changes
+- symptom: `no-unsafe-type-assertion` on `(await response.json()) as T` was cleared with `z.custom<T>()`, which accepts any value (`z.custom().parse(42)` returns 42). Knip's unused exports were cleared by deleting `submissionStates` and `editorialRoles` (and their types) from `contracts.ts`, but B2.md lines 52, 53 and 132 and four review files tell B2 to change exactly those constants. A fresh reviewer found both; each cost a rework.
+- cause: the goal was read as "the gate prints nothing" instead of "the code is true".
+- rule: a cast becomes a real parse with a response schema, or the item is recorded BLOCKED; never a stand-in that checks nothing. Before deleting an export, `git grep -w <name> -- workspace/05-plans` (P-039): a name a later plan changes stays, tagged `/** @public */` with a `// STUB(<slice>): <what replaces it>` line above it (STANDARDS R04, C04). Prove a validator by feeding it a wrong value and seeing it throw.
+- proof: `bun -e 'import { z } from "zod"; console.log(z.custom().parse(42))'` prints `42` (validates nothing); `cd app && bunx vitest run tests/unit/http-client.test.ts` passes, including "rejects a body that does not match the schema".
+- added: 2026-10-02
+
+## P-068 · `git checkout -- <file>` as the undo of a manual watched-fail wiped the file's uncommitted work
+- symptom: after a hand mutation of `src/domain/property.ts`, `git checkout -- src/domain/property.ts` put the file back to HEAD and the uncommitted Zod rewrite of it was gone; it had to be written again from the transcript.
+- cause: the file held uncommitted work and the undo was written for a clean file. The replay runner restores saved bytes; the hand step did not.
+- rule: restore a mutated file by writing back the bytes saved before the edit (`cp` to a scratch folder first, or the replay runner). Use `git checkout --` only on a file that `git status --short` shows clean.
+- proof: `git status --short app/src/domain/property.ts` before a mutation prints ` M ...`: copy the file aside first.
 - added: 2026-10-02

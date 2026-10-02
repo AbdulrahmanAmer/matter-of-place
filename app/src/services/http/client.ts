@@ -1,8 +1,9 @@
-import { z } from "zod";
+import type { z } from "zod";
 import { ServiceError } from "../types";
 
 /**
- * Minimal JSON client for the Matter of Place API. The API is same-origin in
+ * Minimal JSON client for the Matter of Place API. Every body is parsed with the response schema
+ * of the call, so a malformed answer is an error and never a value of the wrong shape. The API is same-origin in
  * production (Cloudflare Worker route `/api/*`), so no credentials or CORS
  * configuration are needed; a different origin works as long as it allows
  * the site's origin.
@@ -11,12 +12,6 @@ export type ApiClient = {
   get<T>(path: string, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
   post<T>(path: string, body: unknown, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
 };
-
-/**
- * The response shape the API contract promises. The contract is not re-validated in the browser
- * (ADR 0002); this names the one place where the body is trusted.
- */
-export const trusted = <T>() => z.custom<T>();
 
 const withHeaders = (defaults: Record<string, string>, extra: HeadersInit | undefined) => {
   const headers = new Headers(defaults);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { propertySchema } from "./property.ts";
 
 /**
  * Write-side contracts shared by the frontend and the API.
@@ -71,6 +72,43 @@ export const exposurePackages = [
   "Not sure yet",
 ] as const;
 const supportedCurrencies = ["USD"] as const;
+
+/**
+ * Internal workflow. Never shown publicly; editorial acceptance must precede
+ * any commercial state (Awaiting Payment onwards).
+ * @public
+ */
+// STUB(B2): `Awaiting Payment` becomes `Invoice Issued` and `Withdrawn` is added last (G-004, S32, DL-04)
+export const submissionStates = [
+  "Submitted",
+  "Under Review",
+  "Accepted",
+  "Declined",
+  "Awaiting Assets",
+  "Awaiting Payment",
+  "Scheduled",
+  "Published",
+  "Distribution Active",
+  "Completed",
+] as const;
+/** @public */
+export type SubmissionState = (typeof submissionStates)[number];
+
+/**
+ * Internal roles. Commercial roles cannot move a submission past editorial review.
+ * @public
+ */
+// STUB(B2): replaced by `appRoles` and `roleLabels` (G-004)
+export const editorialRoles = [
+  "Chief Editorial Officer",
+  "Managing Editor",
+  "Visual Editor",
+  "Contributor",
+  "Media Operations",
+  "Commercial Partnerships",
+] as const;
+/** @public */
+export type EditorialRole = (typeof editorialRoles)[number];
 
 /** Metadata for a photograph the submitter selected. Binary upload is a separate step (see docs). */
 const submissionMediaSchema = z.object({
@@ -150,7 +188,27 @@ const conciergeQuestionSchema = z.object({
 export type ConciergeQuestion = z.infer<typeof conciergeQuestionSchema>;
 
 /** Returned by every write service. */
-export type Receipt = {
-  id: string;
-  receivedAt: string;
-};
+export const receiptSchema = z.object({
+  id: z.string(),
+  receivedAt: z.string(),
+});
+export type Receipt = z.infer<typeof receiptSchema>;
+
+export const submissionReceiptSchema = receiptSchema.extend({
+  /** One signed PUT target per photograph named in `media`, valid for a short window. */
+  uploads: z.array(z.object({ name: z.string(), url: z.string() })),
+});
+
+export const searchMatchSchema = z.object({
+  property: propertySchema,
+  score: z.number(),
+  reasons: z.array(z.string()),
+});
+export type SearchMatch = z.infer<typeof searchMatchSchema>;
+
+export const conciergeAnswerSchema = z.object({
+  text: z.string(),
+  link: z.object({ slug: z.string(), title: z.string() }).optional(),
+  action: z.literal("showing").optional(),
+});
+export type ConciergeAnswer = z.infer<typeof conciergeAnswerSchema>;

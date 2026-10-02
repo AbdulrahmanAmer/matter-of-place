@@ -2,9 +2,11 @@ import type { Market } from "../domain/market";
 import type { Property } from "../domain/property";
 import type { Story } from "../domain/story";
 import type {
+  ConciergeAnswer,
   ConciergeQuestion,
   Inquiry,
   Receipt,
+  SearchMatch,
   SearchQuery,
   Submission,
   SubscriberInput,
@@ -45,21 +47,11 @@ export interface NewsletterService {
   subscribe(input: SubscriberInput): Promise<Receipt>;
 }
 
-export type SearchMatch = {
-  property: Property;
-  score: number;
-  reasons: string[];
-};
+export type { ConciergeAnswer, SearchMatch };
 
 export interface SearchService {
   match(query: SearchQuery): Promise<SearchMatch[]>;
 }
-
-export type ConciergeAnswer = {
-  text: string;
-  link?: { slug: string; title: string };
-  action?: "showing";
-};
 
 export interface ConciergeService {
   answer(question: ConciergeQuestion): Promise<ConciergeAnswer>;

@@ -26,7 +26,7 @@ function run(planText: string, ...flags: string[]) {
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "stubs-"));
-  mkdirSync(join(dir, "src"));
+  for (const root of ["src", "supabase", "scripts"]) mkdirSync(join(dir, root));
   writeFileSync(
     join(dir, "src", "a.ts"),
     ["export const a = 1;", "// STUB(B3 step 2): the cached render", "export const b = 2;"].join(
@@ -61,6 +61,17 @@ describe("stubs ledger", () => {
     const result = run(plan("closed").replace("B3", "B4"));
     expect(result.stdout).toContain("src/a.ts:2 STUB(B3): the cached render");
     expect(result.status).toBe(0);
+  });
+
+  it("fails when a root folder is missing, never reporting zero markers", () => {
+    const bare = mkdtempSync(join(tmpdir(), "stubs-bare-"));
+    mkdirSync(join(bare, "src"));
+    const planPath = join(dir, "PLAN.md");
+    writeFileSync(planPath, plan("not started"));
+    const result = spawnSync("bun", [SCRIPT, "--plan", planPath], { cwd: bare, encoding: "utf8" });
+    rmSync(bare, { recursive: true, force: true });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("ENOENT");
   });
 
   it("counts only the markers that are not post-v1", () => {

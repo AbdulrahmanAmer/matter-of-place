@@ -1,61 +1,55 @@
 [
   {
     "id": "ab",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/server/lib/db.ts",
-    "find": "",
-    "replace": "export function load(url: string) {\n  fetch(url, { signal: AbortSignal.timeout(1000) });\n}\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport function load(url: string) {\n  fetch(url, { signal: AbortSignal.timeout(1000) });\n}\n",
     "run": "bun run lint",
     "expect": "@typescript-eslint/no-floating-promises"
   },
   {
     "id": "ac",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/server/lib/scratch.ts",
-    "find": "",
-    "replace": "export async function read(res: Response) {\n  const x = await res.json();\n  return x.id;\n}\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport async function read(res: Response) {\n  const x = await res.json();\n  return x.id;\n}\n",
     "run": "bun run lint",
     "expect": "@typescript-eslint/no-unsafe-member-access"
   },
   {
     "id": "ad",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/lib/scratch.ts",
-    "find": "",
-    "replace": "type Kind = \"a\" | \"b\";\n\nexport function label(kind: Kind): string {\n  switch (kind) {\n    case \"a\":\n      return \"A\";\n  }\n  return \"\";\n}\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\ntype Kind = \"a\" | \"b\";\n\nexport function label(kind: Kind): string {\n  switch (kind) {\n    case \"a\":\n      return \"A\";\n  }\n  return \"\";\n}\n",
     "run": "bun run lint",
     "expect": "@typescript-eslint/switch-exhaustiveness-check"
   },
   {
     "id": "ae",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/lib/scratch.ts",
-    "find": "",
-    "replace": "// eslint-disable-next-line no-console -- scratch line\nexport const quiet = 1;\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\n// eslint-disable-next-line no-console -- scratch line\nexport const quiet = 1;\n",
     "run": "bun run lint",
     "expect": "Unused eslint-disable directive"
   },
   {
     "id": "af",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/server/lib/scratch.ts",
-    "find": "",
-    "replace": "export const warn = () => {\n  console.warn(\"x\");\n};\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\nexport const warn = () => {\n  console.warn(\"x\");\n};\n",
     "run": "bun run lint",
     "expect": "no-console"
   },
   {
     "id": "ag",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "src/server/lib/errors.ts",
-    "find": "",
-    "replace": "export * from \"./log\";\n",
+    "file": "src/domain/property.ts",
+    "find": "from \"./market.ts\";",
+    "replace": "from \"./market\";",
     "run": "bun run lint",
     "expect": "Deno-loaded file: import with the .ts extension"
   },
@@ -70,63 +64,57 @@
   },
   {
     "id": "ai",
-    "kind": "create",
     "test": "bun run jscpd",
-    "file": "src/lib/scratch-copy.ts",
-    "find": "",
-    "replace": "import type { Property } from \"../domain/property\";\n\nexport const relatedCopy = (list: Property[], property: Property, count = 3): Property[] => {\n  const bySlug = new Map(list.map((item) => [item.slug, item]));\n  const explicit = (property.related ?? [])\n    .map((slug) => bySlug.get(slug))\n    .filter((item): item is Property => item !== undefined);\n  const pool = list.filter((item) => item.slug !== property.slug && !explicit.includes(item));\n  const sameRegion = pool.filter((item) => item.region === property.region);\n  const sameMarket = pool.filter(\n    (item) => item.market === property.market && !sameRegion.includes(item),\n  );\n  const elsewhere = pool.filter((item) => !sameRegion.includes(item) && !sameMarket.includes(item));\n  return [...explicit, ...sameRegion, ...sameMarket, ...elsewhere].slice(0, count);\n};\n",
+    "file": "src/lib/catalog.ts",
+    "find": "export const marketOf = (markets: Market[], slug: MarketSlug) =>",
+    "replace": "export const relatedCopy = (list: Property[], property: Property, count = 3): Property[] => {\n  const bySlug = new Map(list.map((item) => [item.slug, item]));\n  const explicit = (property.related ?? [])\n    .map((slug) => bySlug.get(slug))\n    .filter((item): item is Property => item !== undefined);\n  const pool = list.filter((item) => item.slug !== property.slug && !explicit.includes(item));\n  const sameRegion = pool.filter((item) => item.region === property.region);\n  const sameMarket = pool.filter(\n    (item) => item.market === property.market && !sameRegion.includes(item),\n  );\n  const elsewhere = pool.filter((item) => !sameRegion.includes(item) && !sameMarket.includes(item));\n  return [...explicit, ...sameRegion, ...sameMarket, ...elsewhere].slice(0, count);\n};\n\nexport const marketOf = (markets: Market[], slug: MarketSlug) =>",
     "run": "bun run jscpd",
     "expect": "Clone found"
   },
   {
     "id": "aj",
-    "kind": "create",
     "test": "bun run typecheck",
-    "file": "scripts/scratch.mjs",
-    "find": "",
-    "replace": "/**\n * @param {number} a\n * @param {number} b\n * @returns {number}\n */\nexport function add(a, b) {\n  return a + b;\n}\n\nadd(1);\n",
+    "file": "scripts/check-layout.mjs",
+    "find": "const MARKET_AREAS =",
+    "replace": "checkLayout();\nconst MARKET_AREAS =",
     "run": "bun run typecheck",
     "expect": "TS2554"
   },
   {
     "id": "ak",
-    "kind": "create",
     "test": "bun run test",
-    "file": "tests/unit/scratch.test.ts",
-    "find": "",
-    "replace": "import { it } from \"vitest\";\n\nit(\"x\", () => {});\n",
-    "run": "bunx vitest run tests/unit/scratch.test.ts",
+    "file": "tests/unit/check-layout.test.ts",
+    "find": "    expect(checkLayout(paths)).toEqual([]);",
+    "replace": "    checkLayout(paths);",
+    "run": "bunx vitest run tests/unit/check-layout.test.ts",
     "expect": "expected any number of assertion, but got none"
   },
   {
     "id": "ak-lint",
-    "kind": "create",
     "test": "bun run lint",
-    "file": "tests/unit/scratch.test.ts",
-    "find": "",
-    "replace": "import { it } from \"vitest\";\n\nit(\"x\", () => {});\n",
+    "file": "tests/unit/check-layout.test.ts",
+    "find": "    expect(checkLayout(paths)).toEqual([]);",
+    "replace": "    checkLayout(paths);",
     "run": "bun run lint",
     "expect": "vitest/expect-expect"
   },
   {
     "id": "al",
-    "kind": "create",
     "test": "bun run stubs",
-    "file": "src/lib/scratch.ts",
-    "find": "",
-    "replace": "// STUB(V1): scratch\nexport const stubbed = 1;\n",
+    "file": "src/lib/cx.ts",
+    "find": "  parts.filter(Boolean).join(\" \");",
+    "replace": "  parts.filter(Boolean).join(\" \");\n\n// STUB(V1): scratch\nexport const stubbed = 1;\n",
     "run": "bun run stubs",
-    "expect": "src/lib/scratch.ts:1 STUB(V1) slice is closed"
+    "expect": "src/lib/cx\\.ts:\\d+ STUB\\(V1\\) slice is closed"
   },
   {
     "id": "ay",
-    "kind": "create",
     "test": "bun run layout",
-    "file": "src/helpers/scratch.ts",
-    "find": "",
-    "replace": "export const helper = 1;\n",
+    "file": "scripts/check-layout.mjs",
+    "find": "{ name: \"src/hooks\", patterns: [\"src/hooks/*.ts\"] },",
+    "replace": "{ name: \"src/hooks\", patterns: [\"src/hook/*.ts\"] },",
     "run": "bun run layout",
-    "expect": "layout: app/src/helpers/scratch.ts: outside the folder map"
+    "expect": "layout: app/src/hooks/.*: outside the folder map"
   },
   {
     "id": "az",
@@ -139,10 +127,9 @@
   },
   {
     "id": "ba",
-    "kind": "create",
+    "kind": "manual",
     "test": "bun run lint",
     "file": "src/server/lib/scratch.ts",
-    "find": "",
     "replace": "export const value = process.env.X;\n",
     "run": "bun run lint",
     "expect": "R14"
@@ -154,7 +141,7 @@
     "find": "html {\n  scroll-behavior: smooth;",
     "replace": "html {\n  color: #111111;\n  scroll-behavior: smooth;",
     "run": "bunx vitest run tests/unit/boundaries.test.ts",
-    "expect": "R42"
+    "expect": "holds no hex colour outside tokens\\.css"
   },
   {
     "id": "bc",
@@ -163,7 +150,7 @@
     "find": "/**\n * Localisation table for shared chrome and notices.",
     "replace": "/**\n * Localisation table — for shared chrome and notices.",
     "run": "bunx vitest run tests/unit/boundaries.test.ts",
-    "expect": "R46"
+    "expect": "holds no em dash anywhere under src"
   },
   {
     "id": "bc-r06",
@@ -191,5 +178,41 @@
     "replace": "\"secrets\"",
     "run": "bunx vitest run tests/unit/check-layout.test.ts",
     "expect": "banned: secret"
+  },
+  {
+    "id": "bk",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "return shape.parse(response.status === 204 ? undefined : await response.json());",
+    "replace": "return (await response.json()) as T;",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "promise resolved .* instead of rejecting"
+  },
+  {
+    "id": "bl",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/domain/property.ts",
+    "find": "  featuredRank: z.number().optional(),\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "featuredRank"
+  },
+  {
+    "id": "bm",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/domain/property.ts",
+    "find": "  price: z.number(),",
+    "replace": "  price: z.any(),",
+    "run": "bunx vitest run tests/unit/http-client.test.ts",
+    "expect": "expected function to throw an error, but it didn't"
+  },
+  {
+    "id": "bn",
+    "test": "tests/unit/stubs.test.ts",
+    "file": "scripts/stubs.ts",
+    "find": "  return ROOTS.flatMap(walk)",
+    "replace": "  return ROOTS.flatMap((root) => {\n    try {\n      return walk(root);\n    } catch {\n      return [];\n    }\n  })",
+    "run": "bunx vitest run tests/unit/stubs.test.ts",
+    "expect": "expected \\+0 not to be \\+0"
   }
 ]

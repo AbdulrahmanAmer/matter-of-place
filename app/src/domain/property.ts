@@ -1,92 +1,95 @@
-import type { MarketSlug, RegionSlug } from "./market.ts";
+import { z } from "zod";
+import { marketSlugSchema, regionSlugSchema } from "./market.ts";
 
 /**
  * Property (the "dossier"). Mirrors the `properties` table described in
  * docs/architecture/data-model.md; field names match the API contract so the
  * `http` catalog adapter needs no mapping layer.
  */
-type CampaignTier = "Editorial" | "Feature" | "Reach" | "Campaign";
+const representationSchema = z.object({
+  name: z.string(),
+  brokerage: z.string(),
+  license: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  photo: z.string().optional(),
+});
 
-type ListingStatus = "Illustrative" | "Active" | "Off-market" | "Under offer" | "Sold";
-
-type PropertyType =
-  "Estate" | "Residence" | "Townhouse" | "Waterfront" | "Farmhouse" | "Apartment" | "Penthouse";
-
-type SubmissionSource = "Editorial" | "Submission";
-
-type Representation = {
-  name: string;
-  brokerage: string;
-  license?: string;
-  email?: string;
-  phone?: string;
-  photo?: string;
-};
-
-export type GalleryImage = {
-  src: string;
-  alt: string;
-  orientation: "landscape" | "portrait";
-};
+const galleryImageSchema = z.object({
+  src: z.string(),
+  alt: z.string(),
+  orientation: z.enum(["landscape", "portrait"]),
+});
+export type GalleryImage = z.infer<typeof galleryImageSchema>;
 
 /** Optional film. `src` is a hosted MP4; `poster` is shown until the visitor presses play. */
-export type PropertyVideo = {
-  src: string;
-  poster: string;
-  caption: string;
+const propertyVideoSchema = z.object({
+  src: z.string(),
+  poster: z.string(),
+  caption: z.string(),
   /** Display duration, e.g. "0:06". */
-  duration: string;
-};
+  duration: z.string(),
+});
+export type PropertyVideo = z.infer<typeof propertyVideoSchema>;
 
-export type Property = {
-  id: string;
-  slug: string;
+export const propertySchema = z.object({
+  id: z.string(),
+  slug: z.string(),
   /** Editorial headline. */
-  title: string;
-  market: MarketSlug;
-  region: RegionSlug;
-  city: string;
+  title: z.string(),
+  market: marketSlugSchema,
+  region: regionSlugSchema,
+  city: z.string(),
   /** Neighbourhood or sub-area inside the region (e.g. Marin, Peninsula). */
-  neighborhood: string;
+  neighborhood: z.string(),
   /** State or province name, displayed after the city. */
-  state: string;
-  country: string;
+  state: z.string(),
+  country: z.string(),
   /** Display address. Exact addresses are withheld on illustrative content. */
-  address: string;
-  coordinates?: [latitude: number, longitude: number];
-  price: number;
+  address: z.string(),
+  coordinates: z.tuple([z.number(), z.number()]).optional(),
+  price: z.number(),
   /** ISO 4217 currency code. */
-  currency: string;
-  beds: number;
-  baths: number;
-  interiorSqFt: number;
-  lotAcres: number;
-  yearBuilt: number;
-  type: PropertyType;
+  currency: z.string(),
+  beds: z.number(),
+  baths: z.number(),
+  interiorSqFt: z.number(),
+  lotAcres: z.number(),
+  yearBuilt: z.number(),
+  type: z.enum([
+    "Estate",
+    "Residence",
+    "Townhouse",
+    "Waterfront",
+    "Farmhouse",
+    "Apartment",
+    "Penthouse",
+  ]),
   /** Architectural style, free text (Contemporary, Shingle Style, Italianate). */
-  style: string;
+  style: z.string(),
   /** Credited architect and interior designer, when known. */
-  architect?: string;
-  designer?: string;
-  status: ListingStatus;
-  heroImage: string;
-  gallery: GalleryImage[];
-  video?: PropertyVideo;
+  architect: z.string().optional(),
+  designer: z.string().optional(),
+  status: z.enum(["Illustrative", "Active", "Off-market", "Under offer", "Sold"]),
+  heroImage: z.string(),
+  gallery: z.array(galleryImageSchema),
+  video: propertyVideoSchema.optional(),
   /** Editorial narrative, one paragraph per entry. */
-  story: string[];
+  story: z.array(z.string()),
   /** The place: one paragraph on the setting. */
-  place: string;
-  features: string[];
-  representation?: Representation;
-  listingUrl?: string;
+  place: z.string(),
+  features: z.array(z.string()),
+  representation: representationSchema.optional(),
+  listingUrl: z.string().optional(),
   /** Position in the home page opening sequence; unset means not shown there. */
-  heroRank?: number;
+  heroRank: z.number().optional(),
   /** Position in the home page "Selected places" grid; unset means not shown there. */
-  featuredRank?: number;
-  campaignTier: CampaignTier;
+  featuredRank: z.number().optional(),
+  campaignTier: z.enum(["Editorial", "Feature", "Reach", "Campaign"]),
   /** ISO date the dossier was published. */
-  publishedAt: string;
-  source: SubmissionSource;
+  publishedAt: z.string(),
+  source: z.enum(["Editorial", "Submission"]),
   /** Slugs of hand-picked related properties, shown before automatic matches. */
-  related?: string[];
-};
+  related: z.array(z.string()).optional(),
+});
+export type Property = z.infer<typeof propertySchema>;

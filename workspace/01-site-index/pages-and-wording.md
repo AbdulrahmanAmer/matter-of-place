@@ -463,7 +463,7 @@ Not submit forms, listed for completeness: Home finder textarea (see `/propertie
 - localSent: "Thank you. Place Notes opens with the live service; your address stays with you for now."
 - liveSent: "Thank you. Place Notes will reach you when the next letter is ready."
 
-Other exports: `defaultLocale = "en"`, `localeDirection = { en: "ltr" }`, `getStrings()`, `t`. Comment in the file: English is the only locale in V1, no language switcher; editorial copy in property and market data is authored per record and is not in this table.
+Other exports: `defaultLocale = "en"`, `localeDirection = { en: "ltr" }`, `t`. `getStrings()` is file-local since B1b step 2b (knip); `t` is the one export that uses it. Comment in the file: English is the only locale in V1, no language switcher; editorial copy in property and market data is authored per record and is not in this table.
 
 ### src/lib/form-copy.ts
 - `sentText()` returns `t.forms.liveSent` when `isLive` is true, otherwise `t.forms.localSent`. It exports no literal strings of its own. So: live = "A person will reply within one working day."; local = "Delivery opens with the live service, so this stays with you for now."

@@ -512,6 +512,8 @@ Weekend-ready homes within reach of the city, with land and privacy.
 
 ### Contracts (`src/domain/contracts.ts`)
 
+Exports (B1b step 2b, knip): only names another file imports are exported. The enumerations and schemas below that are not named here are file-local: `inquiryIntents`, `inquiryIntentSchema`, `contactTopicSchema`, `inquirySubjectSchema`, `supportedCurrencies`, `submissionMediaSchema`, `searchQuerySchema` and `conciergeQuestionSchema`; a later slice exports one when it imports it. `submissionStates` and `editorialRoles` stay exported with a STUB marker for B2, which replaces them.
+
 **Schema Enumerations:**
 
 **inquiryIntents:**
@@ -647,9 +649,14 @@ Weekend-ready homes within reach of the city, with land and privacy.
 - propertySlug: string (1-120 chars, required)
 - question: enum [conciergeQuestions], required
 
-**Receipt (return type):**
+**Receipt (return type, `receiptSchema`):**
 - id: string
 - receivedAt: string
+
+**Response schemas** (the HTTP adapter parses every body with one; the read-side types `Property`, `Market` and `Story` are inferred from `propertySchema`, `marketSchema` and `storySchema` in their own files):
+- `submissionReceiptSchema`: Receipt plus `uploads`, an array of `{ name, url }`
+- `searchMatchSchema`: `{ property, score, reasons }`
+- `conciergeAnswerSchema`: `{ text, link? { slug, title }, action? "showing" }`
 
 ---
 

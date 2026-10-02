@@ -22,13 +22,7 @@ function walk(dir: string): string[] {
 }
 
 function findMarkers(): Marker[] {
-  return ROOTS.flatMap((root) => {
-    try {
-      return walk(root);
-    } catch {
-      return [];
-    }
-  })
+  return ROOTS.flatMap(walk)
     .filter((file) => EXTENSIONS.test(file))
     .flatMap((file) =>
       readFileSync(file, "utf8")
