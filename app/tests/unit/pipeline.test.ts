@@ -37,6 +37,7 @@ function setup(options: {
   render?: (request: Request) => Response | Promise<Response>;
   cache?: PipelineDeps["cache"];
   getFlags?: PipelineDeps["getFlags"];
+  apiRoutes?: string[];
 }) {
   const waitUntil = vi.fn<PipelineContext["waitUntil"]>();
   const report = vi.fn<PipelineDeps["report"]>(() => Promise.resolve());
@@ -52,6 +53,7 @@ function setup(options: {
     cache: options.cache ?? ((_request, render) => render()),
     getFlags: options.getFlags ?? (() => Promise.resolve({})),
     report,
+    isApiRoute: (pathname) => (options.apiRoutes ?? []).includes(pathname),
   };
   return {
     rendered,
@@ -187,6 +189,49 @@ describe("a path under /api/ never answers the page shell (H39 (2))", () => {
     );
     expect(json.status).toBe(200);
     expect(await json.json()).toEqual({ ok: true });
+  });
+
+  // What Start's executeRouter answers once no handler took a request with that Accept.
+  const refusal = () =>
+    Response.json({ error: "Only HTML requests are supported here" }, { status: 500 });
+
+  it.each([
+    ["GET", "application/json", 405, "method_not_allowed"],
+    ["DELETE", "text/plain", 405, "method_not_allowed"],
+    ["GET", "application/json", 405, "method_not_allowed", "/%61pi/Hooks/sentry-test"],
+    ["GET", "application/json", 404, "not_found", "/api/hooks/nothing-here"],
+    ["POST", "application/json", 404, "not_found", "/api/hooks/nothing-here"],
+  ])(
+    "answers the router's refusal of %s with Accept %s with the R09 %i",
+    async (method, accept, status, code, path = "/api/hooks/sentry-test") => {
+      const { run } = setup({ render: refusal, apiRoutes: ["/api/hooks/sentry-test"] });
+      const response = await run(get(path, { method, headers: { accept } }));
+      expect(response.status).toBe(status);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(body.parse(await response.json()).error).toMatchObject({
+        code,
+        requestId: response.headers.get("x-request-id"),
+      });
+    },
+  );
+
+  it.each([
+    [
+      "a handler's R09 500",
+      () =>
+        Response.json({ error: { code: "server", message: "x", requestId: "r" } }, { status: 500 }),
+      "application/json",
+    ],
+    ["a 500 that is not JSON", () => new Response("boom", { status: 500 }), "application/json"],
+    ["a 200 with an error field", () => Response.json({ error: "a field" }), "application/json"],
+    ["a 500 to a client that accepts HTML", refusal, "text/html, application/json"],
+    ["a 500 to an empty Accept, which Start reads as */*", refusal, ""],
+  ])("keeps %s as it is", async (_label, render, accept) => {
+    const rendered = await render().clone().text();
+    const response = await setup({ render, apiRoutes: ["/api/public/markets"] }).run(
+      get("/api/public/markets", { headers: { accept } }),
+    );
+    expect([response.status, await response.text()]).toEqual([render().status, rendered]);
   });
 });
 

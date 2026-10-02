@@ -16,6 +16,8 @@ export interface PipelineDeps {
   getFlags: () => Promise<Flags>;
   /** Sends an unhandled error to Sentry; never rejects. */
   report: (error: unknown, info: { requestId: string; route: string }) => Promise<void>;
+  /** True when an API route file matches the path (decoded, lower case), for any method. */
+  isApiRoute: (pathname: string) => boolean;
 }
 
 type CacheKind = "html" | "json" | "doc";
@@ -136,6 +138,25 @@ function apiShellGuard(underApi: boolean, response: Response, requestId: string)
     : errorJson(response.status, "not_found", requestId);
 }
 
+// Start's router refuses a request whose Accept names neither `*/*` nor `text/html` with a bare
+// 500 `{ "error": "<text>" }` once no handler took it (`executeRouter` in createStartHandler.js).
+async function refusedByRouter(request: Request, response: Response): Promise<boolean> {
+  const accepts = (request.headers.get("accept") || "*/*").split(",").map((part) => part.trim());
+  if (
+    response.status !== 500 ||
+    accepts.some((part) => part.startsWith("*/*") || part.startsWith("text/html"))
+  ) {
+    return false;
+  }
+  const body: unknown = await response
+    .clone()
+    .json()
+    .catch(() => null);
+  return (
+    typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
+  );
+}
+
 /**
  * The request pipeline of invariant 10, outside to inside: request id, never-cached rule, cache
  * hook, render. Headers are added after the cache hook returns, so a stored render is the same
@@ -148,7 +169,8 @@ export async function handle(
 ): Promise<Response> {
   const requestId = requestIdOf(request);
   const { pathname } = new URL(request.url);
-  const underApi = routePath(pathname).startsWith("/api/");
+  const path = routePath(pathname);
+  const underApi = path.startsWith("/api/");
   const mopEnv = ctx.env.MOP_ENV ?? "production";
   let flags: Flags = {};
   let response: Response;
@@ -163,6 +185,11 @@ export async function handle(
     logLine("error", "unhandled_error", { requestId, route: pathname });
     ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
     response = calmServerError(request, underApi, requestId);
+  }
+  if (underApi && (await refusedByRouter(request, response))) {
+    response = deps.isApiRoute(path)
+      ? errorJson(405, "method_not_allowed", requestId)
+      : errorJson(404, "not_found", requestId);
   }
   response = apiShellGuard(underApi, response, requestId);
 

@@ -63,11 +63,15 @@ const MAX_VALUE = 200;
 // One event per fingerprint per window in each isolate (INT-12).
 const WINDOW_MS = 60_000;
 const SEND_TIMEOUT_MS = 2_000;
-// H39 (3): a browser's text reaches this module through B3's client-error route, so every input
-// is cut to these sizes before a pattern runs over it.
+// H39 (3): a browser's text reaches this module through B3's client-error route, so
+// captureException cuts every text it is given to these sizes before a pattern runs over it or it
+// joins the dedupe key: the message at MAX_MESSAGE, the stack at MAX_STACK_LINES, and each stack
+// line, the name, the options' texts and each fingerprint part at MAX_LINE.
 const MAX_MESSAGE = 2_000;
 const MAX_STACK_LINES = 50;
 const MAX_LINE = 500;
+// ASSUMED: more parts than this name no error more precisely, and each one lengthens the key.
+const MAX_FINGERPRINT_PARTS = 10;
 
 const lastSent = new Map<string, number>();
 let pausedUntil = 0;
@@ -191,11 +195,26 @@ function pauseSeconds(response: Response): number {
   return 0;
 }
 
+function cutOptions(options: CaptureOptions): CaptureOptions {
+  const cut = (text: string) => text.slice(0, MAX_LINE);
+  return {
+    ...options,
+    requestId: cut(options.requestId),
+    route: cut(options.route),
+    env: cut(options.env),
+    release: cut(options.release),
+    ...(options.fingerprint && {
+      fingerprint: options.fingerprint.slice(0, MAX_FINGERPRINT_PARTS).map(cut),
+    }),
+  };
+}
+
 /**
  * Sends one error to Sentry. Never throws and never retries: a failed send is logged once as
  * `sentry_send_failed` and dropped, so a Sentry outage cannot slow or break a response.
  */
-export async function captureException(error: unknown, options: CaptureOptions): Promise<void> {
+export async function captureException(error: unknown, given: CaptureOptions): Promise<void> {
+  const options = cutOptions(given);
   if (!options.dsn) return;
   const { requestId } = options;
   const target = parseDsn(options.dsn);

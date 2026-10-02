@@ -934,5 +934,150 @@
     "replace": "  for (let index = 0; index < a.length && difference === 0; index += 1) {",
     "run": "bunx vitest run tests/unit/crypto.test.ts",
     "expect": "reads every byte of both arrays when the first byte differs"
+  },
+  {
+    "id": "pipe-refusal-off",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "(await refusedByRouter(request, response))",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of"
+  },
+  {
+    "id": "pipe-refusal-405",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response = deps.isApiRoute(path)\n",
+    "replace": "    response = false\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of"
+  },
+  {
+    "id": "pipe-refusal-route-path",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response = deps.isApiRoute(path)\n",
+    "replace": "    response = deps.isApiRoute(pathname)\n",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "answers the router's refusal of GET with Accept application/json with the R09 405"
+  },
+  {
+    "id": "pipe-refusal-accept",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "accepts.some((part) => part.startsWith(\"*/*\") || part.startsWith(\"text/html\"))",
+    "replace": "accepts.some((part) => part.startsWith(\"*/*\"))",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 to a client that accepts HTML"
+  },
+  {
+    "id": "pipe-refusal-empty-accept",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "request.headers.get(\"accept\") || \"*/*\"",
+    "replace": "request.headers.get(\"accept\") ?? \"\"",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 to an empty Accept"
+  },
+  {
+    "id": "pipe-refusal-status",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    response.status !== 500 ||\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 200 with an error field"
+  },
+  {
+    "id": "pipe-refusal-shape",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "typeof body.error === \"string\"",
+    "replace": "true",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a handler's R09 500"
+  },
+  {
+    "id": "pipe-refusal-catch",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    .json()\n    .catch(() => null);",
+    "replace": "    .json();",
+    "run": "bunx vitest run tests/unit/pipeline.test.ts",
+    "expect": "keeps a 500 that is not JSON"
+  },
+  {
+    "id": "sentry-cut-off",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "  const options = cutOptions(given);",
+    "replace": "  const options = given;",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-route",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    route: cut(options.route),",
+    "replace": "    route: options.route,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-request-id",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    requestId: cut(options.requestId),",
+    "replace": "    requestId: options.requestId,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-env",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    env: cut(options.env),",
+    "replace": "    env: options.env,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-release",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": "    release: cut(options.release),",
+    "replace": "    release: options.release,",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-fp-part",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".slice(0, MAX_FINGERPRINT_PARTS).map(cut)",
+    "replace": ".slice(0, MAX_FINGERPRINT_PARTS)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "sentry-cut-fp-count",
+    "test": "tests/unit/sentry.test.ts",
+    "file": "src/server/lib/sentry.ts",
+    "find": ".slice(0, MAX_FINGERPRINT_PARTS).map(cut)",
+    "replace": ".map(cut)",
+    "run": "bunx vitest run tests/unit/sentry.test.ts",
+    "expect": "cuts the options' texts and the fingerprint"
+  },
+  {
+    "id": "start-api-route",
+    "kind": "manual",
+    "test": "live: ../scratch/accept.sh under bun run cf:preview (text in logs/B1b.md, g4 close-out)",
+    "file": "src/start.ts",
+    "find": "fullPath.startsWith(\"/api/\")",
+    "replace": "fullPath.startsWith(\"/nothing/\")",
+    "run": "bun run build && bun run cf:preview, then MSYS_NO_PATHCONV=1 bash ../scratch/accept.sh",
+    "expect": "application/json   GET    /api/hooks/sentry-test       404"
   }
 ]

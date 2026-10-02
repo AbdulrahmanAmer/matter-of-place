@@ -169,7 +169,9 @@ unset, it answers the R09 404 `{"error":{"code":"not_found","message":"...","req
 `x-request-id` header: the pipeline hands its id to the handler as `context.requestId` (ASSUMED H39 (1)). The route
 file is one wrapper line; the check lives in `src/server/hooks/sentry-test.ts`. A `GET` or `HEAD` on the same path
 answers 405 `method_not_allowed` JSON, because the pipeline turns any page shell under `/api/` into R09 JSON (ASSUMED
-H39 (2), GOTCHAS G-022). Neither reaches Sentry or reveals the token. Locally:
+H39 (2), GOTCHAS G-022), and so does any other method with any `Accept`: Start's bare 500 to a non-HTML `Accept`
+becomes the same R09 405, or 404 on a path no API route file matches (GOTCHAS G-025). Neither reaches Sentry or
+reveals the token. Locally:
 
 ```
 # app/.dev.vars (git-ignored, values from .env, never printed): MOP_ENV=local, SENTRY_DSN, SENTRY_TEST_TOKEN (= PREVIEW_SENTRY_TEST_TOKEN)

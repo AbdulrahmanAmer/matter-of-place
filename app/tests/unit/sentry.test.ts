@@ -453,4 +453,22 @@ describe("bounded input (H39 (3))", () => {
     const longest = Math.max(...vi.mocked(maskEmails).mock.calls.map(([text]) => text.length));
     expect(longest).toBeLessThanOrEqual(2_000);
   });
+
+  it("cuts the options' texts and the fingerprint before a pattern runs", async () => {
+    const { captureException } = await load();
+    const { maskEmails } = await import("../../src/server/lib/log");
+    vi.mocked(maskEmails).mockClear();
+    const long = "r".repeat(5_000);
+    await captureException(new Error("x"), {
+      ...OPTIONS,
+      requestId: long,
+      route: `/${long}`,
+      env: long,
+      release: long,
+      fingerprint: Array.from({ length: 30 }, (_, index) => `${String(index)}${long}`),
+    });
+    const longest = Math.max(...vi.mocked(maskEmails).mock.calls.map(([text]) => text.length));
+    expect(longest).toBeLessThanOrEqual(500);
+    expect(sent().envelope.event.fingerprint).toHaveLength(10);
+  });
 });

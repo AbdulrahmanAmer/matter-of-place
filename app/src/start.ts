@@ -1,5 +1,6 @@
 import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRouter } from "./router";
 import { handle, type PipelineContext } from "./server/lib/pipeline";
 import { captureException } from "./server/lib/sentry";
 
@@ -28,6 +29,20 @@ const workerEnv = () => ({
   },
 });
 
+// Matching only, so one router serves every request; it is made on the first refused Accept.
+let matcher: ReturnType<typeof getRouter> | undefined;
+
+// The router's own match. The pipeline gives the path decoded (GOTCHAS G-024), because the
+// router decodes before it matches and `getMatchedRoutes` does not.
+function isApiRoute(pathname: string): boolean {
+  matcher ??= getRouter();
+  const { foundRoute, routeParams } = matcher.getMatchedRoutes(pathname);
+  const fullPath: unknown = foundRoute?.fullPath;
+  return (
+    typeof fullPath === "string" && fullPath.startsWith("/api/") && routeParams["**"] === undefined
+  );
+}
+
 // The id reaches every handler as `context.requestId` (ASSUMED H39 (1)).
 const pipeline = createMiddleware({ type: "request" }).server<{ requestId: string }>(
   ({ request, next }) => {
@@ -42,6 +57,7 @@ const pipeline = createMiddleware({ type: "request" }).server<{ requestId: strin
         // STUB(B3b): getFlags(db) from src/server/lib/flags.ts
         getFlags: () => Promise.resolve({}),
         report: (error, info) => captureException(error, { ...info, ...sentry }),
+        isApiRoute,
       },
     );
   },

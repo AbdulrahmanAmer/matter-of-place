@@ -347,7 +347,7 @@ Cache-Control: no-store
 x-request-id: 35affba0-9e21-451f-ac12-8e9affd82021
 body {"error":{"code":"server","message":"Something went wrong. Please try again in a moment.","requestId":"35affba0-9e21-451f-ac12-8e9affd82021"}}
 ```
-  The reviewer measured, before this fix, `200 text/html; charset=utf-8` and `Cache-Control: public, max-age=0, must-revalidate` for `/API/...`, `/Api/...` and `/%61pi/...`. `//api/...` answers a bare `308` to `/api/hooks/sentry-test` with no `x-request-id` (so it is not our pipeline: the runtime normalises it first), and following it (`curl -L`) gives `405 application/json`. `/ADMIN` is a 404 page because `/admin` does not exist until B7; its answer is `no-store` all the same. `/California` is not a route (case is ignored, the page does not exist).
+  The reviewer measured, before this fix, `200 text/html; charset=utf-8` and `Cache-Control: public, max-age=0, must-revalidate` for `/API/...`, `/Api/...` and `/%61pi/...`. `//api/...` answers a bare `308` to `/api/hooks/sentry-test` with no `x-request-id` (corrected in the next block: TanStack Start's `createStartHandler` answers it before any request middleware, and the code is in the built bundle, so a deployed Worker answers the same; it was wrongly blamed on the runtime here), and following it (`curl -L`) gives `405 application/json`. `/ADMIN` is a 404 page because `/admin` does not exist until B7; its answer is `no-store` all the same. `/California` is not a route (case is ignored, the page does not exist).
 - Sentry round trip, `node ../scratch/sentry-read.mjs 35affba0-9e21-451f-ac12-8e9affd82021` -> `poll 1: issues 0`, `poll 2: issues 0`, `poll 3: issues 1`, `issue 7767612319 | SentryTestError: Sentry test error for [email]`, `events 1`, `tags {"env":"local","release":"dev","request_id":"35affba0-9e21-451f-ac12-8e9affd82021","route":"/API/hooks/sentry-test","side":"worker"}`, `user null`, `request entry false`, `ip/cookie/authorization count 0`, `test@example.com count 0`. The same through the lower-case path in the first preview run: request id `199c780e-0277-44f4-a625-598bf64cdfad`, `poll 3: issues 1`, tags `route":"/api/hooks/sentry-test"`, `user null`, counts `0` and `0`.
 - stop (P-042), `powershell -NoProfile -ExecutionPolicy Bypass -File ../scratch/stop-wrangler.ps1` -> first run `stopped node.exe 27448`, `stopped node.exe 17632`, `listeners on 8788: 0`, `workerd left: 0`; second run `stopped node.exe 21788`, `stopped node.exe 12168`, `listeners on 8788: 0`, `workerd left: 0`
 - P-087, measured: `bun run check` with the scripts in `app/scratch/` -> exit 1, `Parsing error: E:\mop-build\spine\app\scratch\measure.ts was not found by the project service` and seven `prettier/prettier` errors on the `.mjs` files; `bunx eslint --max-warnings 0 scratch/zz-scratch.mjs` -> `1:25  error  Insert ';'  prettier/prettier`, exit 1; `app/scratch` removed after
@@ -523,4 +523,89 @@ Start-Sleep -Seconds 1
 
 Plan lines for the orchestrator: none new. B3's cache module and B7's admin wrapper classify paths through `isPageRequest` and `neverCached` (G-024), not their own `startsWith`.
 
-UNPROVEN: that a deployed Worker (not `wrangler dev`) answers `//api/...` with the same bare 308 before the pipeline; `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream dropped by the `/api/` guard is released without cost on a deployed Worker. `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+UNPROVEN: (withdrawn in the next block, settled by reading the source) that a deployed Worker (not `wrangler dev`) answers `//api/...` with the same bare 308 before the pipeline; `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream dropped by the `/api/` guard is released without cost on a deployed Worker. `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).
+
+## g4 close-out · steps 3b-4
+
+Fix round after the review of `f85bec5` (four defects).
+
+What changed:
+1. A non-HTML `Accept` under `/api/` (R09, H39 (1) and (2)). Start's `executeRouter` (`node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js` line 290) answers a request that no handler took, and whose `Accept` has no part starting `*/*` or `text/html`, with `Response.json({ error: "Only HTML requests are supported here" }, { status: 500 })`. `handle()` in `pipeline.ts` now recognises it (`refusedByRouter`: a 500, an `Accept` the router refuses, read the same way Start reads it including `""` as `*/*`, and a body whose `error` is a string, which an R09 body never is) and answers the R09 JSON with `no-store`: 405 `method_not_allowed` when an API route file matches the path, else 404 `not_found`, with the id of `x-request-id`. Whether a route file matches is the new dep `isApiRoute(path)`; `start.ts` answers it with the router's own `getMatchedRoutes` on one router made on the first refusal (only API route files count, no splat). The pipeline passes the decoded, lower-case path (`routePath`): measured live, `getMatchedRoutes("/%61pi/hooks/sentry-test")` matched nothing and gave 404, because Start decodes the URL (`getNormalizedURL`) before it matches and `getMatchedRoutes` does not. Tests: five refusal cases and five "keeps ... as it is" cases (a handler's R09 500, a 500 that is not JSON, a 200 with an `error` field, a 500 to a client that accepts HTML, a 500 to an empty `Accept`) in `pipeline.test.ts`; `sentry-test-route.test.ts` gives its `handle` the new dep.
+2. The 308 on `//...`. The previous block's cause was wrong and is corrected there: `createStartHandler` line 223 to 226 (`if (handledProtocolRelativeURL) return Response.redirect(url, 308)`) runs before the request middleware, and `grep -rl handledProtocolRelativeURL .output/server` lists `.output/server/_ssr/ssr.mjs`, so a deployed Worker answers the same bare 308 with no `x-request-id` and no security header. The UNPROVEN line about it is withdrawn. Not fixed: see "For the orchestrator".
+3. Bank: P-090 (a code change moves the `find` of older registry entries; run the runner's `--check` after every edit of a mutated file), G-025 (Start's own answers: the non-HTML refusal, the `//` 308, `getMatchedRoutes` not decoding; grep the source before recording a cause), G-022 now points to G-025.
+4. `sentry.ts`: the comment claimed every input was cut before a pattern; route, env, release, tag values and fingerprint parts were not, and the route was the dedupe key uncut. Now `captureException(error, given)` starts with `cutOptions(given)`: `requestId`, `route`, `env`, `release` and each fingerprint part cut to `MAX_LINE` (500), at most `MAX_FINGERPRINT_PARTS` (10, ASSUMED) parts, before the key, `scrubEvent` and `maskEmails` read them. The comment names exactly what is cut. Test: "cuts the options' texts and the fingerprint before a pattern runs" (5,000-character texts and 30 parts: the longest text `maskEmails` sees is at most 500, the event has 10 parts).
+
+Files: `src/server/lib/pipeline.ts`, `src/start.ts`, `src/server/lib/sentry.ts`, `tests/unit/{pipeline,sentry,sentry-test-route}.test.ts`, `tests/mutations/B1b.json`, `docs/runbooks/delivery.md` (the Sentry test paragraph names the 405 or 404 for any `Accept`), `GOTCHAS.md`, this log.
+
+Proofs, in `app/` (real output):
+- before the fix, `MSYS_NO_PATHCONV=1 bash ../scratch/accept.sh` on the `f85bec5` build: `application/json GET /api/hooks/sentry-test 500 | application/json | no-store | id in body: 0 | {"error":"Only HTML requests are supported here"}`, the same `500` for `DELETE /api/hooks/sentry-test`, `GET` and `POST /api/hooks/nothing-here`, `GET /API/hooks/nothing-here`, and for all five with `Accept: text/plain`; with `*/*` and `text/html` already `405` and `404` R09
+- `bunx vitest run tests/unit/sentry.test.ts tests/unit/sentry-test-route.test.ts tests/unit/pipeline.test.ts` -> `Test Files  3 passed (3)`, `Tests  114 passed (114)`; `pipeline.test.ts` alone `Tests  79 passed (79)`
+- `node ../scratch/replay.mjs --check` -> `checked 118, bad 0`
+- new entries, `node ../scratch/replay.mjs pipe-refusal-off pipe-refusal-405 pipe-refusal-accept pipe-refusal-empty-accept pipe-refusal-status pipe-refusal-shape pipe-refusal-catch sentry-cut-off sentry-cut-route sentry-cut-request-id sentry-cut-env sentry-cut-release sentry-cut-fp-part sentry-cut-fp-count` -> `replayed 14, not red 0`: `RED pipe-refusal-off: exit=1 expect=true | × answers the router's refusal of GET with Accept application/json with the R09 405`, `RED pipe-refusal-405` the same, `RED pipe-refusal-accept: ... × keeps a 500 to a client that accepts HTML as it is`, `RED pipe-refusal-empty-accept: ... × keeps a 500 to an empty Accept, which Start reads as */* as it is`, `RED pipe-refusal-status: ... × keeps a 200 with an error field as it is`, `RED pipe-refusal-shape: ... × keeps a handler's R09 500 as it is`, `RED pipe-refusal-catch: ... × keeps a 500 that is not JSON as it is`, and each `sentry-cut-*`: `× cuts the options' texts and the fingerprint before a pattern runs`; after the path change, `node ../scratch/replay.mjs pipe-refusal-route-path pipe-refusal-405 pipe-refusal-off pipe-guard-off` -> `replayed 4, not red 0` (`RED pipe-refusal-route-path: ... × answers the router's refusal of GET with Accept application/json with the R09 405`)
+- every vitest entry on the final code, `node ../scratch/replay.mjs --all` -> `replayed 105, not red 0`; `git status --short` the same before and after
+- watched-fail of `start.ts`'s `isApiRoute` (registry entry `start-api-route`, kind `manual`): source saved, `fullPath.startsWith("/api/")` replaced by `fullPath.startsWith("/nothing/")`, `bun run build` exit 0 (`grep -rl 'startsWith("/nothing/")' .output/server` -> `.output/server/_ssr/start-D6M1fX4H.mjs`), `cf:preview`, `accept.sh` -> `application/json GET /api/hooks/sentry-test 404 | application/json | no-store | id in body: 1`, the `DELETE` the same `404`; source restored (`cmp` equal), rebuilt (no `/nothing/` in `.output/server`)
+- parse time of the crafted line, `node ../scratch/measure.ts` (Node v24.13.0) -> `line length 28004`, `old pattern ms per run: 216.60, 216.62, 229.51`, `captureException ms per run: 32.40, 0.29, 0.18` (the first run loads the module)
+- `bun run build` exit 0, then `bun run cf:preview` -> `wrangler 4.145.0`, `Using secrets defined in .output\server\.dev.vars`, `Ready on http://127.0.0.1:8788`
+- `MSYS_NO_PATHCONV=1 bash ../scratch/accept.sh` (bodies cut at 140 characters by the script):
+```
+application/json   GET    /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | {"error":{"code":"method_not_allowed","message":"This address does not accept that method.","requestId":"4a72c5bb-606a-4238-918f-bddf6d4c8d5
+application/json   DELETE /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | {"error":{"code":"method_not_allowed",...
+application/json   GET    /api/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found","message":"There is nothing at this address.","requestId":"ae9653bb-b503-48cb-b597-f9778f661657"}}
+application/json   GET    /API/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found",...
+application/json   POST   /api/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found",...
+text/plain         GET    /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | {"error":{"code":"method_not_allowed",...
+text/plain         DELETE /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | {"error":{"code":"method_not_allowed",...
+text/plain         GET    /api/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found",...
+text/plain         GET    /API/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found",...
+text/plain         POST   /api/hooks/nothing-here      404 | application/json | no-store | id in body: 1 | {"error":{"code":"not_found",...
+*/*                GET    /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | (the same for DELETE; 404 for the three nothing-here lines)
+text/html          GET    /api/hooks/sentry-test       405 | application/json | no-store | id in body: 1 | (the same for DELETE; 404 for the three nothing-here lines)
+--- a page and a document with Accept: application/json
+/              500 application/json
+/sitemap.xml   200 application/xml; charset=utf-8
+--- //api/ (protocol-relative, answered by createStartHandler before the middleware)
+HTTP/1.1 308 Permanent Redirect
+Content-Length: 0
+Location: http://127.0.0.1:8788/api/hooks/sentry-test
+```
+  The id in every body equals the `x-request-id` header (`id in body: 1` on all 20 API lines). With `Accept: application/json`: `/API/hooks/sentry-test` -> `405 application/json`, `/%61pi/hooks/sentry-test` -> `405 application/json` (`404` before the pipeline passed the decoded path), `/api/hoo%E2%84%AAs/sentry-test` -> `405 application/json`, `/Api/Admin/x` -> `404 application/json`.
+- `MSYS_NO_PATHCONV=1 bash ../scratch/live.sh` (the previous block's script, unchanged): the same 12 GET lines as the previous block (`405`, `405`, `405`, `405`, `308`, `405`, `404`, `404`, `404 text/html` for `/ADMIN`, `404`, `200 text/html` for `/`, `404 text/html` for `/California`, each `no-store` under `/api/`); `POST` with no token on `/api/...`, `/API/...` and `/%61pi/...` -> `HTTP/1.1 404 Not Found` with the id of `x-request-id` in the body; `wrong bearer: ... id in body equals header: 1`; `no scheme: ... id in body equals header: 1`; the right bearer -> `HTTP/1.1 500 Internal Server Error`, `Content-Type: application/json`, `Cache-Control: no-store`, `x-request-id: e111a80f-6098-4c34-9d59-0b63493c5650`, body `{"error":{"code":"server","message":"Something went wrong. Please try again in a moment.","requestId":"e111a80f-6098-4c34-9d59-0b63493c5650"}}`
+- Sentry round trip, `node ../scratch/sentry-read.mjs e111a80f-6098-4c34-9d59-0b63493c5650` -> `poll 1: issues 0`, `poll 2: issues 1`, `issue 7767612319 | SentryTestError: Sentry test error for [email]`, `events 1`, `tags {"env":"local","release":"dev","request_id":"e111a80f-6098-4c34-9d59-0b63493c5650","route":"/API/hooks/sentry-test","side":"worker"}`, `user null`, `request entry false`, `ip/cookie/authorization count 0`, `test@example.com count 0`
+- stop (P-042), `powershell -NoProfile -ExecutionPolicy Bypass -File ../scratch/stop-wrangler.ps1` after each of the four preview runs (before the fix, first fix, mutant, final) -> final run `stopped node.exe 8988`, `stopped node.exe 16340`, `listeners on 8788: 0`, `workerd left: 0`; then `Get-NetTCPConnection -LocalPort 8788 -State Listen` -> `listeners on 8788: 0`
+- P-090, measured: a space put before the `;` of `const options = cutOptions(given);` -> `node ../scratch/replay.mjs --check` prints `BAD sentry-cut-off: find occurs 0 times`, `checked 118, bad 1`; bytes restored -> `checked 118, bad 0`
+- G-025 facts: `grep -c "Only HTML requests are supported here" node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js` -> `1`, the same in `.output/server/_ssr/ssr.mjs` -> `1`; `grep -rl handledProtocolRelativeURL .output/server` -> `.output/server/_libs/@tanstack/react-router+[...].mjs`, `.output/server/_libs/@tanstack/router-core+[...].mjs`, `.output/server/_ssr/ssr.mjs`
+- `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (25 path entries, 88 process entries)`
+- `bun run check` -> exit 0: `layout: OK (577 files)`, eslint silent, knip `Configuration hints (4)` (g3's), `Found 0 clones.`, `stubs: 15 markers, 0 on closed slices`, `All matched files use Prettier code style!`, `Test Files  11 passed (11)`, `Tests  186 passed (186)`
+- `bun run build` -> exit 0, `built in 1.24s`, `built in 847ms`, `built in 709ms`
+
+`scratch/accept.sh` (lane-root `scratch/`, git-ignored; run from `app/`; `replay.mjs`, `measure.ts`, `sentry-read.mjs`, `live.sh` and `stop-wrangler.ps1` are the texts in the previous block):
+```bash
+#!/usr/bin/env bash
+# Live proofs of the /api/ guard for every Accept header, under `bun run cf:preview` (port 8788). Run from app/.
+B=http://127.0.0.1:8788
+for accept in "application/json" "text/plain" "*/*" "text/html"; do
+  for spec in "GET /api/hooks/sentry-test" "DELETE /api/hooks/sentry-test" "GET /api/hooks/nothing-here" "GET /API/hooks/nothing-here" "POST /api/hooks/nothing-here"; do
+    m=${spec%% *}; p=${spec#* }
+    h=$(curl -s --path-as-is -D - -o ../scratch/body.json -X "$m" -H "Accept: $accept" "$B$p" | tr -d '\r')
+    id=$(printf '%s\n' "$h" | grep -i '^x-request-id:' | cut -d' ' -f2)
+    printf '%-18s %-6s %-28s %s | %s | %s | id in body: %s | %s\n' "$accept" "$m" "$p" \
+      "$(printf '%s\n' "$h" | head -1 | cut -d' ' -f2)" \
+      "$(printf '%s\n' "$h" | grep -i '^content-type:' | cut -d' ' -f2-)" \
+      "$(printf '%s\n' "$h" | grep -i '^cache-control:' | cut -d' ' -f2-)" \
+      "$(grep -c "\"requestId\":\"$id\"" ../scratch/body.json)" "$(head -c 140 ../scratch/body.json)"
+  done
+done
+printf '%s\n' "--- a page and a document with Accept: application/json"
+for p in / /sitemap.xml; do
+  printf '%-14s %s\n' "$p" "$(curl -s -o /dev/null -H 'Accept: application/json' -w '%{http_code} %{content_type}' "$B$p")"
+done
+printf '%s\n' "--- //api/ (protocol-relative, answered by createStartHandler before the middleware)"
+curl -s --path-as-is -D - -o /dev/null "$B//api/hooks/sentry-test" | tr -d '\r'
+```
+
+For the orchestrator (rulings needed; not built, so nothing was changed quietly):
+- A page with a non-HTML `Accept` gets Start's bare 500: `curl -s -o /dev/null -H "Accept: application/json" -w "%{http_code} %{content_type}" http://127.0.0.1:8788/` -> `500 application/json`, body `{"error":"Only HTML requests are supported here"}`, no `requestId`. It breaks R09 for pages and counts as a 5xx with no Sentry event. H39 (2) rules only `/api/`; the status for a page (406 `not_acceptable` with the R09 body, or render the HTML whatever the `Accept`) is a decision.
+- `//<path>` gets Start's bare 308 before any middleware, with no `x-request-id` and no security header (R09, invariant 10). Fixing it means a server entry (`src/server.ts` wrapping Start's handler) that the folder map and the plan do not name. The consequence is low (an empty same-origin redirect).
+- `lastSent` in `sentry.ts` now holds keys of at most about 5,000 characters (10 parts of 500), but its count is bounded only by distinct errors within 60 s in one isolate (B3's edge rate limit on `/api/public/*` bounds the browser's share). Not measured.
+
+UNPROVEN: `waitUntil` finishing the report on a deployed Worker (step 7); `crypto.ts` under Deno (B3 step 3b); that the router's unread HTML stream dropped by the `/api/` guard is released without cost on a deployed Worker. `.dev.vars` is left with `MOP_ENV=local`, `SENTRY_DSN` and `SENTRY_TEST_TOKEN` (git-ignored).

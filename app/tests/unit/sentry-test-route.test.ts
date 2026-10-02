@@ -45,6 +45,7 @@ function throughHandle(request: Request, token: string) {
       cache: (_request, render) => render(),
       getFlags: () => Promise.resolve({}),
       report,
+      isApiRoute: () => true,
     },
   );
   return { response, report, waitUntil };
