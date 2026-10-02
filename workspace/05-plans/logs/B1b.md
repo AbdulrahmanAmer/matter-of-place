@@ -2960,3 +2960,169 @@ For the orchestrator (not fixed here: each needs a ruling or a file outside this
 NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository (it needs `ci.yml` on `main`); the first run of the post-merge `merge-gate` job.
 
 GOTCHAS: P-121, P-122 and P-123 added; P-104 retired; G-032 marked enforced.
+
+## c7 · steps 5b
+Bank close-out of the review of `b36be2d` (a bank-only rejection, H43 (5)). Commit `5ef3fca` on `slice/b1b` holds the bank change; this block is the next commit. No code, test, registry or config file changed.
+
+What changed
+- `GOTCHAS.md`: new P-131 (a filter that reads the reason of a red run is checked against known reds of every failure shape, and reports `NO CAUSE` itself, before its output is trusted). P-118 gets the c7 round 2 hit. The number is P-131, not P-124: `origin/main` already holds P-130 (`git show origin/main:GOTCHAS.md | grep "^## P-130"`), and P-072 says a lane takes the next free number above the highest in both copies.
+
+The cost it banks (review defect 1): the first `c7r-why.mjs` of round 2 kept only `×`, `Tests` and diff lines. Reconstructed here as the `narrow` filter of `why-check.mjs` (the shipped filter minus `AssertionError`, `Expected:`/`Received:` and the zod `"path"`/`"message"` lines; the first script's own text was not kept, so the reconstruction is from the two alternatives the round added). Run on three known reds, one of each failure shape (a diff, a bare assertion, a thrown zod error), from `app/`:
+
+`node ../scratch/why-check.mjs narrow mg-docs-star hy-gate-include hy-gate-prettier`
+```
+== mg-docs-star exit=1
+       × reads a single * as GitHub does: it matches no slash 11ms
+      Tests  1 failed | 39 passed (40)
+-     "merge-gate: no checks reported and launch/film/x.ts is not a document",
++     "documents only: no check expected",
++     "",
+-   "writes": [],
++   "writes": [
++     "gh api -X",
++     "gh pr merge",
++   ],
+== hy-gate-include exit=1 NO CAUSE
+     × tsconfig.scripts.json type-checks it 22ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+== hy-gate-prettier exit=1 NO CAUSE
+     × lint gives prettier/prettier the options of .prettierrc for it 1234ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+narrow: 3 red runs, 2 without a cause line
+exit 1
+```
+
+`node ../scratch/why-check.mjs wide mg-docs-star hy-gate-include hy-gate-prettier` (the filter `c7r-why.mjs` shipped with)
+```
+== mg-docs-star exit=1
+       × reads a single * as GitHub does: it matches no slash 13ms
+      Tests  1 failed | 39 passed (40)
+AssertionError: expected { lines: [ …(2) ], writes: [ …(2) ] } to deeply equal { …(2) }
+-     "merge-gate: no checks reported and launch/film/x.ts is not a document",
++     "documents only: no check expected",
++     "",
+-   "writes": [],
++   "writes": [
++     "gh api -X",
++     "gh pr merge",
++   ],
+== hy-gate-include exit=1
+     × tsconfig.scripts.json type-checks it 325ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+AssertionError: expected false to be true // Object.is equality
+== hy-gate-prettier exit=1
+     × lint gives prettier/prettier the options of .prettierrc for it 1498ms
+      Tests  1 failed | 32 passed | 8 skipped (41)
+    "path": [
+    "message": "Array must contain at least 2 element(s)"
+wide: 3 red runs, 0 without a cause line
+exit 0
+```
+`git status --short` printed nothing after both runs (every mutation restored).
+
+`node workspace/05-plans/check-gotchas.mjs` (repository root)
+```
+check-gotchas: OK (32 path entries, 122 process entries)
+```
+
+Step 5b proofs again, on `5ef3fca` (run in `app/` unless noted; outputs inserted from the files the commands wrote)
+
+`bunx vitest run tests/unit/merge-gate.test.ts tests/unit/hygiene.test.ts` (summary lines), exit 0
+```
+ Test Files  2 passed (2)
+      Tests  73 passed | 8 skipped (81)
+```
+
+`node ../scratch/replay.mjs --check`, exit 0
+```
+checked 314, bad 0
+```
+
+`bun run check` → exit 0 (summary lines)
+```
+layout: OK (586 files)
+stubs: 15 markers, 0 on closed slices
+All matched files use Prettier code style!
+ Test Files  14 passed (14)
+      Tests  350 passed | 8 skipped (358)
+```
+`bun run build` → exit 0 (last lines, colour codes stripped)
+```
+[nitro] ✔ You can preview this build using npx vite preview
+[nitro] ✔ You can deploy this build using npx nitro deploy --prebuilt
+```
+
+The plan's probe (P-105: the bank commit pushed first, the script run on `slice/b1b`): `git switch -c gate-probe origin/main~1` (`d686b5d`), one line appended to `app/src/lib/cx.ts`, `gh pr create --draft` → PR #34, then from the repository root:
+```
+$ node workspace/05-plans/merge-gate.mjs 34   (draft)
+mark ready first
+exit 1
+✓ Pull request AbdulrahmanAmer/matter-of-place#34 is marked as "ready for review"
+$ node workspace/05-plans/merge-gate.mjs 34   (ready)
+rebase first
+exit 1
+$ gh api repos/AbdulrahmanAmer/matter-of-place/commits/$(gh pr view 34 --json headRefOid --jq .headRefOid)/statuses --jq length
+0
+✓ Closed pull request AbdulrahmanAmer/matter-of-place#34 (gate probe (B1b c7 bank close-out, closed unmerged))
+✓ Deleted branch gate-probe
+$ gh pr view 34 --json state --jq .state
+CLOSED
+$ git ls-remote --heads origin
+3eab6ae9d5d0e2485b23a80629fd110c6e992ca4	refs/heads/main
+5ef3fca5276343f744fb7321d576e70cb99229b5	refs/heads/slice/b1b
+```
+
+Scratch script (not committed; P-088). `scratch/why-check.mjs`:
+```js
+// node ../scratch/why-check.mjs <narrow|wide> <id> ..., run from app/: apply a registry entry (find
+// must occur once), run it, restore the bytes, filter the red output with the chosen reason filter,
+// and print NO CAUSE when nothing but the × and Tests lines survives the filter.
+// narrow: the first c7 round 2 filter (no AssertionError, Expected/Received or zod path/message lines).
+// wide: the filter c7r-why.mjs shipped with (workspace/05-plans/logs/B1b.md, c7 round 2 block).
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const filters = {
+  narrow: /^\s*×|^\s*[-+] {2,}\S|^\s*[-+] {4}"|Tests {2}/,
+  wide: /^\s*×|^\s*[-+] {2,}\S|^\s*[-+] {4}"|Tests {2}|AssertionError|^(Expected|Received):|"(path|message)":/,
+};
+const bookkeeping = /^\s*×|Tests {2}/;
+const [mode, ...ids] = process.argv.slice(2);
+const filter = filters[mode];
+if (filter === undefined) throw new Error("usage: why-check.mjs <narrow|wide> <id> ...");
+const entries = JSON.parse(readFileSync("tests/mutations/B1b.json", "utf8"));
+let missing = 0;
+for (const id of ids) {
+  const e = entries.find((entry) => entry.id === id);
+  if (e === undefined) throw new Error(`${id}: no such entry`);
+  const saved = readFileSync(e.file);
+  const text = saved.toString("utf8");
+  if (text.split(e.find).length !== 2) throw new Error(`${id}: find not once`);
+  writeFileSync(e.file, text.replace(e.find, () => e.replace));
+  let result;
+  try {
+    result = spawnSync(e.run, { shell: true, encoding: "utf8" });
+  } finally {
+    writeFileSync(e.file, saved);
+  }
+  const why = `${result.stdout}${result.stderr}`
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .split("\n")
+    .filter((line) => filter.test(line))
+    .slice(0, 14);
+  const cause = why.filter((line) => !bookkeeping.test(line));
+  if (cause.length === 0) missing += 1;
+  console.log(`== ${id} exit=${result.status}${cause.length === 0 ? " NO CAUSE" : ""}\n${why.join("\n")}`);
+}
+console.log(`${mode}: ${ids.length} red runs, ${missing} without a cause line`);
+process.exit(missing === 0 ? 0 : 1);
+```
+
+For the orchestrator (files outside this group; review defect 2)
+- RUNBOOK step 3 is stale. `workspace/05-plans/RUNBOOK.md` line 25 says the merge script "requires `gh pr checks <pr>` to exit 0". After c7 that is false both ways: the `--json` form exits 0 whatever the buckets are (P-106), and a documents-only pull request, where `gh pr checks` exits 1 with `no checks reported`, is merged as `documents only: no check expected` (H42 (1), `merge-gate.mjs` lines 172 to 175). Fold: "refuses unless every check bucket is `pass` or `skipping`; with no check reported, merges only when every changed path matches the `paths-ignore` of `ci.yml` on `origin/main`". The same stale text is in B1b line 112 (named in round 2).
+- STANDARDS G02 (line 366) gives lint as `eslint . --max-warnings 0`. Since c7 `bun run lint` is two passes: `eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs` (G-032).
+- `slice/b1b` does not contain the newest `origin/main` (`3eab6ae`, PR #33): `git merge-base --is-ancestor origin/main slice/b1b` exits 1, so the gate will answer `rebase first` for the B1b pull request until main is merged into the lane. The bank merge will conflict as P-072 describes (main holds P-130).
+
+NOT DONE (the orchestrator's): the B1b pull request merged with `node workspace/05-plans/merge-gate.mjs 22`, and the `ci` run of that merge on `main` showing `merge-gate` `success`. UNPROVEN: a documents-only merge on the real repository; the first run of the post-merge `merge-gate` job.
+
+GOTCHAS: P-131 added; P-118 extended.
