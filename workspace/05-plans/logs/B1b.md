@@ -4273,3 +4273,9 @@ The review of g9 (steps 8) found no blocking defect and six follow-ups. Three ha
 
 ## g10 · follow-ups recorded
 The review of g10 (steps 9,10) found no blocking defect and four follow-ups. One had GOTCHAS.md as its file and went to the bank: P-153 (hit again: the snapshot command's lane root; commit 3bba6ce is on the branch and `build-slice.js` line 153 is fixed, so the brief came from a workflow run that started before it). The other three (the `.github/workflows/README.md` promise with no plan step behind it, the `app/.env.example` comment inaccuracies, the two unclear notes in `app/docs/runbooks/delivery.md`) are in `workspace/05-plans/logs/B1b-followups.md` under "## g10 · steps 9,10". No code changed.
+
+## g9 (step 8) · dispatch, download and decrypt proof, run by the orchestrator after PR 43 merged (2026-10-03 15:20 laptop time)
+- `gh workflow run backup.yml --ref main -f target=dev` → run 37119111820, `gh run watch --exit-status` exit 0, job `dump: success`.
+- `gh run download 37119111820 -n mop-dev-dump` → `mop-dev-2026-10-03.dump.p7m` (234,514 bytes).
+- `openssl cms -decrypt -binary -inform DER -inkey creds/backup-recipient.key -in mop-dev-2026-10-03.dump.p7m -out x.dump` → 233,601 bytes; `pg_restore --list x.dump | head` prints the archive header (`dbname: postgres`); `grep -c "TABLE DATA public analytics_events"` → 0; `grep -c "TABLE DATA"` → 55. Local copies deleted after the read.
+- The retention read and the nightly `schedule:` line wait for B8b's `schedule_settings` row, as the plan writes. The private key stays on the laptop until the operator escrows it (H55 (3)).
