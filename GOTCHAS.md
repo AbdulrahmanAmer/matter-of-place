@@ -1497,3 +1497,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bun run check` in the background (`run_in_background`, output to a log, a bounded poll loop; P-027), never in the foreground. When the only failure is the worker-start error, re-run the test stage alone (`bun run test`) before calling the gate red; a failure that names an assertion is a real red and is never re-run until green. Report both runs.
 - proof: `grep -c "Failed to start forks worker" GOTCHAS.md` → at least `1` (this entry); `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test` → `quiet: ok` on a quiet laptop (2026-10-03).
 - added: 2026-10-03
+
+## P-333 · A watched-fail of a budget or a "nothing leaks" assertion stays green until the mutation makes something exceed the budget or leak
+- symptom: B2 g12's registry entry `g12-variants-hero-weight` (hero encoded lossless) stayed green: the 2400x1600 gradient fixture encodes to 296,510 bytes even lossless, under the 400 KB bound. A mutation that feeds the upload to the variants (`sharp(buffer)` instead of `sharp(master)`) also stays green for EXIF, because sharp drops metadata on every output by default.
+- cause: the fixture is a smooth gradient under a grid and compresses to a fraction of a photograph; sharp only keeps EXIF when asked (`keepExif()`).
+- rule: before registering a mutation for a size bound, measure what the mutated encoder produces on the fixture (`sharp(...).webp(opts).toBuffer()` length) and pick one that crosses the bound (a sharpened lossless encode gave 1,252,584 bytes); for a leak assertion the mutation must both read the leaking source and ask for the metadata (`sharp(buffer).keepExif()`). Replay it and read `WATCHED-FAIL BAD: stayed green` as a mutation too weak, not a test that is fine.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only g12-variants-hero-weight` and `--only g12-strip-variants` → `WATCHED-FAIL OK` for both (measured 2026-10-03, B2 g12).
+- added: 2026-10-03

@@ -2572,5 +2572,216 @@
     "sql": "select set_config('mop.retention', 'on', true); delete from public.properties where slug = 'oak-hill-residence'",
     "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
     "expect": "× .*serves 16 properties in one snapshot"
+  },
+  {
+    "id": "g12-variants-hero-width",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const WIDTHS = { thumb: 320, card: 720, hero: 1600 } as const;",
+    "replace": "const WIDTHS = { thumb: 320, card: 720, hero: 1200 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders thumb 320, card 720 and hero 1600 as WebP only"
+  },
+  {
+    "id": "g12-variants-og-size",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const OG = { width: 1200, height: 630 } as const;",
+    "replace": "const OG = { width: 1200, height: 600 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders og exactly 1200x630 and carousel exactly 1080x1350 as JPEG"
+  },
+  {
+    "id": "g12-variants-carousel-size",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const CAROUSEL = { width: 1080, height: 1350 } as const;",
+    "replace": "const CAROUSEL = { width: 1080, height: 1080 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders og exactly 1200x630 and carousel exactly 1080x1350 as JPEG"
+  },
+  {
+    "id": "g12-variants-avif",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "type === \"image/webp\" ? pipeline.webp({ quality: 80 })",
+    "replace": "type === \"image/webp\" ? pipeline.avif({ quality: 50 })",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*writes no AVIF anywhere"
+  },
+  {
+    "id": "g12-variants-hero-weight",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "type === \"image/webp\" ? pipeline.webp({ quality: 80 })",
+    "replace": "type === \"image/webp\" ? pipeline.sharpen({ sigma: 2, m1: 50, m2: 50 }).webp({ lossless: true, effort: 0 })",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*keeps the hero WebP under 400 KB"
+  },
+  {
+    "id": "g12-variants-sha8",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "return createHash(\"sha256\").update(master).digest(\"hex\").slice(0, 8);",
+    "replace": "return createHash(\"sha256\").update(master).digest(\"hex\").slice(0, 7);",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*stores a WebP master and takes its sha8"
+  },
+  {
+    "id": "g12-variants-five-keys",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "files: { thumb, card, hero, og, carousel } };",
+    "replace": "files: { thumb, card, hero, og } };",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*returns exactly the five keys of MediaVariants"
+  },
+  {
+    "id": "g12-variants-refuses-type",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "if (!uploadLimits.types.some((accepted) => accepted === mime)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*refuses a type outside the four"
+  },
+  {
+    "id": "g12-variants-master-key",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "master: `o/${owner}/${stem}.webp`,",
+    "replace": "master: `m/${owner}/${stem}.webp`,",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*gives the master o/<owner>"
+  },
+  {
+    "id": "g12-variants-args-dashes",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "args: argv[0] === \"--\" ? argv.slice(1) : [...argv],",
+    "replace": "args: [...argv],",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*reads one mode, ignoring a leading"
+  },
+  {
+    "id": "g12-variants-args-owner",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "    if (values.owner === undefined) throw new Error(\"variants: --file needs --owner\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*refuses no mode, two modes"
+  },
+  {
+    "id": "g12-strip-gps-fixture",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/make-fixtures.mjs",
+    "find": ".withExif(EXIF)",
+    "replace": ".withExif({ IFD0: EXIF.IFD0 })",
+    "run": "node scripts/make-fixtures.mjs && bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*starts from a fixture that really has GPS",
+    "after": "node scripts/make-fixtures.mjs"
+  },
+  {
+    "id": "g12-strip-master",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "  return sharp(buffer)\n    .rotate()",
+    "replace": "  return Buffer.from(buffer);\n  return sharp(buffer)\n    .rotate()",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*leaves no EXIF in the master"
+  },
+  {
+    "id": "g12-strip-variants",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const from = () => sharp(master);",
+    "replace": "const from = () => sharp(buffer).keepExif();",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*leaves no EXIF in the master or in any of the five variants"
+  },
+  {
+    "id": "g12-strip-no-resize",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "    .resize({ width: MASTER_EDGE, height: MASTER_EDGE, fit: \"inside\", withoutEnlargement: true })\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*fits a 6000x4000 JPEG inside 2560 px as WebP"
+  },
+  {
+    "id": "g12-strip-edge-4000",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "const MASTER_EDGE = 2560;",
+    "replace": "const MASTER_EDGE = 4000;",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*fits a 6000x4000 JPEG inside 2560 px as WebP"
+  },
+  {
+    "id": "g12-strip-edge-2000",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "const MASTER_EDGE = 2560;",
+    "replace": "const MASTER_EDGE = 2000;",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*keeps the 2400x1600 fixture at its size"
+  },
+  {
+    "id": "g12-strip-rotate",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "\n    .rotate()",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*applies the orientation before it drops the tag"
+  },
+  {
+    "id": "g12-strip-gif",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "if (!READABLE_TYPES.includes(mime)) throw new Error(`stripExif: unsupported image type ${mime}`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*refuses an image/gif"
+  },
+  {
+    "id": "g12-heic-format",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/heic.ts",
+    "find": "format: \"JPEG\"",
+    "replace": "format: \"PNG\"",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*converts to JPEG, then strips to a WebP master"
+  },
+  {
+    "id": "g12-heic-variants",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "heic ? await heicToJpeg(buffer) : buffer,",
+    "replace": "buffer,",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*makes all five variants through makeVariants"
   }
 ]

@@ -1,5 +1,8 @@
-// The image library (B2 step 12): makeVariants, variantKeys and MediaVariants. The CLI is step 13.
+// The image library (B2 step 12) and its CLI (step 13): makeVariants, variantKeys and MediaVariants.
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { extname } from "node:path";
+import { parseArgs } from "node:util";
 import sharp, { type Sharp } from "sharp";
 import { uploadLimits } from "../src/domain/contracts.ts";
 import { heicToJpeg } from "./lib/heic.ts";
@@ -38,6 +41,7 @@ const WIDTHS = { thumb: 320, card: 720, hero: 1600 } as const;
 // Open Graph readers and Meta publishing take JPEG, so these two stay JPEG (ruling H33 (8)).
 const OG = { width: 1200, height: 630 } as const;
 const CAROUSEL = { width: 1080, height: 1350 } as const;
+const NAMES: readonly VariantName[] = ["thumb", "card", "hero", "og", "carousel"];
 const EXTENSIONS: Record<VariantName, "webp" | "jpg"> = {
   thumb: "webp",
   card: "webp",
@@ -101,4 +105,67 @@ export function variantKeys(
     og: variant("og"),
     carousel: variant("carousel"),
   };
+}
+
+export type VariantsArgs =
+  | { mode: "file"; file: string; owner: string }
+  | { mode: "property"; property: string }
+  | { mode: "all" };
+
+/** `--file <path> --owner <id>`, `--property <uuid>` or `--all`; exactly one mode. A leading `--` is ignored. */
+export function parseVariantsArgs(argv: readonly string[]): VariantsArgs {
+  const { values } = parseArgs({
+    args: argv[0] === "--" ? argv.slice(1) : [...argv],
+    options: {
+      file: { type: "string" },
+      owner: { type: "string" },
+      property: { type: "string" },
+      all: { type: "boolean" },
+    },
+  });
+  const modes = [values.file, values.property, values.all].filter((mode) => mode !== undefined);
+  if (modes.length !== 1)
+    throw new Error("variants: give exactly one of --file, --property, --all");
+  if (values.file !== undefined) {
+    if (values.owner === undefined) throw new Error("variants: --file needs --owner");
+    return { mode: "file", file: values.file, owner: values.owner };
+  }
+  return values.property === undefined
+    ? { mode: "all" }
+    : { mode: "property", property: values.property };
+}
+
+const MIME_OF: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".heic": "image/heic",
+};
+
+/** Makes the variants of one local file and prints one line per key; it writes and sends nothing. */
+async function printKeys(file: string, owner: string): Promise<void> {
+  const mime = MIME_OF[extname(file).toLowerCase()];
+  if (mime === undefined) throw new Error(`variants: unsupported file type ${file}`);
+  const made = await makeVariants(await readFile(file), mime);
+  const keys = variantKeys(owner, 0, made.sha8);
+  console.log(`${keys.master}  ${String(made.master.length)} bytes`);
+  for (const name of NAMES) {
+    const { w, h, body } = made.files[name];
+    console.log(`${keys[name]}  ${String(w)}x${String(h)}  ${String(body.length)} bytes`);
+  }
+}
+
+async function main(): Promise<void> {
+  const args = parseVariantsArgs(process.argv.slice(2));
+  if (args.mode === "file") return printKeys(args.file, args.owner);
+  // STUB(B9): upload each variant with putIfMissing from scripts/lib/media-store.mjs and write property_media.variants
+  throw new Error("variants: --property and --all wait for B9's scripts/lib/media-store.mjs");
+}
+
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
 }
