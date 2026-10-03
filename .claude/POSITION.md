@@ -958,3 +958,17 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   round 1, steps 4 to 5 in review; email parts held for B5). B4 waits on B3.
 - NEXT: when B2 closes (g13 then advisor check), open the B3 lane (`E:/mop-build/api`, port 8828, P-800/G-300); then
   B3b; ledger at slice closes only.
+
+## 2026-10-03 22:15 · B2 closed; three lanes running
+- B2 closed: steps 8 to 14 accepted (step 12 took three fix rounds: seeded-state test conflicts, a budget test the plan
+  named, a bank rule that would have emptied mop-dev), close-out c9 moved `is_staff` and `role_in` to schema `app` for
+  advisor lint 0029 (S49 now clean: only INFO 0008 rows by design and the Auth leaked-password setting, left to H1).
+  PR 93 → `afe750c`. From main: `bun run db:push` → "Remote database is up to date"; 16 seeded properties.
+- Running: api `wf_ea63edc9-5b1` (B3 close-out c1 for the sample RPC after c9, then steps 2 to 13; the lane is the
+  schema writer now), ops `wf_4fcc7ce8-eb8` (B8 steps 1 to 8a, migrations proven in rolled-back transactions, H1 (a);
+  g2 waits on B3, g8 to g10 on B7 and B8b), design `wf_6f20f9fb-bef` (B9 step 6; 7 to 11 wait on B8 and B7).
+- Measured today: 25.7M cache per accepted step across the four finished runs (B2 steps 8 to 14 were the costliest at
+  31.3M and 85 agent minutes, fix rounds included); baseline was 121.4M.
+- NEXT: at B3 close set `VITE_API_BASE_URL` back (H48 (1)) and run the preview smoke; after B8 g6 the
+  RENDER_CALLBACK_SECRET (orchestrator, nothing printed); after B8 merge the cron proof and OPS_HEALTH_TOKEN; then
+  B8b, B5, B16 steps 1 and 2, B3b and B4 g5 to g7 by dependency.
