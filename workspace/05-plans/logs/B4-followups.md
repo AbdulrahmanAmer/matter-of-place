@@ -49,3 +49,19 @@
 3. `app/tests/mutations/B4.json` (not blocking)
    - What: Watched-fail (v) cannot show the plan's 'exits 1' half, because with no coming-soon spec Playwright already exits 1 ('No tests found'). Only the 'restored to true' text separates red from green, and it was proved against a stand-in PostgREST the author wrote. Rerun (v) and the db:psql read-back on the real settings table once B2's migration and B3b's spec land. It is UNPROVEN against mop-dev until then.
    - Evidence: Entry v: run 'E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon', expect 'coming_soon_global restored to true', kind manual. The rerun against mop-dev shows the settings table count is 0.
+
+## g4 · steps 4
+
+1. `app/tests/unit/analytics.test.ts` (not blocking)
+   - What: The line 2 comment says 'The beacon half (queue, flush, batch size) is analytics-batch.test.ts', but that file does not exist on main or on this branch. B3 creates it later. For now the comment points at nothing, and the current beacon path (sendBeacon in track) has no test.
+   - Evidence: `ls app/tests/unit/analytics-batch.test.ts` -> No such file or directory.
+
+2. `workspace/05-plans/B4.md` (not blocking)
+   - What: Stale plan lines (the orchestrator's to fix; the author already banked them as P-414). The Files list says '10x10 expected matrix' and 'each name in B3's analyticsEvents'. Main has 11 states (Withdrawn, DL-04) and no analyticsEvents yet. The 11x11 matrix agrees with diagram 1 plus F16, DL-09 and DL-04, and with B2 invariant 5. The plan text does not.
+   - Evidence: plan-brief output for step 4 quotes '10x10'. src/domain/workflow.ts lists 11 keys in submissionTransitions. git grep analyticsEvents -- app finds nothing.
+
+3. `app/tests/mutations/B4.json` (not blocking)
+   - What: UNPROVEN, as the author says: the CI db job has not replayed the new unit entries because no pull request is open yet. Everything was replayed locally only.
+   - Evidence: Author's unproven list. No PR run exists to check.
+
+Follow-ups whose file is GOTCHAS.md are banked, not listed here: P-416 (a recurrence went into a new entry), P-417 (P-414 claims B3 updates `analytics.test.ts`, which B3.md never names), P-418 (`watchfail.mjs --only d` replays three registries). For P-417 the orchestrator decides: add the file to B3's Files list or drop the claim from P-414. For P-418 the orchestrator decides whether the runner accepts a slice-qualified id.
