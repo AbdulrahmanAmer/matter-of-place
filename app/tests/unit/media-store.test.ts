@@ -92,6 +92,13 @@ describe("readPublicObject", () => {
     expect(only(sent).init.cf).toEqual({ cacheEverything: true });
   });
 
+  it("sets no abort signal, so a slow stream of a large file is never cut off", async () => {
+    const sent = stubFetch(() => new Response("bytes"));
+    const { readPublicObject } = await load();
+    await readPublicObject("p/a/clip.mp4");
+    expect(only(sent).init.signal).toBeUndefined();
+  });
+
   it("hands a Storage 404 back to the caller untouched", async () => {
     stubFetch(() => new Response("missing", { status: 404 }));
     const { readPublicObject } = await load();

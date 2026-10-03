@@ -15,7 +15,6 @@ export const buckets = {
 
 export type Bucket = (typeof buckets)[keyof typeof buckets];
 
-const STORAGE_TIMEOUT_MS = 10_000;
 // ASSUMED batch size of one Storage delete request (E2E-01).
 const DELETE_BATCH = 1000;
 
@@ -55,7 +54,7 @@ type StorageInit = RequestInit & { cf?: { cacheEverything: boolean } };
 async function storageFetch(path: string, init: StorageInit): Promise<Response> {
   const url = `${storageBase()}${path}`;
   try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(STORAGE_TIMEOUT_MS) });
+    return await fetch(url, init);
   } catch {
     throw storageUnavailable();
   }

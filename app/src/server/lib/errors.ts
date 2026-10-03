@@ -3,6 +3,8 @@ import { errorCodes, type ErrorCode } from "./error-codes.ts";
 
 const SERVER_MESSAGE = "Something went wrong. Please try again in a moment.";
 const VALIDATION_MESSAGE = "Some of the details need another look.";
+// Seconds a client waits after a dependency outage (R09); a 429 carries its own, set by the pipeline.
+const OUTAGE_RETRY_AFTER = "30";
 
 /** The only error server code throws on purpose (R09). The status defaults to the code's own. */
 export class AppError extends Error {
@@ -44,8 +46,7 @@ export function toErrorResponse(error: unknown, requestId: string): Response {
       requestId,
     },
   };
-  return Response.json(body, {
-    status: known.status,
-    headers: { "cache-control": "no-store", "x-request-id": requestId },
-  });
+  const headers = new Headers({ "cache-control": "no-store", "x-request-id": requestId });
+  if (known.status === 503) headers.set("retry-after", OUTAGE_RETRY_AFTER);
+  return Response.json(body, { status: known.status, headers });
 }

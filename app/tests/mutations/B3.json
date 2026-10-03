@@ -110,6 +110,16 @@
     "expect": "× .*throws storage_unavailable on a network error"
   },
   {
+    "id": "b3-oo-signal",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "    return await fetch(url, init);",
+    "replace": "    return await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*sets no abort signal"
+  },
+  {
     "id": "b3-mmm-store",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
@@ -168,6 +178,16 @@
     "replace": "status: number = 500,",
     "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
     "expect": "× .*takes its status from the code when none is given"
+  },
+  {
+    "id": "b3-g1-errors-retry",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "  if (known.status === 503) headers.set(\"retry-after\", OUTAGE_RETRY_AFTER);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*tells the client when to retry a 503"
   },
   {
     "id": "b3-g1-errors-leak",

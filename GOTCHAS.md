@@ -426,6 +426,7 @@ Entry template
 - cause: `app/node_modules` and `launch/node_modules` hold tens of thousands of files and `--include` does not stop the directory walk. `git grep` searches tracked files only; a new file is invisible to it until `git add` or `git add -N`.
 - rule: search tracked files with `git grep -I` (or the Grep tool); never `grep -r` from the root (a small named folder is fine). A proof that searches a file the same step created uses `git grep --untracked` or runs after `git add` (or `git add -N`); never read an empty `git grep` as "the line is not there" until `git ls-files --error-unmatch <file>` says the file is tracked.
 - proof: `git grep -c "08-visual-pass"` returns at once; from `app/`, `echo 'export const zzProbe = 1;' > scratch-probe-zz.ts; git grep -n zzProbe; echo $?; git grep -n --untracked zzProbe; rm scratch-probe-zz.ts` prints `1`, then `scratch-probe-zz.ts:1:export const zzProbe = 1;` (2026-10-03, B4 follow-up record).
+- hit again: 2026-10-03, B3 g1 review: a recursive `grep -rnE` over `app/` without `--exclude-dir` for `node_modules` and `.output` ran past the 120 s limit; the Grep tool with a glob answered in seconds.
 - merged: P-410
 - added: 2026-10-02
 
@@ -769,6 +770,7 @@ Entry template
 - cause: with no script text on stdin, `python3 -` starts the interactive prompt; the Bash tool has no console, so the prompt fails with `OSError: [WinError 6] The handle is invalid` and restarts in a loop (measured: 10 MB of the same traceback in 8 seconds). A `;` runs the next command whenever the hung one ends, even much later.
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
+- hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B9 g3: a `python3 - <<'E' || node -e ...` conflict-resolution chain hung 120 seconds, moved to the background and the branch merge sat uncommitted until a `node` script did the same edit; the lesson was in the bank map and was still not followed.
@@ -1500,4 +1502,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the plan makes `env` a module-level constant read once (`tests/api/env.ts` relies on the same order), and `tests/setup/hermetic.ts` strips credentials.
 - rule: a unit test that needs `env.ts` (directly, or through `db.ts`) stubs the variables first and loads the module with a dynamic import after `vi.resetModules()` (`vi.stubEnv("MOP_ENV", "local")`, `vi.stubEnv("RATE_LIMIT_SALT", "salt")`, then `await import(...)`); a test that only needs the type `Db` imports it with `import type`, which loads nothing. Code the job runner shares reads variables with `readVar`, never `env.ts` (G39).
 - proof: `cd app && bunx vitest run --project unit tests/unit/env.test.ts tests/unit/db.test.ts` passes; with the stubs removed from the head of `env.test.ts` it fails at load with the error above (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## G-301 · `AbortSignal.timeout` on a Storage `fetch` also cuts the response body, so `readPublicObject` and the delete batches carry no timeout
+- paths: app/src/server/lib/media-store.ts
+- severity: warn
+- symptom: B3 g1 wrapped every Storage call in `AbortSignal.timeout(10_000)`; the review showed a response whose stream lasts longer than the limit prints `headers status 200` and then `body error after headers: TimeoutError` (Node/undici), so a property video on a slow phone would be cut off mid-body and the edge could not fill its cache; the same cap turned a slow but working 1,000-key delete into `storage_unavailable` and a retry loop.
+- cause: a fetch signal covers the whole exchange including the body; `readPublicObject` hands the answer to `src/server/public/media.ts` to stream, and the plan names no timeout.
+- rule: `storageFetch` passes the init untouched, with no signal. A bound on a Storage call is a decision of its own, taken where the body is not streamed to a client.
+- proof: `cd app && bunx vitest run --project unit tests/unit/media-store.test.ts` passes; with `signal: AbortSignal.timeout(10_000)` put back in `storageFetch` it fails `sets no abort signal, so a slow stream of a large file is never cut off` (measured 2026-10-03, B3 g1 review fix).
 - added: 2026-10-03

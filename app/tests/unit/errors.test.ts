@@ -41,6 +41,14 @@ describe("toErrorResponse", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("tells the client when to retry a 503 and no other status", () => {
+    const outage = toErrorResponse(new AppError("storage_unavailable", undefined, "Away."), "r-5");
+    const missing = toErrorResponse(new AppError("not_found", undefined, "None."), "r-6");
+    expect(outage.status).toBe(503);
+    expect(outage.headers.get("retry-after")).toBe("30");
+    expect(missing.headers.get("retry-after")).toBeNull();
+  });
+
   it("includes the issues of a validation error", async () => {
     const parsed = z.object({ name: z.string() }).safeParse({});
     if (parsed.success) throw new Error("the schema should have refused the value");
