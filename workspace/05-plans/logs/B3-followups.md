@@ -47,3 +47,37 @@
 6. `app/supabase/migrations/20261003184651_public_write_functions.sql` (not blocking)
    - what: UNPROVEN: the migration has never been applied from zero on CI's ephemeral stack (the db job). It is proven on mop-dev only.
    - evidence: No CI run exists for b9258e0. Proof came from migration list, function-source and the whole tests/db run against mop-dev.
+
+## g4 · steps 4,5
+
+1. `app/src/lib/analytics.ts` (not blocking)
+   - what: New doc comment says 'The server's allow-list is this same list.' At 4eac852 no server allow-list exists. The author's own unproven list says step 10 creates it. analytics-allowlist.test.ts only compares the list with track() literals, and tsc already enforces that through the AnalyticsEvent union. So the test adds no guarantee beyond the type check until step 10 wires the server list.
+   - evidence: git grep -n analyticsEvents -- src finds only src/lib/analytics.ts (the definition and the type). No importer under src/server.
+
+2. `app/src/domain/contracts.ts` (not blocking)
+   - what: The propertyCardSchema comment (line ~345) calls it 'the Zod twin of `PropertyCard` in `property.ts`', but property.ts has no PropertyCard type. Plan step 5b creates it. The schema's field set (market/region rather than the plan's marketSlug/regionSlug, plus neighborhood and status, no features or related) is not yet checked against any type, so 5b must reconcile it.
+   - evidence: grep -rn "PropertyCard\b" src finds only the component in src/components/site/property-card.tsx and this comment; plan B3.md line 130 and step 5b create the type.
+
+3. `app/src/domain/contracts.ts` (not blocking)
+   - what: submissionMediaSchema.type is now z.enum(uploadLimits.types), and the wizard sends file.type unchanged with no size or type pre-filter. A .heic picked in Chrome (File.type is often '') or a photograph over 25 MB is refused only at Send, with the generic t.forms.invalid. Before this change any type and any size passed. The plan prescribes the enum, so this is not a contract break. It is a regression in user experience that step 8b (image-prep, upload queue) or the picker should close. Suspected by reading, not run in a browser.
+   - evidence: src/components/forms/submit/state.ts:208 media: draft.files.map((file) => ({ name, size, type: file.type })); src/services/http/index.ts:64 already expects an empty type ('file.type || "application/octet-stream"').
+
+4. `app/src/routes/_site.legal.tsx` (not blocking)
+   - what: The legal copy still says 'Live listings show the listing agent, brokerage and licence clearly on each property page, and inquiries are routed to that representation.' That is no longer true for an owner-presented home (invariant 22, H30 (7)), which shows 'Presented by the owner' and no agent. Not this group's file; the orchestrator should fold it.
+   - evidence: sed -n 32,38p app/src/routes/_site.legal.tsx
+
+5. `workspace/01-site-index/pages-and-wording.md` (not blocking)
+   - what: The site index still describes the submit wizard step 3 as 'Representation' with fields 'Listing agent; Brokerage; Agent email; Agent phone' under 'Today:' (lines 357, 371-372). It shows the eyebrow as planned (line 176) and the Representation block without its owner variant (line 118). The code changed all of these in this group. Not this group's file.
+   - evidence: git grep -n -i "representation\|FOR AGENTS" -- workspace/01-site-index
+
+6. `app/tests/api/parity.api.test.ts` (not blocking)
+   - what: The parity proof depends on mop-dev holding exactly the bundled seed, published, with nothing else published. A property another lane publishes on mop-dev turns it red. R52 also says CI database tests run against a database built from the branch's migrations, and ci.yml has no db job yet. When B4 step 8 adds one, that database needs the bundled seed or this test fails there. UNPROVEN outside the laptop.
+   - evidence: grep -n 'run:' .github/workflows/ci.yml shows only check, build and merge-gate jobs; the vitest db project includes tests/api/**/*.api.test.ts.
+
+7. `app/tests/mutations/B3.json` (not blocking)
+   - what: The plan names watched-fail letters (g), (h), (l), (ee) and (jjj) for this group. They are registered as b3-g4-parity-*, b3-g4-an-listed, b3-g4-cl-41, b3-g4-cl-kinds and b3-g4-ss-owner-brokerage, not as b3-g, b3-h, b3-l, b3-ee and b3-jjj, while earlier groups used the letter ids (b3-kkk, b3-dd). The mapping is only in the log. Also, (ee) mutates the Zod list instead of the SQL check the plan names. It is equivalent for this equality test, but different from the plan.
+   - evidence: node -e listing of ids: no b3-g, b3-h, b3-l, b3-ee or b3-jjj; log B3.md g4 paragraph 'Plan letters covered'.
+
+8. `workspace/05-plans/logs/B3.md` (not blocking)
+   - what: Small inconsistency. The log says 'the last full pass printed WATCHED-FAIL OK for 32', but the author's report says '32 ... on the first full pass' and then two were fixed. The final state reproduces 34 of 34 OK, so the count claim is harmless, but the log sentence is muddled.
+   - evidence: My replay: 34 of 34 WATCHED-FAIL OK.
