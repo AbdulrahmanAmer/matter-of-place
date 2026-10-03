@@ -322,6 +322,19 @@ Rehearsal of the rollback step (DO-09, step 7b): `gh workflow run deploy.yml --r
 runs `dev` alone with `SMOKE_FORCE_FAIL=1`, so its smoke prints `smoke forced to fail (SMOKE_FORCE_FAIL)`, the rollback
 step runs, and `bunx wrangler deployments list --name matter-of-place-dev` shows the previous version active. A second
 run with `rehearse_rollback=false` deploys the current commit again. `production` never runs on `workflow_dispatch`.
+The rehearsal needs a version to return to: when `deployments list` answers code 10007, dispatch
+`rehearse_rollback=false` once first (GOTCHAS P-155).
+
+Rehearsed on 2026-10-03 from `main` at `da52ad3b` (all three runs dispatched with `gh workflow run deploy.yml --ref main`):
+
+| Run         | Input                   | Result        | What it showed                                                                                                                                                                                                               |
+| ----------- | ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 37119539045 | `false` (at `e6f05e98`) | green         | `serving: none`; the first deploy of `matter-of-place-dev`, which then served `832ce8d2-9fd8-47ed-be4c-5772626bf2bf`                                                                                                         |
+| 37119653705 | `true`                  | red, as meant | `serving: 832ce8d2-...`, deploy of `ddf1299f-...`, `smoke forced to fail (SMOKE_FORCE_FAIL)`, then `rolled back to 832ce8d2-9fd8-47ed-be4c-5772626bf2bf`; `grep -c "smoke failed"` on its log prints 2; `production` skipped |
+| 37119768750 | `false`                 | green         | `serving: 832ce8d2-...`, deploy of `68eaa0bd-...`, `smoke: OK`; the secrets deployment `fb3fce71-88bc-43d9-b24c-7ecd939a0307` serves 100 percent                                                                             |
+
+After the red run, `bunx wrangler deployments list --name matter-of-place-dev` showed its newest deployment with the
+message `smoke failed da52ad3b8124d1d26a44ab6d66056f9d9d1a10e7` and `832ce8d2-9fd8-47ed-be4c-5772626bf2bf` at 100 percent.
 
 ### By hand, from the owner's shell
 
