@@ -7,5 +7,6 @@
     "tests/**/*.{ts,tsx}"
   ],
   "ignore": ["src/db/types.ts"],
-  "ignoreBinaries": ["psql"]
+  "ignoreBinaries": ["psql"],
+  "ignoreDependencies": ["@fontsource-variable/*"]
 }
