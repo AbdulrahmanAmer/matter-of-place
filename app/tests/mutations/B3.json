@@ -1484,5 +1484,35 @@
     "replace": "  if (catalogMemo !== undefined && catalogFor >= state.catalogVersion) {",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*reads the snapshot again when the version goes down"
+  },
+  {
+    "id": "b3-g4-parity-properties",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    lotAcres: row.lot_acres,\n",
+    "replace": "    lotAcre: row.lot_acres,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled properties and no difference"
+  },
+  {
+    "id": "b3-g4-parity-markets",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    intro: row.intro,\n    places: row.places,\n    regions: children.regions.map",
+    "replace": "    intro: row.intro,\n    places: [],\n    regions: children.regions.map",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /markets with the bundled markets and no difference"
+  },
+  {
+    "id": "b3-g4-parity-stories",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    deck: row.deck,\n",
+    "replace": "    deck: row.title,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /stories with the bundled stories and no difference"
   }
 ]
