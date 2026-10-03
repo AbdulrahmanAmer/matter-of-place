@@ -101,7 +101,9 @@ ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the re
 const closing = [].concat(a.closeOut || []).map((c) => ({ id: c.id, steps: c.steps, title: c.title, files: [], proof: `every proof of plan steps ${c.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(c.critical), needsOrchestrator: '', openDefects: c.defects }))
 
 phase('Size')
-const sized = await agent(`${RULES}
+// Ruling H53: a premade sizing (workspace/05-plans/sizing/<slice>.json, written and reviewed by the orchestrator) is
+// passed as args.sizing and replaces the sizing agent; it is the same on every run and its briefs come from plan-brief.mjs.
+const sized = a.sizing ? a.sizing : await agent(`${RULES}
 
 You are sizing slice ${slice} for the builders. Read-only: change nothing.${closing.length ? `\nLeave out plan step${closing.length > 1 ? 's' : ''} ${closing.map((c) => c.steps).join(' and ')}: another builder is closing ${closing.length > 1 ? 'them' : 'it'} before your groups run, so treat ${closing.length > 1 ? 'them' : 'it'} as done.` : ''}
 Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/workspace/05-plans/ASSUMED.md section E, and the tail of ${logPath} if it exists (earlier groups may already be done: leave those out).
@@ -131,7 +133,7 @@ const buildPrompt = (g, defects) => `${RULES}
 
 You are building group ${g.id} of slice ${slice}: "${g.title}" (plan steps ${g.steps}).
 Your brief, quoted from the plan ${planPath} (open the plan itself only for a section the brief names and does not quote):
-${g.brief || '(no brief: read the plan sections Contract, Invariants and steps ' + g.steps + ')'}
+${g.brief || '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs ' + slice + ' --steps "' + g.steps.replace(/\s*(-|to)\s*/g, ',') + '" --files "' + g.files.join(',') + '"` from ' + ROOT + ' and read its output first)'}
 
 Then read the rule index \`node workspace/05-plans/standards-index.mjs\` (one line per rule of STANDARDS.md; open the full rule in STANDARDS.md only when its line concerns your files) and ${APP}/AGENTS.md, then only the spec sections the brief cites and the files you will touch.
 Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
@@ -147,7 +149,7 @@ const reviewPrompt = (g, built) => `${RULES}
 
 You are a fresh reviewer for group ${g.id} of slice ${slice} ("${g.title}", plan steps ${g.steps}). You did not write this code and you were not given the author's reasoning. Read-only: do not edit, commit or push.
 The contract, quoted from the plan ${planPath} (open the plan only for a section the brief names and does not quote):
-${g.brief || '(no brief: read the plan sections Contract, Invariants and steps ' + g.steps + ')'}
+${g.brief || '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs ' + slice + ' --steps "' + g.steps.replace(/\s*(-|to)\s*/g, ',') + '" --files "' + g.files.join(',') + '"` from ' + ROOT + ' and read its output first)'}
 The branch is ${branch}; see what changed with \`git -C "${ROOT}" diff ${BASE}...${branch} --stat\` and read the changed files.
 Working style (ruling H52): batch independent commands in one call; run long commands through \`node workspace/05-plans/quiet.mjs -- <command>\` (summary when green, the failing part in full when red); replay only this group's new registry entries plus the registry's own consistency check, the whole registry is CI's job.
 The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs, unproven: built.unproven, watchedFail: built.watchedFail, costTime: built.costTime, gotchasAdded: built.gotchasAdded }, null, 1)}
