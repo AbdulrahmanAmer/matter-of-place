@@ -9,10 +9,10 @@ What a developer needs to run the frontend, and the earlier sketch of the backen
 | [architecture/overview.md](architecture/overview.md)     | System context, runtime topology, request and write flows (Mermaid)                                                      |
 | [architecture/frontend.md](architecture/frontend.md)     | Folder map, module boundaries, route inventory, conventions                                                              |
 | [architecture/services.md](architecture/services.md)     | The API contract the frontend already speaks: endpoints, payloads, errors                                                |
-| [architecture/data-model.md](architecture/data-model.md) | Domain entities and the entity-relationship diagram                                                                      |
+| [architecture/data-model.md](architecture/data-model.md) | Where the data model lives: domain types, migrations, architecture section 3                                             |
 | [architecture/caching.md](architecture/caching.md)       | Cache layers, TTLs and invalidation so the free Supabase tier is enough                                                  |
-| [database/schema.sql](database/schema.sql)               | Postgres schema for Supabase: tables, enums, indexes, RLS                                                                |
-| [database/schema.md](database/schema.md)                 | Table-by-table notes and how each maps to the frontend types                                                             |
+| [database/schema.md](database/schema.md)                 | The migrations are the truth about the database                                                                          |
+| [runbooks/database.md](runbooks/database.md)             | Operating the database: push, reset, seed, buckets, retention, launch switch                                             |
 | [deploy/cloudflare.md](deploy/cloudflare.md)             | Superseded stub: pointer to the approved stack, environment variable table                                               |
 | [decisions/](decisions/)                                 | Architecture decision records                                                                                            |
 | [brief/master-plan.md](brief/master-plan.md)             | Original brief (scope since narrowed: California, New York and Florida only, no developments, no global, no memberships) |
