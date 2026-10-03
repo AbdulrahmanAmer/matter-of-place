@@ -14,8 +14,13 @@ const leaf = (inner: z.ZodType<string, z.ZodTypeDef, string>) =>
   z.preprocess(unset, inner.nullable()).default(null);
 
 const isHttpsOn = (value: string, host: string, pathPrefix: string): boolean => {
-  const url = URL.parse(value);
-  if (url === null || url.protocol !== "https:" || url.username !== "" || url.password !== "") {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" || url.username !== "" || url.password !== "") {
     return false;
   }
   const onHost = url.hostname === host || url.hostname.endsWith(`.${host}`);

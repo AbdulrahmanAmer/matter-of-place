@@ -773,6 +773,7 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
+- hit again: 2026-10-04, B16 g1 retry: a stray `python3 - <<EOF` with an empty body hung 120 seconds and moved to the background; nothing it was meant to do needed python.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1613,6 +1614,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
 - rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
 - proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
+- severity: warn
+- symptom: B16 g1's `retentionPeriods` copied the Files-list literal (`analytics_events: { months: 13 }`, no `contacts_anonymise`) and the fresh reviewer rejected it: B2 seeds `analytics_events` at 90 days (ruling H16) and `contacts_anonymise` at 24 months; the 13 months belong to the separate key `analytics_daily` (B8 step 8a). The only unit test checked units, not values, so it passed.
+- cause: the Files line predates H16 and H32; Contract 8 and STANDARDS R25 state the later numbers. The same constant is read by the privacy page and by a db test, so a wrong number would have printed a false retention period.
+- rule: a constant that mirrors seeded rows is written from the seed migration, and a unit test reads that migration and compares key by key (`retentionPeriods > equal the periods B2 seeds`); when a plan literal and a ruling disagree, the ruling and the rows win. A migration that is on no main yet is changed by deleting it and re-running `bun run db:fn <name>` (a new timestamp); `check-migrations.mjs` throws ENOENT on the deleted file until the deletion is committed.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only retention-seed` → `WATCHED-FAIL OK B16:retention-seed` (measured 2026-10-04, B16 g1 retry).
 - added: 2026-10-04
 
 ## P-713 · `watchfail.mjs --registry tests/mutations` replays every registry of the repository, and `--changed` sees only committed work

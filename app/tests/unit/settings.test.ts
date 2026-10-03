@@ -103,6 +103,7 @@ describe("siteSettingsSchema", () => {
     expect(rejected(social({ instagram: "https://notinstagram.com/example" }))).toBe(true);
     expect(rejected(social({ instagram: "https://u:p@instagram.com/example" }))).toBe(true);
     expect(rejected(social({ instagram: "https://instagram.com" }))).toBe(true);
+    expect(rejected(social({ instagram: "instagram.com/example" }))).toBe(true);
     expect(rejected(social({ instagram: "@example" }))).toBe(true);
     expect(rejected(social({ instagram: "https://instagram.com/example" }))).toBe(false);
   });
@@ -170,5 +171,21 @@ describe("retentionPeriods", () => {
     expect(Object.values(retentionPeriods).map((period) => Object.keys(period).length)).toEqual(
       Object.keys(retentionPeriods).map(() => 1),
     );
+  });
+
+  it("equal the periods B2 seeds in retention_policies", () => {
+    const seeded = [
+      ...SEED_SQL.matchAll(/\(\s*'(\w+)',\s*'\w+',\s*interval '(\d+) (days|months)'/g),
+    ].map(([, key = "", amount = "", unit = ""]) => ({ key, period: { [unit]: Number(amount) } }));
+    expect(seeded.map(({ key }) => key)).toEqual([
+      "declined_submission_media",
+      "inquiries_anonymise",
+      "analytics_events",
+      "unconfirmed_subscribers",
+      "contacts_anonymise",
+    ]);
+    for (const { key, period } of seeded) {
+      expect(retentionPeriods).toHaveProperty([key], period);
+    }
   });
 });

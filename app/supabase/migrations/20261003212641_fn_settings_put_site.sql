@@ -18,7 +18,7 @@ declare
 begin
   select s.value into v_before from public.settings s where s.key = 'site' for update;
   if not found then
-    raise exception 'settings_site_missing' using errcode = 'P0002';
+    raise exception 'not_found' using errcode = 'P0002';
   end if;
 
   -- The version bump is B2's trigger on settings, in this same transaction (`site` is a public key).

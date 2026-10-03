@@ -66,8 +66,8 @@
     "id": "instagram-https",
     "test": "tests/unit/settings.test.ts",
     "file": "src/domain/settings.ts",
-    "find": "url === null || url.protocol !== \"https:\" ||",
-    "replace": "url === null ||",
+    "find": "if (url.protocol !== \"https:\" ||",
+    "replace": "if (",
     "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
     "expect": "FAIL .*> siteSettingsSchema > takes an Instagram address"
   },
@@ -151,5 +151,23 @@
     "replace": "rate_limits: { hours: 25, days: 1 },",
     "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
     "expect": "FAIL .*> retentionPeriods > give each key exactly one unit"
+  },
+  {
+    "id": "retention-seed",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/retention.ts",
+    "find": "analytics_events: { days: 90 },",
+    "replace": "analytics_events: { months: 13 },",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> retentionPeriods > equal the periods B2 seeds"
+  },
+  {
+    "id": "url-unparsable",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "  } catch {\n    return false;\n  }",
+    "replace": "  } catch {\n    return true;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > takes an Instagram address only as https"
   }
 ]
