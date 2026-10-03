@@ -1201,6 +1201,7 @@ Entry template
 - rule: one red `check` whose only message is a worker-start timeout is not a code failure: rerun the test step once and quote both runs (P-322 says the same of the database project); a case that fails the same way twice is real.
 - proof: `grep -n "Timeout waiting for worker to respond" workspace/05-plans/logs/B2.md` finds the g10 review's first run (measured 2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-04, B14 g1 review: `bun run check` exited 1 on `[vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts ... Timeout waiting for worker to respond` while another lane ran; `bun run test` alone then passed 49 files. The same review's combined audit-tests plus registry-replay call passed the 600 s tool ceiling (P-712). Proof: `grep -c "hit again: 2026-10-04, B14 g1 review" GOTCHAS.md` prints 1.
 
 ## P-331 · An agent shell can hold `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` of another project, and `serviceClient()` prefers them to the dev profile
 - symptom: B2 g11's first `bun run seed -- --target dev --mode full --images skip` printed `lock mop-dev-tests held` and then `seed: markets upsert failed: Could not find the table 'public.markets' in the schema cache`, three times, although `curl` with `DEV_SUPABASE_SERVICE_ROLE_KEY` read `markets` on mop-dev with 200 (`[]`). A `NOTIFY pgrst, 'reload schema'` changed nothing.
