@@ -214,3 +214,16 @@ None of these blocks the group. The reviewer's gotcha item went into the bank (P
 
 5. File `app/tests/unit/variants.test.ts`. Weakness, not a rule break. 'keeps the hero WebP under 400 KB' measures a fixture whose hero is 19,442 bytes, about 5% of the bound. It goes red only under a contrived sharpened lossless mutation, so it would not catch a realistic quality regression on real photographs. The author banked this as P-333. On a real photograph the bound stays UNPROVEN until the first real property is stored.
    Evidence: The CLI run printed 'v/test/0-4692be93/hero.webp  1600x1067  19442 bytes'. The registry entry g12-variants-hero-weight replaces the encode with sharpen(...).webp({ lossless: true, effort: 0 }).
+
+## g11 · steps 12
+
+None of these blocks the group. The three gotcha items went into the bank (P-325 eighth hit, P-310 hit again, P-337 rule corrected), not here.
+
+1. File `app/scripts/db-reset-dev.mjs`. This is the orchestrator's file, not this group's, and the author also logged it. resetLinked calls emptyDatabase (line 134) before run(['scripts/db-push.mjs']) (line 135). A checkout with project-ref but no pooler link therefore drops public on the shared mop-dev before the push fails. The fix is to check the pooler link, or run a dry-run push, before emptying.
+   Evidence: Suspected from reading lines 108-139. The reviewer did not run the destructive form. The previous reviewer measured the wipe (P-337 hit-again line).
+
+2. File `app/tests/db/snapshot-budget.db.test.ts`. Carried forward from the author's own follow-up. Under KEEP_FIXTURE=1 the test commits the deletion of the seeded catalog, and the plan does not say so.
+   Evidence: Author's log, second re-review block, follow-ups line. Not re-run, because it would empty mop-dev.
+
+3. File `app/tests/mutations/B2.json`. Carried forward from the author's own follow-up. Entry g11-rls-own-row runs `seed --target dev`. B4's CI replay (`--changed`) must change it to --target local or to a stack-aware step.
+   Evidence: `grep -n g11-rls-own-row app/tests/mutations/B2.json` gives line 2806. Read, not replayed.
