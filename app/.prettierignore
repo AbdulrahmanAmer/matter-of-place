@@ -11,3 +11,4 @@ playwright-report
 test-results
 tests/WATCHED-FAIL.md
 public/fonts/LICENSES.md
+src/db/types.ts

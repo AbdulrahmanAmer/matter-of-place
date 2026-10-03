@@ -1,0 +1,51 @@
+// The database rows and enums under their domain names, derived from the generated types (G-004). A table or an enum
+// changes in a migration, then `bun run gen:types`; nothing here is typed by hand.
+import type { Enums, Tables } from "../db/index.ts";
+
+export type AgentKeyRow = Tables<"agent_keys">;
+export type AnalyticsEventRow = Tables<"analytics_events">;
+export type AuditLogRow = Tables<"audit_log">;
+export type CampaignRow = Tables<"campaigns">;
+export type CampaignReportRow = Tables<"campaign_reports">;
+export type ContactRow = Tables<"contacts">;
+export type DeclineReasonRow = Tables<"decline_reasons">;
+export type InquiryRow = Tables<"inquiries">;
+export type MarketRow = Tables<"markets">;
+export type MarketGuideEntryRow = Tables<"market_guide_entries">;
+export type MarketNoteRow = Tables<"market_notes">;
+export type PaymentRow = Tables<"payments">;
+export type PiiColumnRow = Tables<"pii_columns">;
+export type PropertyRow = Tables<"properties">;
+export type PropertyFeatureRow = Tables<"property_features">;
+export type PropertyMediaRow = Tables<"property_media">;
+export type PropertyRelatedRow = Tables<"property_related">;
+export type RedirectRow = Tables<"redirects">;
+export type RegionRow = Tables<"regions">;
+export type RepresentativeRow = Tables<"representatives">;
+export type RetentionPolicyRow = Tables<"retention_policies">;
+export type SettingRow = Tables<"settings">;
+export type SlugHistoryRow = Tables<"slug_history">;
+export type StoryRow = Tables<"stories">;
+export type SubmissionRow = Tables<"submissions">;
+export type SubmissionMediaRow = Tables<"submission_media">;
+export type SubscriberRow = Tables<"subscribers">;
+export type UserRoleRow = Tables<"user_roles">;
+
+export type AcceptedState = Enums<"accepted_state">;
+export type ActorKind = Enums<"actor_kind">;
+export type AppRole = Enums<"app_role">;
+export type CampaignTier = Enums<"campaign_tier">;
+export type ChannelStatus = Enums<"channel_status">;
+export type EditorialState = Enums<"editorial_state">;
+export type ExposurePackage = Enums<"exposure_package">;
+export type InquiryIntent = Enums<"inquiry_intent">;
+export type InquiryState = Enums<"inquiry_state">;
+export type ListingStatus = Enums<"listing_status">;
+export type MediaOrientation = Enums<"media_orientation">;
+export type PaymentMethod = Enums<"payment_method">;
+export type PaymentStatus = Enums<"payment_status">;
+export type PropertyType = Enums<"property_type">;
+export type StoryCategory = Enums<"story_category">;
+export type SubmissionSource = Enums<"submission_source">;
+export type SubmissionState = Enums<"submission_state">;
+export type SubmitterKind = Enums<"submitter_kind">;

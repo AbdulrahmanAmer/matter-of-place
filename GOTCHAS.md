@@ -62,12 +62,13 @@ Entry template
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-004 · Field names live in three files and must change together
-- paths: app/src/domain/**, app/supabase/migrations/**
+- paths: app/src/domain/**, app/supabase/migrations/**, app/src/db/types.ts
 - severity: warn
-- symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error.
-- cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
-- rule: change the domain type, the Zod contract and the SQL column in the same commit; grep the old name across all three before finishing.
-- proof: `grep -rn "<oldName>" src/domain docs/database` → no hits.
+- symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error; an enum value added in a migration is missing from `contracts.ts` (the sketch's `Awaiting Payment` and `editorialRoles` outlived the schema).
+- cause: `src/domain/*.ts` (camelCase) = API JSON = the columns of `supabase/migrations` (snake_case) = the generated `src/db/types.ts`; the HTTP adapter has no mapping layer by design (ADR 0002).
+- rule: change the migration, the regenerated types, the domain type and the Zod contract in the same commit. Every enum a domain list mirrors is a pair in `src/domain/enums.check.ts`; a new enum or list adds its pair there.
+- proof: `cd app && bun run gen:types && bun run typecheck` exits 0, and after a value is added to `submission_state` in `src/db/types.ts` it fails in `src/domain/enums.check.ts` (`Type 'false' does not satisfy the constraint 'true'`); `grep -rn "<oldName>" src` → no hits.
+- enforced-by: src/domain/enums.check.ts
 - added: 2026-09-30
 
 ## G-006 · `VITE_*` variables ship to the browser
@@ -636,7 +637,7 @@ Entry template
 - added: 2026-10-02
 
 ## P-074 · A plan step called a module that a later step creates
-- symptom: B1b step 3 has `pipeline.ts` call `captureException` from `sentry.ts`, which step 4 creates (`ls app/src/server/lib/` has no `sentry.ts` at step 3), so the step could not build or be tested as written.
+- symptom: B1b step 3 has `pipeline.ts` call `captureException` from `sentry.ts`, which step 4 creates (`ls app/src/server/lib/` has no `sentry.ts` at step 3), so the step could not build or be tested as written. Hit again in B2 g9: step 9's proof compares the buckets and `config.toml` with `uploadLimits.maxBytes` and `uploadLimits.types` of `contracts.ts`, which step 10 creates; `uploads.db.test.ts` carries a local copy under `// STUB(B2 step 10)` (the `stubs` gate scans only `src`, `supabase` and `scripts`, so the log names it for step 10).
 - cause: the plan listed the file contents of one step and the order of steps separately, and nobody ran the imports against the order.
 - rule: when a step needs something a later step creates, give the dependency to the caller as a member of the injected `deps` (here `report`), carry a STUB marker with the replacing step on the line above the stand-in (STANDARDS R04, C04), and say so in the slice log. Never create the later file early with a guess of its contents.
 - proof: `git grep -n "STUB(B1b" -- app/src/start.ts` → the marker above `report`; `git grep -c "captureException" -- app/src` → `1` (that marker line only) until step 4 replaces the stand-in.
@@ -957,11 +958,12 @@ Entry template
 - added: 2026-10-03
 
 ## P-312 · Prove an unmerged migration inside each db test's rolled-back transaction, and pass a large prelude through node, not bun
-- symptom: B2 g4 could not run its database proofs the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1) and B4's CI `db` job does not exist yet. In B2 g5, with migrations 4 to 6 as one 35,678-character prelude, `bunx vitest run --project db ...` printed nothing and exited 0; stripped of comment lines (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`, and `function-source.db.test.ts` then reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`. In B2 g6 migrations 4 to 8 made a 43,805-character prelude, which the earlier "32 KB limit" said could not be passed.
+- symptom: B2 g4 could not run its database proofs the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1) and B4's CI `db` job does not exist yet. In B2 g5, with migrations 4 to 6 as one 35,678-character prelude, `bunx vitest run --project db ...` printed nothing and exited 0; stripped of comment lines (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`, and `function-source.db.test.ts` then reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`. In B2 g6 migrations 4 to 8 made a 43,805-character prelude, which the earlier "32 KB limit" said could not be passed. Hit again in B2 g9: the plan's own proof `bunx vitest run --project db tests/db/rls.db.test.ts` with the 28,765-character prelude of migrations 9, 10, 11 and the fn migration printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`; the same through node passed.
 - cause: the harness runs `MOP_MUTATION_SQL` first inside the rolled-back transaction of `withRollback` (T-07), and Postgres DDL is transactional, so a migration's whole text can be that SQL. bun on Windows crashes on a very large environment variable; node does not: 32,767 characters is the limit of `SetEnvironmentVariable`, not of the block `CreateProcess` passes, and Git Bash `export` and `spawnSync(process.execPath, ..., { env })` hand the whole value on. Stripping with `grep -v '^\s*--'` also deleted the comment lines inside `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
 - rule: until the `db` job runs, prove an unmerged migration with `MOP_MUTATION_SQL="$(cat supabase/migrations/<file>.sql)"` on the command (dev profile and `env -u CLOUDFLARE_API_TOKEN`, P-310), replay `sql` watched-fails with that file prepended, and say in the log that the proof is mop-dev inside rolled-back transactions and the CI job is still UNPROVEN. Run a prelude over about 15 KB through `node node_modules/vitest/vitest.mjs run --project db ...`, spawn replays with `spawnSync(process.execPath, args, { env })` (never `shell: true`), build the prelude with a script that drops comment and blank lines only outside `$$` bodies, and keep every migration the tests read in it. Without the prelude, `function-source.db.test.ts` fails on mop-dev for the new function files until the migration is pushed from `main`. Two test files that create the same tables wait on each other's catalog rows: keep the files few, or pass `--no-file-parallelism` when a run times out on `lock_timeout`.
 - proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t`; at B2 g6, with the 43,805-character prelude exported, `node -e "console.log(process.env.MOP_MUTATION_SQL.length)"` → `43805` and the db project run through node gave `Tests  2 failed | 144 passed (146)`, the two reds being P-316's stray function (measured 2026-10-03).
 - merged: P-314, P-317
+- Hit again in B2 g9 review, and the remedy above is not enough: with the 28,765-character prelude the whole db project timed out at random 30 s cases (`Tests  4 failed | 196 passed (200)`, all `Test timed out in 30000ms`: gate.db.test.ts Invoice Issued without acceptance, G60, draft to archived; public-reads carries only the published property). `--no-file-parallelism` still timed out, on other cases (`publish_incomplete without place 30006ms`, `publish_incomplete without hero_image 30001ms`), while `gate.db.test.ts` alone gave `Tests  30 passed (30)`. The builder's `200 passed (200)` was a lucky run, not a stable proof. Rule added: with a prelude over about 15 KB, prove a group file by file, one `vitest run --project db <file>` per file, and quote each file's own count; a whole-project green is reported with its rerun history (P-322), never as the proof alone. The review cost about 15 minutes.
 - added: 2026-10-03
 
 ## P-315 · A plan's proof grep for the old `agent_*` names matches the `listing_agent_name` column the same step creates, and `git grep` cannot see the new migration
@@ -1382,4 +1384,79 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: vitest starts one forks worker per test file; with several lanes building and the laptop saturated, a worker did not answer in time. The failure comes from starting the worker, not from an assertion in the file it names.
 - rule: run `bun run check` in the background (`run_in_background`, output to a log, a bounded poll loop; P-027), never in the foreground. When the only failure is the worker-start error, re-run the test stage alone (`bun run test`) before calling the gate red; a failure that names an assertion is a real red and is never re-run until green. Report both runs.
 - proof: `grep -c "Failed to start forks worker" GOTCHAS.md` → at least `1` (this entry); `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test` → `quiet: ok` on a quiet laptop (2026-10-03).
+- added: 2026-10-03
+
+## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
+- paths: app/supabase/sql/functions/**, app/supabase/migrations/**
+- severity: warn
+- symptom: B2 g8's snapshot fixture could not publish a story: `error: record "new" has no field "region_slug"` from `enforce_publish_gate() line 15 at IF`. On main since migration 8, no story could be published by anyone; `gate.db.test.ts` only checked that the trigger exists on `stories`.
+- cause: the completeness check was one condition, `tg_table_name = 'properties' and (new.region_slug is null or ...)`. PL/pgSQL resolves every `new.<field>` the expression names before SQL evaluates it, so the `and` never short-circuits the missing field on a `stories` row.
+- rule: in a trigger function attached to more than one table, put a table's own columns inside a nested `if tg_table_name = '<table>' then ... end if;`, and give every table that uses the function a test that runs the branch on it (publish a story, not only list the trigger).
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin; insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x') on conflict (slug) do nothing; insert into public.stories (slug, title, deck, category, market_slug, image, editorial_state, published_at) values ('test-story-probe', 'x', 'x', 'Places', 'california', 'test/a.webp', 'published', now()); rollback;` prints `record "new" has no field "region_slug"` on main before migration `20261003082557_fn_enforce_publish_gate_stories.sql`; the watched-fail `g8-story-publish` of `tests/mutations/B2.json` replays it (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-320 · A group's file list from `plan-brief.mjs` can omit files its own step requires: the function files of new functions and the manifest exports its proof reads
+- symptom: B2 g8's brief named six files. Step 8's proof compares key sets with `publicPropertyKeys`, `publicStoryKeys` and `publicMediaKeys` of `tests/db/schema-manifest.ts`, which did not export them, and migration 9 creates `bump_catalog_version` and `tg_bump_catalog_version`, whose `supabase/sql/functions/<name>.sql` files (invariant 19, and the plan's own watched-fail (tt)) were not in the list; `function-source.db.test.ts` would have gone red on them. The plan's index list also named six indexes migration 4 already holds (`properties_market_idx`, `property_media_idx`, `regions_market_idx`, `market_notes_market_idx`, `market_guide_entries_market_idx`, `slug_history_property_idx`) and two that a primary key serves.
+- cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
+- rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
+- proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
+- symptom: B2 g8's first run of `renaming a draft's slug bumps it once` received `2`.
+- cause: the rename runs `delete from public.slug_history where slug = new.slug` (usually no row) and then the insert of the old slug; a `for each statement` trigger fires for both statements whether or not they touch a row.
+- rule: a catalog-version trigger on a table that a function writes with a guard statement before the real one is `for each row`, so a statement that matches nothing does not bump; `slug_history` is the one row-level plain trigger of migration 9, and the watched-fail `g8-slug-rename` puts the statement form back and goes red.
+- proof: from `app/`, `MOP_PRELUDE=<migration 9 and the fn migration> node <replay> g8-slug-rename` prints `× renaming a draft's slug bumps it once` with `expected 2 to be 1` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-322 · Database tests on mop-dev time out at 30 s or hit `lock timeout` in bursts, and pass on the next run unchanged
+- symptom: in B2 g8, four runs of the same unchanged files gave `Test timed out in 30000ms` on one to five cases and `canceling statement due to lock timeout` on another, then `17 passed (17)` and `18 passed (18)` on rerun; a single case that took 30 s took 3 s alone a minute later. Once one case times out, the next ones often time out too.
+- cause: not proven. Observed: every connection goes through Supavisor (`application_name` `Supavisor` in `pg_stat_activity`), vitest does not cancel a timed-out case, so its transaction keeps its locks while the next case starts, and other lanes run db tests on the same project.
+- rule: read a burst of 30 s timeouts as the shared database, not the code: look at `pg_stat_activity` for other sessions, rerun once, and report the rerun with the first output. A case that fails the same way twice is a real failure. Never raise `testTimeout` to hide it.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
+- symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
+- cause: Postgres infers one type per parameter and refuses two; jsonb stores keys sorted by length then bytes, so `{"w":..,"h":..}` comes back as `{"h":..,"w":..}`.
+- rule: cast a parameter once per use (`$3::public.editorial_state`, `$3::text`), and compare jsonb values as parsed objects (`toEqual(JSON.parse(...))`), never as strings.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select jsonb_build_object('w', 1, 'h', 2)"` → `{"h": 2, "w": 1}` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-324 · A db:fn fix made mid-slice gets today's migration timestamp, which is later than every migration the plan still has to add under a fixed name
+- symptom: B2 g8's fn migration `20261003082557_fn_enforce_publish_gate_stories.sql` sorts after the five names the plan still lists for B2 g9 and B3 (`20261001090900_rls.sql`, `20261001091000_storage.sql`, `20261001091100_settings_defaults.sql`, `20261001100000_public_write_functions.sql`, `20261001110000_coming_soon.sql`). After the merge `checkMigrations` answers `rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557` for each, and db-push refuses them as out-of-order. The plan's Files list, its "numbered 1 to 12" text and the "12 migrations" exit line go stale.
+- cause: `db:fn` stamps the migration with the clock, while the plan fixed the later names in advance. Invariant 17 allows renaming, so nothing broke, but nobody had listed the renames.
+- rule: before running `db:fn` mid-slice, `git grep` the plan for planned migration names newer than the main tip and older than today; if any exist, say in the log which names will have to be renamed after the fix merges and ask the orchestrator to update the plan before the next group starts. The other way, putting the fix inside an unmerged migration, conflicts with R19's db:fn path.
+- proof: from the tree root, `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md | sort -u` lists the planned names, and `ls app/supabase/migrations | tail -3` shows the fn migration stamped `20261003082557`, later than every one of them (measured 2026-10-03, B2 g8 review).
+- added: 2026-10-03
+
+## P-325 · The review brief's snapshot command and builder path use the snapshot folder where the script wants the lane root
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/db-review 2223e63` from `E:/mop-build/db-review`, which gave `cd: /e/mop-build/db-review: No such file or directory`; it also called `E:/mop-build/db-review` the builder's working folder.
+- cause: the script's argument is the lane root and it creates `<laneRoot>-review` itself (`const snap = ${laneRoot}-review`), so the folder does not exist before the first run. The brief generator substituted the snapshot path where the lane path belongs, in both places.
+- rule: a reviewer runs the script from the lane root with the lane root as argument: `node E:/mop-build/db/workspace/05-plans/review-snapshot.mjs create E:/mop-build/db <sha>`; it prints the snapshot folder. The brief generator names the lane root as the builder's folder and the snapshot only as the reviewer's. Fix the generator, not each brief.
+- proof: `sed -n '5p;21p' workspace/05-plans/review-snapshot.mjs` prints the usage line `create <laneRoot> <sha>` and `const snap = ${laneRoot}-review;` (measured 2026-10-03, B2 g8 review).
+- Hit again in B2 g9 review: the brief still passed the snapshot folder as the lane root and still said to run create and remove from that folder, which does not exist until create has run (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 45db5a3` gave `cd: /e/mop-build/db-review: No such file or directory`). The working form was `cd /e/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db 45db5a3`, and remove with `E:/mop-build/db`. The generator is still unfixed: fix the review brief in `.claude/workflows/build-slice.js` (it names review-snapshot.mjs), not each brief.
+- added: 2026-10-03
+
+## P-326 · `quiet.mjs` splits a quoted argument at its spaces, so `-t "as admin plus"` filters on `as`
+- symptom: B2 g9 ran `node workspace/05-plans/quiet.mjs -- node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts -t "as admin plus"` to run one case and got `Tests  9 failed | 1 passed | 4 skipped (14)`: every case whose name holds `as` ran, about 30 s instead of 3.
+- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`, and with `shell: true` Node joins the arguments with spaces without quoting them, so the shell sees `-t as admin plus`.
+- rule: through `quiet.mjs`, write a test-name filter without spaces (`-t "as.admin.plus"`, a regex dot matches the space), or run the command without `quiet.mjs` when an argument must keep a space.
+- proof: from the tree root, `node workspace/05-plans/quiet.mjs -- node -p process.argv.length "a b"` prints `3`, and with `"a.b"` prints `2` (measured 2026-10-03, B2 g9).
+- added: 2026-10-03
+
+## G-105 · In `format()`, a bare `%s` or `%L` after a numbered `%2$s` takes the argument after that one, not the next unused one
+- paths: app/tests/db/**, app/supabase/sql/functions/**
+- severity: warn
+- symptom: B2 g9's RLS probe built its insert as `format('insert into %s (%s) select %2$s from jsonb_populate_record(null::%1$s, %L)', p_table, v_columns, v_row)`, and every insert of every role answered `22P02` (invalid input syntax): the `%L` received the column list, not the row.
+- cause: Postgres `format` continues an unnumbered specifier from the position after the last argument used, numbered or not; after `%1$s` the next bare specifier is argument 2.
+- rule: once a format string uses a numbered specifier, number every specifier after it (`%3$L`).
+- proof: `cd app && bun run db:psql -- -Atc "select format('%s %2\$s %1\$s %L', 'a', 'b', 'c')"` prints `a b a 'b'`, and with `%3\$L` prints `a b a 'c'` (Postgres format docs; measured 2026-10-03, B2 g9).
+- added: 2026-10-03
+
+## P-327 · `gen:types` is an ops command, its determinism proof can pass on an unchanged file, and mop-dev only holds main's migrations
+- symptom: B2 g10 ran `bun run gen:types` in the shell that the db tests need (`eval "$(node scripts/load-env.mjs --profile dev)"`, `env -u CLOUDFLARE_API_TOKEN`) and got `supabase gen types exited 1`; the step's determinism proof (`cp src/db/types.ts supabase/.temp/types.prev.ts && bun run gen:types && git diff --no-index --exit-code ...`) still exited 0, because nothing had been rewritten. After the copy, `bun run check` failed in `eslint .` with `supabase/.temp/types.prev.ts was not found by the project service`. The file also lacks every function of migrations 9 to 12 (`public_state` is absent), because `mop-dev` holds only the migrations on `main`.
+- cause: `SUPABASE_ACCESS_TOKEN` is an ops name (`scripts/load-env.mjs` loads it only from `.env.ops` and `guardEnv()` refuses it in a db-test shell, P-310), and the dev profile has `DEV_SUPABASE_PROJECT_REF` only; the CLI reads the Management API with the token. ESLint's type-aware config lints every tracked-or-not `.ts` under `app/`, and `supabase/.temp/` was not ignored. The generator reads the cloud project, which an unmerged lane never pushes to (DB-01), so the committed file is what `main`'s schema produces until `main` pushes the rest.
+- rule: run `gen:types` in a shell loaded with the inline loader (`set -a; . <(tr -d '' < .env | grep -E '^[A-Z0-9_]+='); set +a`), never in the db-test shell, and read its `wrote src/db/types.ts` line before the diff: an exit 0 of the diff alone proves nothing. `supabase/.temp` is in the ESLint ignores. A lane's `src/db/types.ts` lacks the functions of its own unmerged migrations: regenerate it in the first pull request after `main` has pushed them (B4's `gen:types -- --local` diff is red until then), and say so in the log.
+- proof: `cd app && bun run gen:types` in the db-test shell prints `supabase gen types exited 1`, in the inline-loader shell `wrote src/db/types.ts`; `grep -c public_state src/db/types.ts` prints `0` on slice/b2 at B2 g10 while `grep -c "create or replace function public.public_state" supabase/migrations/20261001090800_catalog_version.sql` prints `1` (measured 2026-10-03).
 - added: 2026-10-03

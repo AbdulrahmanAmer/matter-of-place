@@ -129,3 +129,47 @@ None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and
 
 6. File `app/tests/db/function-source.db.test.ts`. Not this group's file. The test compares only the $$ body with pg_proc.prosrc. A migration whose header differs from the function file (security definer, search_path, signature, language) would pass, although invariant 19 says the 'same text'. For g6 the reviewer closed this gap by hand: the nine files equal the migration statements byte for byte.
    Evidence: DOLLAR_BODY regex in function-source.db.test.ts line 7; the reviewer's fncmp.mjs gives SAME for all nine files.
+
+## g8 · steps 8
+
+None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and became bank entries P-324 and P-325, not items here. Five remain.
+
+1. File `app/supabase/migrations/20261003082557_fn_enforce_publish_gate_stories.sql`. The db:fn timestamp, 2026-10-03, is later than every migration the plan still has to add under fixed names: B2's own migrations 10 to 12 (20261001090900_rls.sql, 20261001091000_storage.sql, 20261001091100_settings_defaults.sql), B3's 20261001100000_public_write_functions.sql and 20261001110000_coming_soon.sql. Once this group merges, migration-order refuses each of those names and db-push refuses them as out-of-order, so B2 g9 cannot land 20261001090900_rls.sql under the name in its Files list. Invariant 17 does allow renaming, so nothing is broken yet. But the plan's Files list, the 'numbered 1 to 12' text and the '12 migrations' exit line all go stale. The log and the bank do not mention it. The other option was to put the fix inside migration 9, which is unmerged, but that conflicts with R19's db:fn path. The orchestrator should decide which and update the plan before g9 starts. (The bank side is P-324.)
+   Evidence: I simulated the post-merge state with checkMigrations({mainPrefixes: [..., '20261003082557'], added: ['supabase/migrations/20261001090900_rls.sql', ...]}). It returned 'rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557' and the same for 091100_settings_defaults. `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md` lists the five planned names that are older than 20261003082557.
+
+2. File `workspace/05-plans/logs/B2.md`. Proof 4 cannot be re-run from the repository. `MOP_PRELUDE=... node ../scratch/g8-replay.mjs` names a scratch script that is not in the tree, and the MOP_PRELUDE variable appears nowhere in the repo. P-321's proof (`node <replay> g8-slug-rename`) depends on the same missing script. I reproduced the replay with my own script (prelude plus entry sql in MOP_MUTATION_SQL, 49 entries, all red), so the claim holds, but the command as written cannot be run. scripts/watchfail.mjs has no prelude option, so this will keep happening for every unmerged migration until CI's db job exists.
+   Evidence: `ls E:/mop-build/db-review/scratch` gave 'No such file or directory'. `grep -rn MOP_PRELUDE scripts tests/fixtures` found nothing.
+
+3. File `app/tests/mutations/B2.json`. Entry e-meta (the plan's (e), second half: 'the meta case bumps') goes red from recursion ('stack depth limit exceeded'), not because meta bumps. With the WHEN clause removed, every bump recurses, so the meta exclusion is not the thing that fails here. The exclusion is still covered in effect: g8-admin-invoice and g8-admin-caption_model add a key to the list and go red with insert:1, update:1 in the same parametrised case. Separately, the plan's (tt) names bump_catalog_version, but the registered tt still mutates refuse_hard_delete from an earlier group.
+   Evidence: Replay line: 'RED e-meta exit=1 | error: stack depth limit exceeded'. The e-meta sql is the same trigger recreation as e, without a WHEN clause.
+
+4. File `app/tests/db/catalog-version.db.test.ts`. No test fails if these migration 9 triggers are removed: the stories triggers (insert, update and delete of a published story), the regions, market_notes, market_guide_entries, property_media, property_features, property_related and representatives statement triggers, and the properties insert and delete triggers. Step 8's proof list does not ask for these cases, so this is a coverage gap, not a contract break. A dropped stories trigger would leave a story publish uncached until the next unrelated bump.
+   Evidence: Reading only: no case in catalog-version.db.test.ts or public-reads.db.test.ts measures catalog_version across a stories, regions, market_notes, market_guide_entries, property_features, property_related or representatives write.
+
+5. File `app/supabase/migrations/20261001090800_catalog_version.sql`. The slug_history trigger is `for each row`, which the log explains (P-321). A statement that touches several slug_history rows, for example the cascade when a property is deleted under retention, bumps once per row. The plan's Data changes item 9 says 'one bump per statement'. The only effect is extra cache invalidations, but that plan line is now stale.
+   Evidence: Reading only: 'create trigger slug_history_bump_catalog_version after insert or update or delete on public.slug_history for each row'.
+
+## g9 · steps 9
+
+None of these blocks the group. The two reviewer items that belong in the gotcha bank are "Hit again" sentences in P-312 and P-325 in `GOTCHAS.md`, not here.
+
+1. File `workspace/05-plans/STANDARDS.md`. R20 names tests/db/rls.db.test.ts as the enforcer of 'every function sets search_path = ''', but no test asserts it. Step 9's proof list does not ask for it, so this is a coverage gap for H1 step 3 or the orchestrator, not a g9 break.
+   Evidence: Grep of app/tests for search_path or proconfig finds only registry sql text, no assertion. Today all 22 files in app/supabase/sql/functions contain search_path = '' (a loop over the files printed no offender).
+
+2. File `app/tests/db/rls.db.test.ts`. The anon and authenticated privilege assertions cover relkind 'r' and 'p' only. Views, materialized views and sequences are not checked, while R20 says 'anon holds no privilege'. A later `grant select on <view> to anon` (B3b adds market_interest_counts) would pass.
+   Evidence: Read lines 214-244: `where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')`. There is no has_sequence_privilege check. The plan's step 9 text says 'every table', so this is not a contract break.
+
+3. File `app/supabase/migrations/README.md`. The README says 'Row-level-security policies ship in the same migration as the table they protect'. Migration 10 ships every policy for the tables of migrations 1 to 8, as B2's plan designs. The doc needs a carve-out for B2's migration 10.
+   Evidence: README.md line 3. 20261001090900_rls.sql lines 74-172 create policies on tables created in 20261001090100..090700.
+
+4. File `workspace/05-plans/B2.md`. Data changes 10 prescribes `alter default privileges for role postgres in schema public revoke all on tables, sequences, functions from anon, authenticated`, which is not valid SQL (one object type per statement). The author split it correctly and noted it in the log, but the plan line is stale and not banked as a plan-vs-reality mismatch.
+   Evidence: Brief line for Data changes 10, compared with 20261001090900_rls.sql lines 18-20 and 26-28. Log B2.md g9: 'The plan's comma lists ... are not valid SQL'.
+
+5. File `app/tests/db/uploads.db.test.ts`. The `// STUB(B2 step 10)` copy of uploadLimits sits under tests/, which the stubs gate does not scan. Only the slice log and P-074 remind step 10 to swap in the import from src/domain/contracts.ts. If step 10 forgets, invariant 13's four-place comparison silently compares against a local copy.
+   Evidence: `git grep 'STUB(B2 step 10'` finds uploads.db.test.ts:8 and log/GOTCHAS text only. src/domain/contracts.ts has no uploadLimits yet. B2.md line 132 assigns it to step 10.
+
+6. File `app/supabase/migrations/20261001090900_rls.sql`. g8 follow-up 1 (P-324) is still undecided. 20261001090900 and 20261001091000 sort before the unmerged 20261003082557 fn migration. migration-order passes only because the whole slice lands as one PR against a main whose tip is 20261001090700. The decision still owed before migration 12 and B3's fixed names is the orchestrator's.
+   Evidence: `node scripts/check-migrations.mjs` -> 'migration-order: OK (8 on main, 4 added)'. workspace/05-plans/logs/B2-followups.md g8 item 1.
+
+7. File `app/tests/db/rls.db.test.ts`. UNPROVEN, as the author says: the policies under PostgREST with a real JWT, and migrations 10 and 11 on B4's fresh CI stack. My simulation reduces the risk but does not replace CI: Supabase-like default privileges re-added before the prelude gave 14/14 green, and new objects failed closed. Next check: once merged and pushed from main, call PostgREST on mop-dev with the anon key (GET /rest/v1/markets, POST /rest/v1/rpc/save_property) and with a non-staff user JWT, and confirm 401/42501 or empty arrays.
+   Evidence: x-fresh-stack replay: 'exit=0 | Tests 14 passed (14)'. control-pre-applies: '2 failed' (x_pre detected). The probe uses set local role plus request.jwt.claims (rls.db.test.ts lines 110-113), not HTTP.
