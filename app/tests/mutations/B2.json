@@ -2360,5 +2360,217 @@
     "replace": "  ('environment', '\"development\"'::jsonb),\n  ('catalog_version', '1'::jsonb)\non conflict (key) do nothing;\n",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/catalog-version.db.test.ts -t although",
     "expect": "× .*starts catalog_version at 1 although the three public keys"
+  },
+  {
+    "id": "g11-rows-coordinates",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "`(${String(coordinates[1])},${String(coordinates[0])})`",
+    "replace": "`(${String(coordinates[0])},${String(coordinates[1])})`",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*writes coordinates as point"
+  },
+  {
+    "id": "g11-rows-price",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      price: property.price.toFixed(2),",
+    "replace": "      price: String(property.price),",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*writes coordinates as point"
+  },
+  {
+    "id": "g11-rows-hero-first",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "    { src: property.heroImage, alt: property.title, orientation: \"landscape\" as const },\n    ...property.gallery,",
+    "replace": "    ...property.gallery,\n    { src: property.heroImage, alt: property.title, orientation: \"landscape\" as const },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-variants-empty",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      variants: {},\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-editorial-state",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      campaign_tier: property.campaignTier,\n",
+    "replace": "      campaign_tier: property.campaignTier,\n      editorial_state: \"published\",\n",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-stable-id",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "  const hex = createHash(\"sha256\").update(parts.join(\"\\u0000\")).digest(\"hex\");",
+    "replace": "  const hex = createHash(\"sha256\").update(String(Math.random())).digest(\"hex\");",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*gives the same ids on every call"
+  },
+  {
+    "id": "g11-args-prod",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "  target: z.enum([\"dev\", \"local\"]),",
+    "replace": "  target: z.enum([\"dev\", \"local\", \"prod\"]),",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses .\"--target\",\"prod\". because there is no production target"
+  },
+  {
+    "id": "g11-args-unknown-flag",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "    if (!flag.startsWith(\"--\") || !Object.hasOwn(argsSchema.shape, name)) {",
+    "replace": "    if (!flag.startsWith(\"--\")) {",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses .\"--confirm-production\". because there is no production target"
+  },
+  {
+    "id": "g11-args-leading-dashes",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "  const pairs = argv[0] === \"--\" ? argv.slice(1) : argv;",
+    "replace": "  const pairs = argv;",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*reads .\"--\",\"--target\",\"dev\". as the defaults"
+  },
+  {
+    "id": "g11-args-local-host",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": " || new URL(apiUrl).hostname !== \"127.0.0.1\"",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses a local target whose API"
+  },
+  {
+    "id": "mmm-seed",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "  if (args.mode === \"full\") await guard({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*calls the guard before its first write in full mode"
+  },
+  {
+    "id": "g11-seed-guard-reference",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "  if (args.mode === \"full\") await guard({",
+    "replace": "  await guard({",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*does not call the guard in reference mode"
+  },
+  {
+    "id": "mmm-seed-text",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "guard = (options) => assertNotProduction(options)",
+    "replace": "guard = () => Promise.resolve()",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard"
+  },
+  {
+    "id": "qqq",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "({ onConflict, ignoreDuplicates: true as const })",
+    "replace": "({ onConflict })",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*does not call the guard in reference mode"
+  },
+  {
+    "id": "g11-seed-publish-where",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "        { slug, editorial_state: \"review\" },",
+    "replace": "        { slug, editorial_state: \"draft\" },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-publish-date",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "{ editorial_state: \"published\", published_at: publicationTime(property.publishedAt) },",
+    "replace": "{ editorial_state: \"published\" },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-markets-open",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "{ coming_soon: false }",
+    "replace": "{ coming_soon: true }",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-db-snapshot-budget",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "tests/db/seed.db.test.ts",
+    "find": "const SNAPSHOT_BUDGET_BYTES = 500_000;",
+    "replace": "const SNAPSHOT_BUDGET_BYTES = 1_000;",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*serves 16 properties in one snapshot"
+  },
+  {
+    "id": "g11-seed-db-status",
+    "kind": "sql",
+    "test": "tests/db/seed.db.test.ts",
+    "sql": "update public.properties set status = 'Active' where slug = 'oak-hill-residence'",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*leaves 16 published Illustrative properties"
+  },
+  {
+    "id": "g11-seed-db-market",
+    "kind": "sql",
+    "test": "tests/db/seed.db.test.ts",
+    "sql": "update public.markets set coming_soon = true where slug = 'florida'",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*reports every market open"
+  },
+  {
+    "id": "g11-seed-db-hero",
+    "kind": "sql",
+    "test": "tests/db/seed.db.test.ts",
+    "sql": "update public.properties set hero_image = 'x/y.webp' where slug = 'oak-hill-residence'",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*gives every property its hero image"
+  },
+  {
+    "id": "g11-seed-db-snapshot",
+    "kind": "sql",
+    "test": "tests/db/seed.db.test.ts",
+    "sql": "select set_config('mop.retention', 'on', true); delete from public.properties where slug = 'oak-hill-residence'",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*serves 16 properties in one snapshot"
   }
 ]
