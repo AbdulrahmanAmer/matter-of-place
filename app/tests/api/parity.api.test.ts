@@ -75,7 +75,7 @@ function named(
 }
 
 function show(value: unknown): string {
-  return JSON.stringify(value)?.slice(0, 80) ?? "undefined";
+  return value === undefined ? "undefined" : JSON.stringify(value).slice(0, 80);
 }
 
 /** The path of every leaf that differs, so a failure names the record and the field a mapper dropped or changed. */

@@ -106,6 +106,13 @@ const intentCopy: Record<Intent, IntentCopy> = {
   },
 };
 
+/** The `agent` path of a home its owner presents: the message goes to the owner, not to a representative. */
+const ownerCopy: Pick<IntentCopy, "eyebrow" | "title" | "lede"> = {
+  eyebrow: "CONTACT THE OWNER",
+  title: "Reach the owner.",
+  lede: "Your message goes to the owner of this home. Matter of Place is not a brokerage.",
+};
+
 const readForm = (form: HTMLFormElement, extra: ExtraField[] = []) => {
   const data = new FormData(form);
   const text = (key: string) => formText(data, key);
@@ -130,13 +137,17 @@ const readForm = (form: HTMLFormElement, extra: ExtraField[] = []) => {
 export function InquiryDialog({
   intent,
   subject,
+  presentedByOwner = false,
   onClose,
 }: {
   intent: Intent | null;
   subject?: InquirySubject;
+  presentedByOwner?: boolean;
   onClose: () => void;
 }) {
-  const copy = intent ? intentCopy[intent] : null;
+  const copy = intent
+    ? { ...intentCopy[intent], ...(intent === "agent" && presentedByOwner && ownerCopy) }
+    : null;
   const titleId = useId();
   const { state, run, reset, pending } = useAsyncAction((form: HTMLFormElement) =>
     services.inquiries.send(

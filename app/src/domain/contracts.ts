@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { marketSlugSchema } from "./market.ts";
 import { propertySchema } from "./property.ts";
 
 /**
@@ -176,16 +177,21 @@ export const uploadLimits = {
 export const currentRightsVersion = "2026-10-01";
 
 /**
+ * What a visitor may ask of their personal data: the values of the check on `subject_requests.kind` (G29).
+ */
+export const subjectRequestKinds = ["access", "deletion", "opt_out", "correction"] as const;
+
+/**
  * The HTTP statuses a redirect row may carry, the check on `redirects.status`.
  * @public
  */
 export const redirectStatuses = [301, 302, 307, 308] as const;
 
-/** Metadata for a photograph the submitter selected. Binary upload is a separate step (see docs). */
+/** Metadata for a photograph the submitter selected, within the limits of `uploadLimits`. The bytes follow in a separate request. */
 const submissionMediaSchema = z.object({
   name: z.string().min(1).max(255),
-  size: z.number().int().nonnegative(),
-  type: z.string().max(100),
+  size: z.number().int().nonnegative().max(uploadLimits.maxBytes),
+  type: z.enum(uploadLimits.types),
 });
 
 const optionalUrl = z
@@ -275,7 +281,7 @@ export const submissionSchema = z
     package: z.enum(exposurePackages),
     mediaBudget: z.number().nonnegative().optional(),
     rightsConfirmed: z.literal(true),
-    media: z.array(submissionMediaSchema).max(20).default([]),
+    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),
     sourcePath: z.string().max(300),
   })
   .superRefine(submitterRules);
@@ -285,6 +291,8 @@ export const subscriberSchema = z.object({
   email,
   /** Where the visitor subscribed (home, stories, property slug). */
   source: z.string().max(120),
+  /** The markets the visitor wants to hear about: the values of the check `subscribers_markets_subset`. */
+  markets: z.array(marketSlugSchema).max(3).default([]),
 });
 export type SubscriberInput = z.input<typeof subscriberSchema>;
 
@@ -331,3 +339,48 @@ export const conciergeAnswerSchema = z.object({
   action: z.literal("showing").optional(),
 });
 export type ConciergeAnswer = z.infer<typeof conciergeAnswerSchema>;
+
+/**
+ * One row of `GET /properties` (PERF-06): the fields a card, the filters and the matcher read, and the hero's `card`
+ * rendition. Never the gallery, the video or the long text. It is the Zod twin of `PropertyCard` in `property.ts`.
+ */
+export const propertyCardSchema = propertySchema
+  .pick({
+    slug: true,
+    title: true,
+    market: true,
+    region: true,
+    city: true,
+    neighborhood: true,
+    state: true,
+    type: true,
+    style: true,
+    architect: true,
+    status: true,
+    price: true,
+    currency: true,
+    beds: true,
+    baths: true,
+    interiorSqFt: true,
+    heroRank: true,
+    featuredRank: true,
+    heroImage: true,
+  })
+  .extend({
+    heroVariants: propertySchema.shape.heroVariants.unwrap().pick({ card: true }).optional(),
+  });
+
+/** `POST /submissions/:id/uploads`: the next photographs to sign, with the token the first answer carried (E2E-02). */
+export const submissionUploadsSchema = z.object({
+  media_ids: z.array(z.string().uuid()).min(1).max(10),
+  upload_token: z.string().max(200),
+});
+
+/** `POST /client-error`: one error the browser caught (FE-09). */
+export const clientErrorSchema = z.object({
+  message: z.string().max(500),
+  stack: z.string().max(2048).optional(),
+  route: z.string().max(200),
+  release: z.string().max(100).optional(),
+  requestId: z.string().max(100).optional(),
+});

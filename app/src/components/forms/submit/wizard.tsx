@@ -18,7 +18,7 @@ import {
   type StepIndex,
   type SubmitDraft,
 } from "./state";
-import { ExposureStep, PropertyStep, RepresentationStep, ReviewStep, StoryStep } from "./steps";
+import { AboutYouStep, ExposureStep, PropertyStep, ReviewStep, StoryStep } from "./steps";
 
 /** Five-step property submission. Validation lives in `state.ts`; delivery in the submission service. */
 export function SubmitWizard() {
@@ -69,7 +69,7 @@ export function SubmitWizard() {
 
       {step === 0 && <PropertyStep draft={draft} update={update} />}
       {step === 1 && <StoryStep draft={draft} update={update} />}
-      {step === 2 && <RepresentationStep draft={draft} update={update} />}
+      {step === 2 && <AboutYouStep draft={draft} update={update} />}
       {step === 3 && <ExposureStep draft={draft} update={update} />}
       {step === 4 && <ReviewStep draft={draft} />}
 

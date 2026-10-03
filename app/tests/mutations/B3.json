@@ -1514,5 +1514,315 @@
     "replace": "    deck: row.title,\n",
     "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
     "expect": "× .*answers /stories with the bundled stories and no difference"
+  },
+  {
+    "id": "b3-g4-order",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ),\n    markets:",
+    "replace": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ).reverse(),\n    markets:",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled properties and no difference"
+  },
+  {
+    "id": "b3-g4-an-unique",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"home_finder\",\n] as const;",
+    "replace": "  \"home_finder\",\n  \"Home_Finder\",\n] as const;",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*holds each name once, in snake_case"
+  },
+  {
+    "id": "b3-g4-an-listed",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"newsletter_signup\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*lists every event name that a track() call in src spells out"
+  },
+  {
+    "id": "b3-g4-ss-steps",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "\"The story\", \"About you\", \"Exposure\"",
+    "replace": "\"The story\", \"Representation\", \"Exposure\"",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*name About you third and keep five steps"
+  },
+  {
+    "id": "b3-g4-ss-maxfiles",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "export const maxFiles = uploadLimits.maxFiles;",
+    "replace": "export const maxFiles = 20;",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*take the file limit from uploadLimits"
+  },
+  {
+    "id": "b3-g4-ss-kind",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "        draft.submitterKind !== \"\" &&\n        filled(draft.submitterName)",
+    "replace": "        filled(draft.submitterName)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*stays closed until a kind is chosen"
+  },
+  {
+    "id": "b3-g4-ss-agent-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "(draft.submitterKind !== \"agent\" || filled(draft.brokerage))",
+    "replace": "(draft.submitterKind !== \"agent\" || true)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*asks an agent for a brokerage"
+  },
+  {
+    "id": "b3-g4-ss-owner-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "(draft.submitterKind !== \"agent\" || filled(draft.brokerage))",
+    "replace": "filled(draft.brokerage)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*asks an owner for no brokerage"
+  },
+  {
+    "id": "b3-g4-ss-option",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "kindOptions.find((option) => option === value) ?? \"\";",
+    "replace": "kindOptions.find((option) => option === value) ?? \"agent\";",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*reads the two kinds and anything else as not chosen"
+  },
+  {
+    "id": "b3-g4-ss-agent-fields",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "return { brokerage: draft.brokerage, sourceUrl: draft.sourceUrl };",
+    "replace": "return {\n      brokerage: draft.brokerage,\n      sourceUrl: draft.sourceUrl,\n      listedWithAgent: draft.listedWithAgent,\n    };",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends an agent's brokerage and source link and nothing about a listing"
+  },
+  {
+    "id": "b3-g4-ss-owner-fields",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    ...kindFields(draft),",
+    "replace": "    brokerage: draft.brokerage,\n    sourceUrl: draft.sourceUrl,\n    ...kindFields(draft),",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends an owner no brokerage and no source link, even from a draft that was an agent's"
+  },
+  {
+    "id": "b3-g4-ss-listing",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    ...(draft.listedWithAgent && {",
+    "replace": "    ...({",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends the listing agent only while the home is listed"
+  },
+  {
+    "id": "b3-g4-ss-no-kind",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    submitterKind: draft.submitterKind,",
+    "replace": "    submitterKind: draft.submitterKind || \"owner\",",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*refuses a draft with no kind chosen"
+  },
+  {
+    "id": "b3-g4-ss-by-role",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": ": \"owner\";",
+    "replace": ": \"agent\";",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*reads name and brokerage for an agent, name and owner for an owner"
+  },
+  {
+    "id": "b3-g4-ss-by-listed",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "draft.submitterKind === \"owner\" && draft.listedWithAgent && filled(draft.listingAgentName)",
+    "replace": "draft.submitterKind === \"owner\" && filled(draft.listingAgentName)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*adds the listing agent an owner names"
+  },
+  {
+    "id": "b3-g4-ss-by-empty",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "  if (draft.submitterKind === \"\") return \"\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*is empty before a kind is chosen"
+  },
+  {
+    "id": "b3-g4-cl-markets-list",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/market.ts",
+    "find": "z.enum([\"california\", \"florida\", \"new-york\"])",
+    "replace": "z.enum([\"california\", \"new-york\"])",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*is the list of the database check subscribers_markets_subset"
+  },
+  {
+    "id": "b3-g4-cl-markets-max",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "markets: z.array(marketSlugSchema).max(3).default([]),",
+    "replace": "markets: z.array(marketSlugSchema).default([]),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*defaults to no market and takes at most three, each one of the three"
+  },
+  {
+    "id": "b3-g4-cl-kinds",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "[\"access\", \"deletion\", \"opt_out\", \"correction\"]",
+    "replace": "[\"access\", \"deletion\", \"opt_out\"]",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*is the list of the database check on subject_requests.kind"
+  },
+  {
+    "id": "b3-g4-cl-maxfiles",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "export const maxFiles = uploadLimits.maxFiles;",
+    "replace": "export const maxFiles = 20;",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*are one number for the form and the contract"
+  },
+  {
+    "id": "b3-g4-cl-41",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),",
+    "replace": "media: z.array(submissionMediaSchema).max(41).default([]),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*let a submission name 40 photographs and no more"
+  },
+  {
+    "id": "b3-g4-cl-type",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "type: z.enum(uploadLimits.types),",
+    "replace": "type: z.string().max(100),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*refuse a photograph over the size limit or of another type"
+  },
+  {
+    "id": "b3-g4-cl-card",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "unwrap().pick({ card: true })",
+    "replace": "unwrap().pick({ card: true, hero: true })",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition and drops everything else"
+  },
+  {
+    "id": "b3-g4-cl-card-slug",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  .pick({\n    slug: true,\n",
+    "replace": "  .pick({\n",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*refuses a record with no slug"
+  },
+  {
+    "id": "b3-g4-cl-uploads",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "media_ids: z.array(z.string().uuid()).min(1).max(10),",
+    "replace": "media_ids: z.array(z.string().uuid()).min(1).max(11),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*takes one to ten media ids and a token"
+  },
+  {
+    "id": "b3-g4-cl-client-error",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "stack: z.string().max(2048).optional(),",
+    "replace": "stack: z.string().optional(),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*takes a message and a route, and bounds every text"
+  },
+  {
+    "id": "b3-g4-op-agent",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/property/representation.tsx",
+    "find": "<h2>Represented by</h2>",
+    "replace": "<h2>Represented</h2>",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*shows the representative of a home an agent presents"
+  },
+  {
+    "id": "b3-g4-op-owner",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/property/representation.tsx",
+    "find": "const owner = property.presentedByOwner;",
+    "replace": "const owner = false;",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*shows only 'Presented by the owner' for a home its owner presents"
+  },
+  {
+    "id": "b3-g4-op-default",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "eyebrow: \"CONTACT LISTING REPRESENTATIVE\",",
+    "replace": "eyebrow: \"CONTACT REPRESENTATIVE\",",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*writes to the listing representative by default"
+  },
+  {
+    "id": "b3-g4-op-title",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "title: \"Reach the owner.\",",
+    "replace": "title: \"Reach the representative.\",",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*writes to the owner when the owner presents the home"
+  },
+  {
+    "id": "b3-g4-op-other",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "intent === \"agent\" && presentedByOwner && ownerCopy",
+    "replace": "presentedByOwner && ownerCopy",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*leaves the other intents as they are for an owner's home"
   }
 ]

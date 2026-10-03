@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { acceptedStates, exposurePackages, propertyTypes } from "../../../domain/contracts";
+import {
+  acceptedStates,
+  exposurePackages,
+  propertyTypes,
+  submitterKindLabels,
+  submitterKinds,
+  uploadLimits,
+} from "../../../domain/contracts";
 import { track } from "../../../lib/analytics";
 import { formatMoney, pluralize } from "../../../lib/format";
 import { ChoiceGroup } from "../choice-group";
@@ -9,6 +16,8 @@ import {
   isOutsideMarkets,
   maxFiles,
   otherState,
+  submittedBy,
+  toKindOption,
   toStateOption,
   toTypeOption,
   type SubmitDraft,
@@ -166,7 +175,7 @@ function PhotographyPicker({
       <label className="upload-button">
         <input
           type="file"
-          accept="image/*"
+          accept={uploadLimits.types.join(",")}
           multiple
           onChange={(e) => onChange(Array.from(e.target.files ?? []).slice(0, maxFiles))}
         />
@@ -186,24 +195,68 @@ function PhotographyPicker({
   );
 }
 
-export function RepresentationStep({ draft, update }: StepProps) {
+export function AboutYouStep({ draft, update }: StepProps) {
   const bound = { draft, update };
   return (
     <>
-      <h2>Representation</h2>
-      <div className="field-grid">
-        <Input label="Listing agent" name="agentName" autoComplete="name" {...bound} />
-        <Input label="Brokerage" name="brokerage" autoComplete="organization" {...bound} />
-        <Input label="Agent email" name="agentEmail" type="email" autoComplete="email" {...bound} />
-        <Input label="Agent phone" name="agentPhone" type="tel" autoComplete="tel" {...bound} />
-        <Input
-          label="MLS or source link"
-          name="sourceUrl"
-          type="url"
-          placeholder="https://"
-          {...bound}
-        />
-      </div>
+      <h2>About you</h2>
+      <Field label="I am">
+        <select
+          value={draft.submitterKind}
+          onChange={(e) => update("submitterKind", toKindOption(e.target.value))}
+        >
+          <option value="">Select one</option>
+          {submitterKinds.map((kind) => (
+            <option key={kind} value={kind}>
+              {submitterKindLabels[kind]}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {draft.submitterKind === "agent" && (
+        <div className="field-grid">
+          <Input label="Your name" name="submitterName" autoComplete="name" {...bound} />
+          <Input label="Brokerage" name="brokerage" autoComplete="organization" {...bound} />
+          <Input label="Email" name="submitterEmail" type="email" autoComplete="email" {...bound} />
+          <Input label="Phone" name="submitterPhone" type="tel" autoComplete="tel" {...bound} />
+          <Input
+            label="MLS or source link"
+            name="sourceUrl"
+            type="url"
+            placeholder="https://"
+            {...bound}
+          />
+        </div>
+      )}
+      {draft.submitterKind === "owner" && (
+        <>
+          <div className="field-grid">
+            <Input label="Your name" name="submitterName" autoComplete="name" {...bound} />
+            <Input
+              label="Email"
+              name="submitterEmail"
+              type="email"
+              autoComplete="email"
+              {...bound}
+            />
+            <Input label="Phone" name="submitterPhone" type="tel" autoComplete="tel" {...bound} />
+          </div>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={draft.listedWithAgent}
+              onChange={(e) => update("listedWithAgent", e.target.checked)}
+            />
+            This home is currently listed with an agent
+          </label>
+          {draft.listedWithAgent && (
+            <div className="field-grid">
+              <Input label="Listing agent name" name="listingAgentName" {...bound} />
+              <Input label="Listing agent brokerage" name="listingAgentBrokerage" {...bound} />
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }
@@ -260,7 +313,7 @@ export function ReviewStep({ draft }: { draft: SubmitDraft }) {
         ? `${String(draft.files.length)} ${pluralize(draft.files.length, "file")} selected`
         : draft.photographyUrl,
     ],
-    ["Representation", [draft.agentName, draft.brokerage].filter(Boolean).join(", ")],
+    ["Submitted by", submittedBy(draft)],
     ["Exposure", draft.package ?? ""],
     ["Media budget", budget > 0 ? formatMoney(budget, "USD") : ""],
   ];
