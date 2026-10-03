@@ -858,3 +858,10 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   produces the five sheets, then needs Dave's choice before it goes on.
 - Both dry runs were one read-only sizing agent each (about 120k tokens, 3 to 4 minutes); no builder ran; both lane
   trees unchanged. Nothing runs now except the board server.
+
+## 2026-10-03 06:45 +0300 · H52 context diet built; test run on the db lane next
+- Baseline (agent-cost.mjs over 2026-10-02): per accepted step 121.4M cache reads, 499 calls, 119 agent minutes,
+  context per call 243k. New: brief packets in the sizing schema and both prompts, standards-index.mjs, quiet.mjs,
+  batching and replay-scope rules, agent-cost.mjs in the repo.
+- NEXT: run the db lane (B2 from step 4) with the new pipeline, then `node workspace/05-plans/agent-cost.mjs --run <id>`
+  and compare per-step figures with the baseline; report the percentages; then ask the operator for the go.
