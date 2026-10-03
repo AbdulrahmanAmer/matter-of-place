@@ -1131,6 +1131,7 @@ Entry template
 - proof: `sed -n '5p;21p' workspace/05-plans/review-snapshot.mjs` prints the usage line `create <laneRoot> <sha>` and `const snap = ${laneRoot}-review;` (measured 2026-10-03, B2 g8 review).
 - Hit again in B2 g9 review: the brief still passed the snapshot folder as the lane root and still said to run create and remove from that folder, which does not exist until create has run (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 45db5a3` gave `cd: /e/mop-build/db-review: No such file or directory`). The working form was `cd /e/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db 45db5a3`, and remove with `E:/mop-build/db`. The generator is still unfixed: fix the review brief in `.claude/workflows/build-slice.js` (it names review-snapshot.mjs), not each brief.
 - Hit again in B2 g10 review: the brief again passed `E:/mop-build/db-review` as the lane root and said to run it from that folder (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 4378d02` gave `cd: /e/mop-build/db-review: No such file or directory`); the lane-root form worked first time.
+- Hit again in the B2 g10 re-review (third hit): the brief again named `E:/mop-build/db-review` as the lane root (`cd /e/mop-build/db-review` gave `No such file or directory`; from the lane, `create E:/mop-build/db-review bf2d74f` failed with `fatal: cannot change to 'E:/mop-build/db-review'`; `create E:/mop-build/db bf2d74f` worked first time). Three briefs in a row: the generator fix is overdue.
 - added: 2026-10-03
 
 ## P-326 · `quiet.mjs` splits a quoted argument at its spaces, so `-t "as admin plus"` filters on `as`
@@ -1168,6 +1169,13 @@ Entry template
 - cause: a busy laptop (several lanes build and test at once) starts a vitest worker slower than the pool's wait; no test ran, so no case failed.
 - rule: one red `check` whose only message is a worker-start timeout is not a code failure: rerun the test step once and quote both runs (P-322 says the same of the database project); a case that fails the same way twice is real.
 - proof: `grep -n "Timeout waiting for worker to respond" workspace/05-plans/logs/B2.md` finds the g10 review's first run (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-330 · A db project run can fail with `getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com` before any test runs, and pass on the next run unchanged
+- symptom: a reviewer's `vitest run --project db tests/db/catalog-version.db.test.ts` of B2 g10 failed in global setup with `Error: getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com`, exit 1, no test run; the run with migrations 9 and 12 as prelude failed the same way. `nslookup` resolved the host straight after (44.216.29.125 and others) and each rerun gave `18 passed`. Two reruns of cost.
+- cause: a transient DNS failure on the laptop's resolver, not the code: global setup opens the pooler connection first, so a lookup failure reports as a red project with no case named.
+- rule: one `ENOTFOUND` on the pooler host is not a code failure: rerun once and quote both runs (P-322 and P-329 say the same of timeouts and worker starts); a lookup that fails twice with `nslookup aws-0-us-east-1.pooler.supabase.com` also failing is a network fault, so report BLOCKED with that output, not a test result.
+- proof: `grep -n "ENOTFOUND" GOTCHAS.md` finds this entry; `nslookup aws-0-us-east-1.pooler.supabase.com` prints the pooler's addresses when the resolver is healthy (measured 2026-10-03, B2 g10 review).
 - added: 2026-10-03
 
 ## Retired, enforced
