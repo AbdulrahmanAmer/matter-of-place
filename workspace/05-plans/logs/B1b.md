@@ -4267,3 +4267,6 @@ cd app && grep -rn "VITE_" .env.example
 The names are `VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_TURNSTILE_SITE_KEY` and the commented `VITE_INSTAGRAM_URL` (B16 removes it, G23); line 1 is the leading comment. No watched-fail: this group adds no test.
 
 GOTCHAS: none added; `bun run check` ran past 120 s and moved to the background (P-027, known).
+
+## g9 · follow-ups recorded
+The review of g9 (steps 8) found no blocking defect and six follow-ups. Three had GOTCHAS.md as their file and went to the bank: P-066 (hit again: a registry replay prints no red text), P-153 (hit again: the snapshot command's lane root, and the builder's tree is spine) and the new P-154 (a scratch registry folder in the shared scratchpad). The other three (hygiene.test.ts upload-path assertion, the B1b.json entries for (at), (be), (bh) and the two backup.yml titles, the nightly claim in `.github/workflows/README.md`) are in `workspace/05-plans/logs/B1b-followups.md` under "## g9 · steps 8". No code changed.
