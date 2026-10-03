@@ -1581,3 +1581,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: from a lane, confirm "no pending migration" with commands that write nothing: `bunx supabase migration list --linked` (every row has the same local and remote version) and `bunx supabase db push --linked --dry-run` (`"upToDate":true`), with `SUPABASE_DB_PASSWORD="$DEV_SUPABASE_DB_PASSWORD"` after the dev profile is loaded. Count the versions from `ls supabase/migrations/*.sql`, never from the plan; `bun run db:push` itself runs from `main`.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && SUPABASE_DB_PASSWORD="$DEV_SUPABASE_DB_PASSWORD" env -u CLOUDFLARE_API_TOKEN bunx supabase db push --linked --dry-run 2>&1 | tail -1` → `{"upToDate":true,"dryRun":true,"migrations":[],"seeds":[],"roles":[],"message":"Remote database is up to date."}` (measured 2026-10-03, B2 g13).
 - added: 2026-10-03
+
+## P-506 · `startAt` in build-slice.js dropped the close-out groups, so a run meant to fix and continue skipped the fix
+- symptom: B3 relaunch with `closeOut: [c1]` and `startAt: "g2"` started `build:B3:g2:2` straight away; `close:B3:c1:1` never ran and the lane began step 2 with a red typecheck (run `wf_ea63edc9-5b1`, 2026-10-03 22:10).
+- cause: the script prepended the close-outs to the sized groups and then sliced from `startAt`; the close-out ids (c1) sit before g2, so the slice cut them off.
+- rule: `startAt` applies to the sized groups only; close-outs are prepended after the slice. When a close-out is owed, launch it alone or with `startAt` and check the journal's first label is `close:`.
+- proof: `node <scratchpad>/trace/simulate-workflow.mjs` → `simulation: 6 scenarios passed`; the journal of `wf_ea63edc9-5b1` shows `build:B3:g2:2` as its first label.
+- added: 2026-10-03
