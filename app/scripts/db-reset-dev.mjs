@@ -50,6 +50,8 @@ async function emptyDatabase(client, files) {
     await client.query("select pgmq.drop_queue(queue_name) from pgmq.meta");
   }
   await client.query("drop schema public cascade");
+  // app.is_staff() reads public tables only in its body, so dropping public leaves it behind (migration app_schema).
+  await client.query("drop schema if exists app cascade");
   await client.query("create schema public");
   await client.query("grant usage on schema public to anon, authenticated, service_role");
   await client.query("grant all on schema public to postgres");

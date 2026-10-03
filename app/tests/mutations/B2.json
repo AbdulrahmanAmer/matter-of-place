@@ -563,7 +563,7 @@
     "id": "h-role-in-false",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*an admin made by createStaffUser holds admin"
   },
@@ -571,7 +571,7 @@
     "id": "h-is-staff-false",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*an admin made by createStaffUser holds admin"
   },
@@ -579,7 +579,7 @@
     "id": "h-role-in-disabled",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles)) $$",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles)) $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*a disabled admin holds no role and is not staff"
   },
@@ -587,7 +587,7 @@
     "id": "h-is-staff-disabled",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid()) $$",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid()) $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*a disabled admin holds no role and is not staff"
   },
@@ -1363,7 +1363,7 @@
     "id": "x",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    null;\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    null;\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish gate\"",
     "expect": "× .*a visual_editor cannot publish"
   },
@@ -1395,7 +1395,7 @@
     "id": "ll",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish_incomplete\"",
     "expect": "× .*publish_incomplete"
   },
@@ -1541,7 +1541,7 @@
     "id": "g6-chief",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"chief_editor\"",
     "expect": "× .*a chief_editor publishes"
   },
@@ -1549,7 +1549,7 @@
     "id": "g6-service-publish",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"service role publishes\"",
     "expect": "× .*the service role publishes"
   },
@@ -1565,7 +1565,7 @@
     "id": "g6-incomplete-place",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"without place\"",
     "expect": "× .*publish_incomplete without place"
   },
@@ -1633,7 +1633,7 @@
     "id": "g6-hero-published",
     "kind": "sql",
     "test": "tests/db/integrity.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hero_image\"",
     "expect": "× .*a staged photograph put first on a published"
   },
@@ -1756,5 +1756,1084 @@
     "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['hero_image', 'video', 'og_image_key', 'updated_at', 'version', 'search_text', 'title'];\nbegin\n  if (to_jsonb(new) - v_ignored) = (to_jsonb(old) - v_ignored) and new.version = old.version then\n    return new;\n  end if;\n  new.version := old.version + 1;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"system_columns\"",
     "expect": "× .*properties_version_bump ignores systemPropertyColumns"
+  },
+  {
+    "id": "e",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"does not loop\"",
+    "expect": "× updating the catalog_version row itself does not loop"
+  },
+  {
+    "id": "e-meta",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"admin key meta\"",
+    "expect": "× admin key meta: insert, update and delete leave"
+  },
+  {
+    "id": "t",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('coming_soon_global', 'site', 'environment', 'og_static')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key flags\"",
+    "expect": "× public key flags: insert, update and delete"
+  },
+  {
+    "id": "g8-key-coming_soon_global",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'site', 'environment', 'og_static')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key coming_soon_global\"",
+    "expect": "× public key coming_soon_global: insert, update and delete"
+  },
+  {
+    "id": "g8-key-site",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'coming_soon_global', 'environment', 'og_static')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key site\"",
+    "expect": "× public key site: insert, update and delete"
+  },
+  {
+    "id": "g8-key-environment",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'og_static')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key environment\"",
+    "expect": "× public key environment: insert, update and delete"
+  },
+  {
+    "id": "g8-key-og_static",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key og_static\"",
+    "expect": "× public key og_static: insert, update and delete"
+  },
+  {
+    "id": "g8-key-delete",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version_del on public.settings;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key flags\"",
+    "expect": "× public key flags: insert, update and delete"
+  },
+  {
+    "id": "g8-admin-invoice",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'invoice')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"admin key invoice\"",
+    "expect": "× admin key invoice: insert, update and delete leave"
+  },
+  {
+    "id": "g8-admin-caption_model",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;\ncreate trigger settings_bump_catalog_version after insert or update on public.settings for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'caption_model')) execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"admin key caption_model\"",
+    "expect": "× admin key caption_model: insert, update and delete leave"
+  },
+  {
+    "id": "g8-publish",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"publishing a property\"",
+    "expect": "× publishing a property bumps it by one"
+  },
+  {
+    "id": "g8-draft-edit",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;\ncreate trigger properties_bump_catalog_version_upd after update on public.properties for each row execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"editing a draft\"",
+    "expect": "× editing a draft does not bump it"
+  },
+  {
+    "id": "g8-takedown",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;\ncreate trigger properties_bump_catalog_version_upd after update on public.properties for each row when (old.editorial_state = 'published' or new.editorial_state = 'published') execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"taking down\"",
+    "expect": "× taking down an archived property bumps it once"
+  },
+  {
+    "id": "g8-redirects",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger redirects_bump_catalog_version on public.redirects;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"redirects insert\"",
+    "expect": "× a redirects insert and an edit each bump it once"
+  },
+  {
+    "id": "g8-slug-rename",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger slug_history_bump_catalog_version on public.slug_history;\ncreate trigger slug_history_bump_catalog_version after insert or update or delete on public.slug_history for each statement execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"renaming a draft\"",
+    "expect": "× renaming a draft's slug bumps it once"
+  },
+  {
+    "id": "g8-slug-history",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger slug_history_bump_catalog_version on public.slug_history;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"slug_history insert\"",
+    "expect": "× a slug_history insert and an update each bump it once"
+  },
+  {
+    "id": "v",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger markets_bump_catalog_version on public.markets;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"flipping markets\"",
+    "expect": "× flipping markets\\.coming_soon on every market"
+  },
+  {
+    "id": "g8-markets-row",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "drop trigger markets_bump_catalog_version on public.markets;\ncreate trigger markets_bump_catalog_version after insert or update or delete on public.markets for each row execute function public.tg_bump_catalog_version();",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"flipping markets\"",
+    "expect": "× flipping markets\\.coming_soon on every market"
+  },
+  {
+    "id": "g8-bump-value",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "create or replace function public.bump_catalog_version()\nreturns bigint\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  update public.settings\n  set value = to_jsonb((value #>> '{}')::bigint + 1)\n  where key = 'catalog_version'\n  returning (value #>> '{}')::bigint - 1;\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"returns the previous value\"",
+    "expect": "× returns the previous value plus one"
+  },
+  {
+    "id": "g8-bump-grant",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "grant execute on function public.bump_catalog_version() to anon, authenticated;",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"returns the previous value\"",
+    "expect": "× returns the previous value plus one"
+  },
+  {
+    "id": "s",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
+    "expect": "× returns exactly the seven keys"
+  },
+  {
+    "id": "t-og-static",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
+    "expect": "× returns exactly the seven keys"
+  },
+  {
+    "id": "g8-flags-default",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', (select s.value from public.settings s where s.key = 'flags'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
+    "expect": "× returns exactly the seven keys"
+  },
+  {
+    "id": "g8-site",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select s.value\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"site holds\"",
+    "expect": "× site holds exactly contact, legal and social"
+  },
+  {
+    "id": "u",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select true),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"illustrative_content\"",
+    "expect": "× illustrative_content is false for environment production"
+  },
+  {
+    "id": "u-preview",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"illustrative_content\"",
+    "expect": "× illustrative_content is true for environment preview"
+  },
+  {
+    "id": "u-development",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"illustrative_content\"",
+    "expect": "× illustrative_content is true for environment development"
+  },
+  {
+    "id": "u-staging",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview', 'staging') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"illustrative_content\"",
+    "expect": "× illustrative_content is false for environment staging"
+  },
+  {
+    "id": "u-missing",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      true\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"illustrative_content\"",
+    "expect": "× illustrative_content is false for environment null"
+  },
+  {
+    "id": "p",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"carries only the published property\"",
+    "expect": "× carries only the published property"
+  },
+  {
+    "id": "bb",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.editorial_state = 'archived'),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"carries only the published property\"",
+    "expect": "× carries only the published property"
+  },
+  {
+    "id": "q",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'preview_nonce', p.preview_nonce,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"public keys\"",
+    "expect": "× every property, story and media object has exactly"
+  },
+  {
+    "id": "nn",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"public keys\"",
+    "expect": "× every property, story and media object has exactly"
+  },
+  {
+    "id": "g8-media-keys",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'staging_path', m.staging_path,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"public keys\"",
+    "expect": "× every property, story and media object has exactly"
+  },
+  {
+    "id": "gg",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"stored photograph\"",
+    "expect": "× media holds the stored photograph and not the staged one"
+  },
+  {
+    "id": "g8-og-image",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', null::text,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"carries video\"",
+    "expect": "× the published property carries video, og_image_key and updated_at"
+  },
+  {
+    "id": "g8-variants",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) - 'image_variants' order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"image_variants\"",
+    "expect": "× image_variants on the published story and on every market and region"
+  },
+  {
+    "id": "g8-stories",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"stories: only\"",
+    "expect": "× stories: only the published one, with updated_at"
+  },
+  {
+    "id": "g8-redirects-enabled",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"redirects: only\"",
+    "expect": "× redirects: only the enabled one"
+  },
+  {
+    "id": "g8-slug-history-carried",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h where false\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"redirects: only\"",
+    "expect": "× redirects: only the enabled one"
+  },
+  {
+    "id": "g8-version-bump",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"one catalog_version\"",
+    "expect": "× one catalog_version in both reads"
+  },
+  {
+    "id": "g8-version-same",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', to_jsonb(0),\n    'markets', coalesce(\n      (select jsonb_agg(to_jsonb(m) order by m.sort_order, m.slug) from public.markets m),\n      '[]'::jsonb\n    ),\n    'regions', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.market_slug, r.sort_order, r.slug) from public.regions r),\n      '[]'::jsonb\n    ),\n    'market_notes', coalesce(\n      (select jsonb_agg(to_jsonb(n) order by n.market_slug, n.sort_order, n.id) from public.market_notes n),\n      '[]'::jsonb\n    ),\n    'market_guide_entries', coalesce(\n      (\n        select jsonb_agg(to_jsonb(g) order by g.market_slug, g.section, g.sort_order, g.id)\n        from public.market_guide_entries g\n      ),\n      '[]'::jsonb\n    ),\n    'representatives', coalesce(\n      (select jsonb_agg(to_jsonb(r) order by r.name, r.id) from public.representatives r),\n      '[]'::jsonb\n    ),\n    'properties', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', p.id,\n            'slug', p.slug,\n            'title', p.title,\n            'market_slug', p.market_slug,\n            'region_slug', p.region_slug,\n            'city', p.city,\n            'neighborhood', p.neighborhood,\n            'state', p.state,\n            'country', p.country,\n            'address', p.address,\n            'coordinates', case when p.coordinates is not null then jsonb_build_array(p.coordinates[0], p.coordinates[1]) end,\n            'price', p.price,\n            'currency', p.currency,\n            'beds', p.beds,\n            'baths', p.baths,\n            'interior_sq_ft', p.interior_sq_ft,\n            'lot_acres', p.lot_acres,\n            'year_built', p.year_built,\n            'type', p.type,\n            'style', p.style,\n            'architect', p.architect,\n            'designer', p.designer,\n            'status', p.status,\n            'hero_image', p.hero_image,\n            'video', p.video,\n            'og_image_key', p.og_image_key,\n            'story', p.story,\n            'place', p.place,\n            'representative_id', p.representative_id,\n            'presented_by_owner', p.presented_by_owner,\n            'listing_url', p.listing_url,\n            'hero_rank', p.hero_rank,\n            'featured_rank', p.featured_rank,\n            'published_at', p.published_at,\n            'updated_at', p.updated_at,\n            'media', coalesce(\n              (\n                select jsonb_agg(\n                  jsonb_build_object(\n                    'id', m.id,\n                    'media_key', m.media_key,\n                    'variants', m.variants,\n                    'alt', m.alt,\n                    'orientation', m.orientation,\n                    'sort_order', m.sort_order\n                  )\n                  order by m.sort_order, m.id\n                )\n                from public.property_media m\n                where m.property_id = p.id and m.media_key is not null\n              ),\n              '[]'::jsonb\n            ),\n            'features', coalesce(\n              (\n                select jsonb_agg(f.feature order by f.sort_order, f.feature)\n                from public.property_features f\n                where f.property_id = p.id\n              ),\n              '[]'::jsonb\n            ),\n            'related', coalesce(\n              (\n                select jsonb_agg(rp.related_slug order by rp.sort_order, rp.related_slug)\n                from public.property_related rp\n                where rp.property_id = p.id\n              ),\n              '[]'::jsonb\n            )\n          )\n          order by p.published_at desc, p.id\n        )\n        from public.properties p\n        where p.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'stories', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object(\n            'id', st.id,\n            'slug', st.slug,\n            'title', st.title,\n            'deck', st.deck,\n            'category', st.category,\n            'market_slug', st.market_slug,\n            'image', st.image,\n            'image_variants', st.image_variants,\n            'body', st.body,\n            'properties', st.properties,\n            'published_at', st.published_at,\n            'updated_at', st.updated_at\n          )\n          order by st.published_at desc, st.id\n        )\n        from public.stories st\n        where st.editorial_state = 'published'\n      ),\n      '[]'::jsonb\n    ),\n    'redirects', coalesce(\n      (\n        select jsonb_agg(\n          jsonb_build_object('from_path', rd.from_path, 'to_path', rd.to_path, 'status', rd.status)\n          order by rd.from_path\n        )\n        from public.redirects rd\n        where rd.enabled\n      ),\n      '[]'::jsonb\n    ),\n    'slug_history', coalesce(\n      (\n        select jsonb_agg(jsonb_build_object('slug', h.slug, 'property_id', h.property_id) order by h.slug)\n        from public.slug_history h\n      ),\n      '[]'::jsonb\n    ),\n    'gone', coalesce(\n      (select jsonb_agg(p.slug order by p.slug) from public.properties p where p.taken_down_at is not null),\n      '[]'::jsonb\n    )\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"one catalog_version\"",
+    "expect": "× one catalog_version in both reads"
+  },
+  {
+    "id": "r",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "grant execute on function public.public_state(), public.public_catalog_snapshot() to anon;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"permission denied\"",
+    "expect": "× anon and authenticated get permission denied on both"
+  },
+  {
+    "id": "g8-authenticated",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "grant execute on function public.public_catalog_snapshot() to authenticated;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"permission denied\"",
+    "expect": "× anon and authenticated get permission denied on both"
+  },
+  {
+    "id": "g8-service-role",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "revoke execute on function public.public_state() from service_role;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"permission denied\"",
+    "expect": "× anon and authenticated get permission denied on both"
+  },
+  {
+    "id": "g8-index",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "drop index public.properties_published_at_idx;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"pg_indexes\"",
+    "expect": "× pg_indexes lists every index the two reads rely on"
+  },
+  {
+    "id": "s-plpgsql",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_catalog_snapshot()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_version jsonb;\nbegin\n  select s.value into v_version from public.settings s where s.key = 'catalog_version';\n  return jsonb_build_object('catalog_version', v_version);\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"one statement\"",
+    "expect": "× both functions are language sql with one statement"
+  },
+  {
+    "id": "g8-two-statements",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select null::jsonb;\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"one statement\"",
+    "expect": "× both functions are language sql with one statement"
+  },
+  {
+    "id": "g8-story-publish",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"a story publishes\"",
+    "expect": "× a story publishes as the service role"
+  },
+  {
+    "id": "g9-matrix-tables",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "create table public.g9_probe (id int primary key); alter table public.g9_probe enable row level security;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"names.every.app_role\"",
+    "expect": "\\+\\s+\"g9_probe\""
+  },
+  {
+    "id": "dd",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter table public.redirects disable row level security;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"row.level.security.on\"",
+    "expect": "\\+\\s+\"redirects\""
+  },
+  {
+    "id": "ii",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant insert on public.campaigns to authenticated;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"exactly.the.matrix\"",
+    "expect": "\\+\\s+\"campaigns: select insert\""
+  },
+  {
+    "id": "cc",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "revoke all on all tables in schema public from service_role;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"service_role.selects\"",
+    "expect": "\\+\\s+\"markets\","
+  },
+  {
+    "id": "g9-anon-table",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant select on public.markets to anon;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"service_role.selects\"",
+    "expect": "\\+\\s+\"markets\","
+  },
+  {
+    "id": "w",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant execute on function public.save_property(uuid, int, jsonb) to public;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"executes.no.function\"",
+    "expect": "\\+\\s+\"public.save_property\","
+  },
+  {
+    "id": "c9-helper-in-public",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter function app.is_staff() set schema public;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"executes.no.function\"",
+    "expect": "\\+\\s+\"public.is_staff\","
+  },
+  {
+    "id": "c9-is-staff-dropped",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "drop function app.is_staff() cascade;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"every.table.and.operation\"",
+    "expect": "\\+\\s+\"agent_keys select: refused\","
+  },
+  {
+    "id": "c9-function-source-app",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\\+\\s+\"is_staff\","
+  },
+  {
+    "id": "b",
+    "kind": "file",
+    "test": "tests/db/rls.db.test.ts",
+    "file": "tests/db/rls-matrix.ts",
+    "find": "submissions: { select: staffRoles, update: [\"chief_editor\", \"managing_editor\"] },",
+    "replace": "submissions: { select: staffRoles, update: [\"chief_editor\"] },",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.managing_editor,\"",
+    "expect": "\\+\\s+\"submissions update: allowed\""
+  },
+  {
+    "id": "g9-chief-editor",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy submissions_update_deciders on public.submissions using (app.role_in('managing_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.chief_editor,\"",
+    "expect": "\\+\\s+\"submissions update: refused\""
+  },
+  {
+    "id": "g9-visual-editor",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy properties_update_editors on public.properties using (app.role_in('chief_editor', 'managing_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.visual_editor,\"",
+    "expect": "\\+\\s+\"properties update: refused\""
+  },
+  {
+    "id": "g9-media-ops",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy properties_insert_editors on public.properties with check (app.role_in('chief_editor', 'managing_editor', 'visual_editor', 'media_ops'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.media_ops,\"",
+    "expect": "\\+\\s+\"properties insert: allowed\""
+  },
+  {
+    "id": "g9-commercial",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy payments_update_finance on public.payments using (app.role_in('managing_editor', 'admin', 'commercial'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.commercial,\"",
+    "expect": "\\+\\s+\"payments update: allowed\""
+  },
+  {
+    "id": "g9-admin",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy agent_keys_delete_admin on public.agent_keys using (app.role_in('chief_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin,\"",
+    "expect": "\\+\\s+\"agent_keys delete: refused\""
+  },
+  {
+    "id": "g9-union",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy retention_policies_update_admin on public.retention_policies using (app.role_in('admin') and not app.role_in('chief_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin.plus.chief_editor,\"",
+    "expect": "\\+\\s+\"retention_policies update: refused\""
+  },
+  {
+    "id": "g9-no-role",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy markets_select_staff on public.markets using (true);",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"with.no.role,\"",
+    "expect": "\\+\\s+\"markets select: allowed\""
+  },
+  {
+    "id": "g9-anon",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant select on public.markets to anon; create policy markets_select_anon on public.markets for select to anon using (true);",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.anon,\"",
+    "expect": "\\+\\s+\"markets select: allowed\""
+  },
+  {
+    "id": "ooo",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "update storage.buckets set public = false where id = 'media';",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"media: private"
+  },
+  {
+    "id": "ooo-documents",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "select set_config('storage.allow_delete_query', 'true', true); delete from storage.buckets where id = 'documents';",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "-\\s+\"documents: private"
+  },
+  {
+    "id": "g9-storage-policy",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "create policy g9_probe on storage.objects for select to anon using (true);",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"g9_probe\""
+  },
+  {
+    "id": "g9-config",
+    "kind": "file",
+    "test": "tests/db/uploads.db.test.ts",
+    "file": "supabase/config.toml",
+    "find": "file_size_limit = \"25MiB\"",
+    "replace": "file_size_limit = \"50MiB\"",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "expected 52428800 to be 26214400"
+  },
+  {
+    "id": "g9-check-bytes",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000);",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"maxBytes\": false"
+  },
+  {
+    "id": "g9-check-types",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_mime_allowed; alter table public.submission_media add constraint submission_media_mime_allowed check (mime in ('image/jpeg', 'image/png', 'image/webp'));",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"image/heic\""
+  },
+  {
+    "id": "c",
+    "kind": "file",
+    "test": "src/domain/enums.check.ts",
+    "file": "src/db/types.ts",
+    "find": "        | \"Withdrawn\"\n",
+    "replace": "        | \"Withdrawn\"\n        | \"Probe\"\n",
+    "run": "bun run typecheck",
+    "expect": "enums.check.ts.*does not satisfy the constraint 'true'"
+  },
+  {
+    "id": "g10-contract-drift",
+    "kind": "file",
+    "test": "src/domain/enums.check.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  \"Completed\",\n  \"Withdrawn\",\n] as const;",
+    "replace": "  \"Completed\",\n] as const;",
+    "run": "bun run typecheck",
+    "expect": "enums.check.ts.*does not satisfy the constraint 'true'"
+  },
+  {
+    "id": "g10-upload-limit",
+    "kind": "file",
+    "test": "tests/db/uploads.db.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  maxBytes: 26_214_400,\n",
+    "replace": "  maxBytes: 26_214_401,\n",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "× .*storage file_size_limit equals uploadLimits.maxBytes"
+  },
+  {
+    "id": "g10-catalog-version-start",
+    "kind": "file",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "file": "supabase/migrations/20261001091100_settings_defaults.sql",
+    "find": "  ('environment', '\"development\"'::jsonb)\non conflict (key) do nothing;\n\ninsert into public.settings (key, value)\nvalues ('catalog_version', '1'::jsonb)\non conflict (key) do nothing;\n",
+    "replace": "  ('environment', '\"development\"'::jsonb),\n  ('catalog_version', '1'::jsonb)\non conflict (key) do nothing;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/catalog-version.db.test.ts -t although",
+    "expect": "× .*starts catalog_version at 1 although the three public keys"
+  },
+  {
+    "id": "g11-rows-coordinates",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "`(${String(coordinates[1])},${String(coordinates[0])})`",
+    "replace": "`(${String(coordinates[0])},${String(coordinates[1])})`",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*writes coordinates as point"
+  },
+  {
+    "id": "g11-rows-price",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      price: property.price.toFixed(2),",
+    "replace": "      price: String(property.price),",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*writes coordinates as point"
+  },
+  {
+    "id": "g11-rows-hero-first",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "    { src: property.heroImage, alt: property.title, orientation: \"landscape\" as const },\n    ...property.gallery,",
+    "replace": "    ...property.gallery,\n    { src: property.heroImage, alt: property.title, orientation: \"landscape\" as const },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-variants-empty",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      variants: {},\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-editorial-state",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      campaign_tier: property.campaignTier,\n",
+    "replace": "      campaign_tier: property.campaignTier,\n      editorial_state: \"published\",\n",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*puts the hero first"
+  },
+  {
+    "id": "g11-rows-stable-id",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "  const hex = createHash(\"sha256\").update(parts.join(\"\\u0000\")).digest(\"hex\");",
+    "replace": "  const hex = createHash(\"sha256\").update(String(Math.random())).digest(\"hex\");",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*gives the same ids on every call"
+  },
+  {
+    "id": "g11-args-prod",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "  target: z.enum([\"dev\", \"local\"]),",
+    "replace": "  target: z.enum([\"dev\", \"local\", \"prod\"]),",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses .\"--target\",\"prod\". because there is no production target"
+  },
+  {
+    "id": "g11-args-unknown-flag",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "    if (!flag.startsWith(\"--\") || !Object.hasOwn(argsSchema.shape, name)) {",
+    "replace": "    if (!flag.startsWith(\"--\")) {",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses .\"--confirm-production\". because there is no production target"
+  },
+  {
+    "id": "g11-args-leading-dashes",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": "  const pairs = argv[0] === \"--\" ? argv.slice(1) : argv;",
+    "replace": "  const pairs = argv;",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*reads .\"--\",\"--target\",\"dev\". as the defaults"
+  },
+  {
+    "id": "g11-args-local-host",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/lib/seed-args.ts",
+    "find": " || new URL(apiUrl).hostname !== \"127.0.0.1\"",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*refuses a local target whose API"
+  },
+  {
+    "id": "mmm-seed",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "  if (args.mode === \"full\") await guard({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*calls the guard before its first write in full mode"
+  },
+  {
+    "id": "g11-seed-guard-reference",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "  if (args.mode === \"full\") await guard({",
+    "replace": "  await guard({",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*does not call the guard in reference mode"
+  },
+  {
+    "id": "mmm-seed-text",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "guard = (options) => assertNotProduction(options)",
+    "replace": "guard = () => Promise.resolve()",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard"
+  },
+  {
+    "id": "qqq",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "({ onConflict, ignoreDuplicates: true as const })",
+    "replace": "({ onConflict })",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*does not call the guard in reference mode"
+  },
+  {
+    "id": "g11-seed-publish-where",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "        { slug, editorial_state: \"review\" },",
+    "replace": "        { slug, editorial_state: \"draft\" },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-publish-date",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "{ editorial_state: \"published\", published_at: publicationTime(property.publishedAt) },",
+    "replace": "{ editorial_state: \"published\" },",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-markets-open",
+    "kind": "file",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "{ coming_soon: false }",
+    "replace": "{ coming_soon: true }",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "× .*makes a property public only after its media"
+  },
+  {
+    "id": "g11-seed-db-snapshot-budget",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "tests/db/seed.db.test.ts",
+    "find": "const SNAPSHOT_BUDGET_BYTES = 500_000;",
+    "replace": "const SNAPSHOT_BUDGET_BYTES = 1_000;",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*serves 16 properties in one snapshot"
+  },
+  {
+    "id": "g11-seed-db-status",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      status: property.status,",
+    "replace": "      status: \"Active\",",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*leaves 16 published Illustrative properties"
+  },
+  {
+    "id": "g11-seed-db-market",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "{ coming_soon: false }",
+    "replace": "{ coming_soon: true }",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*reports every market open"
+  },
+  {
+    "id": "g11-seed-db-hero",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "scripts/lib/rows.ts",
+    "find": "      media_key: keyOf(photograph.src, slug, index),",
+    "replace": "      media_key: keyOf(photograph.src, slug, index).replace(\".webp\", \".jpg\"),",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*gives every property its hero image"
+  },
+  {
+    "id": "g11-seed-db-snapshot",
+    "kind": "file",
+    "test": "tests/db/seed.db.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "    for (const property of properties) {",
+    "replace": "    for (const property of properties.slice(1)) {",
+    "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
+    "expect": "× .*serves 16 properties in one snapshot"
+  },
+  {
+    "id": "bbb",
+    "kind": "file",
+    "test": "tests/db/snapshot-budget.db.test.ts",
+    "file": "tests/db/snapshot-budget.db.test.ts",
+    "find": "const BUDGET_BYTES = 1_500_000;",
+    "replace": "const BUDGET_BYTES = 1_000;",
+    "run": "bunx vitest run --project db tests/db/snapshot-budget.db.test.ts",
+    "expect": "× .*holds 100 published properties of 30 photographs"
+  },
+  {
+    "id": "g12-variants-hero-width",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const WIDTHS = { thumb: 320, card: 720, hero: 1600 } as const;",
+    "replace": "const WIDTHS = { thumb: 320, card: 720, hero: 1200 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders thumb 320, card 720 and hero 1600 as WebP only"
+  },
+  {
+    "id": "g12-variants-og-size",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const OG = { width: 1200, height: 630 } as const;",
+    "replace": "const OG = { width: 1200, height: 600 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders og exactly 1200x630 and carousel exactly 1080x1350 as JPEG"
+  },
+  {
+    "id": "g12-variants-carousel-size",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const CAROUSEL = { width: 1080, height: 1350 } as const;",
+    "replace": "const CAROUSEL = { width: 1080, height: 1080 } as const;",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*renders og exactly 1200x630 and carousel exactly 1080x1350 as JPEG"
+  },
+  {
+    "id": "g12-variants-avif",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "type === \"image/webp\" ? pipeline.webp({ quality: 80 })",
+    "replace": "type === \"image/webp\" ? pipeline.avif({ quality: 50 })",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*writes no AVIF anywhere"
+  },
+  {
+    "id": "g12-variants-hero-weight",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "type === \"image/webp\" ? pipeline.webp({ quality: 80 })",
+    "replace": "type === \"image/webp\" ? pipeline.sharpen({ sigma: 2, m1: 50, m2: 50 }).webp({ lossless: true, effort: 0 })",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*keeps the hero WebP under 400 KB"
+  },
+  {
+    "id": "g12-variants-sha8",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "return createHash(\"sha256\").update(master).digest(\"hex\").slice(0, 8);",
+    "replace": "return createHash(\"sha256\").update(master).digest(\"hex\").slice(0, 7);",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*stores a WebP master and takes its sha8"
+  },
+  {
+    "id": "g12-variants-five-keys",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "files: { thumb, card, hero, og, carousel } };",
+    "replace": "files: { thumb, card, hero, og } };",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*returns exactly the five keys of MediaVariants"
+  },
+  {
+    "id": "g12-variants-refuses-type",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "if (!uploadLimits.types.some((accepted) => accepted === mime)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*refuses a type outside the four"
+  },
+  {
+    "id": "g12-variants-master-key",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "master: `o/${owner}/${stem}.webp`,",
+    "replace": "master: `m/${owner}/${stem}.webp`,",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*gives the master o/<owner>"
+  },
+  {
+    "id": "g12-variants-args-dashes",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "args: argv[0] === \"--\" ? argv.slice(1) : [...argv],",
+    "replace": "args: [...argv],",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*reads one mode, ignoring a leading"
+  },
+  {
+    "id": "g12-variants-args-owner",
+    "kind": "file",
+    "test": "tests/unit/variants.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "    if (values.owner === undefined) throw new Error(\"variants: --file needs --owner\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/variants.test.ts",
+    "expect": "× .*refuses no mode, two modes"
+  },
+  {
+    "id": "g12-strip-gps-fixture",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/make-fixtures.mjs",
+    "find": ".withExif(EXIF)",
+    "replace": ".withExif({ IFD0: EXIF.IFD0 })",
+    "run": "node scripts/make-fixtures.mjs && bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*starts from a fixture that really has GPS",
+    "after": "node scripts/make-fixtures.mjs"
+  },
+  {
+    "id": "g12-strip-master",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "  return sharp(buffer)\n    .rotate()",
+    "replace": "  return Buffer.from(buffer);\n  return sharp(buffer)\n    .rotate()",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*leaves no EXIF in the master"
+  },
+  {
+    "id": "g12-strip-variants",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const from = () => sharp(master);",
+    "replace": "const from = () => sharp(buffer).keepExif();",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*leaves no EXIF in the master or in any of the five variants"
+  },
+  {
+    "id": "g12-strip-no-resize",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "    .resize({ width: MASTER_EDGE, height: MASTER_EDGE, fit: \"inside\", withoutEnlargement: true })\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*fits a 6000x4000 JPEG inside 2560 px as WebP"
+  },
+  {
+    "id": "g12-strip-edge-4000",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "const MASTER_EDGE = 2560;",
+    "replace": "const MASTER_EDGE = 4000;",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*fits a 6000x4000 JPEG inside 2560 px as WebP"
+  },
+  {
+    "id": "g12-strip-edge-2000",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "const MASTER_EDGE = 2560;",
+    "replace": "const MASTER_EDGE = 2000;",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*keeps the 2400x1600 fixture at its size"
+  },
+  {
+    "id": "g12-strip-rotate",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "\n    .rotate()",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*applies the orientation before it drops the tag"
+  },
+  {
+    "id": "g12-strip-gif",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "if (!READABLE_TYPES.includes(mime)) throw new Error(`stripExif: unsupported image type ${mime}`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*refuses an image/gif"
+  },
+  {
+    "id": "g12-heic-format",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/lib/heic.ts",
+    "find": "format: \"JPEG\"",
+    "replace": "format: \"PNG\"",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*converts to JPEG, then strips to a WebP master"
+  },
+  {
+    "id": "g12-heic-variants",
+    "kind": "file",
+    "test": "tests/unit/strip-exif.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "heic ? await heicToJpeg(buffer) : buffer,",
+    "replace": "buffer,",
+    "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
+    "expect": "× .*makes all five variants through makeVariants"
+  },
+  {
+    "id": "g11-rls-own-row",
+    "kind": "file",
+    "test": "tests/db/rls.db.test.ts",
+    "file": "tests/db/rls.db.test.ts",
+    "find": "pg_current_xact_id()::xid::text desc limit 1",
+    "replace": "pg_current_xact_id()::xid::text asc limit 1",
+    "run": "bun run seed -- --target dev --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts",
+    "expect": "\\+\\s+\"properties insert: P0001\""
   }
 ]

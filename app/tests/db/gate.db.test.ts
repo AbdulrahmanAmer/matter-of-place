@@ -383,6 +383,23 @@ describe("publish gate", () => {
     ]);
   });
 
+  it("a story publishes as the service role", async () => {
+    const code = await withRollback(async (db) => {
+      await catalog(db);
+      const inserted = await db.query<{ id: string }>(
+        `insert into public.stories (slug, title, deck, category, market_slug, image)
+         values ('test-gate-story', 'Test story', 'x', 'Places', 'california', 'test/story.webp') returning id`,
+      );
+      await asRole(db, "service_role");
+      return attempt(
+        db,
+        "update public.stories set editorial_state = 'published', published_at = now() where id = $1",
+        [inserted.rows[0]?.id],
+      );
+    });
+    expect(code).toBe("ok");
+  });
+
   it("publish_incomplete: a draft with only the seven not-null columns", async () => {
     const code = await withRollback(async (db) => {
       await catalog(db);

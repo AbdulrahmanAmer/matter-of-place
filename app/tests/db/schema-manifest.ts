@@ -467,6 +467,67 @@ export const savePropertyAllowedKeys = [
 /** The system columns `properties_version_bump` ignores (invariant 10, DB-16). */
 export const systemPropertyColumns = ["hero_image", "video", "og_image_key"];
 
+/** The exact keys of a property object in `public_catalog_snapshot()` (invariant 16); no staff column. */
+export const publicPropertyKeys = [
+  "id",
+  "slug",
+  "title",
+  "market_slug",
+  "region_slug",
+  "city",
+  "neighborhood",
+  "state",
+  "country",
+  "address",
+  "coordinates",
+  "price",
+  "currency",
+  "beds",
+  "baths",
+  "interior_sq_ft",
+  "lot_acres",
+  "year_built",
+  "type",
+  "style",
+  "architect",
+  "designer",
+  "status",
+  "hero_image",
+  "video",
+  "og_image_key",
+  "story",
+  "place",
+  "representative_id",
+  "presented_by_owner",
+  "listing_url",
+  "hero_rank",
+  "featured_rank",
+  "published_at",
+  "updated_at",
+  "media",
+  "features",
+  "related",
+];
+
+/** The exact keys of a story object in `public_catalog_snapshot()` (G42, G59). */
+export const publicStoryKeys = [
+  "id",
+  "slug",
+  "title",
+  "deck",
+  "category",
+  "market_slug",
+  "image",
+  "image_variants",
+  "body",
+  "properties",
+  "published_at",
+  "updated_at",
+];
+
+/** The exact keys of a property's media object in `public_catalog_snapshot()`; a staged row is never carried. */
+export const publicMediaKeys = ["id", "media_key", "variants", "alt", "orientation", "sort_order"];
+
 /**
  * `table.column` names that match the personal-data pattern of invariant 18 and hold none. Later slices append
  * theirs.

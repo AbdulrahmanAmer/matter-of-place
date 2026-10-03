@@ -129,3 +129,146 @@ None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and
 
 6. File `app/tests/db/function-source.db.test.ts`. Not this group's file. The test compares only the $$ body with pg_proc.prosrc. A migration whose header differs from the function file (security definer, search_path, signature, language) would pass, although invariant 19 says the 'same text'. For g6 the reviewer closed this gap by hand: the nine files equal the migration statements byte for byte.
    Evidence: DOLLAR_BODY regex in function-source.db.test.ts line 7; the reviewer's fncmp.mjs gives SAME for all nine files.
+
+## g8 · steps 8
+
+None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and became bank entries P-324 and P-325, not items here. Five remain.
+
+1. File `app/supabase/migrations/20261003082557_fn_enforce_publish_gate_stories.sql`. The db:fn timestamp, 2026-10-03, is later than every migration the plan still has to add under fixed names: B2's own migrations 10 to 12 (20261001090900_rls.sql, 20261001091000_storage.sql, 20261001091100_settings_defaults.sql), B3's 20261001100000_public_write_functions.sql and 20261001110000_coming_soon.sql. Once this group merges, migration-order refuses each of those names and db-push refuses them as out-of-order, so B2 g9 cannot land 20261001090900_rls.sql under the name in its Files list. Invariant 17 does allow renaming, so nothing is broken yet. But the plan's Files list, the 'numbered 1 to 12' text and the '12 migrations' exit line all go stale. The log and the bank do not mention it. The other option was to put the fix inside migration 9, which is unmerged, but that conflicts with R19's db:fn path. The orchestrator should decide which and update the plan before g9 starts. (The bank side is P-324.)
+   Evidence: I simulated the post-merge state with checkMigrations({mainPrefixes: [..., '20261003082557'], added: ['supabase/migrations/20261001090900_rls.sql', ...]}). It returned 'rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557' and the same for 091100_settings_defaults. `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md` lists the five planned names that are older than 20261003082557.
+
+2. File `workspace/05-plans/logs/B2.md`. Proof 4 cannot be re-run from the repository. `MOP_PRELUDE=... node ../scratch/g8-replay.mjs` names a scratch script that is not in the tree, and the MOP_PRELUDE variable appears nowhere in the repo. P-321's proof (`node <replay> g8-slug-rename`) depends on the same missing script. I reproduced the replay with my own script (prelude plus entry sql in MOP_MUTATION_SQL, 49 entries, all red), so the claim holds, but the command as written cannot be run. scripts/watchfail.mjs has no prelude option, so this will keep happening for every unmerged migration until CI's db job exists.
+   Evidence: `ls E:/mop-build/db-review/scratch` gave 'No such file or directory'. `grep -rn MOP_PRELUDE scripts tests/fixtures` found nothing.
+
+3. File `app/tests/mutations/B2.json`. Entry e-meta (the plan's (e), second half: 'the meta case bumps') goes red from recursion ('stack depth limit exceeded'), not because meta bumps. With the WHEN clause removed, every bump recurses, so the meta exclusion is not the thing that fails here. The exclusion is still covered in effect: g8-admin-invoice and g8-admin-caption_model add a key to the list and go red with insert:1, update:1 in the same parametrised case. Separately, the plan's (tt) names bump_catalog_version, but the registered tt still mutates refuse_hard_delete from an earlier group.
+   Evidence: Replay line: 'RED e-meta exit=1 | error: stack depth limit exceeded'. The e-meta sql is the same trigger recreation as e, without a WHEN clause.
+
+4. File `app/tests/db/catalog-version.db.test.ts`. No test fails if these migration 9 triggers are removed: the stories triggers (insert, update and delete of a published story), the regions, market_notes, market_guide_entries, property_media, property_features, property_related and representatives statement triggers, and the properties insert and delete triggers. Step 8's proof list does not ask for these cases, so this is a coverage gap, not a contract break. A dropped stories trigger would leave a story publish uncached until the next unrelated bump.
+   Evidence: Reading only: no case in catalog-version.db.test.ts or public-reads.db.test.ts measures catalog_version across a stories, regions, market_notes, market_guide_entries, property_features, property_related or representatives write.
+
+5. File `app/supabase/migrations/20261001090800_catalog_version.sql`. The slug_history trigger is `for each row`, which the log explains (P-321). A statement that touches several slug_history rows, for example the cascade when a property is deleted under retention, bumps once per row. The plan's Data changes item 9 says 'one bump per statement'. The only effect is extra cache invalidations, but that plan line is now stale.
+   Evidence: Reading only: 'create trigger slug_history_bump_catalog_version after insert or update or delete on public.slug_history for each row'.
+
+## g9 · steps 9
+
+None of these blocks the group. The two reviewer items that belong in the gotcha bank are "Hit again" sentences in P-312 and P-325 in `GOTCHAS.md`, not here.
+
+1. File `workspace/05-plans/STANDARDS.md`. R20 names tests/db/rls.db.test.ts as the enforcer of 'every function sets search_path = ''', but no test asserts it. Step 9's proof list does not ask for it, so this is a coverage gap for H1 step 3 or the orchestrator, not a g9 break.
+   Evidence: Grep of app/tests for search_path or proconfig finds only registry sql text, no assertion. Today all 22 files in app/supabase/sql/functions contain search_path = '' (a loop over the files printed no offender).
+
+2. File `app/tests/db/rls.db.test.ts`. The anon and authenticated privilege assertions cover relkind 'r' and 'p' only. Views, materialized views and sequences are not checked, while R20 says 'anon holds no privilege'. A later `grant select on <view> to anon` (B3b adds market_interest_counts) would pass.
+   Evidence: Read lines 214-244: `where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')`. There is no has_sequence_privilege check. The plan's step 9 text says 'every table', so this is not a contract break.
+
+3. File `app/supabase/migrations/README.md`. The README says 'Row-level-security policies ship in the same migration as the table they protect'. Migration 10 ships every policy for the tables of migrations 1 to 8, as B2's plan designs. The doc needs a carve-out for B2's migration 10.
+   Evidence: README.md line 3. 20261001090900_rls.sql lines 74-172 create policies on tables created in 20261001090100..090700.
+
+4. File `workspace/05-plans/B2.md`. Data changes 10 prescribes `alter default privileges for role postgres in schema public revoke all on tables, sequences, functions from anon, authenticated`, which is not valid SQL (one object type per statement). The author split it correctly and noted it in the log, but the plan line is stale and not banked as a plan-vs-reality mismatch.
+   Evidence: Brief line for Data changes 10, compared with 20261001090900_rls.sql lines 18-20 and 26-28. Log B2.md g9: 'The plan's comma lists ... are not valid SQL'.
+
+5. File `app/tests/db/uploads.db.test.ts`. The `// STUB(B2 step 10)` copy of uploadLimits sits under tests/, which the stubs gate does not scan. Only the slice log and P-074 remind step 10 to swap in the import from src/domain/contracts.ts. If step 10 forgets, invariant 13's four-place comparison silently compares against a local copy.
+   Evidence: `git grep 'STUB(B2 step 10'` finds uploads.db.test.ts:8 and log/GOTCHAS text only. src/domain/contracts.ts has no uploadLimits yet. B2.md line 132 assigns it to step 10.
+
+6. File `app/supabase/migrations/20261001090900_rls.sql`. g8 follow-up 1 (P-324) is still undecided. 20261001090900 and 20261001091000 sort before the unmerged 20261003082557 fn migration. migration-order passes only because the whole slice lands as one PR against a main whose tip is 20261001090700. The decision still owed before migration 12 and B3's fixed names is the orchestrator's.
+   Evidence: `node scripts/check-migrations.mjs` -> 'migration-order: OK (8 on main, 4 added)'. workspace/05-plans/logs/B2-followups.md g8 item 1.
+
+7. File `app/tests/db/rls.db.test.ts`. UNPROVEN, as the author says: the policies under PostgREST with a real JWT, and migrations 10 and 11 on B4's fresh CI stack. My simulation reduces the risk but does not replace CI: Supabase-like default privileges re-added before the prelude gave 14/14 green, and new objects failed closed. Next check: once merged and pushed from main, call PostgREST on mop-dev with the anon key (GET /rest/v1/markets, POST /rest/v1/rpc/save_property) and with a non-staff user JWT, and confirm 401/42501 or empty arrays.
+   Evidence: x-fresh-stack replay: 'exit=0 | Tests 14 passed (14)'. control-pre-applies: '2 failed' (x_pre detected). The probe uses set local role plus request.jwt.claims (rls.db.test.ts lines 110-113), not HTTP.
+
+## g10 · steps 10,11
+
+None of these blocks the group. The two reviewer items that belong in the gotcha bank are a "Hit again" sentence in P-325 and the new P-330 in `GOTCHAS.md`, not here.
+
+1. File `app/tests/mutations/B2.json`. Entry g10-catalog-version-start (around line 2354) has the loose expect "× .*starts catalog_version at 1 although the three public keys". That matches any failure of the case, including the trigger-missing guard. On bare mop-dev (no migration 9 until main pushes it) the replay prints WATCHED-FAIL OK although the unmutated case is already red for another reason. Per P-066 the expect should come from the real red output, which is `+ "value": "4"`. The entry is also a kind:"file" edit of a migration, while R49 says a SQL mutation is a kind:"sql" entry 'never an edit of a migration'. The case reads the migration text, so a file mutation may be the only meaningful one, but the deviation should be stated or ruled on. The test itself is sound: its trigger guard is a real control.
+   Evidence: Confirmed by running. With no MOP_MUTATION_SQL: `node scripts/watchfail.mjs --registry tests/mutations --only g10-catalog-version-start` gave WATCHED-FAIL OK, and the unmutated `-t although` was red with 'settings_bump_catalog_version exists, or the case proves nothing: expected +0 to be 1'. An ad hoc replay with expect '\+\s+"value": "4"' was OK with the migration 9 prelude and status 1 without it.
+
+2. File `workspace/05-plans/B2.md`. Step 11's proof says `grep -rn "Awaiting Payment\|editorialRoles" src docs` 'prints no hit outside historical brief files'. It prints hits in app/docs/architecture/data-model.md:140 and app/docs/database/schema.sql:33,351, which are not brief files. As written, that pass condition cannot be met until step 14 deletes schema.sql and replaces data-model.md. The author disclosed it. The plan line is stale: the orchestrator should fold it, or step 14 should own the sweep.
+   Evidence: Re-ran the grep in the snapshot: data-model.md:140, schema.sql:33 and :351, brief/recalibration.md:1275; src clean.
+
+3. File `app/knip.json`. The new entries "src/domain/index.ts" and "src/db/index.ts" make every export reachable through those barrels count as used. G03/R04 can no longer flag an unused export in src/domain/rows.ts or src/db/index.ts, now or in later slices. Today this hides Database, Json, TablesInsert and all the Row and enum aliases in rows.ts. The plan asks for the barrels, and H46 allows a config entry, but this switches the gate off for two files and does not just name new files. A narrower option is knip's includeEntryExports, or @public plus STUB markers per R04.
+   Evidence: Confirmed: `node_modules/.bin/knip --include-entry-exports` lists Database, Json and TablesInsert in src/db/index.ts and every type in src/domain/rows.ts as unused exports; plain `bun run knip` is silent.
+
+4. File `app/src/domain/contracts.ts`. New exports roleLabels, editorialStateLabels, currentRightsVersion and redirectStatuses (lines about 124-179) have no importer anywhere in src, tests or scripts. They carry `/** @public */` but no STUB marker, while R04 and C04 ask for both on an export kept for a later slice. The plan names these constants in step 10, and the file already follows this pattern (submitterKindLabels), so this is about matching the rule, not dead code.
+   Evidence: Confirmed: `grep -rln "\broleLabels\b" src tests scripts` (and the same for the other three) finds only src/domain/contracts.ts.
+
+5. File `app/src/db/types.ts`. UNPROVEN against the real schema. The generated file lacks the Functions of migrations 9 to 12 (public_state, public_catalog_snapshot and the rest) because mop-dev holds only main's migrations 1 to 8. C21/R57 want the migration and its generated types in the same PR. B4's `gen:types -- --local && git diff --exit-code` will be red on the 12-migration stack until main pushes and the file is regenerated. Disclosed and banked as P-327, and not fixable under DB-01.
+   Evidence: Regeneration from mop-dev reproduced the committed file byte for byte (git diff empty). P-327's proof: `grep -c public_state src/db/types.ts` gives 0.
+
+6. File `app/tests/db/integrity.db.test.ts`. Migration 12's six retention_policies rows have no test that reads them. The plan's retention-row case and watched-fail jjj (plan lines 113 and 189) are NOT DONE, and nobody owns them in this group. Today the rows are proved only by the builder's ad hoc psql inside a rolled-back transaction (log line 1892).
+   Evidence: Read the diff: no test in it reads public.retention_policies; the author's own 'unproven' list says jjj is NOT DONE.
+
+## g12 · steps 13
+
+None of these blocks the group. The reviewer's gotcha item went into the bank (P-325 fifth hit, P-338 new), not here.
+
+1. File `app/scripts/variants.ts`. An export that nothing imports. Line 110 'export type VariantsArgs' is imported by no file in src, scripts or tests (the test imports only parseVariantsArgs). Since B1b step 2b, R04 and C04 require names nothing imports to stay file-local. knip cannot catch it because knip.json lists scripts/**/*.{ts,mjs} as entry files, and knip does not report exports of entry files. Not blocking: I could not name an input for which this goes wrong.
+   Evidence: grep -rn VariantsArgs src scripts tests matches only scripts/variants.ts. knip.json entry contains "scripts/**/*.{ts,mjs}".
+
+2. File `app/scripts/variants.ts`. The stub is labelled with a different owner than the same dependency in seed.ts. The --property and --all refusal sits under 'STUB(B9)' (line 162), while seed.ts:89 marks the same B9 wait as 'STUB(B2 step 13)'. The plan makes the upload part B2 step 13's work, which runs once B9 lands media-store.mjs. With the B9 label, B2 can be closed and the stubs gate stays green while --property and --all were never built, so nobody owns them. With seed's label the gate does catch it. Not blocking: the refusal is loud (exit 1 with a message), and the log records it as BLOCKED.
+   Evidence: grep -n STUB scripts/seed.ts scripts/variants.ts gives seed.ts:89 STUB(B2 step 13) and variants.ts:162 STUB(B9). scripts/stubs.ts fails a stub only when its named slice is closed.
+
+3. File `workspace/05-plans/B2.md`. The plan's step 13 determinism proof cannot run in a fresh checkout. It copies into supabase/.temp, and that folder only exists after 'supabase link'. The author's 'exit 0' is reproducible only after mkdir. This is plan text, not this group's file, so it is for the orchestrator to fix (use a scratch path or add mkdir -p). Banked as P-338.
+   Evidence: In the fresh snapshot, 'cp tests/fixtures/photo.jpg supabase/.temp/photo.prev.jpg' printed 'No such file or directory'. After mkdir -p supabase/.temp the proof exits 0.
+
+4. File `app/scripts/README.md`. Stale prose, not this group's file. It still says image variants are made 'for R2' (ruling H33: no R2, Supabase Storage bucket media) and that every script runs as 'bun run scripts/<name>.ts'. This group now ships make-fixtures.mjs and the variants CLI. This is already follow-up 6 in B2-followups.md (c1 · steps 1), which said to fold it 'when the variants script lands'. It has now landed and the line is still wrong.
+   Evidence: grep -n -i r2 app/scripts/README.md gives line 3: 'image variants for R2 (thumb, card, hero, og, carousel, made once at publish)'
+
+5. File `app/tests/unit/variants.test.ts`. Weakness, not a rule break. 'keeps the hero WebP under 400 KB' measures a fixture whose hero is 19,442 bytes, about 5% of the bound. It goes red only under a contrived sharpened lossless mutation, so it would not catch a realistic quality regression on real photographs. The author banked this as P-333. On a real photograph the bound stays UNPROVEN until the first real property is stored.
+   Evidence: The CLI run printed 'v/test/0-4692be93/hero.webp  1600x1067  19442 bytes'. The registry entry g12-variants-hero-weight replaces the encode with sharpen(...).webp({ lossless: true, effort: 0 }).
+
+## g11 · steps 12
+
+None of these blocks the group. The three gotcha items went into the bank (P-325 eighth hit, P-310 hit again, P-337 rule corrected), not here.
+
+1. File `app/scripts/db-reset-dev.mjs`. This is the orchestrator's file, not this group's, and the author also logged it. resetLinked calls emptyDatabase (line 134) before run(['scripts/db-push.mjs']) (line 135). A checkout with project-ref but no pooler link therefore drops public on the shared mop-dev before the push fails. The fix is to check the pooler link, or run a dry-run push, before emptying.
+   Evidence: Suspected from reading lines 108-139. The reviewer did not run the destructive form. The previous reviewer measured the wipe (P-337 hit-again line).
+
+2. File `app/tests/db/snapshot-budget.db.test.ts`. Carried forward from the author's own follow-up. Under KEEP_FIXTURE=1 the test commits the deletion of the seeded catalog, and the plan does not say so.
+   Evidence: Author's log, second re-review block, follow-ups line. Not re-run, because it would empty mop-dev.
+
+3. File `app/tests/mutations/B2.json`. Carried forward from the author's own follow-up. Entry g11-rls-own-row runs `seed --target dev`. B4's CI replay (`--changed`) must change it to --target local or to a stack-aware step.
+   Evidence: `grep -n g11-rls-own-row app/tests/mutations/B2.json` gives line 2806. Read, not replayed.
+
+## g13 · steps 14
+
+None of these blocks the group. The two reviewer items about `GOTCHAS.md` became hit lines in P-325 and P-337, not entries here.
+
+1. File `app/docs/runbooks/database.md`. Line 22 says `bun run gen:types -- --local` refuses any host except 127.0.0.1. It has no such check: gen-types.mjs only passes `--local` to the Supabase CLI. db:reset --local does have the check (isLocalDbUrl). The CLI's --local mode reaches only the local stack anyway, so I cannot name an input that goes wrong, but the sentence claims a guard that does not exist.
+   Evidence: Read in the snapshot: scripts/gen-types.mjs source() returns ["--local"] with no host check; scripts/lib/reset-guard.mjs isLocalDbUrl is called only from db-reset-dev.mjs.
+
+2. File `app/docs/runbooks/database.md`. Some lines describe later-slice behaviour in the present tense with no UNPROVEN mark. Line 76: 'The Worker memoises it for 15 seconds per isolate' (B3). Line 125: 'The Worker streams .../storage/v1/object/public/media/<key>, caches it' and 'every upload to media sets cache-control ... immutable' (B3/B9). Line 127: 'measured by `limits.json`' (workspace/audits/tools/limits.json, B14). None of this code exists on slice/b2 or on origin/main. The author's unproven list names B3b, B7, B8 and B9 --images upload, but not these lines.
+   Evidence: git grep -ln "storage/v1/object/public\|public_state" origin/main -- src finds nothing (same on slice/b2); git ls-tree -r origin/main | grep limits.json finds nothing.
+
+3. File `app/docs/runbooks/database.md`. Lines 148-151 (reading a down block) say every migration's down block is SQL comment lines that you copy with the leading `--   ` removed. Migrations made by `db:fn` have a prose down line instead. The 13th migration says '-- down: re-run bun run db:fn enforce_publish_gate from the previous commit ...', so the runbook's steps produce invalid SQL for every db:fn migration.
+   Evidence: head -2 supabase/migrations/20261003082557_fn_enforce_publish_gate_stories.sql gives '-- down: re-run bun run db:fn enforce_publish_gate from the previous commit of supabase/sql/functions/enforce_publish_gate.sql'
+
+4. File `app/scripts/db-push.mjs`. This file is not this group's. The remote-only refusal tells the user '(rebase onto origin/main first)', but the project forbids rebase and the runbook's fix is 'git fetch and merge origin/main'. The runbook is correct; the script's message is the stale one. This is for the owner of an earlier B2 group.
+   Evidence: scripts/db-push.mjs historyRefusals: `refusing: remote-only migrations ${...} (rebase onto origin/main first)` vs runbook line 54.
+
+5. File `workspace/05-plans/logs/B2.md`. The log's list of stale mentions of the deleted schema.sql and the replaced pages is incomplete. It misses app/docs/decisions/0002-shared-contracts.md:15 ('mirrored by docs/database/schema.sql'), root CLAUDE.md:10 ('data model, schema.sql') and workspace/05-plans/B3.md:48 ('matches docs/database/schema.md intent': that intent is no longer in schema.md). For the orchestrator to fold.
+   Evidence: git grep -n "schema\.sql" and git grep -n "database/schema\.md" in the snapshot.
+
+6. File `app/docs/README.md`. This file is outside the group's named files (one writer per file). The edit is small and necessary, because its table linked the deleted schema.sql, and the log names it. The orchestrator should know the group touched a file it did not own.
+   Evidence: git show --stat dbf641f lists app/docs/README.md | 6 +-
+
+## c9 · steps 9
+
+1. For H1, not schema: the security advisor on mop-dev reports `auth_leaked_password_protection` (WARN). It is an Auth setting (Authentication, password security, "Prevent use of leaked passwords"), not a migration; staff sign in by magic link only (`enable_signup = false`), so the warning has no live path today. H1 decides whether to turn it on (it may need a paid plan, G-011).
+   Evidence: `GET https://api.supabase.com/v1/projects/<ref>/advisors/security` on 2026-10-03 after c9 → `rls_enabled_no_policy INFO 6` and `auth_leaked_password_protection WARN 1`, no `authenticated_security_definer_function_executable`.
+2. For the orchestrator, plan text: the policy helpers now live in schema `app`. `workspace/05-plans/B9.md` line 126 writes `public.is_staff()` and `public.role_in(...)` in the `assets` policies, and B3.md line 73, B7.md line 28 and B8b.md line 170 write bare `role_in(...)`, which does not resolve in a migration (the session `search_path` has no `app`). Each must become `app.role_in(...)` / `app.is_staff()`, and a later slice that extends `authenticatedFunctions` in `tests/db/rls-matrix.ts` writes schema-qualified names (`app.is_staff`).
+   Evidence: `grep -noE "(public\.)?(role_in|is_staff)\(" workspace/05-plans/B3.md workspace/05-plans/B7.md workspace/05-plans/B8b.md workspace/05-plans/B9.md`.
+3. File `app/scripts/db-fn.mjs` (not this group's): `createOf` and the generated `drop function if exists public.<name>` accept only `public`, so `bun run db:fn is_staff` or `role_in` now refuses with `does not create public.is_staff`. Neither function needs a change today; the owner of db-fn makes it read the schema from the file's `create function` line.
+   Evidence: `createOf(name)` in `app/scripts/db-fn.mjs` builds `function\s+public\.${name}\s*\(`.
+4. File `app/scripts/db-reset-dev.mjs` (not this group's, touched because the move needs it): one line drops schema `app` with `public`, because `app.is_staff()` depends only on its schema and survives `drop schema public cascade`. The live `bun run db:reset` with that line has not run (it would empty the shared mop-dev mid-build): UNPROVEN until the next reset.
+
+## c9 · steps 9
+
+Reviewer follow-ups (the author's own items are in the c9 block above). None blocks the group. No reviewer follow-up concerns `GOTCHAS.md`, so none became a bank entry.
+
+1. File `app/scripts/db-fn.mjs`. The move breaks the R19 change path for these two functions. createOf() matches only 'function public.<name>(' and the generated drop names 'public.<name>'. So `bun run db:fn is_staff` and `bun run db:fn role_in` now throw 'supabase/sql/functions/is_staff.sql does not create public.is_staff'. A later slice that has to change a policy helper cannot do it the way R19 requires. The failure is loud and the author recorded it (B2-followups c9 item 3), but it is a regression of a command that worked. The fix belongs to db-fn's owner: read the schema from the file's create line.
+   Evidence: Read by me, not run (running it would write a migration): app/scripts/db-fn.mjs line 18 `create\s+(?:or\s+replace\s+)?function\s+public\.${name}\s*\(`, line 101 throws `does not create public.${name}`, line 106 `drop function if exists public.${name}`. supabase/sql/functions/is_staff.sql line 1 is now `create or replace function app.is_staff()`.
+2. File `app/scripts/db-reset-dev.mjs`. STANDARDS C23 is not met. The changed db:reset command was not run once on mop-dev; the author calls it UNPROVEN, and running it would empty the shared database mid-build. On a throwaway native PostgreSQL I confirmed the line is needed and works. Without it the replay fails with 'function is_staff() already exists in schema "app"'. With it the replay exits 0, and the policy and grants come back correctly. The live run stays UNPROVEN until the next reset or CI's db job.
+   Evidence: Native PG 18 simulation in scratchpad: 'replay without line exit=3' / 'replay with line exit=0'; B2.md log c9 'UNPROVEN: the live bun run db:reset with the new drop schema if exists app cascade line'.
+3. File `app/supabase/config.toml`. No gate protects the exposure fix. The fix holds only while PostgREST exposes `public` alone. If someone adds `app` to [api] schemas or the hosted db_schema, lint 0029 comes back: authenticated could call both security definer helpers through /rest/v1/rpc again. No test, check or registry entry would notice. c9-helper-in-public only covers a helper moved back into public. The runbook sentence '/rest/v1/rpc/is_staff answers 404' is true today (I re-ran it) but nothing enforces it.
+   Evidence: config.toml line 13 `schemas = ["public"]`; `git grep -n "schemas" app/tests` finds no assertion on it; the advisor and REST probe are manual commands only.
+4. File `workspace/06-architecture/architecture.md`. Stale text not fixed in the follow-ups. Line 106 places role_in and is_staff in 20261001090200_role_helpers.sql with no mention of schema app or migration 20261003173847_app_schema.sql. Line 104's rule ('a new view, function or trigger is added to this list, with its slice and migration') is not followed for the move. ASSUMED F16 and the B2 plan's 'Observed exit' still say db:reset empties only the public schema. B2.md step 9 and migration 10 still name the allow-list as public role_in/is_staff. The author's follow-up item 2 covers B3, B7, B8b and B9 but not these files. These files belong to the orchestrator, so this is a follow-up.
+   Evidence: sed -n 104,106p workspace/06-architecture/architecture.md; grep -n '^| F16' workspace/05-plans/ASSUMED.md -> 'bun run db:reset (B2) empties `public`, drops the pgmq queues ...'

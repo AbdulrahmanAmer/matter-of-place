@@ -1,3 +1,6 @@
+-- down: re-run bun run db:fn enforce_publish_gate from the previous commit of supabase/sql/functions/enforce_publish_gate.sql
+set lock_timeout = '5s';
+
 create or replace function public.enforce_publish_gate()
 returns trigger
 language plpgsql
@@ -11,7 +14,7 @@ begin
   if (tg_op = 'INSERT' or old.editorial_state <> 'published')
     and not (
       current_user in ('service_role', 'postgres')
-      or app.role_in('chief_editor', 'managing_editor', 'admin')
+      or public.role_in('chief_editor', 'managing_editor', 'admin')
     ) then
     raise exception 'publish_not_allowed';
   end if;

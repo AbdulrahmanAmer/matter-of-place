@@ -6,7 +6,7 @@ import { propertySchema } from "./property.ts";
  *
  * Each schema validates in the browser before a request leaves, and again on
  * the server when the backend is built (the same file can be imported by a
- * Cloudflare Worker). Field names match the tables in docs/database/schema.sql.
+ * Cloudflare Worker). Field names match the columns in supabase/migrations (G-004).
  */
 
 const inquiryIntents = ["showing", "ask", "similar", "sell", "invest", "agent", "general"] as const;
@@ -94,40 +94,89 @@ export const slugPattern = "^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)*$";
 
 /**
  * Internal workflow. Never shown publicly; editorial acceptance must precede
- * any commercial state (Awaiting Payment onwards).
+ * any commercial state (Invoice Issued onwards). `Withdrawn` is terminal (DL-04).
  * @public
  */
-// STUB(B2): `Awaiting Payment` becomes `Invoice Issued` and `Withdrawn` is added last (G-004, S32, DL-04)
 export const submissionStates = [
   "Submitted",
   "Under Review",
   "Accepted",
   "Declined",
   "Awaiting Assets",
-  "Awaiting Payment",
+  "Invoice Issued",
   "Scheduled",
   "Published",
   "Distribution Active",
   "Completed",
+  "Withdrawn",
 ] as const;
 /** @public */
 export type SubmissionState = (typeof submissionStates)[number];
 
 /**
- * Internal roles. Commercial roles cannot move a submission past editorial review.
+ * Internal roles, the values of the database enum `app_role`. Commercial roles cannot move a submission past
+ * editorial review.
  * @public
  */
-// STUB(B2): replaced by `appRoles` and `roleLabels` (G-004)
-export const editorialRoles = [
-  "Chief Editorial Officer",
-  "Managing Editor",
-  "Visual Editor",
-  "Contributor",
-  "Media Operations",
-  "Commercial Partnerships",
+export const appRoles = [
+  "chief_editor",
+  "managing_editor",
+  "visual_editor",
+  "media_ops",
+  "commercial",
+  "admin",
 ] as const;
+type AppRole = (typeof appRoles)[number];
 /** @public */
-export type EditorialRole = (typeof editorialRoles)[number];
+export const roleLabels: Record<AppRole, string> = {
+  chief_editor: "Chief Editorial Officer",
+  managing_editor: "Managing Editor",
+  visual_editor: "Visual Editor",
+  media_ops: "Media Operations",
+  commercial: "Commercial Partnerships",
+  admin: "Administrator",
+};
+
+/**
+ * Where a property or story stands in publication, the values of the database enum `editorial_state`.
+ * `agent_review` is optional: `review` goes to `published` directly (GG-07).
+ * @public
+ */
+export const editorialStates = [
+  "draft",
+  "review",
+  "agent_review",
+  "published",
+  "archived",
+] as const;
+type EditorialState = (typeof editorialStates)[number];
+/** @public */
+export const editorialStateLabels: Record<EditorialState, string> = {
+  draft: "Draft",
+  review: "Review",
+  agent_review: "Agent Review",
+  published: "Published",
+  archived: "Archived",
+};
+
+/** Invariant 13 (GQ-07): the same numbers sit in the buckets, `config.toml` and the checks on `submission_media`. */
+export const uploadLimits = {
+  maxBytes: 26_214_400,
+  maxFiles: 40,
+  types: ["image/jpeg", "image/png", "image/heic", "image/webp"],
+} as const;
+
+/**
+ * The licence-terms version a submitter accepts; B3 writes it to `submissions.rights_version` (invariant 12).
+ * @public
+ */
+export const currentRightsVersion = "2026-10-01";
+
+/**
+ * The HTTP statuses a redirect row may carry, the check on `redirects.status`.
+ * @public
+ */
+export const redirectStatuses = [301, 302, 307, 308] as const;
 
 /** Metadata for a photograph the submitter selected. Binary upload is a separate step (see docs). */
 const submissionMediaSchema = z.object({

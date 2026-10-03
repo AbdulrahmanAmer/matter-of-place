@@ -39,11 +39,14 @@
     "db:psql": "bun scripts/psql-dev.mjs",
     "db:lint": "supabase db lint --linked --level warning",
     "gen:types": "bun scripts/gen-types.mjs",
+    "seed": "bun --preload ./scripts/lib/asset-loader.ts scripts/seed.ts",
+    "variants": "bun scripts/variants.ts",
     "fonts": "node scripts/fonts.mjs",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "trustedDependencies": [
-    "supabase"
+    "supabase",
+    "sharp"
   ],
   "overrides": {
     "rolldown": "1.2.1"
@@ -71,6 +74,7 @@
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/bun": "^1.4.2",
+    "@types/heic-convert": "^2.1.1",
     "@types/node": "^22.16.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.2.0",
@@ -84,12 +88,14 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "heic-convert": "^2.1.0",
     "jscpd": "^5.4.0",
     "jsdom": "^30.1.1",
     "knip": "^6.39.0",
     "nitro": "3.0.260603-beta",
     "pg": "^8.23.1",
     "prettier": "^3.7.3",
+    "sharp": "^0.35.5",
     "supabase": "^2.119.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
