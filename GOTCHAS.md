@@ -569,6 +569,7 @@ Entry template
 - rule: every entry is a `file` entry on a tracked file whose `find` occurs exactly once (a mutation that needs a new file edits an existing file inside the same lint scope), a `sql` entry, or `kind: "manual"` (recorded, not replayed; also for a rule whose scope has no tracked file yet, and for a watched-fail that needs a browser). Run `bunx prettier --write` before writing a `find` and take it from disk. Take `expect` from the red run's output; it is a regular expression (escape `.`, `*`, `?`, `(` or end before them) that matches only text the failure prints (the `×` line, the error line, prettier's `[warn]` line) and nothing in the unmutated run's stdout and stderr. Keep a test title under about 75 characters and an `it.each` row name at 40 or fewer, or match only their first words. The runner is `node scripts/watchfail.mjs` (B4): `--registry tests/mutations --only <ids>` replays entries and exits 2 with `STALE` on a `find` that does not occur once; after every edit of a file the registry mutates, replay its entries before the commit, rewrite a moved entry and replay it red; keep a mutated line's text stable when the change need not touch it; after each slice lands, replay every registry and fix the entry, not the test. A mutation that needs "absent from main" names a value that can never be present (`20261001090199`). A `find` inside a registry holds double quotes (stored escaped in the entry, so it does not match itself), and a watched-fail that removes a file's entry picks a file only one entry names. List the ids before adding one; a taken plan letter becomes a prefix (`bm-page-refusal`); never reuse or rename an id. Anchor an Edit of an entry on its `"id"` or `replace` line, never on its `expect`. `tests/unit/mutation-registry.test.ts` (in `bun run check`) holds the entry shape, one id per registry and every test file named by an entry.
 - proof: `cd app && bunx vitest run tests/unit/mutation-registry.test.ts` passes; `node scripts/watchfail.mjs --registry tests/mutations --only z` prints `WATCHED-FAIL OK B4:z`, and with the `test` of `y-lint` changed to `tests/unit/seo.test.ts` it prints `STALE B4:z: find occurs 2 times in tests/mutations/B4.json` and exits 2 (2026-10-03, restored); `bun run format:check 2>&1 | grep -c "05-plans/merge-gate\.mjs"` → `1` on a green tree (the echo line); a scratch test `it.each([{ name: "0123456789012345678901234567890123456789X" }])("$name ends here", ({ name }) => { expect(name).toBe(""); })` prints `× 012345678901234567890123456789012345678… ends here` (2026-10-02).
 - merged: P-081, P-090, P-093, P-116, P-121, P-133, P-401, P-402
+- hit again: 2026-10-03, B4 g4: prettier changed the padding of an aligned `/* */` comment after the entry `sm-rows` was written, and its replay printed `STALE ... find occurs 0 times`; the `find` was rewritten from the formatted file.
 - added: 2026-10-02
 
 ## P-067 · Clearing a baseline "by fixing" is not making the tool quiet: a validator that validates nothing, and exports a later plan changes
@@ -763,6 +764,7 @@ Entry template
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
 - merged: P-400
+- hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1080,10 +1082,33 @@ Entry template
 - added: 2026-10-03
 
 ## P-415 · `expect.objectContaining` and `expect.stringMatching` return `any`: the lint refuses them inside an object or a return, and prettier realigns comment padding a registry `find` copied before formatting
-- symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written. Hit again: P-094 (a `python -` heredoc hung 120 seconds in the same turn) and P-066.
-- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
+- symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written.- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
 - rule: build the observed values with `typeof x === "object" && x !== null && "key" in x ? x.key : null` (it narrows to `unknown`) and compare plain values; run `bunx prettier --write` on the test file before writing any registry `find` that quotes it, and replay the entry at once.
 - proof: `cd app && bunx eslint --max-warnings 0 tests/unit/analytics.test.ts` → no output, exit 0; `node scripts/watchfail.mjs --registry tests/mutations --only sm-rows` → `WATCHED-FAIL OK B4:sm-rows`.
+- added: 2026-10-03
+
+## P-416 · A recurrence went into a new entry instead of the entry that already holds the lesson
+- severity: warn
+- symptom: P-415 ended its symptom with "Hit again: P-094 ... and P-066" and carried both lessons (the python heredoc, the prettier padding) beside its own; P-094 and P-066 were not touched, so a search for either id missed the recurrence. The review of B4 g4 found it.
+- cause: the entry was written from the list of what went wrong in the turn, one heading for the turn, not from a search of the bank for each item.
+- rule: before a new entry, run `grep -n "<keyword>" GOTCHAS.md` for each cost; a cost the bank holds gets a "hit again" line inside that entry (date, lane, what repeated), and a new entry carries one lesson, never the whole turn.
+- proof: `git grep -c "^- hit again: 2026-10-03, B4 g4" -- GOTCHAS.md` → `2` (P-094 and P-066), and `grep -c "in the same turn) and P-066" GOTCHAS.md` → `0` (measured 2026-10-03, B4 g4 follow-ups).
+- added: 2026-10-03
+
+## P-417 · A rule line that hands work to another slice's step names a file that slice's plan never lists
+- severity: warn
+- symptom: P-414 says "B3 changes `analytics.ts` and updates this test", but `workspace/05-plans/B3.md` never names `tests/unit/analytics.test.ts`, so the swap from `Record<AnalyticsEvent, true>` to `analyticsEvents` has no owner. Nothing breaks today: B3 derives `AnalyticsEvent` from `analyticsEvents`, so the typecheck keeps checking the full list.
+- cause: the sentence was written as an expectation about B3, not read from B3's Files list.
+- rule: a gotcha or log line that says another step will change a file is checked against that step's Files list before it is written, and names the step or follow-up that carries it; a line that cannot be checked says UNPROVEN. The orchestrator either adds the test to B3's Files list or drops the claim from P-414.
+- proof: `grep -c "analytics\.test\.ts" workspace/05-plans/B3.md` → `0`; `grep -n "analyticsEvents" workspace/05-plans/B3.md | head -3` shows the derived union near line 140 (measured 2026-10-03, B4 g4 follow-ups).
+- added: 2026-10-03
+
+## P-418 · `watchfail.mjs --only <letter>` replays that id in every registry, so a bare letter goes red in a shell that holds `CLOUDFLARE_API_TOKEN`
+- severity: warn
+- symptom: `node scripts/watchfail.mjs --registry tests/mutations --only d` prints `WATCHED-FAIL BAD: wrong reason (B2:d)` with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`, then `WATCHED-FAIL OK B4:d`, then `replayed 2: ok 1, bad 1` and exits 1, although B4:d is fine.
+- cause: B1b, B2 and B4 each have an entry `d`; `--only` matches the id in every registry, and the B2 entry is a db entry that the guard-env refuses in a shell with ops variables (P-310).
+- rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
 - added: 2026-10-03
 
 ## Retired, enforced
