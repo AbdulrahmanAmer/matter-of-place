@@ -33,6 +33,64 @@
   --container: 1500px;
   --container-pad: clamp(24px, 5vw, 86px);
   --header-h: 84px;
+
+  /* social: the cover, carousel and story templates (workspace/08-creative/DIRECTION.md). Offsets are measured
+     from the top of the band, which begins where the photograph ends. */
+  --social-band: var(--foreground);
+  --social-ink: var(--secondary);
+  --social-ink-quiet: var(--accent);
+  --social-track: 0.22em;
+  --social-track-specs: 0.2em;
+  --social-weight-numeral: 500;
+  --social-lh-display: 1.04;
+  --social-headline-w: 900px;
+
+  --social-cover-w: 1200px;
+  --social-cover-h: 630px;
+  --social-cover-x-h: 675px;
+  --social-cover-margin: 64px;
+  --social-cover-photo-h: 440px;
+  --social-cover-photo-x-h: 485px;
+  --social-cover-mark-h: 16px;
+  --social-cover-mark-top: 28px;
+  --social-cover-location-size: 14px;
+  --social-cover-location-top: 26px;
+  --social-cover-price-size: 60px;
+  --social-cover-price-top: 56px;
+  --social-cover-specs-size: 14px;
+  --social-cover-specs-top: 92px;
+
+  --social-carousel-w: 1080px;
+  --social-carousel-h: 1350px;
+  --social-carousel-margin: 72px;
+  --social-carousel-photo-h: 920px;
+  --social-carousel-mark-h: 18px;
+  --social-carousel-mark-top: 40px;
+  --social-carousel-marker-size: 15px;
+  --social-carousel-marker-top: 40px;
+  --social-carousel-location-size: 15px;
+  --social-carousel-location-top: 110px;
+  --social-carousel-headline-size: 58px;
+  --social-carousel-headline-top: 144px;
+  --social-carousel-price-size: 44px;
+  --social-carousel-price-top: 302px;
+  --social-carousel-specs-size: 14px;
+  --social-carousel-specs-top: 316px;
+
+  --social-story-w: 1080px;
+  --social-story-h: 1920px;
+  --social-story-margin: 72px;
+  --social-story-photo-h: 1080px;
+  --social-story-mark-h: 20px;
+  --social-story-mark-top: 56px;
+  --social-story-location-size: 19px;
+  --social-story-location-top: 156px;
+  --social-story-headline-size: 72px;
+  --social-story-headline-top: 198px;
+  --social-story-price-size: 64px;
+  --social-story-price-top: 382px;
+  --social-story-specs-size: 18px;
+  --social-story-specs-top: 466px;
 }
 
 @media (max-width: 700px) {

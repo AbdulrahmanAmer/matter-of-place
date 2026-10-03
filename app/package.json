@@ -39,6 +39,7 @@
     "db:psql": "bun scripts/psql-dev.mjs",
     "db:lint": "supabase db lint --linked --level warning",
     "gen:types": "bun scripts/gen-types.mjs",
+    "fonts": "node scripts/fonts.mjs",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "trustedDependencies": [
@@ -61,6 +62,10 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^9.32.0",
+    "@fontsource-variable/cormorant-garamond": "^5.3.0",
+    "@fontsource-variable/epilogue": "^5.3.0",
+    "@fontsource-variable/jost": "^5.3.0",
+    "@fontsource-variable/urbanist": "^5.3.0",
     "@playwright/test": "^1.63.0",
     "@supabase/supabase-js": "^2.117.2",
     "@testing-library/dom": "^10.4.2",

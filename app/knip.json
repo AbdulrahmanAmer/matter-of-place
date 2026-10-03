@@ -4,8 +4,10 @@
     "src/routes/**/*.{ts,tsx}",
     "scripts/**/*.{ts,mjs}",
     "supabase/functions/*/index.ts",
-    "tests/**/*.{ts,tsx}"
+    "tests/**/*.{ts,tsx}",
+    "src/templates/social/SocialFrame.tsx"
   ],
   "ignore": ["src/db/types.ts"],
-  "ignoreBinaries": ["psql"]
+  "ignoreBinaries": ["psql"],
+  "ignoreDependencies": ["@fontsource-variable/*"]
 }
