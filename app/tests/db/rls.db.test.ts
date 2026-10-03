@@ -81,7 +81,9 @@ $$`;
 
 // Runs one operation on one row of the table as the role, then rolls it back, and answers `rows <n>` or the error's
 // SQLSTATE. An insert writes a copy of that row, so a refused one fails the policy (42501) before the copy's
-// duplicate key (23505); update sets a key column to itself; select and delete name the row by its ctid.
+// duplicate key (23505); update sets a key column to itself; select and delete name the row by its ctid. The row is
+// one the fixtures wrote in this transaction (xmin), so seeded rows never change the outcome (R52); a table the
+// fixtures skipped (a conflict) falls back to any row.
 const PROBE = `create function pg_temp.rls_probe(p_table regclass, p_op text, p_role text, p_user uuid)
 returns text
 language plpgsql
@@ -95,7 +97,10 @@ declare
   v_where text;
   v_rows bigint;
 begin
-  execute format('select tableoid, ctid, to_jsonb(t) from %s t limit 1', p_table) into v_oid, v_ctid, v_row;
+  execute format(
+    'select tableoid, ctid, to_jsonb(t) from %s t order by t.xmin::text = pg_current_xact_id()::xid::text desc limit 1',
+    p_table
+  ) into v_oid, v_ctid, v_row;
   v_where := case when v_oid is null then 'false' else format('tableoid = %s and ctid = %L', v_oid, v_ctid) end;
   select string_agg(quote_ident(a.attname), ', ' order by a.attnum) into v_columns
   from pg_attribute a

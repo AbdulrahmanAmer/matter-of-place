@@ -2801,5 +2801,15 @@
     "replace": "buffer,",
     "run": "bunx vitest run --project unit tests/unit/strip-exif.test.ts",
     "expect": "× .*makes all five variants through makeVariants"
+  },
+  {
+    "id": "g11-rls-own-row",
+    "kind": "file",
+    "test": "tests/db/rls.db.test.ts",
+    "file": "tests/db/rls.db.test.ts",
+    "find": "pg_current_xact_id()::xid::text desc limit 1",
+    "replace": "pg_current_xact_id()::xid::text asc limit 1",
+    "run": "bun run seed -- --target dev --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts",
+    "expect": "\\+\\s+\"properties insert: P0001\""
   }
 ]

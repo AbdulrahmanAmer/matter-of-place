@@ -1,7 +1,8 @@
 // The snapshot budget (PERF-03, B2 step 12): 100 published properties of 30 stored photographs, every photograph with
 // all five G59 sizes, must serialise to at most 1,500,000 bytes through public_catalog_snapshot(). It runs inside the
 // harness's rolled-back transaction. KEEP_FIXTURE=1 commits the fixture instead, so B1b step 7 and H1 can time the first
-// request after bump_catalog_version(); `bun run db:reset` from main removes it (ruling H1 d).
+// request after bump_catalog_version(), and then the catalog it cleared stays cleared; `bun run db:reset` from main
+// removes it (ruling H1 d).
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { variantKeys } from "../../scripts/variants";
@@ -42,6 +43,12 @@ function photographs(): object[] {
 
 /** Builds the catalog the budget is measured on and returns the snapshot's size in bytes. */
 async function snapshotBytes(db: Db): Promise<number> {
+  // Whatever catalog the database already holds (a seed) is not part of the measure (R52): properties first, because
+  // a published property refuses the hero update its media rows trigger (P-339).
+  await db.query("select set_config('mop.retention', 'on', true)");
+  for (const table of ["properties", "stories", "regions", "markets"]) {
+    await db.query(`delete from public.${table}`);
+  }
   await db.query(
     `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
      on conflict (slug) do nothing`,
