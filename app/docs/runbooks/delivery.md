@@ -97,7 +97,10 @@ BLOCKED. Free private repositories have no branch protection and the operator de
 - `deploy.yml` deploys only a commit whose `ci` run on `main` succeeded (invariant 6a);
 - nobody force-pushes (G-009).
 
-What would unblock it: GitHub Pro, or a public repository, then `bash scripts/protect-main.sh`.
+What would unblock it: GitHub Pro, or a public repository, then `bash scripts/protect-main.sh`; its proof is
+`gh api repos/AbdulrahmanAmer/matter-of-place/branches/main/protection --jq .required_status_checks.contexts`
+printing `["check","build"]`. Re-checked 2026-10-03: the same call still answers HTTP 403. The decision line is under
+"Open risks" in `PROJECT-STATE.md` (ruling H5, declined 2026-10-02).
 
 ## Worker configuration
 
@@ -366,6 +369,15 @@ The client is `src/server/lib/sentry.ts`, a hand-written envelope sender (no SDK
 `request_id`, `route`, `env`, `release` (`SENTRY_RELEASE`, `dev` when unset) and `side`; one event per
 fingerprint per 60 seconds leaves an isolate, and a `429` or `X-Sentry-Rate-Limits` answer pauses every send for the
 window it names. A failed send is one `sentry_send_failed` log line, never a retry.
+
+Follow-ups, none of them in this slice:
+
+- Only the Worker reports. No code in `src` sends a browser error to Sentry, so a render error in a visitor's browser is
+  not seen here.
+- `src/router.tsx` sets no `defaultErrorComponent`, so a loader error shows TanStack's default error box and not
+  `RouteError` (`src/components/layout/route-error.tsx`). A one-line change that belongs with B3 or Harden.
+- `start.ts` reads `MOP_ENV`, `SENTRY_DSN` and `SENTRY_RELEASE` from `process.env` until B3's `src/server/lib/env.ts`
+  takes over (the `STUB(B3)` line in that file).
 
 Personal data stays out (GS-03). `scrubEvent` keeps an allow-list of fields and masks email-shaped text as `[email]`.
 Two lines exist because Sentry adds data on its side, measured on 2026-10-02 with the test route:

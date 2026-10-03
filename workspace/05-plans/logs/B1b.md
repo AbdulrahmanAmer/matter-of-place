@@ -4238,3 +4238,32 @@ GOTCHAS: added G-040 (a `$(psql ...)` inside `[ ]` hides a query error under `ba
 The c7 review found no blocking defect and five follow-ups; no code changed. Two had GOTCHAS.md as their file and are banked: P-151 (G-031's reference to P-504 pointed at the wrong entry after the merge renumbered the lane entry to P-140; the reference in G-031 is corrected) and P-153 (the review brief's `review-snapshot.mjs create` line names the snapshot folder as the lane root), with the second cost of that follow-up, the hygiene case's own 20 s timeout, banked as P-152 and added to G-031's enforced-by line. The other three follow-ups (hygiene.test.ts 20_000 timeout, the B1b.md proof that needs a script outside the repository, the deploy.yml production rollback and gradual-split cases) are in `workspace/05-plans/logs/B1b-followups.md` under "c7 · steps 7" for the orchestrator to fold or assign.
 
 GOTCHAS: added P-151, P-152, P-153.
+
+## g10 · steps 9,10
+
+Started from `slice/b1b` with `origin/main` merged (no conflict). Files: `.github/workflows/README.md`, `app/.env.example`, `app/src/env.d.ts`, `app/docs/runbooks/delivery.md`.
+
+Step 9, branch protection. `gh api repos/AbdulrahmanAmer/matter-of-place/branches/main/protection` -> `{"message":"Upgrade to GitHub Pro or make this repository public to enable this feature.",...,"status":"403"}` (2026-10-03 13:41 +0300). The plan has not changed, so the step ends BLOCKED, no `protect-main.sh` written. The decision line exists: `grep -n "declined for now" PROJECT-STATE.md` -> line 20, "GitHub Pro (about 4 USD a month) is the operator's decision; declined for now (2026-10-02)" (ruling H5). The runbook section "Decision for step 9" lists the standing substitute (merge gate, `deploy.yml` deploys only a green `ci` SHA, no force-push) and now also the unblock proof command and the re-check date.
+
+Step 10, close-out:
+- `.github/workflows/README.md`: the table lists the three workflows that exist (`ci.yml`, `deploy.yml`, `backup.yml`); `render.yml`, `audit-scope.yml`, `audit-deps.yml` moved to one sentence naming their owners; the draft rule no longer names `e2e-live` (merged into `e2e`, T-04).
+- `app/.env.example`: added `VITE_TURNSTILE_SITE_KEY` and a server block (`MOP_ENV`, `MEDIA_PUBLIC_BASE`, `SENTRY_DSN`, `SENTRY_TEST_TOKEN`, `SENTRY_RELEASE`), names only; leading comment says server names are read by Wrangler and Nitro, never by Vite.
+- `app/src/env.d.ts`: `VITE_TURNSTILE_SITE_KEY` in `ImportMetaEnv`.
+- `app/docs/runbooks/delivery.md` (Sentry section): the follow-ups, note only: no browser reporting, `defaultErrorComponent` not set in `src/router.tsx` (`grep -n defaultErrorComponent src/router.tsx` prints nothing), env read through `process.env` until B3's `env.ts`.
+
+```
+cd app && node ../workspace/05-plans/quiet.mjs -- bun run check
+  layout, typecheck, eslint, knip (the two old hints), jscpd, stubs, prettier, vitest unit+component: quiet: ok (51 lines), exit 0
+cd app && node ../workspace/05-plans/quiet.mjs -- bun run build
+  built in 5.92s, Generated .output/server/wrangler.json   quiet: ok (217 lines)   BUILD-EXIT 0
+git ls-files "app/.github"        -> (nothing)
+cd app && grep -rn "VITE_" .env.example
+  1:# Public build-time settings. ... never put secrets in VITE_* variables.
+  5:VITE_SITE_URL=https://matterofplace.com
+  8:# VITE_API_BASE_URL=https://matterofplace.com/api
+  11:VITE_TURNSTILE_SITE_KEY=
+  14:# VITE_INSTAGRAM_URL=https://www.instagram.com/matterofplace
+```
+The names are `VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_TURNSTILE_SITE_KEY` and the commented `VITE_INSTAGRAM_URL` (B16 removes it, G23); line 1 is the leading comment. No watched-fail: this group adds no test.
+
+GOTCHAS: none added; `bun run check` ran past 120 s and moved to the background (P-027, known).
