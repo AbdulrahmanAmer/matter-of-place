@@ -1486,3 +1486,11 @@ Entry template
 - rule: a proof names a committed script or an inline command, never a path under `scratch/`; when the proof needs a helper, commit it under its folder-map row (B4's `scripts/watchfail.mjs` replays the mutation registry once it lands) or inline it in the command.
 - proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/	scratch/g6-prelude.sql`; `git grep -n "scratch/g6" -- GOTCHAS.md` lists the P-317 and G-102 lines that still depend on it until B4 lands the replay script (measured 2026-10-03, B2 g6 follow-up).
 - added: 2026-10-03
+
+## P-412 · A fixture that mirrors a contract breaks when main changes the contract under a lane
+- severity: warn
+- symptom: B4 c2 was proven green, then B2 step 5 reached main and replaced `agentName`, `agentEmail` with `submitterKind`, `submitterName`, `submitterEmail` (S55); after merging main, `bun run typecheck` failed with `tests/fixtures/builders.ts(31,5): error TS2353: 'agentName' does not exist in type 'SubmissionInput'`, and `contracts.test.ts` named `agentEmail` in a rejection case that the schema would now strip and accept.
+- cause: `builders.ts` types its payload from `z.input<typeof submissionSchema>` and a string-keyed rejection table names fields by text; the type check catches the first, nothing catches the second until the case goes green for the wrong reason.
+- rule: after every `git merge origin/main` in a lane that owns a fixture, run `bun run typecheck` and grep the tests for the renamed field names before `bun run check`; a rejection table that names a field a schema no longer has passes silently.
+- proof: `cd app && git grep -n "agentName\|agentEmail" -- tests/fixtures tests/unit/contracts.test.ts` prints nothing (measured 2026-10-03, B4 c2).
+- added: 2026-10-03

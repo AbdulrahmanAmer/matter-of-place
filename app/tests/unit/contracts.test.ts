@@ -81,7 +81,7 @@ describe("submissionSchema", () => {
     { field: "currency", value: "EUR" },
     { field: "propertyType", value: "Castle" },
     { field: "package", value: "The Everything" },
-    { field: "agentEmail", value: "agent-at-fixtures" },
+    { field: "submitterEmail", value: "agent-at-fixtures" },
     { field: "story", value: "x".repeat(5001) },
     { field: "address", value: "" },
     { field: "listingUrl", value: "not a url" },
