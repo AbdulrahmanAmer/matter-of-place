@@ -189,6 +189,7 @@ Entry template
 - merged: P-070, P-111, P-115, P-309, P-406
 - hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
+- hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -1143,6 +1144,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-415 · `expect.objectContaining` and `expect.stringMatching` return `any`: the lint refuses them inside an object or a return, and prettier realigns comment padding a registry `find` copied before formatting
 - symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written.- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
 - rule: build the observed values with `typeof x === "object" && x !== null && "key" in x ? x.key : null` (it narrows to `unknown`) and compare plain values; run `bunx prettier --write` on the test file before writing any registry `find` that quotes it, and replay the entry at once.
+- hit again: 2026-10-03, B3 g2: the registry entries for `src/server/lib/ratelimit.ts` were written and replayed green before the first `bun run check`; prettier then split `if (error !== null || row === undefined) throw new AppError(...)` over two lines, so the entry `b3-g2-db-error` went stale and the five `tests/api` cases needed a second replay. Run `bunx prettier --write` on a source file before copying any `find` out of it.
 - proof: `cd app && bunx eslint --max-warnings 0 tests/unit/analytics.test.ts` → no output, exit 0; `node scripts/watchfail.mjs --registry tests/mutations --only sm-rows` → `WATCHED-FAIL OK B4:sm-rows`.
 - added: 2026-10-03
 
@@ -1439,6 +1441,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `db:fn` stamps the migration with the clock, while the plan fixed the later names in advance. Invariant 17 allows renaming, so nothing broke, but nobody had listed the renames.
 - rule: before running `db:fn` mid-slice, `git grep` the plan for planned migration names newer than the main tip and older than today; if any exist, say in the log which names will have to be renamed after the fix merges and ask the orchestrator to update the plan before the next group starts. The other way, putting the fix inside an unmerged migration, conflicts with R19's db:fn path.
 - proof: from the tree root, `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md | sort -u` lists the planned names, and `ls app/supabase/migrations | tail -3` shows the fn migration stamped `20261003082557`, later than every one of them (measured 2026-10-03, B2 g8 review).
+- hit again: 2026-10-03, B3 g2: the plan still names `20261001100000_public_write_functions.sql`, older than main's `20261003173858`; R16 and `db:push` (`refusing: out-of-order migration`) refuse it, so the file was made with `bunx supabase migration new public_write_functions` as `20261003184651_public_write_functions.sql`. The plan's proof `migration list shows 20261001100000` reads `20261003184651`, and B3's later `contracts-live.test.ts` line that parses `supabase/migrations/20261001100000_public_write_functions.sql` must name the new file (B3-followups).
 - added: 2026-10-03
 
 ## P-325 · The review brief's snapshot command and builder path use the snapshot folder where the script wants the lane root
@@ -1515,6 +1518,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git grep -c '^- proof:.*src/routes/about[.]tsx' -- GOTCHAS.md` → no output (the proofs of G-150 and P-409 name `_site.about.tsx`); `ls app/src/routes | grep -c '^about[.]tsx'` → `0`; `git grep -l 'routes/about[.]tsx' -- workspace/05-plans/trace.json` → `workspace/05-plans/trace.json` while the hit is open (measured 2026-10-03, B3 g1 review).
 - added: 2026-10-03
 
+## P-805 · Two plans order `submission_media` by `sort_order`, a column no migration and no plan creates
+- symptom: B3 step 2's `submission_upload_paths` returns its rows "in `sort_order`" and B7 reads uploaded media "in `sort_order`", but `submission_media` (B2 migration 5, `tests/db/schema-manifest.ts`) has id, submission_id, name, storage_path, uploaded_at, bytes, mime and sha256 only. `create_submission` also has to answer a double click with the first request's media in payload order, which needs the position stored.
+- cause: the plans wrote the read before anyone owned the column; the Data changes list of B3 names `duplicate_of` and `pending_source` and not this one.
+- rule: before writing a function body from a plan line, check every column it names against `tests/db/schema-manifest.ts`; a missing column is added by the migration of the function that first writes it, named in the log and the report, never left to a later slice. B3's migration `20261003184651_public_write_functions.sql` adds `submission_media.sort_order int not null default 0`, written by `create_submission` as the 0-based payload index.
+- proof: `cd app && git grep -c "sort_order" -- supabase/migrations/20261001090400_intake.sql` → no output; `git grep -c "add column sort_order" -- supabase/migrations/20261003184651_public_write_functions.sql` → `1` (measured 2026-10-03, B3 g2).
+- added: 2026-10-03
+
+## P-806 · `rate_limit_check` as the plan words it ("one row per check") counts a call twice when two checks share a bucket and key
+- symptom: B3's Files line says `rate_limit_check` "inserts one row per check" and also that `checkDb` "accepts two checks on one bucket with different windows" (B7's `agent:<key_id>` at 60 per minute beside a daily limit). With one row per check each call writes two hits under the same bucket and key, and both windows count both, so the minute limit of 60 would refuse at the 31st call.
+- cause: the two sentences were written for different callers; a check is a window on a key, while a hit belongs to the key.
+- rule: `rate_limit_check` inserts one hit per distinct (bucket, key_hash) of the call (`select distinct`). `tests/api/ratelimit.api.test.ts` "counts two checks on one bucket against their own windows and records one hit per call" asserts 3 hits after two calls on a key that held 2.
+- proof: `cd app` in the dev loader shell, `bunx vitest run --project db tests/api/ratelimit.api.test.ts -t "own windows"` passes; `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin;`, the text of `supabase/sql/functions/rate_limit_check.sql` up to `$$;` with `select distinct c` changed to `select c`, two hits for one key dated 2 minutes ago, two calls of `rate_limit_check` with the checks `{limit 2, window_seconds 60}` and `{limit 3, window_seconds 86400}` on that key, a count of its hits and `rollback;` prints `t | 0`, then `f | 86280` and `4`; with `distinct` the count is `3` (measured 2026-10-03, B3 g2).
+- added: 2026-10-03
+
 ## G-300 · `env.ts` parses `process.env` when it is first imported, so a unit test sets the environment before it imports `env.ts`, `db.ts` or anything that imports them
 - paths: app/src/server/lib/env.ts, app/src/server/lib/db.ts
 - severity: warn
@@ -1540,6 +1557,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a policy stores the function's oid, a `language sql`/`plpgsql` body stores text resolved at call time, and a body that only names tables records no dependency on them. `alter function ... set schema` is not flagged by `check-migrations.mjs` and drops nothing, so no gate catches the stale names.
 - rule: before moving a function, `git grep -n "public\.<name>"` across `supabase/sql/functions`, `tests`, `scripts` and the plans; regenerate every function that names it with `bun run db:fn`, repoint test SQL and registry `sql` entries, and make `db:reset` drop the new schema too. Replay every registry entry whose `sql` names the function.
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select d.refclassid::regclass, d.deptype from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = 'app.is_staff()'::regprocedure"` → `pg_namespace|n` only (measured 2026-10-03, B2 c9).
+- hit again: 2026-10-03, B3 g2: the move did not regenerate `src/db/types.ts`, so main's file still listed `is_staff` and `role_in` under `public`; the next `bun run gen:types` dropped them, and `bun run check` failed typecheck in `tests/unit/db.test.ts` and `tests/unit/fake-db.test.ts`, which used `is_staff` as a sample RPC (`Argument of type '"is_staff"' is not assignable`). Moving a function regenerates the types in the same commit; the two tests now call `public_state` and `record_webhook_receipt`.
 - added: 2026-10-03
 
 ## P-328 · A proof of a migration that runs on mop-dev can pass because mop-dev lacks the object the proof is about

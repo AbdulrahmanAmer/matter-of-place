@@ -51,8 +51,8 @@ describe("the request counter", () => {
   it("counts every request to Supabase and resets to zero", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(Response.json(true)));
     const { dbCallCount, getDb, resetDbCallCount } = await load(WITH_DB);
-    await getDb().rpc("is_staff");
-    await getDb().rpc("is_staff");
+    await getDb().rpc("public_state");
+    await getDb().rpc("public_state");
     expect(dbCallCount()).toBe(2);
     resetDbCallCount();
     expect(dbCallCount()).toBe(0);
@@ -86,7 +86,7 @@ describe("the read timeout", () => {
       return Promise.resolve(Response.json(true));
     });
     const { getDb } = await load(WITH_DB);
-    await getDb().rpc("is_staff");
+    await getDb().rpc("record_webhook_receipt", { p_provider: "test", p_id: "test" });
     expect(signal ?? null).toBeNull();
   });
 });

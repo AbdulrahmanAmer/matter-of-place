@@ -3,20 +3,20 @@ import { fakeDb } from "../fixtures/fake-db";
 
 describe("fakeDb", () => {
   it("answers a registered RPC with its value and records the call once", async () => {
-    const db = fakeDb({ rpc: { is_staff: () => true } });
-    const answer = await db.rpc("is_staff");
+    const db = fakeDb({ rpc: { public_state: () => true } });
+    const answer = await db.rpc("public_state");
     expect(answer).toEqual({ data: true, error: null });
-    expect(db.calls).toEqual([{ kind: "rpc", name: "is_staff", args: [undefined] }]);
+    expect(db.calls).toEqual([{ kind: "rpc", name: "public_state", args: [undefined] }]);
   });
 
   it("turns a returned Error into { data: null, error }", async () => {
     const failure = new Error("boom");
-    const db = fakeDb({ rpc: { is_staff: () => failure } });
-    expect(await db.rpc("is_staff")).toEqual({ data: null, error: failure });
+    const db = fakeDb({ rpc: { public_state: () => failure } });
+    expect(await db.rpc("public_state")).toEqual({ data: null, error: failure });
   });
 
   it("throws unexpected rpc zz for an unregistered RPC", () => {
-    const db = fakeDb({ rpc: { is_staff: () => true } });
+    const db = fakeDb({ rpc: { public_state: () => true } });
     // @ts-expect-error -- zz is not a function of the schema, which is the case under test
     expect(() => db.rpc("zz")).toThrow("unexpected rpc zz");
     expect(db.calls).toHaveLength(1);
