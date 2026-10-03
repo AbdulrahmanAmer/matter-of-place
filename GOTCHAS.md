@@ -1308,7 +1308,7 @@ Entry template
 - symptom: a patch chain `python - 2>/dev/null; node -e '<edits to package.json, tsconfig.json, eslint.config.js>'` was moved to the background at 120 s. The same edits were then made with the Edit tool; two of them failed with `String to replace not found` (the chain had already changed those lines), and after `taskkill` of python the chain went on and the node patch applied a second time: a duplicated `"watchfail"` script, duplicated tsconfig includes, a half-reformatted `ignores` list. About 6 minutes.
 - cause: P-094 again (an interpreter started with `-` waits for stdin), plus `;` between commands: the next command runs whenever the hung one ends, even much later.
 - rule: never start an interpreter that can wait for stdin inside a chain; put a patch in a file and run it, or use the Edit tool. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
-- proof: `cd app && git diff -U0 package.json | grep -c '^+    "watchfail"'` prints `1` after the clean-up (it printed `2` before).
+- proof: `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up). The first form of this proof, `git diff -U0 package.json | grep -c ...`, compares the working tree with the index, so it prints `0` once the work is committed and measures nothing; a proof must hold on the committed tree (B4 g1 review).
 - added: 2026-10-03
 
 ## P-401 · A registry entry whose red depends on what is on main goes stale when its slice merges
@@ -1323,4 +1323,11 @@ Entry template
 - cause: the registry test asks "is the file named by any entry", and an entry's `find` is stored inside the very file it mutates when that file is a registry.
 - rule: (z) renames the `test` of the one entry that is the only one naming its file (`y` for `tests/unit/seo.test.ts`; `y-lint` carries `"test": "bun run lint"` so it does not name the file). Its `find` holds double quotes (`"test": "tests/unit/seo.test.ts",`): inside the entry they are stored as `\"`, so the entry does not match itself. A group whose test file has several entries picks another file for its (z), and says so in its log.
 - proof: from `app/`, `node scripts/watchfail.mjs --registry tests/mutations --only z` prints `WATCHED-FAIL OK B4:z`; with the `test` of `y-lint` changed to `tests/unit/seo.test.ts` (a second entry naming it) it prints `STALE B4:z: find occurs 2 times in tests/mutations/B4.json` and exits 2 (measured 2026-10-03, file restored).
+- added: 2026-10-03
+
+## P-403 · A scratch vitest config outside `app/` that names an app setup file by absolute path fails with `Cannot find module '/@fs/...'`
+- symptom: `bunx vitest run --root <scratch> --config <scratch>/vitest.config.mjs`, with `setupFiles: ["E:/mop-build/tests/app/tests/setup/dom.ts"]`, printed `Error: Cannot find module '/@fs/E:/mop-build/tests/app/tests/setup/dom.ts'` and `Tests  no tests`. The B4 g1 reviewer lost a second attempt to it while proving `dom.ts` and `hermetic.ts` outside the project.
+- cause: Vite serves files outside the root only when `server.fs.strict` allows them; a scratch root is not an ancestor of `app/tests/setup`.
+- rule: a scratch config that loads a setup file from the app sets `server: { fs: { strict: false } }`. Run it from `app/` (`bunx vitest run --root <scratch> --config <scratch>/<name>.mjs`) so `vitest` resolves; keep one test file per scratch folder, because `--root` collects every test file under it.
+- proof: with a folder holding `a.test.tsx` (one passing test) and two configs naming `E:/mop-build/tests/app/tests/setup/dom.ts` under `environment: "jsdom"`, run from `app/`: the config without `server.fs.strict: false` prints `Error: Cannot find module '/@fs/E:/mop-build/tests/app/tests/setup/dom.ts'`; the config with it prints `Tests  1 passed (1)` (measured 2026-10-03).
 - added: 2026-10-03
