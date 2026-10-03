@@ -4337,3 +4337,6 @@ cd app && node ../workspace/05-plans/quiet.mjs -- bun run build
   quiet: ok (217 lines)
 ```
 GOTCHAS: P-155 (dev Worker absent after the PR 43 merge, merge-gate red on the closed-run preview), P-156 (prettier over app markdown).
+
+## g8 · follow-ups recorded
+Review of g8 (steps 7b) found no blocking defect and four follow-ups; no code changed. One had GOTCHAS.md as its file: banked as P-157 (P-156's proof had no control that a misaligned table goes red; the entry carries one, run: exit 1). The other three, word for word with evidence, are under "## g8 · steps 7b" in B1b-followups.md: the merge-gate defect on the `closed` run (highest consequence, needs a ruling before the next merge is expected to deploy), the step 7b proof line that should name "rolled back to", and the rollback.md run ids to carry into H1.

@@ -1226,6 +1226,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → `All matched files use Prettier code style!`.
 - added: 2026-10-03
 
+## P-157 · A proof that shows only the passing state does not show the rule: P-156 had no control that a hand-padded markdown table goes red
+- symptom: the reviewer of B1b g8 ran P-156's proof, `prettier --check docs/runbooks/delivery.md`, and got `All matched files use Prettier code style!`, exit 0. That output is the same whether or not prettier would refuse a misaligned table, so the entry's failure mode was told, never shown.
+- cause: P-156 was written from the one red run of `format:check` and proved with the file after the fix; it had no case that fails.
+- rule: a proof for a "this goes red" lesson carries a control: write the bad input to a temporary file, see the check exit 1, delete the file. Keep the passing run beside it.
+- proof: `cd app && printf '# t\n\n| a | b |\n|---|---|\n| longer cell | x |\n' > docs/zz-control.md; bunx prettier --config .prettierrc --check docs/zz-control.md; echo "exit $?"; rm docs/zz-control.md` → `Code style issues found in the above file` and `exit 1` (run by the recorder on 2026-10-03); `bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → exit 0.
+- added: 2026-10-03
+
 ## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
 - symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
 - cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
