@@ -1543,7 +1543,7 @@
     "find": "  \"newsletter_signup\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
-    "expect": "× .*lists every event name that a track() call in src spells out"
+    "expect": "× .*lists every event name that a track\\(\\) call in src spells out"
   },
   {
     "id": "b3-g4-ss-steps",

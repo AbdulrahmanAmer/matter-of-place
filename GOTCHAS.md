@@ -191,6 +191,7 @@ Entry template
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
 - hit again: 2026-10-04, B3 g3: three times in one group (a `sed` with `\n` in the replacement, a `node -` patch with a regular expression, a heredoc with an apostrophe in a test title) the text lost its backslashes or ended in `unexpected EOF`; each was redone with the Write or Edit tool, and a `sed` that had written a literal line break into a string broke the file's parse.
+- hit again: 2026-10-04, B3 g4: a registry entry's `expect` written through `node` in a Bash heredoc lost its backslashes (`track\(\) call` became `track() call`, a regex that matches nothing), so the replay printed `BAD: wrong reason`; the fix went in with the Edit tool.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -753,6 +754,7 @@ Entry template
 - cause: the tests checked the result, and the property (every byte is read whatever the first difference) does not change the result.
 - rule: for a property that does not change the output (constant time, no early exit, a signal passed, a header never stored), test the behaviour that carries it: here a Proxy over each array counts the indexes read when the first byte differs, and both must be all 32. Write the mutation that keeps the answer and drops the property, and see it red.
 - proof: `cd app && bunx vitest run tests/unit/crypto.test.ts` passes; registry entries `crypto-every-byte` (the reviewer's mutation) and `crypto-no-early-exit` turn it red with `× reads every byte of both arrays when the first byte differs`.
+- hit again: 2026-10-04, B3 g4: `contracts-live.test.ts` first checked that `propertyCardSchema` refuses `{ title: 'No slug' }`; the record lacks every other required field too, so removing `slug` from the schema left that case green and the registry replay named another case (`BAD: wrong reason`). The case now removes only `slug` from a valid card.
 - added: 2026-10-02
 
 ## G-025 · TanStack Start answers some requests itself: a bare 500 to a non-HTML Accept, a bare 308 to `//`
@@ -1420,6 +1422,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
 - hit again: 2026-10-03, B3 g1: the brief for steps 1 and 1b omitted the tests of the libs, `tests/mutations/B3.json`, the keys of `tests/e2e/fixtures/routes.ts` and three `file` values of `tests/mutations/B4.json` that the route renames break; all were added by the group and named in the log.
 - hit again: 2026-10-04, B3 g3: the brief for steps 3 and 3b listed `src/server/lib/cache.ts` and `src/server/lib/pipeline.ts`, where the plan and the folder map put `src/server/public/cache.ts` and `src/server/public/pipeline.ts` (B1b's `lib/pipeline.ts` is the other file); the group built the plan's names and also needed `src/start.ts`, `src/server/lib/{db,log-events,wait-until}.ts`, the domain files the mapper fills, `scripts/load-env.mjs`, `tests/e2e/fixtures/routes.ts` (the key for `media.$.ts`), `tests/fixtures/{fake-db,snapshot,worker-env}.ts` and 90 entries of `tests/mutations/B3.json`; all are named in the log.
+- hit again: 2026-10-04, B3 g4: the brief for steps 4 and 5 named four files; the steps also needed `src/lib/analytics.ts`, `wizard.tsx`, `_site.submit.tsx`, `representation.tsx`, `inquiry-dialog.tsx`, `_site.property.$slug.tsx`, the registry `tests/mutations/B3.json` and the new test files `contracts-live`, `submit-state`, `analytics-allowlist` and `owner-presented`; all are named in the log.
 - added: 2026-10-03
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
@@ -1630,6 +1633,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: both files are one-line-per-entry lists that every lane extends under the same marker (ruling H46 lets a group add its entry), so two lanes always touch the same lines.
 - rule: resolve by hand keeping every line of both sides, run `bun run check` before committing the merge, and never take one side whole.
 - proof: `git diff 19a5062^1 19a5062 --stat -- app/knip.json app/.prettierignore | tail -1` → `2 files changed, 3 insertions(+), 1 deletion(-)` (the merge commit that kept both sides, B2 g11).
+- hit again: 2026-10-04, B3 g4: `git merge origin/main` conflicted in `tests/db/schema-manifest.ts`, `rls-matrix.ts` and `rls.db.test.ts` (B8's `events`, `jobs`, `job_events` against B3's three tables, both appended at the same place): keep both sides. The bank driver also exited 1 on GOTCHAS.md with `both sides changed P-712; ours kept` and left the file unmerged without markers; running `node workspace/05-plans/merge-gotchas.mjs <base> <ours> <theirs>` by hand on the three stages from `git show :1:`, `:2:`, `:3:` gave the same message, and the fix was to copy theirs' one `hit again` line into ours.
 - added: 2026-10-03
 
 ## P-337 · A review snapshot cannot re-run `db:reset`: it has the env files but no `supabase link`, and `.env.ops` is not copied
@@ -1785,4 +1789,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the runner's child output carries NUL bytes, which makes grep treat the file as binary; the replay also runs the B8 registry as a nested replay with its own `watchfail: replayed 37` line ahead of the real summary (P-713: it replays every registry).
 - rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
+- added: 2026-10-04
+
+## P-812 · Step 4's "zero differences" is not literal, step 5's contract test names a migration file that does not exist, and the allow-list test has nothing to compare with
+- symptom: the first run of the parity proof printed 49 differences on `/properties` and 6 on `/stories`: `id` (`mop-001` against a uuid), `campaignTier` and `source` (G-303) and the list order (live newest first, bundled in authoring order); `/markets` had none. Step 5 has `contracts-live.test.ts` parse `supabase/migrations/20261001100000_public_write_functions.sql`, but the file is `20261003184651_public_write_functions.sql` (a pushed migration takes its push timestamp). Step 5 also asks `analytics-allowlist.test.ts` to assert equality with the server allow-list, which step 10 creates.
+- cause: the plan was written before the seed derived uuids (`stableId`), before the snapshot ordered by `published_at desc, id`, and before migrations were renamed to their push timestamps; a test that compares two lists needs both lists to exist.
+- rule: the parity test omits `id` (and `campaignTier`, `source` on properties) from the comparison and asserts them apart (uuid shape, newest first), so every other field is compared and a difference names its path; a test reads a migration by its suffix `_<name>.sql`, never by timestamp; `analytics-allowlist.test.ts` checks the one `analyticsEvents` list against the `track("<name>"` calls of `src` until step 10 adds the server allow-list that imports it.
+- proof: `cd app && bunx vitest run --project db tests/api/parity.api.test.ts` → 3 passed; `git grep -c "endsWith" -- tests/unit/contracts-live.test.ts` → 1 (measured 2026-10-04, B3 g4).
+- added: 2026-10-04
+
+## P-813 · A merge that brings a dependency leaves `node_modules` behind: `bun run typecheck` fails with TS2307 on code another lane wrote
+- symptom: after `git merge origin/main`, `bun run typecheck` printed `scripts/lib/shoot.mjs(8,23): error TS2307: Cannot find module 'puppeteer-core'` and exited 2, in a group that never touched `scripts/`.
+- cause: the merge brought the design lane's `package.json` and `bun.lock`; the lane's `node_modules` still held the old set.
+- rule: after a merge that changes `app/package.json`, run `bun install` in `app/` before reading a typecheck or lint failure as your own.
+- proof: `cd app && bun install` printed `+ puppeteer-core@25.12.0`, then `bun run typecheck` exited 0 (measured 2026-10-04, B3 g4).
 - added: 2026-10-04

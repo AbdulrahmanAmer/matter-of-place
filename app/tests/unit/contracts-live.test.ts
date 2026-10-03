@@ -133,7 +133,10 @@ describe("propertyCardSchema", () => {
   });
 
   it("refuses a record with no slug", () => {
-    expect(propertyCardSchema.safeParse({ title: "No slug" }).success).toBe(false);
+    if (first === undefined) throw new Error("no bundled property");
+    const { slug: _slug, ...withoutSlug } = first;
+    expect(propertyCardSchema.safeParse(first).success).toBe(true);
+    expect(propertyCardSchema.safeParse(withoutSlug).success).toBe(false);
   });
 });
 
