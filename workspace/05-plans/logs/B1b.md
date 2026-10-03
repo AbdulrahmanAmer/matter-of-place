@@ -4273,3 +4273,70 @@ The review of g9 (steps 8) found no blocking defect and six follow-ups. Three ha
 
 ## g10 · follow-ups recorded
 The review of g10 (steps 9,10) found no blocking defect and four follow-ups. One had GOTCHAS.md as its file and went to the bank: P-153 (hit again: the snapshot command's lane root; commit 3bba6ce is on the branch and `build-slice.js` line 153 is fixed, so the brief came from a workflow run that started before it). The other three (the `.github/workflows/README.md` promise with no plan step behind it, the `app/.env.example` comment inaccuracies, the two unclear notes in `app/docs/runbooks/delivery.md`) are in `workspace/05-plans/logs/B1b-followups.md` under "## g10 · steps 9,10". No code changed.
+
+## g9 (step 8) · dispatch, download and decrypt proof, run by the orchestrator after PR 43 merged (2026-10-03 15:20 laptop time)
+- `gh workflow run backup.yml --ref main -f target=dev` → run 37119111820, `gh run watch --exit-status` exit 0, job `dump: success`.
+- `gh run download 37119111820 -n mop-dev-dump` → `mop-dev-2026-10-03.dump.p7m` (234,514 bytes).
+- `openssl cms -decrypt -binary -inform DER -inkey creds/backup-recipient.key -in mop-dev-2026-10-03.dump.p7m -out x.dump` → 233,601 bytes; `pg_restore --list x.dump | head` prints the archive header (`dbname: postgres`); `grep -c "TABLE DATA public analytics_events"` → 0; `grep -c "TABLE DATA"` → 55. Local copies deleted after the read.
+- The retention read and the nightly `schedule:` line wait for B8b's `schedule_settings` row, as the plan writes. The private key stays on the laptop until the operator escrows it (H55 (3)).
+
+## g8 · steps 7b
+Rollback rehearsal of the in-job step (DO-09, H49 (2)). The input `rehearse_rollback`, the `SMOKE_FORCE_FAIL` line of the smoke, the `current` step and the id-naming rollback were already on main from step 7 (deploy.yml lines 23-28, 270-347; registry entry `hy-smoke-rehearse` and the hygiene case on the rehearsal line exist), so nothing was added to deploy.yml, hygiene.test.ts or B1b.json.
+
+Precondition did not hold: the dev Worker had never been deployed (GOTCHAS P-155, added).
+```
+bunx wrangler deployments list --name matter-of-place-dev --json
+  This Worker does not exist on your account. [code: 10007]
+gh run view 37118924301 --log-failed   (ci of the merge commit e6f05e98)
+  unverified merge e6f05e98399c9341e9aec3e181002d0418ac6634: preview skipped
+```
+Cause: the `closed` run of deploy.yml left a skipped `preview` as the latest check run of PR 43's head, so merge-gate failed, ci on main ended red and the workflow_run deploy skipped `dev`. Open defect in `scripts/merge-gate.mjs` (not this group's file).
+
+Run 1, to give the rehearsal a version to return to:
+```
+gh workflow run deploy.yml --ref main -f rehearse_rollback=false   -> run 37119539045, head e6f05e98, gh run watch --exit-status exit 0
+  dev success (rollback skipped), production skipped
+  serving: none
+  Current Version ID: 5955ed28-2da3-4360-96b6-51ea5c4681f3
+  smoke: OK https://matter-of-place-dev.holy-meadow-4327.workers.dev
+deployments list: 832ce8d2-9fd8-47ed-be4c-5772626bf2bf at 100 (the secrets deployment)
+```
+Run 2, the rehearsal:
+```
+gh workflow run deploy.yml --ref main -f rehearse_rollback=true   -> run 37119653705, head da52ad3b, gh run watch --exit-status exit 1
+  conclusion failure; dev failure; preview-db, preview, preview-cleanup, production skipped
+  steps: current success, deploy success, secrets success, wait success, smoke failure, rollback success
+  dev current   serving: 832ce8d2-9fd8-47ed-be4c-5772626bf2bf
+  dev deploy    Current Version ID: ddf1299f-bfe6-4fd4-9aac-0840b8346db8
+  dev smoke     smoke forced to fail (SMOKE_FORCE_FAIL)
+  dev rollback  Current Version ID: 832ce8d2-9fd8-47ed-be4c-5772626bf2bf
+  dev rollback  rolled back to 832ce8d2-9fd8-47ed-be4c-5772626bf2bf
+gh run view 37119653705 --log | grep -c "smoke failed"   -> 2
+bunx wrangler deployments list --name matter-of-place-dev --json   (last four)
+  2026-10-03T11:25:11.738404Z wrangler  [["832ce8d2-9fd8-47ed-be4c-5772626bf2bf",100]]
+  2026-10-03T11:27:13.900294Z wrangler  [["ddf1299f-bfe6-4fd4-9aac-0840b8346db8",100]]
+  2026-10-03T11:27:16.561693Z wrangler  [["e28670d4-8959-45a9-946a-944df4800282",100]]
+  2026-10-03T11:27:37.680418Z wrangler smoke failed da52ad3b8124d1d26a44ab6d66056f9d9d1a10e7 [["832ce8d2-9fd8-47ed-be4c-5772626bf2bf",100]]
+```
+The previous version 832ce8d2 serves 100 percent again, not the secrets deployment e28670d4 of the failing code (H49 (2)).
+
+Run 3, back to the current commit:
+```
+gh workflow run deploy.yml --ref main -f rehearse_rollback=false   -> run 37119768750, head da52ad3b, gh run watch --exit-status exit 0
+  dev success, production skipped
+  serving: 832ce8d2-9fd8-47ed-be4c-5772626bf2bf
+  Current Version ID: 68eaa0bd-2d1a-4ec3-b4c8-e7206303fa90
+  smoke: OK https://matter-of-place-dev.holy-meadow-4327.workers.dev
+deployments list: fb3fce71-88bc-43d9-b24c-7ecd939a0307 at 100 (its secrets deployment)
+```
+Recorded in app/docs/runbooks/delivery.md (section "Smoke, rollback and the alert"; prettier --write first, P-156 added after format:check went red once). Each dev run also ran `bun run db:push` of main's migrations (the designed main-only path, invariant 13; step db-push success).
+```
+cd app && node ../workspace/05-plans/quiet.mjs -- bun run check   (second run; the first was red on format:check of delivery.md, P-156)
+  quiet: ok (51 lines), exit 0
+cd app && node ../workspace/05-plans/quiet.mjs -- bun run build
+  quiet: ok (217 lines)
+```
+GOTCHAS: P-155 (dev Worker absent after the PR 43 merge, merge-gate red on the closed-run preview), P-156 (prettier over app markdown).
+
+## g8 · follow-ups recorded
+Review of g8 (steps 7b) found no blocking defect and four follow-ups; no code changed. One had GOTCHAS.md as its file: banked as P-157 (P-156's proof had no control that a misaligned table goes red; the entry carries one, run: exit 1). The other three, word for word with evidence, are under "## g8 · steps 7b" in B1b-followups.md: the merge-gate defect on the `closed` run (highest consequence, needs a ruling before the next merge is expected to deploy), the step 7b proof line that should name "rolled back to", and the rollback.md run ids to carry into H1.
