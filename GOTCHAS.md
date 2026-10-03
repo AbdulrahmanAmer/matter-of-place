@@ -1281,6 +1281,122 @@ Entry template
 - proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
 - added: 2026-10-03
 
+## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
+- paths: app/supabase/migrations/**
+- severity: warn
+- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
+- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
+- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
+- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
+
+## P-502 · Git Bash rewrites an argument that starts with a slash into a Windows path
+- symptom: `openssl req ... -subj "/CN=mop-backup"` failed with `This name is not in that format: 'C:/Program Files/Git/CN=mop-backup'`. The shell had turned `/CN=...` into a path before openssl saw it.
+- cause: MSYS path conversion applies to any argument that looks like an absolute POSIX path, subjects and URL paths included (same family as the `gh api` leading slash, P-048).
+- rule: run such a command with `MSYS_NO_PATHCONV=1` in front, or write the argument with a doubled slash (`//CN=...`). Check the first attempt's output files before trusting them: a failed run can leave a half-written file behind.
+- proof: `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`.
+- added: 2026-10-03
+
+## P-503 · A lane without a bank number base takes the next number after everyone else's entries
+- symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
+- cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
+- rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
+- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
+- added: 2026-10-03
+
+## P-400 · A hung `python -` in a `;` chain, moved to the background and killed later, let the rest of the chain run late over edits made in between
+- symptom: a patch chain `python - 2>/dev/null; node -e '<edits to package.json, tsconfig.json, eslint.config.js>'` was moved to the background at 120 s. The same edits were then made with the Edit tool; two of them failed with `String to replace not found` (the chain had already changed those lines), and after `taskkill` of python the chain went on and the node patch applied a second time: a duplicated `"watchfail"` script, duplicated tsconfig includes, a half-reformatted `ignores` list. About 6 minutes.
+- cause: P-094 again (an interpreter started with `-` waits for stdin), plus `;` between commands: the next command runs whenever the hung one ends, even much later.
+- rule: never start an interpreter that can wait for stdin inside a chain; put a patch in a file and run it, or use the Edit tool. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
+- proof: `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up). The first form of this proof, `git diff -U0 package.json | grep -c ...`, compares the working tree with the index, so it prints `0` once the work is committed and measures nothing; a proof must hold on the committed tree (B4 g1 review).
+- added: 2026-10-03
+
+## P-401 · A registry entry whose red depends on what is on main goes stale when its slice merges
+- symptom: the first full replay of the registries after B2 had merged (`node scripts/watchfail.mjs --registry tests/mutations`, 439 entries) printed one `WATCHED-FAIL BAD: stayed green (B2:ss-contract-not-on-main)`. Its mutation named `-- contract-of: 20261001090100`, a version that was not on main when B2 g3 recorded the red run and is on main now, so `check-migrations` accepted it.
+- cause: the entry used a real version to stand for "a version that is not on main"; the check's answer depends on `origin/main`, which moves. A hand-run entry is never replayed after the merge, so nothing said so until B4 step 2.
+- rule: a mutation that needs "absent from main" (or any repository state) names a value that can never be present (here the 14-digit `20261001090199`, which no migration has). The replay after a merge is the check that finds the others: run `node scripts/watchfail.mjs --registry tests/mutations` after each slice lands and fix the entry, not the test.
+- proof: from `app/`, `eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only ss-contract-not-on-main` prints `WATCHED-FAIL OK B2:ss-contract-not-on-main` (measured 2026-10-03; the old version printed `BAD: stayed green`).
+- added: 2026-10-03
+
+## P-402 · A watched-fail that deletes a test file's registry entry goes red only for a file with exactly one entry, and a registry mutation's `find` must not match its own entry
+- symptom: B4 watched-fail (z) says "delete the entry of `tests/unit/clock.test.ts` from `B4.json`". A test file with several entries (every title of `mutation-registry.test.ts` needs its own, P-109) stays named after one is changed, so `mutation-registry.test.ts` stays green. A `find` made of plain words also occurs inside the mutation entry that carries it, which makes two occurrences and exit 2.
+- cause: the registry test asks "is the file named by any entry", and an entry's `find` is stored inside the very file it mutates when that file is a registry.
+- rule: (z) renames the `test` of the one entry that is the only one naming its file (`y` for `tests/unit/seo.test.ts`; `y-lint` carries `"test": "bun run lint"` so it does not name the file). Its `find` holds double quotes (`"test": "tests/unit/seo.test.ts",`): inside the entry they are stored as `\"`, so the entry does not match itself. A group whose test file has several entries picks another file for its (z), and says so in its log.
+- proof: from `app/`, `node scripts/watchfail.mjs --registry tests/mutations --only z` prints `WATCHED-FAIL OK B4:z`; with the `test` of `y-lint` changed to `tests/unit/seo.test.ts` (a second entry naming it) it prints `STALE B4:z: find occurs 2 times in tests/mutations/B4.json` and exits 2 (measured 2026-10-03, file restored).
+- added: 2026-10-03
+
+## P-403 · A scratch vitest config outside `app/` that names an app setup file by absolute path fails with `Cannot find module '/@fs/...'`
+- symptom: `bunx vitest run --root <scratch> --config <scratch>/vitest.config.mjs`, with `setupFiles: ["E:/mop-build/tests/app/tests/setup/dom.ts"]`, printed `Error: Cannot find module '/@fs/E:/mop-build/tests/app/tests/setup/dom.ts'` and `Tests  no tests`. The B4 g1 reviewer lost a second attempt to it while proving `dom.ts` and `hermetic.ts` outside the project.
+- cause: Vite serves files outside the root only when `server.fs.strict` allows them; a scratch root is not an ancestor of `app/tests/setup`.
+- rule: a scratch config that loads a setup file from the app sets `server: { fs: { strict: false } }`. Run it from `app/` (`bunx vitest run --root <scratch> --config <scratch>/<name>.mjs`) so `vitest` resolves; keep one test file per scratch folder, because `--root` collects every test file under it.
+- proof: with a folder holding `a.test.tsx` (one passing test) and two configs naming `E:/mop-build/tests/app/tests/setup/dom.ts` under `environment: "jsdom"`, run from `app/`: the config without `server.fs.strict: false` prints `Error: Cannot find module '/@fs/E:/mop-build/tests/app/tests/setup/dom.ts'`; the config with it prints `Tests  1 passed (1)` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-404 · The plan's grep over `tests/fixtures/*.ts` for `randomUUID` also finds B2's harness, `db.ts`
+- symptom: B4 invariant 8 and the GQ-03 proof say `git grep -n "Date.now\|Math.random\|randomUUID" tests/fixtures` prints nothing and `clock.test.ts` greps `tests/fixtures/*.ts`. On main, `tests/fixtures/db.ts` (B2's harness, F22) has `import { randomUUID } from "node:crypto"` and `const id = randomUUID()` in `createAuthUser`, so the first form of the test was red before any factory existed (found in the B4 g2 plan reading, not in a run).
+- cause: the plan wrote the grep for the factories and the dataset but placed it over the whole folder, which already held B2's file; B4 invariant 4 says its tests never call `createAuthUser`.
+- rule: the grep covers every `tests/fixtures/*.ts` except `db.ts`, and `clock.test.ts` says so in a comment. The plan's proof line is read the same way: `git grep` over `tests/fixtures` prints only the `db.ts` lines. If `createAuthUser` ever moves to `deterministicUuid`, drop the exception.
+- proof: from `app/`, `git grep -n "randomUUID" -- tests/fixtures` prints only `tests/fixtures/db.ts:3` and `tests/fixtures/db.ts:90`, and `bunx vitest run --project unit tests/unit/clock.test.ts` prints `Tests  11 passed (11)`.
+- added: 2026-10-03
+
+## P-405 · `optionalShort` in `contracts.ts` never turns an empty string into absent: its union takes the first branch
+- symptom: a test written from the plan wording ("trimming, empty optional fields") expected `inquirySchema.parse({ ..., phone: "" }).phone` to be `undefined` and got `""`.
+- cause: `shortText.optional().or(z.literal("").transform(() => undefined))` is a union and `""` already passes `shortText.optional()`, so the transform branch is never reached (`optionalUrl` does turn `""` into absent because `""` fails `.url()` first).
+- rule: assert that an empty `phone`, `location`, `architect` and the like are accepted, never that they become absent; a change to that behaviour belongs to the slice that owns `contracts.ts` (B3), with a test of its own.
+- proof: from `app/`, `bunx vitest run --project unit tests/unit/contracts.test.ts -t "accepts an empty optional field"` prints `Tests  1 passed`, and `-t "empty optional url into absent"` also passes (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-406 · An apostrophe inside a Bash call with several heredocs makes the whole call fail to parse and nothing is written
+- symptom: in B4 g2 one Bash call that wrote several files through heredocs, with an apostrophe in the prose, failed to parse and wrote none of them. The author banked it under P-008, which is about `\` collapsing in single-quoted arguments, and a search of the bank for "apostrophe" found nothing.
+- cause: the Bash tool on this machine mangles quotes in a long command before the shell parses it (P-008, P-309), so an apostrophe in the body pairs with another quote and the shell reads on or stops with a parse error before it runs any line.
+- rule: text that carries an apostrophe goes in with the Write or Edit tool, never through a heredoc or a quoted `-e` argument; after a Bash call that failed to parse, read `git status --short` before going on, because the call wrote nothing. P-309 holds the `unexpected EOF` form of the same failure.
+- proof: `grep -n -i "apostrophe" GOTCHAS.md | cut -c1-60` prints this entry's heading and symptom lines, and `git grep -n "^## P-309" -- GOTCHAS.md` prints the sibling (reviewer follow-up, B4 g2).
+- added: 2026-10-03
+
+## G-150 · A scroll-width check alone cannot see an overflowing element on this site: the page clips it, so `expectNoOverflow` also lists the elements wider than the viewport
+- paths: app/tests/e2e/fixtures/page.ts, app/tests/e2e/sweep.spec.ts
+- severity: warn
+- symptom: B4 g3 watched-fail (f) put `<div style={{ width: 2000 }} />` into `src/routes/about.tsx`. The first replay was BAD (wrong reason): the assertion `document.documentElement.scrollWidth <= window.innerWidth` still passed on `/about` in both projects, and only the second assertion, the list of elements wider than the viewport, went red (`div.`). Read this as a fact about a div with no height, not as proof that the scroll-width clause is dead.
+- cause: a div with no height adds no scrollable overflow in Chromium, so `scrollWidth` stays at the viewport width while the element is 2000 px wide. Nothing in `src` clips horizontal overflow at `html`, `body` or `main` (`git grep -n overflow -- 'app/src/**/*.css' 'app/src/**/*.tsx'` finds only component-level `overflow: hidden` and the modal's body lock), and the same div given a height of 10 px widens `scrollWidth` from 390 to 2000 on the phone. The plan words the overflow rule as two clauses (scroll width, and no element wider than the viewport outside an `overflow-x: auto` ancestor); the second sees an element of any height, the first only one that has height.
+- rule: never reduce `expectNoOverflow` to either clause: the element list catches a flat element, the scroll width catches one with height. Word the `expect` of each watched-fail from the clause that goes red: (f) with the zero-height div goes red on `elements wider than the viewport`, and the scroll-width clause has its own mutation with a div that has height. The `@overflow` subset runs only with `E2E_TARGET=url` (the desktop and phone projects invert it otherwise), so (f) on a local run is proved by the main `/about` test, and the subset by `E2E_TARGET=url E2E_BASE_URL=<dev server> --grep @overflow`.
+- proof: from `app/`, `MSYS_NO_PATHCONV=1 node scripts/watchfail.mjs --file src/routes/about.tsx --find '<main>' --replace '<main><div style={{ width: 2000 }} />' --run 'E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep " /about$"' --expect 'elements wider than the viewport'` prints `WATCHED-FAIL OK`; with `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL BAD: wrong reason`; with `--replace '<main><div style={{ width: 2000, height: 10 }} />'` and `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL OK src/routes/about.tsx` (measured 2026-10-03, B4 g3; the height form re-run in the follow-up record).
+- added: 2026-10-03
+
+## P-407 · Stopping a background dev server from Git Bash: `$!` is not a Windows process id, `//PID` breaks under `MSYS_NO_PATHCONV=1`, and netstat ends each line with a carriage return
+- symptom: after `(bun run dev -- --port 8808 > log 2>&1 &)`, `taskkill //PID $(cat pidfile) //T //F` printed `The process "95890" not found`; the next try printed `Type "TASKKILL /?" for usage.` twice, and the server kept the port, so the next Playwright run (whose `webServer` has `reuseExistingServer: false`) found nothing matching and printed no result at all.
+- cause: `$!` in Git Bash is an MSYS process id. With `MSYS_NO_PATHCONV=1` exported (P-502), `//PID` is passed through literally and taskkill rejects it, while without it `//PID` is the right spelling. `netstat -ano | awk '{print $NF}'` ends in a carriage return that makes `taskkill /PID "$P"` fail unless it is stripped.
+- rule: start the server through Playwright's own `webServer` when a test run needs one, so it stops with the run. When one is started by hand, find the listener with `netstat -ano | grep ":8808.*LISTENING" | awk '{print $NF}' | tr -d '\r'` and stop that id and its children with `taskkill /PID <id> /T /F` (single slashes) under `MSYS_NO_PATHCONV=1`, or `//PID` without it; check `netstat -ano | grep -c ":8808.*LISTENING"` prints 0 before the next run. Never stop every node process, another lane may be serving (ruling H45).
+- proof: `MSYS_NO_PATHCONV=1 bash -c 'P=$(netstat -ano | grep ":8808.*LISTENING" | head -1 | awk "{print \$NF}" | tr -d "\r"); echo pid=[$P]'` prints the bare id while a dev server runs; `netstat -ano | grep -c ":8808.*LISTENING"` prints `0` after `taskkill /PID <id> /T /F` (measured 2026-10-03, B4 g3).
+- added: 2026-10-03
+
+## P-408 · B4 step 5's toggle proof and `serviceClient()` assume names and a table that `mop-dev` does not have on main yet
+- symptom: `E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon` with the dev profile loaded printed `lock mop-dev-tests held` and then `error: reading coming_soon_global: Could not find the table 'public.settings' in the schema cache`. Before that, `serviceClient()` as the plan words it (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) throws on the laptop, because `scripts/load-env.mjs --profile dev` exports only `DEV_DB_URL`, `DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_DB_PASSWORD` and `DEV_SUPABASE_SERVICE_ROLE_KEY`.
+- cause: the plan was written for a database with B2's `settings` table (a later B2 step, not on main) and for CI, which sets the plain names for its own stack. Other plans (B16, B9, B6) build the URL from `DEV_SUPABASE_PROJECT_REF` and read `DEV_SUPABASE_SERVICE_ROLE_KEY`.
+- rule: `serviceClient()` reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and falls back to `https://<DEV_SUPABASE_PROJECT_REF>.supabase.co` and `DEV_SUPABASE_SERVICE_ROLE_KEY`; it holds no host or project-ref guard (H35 (5)). A proof that needs a table another slice has not landed is reported UNPROVEN against `mop-dev` and run against a stand-in meanwhile: a throwaway HTTP server that answers PostgREST for `settings` (lane scratch, never committed) with `SUPABASE_URL` pointed at it and the real `DEV_DB_URL` for the lock. The real run is repeated when the table exists.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && bun run db:psql -- -c "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'settings'"` prints `0` (measured 2026-10-03, B4 g3); against the stand-in the run prints `lock mop-dev-tests held`, `coming_soon_global restored to false` and exits 1 (`No tests found`).
+- added: 2026-10-03
+
+## P-409 · Two sweep lines of the plan did not match what the site does: the first axe run is clean, and the image check above axe hides `image-alt`
+- symptom: the plan assumes the first sweep run is not clean and that watched-fail (k) deletes a baseline entry that still occurs. The first full run of 106 tests had zero axe violations, so the baseline is `[]` and there is no entry to delete. Watched-fail (g) says the removed `alt` goes red as axe `image-alt`, but the explicit `img:not([alt])` assertion in the same test fails first and stops it, so axe never ran.
+- cause: warm grey contrast was already fixed (G-013), and an assertion that throws ends a Playwright test. Also, axe reports a low-contrast paragraph only when its own background is set; with the page background it lands in `incomplete`, so a synthetic violation needs `color` and `background` both.
+- rule: the structural checks of a route are `expect.soft`, so one run reports every problem and the scans after them still run. (k) is proved in three states by hand, with a synthetic `color-contrast` violation: no baseline entry (red, new violation), the entry present (green), the violation fixed with the entry left (red, stale entry); the registry entry `k` holds the last state. A watched-fail that needs a browser is `kind: "manual"` in `tests/mutations/B4.json`, because the CI `db` job replays every `file` entry a diff touches and has no browser; it is run by hand through `scripts/watchfail.mjs` with `--record`.
+- proof: `cd app && bunx playwright test sweep.spec.ts --project=desktop --grep " /about$"` prints `1 passed` on a clean tree; with `<main><p style={{ color: "#f5f2eb", background: "#eeeae1" }}>x</p>` in `src/routes/about.tsx` it prints `axe: new violations on /about` and `"/about | color-contrast | main > p"` (measured 2026-10-03, B4 g3).
+- added: 2026-10-03
+
+## P-410 · `git grep` prints nothing for a file that is not in the index yet, so a proof over a new file looks red
+- symptom: B4 step 5's guard-import proof (a `git grep` for the import in the new `app/scripts/e2e-coming-soon.ts`) printed nothing and exit 1 while the import was there. The group had not committed or staged the file yet.
+- cause: `git grep` searches tracked files only. A file that is neither staged nor committed is invisible to it, however it was written. Measured here: a new file with a matching line gave `git grep -n zzProbe` exit 1 with no output, `git grep -n --untracked zzProbe` the line with exit 0, and after `git add -N <file>` plain `git grep` found it.
+- rule: a proof that searches a file the same step just created uses `git grep --untracked` or runs after `git add` (or `git add -N`); never read an empty `git grep` as "the line is not there" until `git ls-files --error-unmatch <file>` says the file is tracked. P-049 says search with `git grep`; this is its blind spot.
+- proof: from `app/`, `echo 'export const zzProbe = 1;' > scratch-probe-zz.ts; git grep -n zzProbe; echo $?; git grep -n --untracked zzProbe; rm scratch-probe-zz.ts` prints `1`, then `scratch-probe-zz.ts:1:export const zzProbe = 1;` (measured 2026-10-03, B4 follow-up record).
+- added: 2026-10-03
+
+## P-411 · A reviewer's Playwright probe outside `app/` fails with `Cannot find module '@playwright/test'` through bunx, and `watchfail.mjs` shows no output of a green run
+- symptom: a probe config and spec kept in a scratch folder printed `Error: Cannot find module '@playwright/test'` when started with `bunx playwright test`. Once it ran, `scripts/watchfail.mjs --expect never-matches-zz` printed only `WATCHED-FAIL BAD: stayed green`, so the numbers the probe measured were never shown.
+- cause: `bunx` resolves the package from the scratch folder, which has no `node_modules` (the same family as P-403 for vitest). `watchfail.mjs` prints the run's output only when the result is red, so a probe whose purpose is to print measurements gets none through it.
+- rule: run a scratch Playwright config from `app/` as `NODE_PATH=<app>/node_modules node node_modules/@playwright/test/cli.js test --config <scratch config>`. When the probe runs inside `--run` of `watchfail.mjs`, have the spec write its measurements to a file in the scratch folder and read that file afterwards; do not count on the tool's output. The probe edits nothing in the tree, so it needs no `watchfail` at all unless the point is a mutation.
+- proof: from `app/`, with a one-test spec that does `import { test } from "@playwright/test"` and a config whose `testDir` is the scratch folder, `bunx playwright test --config <scratch config>` prints `Cannot find module '@playwright/test'`, and `NODE_PATH="$PWD/node_modules" node node_modules/@playwright/test/cli.js test --config <scratch config>` prints `1 passed` (measured 2026-10-03, B4 follow-up record).
+- added: 2026-10-03
+
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
 - symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
 - cause: commit ddc0b4d renamed the app folder to `app/` after 8dd6f26; at 8dd6f26 the file is `Matter Of Place Codebase/docs/database/schema.sql`. The plan wrote today's path against an older commit.
@@ -1323,15 +1439,6 @@ Entry template
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"` → `__wf_probe` (measured 2026-10-03, B2 g5).
 - added: 2026-10-03
 
-## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
-- paths: app/supabase/migrations/**
-- severity: warn
-- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
-- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
-- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
-- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
-- added: 2026-10-03
-
 ## G-101 · A catalog column of type `"char"` cannot be concatenated with a string literal
 - paths: app/tests/db/**, app/scripts/**
 - severity: warn
@@ -1339,20 +1446,6 @@ Entry template
 - cause: `pg_constraint.confdeltype`, `contype`, `pg_class.relkind` and the other one-letter catalog codes are the type `"char"`, and `||` has no single candidate for an untyped literal on one side and `"char"` on the other.
 - rule: cast a `"char"` catalog column to `text` before `||` or `format`: `c.confdeltype::text`. Comparing it with a literal (`confdeltype in ('c', 'n', 'r')`) needs no cast.
 - proof: `cd app && bun run db:psql -- -Atc "select 'on delete ' || c.confdeltype from pg_constraint c where contype = 'f' limit 1"` → `ERROR:  operator is not unique: unknown || "char"`; with `c.confdeltype::text` → `on delete c` (measured 2026-10-03, B2 g4).
-- added: 2026-10-03
-
-## P-502 · Git Bash rewrites an argument that starts with a slash into a Windows path
-- symptom: `openssl req ... -subj "/CN=mop-backup"` failed with `This name is not in that format: 'C:/Program Files/Git/CN=mop-backup'`. The shell had turned `/CN=...` into a path before openssl saw it.
-- cause: MSYS path conversion applies to any argument that looks like an absolute POSIX path, subjects and URL paths included (same family as the `gh api` leading slash, P-048).
-- rule: run such a command with `MSYS_NO_PATHCONV=1` in front, or write the argument with a doubled slash (`//CN=...`). Check the first attempt's output files before trusting them: a failed run can leave a half-written file behind.
-- proof: `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`.
-- added: 2026-10-03
-
-## P-503 · A lane without a bank number base takes the next number after everyone else's entries
-- symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
-- cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
-- rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
-- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
 - added: 2026-10-03
 
 ## P-317 · P-314's "a prelude over 32 KB cannot be passed" is false: node carries 100 KB, only bun and `cmd` are in the way
@@ -1392,4 +1485,20 @@ Entry template
 - cause: `.gitignore` line 37 ignores `scratch/`, so a script written there during a group never reaches the branch. The gotcha template asks for a proof a reader can run and the group's author ran it from their own scratch folder.
 - rule: a proof names a committed script or an inline command, never a path under `scratch/`; when the proof needs a helper, commit it under its folder-map row (B4's `scripts/watchfail.mjs` replays the mutation registry once it lands) or inline it in the command.
 - proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/	scratch/g6-prelude.sql`; `git grep -n "scratch/g6" -- GOTCHAS.md` lists the P-317 and G-102 lines that still depend on it until B4 lands the replay script (measured 2026-10-03, B2 g6 follow-up).
+- added: 2026-10-03
+
+## P-412 · A fixture that mirrors a contract breaks when main changes the contract under a lane
+- severity: warn
+- symptom: B4 c2 was proven green, then B2 step 5 reached main and replaced `agentName`, `agentEmail` with `submitterKind`, `submitterName`, `submitterEmail` (S55); after merging main, `bun run typecheck` failed with `tests/fixtures/builders.ts(31,5): error TS2353: 'agentName' does not exist in type 'SubmissionInput'`, and `contracts.test.ts` named `agentEmail` in a rejection case; the schema now strips that key and accepts the payload, so the row would have gone red with `[] expected ["agentEmail"]`.
+- cause: `builders.ts` types its payload from `z.input<typeof submissionSchema>` and a string-keyed rejection table names fields by text; the type check catches the first, only the test run catches the second.
+- rule: after every `git merge origin/main` in a lane that owns a fixture, run `bun run typecheck` and grep the tests for the renamed field names before `bun run check`. A rejection row that asserts `toEqual([field])` goes red on a stripped key; an acceptance check (`success === true`) is the kind that passes silently on one.
+- proof: `cd app && git grep -n "agentName\|agentEmail" -- tests/fixtures tests/unit/contracts.test.ts` prints nothing (measured 2026-10-03, B4 c2).
+- added: 2026-10-03
+
+## P-413 · A cause written into the bank without running it was wrong, and the bank pushes it to later workers
+- severity: warn
+- symptom: P-412 said the stale `agentEmail` rejection row "would have gone green for the wrong reason" and that a rejection table naming a removed field "passes silently". The review of B4 c2 ran the case: the schema strips the unknown key, the payload parses, `issuePaths` returns `[]`, and the row asserting `toEqual([field])` goes red.
+- cause: the cause line of P-412 was reasoned from how a schema treats an acceptance check and never run against the rejection table it describes; the rename and the proof were right, so the entry looked verified.
+- rule: before a cause or rule line goes into the bank, run the smallest probe that shows it (a one-line `safeParse`, a failing test) and put that probe in the proof; a gotcha's cause is a claim and gets the same watched-fail as a test.
+- proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03

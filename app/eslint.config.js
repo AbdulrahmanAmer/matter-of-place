@@ -164,7 +164,16 @@ const typeAwareRules = {
 
 export default defineConfig(
   {
-    ignores: ["dist", ".output", ".vinxi", ".tanstack", "src/routeTree.gen.ts", "src/db/types.ts"],
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".tanstack",
+      "playwright-report",
+      "test-results",
+      "src/routeTree.gen.ts",
+      "src/db/types.ts",
+    ],
   },
   {
     linterOptions: { reportUnusedDisableDirectives: "error" },
