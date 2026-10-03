@@ -1605,6 +1605,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: with `size: { width: 1200, height: 628 }` on the `cover` frame of `scripts/render-cover.mjs`, `cd app && bun scripts/render-cover.mjs --fixture --out .tmp/wf 2>&1 | tail -1` → `shoot: cover frame is 1200x630, the viewport 1200x628` (registry entry `b9g5-cover-viewport`, measured 2026-10-03).
 - added: 2026-10-03
 
+## P-716 · A file named `.jpg` proves nothing about its bytes: assert the signature where the file is made
+- symptom: B9 g5's review: changing the screenshot `type` in `shoot.mjs` to png left every proof green. Three PNG files were written as `<name>.<hash>.jpg`, `png-size` accepts both formats, and the upload content-type is a literal; the author's watched-fail (t) changed only the extension literal, which tests naming.
+- cause: the extension, the screenshot type and the content-type were three separate literals, and nothing read the bytes back (global RULE 2: a mutation must be of the thing the contract names, not a neighbour of it).
+- rule: `capture()` in `scripts/lib/shoot.mjs` refuses a screenshot that does not start with the JPEG signature (`ff d8`) before anything is named or stored. The mutation is the screenshot `type`, not the extension.
+- proof: `cd app && node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find $'type: "jpeg",\n      quality: JPEG_QUALITY,' --replace 'type: "png",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'` → `WATCHED-FAIL OK scripts/lib/shoot.mjs` (registry entry `b9g5-cover-not-jpeg`, measured 2026-10-03).
+- added: 2026-10-03
+
 ## P-506 · `startAt` in build-slice.js dropped the close-out groups, so a run meant to fix and continue skipped the fix
 - symptom: B3 relaunch with `closeOut: [c1]` and `startAt: "g2"` started `build:B3:g2:2` straight away; `close:B3:c1:1` never ran and the lane began step 2 with a red typecheck (run `wf_ea63edc9-5b1`, 2026-10-03 22:10).
 - cause: the script prepended the close-outs to the sized groups and then sliced from `startAt`; the close-out ids (c1) sit before g2, so the slice cut them off.

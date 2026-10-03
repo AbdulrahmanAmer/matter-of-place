@@ -520,6 +520,14 @@
     "what": "by hand: shoot.mjs deliver writes ext png; the proof is the ls of the output folder"
   },
   {
+    "id": "b9g5-cover-not-jpeg",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find 'type: \"jpeg\",\\n      quality: JPEG_QUALITY,' --replace 'type: \"png\",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'",
+    "expect": "shoot: cover is not a JPEG",
+    "what": "by hand: the screenshot type in shoot.mjs capture becomes png, so the file is PNG under a .jpg name; needs Chrome (the find spans two lines: pass it with $'...')"
+  },
+  {
     "id": "b9g5-font-missing",
     "kind": "manual",
     "test": "tests/unit/assets/render-scripts.test.ts",

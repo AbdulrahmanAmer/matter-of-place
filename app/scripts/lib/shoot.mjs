@@ -190,6 +190,7 @@ async function capture(browser, css, frame) {
       ...(frame.clip === undefined ? {} : { clip: { ...frame.clip, ...frame.size } }),
     });
     const body = Buffer.from(shot);
+    if (body[0] !== 0xff || body[1] !== 0xd8) throw new Error(`shoot: ${frame.name} is not a JPEG`);
     const got = imageSize(body);
     if (got.width !== frame.size.width || got.height !== frame.size.height) {
       throw new Error(
