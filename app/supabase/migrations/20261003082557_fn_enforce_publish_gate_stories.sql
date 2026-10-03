@@ -1,3 +1,6 @@
+-- down: re-run bun run db:fn enforce_publish_gate from the previous commit of supabase/sql/functions/enforce_publish_gate.sql
+set lock_timeout = '5s';
+
 create or replace function public.enforce_publish_gate()
 returns trigger
 language plpgsql

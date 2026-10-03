@@ -1071,6 +1071,43 @@ Entry template
 - proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03
 
+## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
+- paths: app/supabase/sql/functions/**, app/supabase/migrations/**
+- severity: warn
+- symptom: B2 g8's snapshot fixture could not publish a story: `error: record "new" has no field "region_slug"` from `enforce_publish_gate() line 15 at IF`. On main since migration 8, no story could be published by anyone; `gate.db.test.ts` only checked that the trigger exists on `stories`.
+- cause: the completeness check was one condition, `tg_table_name = 'properties' and (new.region_slug is null or ...)`. PL/pgSQL resolves every `new.<field>` the expression names before SQL evaluates it, so the `and` never short-circuits the missing field on a `stories` row.
+- rule: in a trigger function attached to more than one table, put a table's own columns inside a nested `if tg_table_name = '<table>' then ... end if;`, and give every table that uses the function a test that runs the branch on it (publish a story, not only list the trigger).
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin; insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x') on conflict (slug) do nothing; insert into public.stories (slug, title, deck, category, market_slug, image, editorial_state, published_at) values ('test-story-probe', 'x', 'x', 'Places', 'california', 'test/a.webp', 'published', now()); rollback;` prints `record "new" has no field "region_slug"` on main before migration `20261003082557_fn_enforce_publish_gate_stories.sql`; the watched-fail `g8-story-publish` of `tests/mutations/B2.json` replays it (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-320 · A group's file list from `plan-brief.mjs` can omit files its own step requires: the function files of new functions and the manifest exports its proof reads
+- symptom: B2 g8's brief named six files. Step 8's proof compares key sets with `publicPropertyKeys`, `publicStoryKeys` and `publicMediaKeys` of `tests/db/schema-manifest.ts`, which did not export them, and migration 9 creates `bump_catalog_version` and `tg_bump_catalog_version`, whose `supabase/sql/functions/<name>.sql` files (invariant 19, and the plan's own watched-fail (tt)) were not in the list; `function-source.db.test.ts` would have gone red on them. The plan's index list also named six indexes migration 4 already holds (`properties_market_idx`, `property_media_idx`, `regions_market_idx`, `market_notes_market_idx`, `market_guide_entries_market_idx`, `slug_history_property_idx`) and two that a primary key serves.
+- cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
+- rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
+- proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
+- symptom: B2 g8's first run of `renaming a draft's slug bumps it once` received `2`.
+- cause: the rename runs `delete from public.slug_history where slug = new.slug` (usually no row) and then the insert of the old slug; a `for each statement` trigger fires for both statements whether or not they touch a row.
+- rule: a catalog-version trigger on a table that a function writes with a guard statement before the real one is `for each row`, so a statement that matches nothing does not bump; `slug_history` is the one row-level plain trigger of migration 9, and the watched-fail `g8-slug-rename` puts the statement form back and goes red.
+- proof: from `app/`, `MOP_PRELUDE=<migration 9 and the fn migration> node <replay> g8-slug-rename` prints `× renaming a draft's slug bumps it once` with `expected 2 to be 1` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-322 · Database tests on mop-dev time out at 30 s or hit `lock timeout` in bursts, and pass on the next run unchanged
+- symptom: in B2 g8, four runs of the same unchanged files gave `Test timed out in 30000ms` on one to five cases and `canceling statement due to lock timeout` on another, then `17 passed (17)` and `18 passed (18)` on rerun; a single case that took 30 s took 3 s alone a minute later. Once one case times out, the next ones often time out too.
+- cause: not proven. Observed: every connection goes through Supavisor (`application_name` `Supavisor` in `pg_stat_activity`), vitest does not cancel a timed-out case, so its transaction keeps its locks while the next case starts, and other lanes run db tests on the same project.
+- rule: read a burst of 30 s timeouts as the shared database, not the code: look at `pg_stat_activity` for other sessions, rerun once, and report the rerun with the first output. A case that fails the same way twice is a real failure. Never raise `testTimeout` to hide it.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
+- symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
+- cause: Postgres infers one type per parameter and refuses two; jsonb stores keys sorted by length then bytes, so `{"w":..,"h":..}` comes back as `{"h":..,"w":..}`.
+- rule: cast a parameter once per use (`$3::public.editorial_state`, `$3::text`), and compare jsonb values as parsed objects (`toEqual(JSON.parse(...))`), never as strings.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select jsonb_build_object('w', 1, 'h', 2)"` → `{"h": 2, "w": 1}` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
