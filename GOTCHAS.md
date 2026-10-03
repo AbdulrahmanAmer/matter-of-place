@@ -1379,3 +1379,17 @@ Entry template
 - rule: narrow the keys with a type guard instead of a cast: `Object.keys(obj).filter((key): key is K => key in obj)`.
 - proof: `cd app && bun run lint` exits 0 on slice/b2 at B2 g6; with the cast put back in `tests/unit/workflow.test.ts` it prints the error above (measured 2026-10-03).
 - added: 2026-10-03
+
+## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
+- symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
+- cause: the script lists added files with `git diff --relative --name-only origin/main...HEAD --diff-filter=A -- supabase/migrations`, a diff of commits. A file that is untracked or only staged is not in it, so it is neither ordered nor checksummed.
+- rule: run `check-migrations.mjs` after committing the migration, and compare the `added` count with the number of new files under `supabase/migrations`; a count that is lower means the run proved nothing about the new file.
+- proof: from `app/`, `printf -- '-- probe\n' > supabase/migrations/20261001099999_probe.sql && node scripts/check-migrations.mjs; rm supabase/migrations/20261001099999_probe.sql` → `migration-order: OK (3 on main, 5 added)`, the probe not counted (measured 2026-10-03, B2 g6 follow-up).
+- added: 2026-10-03
+
+## P-319 · A proof that reads `scratch/` cannot be re-run by anyone else: the folder is git-ignored
+- symptom: the rule of P-317 names `scratch/g6-replay.mjs`, and the proofs of P-317 and G-102 read `../scratch/g6-envsize.mjs` and `../scratch/g6-prelude.sql`. Another lane, the orchestrator or CI that follows those proofs finds no such file.
+- cause: `.gitignore` line 37 ignores `scratch/`, so a script written there during a group never reaches the branch. The gotcha template asks for a proof a reader can run and the group's author ran it from their own scratch folder.
+- rule: a proof names a committed script or an inline command, never a path under `scratch/`; when the proof needs a helper, commit it under its folder-map row (B4's `scripts/watchfail.mjs` replays the mutation registry once it lands) or inline it in the command.
+- proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/	scratch/g6-prelude.sql`; `git grep -n "scratch/g6" -- GOTCHAS.md` lists the P-317 and G-102 lines that still depend on it until B4 lands the replay script (measured 2026-10-03, B2 g6 follow-up).
+- added: 2026-10-03

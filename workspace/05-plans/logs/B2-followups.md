@@ -107,3 +107,25 @@ None of these blocks the group. The seventh reviewer follow-up concerns `GOTCHAS
 
 6. File `app/src/domain/contracts.ts`. submitterKindLabels (lines 84-87) is exported with @public and has no consumer in the tree yet (B3 and B7 will use it), but it carries no STUB marker. STANDARDS C04 says a later-slice export has @public and a STUB marker. Same pattern as slugPattern from g4.
    Evidence: Confirmed by running: `grep -n STUB src/domain/contracts.ts` gives only lines 100 and 120 (both older); bun run check lists 15 STUB markers, none for submitterKindLabels
+
+## g6 · steps 7
+
+None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and became bank entries P-318 and P-319, not items here. Six remain.
+
+1. File `app/tests/db/integrity.db.test.ts`. No test checks that save_property writes what it accepts. The allowed-key case ("on a draft a patch of each allowed key with a valid value passes") and the conflict case only check that the call returns ok or the new version. If a column's `x = v_new.x` line is missing from the UPDATE in save_property (for example, a key added to v_allowed but not to the SET list), the editor's change is silently dropped while the version still goes up, and every test stays green. The plan only asks for 'passes', so this is a follow-up. Today's code is correct: the reviewer checked by reading that the 30 SET columns equal v_allowed and savePropertyAllowedKeys.
+   Evidence: Confirmed by running. save_property re-created without `title = v_new.title,` (patch-applied check passed), then `node node_modules/vitest/vitest.mjs run --project db tests/db/integrity.db.test.ts -t save_property` with the committed prelude gave `Tests  4 passed | 47 skipped (51)`, exit=0. Suggested fix: in the allowed-key loop, read the column back and compare it with the value sent.
+
+2. File `workspace/05-plans/logs/B2.md`. The g6 log says `node scripts/check-migrations.mjs` gave `migration-order: OK (3 on main, 3 added)`. The script reads `git diff origin/main...HEAD`, so commits only, which means that run was taken before migrations 7 and 8 were committed and did not check them. On the shipped tree it passes and covers all five.
+   Evidence: `cd app && node scripts/check-migrations.mjs` gives `migration-order: OK (3 on main, 5 added)`, exit=0. See scripts/check-migrations.mjs lines 389-392 (diff origin/main...HEAD with --diff-filter=A).
+
+3. File `workspace/03-diagrams/plans-b.md`. workflow.ts and the B2 Files line say the submission graph is diagram 1. Diagram 1 has no Withdrawn state and no Published to Completed edge (DL-04, DL-09). The code follows the plan text, so the diagram is stale. It is the orchestrator's file, and the PNG and SVG need re-rendering.
+   Evidence: `grep -n -- '-->' workspace/03-diagrams/plans-b.md` lines 14-32: no Withdrawn and no 'Published --> Completed'.
+
+4. File `workspace/05-plans/B2.md`. The plan contradicts itself (plan text only). Step 4's hero_image proof asks for publish_incomplete 'naming hero_image', but invariant 20 says a raised message is exactly the errorCodes key. The g6 test asserts the message `publish_incomplete` and that the error context names enforce_publish_gate, not hero_image. One of the two lines should change, for example to put the column in a DETAIL.
+   Evidence: Plan step 4 (Data changes, `-t hero_image` sentence) against invariant 20. Test 'a staged photograph put first on a published property raises publish_incomplete' in integrity.db.test.ts expects {message: 'publish_incomplete', fromGate: true}.
+
+5. File `app/tests/mutations/B2.json`. Registry entry `tt` mutates refuse_hard_delete, but Verification (tt) names bump_catalog_version. The author disclosed this: that function arrives with step 8. Step 8's group should switch the entry back to the plan's text.
+   Evidence: In the registry, the `tt` sql re-creates public.refuse_hard_delete. The reviewer did not replay it; the author's replay shows `RED tt | +     "refuse_hard_delete",`.
+
+6. File `app/tests/db/function-source.db.test.ts`. Not this group's file. The test compares only the $$ body with pg_proc.prosrc. A migration whose header differs from the function file (security definer, search_path, signature, language) would pass, although invariant 19 says the 'same text'. For g6 the reviewer closed this gap by hand: the nine files equal the migration statements byte for byte.
+   Evidence: DOLLAR_BODY regex in function-source.db.test.ts line 7; the reviewer's fncmp.mjs gives SAME for all nine files.
