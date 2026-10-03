@@ -1612,6 +1612,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find $'type: "jpeg",\n      quality: JPEG_QUALITY,' --replace 'type: "png",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'` → `WATCHED-FAIL OK scripts/lib/shoot.mjs` (registry entry `b9g5-cover-not-jpeg`, measured 2026-10-03).
 - added: 2026-10-03
 
+## P-717 · A watchfail replay written to a file holds NUL bytes and a nested replay: grep it with `-a` and read the last `watchfail: replayed` line
+- symptom: B9 g5's reviewer ran the full `watchfail.mjs --registry tests/mutations --changed origin/main` with stdout redirected to a file. `grep` answered `Binary file matches`, and the first summary found (`replayed 37 ... B8`) was not the result of the slice (a few minutes).
+- cause: the runner's child output carries NUL bytes, which makes grep treat the file as binary; the replay also runs the B8 registry as a nested replay with its own `watchfail: replayed 37` line ahead of the real summary (P-713: it replays every registry).
+- rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
+- added: 2026-10-04
+
 ## P-506 · `startAt` in build-slice.js dropped the close-out groups, so a run meant to fix and continue skipped the fix
 - symptom: B3 relaunch with `closeOut: [c1]` and `startAt: "g2"` started `build:B3:g2:2` straight away; `close:B3:c1:1` never ran and the lane began step 2 with a red typecheck (run `wf_ea63edc9-5b1`, 2026-10-03 22:10).
 - cause: the script prepended the close-outs to the sized groups and then sliced from `startAt`; the close-out ids (c1) sit before g2, so the slice cut them off.
