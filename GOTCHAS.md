@@ -1295,6 +1295,13 @@ Entry template
 - proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t` (measured 2026-10-03).
 - added: 2026-10-03
 
+## P-313 · The loader the computed brief prints makes every db test refuse: since H30 (3) it is the dev profile, and P-310 names only half of the refusal
+- symptom: in the review of B2 g4, after the standing-rule line `set -a; . <(tr -d '\r' < .env | grep ...); set +a`, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape` exited 1 with `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` and no test ran. P-310 reads as if unsetting `CLOUDFLARE_API_TOKEN` were the whole fix.
+- cause: that line loads every name of the single `.env`, ops names included, and `guardEnv()` (SEC-08) refuses them all. Ruling H30 (3) replaced it from B2 on with `eval "$(node scripts/load-env.mjs --profile dev)"` run from `app/`. The prompt template still prints the old line: `.claude/workflows/build-slice.js` line 89 and `.claude/agents/mop-builder.md` line 41 (ASSUMED E10 as well). `CLOUDFLARE_API_TOKEN` is the one name the Bash tool exports by itself (P-310), so it needs its own `env -u`.
+- rule: a db test or any script that calls `guardEnv()` runs as `eval "$(node scripts/load-env.mjs --profile dev)"` then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order, from `app/`. The inline `set -a; . <(...)` loader is for commands that are not db tests only. The orchestrator owns the template fix: replace the loader in `.claude/workflows/build-slice.js` and `.claude/agents/mop-builder.md` for B2 lanes and later. Until then a worker that sees the refusal reads the `Error:` line first (P-310) and switches loader.
+- proof: from `app/` on slice/b2, after the old loader, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape 2>&1 | grep "^Error"` prints the refusal above (exit 1); after `eval "$(node scripts/load-env.mjs --profile dev)"` the refusal is gone, and with `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)"` (P-312) it prints `Tests  4 passed | 22 skipped (26)`, exit 0 (measured 2026-10-03). Without the prelude the dev-profile run fails one case, `every money column is numeric(12,2)`, because migration 4 is not on mop-dev.
+- added: 2026-10-03
+
 ## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
 - paths: app/supabase/migrations/**
 - severity: warn
