@@ -187,5 +187,360 @@
     "replace": "bed — ${",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "× carry no em dash, no colour value and no inline style"
+  },
+  {
+    "id": "b9g5-mk-shape",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-key.mjs",
+    "find": "/r${String(revision)}/",
+    "replace": "/${String(revision)}/",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× builds assets/<property>"
+  },
+  {
+    "id": "b9g5-mk-hash-len",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-key.mjs",
+    "find": ".slice(0, 8)",
+    "replace": ".slice(0, 7)",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× takes hash8 from the first 8 hex digits"
+  },
+  {
+    "id": "b9g5-mk-hash-bytes",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-key.mjs",
+    "find": ".update(bytes)",
+    "replace": ".update(\"same\")",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× gives the same key for the same bytes"
+  },
+  {
+    "id": "b9g5-mk-ext-jpg",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-key.mjs",
+    "find": ".${hash8(bytes)}.${ext}`",
+    "replace": ".${hash8(bytes)}.png`",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× with ext .jpg. gives"
+  },
+  {
+    "id": "b9g5-mk-ext-mp4",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-key.mjs",
+    "find": ".${hash8(bytes)}.${ext}`",
+    "replace": ".${hash8(bytes)}.png`",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× with ext .mp4. gives"
+  },
+  {
+    "id": "b9g5-mk-upsert",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "\"x-upsert\": \"false\",",
+    "replace": "\"x-upsert\": \"true\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× makes one POST with the bearer"
+  },
+  {
+    "id": "b9g5-mk-immutable",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (bucket === \"media\") headers[\"cache-control\"] = IMMUTABLE;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× makes one POST with the bearer"
+  },
+  {
+    "id": "b9g5-mk-media-only",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (bucket === \"media\") headers[\"cache-control\"] = IMMUTABLE;",
+    "replace": "headers[\"cache-control\"] = IMMUTABLE;",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× sets the immutable header for the media bucket only"
+  },
+  {
+    "id": "b9g5-mk-duplicate",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (response.ok || (await isDuplicate(response))) return;",
+    "replace": "if (response.ok) return;",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× counts a 409 Duplicate answer as done"
+  },
+  {
+    "id": "b9g5-mk-http-409",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (response.status === 409) return true;",
+    "replace": "if (response.status === 409) return false;",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× counts an HTTP 409 as done"
+  },
+  {
+    "id": "b9g5-mk-503",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (response.status >= 500) throw new Error(\"storage_unavailable\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× throws storage_unavailable on a 503"
+  },
+  {
+    "id": "b9g5-mk-network",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "throw new Error(\"storage_unavailable\", { cause: error });",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× throws storage_unavailable on a 503"
+  },
+  {
+    "id": "b9g5-mk-refusal",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "upload of ${bucket}/${key} answered ${String(response.status)}",
+    "replace": "upload failed",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× throws naming the status and the key on any other refusal"
+  },
+  {
+    "id": "b9g5-mk-url-missing",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "value === undefined || value === \"\"",
+    "replace": "value === undefined",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× throws naming SUPABASE_URL when it is missing"
+  },
+  {
+    "id": "b9g5-mk-host",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "`${required(\"SUPABASE_URL\")}/storage/v1/object/${bucket}/${path}`",
+    "replace": "`https://other.example/storage/v1/object/${bucket}/${path}`",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× sends no request to a host other than SUPABASE_URL"
+  },
+  {
+    "id": "b9g5-mk-get-bearer",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "headers: { authorization: `Bearer ${required(\"SUPABASE_SERVICE_ROLE_KEY\")}` },",
+    "replace": "headers: {},",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× reads the bytes with the bearer"
+  },
+  {
+    "id": "b9g5-mk-get-missing",
+    "test": "tests/unit/assets/media-key.test.ts",
+    "file": "scripts/lib/media-store.mjs",
+    "find": "if (!response.ok) {",
+    "replace": "if (response.status === 0) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
+    "expect": "× throws naming the status and the key when the object is missing"
+  },
+  {
+    "id": "b9g5-ps-png",
+    "test": "tests/unit/assets/png-size.test.ts",
+    "file": "scripts/lib/png-size.mjs",
+    "find": "height: view.getUint32(20)",
+    "replace": "height: view.getUint32(16)",
+    "run": "bunx vitest run --project unit tests/unit/assets/png-size.test.ts",
+    "expect": "× reads a PNG from its IHDR"
+  },
+  {
+    "id": "b9g5-ps-sof0",
+    "test": "tests/unit/assets/png-size.test.ts",
+    "file": "scripts/lib/png-size.mjs",
+    "find": "const SOF_MARKERS = [0xc0, 0xc1, 0xc2];",
+    "replace": "const SOF_MARKERS = [0xc1, 0xc2];",
+    "run": "bunx vitest run --project unit tests/unit/assets/png-size.test.ts",
+    "expect": "× reads a baseline JPEG from its SOF0 marker"
+  },
+  {
+    "id": "b9g5-ps-sof2",
+    "test": "tests/unit/assets/png-size.test.ts",
+    "file": "scripts/lib/png-size.mjs",
+    "find": "const SOF_MARKERS = [0xc0, 0xc1, 0xc2];",
+    "replace": "const SOF_MARKERS = [0xc0, 0xc1];",
+    "run": "bunx vitest run --project unit tests/unit/assets/png-size.test.ts",
+    "expect": "× reads a progressive JPEG from its SOF2 marker"
+  },
+  {
+    "id": "b9g5-ps-exif",
+    "test": "tests/unit/assets/png-size.test.ts",
+    "file": "scripts/lib/png-size.mjs",
+    "find": "at += 2 + view.getUint16(at + 2);",
+    "replace": "at += 2;",
+    "run": "bunx vitest run --project unit tests/unit/assets/png-size.test.ts",
+    "expect": "× skips the EXIF segment of a camera JPEG"
+  },
+  {
+    "id": "b9g5-ps-garbage",
+    "test": "tests/unit/assets/png-size.test.ts",
+    "file": "scripts/lib/png-size.mjs",
+    "find": "if (bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error(\"imageSize: not a PNG or a JPEG\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/png-size.test.ts",
+    "expect": "× refuses bytes that are neither"
+  },
+  {
+    "id": "b9g5-rv-exif-master",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": ".webp({ quality: MASTER_QUALITY })",
+    "replace": ".withMetadata().webp({ quality: MASTER_QUALITY })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× GPS fixture's stripped copy has no EXIF"
+  },
+  {
+    "id": "b9g5-rv-exif-all",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": ".webp({ quality: MASTER_QUALITY })",
+    "replace": ".withMetadata().webp({ quality: MASTER_QUALITY })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× every variant carries no EXIF"
+  },
+  {
+    "id": "b9g5-rv-403",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "response.status !== 200",
+    "replace": "response.status >= 500",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× a 403 from staged_url throws a retryable error naming the media id"
+  },
+  {
+    "id": "b9g5-rv-cap",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/lib/strip-exif.ts",
+    "find": "const MASTER_EDGE = 2560;",
+    "replace": "const MASTER_EDGE = 4000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× a 6000x4000 fixture's stripped copy comes back 2560x1707"
+  },
+  {
+    "id": "b9g5-rv-bucket",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "putIfMissing(\"media\", file.key",
+    "replace": "putIfMissing(\"documents\", file.key",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× sends every upload to the media bucket of SUPABASE_URL"
+  },
+  {
+    "id": "b9g5-rv-five-sizes",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "const SIZES = [\"thumb\", \"card\", \"hero\", \"og\", \"carousel\"];",
+    "replace": "const SIZES = [\"thumb\", \"card\", \"hero\", \"og\"];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× uploads the stripped copy and all five sizes"
+  },
+  {
+    "id": "b9g5-rv-five-result",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "const SIZES = [\"thumb\", \"card\", \"hero\", \"og\", \"carousel\"];",
+    "replace": "const SIZES = [\"thumb\", \"card\", \"hero\", \"og\"];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× returns media_key and the five sizes per media id"
+  },
+  {
+    "id": "b9g5-rv-orientation-key",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "media[item.media_id] = { media_key: keys.master, variants };",
+    "replace": "media[item.media_id] = { media_key: keys.master, variants, orientation: \"landscape\" };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× returns media_key and the five sizes per media id"
+  },
+  {
+    "id": "b9g5-rv-hero-dims",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "[name, { w: made.files[name].w, h: made.files[name].h }]",
+    "replace": "[name, { w: made.files[name].h, h: made.files[name].w }]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× gives hero a larger width for landscape"
+  },
+  {
+    "id": "b9g5-rv-region-id",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "media[item.media_id] = { media_key: keys.master, variants };",
+    "replace": "media[\"m1\"] = { media_key: keys.master, variants };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× returns an item with a region media id under that same key"
+  },
+  {
+    "id": "b9g5-rv-same-keys",
+    "test": "tests/unit/assets/render-variants.test.ts",
+    "file": "scripts/render-variants.mjs",
+    "find": "const keys = variantKeys(owner, n, made.sha8);",
+    "replace": "const keys = variantKeys(owner, n + Math.random(), made.sha8);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/render-variants.test.ts",
+    "expect": "× gives the same keys when the same photograph is rendered again"
+  },
+  {
+    "id": "b9g5-rs-run-export",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "file": "scripts/render-story.mjs",
+    "find": "export function run(job, options) {",
+    "replace": "function run(job, options) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/render-scripts.test.ts",
+    "expect": "× each render script exports a function run"
+  },
+  {
+    "id": "b9g5-rs-key-prefix",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "z.string().regex(/^assets\\/[^/]+\\/[^/]+\\/r\\d+\\/$/)",
+    "replace": "z.string()",
+    "run": "bunx vitest run --project unit tests/unit/assets/render-scripts.test.ts",
+    "expect": "× refuses a key_prefix that is not assets"
+  },
+  {
+    "id": "b9g5-cover-viewport",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "bun scripts/render-cover.mjs --fixture --out .tmp/wf",
+    "expect": "cover frame is 1200x630, the viewport 1200x628",
+    "what": "by hand: render-cover.mjs size of the cover becomes 1200x630 to 1200x628; needs Chrome"
+  },
+  {
+    "id": "b9g5-cover-png",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "bun scripts/render-cover.mjs --fixture --out .tmp/wf && ls .tmp/wf | grep -c \"[.]png$\"",
+    "expect": "^3$",
+    "what": "by hand: shoot.mjs deliver writes ext png; the proof is the ls of the output folder"
+  },
+  {
+    "id": "b9g5-cover-not-jpeg",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find 'type: \"jpeg\",\\n      quality: JPEG_QUALITY,' --replace 'type: \"png\",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'",
+    "expect": "shoot: cover is not a JPEG",
+    "what": "by hand: the screenshot type in shoot.mjs capture becomes png, so the file is PNG under a .jpg name; needs Chrome (the find spans two lines: pass it with $'...')"
+  },
+  {
+    "id": "b9g5-font-missing",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "bun scripts/render-story.mjs --fixture --out .tmp/wf",
+    "expect": "shoot: font not loaded: Jost",
+    "what": "by hand: fonts.css names the Jost face Jostx; needs Chrome"
+  },
+  {
+    "id": "b9g5-network-refused",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "bun scripts/render-story.mjs --fixture --out .tmp/wf",
+    "expect": "shoot: story asked for https://example.invalid/a.jpg",
+    "what": "by hand: render-story.mjs gives the story photograph an address outside the page; needs Chrome"
   }
 ]
