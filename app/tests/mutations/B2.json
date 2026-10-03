@@ -1301,11 +1301,460 @@
   },
   {
     "id": "kkk",
-    "kind": "manual",
+    "kind": "sql",
     "test": "tests/db/integrity.db.test.ts",
     "sql": "drop trigger refuse_hard_delete on public.contacts",
-    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts",
-    "expect": "× .*contacts",
-    "note": "Recorded by B2 step 5; replayable once migration 8 creates refuse_hard_delete and its table-driven delete case lists contacts (step 7)."
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*contacts: refused as the service role"
+  },
+  {
+    "id": "a",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if new.workflow_state = old.workflow_state then\n    return new;\n  end if;\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    new.accepted_at := coalesce(new.accepted_at, now());\n  end if;\n  if new.workflow_state = 'Scheduled' and not exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  if new.workflow_state = 'Withdrawn' and exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"Invoice Issued without\"",
+    "expect": "× .*Invoice Issued without acceptance"
+  },
+  {
+    "id": "f",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  return gateReason(from, to, ctx) === null;",
+    "replace": "  return (from === \"Submitted\" && to === \"Accepted\") || gateReason(from, to, ctx) === null;",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*refuses a move that skips review"
+  },
+  {
+    "id": "f-matrix",
+    "kind": "file",
+    "test": "tests/db/gate.db.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  return gateReason(from, to, ctx) === null;",
+    "replace": "  return (from === \"Submitted\" && to === \"Accepted\") || gateReason(from, to, ctx) === null;",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"11x11\"",
+    "expect": "× .*every pair of the 11x11 matrix agrees"
+  },
+  {
+    "id": "h",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.save_property(p_id uuid, p_expected_version int, p_patch jsonb)\nreturns public.properties\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- savePropertyAllowedKeys of tests/db/schema-manifest.ts. System, state and publication columns have their own\n  -- writers (G6, G23, G66).\n  v_allowed constant text[] := array[\n    'slug', 'title', 'market_slug', 'region_slug', 'city', 'neighborhood', 'state', 'country', 'address',\n    'coordinates', 'price', 'currency', 'beds', 'baths', 'interior_sq_ft', 'lot_acres', 'year_built', 'type',\n    'style', 'architect', 'designer', 'status', 'story', 'place', 'representative_id', 'presented_by_owner',\n    'listing_url', 'hero_rank', 'featured_rank', 'updated_by'\n  ];\n  v_old public.properties;\n  v_new public.properties;\nbegin\n  select * into v_old from public.properties where id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- One update, so every trigger runs; an empty patch only raises the version.\n  update public.properties\n  set slug = v_new.slug,\n    title = v_new.title,\n    market_slug = v_new.market_slug,\n    region_slug = v_new.region_slug,\n    city = v_new.city,\n    neighborhood = v_new.neighborhood,\n    state = v_new.state,\n    country = v_new.country,\n    address = v_new.address,\n    coordinates = v_new.coordinates,\n    price = v_new.price,\n    currency = v_new.currency,\n    beds = v_new.beds,\n    baths = v_new.baths,\n    interior_sq_ft = v_new.interior_sq_ft,\n    lot_acres = v_new.lot_acres,\n    year_built = v_new.year_built,\n    type = v_new.type,\n    style = v_new.style,\n    architect = v_new.architect,\n    designer = v_new.designer,\n    status = v_new.status,\n    story = v_new.story,\n    place = v_new.place,\n    representative_id = v_new.representative_id,\n    presented_by_owner = v_new.presented_by_owner,\n    listing_url = v_new.listing_url,\n    hero_rank = v_new.hero_rank,\n    featured_rank = v_new.featured_rank,\n    updated_by = v_new.updated_by,\n    version = v_old.version + 1\n  where id = p_id\n  returning * into v_new;\n  return v_new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"stale version\"",
+    "expect": "× .*a save with a stale version raises version_conflict"
+  },
+  {
+    "id": "i",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger enforce_slug_immutable on public.properties",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"slug\"",
+    "expect": "× .*renaming a published property raises slug_immutable"
+  },
+  {
+    "id": "j",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.properties",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*properties: refused as the service role"
+  },
+  {
+    "id": "x",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    null;\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish gate\"",
+    "expect": "× .*a visual_editor cannot publish"
+  },
+  {
+    "id": "z",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.enforce_slug_immutable()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 11: the first publication is recorded once and never cleared or moved.\n  if tg_op = 'INSERT' then\n    new.first_published_at := new.published_at;\n  else\n    new.first_published_at := coalesce(old.first_published_at, new.published_at);\n    if new.slug = old.slug then\n      return new;\n    end if;\n    if old.published_at is not null then\n      raise exception 'slug_immutable';\n    end if;\n  end if;\n  if exists (select 1 from public.slug_history h where h.slug = new.slug and h.property_id <> new.id) then\n    raise exception 'slug_taken';\n  end if;\n  if tg_op = 'UPDATE' then\n    -- GD-02: the old slug of a draft answers with a 301; a draft that takes back its own old slug leaves history.\n    delete from public.slug_history where slug = new.slug;\n    insert into public.slug_history (slug, property_id) values (old.slug, old.id);\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"slug\"",
+    "expect": "× .*publish, archive, return to draft, rename"
+  },
+  {
+    "id": "aa",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop index public.properties_featured_rank_key",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"ranks\"",
+    "expect": "× .*a second non-null featured_rank"
+  },
+  {
+    "id": "ff",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.save_property(p_id uuid, p_expected_version int, p_patch jsonb)\nreturns public.properties\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- savePropertyAllowedKeys of tests/db/schema-manifest.ts. System, state and publication columns have their own\n  -- writers (G6, G23, G66).\n  v_allowed constant text[] := array[\n    'slug', 'title', 'market_slug', 'region_slug', 'city', 'neighborhood', 'state', 'country', 'address',\n    'coordinates', 'price', 'currency', 'beds', 'baths', 'interior_sq_ft', 'lot_acres', 'year_built', 'type',\n    'style', 'architect', 'designer', 'status', 'story', 'place', 'representative_id', 'presented_by_owner',\n    'listing_url', 'hero_rank', 'featured_rank', 'updated_by', 'og_image_key'\n  ];\n  v_old public.properties;\n  v_new public.properties;\nbegin\n  select * into v_old from public.properties where id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.version <> p_expected_version then\n    raise exception 'version_conflict' using errcode = '40001';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- One update, so every trigger runs; an empty patch only raises the version.\n  update public.properties\n  set slug = v_new.slug,\n    title = v_new.title,\n    market_slug = v_new.market_slug,\n    region_slug = v_new.region_slug,\n    city = v_new.city,\n    neighborhood = v_new.neighborhood,\n    state = v_new.state,\n    country = v_new.country,\n    address = v_new.address,\n    coordinates = v_new.coordinates,\n    price = v_new.price,\n    currency = v_new.currency,\n    beds = v_new.beds,\n    baths = v_new.baths,\n    interior_sq_ft = v_new.interior_sq_ft,\n    lot_acres = v_new.lot_acres,\n    year_built = v_new.year_built,\n    type = v_new.type,\n    style = v_new.style,\n    architect = v_new.architect,\n    designer = v_new.designer,\n    status = v_new.status,\n    story = v_new.story,\n    place = v_new.place,\n    representative_id = v_new.representative_id,\n    presented_by_owner = v_new.presented_by_owner,\n    listing_url = v_new.listing_url,\n    hero_rank = v_new.hero_rank,\n    featured_rank = v_new.featured_rank,\n    updated_by = v_new.updated_by,\n    version = v_old.version + 1\n  where id = p_id\n  returning * into v_new;\n  return v_new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"refuses every column\"",
+    "expect": "- +\"og_image_key\": \"22023 invalid_patch_key\""
+  },
+  {
+    "id": "ll",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish_incomplete\"",
+    "expect": "× .*publish_incomplete"
+  },
+  {
+    "id": "pp",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Published', 'Completed')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"G60\"",
+    "expect": "× .*G60"
+  },
+  {
+    "id": "pp-matrix",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Published', 'Completed')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"11x11\"",
+    "expect": "× .*every pair of the 11x11 matrix agrees"
+  },
+  {
+    "id": "tt",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create or replace function public.refuse_hard_delete()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GD-04: only B8's retention job (and test helpers) sets mop.retention, for its own transaction.\n  if current_setting('mop.retention', true) = 'on' then\n    return old;\n  end if;\n  raise exception 'hard_delete_refused' using hint = 'probe';\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\\+ +\"refuse_hard_delete\""
+  },
+  {
+    "id": "uu",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['hero_image', 'video', 'og_image_key', 'updated_at', 'version', 'search_text'];\nbegin\n  new.version := old.version + 1;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"system_columns\"",
+    "expect": "40001 version_conflict"
+  },
+  {
+    "id": "vv",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop index public.properties_submission_id_key",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"unique_links\"",
+    "expect": "× .*a second property for one submission"
+  },
+  {
+    "id": "vv2",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.campaigns drop constraint campaigns_payment_id_key",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"unique_links\"",
+    "expect": "× .*a second campaign for one payment"
+  },
+  {
+    "id": "ww",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.editorial_transition_allowed(\n  p_from public.editorial_state,\n  p_to public.editorial_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('draft', 'review'),\n    ('draft', 'agent_review'),\n    ('draft', 'archived'),\n    ('review', 'draft'),\n    ('review', 'agent_review'),\n    ('review', 'published'),\n    ('review', 'archived'),\n    ('agent_review', 'review'),\n    ('agent_review', 'draft'),\n    ('agent_review', 'published'),\n    ('agent_review', 'archived'),\n    ('published', 'archived'),\n    ('published', 'draft'),\n    ('archived', 'draft')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"every editorial pair\"",
+    "expect": "× .*every editorial pair agrees"
+  },
+  {
+    "id": "xx",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Published', 'Completed'),\n    ('Distribution Active', 'Completed')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"11x11\"",
+    "expect": "× .*every pair of the 11x11 matrix agrees"
+  },
+  {
+    "id": "xx2",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if new.workflow_state = old.workflow_state then\n    return new;\n  end if;\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    new.accepted_at := coalesce(new.accepted_at, now());\n  end if;\n  if new.workflow_state in ('Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed')\n    and new.accepted_at is null then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Scheduled' and not exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"DL-04\"",
+    "expect": "× .*DL-04: Withdrawn passes"
+  },
+  {
+    "id": "xx3",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  Published: [\"Distribution Active\", \"Completed\"],\n  \"Distribution Active\": [\"Completed\"],",
+    "replace": "  Published: [\"Distribution Active\"],\n  \"Distribution Active\": [],",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*a terminal state is reachable from every state"
+  },
+  {
+    "id": "yy",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Distribution Active', 'Completed')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"DL-09\"",
+    "expect": "× .*DL-09"
+  },
+  {
+    "id": "yy-matrix",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Distribution Active', 'Completed')\n  );\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"11x11\"",
+    "expect": "× .*every pair of the 11x11 matrix agrees"
+  },
+  {
+    "id": "g6-accepted-at",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if new.workflow_state = old.workflow_state then\n    return new;\n  end if;\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    null;\n  end if;\n  if new.workflow_state in ('Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed')\n    and new.accepted_at is null then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Scheduled' and not exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  if new.workflow_state = 'Withdrawn' and exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"Accepted sets\"",
+    "expect": "× .*Accepted sets accepted_at"
+  },
+  {
+    "id": "g6-scheduled",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if new.workflow_state = old.workflow_state then\n    return new;\n  end if;\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    new.accepted_at := coalesce(new.accepted_at, now());\n  end if;\n  if new.workflow_state in ('Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed')\n    and new.accepted_at is null then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  if new.workflow_state = 'Withdrawn' and exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"Scheduled needs\"",
+    "expect": "× .*Scheduled needs a paid or waived payment"
+  },
+  {
+    "id": "g6-unchanged",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    new.accepted_at := coalesce(new.accepted_at, now());\n  end if;\n  if new.workflow_state in ('Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed')\n    and new.accepted_at is null then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Scheduled' and not exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  if new.workflow_state = 'Withdrawn' and exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"keeps the state\"",
+    "expect": "× .*an update of notes that keeps the state"
+  },
+  {
+    "id": "g6-editorial-order",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "drop trigger enforce_editorial_state_order on public.properties",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"draft to archived\"",
+    "expect": "× .*draft to archived passes, published to draft"
+  },
+  {
+    "id": "g6-editorial-keep",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_state_order()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if not public.editorial_transition_allowed(old.editorial_state, new.editorial_state) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"keeps editorial_state\"",
+    "expect": "× .*an edit that keeps editorial_state passes"
+  },
+  {
+    "id": "g6-chief",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"chief_editor\"",
+    "expect": "× .*a chief_editor publishes"
+  },
+  {
+    "id": "g6-service-publish",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"service role publishes\"",
+    "expect": "× .*the service role publishes"
+  },
+  {
+    "id": "g6-stories-gate",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "drop trigger enforce_publish_gate on public.stories",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"stories\"",
+    "expect": "× .*stories carry the same enforce_publish_gate"
+  },
+  {
+    "id": "g6-incomplete-place",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"without place\"",
+    "expect": "× .*publish_incomplete without place"
+  },
+  {
+    "id": "g6-wf-states",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  Withdrawn: [],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*holds the eleven states"
+  },
+  {
+    "id": "g6-wf-terminal",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  Completed: [],\n",
+    "replace": "  Completed: [\"Published\"],\n",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*a terminal state has no way out"
+  },
+  {
+    "id": "g6-wf-acceptance",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  \"Invoice Issued\",\n  \"Scheduled\",\n",
+    "replace": "  \"Scheduled\",\n",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*Invoice Issued and later need acceptance"
+  },
+  {
+    "id": "g6-wf-settled",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "status === \"paid\" || status === \"waived\"",
+    "replace": "status === \"paid\"",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*Scheduled needs a paid or waived payment, Withdrawn"
+  },
+  {
+    "id": "g6-wf-reissue",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  \"Invoice Issued\": [\"Invoice Issued\", \"Scheduled\", \"Withdrawn\"],",
+    "replace": "  \"Invoice Issued\": [\"Scheduled\", \"Withdrawn\"],",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*the moves B6, B7 and B10 make"
+  },
+  {
+    "id": "g6-wf-editorial",
+    "kind": "file",
+    "test": "tests/unit/workflow.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  published: [\"archived\"],",
+    "replace": "  published: [\"archived\", \"draft\"],",
+    "run": "bunx vitest run --project unit tests/unit/workflow.test.ts",
+    "expect": "× .*allows exactly the moves of invariant 21"
+  },
+  {
+    "id": "g6-hero-published",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hero_image\"",
+    "expect": "× .*a staged photograph put first on a published"
+  },
+  {
+    "id": "g6-save-allowed",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.save_property(p_id uuid, p_expected_version int, p_patch jsonb)\nreturns public.properties\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- savePropertyAllowedKeys of tests/db/schema-manifest.ts. System, state and publication columns have their own\n  -- writers (G6, G23, G66).\n  v_allowed constant text[] := array[\n    'slug', 'title', 'market_slug', 'region_slug', 'city', 'neighborhood', 'state', 'country', 'address',\n    'coordinates', 'price', 'currency', 'beds', 'baths', 'interior_sq_ft', 'lot_acres', 'year_built', 'type',\n    'style', 'architect', 'designer', 'status', 'story', 'place', 'representative_id', 'presented_by_owner', 'hero_rank', 'featured_rank', 'updated_by'\n  ];\n  v_old public.properties;\n  v_new public.properties;\nbegin\n  select * into v_old from public.properties where id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.version <> p_expected_version then\n    raise exception 'version_conflict' using errcode = '40001';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- One update, so every trigger runs; an empty patch only raises the version.\n  update public.properties\n  set slug = v_new.slug,\n    title = v_new.title,\n    market_slug = v_new.market_slug,\n    region_slug = v_new.region_slug,\n    city = v_new.city,\n    neighborhood = v_new.neighborhood,\n    state = v_new.state,\n    country = v_new.country,\n    address = v_new.address,\n    coordinates = v_new.coordinates,\n    price = v_new.price,\n    currency = v_new.currency,\n    beds = v_new.beds,\n    baths = v_new.baths,\n    interior_sq_ft = v_new.interior_sq_ft,\n    lot_acres = v_new.lot_acres,\n    year_built = v_new.year_built,\n    type = v_new.type,\n    style = v_new.style,\n    architect = v_new.architect,\n    designer = v_new.designer,\n    status = v_new.status,\n    story = v_new.story,\n    place = v_new.place,\n    representative_id = v_new.representative_id,\n    presented_by_owner = v_new.presented_by_owner,\n    listing_url = v_new.listing_url,\n    hero_rank = v_new.hero_rank,\n    featured_rank = v_new.featured_rank,\n    updated_by = v_new.updated_by,\n    version = v_old.version + 1\n  where id = p_id\n  returning * into v_new;\n  return v_new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"each allowed key\"",
+    "expect": "× .*on a draft a patch of each allowed key"
+  },
+  {
+    "id": "g6-save-empty",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.save_property(p_id uuid, p_expected_version int, p_patch jsonb)\nreturns public.properties\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- savePropertyAllowedKeys of tests/db/schema-manifest.ts. System, state and publication columns have their own\n  -- writers (G6, G23, G66).\n  v_allowed constant text[] := array[\n    'slug', 'title', 'market_slug', 'region_slug', 'city', 'neighborhood', 'state', 'country', 'address',\n    'coordinates', 'price', 'currency', 'beds', 'baths', 'interior_sq_ft', 'lot_acres', 'year_built', 'type',\n    'style', 'architect', 'designer', 'status', 'story', 'place', 'representative_id', 'presented_by_owner',\n    'listing_url', 'hero_rank', 'featured_rank', 'updated_by'\n  ];\n  v_old public.properties;\n  v_new public.properties;\nbegin\n  select * into v_old from public.properties where id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.version <> p_expected_version then\n    raise exception 'version_conflict' using errcode = '40001';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- One update, so every trigger runs; an empty patch only raises the version.\n  update public.properties\n  set slug = v_new.slug,\n    title = v_new.title,\n    market_slug = v_new.market_slug,\n    region_slug = v_new.region_slug,\n    city = v_new.city,\n    neighborhood = v_new.neighborhood,\n    state = v_new.state,\n    country = v_new.country,\n    address = v_new.address,\n    coordinates = v_new.coordinates,\n    price = v_new.price,\n    currency = v_new.currency,\n    beds = v_new.beds,\n    baths = v_new.baths,\n    interior_sq_ft = v_new.interior_sq_ft,\n    lot_acres = v_new.lot_acres,\n    year_built = v_new.year_built,\n    type = v_new.type,\n    style = v_new.style,\n    architect = v_new.architect,\n    designer = v_new.designer,\n    status = v_new.status,\n    story = v_new.story,\n    place = v_new.place,\n    representative_id = v_new.representative_id,\n    presented_by_owner = v_new.presented_by_owner,\n    listing_url = v_new.listing_url,\n    hero_rank = v_new.hero_rank,\n    featured_rank = v_new.featured_rank,\n    updated_by = v_new.updated_by,\n    version = v_old.version\n  where id = p_id\n  returning * into v_new;\n  return v_new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"empty patch\"",
+    "expect": "× .*an empty patch raises the version by one"
+  },
+  {
+    "id": "g6-slug-history",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.enforce_slug_immutable()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 11: the first publication is recorded once and never cleared or moved.\n  if tg_op = 'INSERT' then\n    new.first_published_at := new.published_at;\n  else\n    new.first_published_at := coalesce(old.first_published_at, new.published_at);\n    if new.slug = old.slug then\n      return new;\n    end if;\n    if old.first_published_at is not null then\n      raise exception 'slug_immutable';\n    end if;\n  end if;\n  if exists (select 1 from public.slug_history h where h.slug = new.slug and h.property_id <> new.id) then\n    raise exception 'slug_taken';\n  end if;\n  if tg_op = 'UPDATE' then\n    -- GD-02: the old slug of a draft answers with a 301; a draft that takes back its own old slug leaves history.\n    delete from public.slug_history where slug = new.slug;\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"slug\"",
+    "expect": "× .*renaming a draft writes the old slug"
+  },
+  {
+    "id": "g6-slug-taken",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.enforce_slug_immutable()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 11: the first publication is recorded once and never cleared or moved.\n  if tg_op = 'INSERT' then\n    new.first_published_at := new.published_at;\n  else\n    new.first_published_at := coalesce(old.first_published_at, new.published_at);\n    if new.slug = old.slug then\n      return new;\n    end if;\n    if old.first_published_at is not null then\n      raise exception 'slug_immutable';\n    end if;\n  end if;\n  if tg_op = 'UPDATE' then\n    -- GD-02: the old slug of a draft answers with a 301; a draft that takes back its own old slug leaves history.\n    delete from public.slug_history where slug = new.slug;\n    insert into public.slug_history (slug, property_id) values (old.slug, old.id);\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"slug\"",
+    "expect": "× .*a new property cannot take a slug_history slug"
+  },
+  {
+    "id": "g6-published-pairing",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.properties drop constraint properties_published_pairing",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"published_at\"",
+    "expect": "× .*editorial_state published with published_at null"
+  },
+  {
+    "id": "g6-hero-rank",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop index public.properties_hero_rank_key",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"ranks\"",
+    "expect": "× .*a second non-null hero_rank"
+  },
+  {
+    "id": "g6-delete-stories",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.stories",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*stories: refused as the service role"
+  },
+  {
+    "id": "g6-delete-subscribers",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.subscribers",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*subscribers: refused as the service role"
+  },
+  {
+    "id": "g6-delete-submissions",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.submissions",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*submissions: refused as the service role"
+  },
+  {
+    "id": "g6-delete-inquiries",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.inquiries",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*inquiries: refused as the service role"
+  },
+  {
+    "id": "g6-delete-payments",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.payments",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*payments: refused as the service role"
+  },
+  {
+    "id": "g6-delete-campaigns",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.campaigns",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*campaigns: refused as the service role"
+  },
+  {
+    "id": "g6-delete-retention",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.refuse_hard_delete()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GD-04: only B8's retention job (and test helpers) sets mop.retention, for its own transaction.\n  raise exception 'hard_delete_refused';\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hard_delete\"",
+    "expect": "× .*campaigns: refused as the service role"
+  },
+  {
+    "id": "g6-system-video",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['hero_image', 'og_image_key', 'updated_at', 'version', 'search_text'];\nbegin\n  if (to_jsonb(new) - v_ignored) = (to_jsonb(old) - v_ignored) and new.version = old.version then\n    return new;\n  end if;\n  new.version := old.version + 1;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"system_columns\"",
+    "expect": "× .*video and og_image_key keep the version"
+  },
+  {
+    "id": "g6-system-literal",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['hero_image', 'video', 'og_image_key', 'updated_at', 'version', 'search_text', 'title'];\nbegin\n  if (to_jsonb(new) - v_ignored) = (to_jsonb(old) - v_ignored) and new.version = old.version then\n    return new;\n  end if;\n  new.version := old.version + 1;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"system_columns\"",
+    "expect": "× .*properties_version_bump ignores systemPropertyColumns"
   }
 ]

@@ -1255,7 +1255,7 @@ Entry template
 
 ## P-309 · A quoted heredoc that fails with `unexpected EOF` writes nothing: the workaround is the same as P-070, the symptom is not
 - symptom: in B2 g2 a Bash command that carried text through a heredoc stopped with `unexpected EOF` and wrote no file. A search of the bank for that message finds nothing, because P-070 describes the other failure, backslashes dropped from text that is written.
-- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input.
+- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input. Hit again in B2 g6 (2026-10-03): a 300-line `cat > script.mjs <<'EOF'` carrying test code with template literals ended `line 101: unexpected EOF while looking for matching ''`, nothing written; the same text went in through four Edit calls.
 - rule: when a heredoc or `node -e` ends in `unexpected EOF`, nothing was written: do not retry with other quoting, put the text in with the Write or Edit tool (as P-070 says), then read `git status --short` before going on.
 - proof: `grep -n "unexpected EOF" GOTCHAS.md | cut -c1-40` → this entry's heading and symptom lines; `git grep -n "^## P-070" -- GOTCHAS.md` → the cause it shares (reviewer follow-up, B2 g2).
 - added: 2026-10-02
@@ -1305,7 +1305,7 @@ Entry template
 ## P-314 · A `MOP_MUTATION_SQL` prelude of several migrations crashes `bunx vitest`, and stripping every comment makes `function-source.db.test.ts` fail
 - symptom: B2 g5 applied migrations 4, 5 and 6 as one prelude (P-312). With 35,678 characters in `MOP_MUTATION_SQL`, `bunx vitest run --project db ...` printed nothing and exited 0; with the comment lines stripped (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`. After the runner was fixed, `function-source.db.test.ts` still reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`.
 - cause: bun on Windows does not survive a very large environment variable (the Windows limit is 32,767 characters per variable), and the first fix, `grep -v '^\s*--'` over the concatenated files, also deleted the comment lines inside the `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
-- rule: when the prelude is more than about 15 KB, run the db tests as `node node_modules/vitest/vitest.mjs run --project db ...` (the replay script rewrites `bunx vitest` the same way) and build the prelude with a script that drops comment and blank lines only outside `$$` bodies. A prelude over 32 KB cannot be passed as one variable at all: drop the migrations whose objects the tests do not touch, or wait for the CI `db` job.
+- rule: when the prelude is more than about 15 KB, run the db tests as `node node_modules/vitest/vitest.mjs run --project db ...` (the replay script rewrites `bunx vitest` the same way) and build the prelude with a script that drops comment and blank lines only outside `$$` bodies. The 32 KB limit is wrong for node (P-317): a 43,805-character prelude reaches vitest through `node`, so keep every migration in it.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && export MOP_MUTATION_SQL="$(cat ../scratch/g5-prelude.sql)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts` → `Tests  34 passed (34)`; the same line with `bunx vitest` → `panic: Segmentation fault` (measured 2026-10-03, B2 g5; `scratch/g5-prelude.mjs` builds the prelude).
 - added: 2026-10-03
 
@@ -1353,4 +1353,20 @@ Entry template
 - cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
 - rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
 - proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
+- added: 2026-10-03
+
+## P-317 · P-314's "a prelude over 32 KB cannot be passed" is false: node carries 100 KB, only bun and `cmd` are in the way
+- symptom: B2 g6 needed migrations 4 to 8 as one prelude (43,805 characters after stripping). P-314 said that cannot be passed as one variable, which would have meant dropping migrations or leaving every database proof of step 7 UNPROVEN.
+- cause: P-314 measured `bunx vitest`, and bun is what crashes. Windows' 32,767-character figure is the limit of `SetEnvironmentVariable`, not of the environment block `CreateProcess` passes: Git Bash `export` and node's `spawnSync(process.execPath, ..., { env })` both hand the whole value on, and vitest's workers inherit it from node.
+- rule: run a large prelude through `node node_modules/vitest/vitest.mjs`, and spawn replays with `spawnSync(process.execPath, args, { env })`, never `shell: true` (the replay runner `scratch/g6-replay.mjs` splits the registry's `run` into arguments). Keep every migration the tests read in the prelude.
+- proof: from `app/`, `export MOP_MUTATION_SQL="$(cat ../scratch/g6-prelude.sql)" && node -e "console.log(process.env.MOP_MUTATION_SQL.length)"` → `43805`; `node ../scratch/g6-envsize.mjs` → `100000 0 100000` (a child read a 100,000-character variable); the db project on that prelude ran `Tests  2 failed | 144 passed (146)`, the two reds being P-316's stray function (measured 2026-10-03, B2 g6).
+- added: 2026-10-03
+
+## G-102 · A statement that fails inside `withRollback` aborts the whole test transaction unless a savepoint wraps it
+- paths: app/tests/db/**
+- severity: warn
+- symptom: B2 g6's eight `hard_delete` cases all failed with `error: current transaction is aborted, commands ignored until end of transaction block` on the `set_config('mop.retention', ...)` line, after the refused delete had raised exactly as intended.
+- cause: `withRollback` runs the whole test in one transaction, and `failureOf` only catches the error: Postgres marks the transaction aborted, so every later statement in that test fails.
+- rule: a test that goes on after an expected error runs the failing statement under a savepoint (`savepoint x` before, `rollback to savepoint x` after), as `outcome` and `attempt` do; use bare `failureOf` only for a test's last statement.
+- proof: from `app/` with the g6 prelude, `node node_modules/vitest/vitest.mjs run --project db tests/db/integrity.db.test.ts -t hard_delete` → `Tests  8 passed | 43 skipped (51)`; without the two savepoint lines around `failureOf` in that case → `8 failed` with the message above (measured 2026-10-03, B2 g6).
 - added: 2026-10-03

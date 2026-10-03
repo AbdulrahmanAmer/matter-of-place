@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { slugPattern } from "../../src/domain/contracts";
-import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
+import {
+  asRole,
+  createAuthUser,
+  createStaffUser,
+  dbNow,
+  withRollback,
+  type Db,
+} from "../fixtures/db";
+import { savePropertyAllowedKeys, schemaManifest, systemPropertyColumns } from "./schema-manifest";
 
 async function failureOf(run: Promise<unknown>): Promise<{ message: string; where: string }> {
   try {
@@ -99,6 +107,44 @@ async function draft(db: Db, slug: string): Promise<string> {
 const variants = (w: number, h: number) =>
   JSON.stringify({ hero: { w, h, webp: "test/hero.webp" } });
 
+/** A draft with every column a published property needs (enforce_publish_gate), its photograph rendered. */
+async function complete(db: Db, slug: string): Promise<string> {
+  const id = await draft(db, slug);
+  await db.query(
+    `update public.properties set region_slug = 'test-east-bay', neighborhood = 'Elmwood', country = 'United States',
+       price = 2500000, beds = 4, baths = 3.5, interior_sq_ft = 3200, lot_acres = 0.4, year_built = 1928,
+       style = 'Craftsman', place = 'A quiet street.'
+     where id = $1`,
+    [id],
+  );
+  await db.query(
+    "insert into public.property_media (property_id, media_key, variants) values ($1, 'test/hero.webp', $2)",
+    [id, variants(1600, 1067)],
+  );
+  return id;
+}
+
+/** `complete`, moved through review to published. */
+async function published(db: Db, slug: string): Promise<string> {
+  const id = await complete(db, slug);
+  await db.query("update public.properties set editorial_state = 'review' where id = $1", [id]);
+  await db.query(
+    "update public.properties set editorial_state = 'published', published_at = now() where id = $1",
+    [id],
+  );
+  return id;
+}
+
+async function versionOf(db: Db, id: string): Promise<number> {
+  const read = await db.query<{ version: number }>(
+    "select version from public.properties where id = $1",
+    [id],
+  );
+  const version = read.rows[0]?.version;
+  if (version === undefined) throw new Error("no property row");
+  return version;
+}
+
 describe("property_media", () => {
   it("a row is staged or stored, and a stored row has an orientation", async () => {
     const codes = await withRollback(async (db) => {
@@ -186,6 +232,23 @@ describe("hero_image", () => {
       secondMovedFirst: "test/b.webp",
       firstDeleted: "test/a.webp",
     });
+  });
+
+  it("a staged photograph put first on a published property raises publish_incomplete", async () => {
+    const failure = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await published(db, "test-hero-published");
+      return failureOf(
+        db.query(
+          "insert into public.property_media (property_id, staging_path, sort_order) values ($1, 'staging/b.jpg', -1)",
+          [id],
+        ),
+      );
+    });
+    expect({
+      message: failure.message,
+      fromGate: failure.where.includes("enforce_publish_gate"),
+    }).toEqual({ message: "publish_incomplete", fromGate: true });
   });
 });
 
@@ -408,5 +471,393 @@ describe("submitter", () => {
       };
     });
     expect(codes).toEqual({ euro: "23514", dollar: "ok" });
+  });
+});
+
+const SAVE = "select version from public.save_property($1, $2, $3)";
+
+/** One `save_property` call under a savepoint: `ok` or `<SQLSTATE> <message>`. */
+async function saved(db: Db, id: string, version: number, patch: object): Promise<string> {
+  await db.query("savepoint attempt");
+  try {
+    await db.query(SAVE, [id, version, JSON.stringify(patch)]);
+    await db.query("release savepoint attempt");
+    return "ok";
+  } catch (error) {
+    await db.query("rollback to savepoint attempt");
+    if (error instanceof pg.DatabaseError) return `${error.code ?? ""} ${error.message}`;
+    throw error;
+  }
+}
+
+// Invariant 10 (GD-01): the one edit path of the Worker's server functions.
+describe("save_property", () => {
+  it("a save with a stale version raises version_conflict", async () => {
+    const result = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-save-conflict");
+      await asRole(db, "service_role");
+      const first = await db.query<{ version: number }>(SAVE, [
+        id,
+        1,
+        JSON.stringify({ title: "New" }),
+      ]);
+      return { version: first.rows[0]?.version, again: await saved(db, id, 1, { title: "Newer" }) };
+    });
+    expect(result).toEqual({ version: 2, again: "40001 version_conflict" });
+  });
+
+  it("refuses every column outside savePropertyAllowedKeys", async () => {
+    const refused = Object.keys(schemaManifest["properties"] ?? {}).filter(
+      (column) => !savePropertyAllowedKeys.includes(column),
+    );
+    const codes = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-save-refused");
+      await asRole(db, "service_role");
+      const result: Record<string, string> = {};
+      for (const column of refused) result[column] = await saved(db, id, 1, { [column]: null });
+      return result;
+    });
+    const named = [
+      "version",
+      "editorial_state",
+      "video",
+      "og_image_key",
+      "hero_image",
+      "unpublish_reason",
+    ];
+    expect(named.filter((column) => !refused.includes(column))).toEqual([]);
+    expect(codes).toEqual(
+      Object.fromEntries(refused.map((column) => [column, "22023 invalid_patch_key"])),
+    );
+  });
+
+  it("on a draft a patch of each allowed key with a valid value passes", async () => {
+    const codes = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-save-allowed");
+      const editor = await createAuthUser(db);
+      const valid: Record<string, unknown> = {
+        slug: "test-save-allowed-renamed",
+        title: "Renamed",
+        market_slug: "california",
+        region_slug: "test-east-bay",
+        city: "Oakland",
+        neighborhood: "Rockridge",
+        state: "CA",
+        country: "United States",
+        address: "2 Test Way",
+        coordinates: "(37.84,-122.25)",
+        price: 1800000,
+        currency: "USD",
+        beds: 3,
+        baths: 2.5,
+        interior_sq_ft: 2100,
+        lot_acres: 0.2,
+        year_built: 1931,
+        type: "Estate",
+        style: "Tudor",
+        architect: "Test Architect",
+        designer: "Test Designer",
+        status: "Active",
+        story: ["One.", "Two."],
+        place: "Near the hills.",
+        representative_id: null,
+        presented_by_owner: true,
+        listing_url: "https://example.test/listing",
+        hero_rank: 9001,
+        featured_rank: 9001,
+        updated_by: editor,
+      };
+      await asRole(db, "service_role");
+      const result: Record<string, string> = {};
+      for (const [key, value] of Object.entries(valid)) {
+        result[key] = await saved(db, id, await versionOf(db, id), { [key]: value });
+      }
+      return result;
+    });
+    expect(codes).toEqual(Object.fromEntries(savePropertyAllowedKeys.map((key) => [key, "ok"])));
+  });
+
+  it("an empty patch raises the version by one and still checks it", async () => {
+    const result = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-save-empty");
+      await asRole(db, "service_role");
+      const current = await saved(db, id, 1, {});
+      return { current, version: await versionOf(db, id), stale: await saved(db, id, 1, {}) };
+    });
+    expect(result).toEqual({ current: "ok", version: 2, stale: "40001 version_conflict" });
+  });
+});
+
+// Invariant 11 (GD-02).
+describe("slug", () => {
+  const RENAME = "update public.properties set slug = $2 where id = $1";
+
+  it("renaming a draft writes the old slug to slug_history", async () => {
+    const history = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-slug-old");
+      await db.query(RENAME, [id, "test-slug-new"]);
+      return (
+        await db.query<{ slug: string }>(
+          "select slug from public.slug_history where property_id = $1",
+          [id],
+        )
+      ).rows;
+    });
+    expect(history).toEqual([{ slug: "test-slug-old" }]);
+  });
+
+  it("renaming a published property raises slug_immutable", async () => {
+    const failure = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await published(db, "test-slug-published");
+      return failureOf(db.query(RENAME, [id, "test-slug-moved"]));
+    });
+    expect(failure.message).toBe("slug_immutable");
+  });
+
+  it("publish, archive, return to draft, rename raises slug_immutable", async () => {
+    const failure = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await published(db, "test-slug-returned");
+      await db.query(
+        `update public.properties set editorial_state = 'archived', published_at = null, archived_at = now()
+         where id = $1`,
+        [id],
+      );
+      await db.query(
+        "update public.properties set editorial_state = 'draft', archived_at = null where id = $1",
+        [id],
+      );
+      return failureOf(db.query(RENAME, [id, "test-slug-moved"]));
+    });
+    expect(failure.message).toBe("slug_immutable");
+  });
+
+  it("a new property cannot take a slug_history slug: slug_taken", async () => {
+    const failure = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-slug-kept");
+      await db.query(RENAME, [id, "test-slug-current"]);
+      return failureOf(db.query(DRAFT, ["test-slug-kept"]));
+    });
+    expect(failure.message).toBe("slug_taken");
+  });
+});
+
+// Invariant 6.
+describe("published_at", () => {
+  it("editorial_state published with published_at null raises", async () => {
+    const failure = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await complete(db, "test-published-at");
+      await db.query("update public.properties set editorial_state = 'review' where id = $1", [id]);
+      return failureOf(
+        db.query("update public.properties set editorial_state = 'published' where id = $1", [id]),
+      );
+    });
+    expect(failure.message).toContain("properties_published_pairing");
+  });
+});
+
+describe("ranks", () => {
+  it.each(["hero_rank", "featured_rank"])(
+    "a second non-null %s raises, two nulls pass",
+    async (column) => {
+      const codes = await withRollback(async (db) => {
+        await catalog(db);
+        const a = await draft(db, "test-rank-a");
+        const b = await draft(db, "test-rank-b");
+        const c = await draft(db, "test-rank-c");
+        const d = await draft(db, "test-rank-d");
+        const rank = `update public.properties set ${column} = $2 where id = $1`;
+        return {
+          first: await outcome(db, rank, [a, 9001]),
+          second: await outcome(db, rank, [b, 9001]),
+          nullC: await outcome(db, rank, [c, null]),
+          nullD: await outcome(db, rank, [d, null]),
+        };
+      });
+      expect(codes).toEqual({ first: "ok", second: "23505", nullC: "ok", nullD: "ok" });
+    },
+  );
+});
+
+/** One row of `table`, inserted as postgres; returns its id. */
+async function rowOf(db: Db, table: string): Promise<string> {
+  const one = async (sql: string, params: unknown[] = []) => {
+    const id = (await db.query<{ id: string }>(`${sql} returning id`, params)).rows[0]?.id;
+    if (id === undefined) throw new Error(`no ${table} row`);
+    return id;
+  };
+  const email = () => `test-${randomUUID()}@example.test`;
+  const submission = () => one(SUBMISSION, ["owner", null, null, null]);
+  const payment = async () =>
+    one(
+      "insert into public.payments (submission_id, product, amount) values ($1, 'The Feature', 1000)",
+      [await submission()],
+    );
+  switch (table) {
+    case "properties":
+      return draft(db, "test-delete-property");
+    case "stories":
+      return one(
+        `insert into public.stories (slug, title, deck, category, market_slug)
+         values ('test-delete-story', 'Test story', 'x', 'Places', 'california')`,
+      );
+    case "subscribers":
+      return one("insert into public.subscribers (email, source) values ($1, 'test')", [email()]);
+    case "submissions":
+      return submission();
+    case "contacts":
+      return one(
+        "insert into public.contacts (kind, name, email) values ('owner', 'Test Person', $1)",
+        [email()],
+      );
+    case "inquiries":
+      return one(
+        `insert into public.inquiries (intent, name, email, message, source_path)
+         values ('ask', 'Test Person', 'person@example.test', 'x', '/contact')`,
+      );
+    case "payments":
+      return payment();
+    case "campaigns":
+      return one(
+        "insert into public.campaigns (property_id, payment_id, package) values ($1, $2, 'The Feature')",
+        [await draft(db, "test-delete-campaign"), await payment()],
+      );
+    default:
+      throw new Error(`no fixture for ${table}`);
+  }
+}
+
+// Invariant 4 (GD-04): it binds the service role, which RLS does not.
+describe("hard_delete", () => {
+  it.each([
+    "properties",
+    "stories",
+    "subscribers",
+    "submissions",
+    "contacts",
+    "inquiries",
+    "payments",
+    "campaigns",
+  ])("%s: refused as the service role until mop.retention is on", async (table) => {
+    const result = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await rowOf(db, table);
+      await asRole(db, "service_role");
+      const remove = `delete from public.${table} where id = $1`;
+      await db.query("savepoint refused");
+      const refused = await failureOf(db.query(remove, [id]));
+      await db.query("rollback to savepoint refused");
+      await db.query("select set_config('mop.retention', 'on', true)");
+      const deleted = await db.query(remove, [id]);
+      return { refused: refused.message, deleted: deleted.rowCount };
+    });
+    expect(result).toEqual({ refused: "hard_delete_refused", deleted: 1 });
+  });
+});
+
+// DB-16: a system column written while an editor types never causes a false 409.
+describe("system_columns", () => {
+  it("a hero render between read and save does not conflict", async () => {
+    const result = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-system-hero");
+      const staged = await db.query<{ id: string }>(
+        "insert into public.property_media (property_id, staging_path) values ($1, 'staging/a.jpg') returning id",
+        [id],
+      );
+      const read = await versionOf(db, id);
+      await db.query(
+        "update public.property_media set media_key = 'test/a.webp', variants = $2 where id = $1",
+        [staged.rows[0]?.id, variants(1600, 1067)],
+      );
+      const hero = await db.query<{ hero_image: string | null }>(
+        "select hero_image from public.properties where id = $1",
+        [id],
+      );
+      await asRole(db, "service_role");
+      return { hero: hero.rows[0]?.hero_image, save: await saved(db, id, read, { title: "x" }) };
+    });
+    expect(result).toEqual({ hero: "test/a.webp", save: "ok" });
+  });
+
+  it("video and og_image_key keep the version, title raises it", async () => {
+    const versions = await withRollback(async (db) => {
+      await catalog(db);
+      const id = await draft(db, "test-system-version");
+      const before = await versionOf(db, id);
+      await db.query(
+        `update public.properties set video = '{"src":"test/reel.mp4"}' where id = $1`,
+        [id],
+      );
+      const video = await versionOf(db, id);
+      await db.query("update public.properties set og_image_key = 'test/og.jpg' where id = $1", [
+        id,
+      ]);
+      const og = await versionOf(db, id);
+      await db.query("update public.properties set title = 'Retitled' where id = $1", [id]);
+      return { before, video, og, title: await versionOf(db, id) };
+    });
+    expect(versions).toEqual({ before: 1, video: 1, og: 1, title: 2 });
+  });
+
+  it("properties_version_bump ignores systemPropertyColumns and three more", async () => {
+    const source = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ prosrc: string }>(
+            "select prosrc from pg_proc where proname = 'properties_version_bump'",
+          )
+        ).rows[0]?.prosrc ?? "",
+    );
+    const literal = /array\[([^\]]*)\]/.exec(source)?.[1] ?? "";
+    const named = [...literal.matchAll(/'([a-z_]+)'/g)].map((match) => match[1]);
+    expect(named.sort()).toEqual(
+      [...systemPropertyColumns, "updated_at", "version", "search_text"].sort(),
+    );
+  });
+});
+
+// DL-02: one property per request, one campaign per payment.
+describe("unique_links", () => {
+  it("a second property for one submission raises 23505, two without one pass", async () => {
+    const codes = await withRollback(async (db) => {
+      await catalog(db);
+      const submission = await rowOf(db, "submissions");
+      const a = await draft(db, "test-link-a");
+      const b = await draft(db, "test-link-b");
+      const c = await draft(db, "test-link-c");
+      const d = await draft(db, "test-link-d");
+      const link = "update public.properties set submission_id = $2 where id = $1";
+      return {
+        first: await outcome(db, link, [a, submission]),
+        second: await outcome(db, link, [b, submission]),
+        nullC: await outcome(db, link, [c, null]),
+        nullD: await outcome(db, link, [d, null]),
+      };
+    });
+    expect(codes).toEqual({ first: "ok", second: "23505", nullC: "ok", nullD: "ok" });
+  });
+
+  it("a second campaign for one payment raises 23505", async () => {
+    const codes = await withRollback(async (db) => {
+      await catalog(db);
+      const payment = await rowOf(db, "payments");
+      const property = await draft(db, "test-link-campaign");
+      const campaign =
+        "insert into public.campaigns (property_id, payment_id, package) values ($1, $2, 'The Feature')";
+      return {
+        first: await outcome(db, campaign, [property, payment]),
+        second: await outcome(db, campaign, [property, payment]),
+      };
+    });
+    expect(codes).toEqual({ first: "ok", second: "23505" });
   });
 });
