@@ -4,12 +4,11 @@ GitHub Actions for the repository. This folder sits at the repository root becau
 
 | Workflow | Owner | What it does |
 |---|---|---|
-| `ci.yml` | B1b (B3, B4, B13 add steps or jobs) | on pull requests into `main` and pushes to `main`: `check` (engines, `migration-order`, `bun run check`, `audit`, and the `deno` step from B3), `build` (the one live-mode build, uploaded as `build-output`), `merge-gate` (push to `main` only), and B4's `db`, `e2e` and B13's `seo` |
+| `ci.yml` | B1b (B3, B4, B13 add steps or jobs) | on pull requests into `main` and pushes to `main`: `check` (engines, `migration-order`, `bun run check`, `audit`, and the `deno` step from B3), `build` (the one live-mode build, uploaded as `build-output`), `merge-gate` (push to `main` only); B4 adds `db` and `e2e`, with B13's SEO checks as steps of `e2e` |
 | `deploy.yml` | B1b (later slices add steps, never jobs) | `preview-db` and `preview` (a `pr-<n>` Worker) on pull requests, `preview-cleanup` on close, `dev` after a green `ci` run on `main` (the one database step: `bun run db:push` and the job-runner deploy), then `production` (`needs: dev`, no database step), `workflow_dispatch` for the rollback rehearsal |
 | `backup.yml` | B1b | nightly dump of the one Supabase project (ASSUMED H35; by hand with `-f target=dev`), encrypted to `app/backup-recipient.pem`; the artifact `mop-dev-dump` is the only copy (H33 (7)) |
-| `render.yml` | B8 (B9, B12 add to it) | heavy renders started by `workflow_dispatch` from the job runner; uploads go to the bucket `media` of the one Supabase project through `scripts/lib/media-store.mjs`, with `SUPABASE_URL` built from `DEV_SUPABASE_PROJECT_REF` and the key from `DEV_SUPABASE_SERVICE_ROLE_KEY` (H33 (5), H35 (1)); `MOP_ENV` comes from the job's `env` (`preview` or `production`); the workflow holds no media base and reads no GitHub variable, because every image URL arrives absolute in the job JSON (B8, tech-stack section 4) |
-| `audit-scope.yml` | B14 | the weekly audit robot |
-| `audit-deps.yml` | H1 | dependency audit |
+
+These three exist. Later slices add `render.yml` (B8, heavy renders; B9 and B12 add to it), `audit-scope.yml` (B14, the weekly audit robot) and `audit-deps.yml` (H1, dependency audit); each lands with its owner and gets its row here.
 
 Rules every workflow follows (B1b invariants 13 to 15; `tests/unit/hygiene.test.ts` checks them on every file here):
 
@@ -22,5 +21,5 @@ Rules every workflow follows (B1b invariants 13 to 15; `tests/unit/hygiene.test.
 - After the launch switch no preview holds a database key: the `preview` and `dev` jobs read `HAS_DB` from `PREVIEW_WORKER_SECRETS_JSON` and build with the `local` services adapter once L1 removes the pair (B1b invariant 13a).
 - No workflow names R2 or a media base variable: files live in Supabase Storage and the deploy jobs pass `MEDIA_PUBLIC_BASE` as the Worker's own origin plus `/media` (H33).
 - No workflow writes captions and no workflow holds an Anthropic key: `write_captions` runs only on the operator's laptop through `scripts/captions-runner.ts` (ASSUMED H34).
-- Drafts skip the heavy jobs (`db`, `e2e`, `e2e-live`, `preview`), which also skip while the repo variable `CI_HEAVY` is `off`; `backup.yml`, `production` and `dev` never read it.
+- Drafts skip the heavy jobs (`db`, `e2e`, `preview`), which also skip while the repo variable `CI_HEAVY` is `off`; `backup.yml`, `production` and `dev` never read it.
 - Every new pull request job name goes into `REQUIRED_PR_CHECKS` in `app/scripts/merge-gate.mjs` in the same commit.

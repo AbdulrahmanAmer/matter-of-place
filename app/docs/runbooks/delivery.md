@@ -34,6 +34,8 @@ Worker addresses: preview `https://pr-<n>.holy-meadow-4327.workers.dev`, dev
 | deno          | 2.8.1   | same                                                                                                                                                                                                                     |
 | wrangler      | 4.145.0 | pinned exactly as a devDependency in step 3, so `bun run cf:preview` and `bunx wrangler` in `app/` use it; E11 says 4.145.0; `bunx wrangler` outside the folder resolved 4.146.0 on 2026-10-02. Dependabot moves the pin |
 
+`bun run test` passes `--testTimeout=60000 --hookTimeout=60000` (ruling H49 (3)): with two lanes building on this laptop, tests that spawn processes ran past vitest's 5 s default and read as failures (GOTCHAS G-031); CI runners are not loaded and keep their speed.
+
 ## Free plan consequences
 
 - Branch protection of `main` is not available: `gh api repos/AbdulrahmanAmer/matter-of-place/branches/main/protection`
@@ -95,7 +97,10 @@ BLOCKED. Free private repositories have no branch protection and the operator de
 - `deploy.yml` deploys only a commit whose `ci` run on `main` succeeded (invariant 6a);
 - nobody force-pushes (G-009).
 
-What would unblock it: GitHub Pro, or a public repository, then `bash scripts/protect-main.sh`.
+What would unblock it: GitHub Pro, or a public repository, then `bash scripts/protect-main.sh`; its proof is
+`gh api repos/AbdulrahmanAmer/matter-of-place/branches/main/protection --jq .required_status_checks.contexts`
+printing `["check","build"]`. Re-checked 2026-10-03: the same call still answers HTTP 403. The decision line is under
+"Open risks" in `PROJECT-STATE.md` (ruling H5, declined 2026-10-02).
 
 ## Worker configuration
 
@@ -144,7 +149,7 @@ the request instead: Nitro's `augmentReq` puts the Worker's bound `waitUntil` on
 `wrangler dev`: the parse succeeded on every request. `process.env.MOP_ENV` is populated from the Worker variables and
 secrets by `nodejs_compat`, so `start.ts` reads it there. Under `bun run dev` there is no Worker and no `waitUntil`;
 the fallback starts the promise and leaves it. Step 4's test event reached Sentry from `wrangler dev`, so `waitUntil`
-ran the report to completion there; on a deployed Worker that stays UNPROVEN until step 7's production test.
+ran the report to completion there, and the preview `pr-44` did the same on a deployed Worker (section Previews).
 
 ### Static asset headers
 
@@ -190,6 +195,156 @@ Checks measured in step 3 with an empty `.dev.vars`: no `X-Robots-Tag` on `127.0
 `Host: matterofplace.com`, `noindex, nofollow` with `Host: pr-1.holy-meadow-4327.workers.dev`; with
 `MOP_ENV=local` the first request is `noindex, nofollow` as well.
 
+## Smoke
+
+`node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]` (`bun run smoke <baseUrl>`) is the last step of
+every deploy job (gate G22). It prints one line per URL and exits 1 naming each failing one:
+
+- `/`, `/properties`, `/markets`, `/california`, `/stories`, `/submit`, `/contact`, `/sitemap.xml` answer 200 with
+  `x-request-id`, `nosniff` and `X-Frame-Options: DENY`;
+- `X-Robots-Tag: noindex, nofollow` on every `.workers.dev` host, none on `matterofplace.com`, and the flag on any
+  other host (default noindex); a flag that contradicts the host exits 2 before any request;
+- `/` answers `max-age=0, must-revalidate`, and a second request of `/` carries another request id;
+- the first `/assets/*.js` of the home page answers `immutable, max-age=31536000` with `nosniff` (Nitro's rule), and
+  `/media/tiburon-waterline.mp4` answers `max-age=604800` (our `public/_headers`);
+- `POST /api/hooks/sentry-test` answers `Cache-Control` exactly `no-store`, whatever its status.
+
+Requests do not follow redirects, so a redirect is a failure. A refused connection is retried twice, one second
+apart (GOTCHAS P-054). `SMOKE_FORCE_FAIL=1` prints `smoke forced to fail (SMOKE_FORCE_FAIL)` and exits 1 before any
+request; the `dev` job uses it to rehearse its rollback (DO-09).
+
+## Previews
+
+`.github/workflows/deploy.yml` runs three jobs on a pull request into `main`. Each refuses a fork and Dependabot, and
+none links, migrates or reads the database (invariant 13).
+
+- `preview-db` runs on every push, drafts included. When the pull request changes a `supabase/migrations/*.sql` file
+  since it left `main` (`git diff base...head`, three dots, so a migration that only `main` gained does not count), it
+  posts one comment starting `preview-db:` and never a second. The preview runs against `main`'s schema until the
+  migration merges (DB-01).
+- `preview` runs once the pull request is ready for review and `CI_HEAVY` is not `off`. It builds with the HAS_DB
+  switch (invariant 13a), deploys the Worker `pr-<n>` with `MOP_ENV`, `SENTRY_RELEASE` (the merge commit) and
+  `MEDIA_PUBLIC_BASE`, then pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, waits until
+  the Worker answers ten times in a row, runs the smoke against `https://pr-<n>.holy-meadow-4327.workers.dev` and
+  comments that address once (`preview: <url>`).
+- `preview-cleanup` runs when the pull request closes and deletes `pr-<n>`. It shares the preview's concurrency group
+  and waits, so a preview still deploying cannot bring the Worker back after the delete. A pull request closed before
+  any preview has no Worker; Cloudflare answers `This Worker does not exist on this account. [code: 10090]` (measured
+  2026-10-02 with `bunx wrangler delete --name pr-990001 --force`, exit 1), and only that answer is forgiven.
+
+Previews run on the local services adapter until B3's last step sets the repository variable `VITE_API_BASE_URL` again.
+A Worker name deployed for the first time is polled until it answers ten times in a row before the smoke runs.
+
+Until B3 serves `/api/public/*`, a preview built while the bundle holds a database pair is in live mode and its catalog
+pages answer 500. Measured 2026-10-02 under `bun run cf:preview` on a build with `VITE_API_BASE_URL=/api/public`: `/`,
+`/properties`, `/markets`, `/california` and `/stories` answered `500 text/html`, `/sitemap.xml` `500 application/json`,
+`/submit` and `/contact` 200. The server render calls the API with a relative address, which a Worker cannot fetch
+(GOTCHAS P-134). The deployed preview of probe PR #51 answered the same: 500 on those six, every other check of the
+smoke green. So the orchestrator removed `VITE_API_BASE_URL` (ruling H48): the build line then gives an empty value
+whatever `HAS_DB` says, and the build takes the local adapter.
+
+A Worker name deployed for the first time answers Cloudflare's own 404 (`cache-control: private, max-age=0, no-store,
+...`, no header of ours) now and then for about 20 seconds (GOTCHAS P-137). Probe PR #44 smoked two seconds after the
+deploy and every URL got that 404; PR #50 waited for one answer of ours and most URLs still got it. The `wait` step
+therefore asks for ten answers with `x-request-id` in a row, at most 180 s; on PR #51 it took 13 requests. A redeploy of
+an existing name does not show it, but the first deploy of `matter-of-place` and `matter-of-place-dev` (step 7) will.
+
+The preview reports to Sentry with its own release. Measured on `pr-44`: `POST /api/hooks/sentry-test` with the bundle's
+`SENTRY_TEST_TOKEN` answered 500 with request id `b19bd10d-e8cb-4e3e-9731-4b167a98b66d`, and the stored event carried
+`env` `preview`, `release` `af010c0169b1c1fe3c5060f6122076055aca98ab` (the merge commit the deploy line printed) and
+`user` null. So `waitUntil` runs the report to completion on a deployed Worker too.
+
+Cost, measured on 2026-10-02 (PRs #43, #44, #50, #51): `preview-db` 11 to 19 s, `preview` 38 to 60 s, `preview-cleanup`
+19 s, each billed as one whole minute. A push to a draft costs 1 Actions minute in `deploy.yml`, a push to a ready pull
+request 2, closing it 1, on top of `ci.yml`.
+
+`wrangler secret bulk` (4.145.0) deletes a key whose value is `null` in the JSON it reads (`bunx wrangler secret bulk
+--help`); a key that is simply absent stays on the Worker.
+
+## Deploys from main
+
+`.github/workflows/deploy.yml` deploys from `main` only after `ci` passed on a push to `main` (`workflow_run` of `ci`,
+invariant 6a). Both jobs check out the commit that `ci` tested (`github.event.workflow_run.head_sha`; on this event
+`github.sha` is the newest `main`, not necessarily the tested one).
+
+- `dev` deploys `matter-of-place-dev`. When `main` holds a migration it first links the one project and runs
+  `bun run db:push` (the one database step of the workflow, invariant 13); a failed push ends the job before the
+  Worker deploy. It builds like a preview (the Turnstile test key, `VITE_API_BASE_URL` from `HAS_DB`), deploys with
+  `MOP_ENV` from `HAS_DB`, pushes the whole `PREVIEW_WORKER_SECRETS_JSON` with `wrangler secret bulk`, waits for ten
+  answers in a row, smokes `https://matter-of-place-dev.holy-meadow-4327.workers.dev` and rolls back on a red smoke.
+  It also runs on `workflow_dispatch` from `main`, for the rollback rehearsal.
+- `production` runs only while the repository variable `PRODUCTION_DEPLOY` is `on` (ruling H49 (1)). Production never
+  shows an illustrative property, and until B3b's coming-soon mode is on `main` a production build would show the
+  illustrative catalogue, so the orchestrator keeps the variable `off` (`gh variable list`) and sets it to `on` with
+  `gh variable set PRODUCTION_DEPLOY --body on` once B3b has merged; until then a merge deploys `dev` only. It waits for
+  `dev` (`needs: dev`), so the database is migrated before the production Worker deploys and a red `dev` skips it. It links no project and pushes no migration. It builds with the repository variables
+  (`VITE_SITE_URL`, `VITE_API_BASE_URL`, `VITE_TURNSTILE_SITE_KEY`), deploys `matter-of-place` with `MOP_ENV` left at
+  the `wrangler.toml` default `production`, waits, smokes `https://matter-of-place.holy-meadow-4327.workers.dev` and
+  rolls back on a red smoke. Its only secrets are `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+Both pass `SENTRY_RELEASE` (the tested commit) and `MEDIA_PUBLIC_BASE`: the dev Worker's own origin plus `/media`, and
+for production its `workers.dev` origin plus `/media` until L1 sets the repository variable `MOP_LAUNCHED` to `true`
+at the domain cut-over, then `https://matterofplace.com/media` (H33 (4)). No workflow line changes for the cut-over.
+
+While the repository variable `VITE_API_BASE_URL` is absent (ruling H48, until B3's last step sets it), a production
+build takes the local services adapter like every preview, which is the illustrative content; that is why `production`
+waits for `PRODUCTION_DEPLOY`.
+
+### The deploy guard
+
+The first step after the checkout of both jobs is `node scripts/deploy-guard.mjs <sha>` (gate G24). It runs
+`git rev-list <sha>..origin/main -- . ':!workspace' ':!launch' ':!*.md'` from the repository root: a commit listed
+there is a newer code commit already on `main`, whose own run deploys it. Then the guard prints `superseded <sha>`,
+writes `superseded=true` to `$GITHUB_OUTPUT` and every later step is skipped; the job ends green and deploys nothing.
+Otherwise it prints `deploying <sha>`. A commit that only changes `workspace/`, `launch/` or Markdown files runs no CI
+(`paths-ignore` of `ci.yml`) and supersedes nothing. So a re-run of an older green `ci` run never deploys old code
+over new. A `superseded` line in a run's log is expected after such a re-run, not a fault.
+
+### Smoke, rollback and the alert
+
+A first deploy of a Worker name answers Cloudflare's own 404 now and then for about 20 seconds (GOTCHAS P-137), so
+both jobs wait for ten answers with `x-request-id` in a row, at most 180 s, before the smoke. When any step after the
+deploy fails (the secrets push of `dev`, the wait or the smoke), the step `rollback` runs with the deploy token
+(Workers Scripts Write is enough, ASSUMED E1) and the job ends red. GitHub's failed-run email to the owner is the
+alert; there is no automatic retry, and the fix is a new commit.
+
+The rollback of `dev` names its target (ruling H49 (2)). Before the deploy, the step `current` reads the version
+serving 100 percent from `bunx wrangler deployments list --name matter-of-place-dev --json` and prints `serving: <id>`;
+the rollback runs `bunx wrangler rollback <id> --name matter-of-place-dev --message "smoke failed <sha>" --yes` and
+prints `rolled back to <id>`. Without an id, wrangler 4.145 takes the newest deployment but one
+(`fetchDefaultRollbackVersionId`), and in `dev` that is the deploy of the failing code, because the secrets push made
+the newest deployment. When the Worker does not exist yet Cloudflare answers code 10007, the step prints
+`serving: none`, and a red smoke then ends with `first deploy: nothing to roll back to`. Any other answer of the list
+fails the step before the deploy. `production` pushes no secret after its deploy, so its rollback without an id
+returns to the version that served before it.
+
+Rehearsal of the rollback step (DO-09, step 7b): `gh workflow run deploy.yml --ref main -f rehearse_rollback=true`
+runs `dev` alone with `SMOKE_FORCE_FAIL=1`, so its smoke prints `smoke forced to fail (SMOKE_FORCE_FAIL)`, the rollback
+step runs, and `bunx wrangler deployments list --name matter-of-place-dev` shows the previous version active. A second
+run with `rehearse_rollback=false` deploys the current commit again. `production` never runs on `workflow_dispatch`.
+
+### By hand, from the owner's shell
+
+With `.env` loaded without printing it (ASSUMED E10), from `app/`:
+
+- A production secret, once the Worker exists (secrets persist across deploys): `printf %s "$SENTRY_DSN" | bunx
+wrangler secret put SENTRY_DSN --name matter-of-place`. The other production secrets are B3 step 8's.
+- Roll back to a chosen version: `bunx wrangler versions list --name matter-of-place`, then `bunx wrangler rollback
+<version-id> --name matter-of-place --message "<reason>"`. The deploy token can do this (Workers Scripts Write).
+- Deploy without Actions (out of minutes): `bun run build && bun run deploy:prod --var
+MEDIA_PUBLIC_BASE:https://matter-of-place.holy-meadow-4327.workers.dev/media`. `deploy:prod` passes
+  `SENTRY_RELEASE` as the checked-out commit; without the extra `--var` the Worker keeps the `wrangler.toml` default
+  `https://matterofplace.com/media`, right only after the domain cut-over.
+
+### CPU time per request
+
+The free Workers plan allows 10 ms of CPU per request (P-009). Measure from the owner's shell with the local admin
+token (the deploy token cannot tail, ASSUMED E1): start `bunx wrangler tail matter-of-place --format json`, request
+`/`, `/properties`, `/california`, `/markets` and `/submit` five times each, and read the `cpuTime` of each event.
+Compare with ASSUMED E3 (home 6 to 52 ms, collection 10 to 24 ms on the throwaway Worker). A first request above the
+limit after a catalog version bump on the 100-property fixture is the revisit trigger of architecture section 13;
+that case waits for B2's snapshot-budget fixture and B3's `getCatalog`.
+
 ## Sentry
 
 Organisation `matter-of-place`, project `javascript-tanstackstart-react` (ASSUMED E9, E21). The Worker and the job
@@ -214,6 +369,15 @@ The client is `src/server/lib/sentry.ts`, a hand-written envelope sender (no SDK
 `request_id`, `route`, `env`, `release` (`SENTRY_RELEASE`, `dev` when unset) and `side`; one event per
 fingerprint per 60 seconds leaves an isolate, and a `429` or `X-Sentry-Rate-Limits` answer pauses every send for the
 window it names. A failed send is one `sentry_send_failed` log line, never a retry.
+
+Follow-ups, none of them in this slice:
+
+- Only the Worker reports. No code in `src` sends a browser error to Sentry, so a render error in a visitor's browser is
+  not seen here.
+- `src/router.tsx` sets no `defaultErrorComponent`, so a loader error shows TanStack's default error box and not
+  `RouteError` (`src/components/layout/route-error.tsx`). A one-line change that belongs with B3 or Harden.
+- `start.ts` reads `MOP_ENV`, `SENTRY_DSN` and `SENTRY_RELEASE` from `process.env` until B3's `src/server/lib/env.ts`
+  takes over (the `STUB(B3)` line in that file).
 
 Personal data stays out (GS-03). `scrubEvent` keeps an allow-list of fields and masks email-shaped text as `[email]`.
 Two lines exist because Sentry adds data on its side, measured on 2026-10-02 with the test route:
@@ -250,3 +414,78 @@ curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/o
 The issue appears within about 20 seconds. On production, set the secret only for the test and delete it right after:
 `bunx wrangler secret put SENTRY_TEST_TOKEN --name matter-of-place`, then `bunx wrangler secret delete SENTRY_TEST_TOKEN
 --name matter-of-place`.
+
+## Backup
+
+`.github/workflows/backup.yml` dumps the one database (H35 (1)): before the launch switch it is the build database, after
+it production, and the workflow does not change, because the dump only reads. It runs by hand today
+(`gh workflow run backup.yml -f target=dev`; `dev` is the only target) and nightly at 03:17 UTC once B8b has created the
+`schedule_settings` row `backup` (step 8 part B1 adds the `schedule:` line then). A scheduled run first reads that row:
+`t` continues, `f` or no row ends green with `backup disabled`. A manual run ignores the switch.
+
+The job connects through the pooler (GitHub runners have no IPv6, E4) with the password percent-encoded, installs
+`postgresql-client-17` from the PGDG apt repository (the runner ships 16; the server is 17.11), runs
+`pg_dump --format=custom --no-owner --no-acl --schema=public --schema=auth --exclude-table-data='public.analytics_events*'`
+(raw analytics are not needed to run the business, DB-11), encrypts the dump to the committed certificate with
+`openssl cms -encrypt -binary -stream -aes256 -outform DER` and uploads `mop-dev-YYYY-MM-DD.dump.p7m` as the artifact
+`mop-dev-dump`. That artifact is the only copy (H33 (7)); Storage objects are not in it. Then it calls
+`claim_schedule('backup', false, null, now(), null)` (B8b) and `beat('backup', ...)` (B8), each skipped while the
+function does not exist yet. A failed run ends red and GitHub emails the owner; there is no retry, the next night is.
+
+### The key pair
+
+| Part               | Where                                                                          | Who holds it                                         |
+| ------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Public certificate | `app/backup-recipient.pem`, committed; `CN=mop-backup`, valid until 2036-09-29 | anyone: CI encrypts to it and can never decrypt      |
+| Private key        | `creds/backup-recipient.key` at the root of the laptop's checkout, git-ignored | the laptop only, until the operator's escrow (below) |
+| Escrowed copies    | the operator's password manager and a sealed paper copy (DO-06)                | the operator; not done on 2026-10-03                 |
+
+Certificate SHA-256 fingerprint:
+`1A:52:2D:5E:4D:E5:1A:78:2B:54:41:BB:90:F6:38:C8:14:F0:11:92:E6:CC:11:82:04:43:3F:66:3F:61:80:A0`
+(`openssl x509 -in app/backup-recipient.pem -noout -fingerprint -sha256`). There is no passphrase: no `BACKUP_PASSPHRASE`
+exists in GitHub or in `.env` (`gh secret list | grep -c BACKUP_` prints 0).
+
+The private key stays on the laptop until the operator has stored it in his password manager and on paper (ruling H55
+(3)). Nobody deletes it before then. After the escrow, write the date and the two places in the table above, then
+delete the laptop copy; `test -f creds/backup-recipient.key` then fails, and a restore takes the key from the escrow by
+path, never from `.env`.
+
+### Read a dump back
+
+```
+gh run download <run id> -n mop-dev-dump
+openssl cms -decrypt -binary -inform DER -inkey <path to the private key> -in mop-dev-YYYY-MM-DD.dump.p7m -out x.dump
+pg_restore --list x.dump | head
+pg_restore --list x.dump | grep -c "TABLE DATA public analytics_events"
+#   prints 0: the analytics tables are in the dump, their rows are not
+```
+
+The full restore is HARDEN H1's `docs/runbooks/restore.md`.
+
+### Out of Actions minutes
+
+The same dump from the laptop, `.env` loaded without printing it (ASSUMED E10), with the 18.4 client of E11:
+
+```
+DB_URL="postgresql://postgres.$DEV_SUPABASE_PROJECT_REF:$(node -p 'encodeURIComponent(process.env.DEV_SUPABASE_DB_PASSWORD)')@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+pg_dump --format=custom --no-owner --no-acl --schema=public --schema=auth --exclude-table-data='public.analytics_events*' --file=x.dump "$DB_URL"
+openssl cms -encrypt -binary -stream -aes256 -outform DER -in x.dump -out "mop-dev-$(date -u +%F).dump.p7m" app/backup-recipient.pem
+```
+
+Measured on 2026-10-03 from the laptop: both exit 0, the dump is 233,571 bytes and the encrypted file 234,481; it
+decrypts with the private key to a byte-identical file whose listing holds 33 `public` and 27 `auth` tables and no
+`TABLE DATA public analytics_events`. Keep the encrypted file only; delete `x.dump`.
+
+### Retention
+
+The artifact keeps `retention-days: 30`. On 2026-10-03 the encrypted dump of `mop-dev` was 234,481 bytes (laptop
+measure above), so 30 nights hold about 7 MB. The Actions storage quota of this Free account is taken as 500 MB, GitHub's
+documented figure for the plan (ASSUMED, not read here); UNPROVEN until read on the account's billing page, because the billing API needs the `user` scope this login lacks
+(`gh api users/AbdulrahmanAmer/settings/billing/shared-storage` answers that). The size of the artifact itself is read
+after the first run with
+`gh api repos/AbdulrahmanAmer/matter-of-place/actions/artifacts --jq '.artifacts[] | select(.name=="mop-dev-dump") | .size_in_bytes'`.
+Revisit when the dump grows past 8 MB: 30 nights then pass half the quota, and the value becomes 14.
+
+The quota is shared with `ci.yml`'s `build-output` artifact (about 9.4 MB each, kept 1 day). On 2026-10-03 at 10:03 UTC
+137 of them were live, 1,284,006,728 bytes in all, from the parallel lanes' pushes; that alone is above 500 MB while
+the lanes run, and it is the number to watch, not the backup.
