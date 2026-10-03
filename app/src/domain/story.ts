@@ -13,7 +13,8 @@ export const storySchema = z.object({
   deck: z.string(),
   category: z.enum(["Architecture", "Interiors", "Places", "Stories"]),
   market: marketSlugSchema,
-  image: z.string(),
+  /** Unset until a photograph is stored (G55). */
+  image: z.string().optional(),
   /** Body, one paragraph per entry. */
   body: z.array(z.string()),
   /** Property slugs the story mentions, shown beneath it. */

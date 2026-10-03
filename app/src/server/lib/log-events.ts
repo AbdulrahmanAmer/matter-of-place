@@ -4,6 +4,14 @@ export const LogEvent = [
   "env_invalid",
   "env_optional_missing",
   "media_public_base_unset",
+  "request",
+  "public_read_stale",
+  "stale_report_failed",
+  "honeypot",
+  "turnstile_unreachable",
+  "event_pending",
+  "analytics_store_failed",
+  "client_error_report_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

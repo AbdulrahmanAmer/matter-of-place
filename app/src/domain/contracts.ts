@@ -92,6 +92,9 @@ export const submitterKindLabels: Record<SubmitterKind, string> = {
  */
 export const slugPattern = "^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)*$";
 
+/** The `:slug` of a detail read, bounded only: a slug that no row holds is not found (404), never a validation error. */
+export const slugSchema = z.string().min(1).max(120);
+
 /**
  * Internal workflow. Never shown publicly; editorial acceptance must precede
  * any commercial state (Invoice Issued onwards). `Withdrawn` is terminal (DL-04).

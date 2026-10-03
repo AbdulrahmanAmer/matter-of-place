@@ -1,5 +1,6 @@
 // checkDb against rate_limit_check on mop-dev (or CI's stack). Committed mode: supabase-js calls run on their own
 // connection, so each case removes the hits of its own keys afterwards.
+import "./env";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { hashKey } from "../../src/server/lib/ids";

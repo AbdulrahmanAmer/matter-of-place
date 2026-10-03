@@ -1,0 +1,94 @@
+import type { z } from "zod";
+import { slugSchema } from "../../domain/contracts";
+import {
+  getMarket,
+  getProperty,
+  getStory,
+  listMarkets,
+  listProperties,
+  listStories,
+} from "../catalog/service";
+import type { Db } from "../lib/db";
+import type { env } from "../lib/env";
+
+// The public route table as data (architecture 4.1): the one source for the handlers, the in-process
+// dispatcher and the tests. `handlePublic` reads it; a route file only calls `handlePublic`.
+
+type Env = typeof env;
+
+export interface PublicCtx {
+  requestId: string;
+  ipHash: string;
+  turnstileOk: boolean;
+  env: Env;
+}
+
+export interface RouteLimit {
+  scope: "ip" | "email";
+  store: "db" | "memory";
+  limit: number;
+  windowSeconds: number;
+}
+
+/** The edge part of a cached read. `$slug` in a tag stands for the path parameter. */
+export interface RouteCache {
+  sMaxAge: number;
+  tags: readonly string[];
+}
+
+// One signature for every service: it takes the value its row's schema parsed, whatever that is
+// (the `:slug` string of a detail read, the JSON body of a write, nothing for a list).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the table holds services of different inputs under one type
+export type PublicService = (db: Db, input: any, ctx: PublicCtx) => Promise<unknown>;
+
+/** A `raw` row reads its own body (a signed webhook), so the pipeline reads none of it. */
+export type RawService = (request: Request, db: Db, env: Env) => Promise<Response>;
+
+interface BaseRoute {
+  /** Absolute, with `:name` for a path parameter. */
+  path: string;
+  method: "GET" | "POST";
+  limits: RouteLimit[];
+  turnstile: boolean;
+  /** The four form writes also take a first memory check before any other work. */
+  form?: boolean;
+  cache?: RouteCache;
+  status: number;
+}
+
+export type PublicRoute =
+  | (BaseRoute & {
+      raw?: false;
+      schema?: z.ZodType<unknown, z.ZodTypeDef, unknown>;
+      service: PublicService;
+    })
+  | (BaseRoute & { raw: true; service: RawService });
+
+const EDGE_LIFETIME = 31_536_000;
+
+const catalogRead = (
+  path: string,
+  service: PublicService,
+  detail?: { tag: string },
+): PublicRoute => ({
+  path,
+  method: "GET",
+  ...(detail !== undefined && { schema: slugSchema }),
+  limits: [],
+  turnstile: false,
+  cache: {
+    sMaxAge: EDGE_LIFETIME,
+    tags: detail === undefined ? ["catalog"] : ["catalog", `${detail.tag}:$slug`],
+  },
+  status: 200,
+  service,
+});
+
+export const routes: PublicRoute[] = [
+  catalogRead("/api/public/properties", listProperties),
+  catalogRead("/api/public/properties/:slug", getProperty, { tag: "property" }),
+  catalogRead("/api/public/markets", listMarkets),
+  catalogRead("/api/public/markets/:slug", getMarket, { tag: "market" }),
+  catalogRead("/api/public/stories", listStories),
+  catalogRead("/api/public/stories/:slug", getStory, { tag: "story" }),
+];

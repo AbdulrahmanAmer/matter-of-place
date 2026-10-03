@@ -7,7 +7,10 @@ export interface FakeDbOptions {
   rpc?: {
     [F in keyof PublicSchema["Functions"]]?: (
       args: PublicSchema["Functions"][F]["Args"],
-    ) => PublicSchema["Functions"][F]["Returns"] | Error;
+    ) =>
+      | PublicSchema["Functions"][F]["Returns"]
+      | Error
+      | Promise<PublicSchema["Functions"][F]["Returns"] | Error>;
   };
   tables?: { [T in keyof PublicSchema["Tables"]]?: PublicSchema["Tables"][T]["Row"][] };
   storage?: Record<string, Record<string, (...args: unknown[]) => unknown>>;
@@ -37,8 +40,8 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
     const handler = registered(options.rpc, name);
     if (typeof handler !== "function") throw new Error(`unexpected rpc ${name}`);
     const result: unknown = Reflect.apply(handler, undefined, [args]);
-    return Promise.resolve(
-      result instanceof Error ? { data: null, error: result } : { data: result, error: null },
+    return Promise.resolve(result).then((answer) =>
+      answer instanceof Error ? { data: null, error: answer } : { data: answer, error: null },
     );
   };
 

@@ -36,6 +36,7 @@ function setup(options: {
   env?: string | undefined;
   render?: (request: Request) => Response | Promise<Response>;
   cache?: PipelineDeps["cache"];
+  redirect?: PipelineDeps["redirect"];
   getFlags?: PipelineDeps["getFlags"];
   apiRoutes?: string[];
 }) {
@@ -50,6 +51,7 @@ function setup(options: {
       rendered.push(`${request.method} ${new URL(request.url).pathname}`);
       return Promise.resolve(options.render?.(request) ?? new Response("<html></html>"));
     },
+    redirect: options.redirect ?? (() => Promise.resolve(null)),
     cache: options.cache ?? ((_request, render) => render()),
     getFlags: options.getFlags ?? (() => Promise.resolve({})),
     report,
@@ -395,16 +397,23 @@ describe("which requests reach the cache hook", () => {
     "/sitemap.xml",
     "/feed.xml",
     "/.well-known/security.txt",
+    "/.well-known/change-password",
     "/_serverFn/abc?payload=x",
     "/media/assets/p1/hero/r1/a.0123abcd.webp",
-  ])("keeps %s away from the cache hook and still adds the headers", async (path) => {
-    const cache = memoryCache();
-    const { run } = setup({ cache: cache.hook });
-    const response = await run(get(path));
-    expect(cache.calls).toEqual([]);
-    expect(response.headers.get("x-request-id")).not.toBeNull();
-    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-  });
+    "/media/o/p1/hero",
+  ])(
+    "keeps %s away from the cache hook and the redirect lookup and still adds the headers",
+    async (path) => {
+      const cache = memoryCache();
+      const redirect = vi.fn<PipelineDeps["redirect"]>(() => Promise.resolve(null));
+      const { run } = setup({ cache: cache.hook, redirect });
+      const response = await run(get(path));
+      expect(cache.calls).toEqual([]);
+      expect(redirect).not.toHaveBeenCalled();
+      expect(response.headers.get("x-request-id")).not.toBeNull();
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    },
+  );
 
   it("tells a page from a document", () => {
     expect(isPageRequest("/california")).toBe(true);

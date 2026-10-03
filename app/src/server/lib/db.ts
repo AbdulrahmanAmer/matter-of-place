@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../../db";
-import { env } from "./env";
+import type { Database } from "../../db/index.ts";
+import { env } from "./env.ts";
 import { AppError } from "./errors.ts";
 
 /** The client type every service and test imports from here, so only this file knows supabase-js (invariant 1). */
@@ -23,7 +23,7 @@ export function resetDbCallCount(): void {
 
 // `typeof fetch` also lists Bun's `preconnect`; the Worker never calls it.
 const countedFetch: typeof fetch = Object.assign(
-  (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  (input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> => {
     calls += 1;
     const url = new URL(input instanceof Request ? input.url : input);
     if (!READ_RPC.test(url.pathname)) return fetch(input, init ?? {});

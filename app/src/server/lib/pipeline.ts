@@ -11,6 +11,8 @@ export interface PipelineContext {
 export interface PipelineDeps {
   /** Runs the request through the router and the server routes, which read the id (H39 (1)). */
   render: (request: Request, requestId: string) => Promise<Response>;
+  /** A redirect for this path, or null (invariant 14). It must return a response whose headers can be set. */
+  redirect: (request: Request) => Promise<Response | null>;
   /** The cache hook B3 fills. It must return a response whose headers can be set. */
   cache: (request: Request, render: () => Promise<Response>) => Promise<Response>;
   getFlags: () => Promise<Flags>;
@@ -50,7 +52,7 @@ function decodeLikeRouter(text: string): string {
  * except `%25` and `%5C`, leading slashes made one, case ignored. `/API/x`, `/%61pi/x` and
  * `//api/x` all reach the `/api/x` route, so every prefix rule reads this form.
  */
-function routePath(pathname: string): string {
+export function routePath(pathname: string): string {
   const decoded = pathname
     .split(KEPT_ESCAPES)
     .map((part, index) => (index % 2 === 1 ? part : decodeLikeRouter(part)))
@@ -177,13 +179,15 @@ export async function handle(
   const mopEnv = ctx.env.MOP_ENV ?? "production";
   let flags: Flags = {};
   let response: Response;
+  let redirected = false;
   try {
     flags = await deps.getFlags();
     const render = () => deps.render(request, requestId);
-    response =
-      !neverCached(request, pathname) && isPageRequest(pathname)
-        ? await deps.cache(request, render)
-        : await render();
+    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.
+    const page = !neverCached(request, pathname) && isPageRequest(pathname);
+    const redirect = page ? await deps.redirect(request) : null;
+    redirected = redirect !== null;
+    response = redirect ?? (page ? await deps.cache(request, render) : await render());
   } catch (error) {
     logLine("error", "unhandled_error", { requestId, route: pathname });
     ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
@@ -203,7 +207,7 @@ export async function handle(
   headers.set("x-request-id", requestId);
   if (neverCached(request, pathname, response)) {
     headers.set("cache-control", "no-store");
-  } else if (isPageRequest(pathname)) {
+  } else if (!redirected && isPageRequest(pathname)) {
     headers.set("cache-control", browserCacheControl("html"));
   }
   const hasPolicy =
