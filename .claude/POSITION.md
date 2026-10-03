@@ -911,3 +911,10 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - The artifact Build Progress Board (https://claude.ai/artifact/23fZrWogVimK8NaoAkmrdd) is republished on every change:
   the board runs with `--snapshot <scratchpad>/board/board-snapshot.html`, a Monitor watches the `.version` sidecar and
   wakes the orchestrator, who republishes the file to that URL. Republished at 9.1% this turn. Re-arm the Monitor at expiry.
+
+## 2026-10-03 · Operating mode: autonomous to live (S63, H55)
+- The operator handed over: decide everything that does not need his hands, record it, keep going until the site is
+  live. Settled under H55: Actions spending stays zero; the B9 design pick is the CTO's; the backup key stays on the
+  laptop until he escrows it (step 8 no longer deletes it); lanes open after the proving run's first clean review, then
+  by dependency; L1's switch runs without a further go. Still his hands only: passwords, login codes, cards, accounts.
+- Proving run `wf_57df2412-448` (B2 steps 8 to 14) in progress; the g8 builder was at 70 minutes with no result yet.
