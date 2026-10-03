@@ -1138,6 +1138,7 @@ Entry template
 - Hit again in B2 g10 review: the brief again passed `E:/mop-build/db-review` as the lane root and said to run it from that folder (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 4378d02` gave `cd: /e/mop-build/db-review: No such file or directory`); the lane-root form worked first time.
 - Hit again in the B2 g10 re-review (third hit): the brief again named `E:/mop-build/db-review` as the lane root (`cd /e/mop-build/db-review` gave `No such file or directory`; from the lane, `create E:/mop-build/db-review bf2d74f` failed with `fatal: cannot change to 'E:/mop-build/db-review'`; `create E:/mop-build/db bf2d74f` worked first time). Three briefs in a row: the generator fix is overdue.
 - Hit again in the B2 g11 review (fourth hit): the brief again passed `E:/mop-build/db-review` as the lane root and said to run create from that folder (`No such file or directory`).
+- Hit again in the B2 g12 review (fifth hit): `cd /e/mop-build/db-review` failed with `No such file or directory`; `review-snapshot.mjs` line 21 reads ``const snap = `${laneRoot}-review` ``. Five hits in one slice: the generator in `.claude/workflows/build-slice.js` is the fix, and it is still open.
 - added: 2026-10-03
 
 ## P-326 · `quiet.mjs` splits a quoted argument at its spaces, so `-t "as admin plus"` filters on `as`
@@ -1533,4 +1534,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `review-snapshot.mjs` copies only `.env` and `app/.dev.vars`; the link lives in the ignored `supabase/.temp/` of the lane and linking needs `SUPABASE_ACCESS_TOKEN`, an ops name.
 - rule: a reviewer links the snapshot in a subshell that loads only `SUPABASE_ACCESS_TOKEN` from the snapshot's `.env` (`( set -a; . <(tr -d '\r' < .env | grep -E '^SUPABASE_ACCESS_TOKEN='); set +a; supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF" )`), then runs the proof with the dev profile; or copies `supabase/.temp/project-ref` and the linked-project files from the lane. The fix to the script is a follow-up for the orchestrator.
 - proof: `sed -n 1,40p workspace/05-plans/review-snapshot.mjs | grep -n "\.env\|dev.vars"` shows the only two copied names (measured 2026-10-03, B2 g11 review).
+- added: 2026-10-03
+
+## P-338 · A plan proof that copies into `supabase/.temp` fails in a fresh checkout: the folder exists only after `supabase link`
+- symptom: B2 step 13's determinism proof (`cp tests/fixtures/photo.jpg supabase/.temp/photo.prev.jpg && node scripts/make-fixtures.mjs && git diff --no-index --exit-code ...`) printed `No such file or directory` in a review snapshot; after `mkdir -p supabase/.temp` it exited 0.
+- cause: `app/supabase/.temp/` is git-ignored (`app/.gitignore` line 40) and is created by `supabase link` and by the CLI, so a fresh worktree or snapshot has no such folder. The same plan style appears in the `gen:types` proof (P-327).
+- rule: a proof that writes a scratch copy under `supabase/.temp` starts with `mkdir -p supabase/.temp`, or uses a folder the checkout always has; never assume the folder from your own linked lane.
+- proof: `git ls-files app/supabase | grep -c "\.temp"` → `0` and `git check-ignore -v app/supabase/.temp/photo.prev.jpg` → `app/.gitignore:40:supabase/.temp/	supabase/.temp/photo.prev.jpg` (measured 2026-10-03, B2 g12 review).
 - added: 2026-10-03

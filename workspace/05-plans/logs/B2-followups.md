@@ -195,3 +195,22 @@ None of these blocks the group. The two reviewer items that belong in the gotcha
 
 6. File `app/tests/db/integrity.db.test.ts`. Migration 12's six retention_policies rows have no test that reads them. The plan's retention-row case and watched-fail jjj (plan lines 113 and 189) are NOT DONE, and nobody owns them in this group. Today the rows are proved only by the builder's ad hoc psql inside a rolled-back transaction (log line 1892).
    Evidence: Read the diff: no test in it reads public.retention_policies; the author's own 'unproven' list says jjj is NOT DONE.
+
+## g12 · steps 13
+
+None of these blocks the group. The reviewer's gotcha item went into the bank (P-325 fifth hit, P-338 new), not here.
+
+1. File `app/scripts/variants.ts`. An export that nothing imports. Line 110 'export type VariantsArgs' is imported by no file in src, scripts or tests (the test imports only parseVariantsArgs). Since B1b step 2b, R04 and C04 require names nothing imports to stay file-local. knip cannot catch it because knip.json lists scripts/**/*.{ts,mjs} as entry files, and knip does not report exports of entry files. Not blocking: I could not name an input for which this goes wrong.
+   Evidence: grep -rn VariantsArgs src scripts tests matches only scripts/variants.ts. knip.json entry contains "scripts/**/*.{ts,mjs}".
+
+2. File `app/scripts/variants.ts`. The stub is labelled with a different owner than the same dependency in seed.ts. The --property and --all refusal sits under 'STUB(B9)' (line 162), while seed.ts:89 marks the same B9 wait as 'STUB(B2 step 13)'. The plan makes the upload part B2 step 13's work, which runs once B9 lands media-store.mjs. With the B9 label, B2 can be closed and the stubs gate stays green while --property and --all were never built, so nobody owns them. With seed's label the gate does catch it. Not blocking: the refusal is loud (exit 1 with a message), and the log records it as BLOCKED.
+   Evidence: grep -n STUB scripts/seed.ts scripts/variants.ts gives seed.ts:89 STUB(B2 step 13) and variants.ts:162 STUB(B9). scripts/stubs.ts fails a stub only when its named slice is closed.
+
+3. File `workspace/05-plans/B2.md`. The plan's step 13 determinism proof cannot run in a fresh checkout. It copies into supabase/.temp, and that folder only exists after 'supabase link'. The author's 'exit 0' is reproducible only after mkdir. This is plan text, not this group's file, so it is for the orchestrator to fix (use a scratch path or add mkdir -p). Banked as P-338.
+   Evidence: In the fresh snapshot, 'cp tests/fixtures/photo.jpg supabase/.temp/photo.prev.jpg' printed 'No such file or directory'. After mkdir -p supabase/.temp the proof exits 0.
+
+4. File `app/scripts/README.md`. Stale prose, not this group's file. It still says image variants are made 'for R2' (ruling H33: no R2, Supabase Storage bucket media) and that every script runs as 'bun run scripts/<name>.ts'. This group now ships make-fixtures.mjs and the variants CLI. This is already follow-up 6 in B2-followups.md (c1 · steps 1), which said to fold it 'when the variants script lands'. It has now landed and the line is still wrong.
+   Evidence: grep -n -i r2 app/scripts/README.md gives line 3: 'image variants for R2 (thumb, card, hero, og, carousel, made once at publish)'
+
+5. File `app/tests/unit/variants.test.ts`. Weakness, not a rule break. 'keeps the hero WebP under 400 KB' measures a fixture whose hero is 19,442 bytes, about 5% of the bound. It goes red only under a contrived sharpened lossless mutation, so it would not catch a realistic quality regression on real photographs. The author banked this as P-333. On a real photograph the bound stays UNPROVEN until the first real property is stored.
+   Evidence: The CLI run printed 'v/test/0-4692be93/hero.webp  1600x1067  19442 bytes'. The registry entry g12-variants-hero-weight replaces the encode with sharpen(...).webp({ lossless: true, effort: 0 }).
