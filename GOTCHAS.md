@@ -1109,6 +1109,20 @@ Entry template
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select jsonb_build_object('w', 1, 'h', 2)"` → `{"h": 2, "w": 1}` (measured 2026-10-03, B2 g8).
 - added: 2026-10-03
 
+## P-324 · A db:fn fix made mid-slice gets today's migration timestamp, which is later than every migration the plan still has to add under a fixed name
+- symptom: B2 g8's fn migration `20261003082557_fn_enforce_publish_gate_stories.sql` sorts after the five names the plan still lists for B2 g9 and B3 (`20261001090900_rls.sql`, `20261001091000_storage.sql`, `20261001091100_settings_defaults.sql`, `20261001100000_public_write_functions.sql`, `20261001110000_coming_soon.sql`). After the merge `checkMigrations` answers `rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557` for each, and db-push refuses them as out-of-order. The plan's Files list, its "numbered 1 to 12" text and the "12 migrations" exit line go stale.
+- cause: `db:fn` stamps the migration with the clock, while the plan fixed the later names in advance. Invariant 17 allows renaming, so nothing broke, but nobody had listed the renames.
+- rule: before running `db:fn` mid-slice, `git grep` the plan for planned migration names newer than the main tip and older than today; if any exist, say in the log which names will have to be renamed after the fix merges and ask the orchestrator to update the plan before the next group starts. The other way, putting the fix inside an unmerged migration, conflicts with R19's db:fn path.
+- proof: from the tree root, `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md | sort -u` lists the planned names, and `ls app/supabase/migrations | tail -3` shows the fn migration stamped `20261003082557`, later than every one of them (measured 2026-10-03, B2 g8 review).
+- added: 2026-10-03
+
+## P-325 · The review brief's snapshot command and builder path use the snapshot folder where the script wants the lane root
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/db-review 2223e63` from `E:/mop-build/db-review`, which gave `cd: /e/mop-build/db-review: No such file or directory`; it also called `E:/mop-build/db-review` the builder's working folder.
+- cause: the script's argument is the lane root and it creates `<laneRoot>-review` itself (`const snap = ${laneRoot}-review`), so the folder does not exist before the first run. The brief generator substituted the snapshot path where the lane path belongs, in both places.
+- rule: a reviewer runs the script from the lane root with the lane root as argument: `node E:/mop-build/db/workspace/05-plans/review-snapshot.mjs create E:/mop-build/db <sha>`; it prints the snapshot folder. The brief generator names the lane root as the builder's folder and the snapshot only as the reviewer's. Fix the generator, not each brief.
+- proof: `sed -n '5p;21p' workspace/05-plans/review-snapshot.mjs` prints the usage line `create <laneRoot> <sha>` and `const snap = ${laneRoot}-review;` (measured 2026-10-03, B2 g8 review).
+- added: 2026-10-03
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
