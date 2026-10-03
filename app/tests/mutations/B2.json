@@ -717,7 +717,7 @@
     "test": "tests/db/migration-headers.test.ts",
     "file": "supabase/migrations/20261001090200_role_helpers.sql",
     "find": "set lock_timeout = '5s';",
-    "replace": "-- contract-of: 20261001090100\nset lock_timeout = '5s';\nalter table public.user_roles drop column display_name;",
+    "replace": "-- contract-of: 20261001090199\nset lock_timeout = '5s';\nalter table public.user_roles drop column display_name;",
     "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
     "expect": "contract-of names a version that is not on main: 20261001090200_role_helpers\\.sql"
   },

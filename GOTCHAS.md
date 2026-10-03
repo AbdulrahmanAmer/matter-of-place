@@ -1303,3 +1303,24 @@ Entry template
 - rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
 - proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
 - added: 2026-10-03
+
+## P-400 · A hung `python -` in a `;` chain, moved to the background and killed later, let the rest of the chain run late over edits made in between
+- symptom: a patch chain `python - 2>/dev/null; node -e '<edits to package.json, tsconfig.json, eslint.config.js>'` was moved to the background at 120 s. The same edits were then made with the Edit tool; two of them failed with `String to replace not found` (the chain had already changed those lines), and after `taskkill` of python the chain went on and the node patch applied a second time: a duplicated `"watchfail"` script, duplicated tsconfig includes, a half-reformatted `ignores` list. About 6 minutes.
+- cause: P-094 again (an interpreter started with `-` waits for stdin), plus `;` between commands: the next command runs whenever the hung one ends, even much later.
+- rule: never start an interpreter that can wait for stdin inside a chain; put a patch in a file and run it, or use the Edit tool. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
+- proof: `cd app && git diff -U0 package.json | grep -c '^+    "watchfail"'` prints `1` after the clean-up (it printed `2` before).
+- added: 2026-10-03
+
+## P-401 · A registry entry whose red depends on what is on main goes stale when its slice merges
+- symptom: the first full replay of the registries after B2 had merged (`node scripts/watchfail.mjs --registry tests/mutations`, 439 entries) printed one `WATCHED-FAIL BAD: stayed green (B2:ss-contract-not-on-main)`. Its mutation named `-- contract-of: 20261001090100`, a version that was not on main when B2 g3 recorded the red run and is on main now, so `check-migrations` accepted it.
+- cause: the entry used a real version to stand for "a version that is not on main"; the check's answer depends on `origin/main`, which moves. A hand-run entry is never replayed after the merge, so nothing said so until B4 step 2.
+- rule: a mutation that needs "absent from main" (or any repository state) names a value that can never be present (here the 14-digit `20261001090199`, which no migration has). The replay after a merge is the check that finds the others: run `node scripts/watchfail.mjs --registry tests/mutations` after each slice lands and fix the entry, not the test.
+- proof: from `app/`, `eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only ss-contract-not-on-main` prints `WATCHED-FAIL OK B2:ss-contract-not-on-main` (measured 2026-10-03; the old version printed `BAD: stayed green`).
+- added: 2026-10-03
+
+## P-402 · A watched-fail that deletes a test file's registry entry goes red only for a file with exactly one entry, and a registry mutation's `find` must not match its own entry
+- symptom: B4 watched-fail (z) says "delete the entry of `tests/unit/clock.test.ts` from `B4.json`". A test file with several entries (every title of `mutation-registry.test.ts` needs its own, P-109) stays named after one is changed, so `mutation-registry.test.ts` stays green. A `find` made of plain words also occurs inside the mutation entry that carries it, which makes two occurrences and exit 2.
+- cause: the registry test asks "is the file named by any entry", and an entry's `find` is stored inside the very file it mutates when that file is a registry.
+- rule: (z) renames the `test` of the one entry that is the only one naming its file (`y` for `tests/unit/seo.test.ts`; `y-lint` carries `"test": "bun run lint"` so it does not name the file). Its `find` holds double quotes (`"test": "tests/unit/seo.test.ts",`): inside the entry they are stored as `\"`, so the entry does not match itself. A group whose test file has several entries picks another file for its (z), and says so in its log.
+- proof: from `app/`, `node scripts/watchfail.mjs --registry tests/mutations --only z` prints `WATCHED-FAIL OK B4:z`; with the `test` of `y-lint` changed to `tests/unit/seo.test.ts` (a second entry naming it) it prints `STALE B4:z: find occurs 2 times in tests/mutations/B4.json` and exits 2 (measured 2026-10-03, file restored).
+- added: 2026-10-03
