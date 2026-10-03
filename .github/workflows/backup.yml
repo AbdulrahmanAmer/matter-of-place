@@ -1,0 +1,108 @@
+name: backup
+
+# Encrypted dump of the one database (B1b step 8, ruling H35 (1)). The dump reads only, so it runs the
+# same before and after the launch switch. It is encrypted to the committed public certificate
+# app/backup-recipient.pem (DO-02, ruling H5): this job can encrypt and can never decrypt; the private
+# key is the operator's (docs/runbooks/delivery.md). The artifact is the dump's only copy (H33 (7)).
+# Cost (C22): about 1 Actions minute a run (estimated; UNPROVEN until the first run is measured), so
+# about 30 a month nightly from the 2,000 of GOTCHAS P-009, plus one dump's size of Actions storage
+# per retained day.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: The database to dump (there is one project, H35 (1))
+        type: choice
+        options: [dev]
+        default: dev
+
+permissions: {}
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  dump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      TARGET: ${{ inputs.target || 'dev' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # GitHub runners have no IPv6, so the pooler, never the direct host (E4); the password is
+      # percent-encoded (F6) and the string is masked because the encoded form is not the secret.
+      - name: connection
+        env:
+          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}
+          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}
+        run: |
+          DB_URL="postgresql://postgres.$DEV_SUPABASE_PROJECT_REF:$(node -p 'encodeURIComponent(process.env.DEV_SUPABASE_DB_PASSWORD)')@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+          echo "::add-mask::$DB_URL"
+          echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
+      # The runner ships client 16; the dump client must not be older than the server (17).
+      - name: postgresql client 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      # The switch is B8b's schedule_settings row backup; a manual run ignores it.
+      - name: switch
+        id: switch
+        if: github.event_name == 'schedule'
+        run: |
+          enabled=$(psql "$DB_URL" -Atc "select enabled from schedule_settings where key = 'backup'")
+          if [ "$enabled" != t ]; then
+            echo "backup disabled"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Raw analytics are most of the data and are not needed to run the business (DB-11).
+      - name: dump and encrypt
+        if: steps.switch.outputs.skip != 'true'
+        run: |
+          DUMP="mop-$TARGET-$(date -u +%F).dump.p7m"
+          pg_dump --format=custom --no-owner --no-acl --schema=public --schema=auth --exclude-table-data='public.analytics_events*' --file=x.dump "$DB_URL"
+          openssl cms -encrypt -binary -stream -aes256 -outform DER -in x.dump -out "$DUMP" backup-recipient.pem
+          rm x.dump
+          echo "DUMP=$DUMP" >> "$GITHUB_ENV"
+          echo "DUMP_BYTES=$(stat -c %s "$DUMP")" >> "$GITHUB_ENV"
+          echo "$DUMP: $(stat -c %s "$DUMP") bytes"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.switch.outputs.skip != 'true'
+        with:
+          name: mop-${{ env.TARGET }}-dump
+          path: app/${{ env.DUMP }}
+          if-no-files-found: error
+          retention-days: 30
+      # claim_schedule is the one write path of the schedule clocks (G43) and beat the heartbeat
+      # (invariant 17); each is skipped until its slice (B8b, B8) has created it. Every answer is read
+      # by an assignment, so a query error fails the step instead of reading as an empty answer.
+      - name: record
+        if: steps.switch.outputs.skip != 'true'
+        run: |
+          absent=$(psql "$DB_URL" -Atc "select to_regprocedure('public.claim_schedule(text,boolean,timestamptz,timestamptz,timestamptz)') is null")
+          if [ "$absent" = t ]; then
+            echo "claim_schedule absent: backup last_run_at not recorded"
+          else
+            claimed=$(psql "$DB_URL" -Atc "select claim_schedule('backup', false, null, now(), null)")
+            if [ "$claimed" != t ]; then
+              echo "backup last_run_at not recorded"
+            fi
+          fi
+          absent=$(psql "$DB_URL" -Atc "select to_regprocedure('public.beat(text,jsonb)') is null")
+          if [ "$absent" = t ]; then
+            echo "beat absent: no heartbeat"
+          else
+            psql "$DB_URL" -Atc "select beat('backup', jsonb_build_object('target', '$TARGET', 'bytes', $DUMP_BYTES))"
+          fi

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { siteConfig } from "../../src/config/site";
-import { pageHead } from "../../src/lib/seo";
+import { absoluteUrl, siteConfig } from "../../src/config/site";
+import { pageHead, unavailableHead } from "../../src/lib/seo";
 
 const brand = siteConfig.name;
 const countBrand = (value: string) => value.split(brand).length - 1;
@@ -37,5 +37,39 @@ describe("pageHead", () => {
     const title = titleOf(pageHead({ title: brand, description: "d", path: "/" }));
     expect(title).toBe(brand);
     expect(countBrand(title)).toBe(1);
+  });
+
+  it("adds the robots meta only when noindex is set", () => {
+    const robots = (head: ReturnType<typeof pageHead>) =>
+      head.meta.flatMap((tag) => ("name" in tag && tag.name === "robots" ? [tag.content] : []));
+    expect(robots(pageHead({ title: "About", description: "d", path: "/about" }))).toEqual([]);
+    expect(
+      robots(pageHead({ title: "About", description: "d", path: "/about", noindex: true })),
+    ).toEqual(["noindex, nofollow"]);
+  });
+
+  it("adds an application/ld+json script only when jsonLd is given", () => {
+    const jsonLd = { "@context": "https://schema.org", "@type": "Organization" };
+    const plain = pageHead({ title: "About", description: "d", path: "/about" });
+    const withData = pageHead({ title: "About", description: "d", path: "/about", jsonLd });
+    expect(plain.scripts).toEqual([]);
+    expect(withData.scripts).toEqual([
+      { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+    ]);
+  });
+
+  it("sets the canonical link and og:url to the absolute url of the path", () => {
+    const head = pageHead({ title: "Stories", description: "d", path: "/stories/a-quiet-house" });
+    expect(head.links).toEqual([{ rel: "canonical", href: absoluteUrl("/stories/a-quiet-house") }]);
+    expect(head.meta).toContainEqual({
+      property: "og:url",
+      content: absoluteUrl("/stories/a-quiet-house"),
+    });
+  });
+
+  it("marks the head of an unresolved dynamic route noindex", () => {
+    const head = unavailableHead("Property");
+    expect(titleOf(head)).toBe(`Property unavailable | ${brand}`);
+    expect(head.meta).toContainEqual({ name: "robots", content: "noindex, nofollow" });
   });
 });

@@ -602,5 +602,140 @@
     "run": "E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
     "expect": "coming_soon_global restored to true",
     "kind": "manual"
+  },
+  {
+    "id": "c",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  Submitted: [\"Under Review\"],",
+    "replace": "  Submitted: [\"Under Review\", \"Accepted\"],",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > allows exactly the pairs of the matrix[\\s\\S]*Submitted>Accepted"
+  },
+  {
+    "id": "d",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  if (to === \"Scheduled\" && !settled(ctx.paymentStatus)) return \"not_paid\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > allows Scheduled only when accepted and the payment is paid or waived"
+  },
+  {
+    "id": "sm-rows",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "tests/unit/state-machine.test.ts",
+    "find": "  Declined: /*           */ \"0 0 0 0 0 0 0 0 0 0 0\",",
+    "replace": "  Declined: /*           */ \"0 0 0 0 0 0 0 0 0 0\",",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > holds a matrix row for each of the eleven states"
+  },
+  {
+    "id": "sm-ungated",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "const NEEDS_ACCEPTANCE: readonly WorkflowState[] = [",
+    "replace": "const NEEDS_ACCEPTANCE: readonly WorkflowState[] = [\n  \"Accepted\",",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > lets a move with no gate through in every context[\\s\\S]*Under Review>Accepted"
+  },
+  {
+    "id": "sm-acceptance",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  \"Distribution Active\",\n  \"Completed\",\n];",
+    "replace": "  \"Distribution Active\",\n];",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > refuses Invoice Issued and every later state without acceptance[\\s\\S]*Published>Completed"
+  },
+  {
+    "id": "sm-withdrawn",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "  if (to === \"Withdrawn\" && settled(ctx.paymentStatus)) return \"paid\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > refuses Withdrawn once a payment is paid or waived"
+  },
+  {
+    "id": "an-at",
+    "test": "tests/unit/analytics.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "path: envelope.path, at: envelope.at }",
+    "replace": "path: envelope.path }",
+    "run": "bunx vitest run --project unit tests/unit/analytics.test.ts",
+    "expect": "FAIL .*> track > pushes every event name to dataLayer at once"
+  },
+  {
+    "id": "an-data",
+    "test": "tests/unit/analytics.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "push({ event, ...data, path",
+    "replace": "push({ event, path",
+    "run": "bunx vitest run --project unit tests/unit/analytics.test.ts",
+    "expect": "FAIL .*> track > carries the data given with the event"
+  },
+  {
+    "id": "an-start",
+    "test": "tests/unit/analytics.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "(window.dataLayer ??= [])",
+    "replace": "(window.dataLayer ?? [])",
+    "run": "bunx vitest run --project unit tests/unit/analytics.test.ts",
+    "expect": "FAIL .*> track > starts the dataLayer when the page has none"
+  },
+  {
+    "id": "seo-robots",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(noindex ? [{ name: \"robots\", content: \"noindex, nofollow\" }] : []),",
+    "replace": "...[],",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > adds the robots meta only when noindex is set"
+  },
+  {
+    "id": "seo-jsonld",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    scripts: jsonLd ? [{ type: \"application/ld+json\", children: JSON.stringify(jsonLd) }] : [],",
+    "replace": "    scripts: [],",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > adds an application/ld\\+json script only when jsonLd is given"
+  },
+  {
+    "id": "seo-canonical",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    links: [{ rel: \"canonical\", href: absoluteUrl(path) }],",
+    "replace": "    links: [{ rel: \"canonical\", href: absoluteUrl(\"/\") }],",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > sets the canonical link and og:url to the absolute url of the path"
+  },
+  {
+    "id": "seo-unavailable",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    path: \"/\",\n    noindex: true,",
+    "replace": "    path: \"/\",",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > marks the head of an unresolved dynamic route noindex"
+  },
+  {
+    "id": "seo-suffix",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const fullTitle = hasBrand ? title : `${title}${suffix}`;",
+    "replace": "const fullTitle = title;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > appends the brand suffix to a bare page title"
+  },
+  {
+    "id": "seo-brand-once",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const fullTitle = hasBrand ? title : `${title}${suffix}`;",
+    "replace": "const fullTitle = `${title}${suffix}`;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > does not add the suffix to the home title"
   }
 ]
