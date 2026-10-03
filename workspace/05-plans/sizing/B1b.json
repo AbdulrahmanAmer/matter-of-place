@@ -3,9 +3,70 @@
   "written": "2026-10-03 by the orchestrator (H53). Steps 1 to 7 are accepted (6 and 7 on slice/b1b, pull request 43). The close-out of step 7's H49 additions (c7, in restart.json) runs first. Then these. Briefs from plan-brief.mjs.",
   "unmetDependencies": [],
   "groups": [
-    { "id": "g8", "steps": "7b", "title": "Rollback rehearsal of the in-job step: a workflow_dispatch of deploy.yml from main with rehearse_rollback=true ends red, the dev job rolls back to the recorded version, and the dev Worker serves the previous version", "files": [".github/workflows/deploy.yml", "app/docs/runbooks/delivery.md"], "proof": "Step 7b as the plan writes it, plus H49 (2): deployments list shows the previous version id at 100 percent after the rehearsal.", "blocked": false, "blockedOn": "Step 7 merged to main (the dispatch runs only from main): the merge of slice/b1b through the gate comes first.", "critical": true, "needsOrchestrator": "The merge of pull request 43 through the gate before this group; the dispatch itself the builder may run.", "designer": false, "needsPullRequest": true },
-    { "id": "g9", "steps": "8", "title": "backup.yml: the key pair exists (part A done by the orchestrator, certificate on main); the workflow, its dispatch for target dev, the download and decrypt proof, the retention read; the escrow is the operator's", "files": [".github/workflows/backup.yml", "app/docs/runbooks/delivery.md"], "proof": "Step 8 as the plan writes it, part A already done.", "blocked": false, "blockedOn": "", "critical": true, "needsOrchestrator": "The operator stores the private key in his password manager and as a sealed paper copy before creds/backup-recipient.key is deleted from the laptop.", "designer": false, "needsPullRequest": true },
-    { "id": "g10", "steps": "9,10", "title": "Branch protection recorded as BLOCKED on GitHub Pro (declined, H5) with the merge gate as the standing substitute; then the close-out: workflows README, env names, ImportMetaEnv, the Sentry follow-ups", "files": [".github/workflows/README.md", "app/.env.example", "app/src/env.d.ts", "app/docs/runbooks/delivery.md"], "proof": "Steps 9 and 10 as the plan writes them.", "blocked": false, "blockedOn": "Step 9 stays BLOCKED on GitHub Pro (H5); the builder records it and does step 10.", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": false },
-    { "id": "g11", "steps": "11", "title": "Edge rules, blocked on L1's domain attach", "files": ["app/scripts/cf-edge.mjs"], "proof": "Step 11 as the plan writes it.", "blocked": true, "blockedOn": "L1 step 4 (the zone in front of the Worker).", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": false }
+    {
+      "id": "g8",
+      "steps": "7b",
+      "title": "Rollback rehearsal of the in-job step: a workflow_dispatch of deploy.yml from main with rehearse_rollback=true ends red, the dev job rolls back to the recorded version, and the dev Worker serves the previous version",
+      "files": [
+        ".github/workflows/deploy.yml",
+        "app/docs/runbooks/delivery.md"
+      ],
+      "proof": "Step 7b as the plan writes it, plus H49 (2): deployments list shows the previous version id at 100 percent after the rehearsal.",
+      "blocked": false,
+      "blockedOn": "Step 7 merged to main (the dispatch runs only from main): the merge of slice/b1b through the gate comes first.",
+      "critical": true,
+      "needsOrchestrator": "The merge of pull request 43 through the gate before this group; the dispatch itself the builder may run.",
+      "designer": false,
+      "needsPullRequest": true
+    },
+    {
+      "id": "g9",
+      "steps": "8",
+      "title": "backup.yml: the key pair exists (part A done by the orchestrator, certificate on main); the workflow, its dispatch for target dev, the download and decrypt proof, the retention read; the escrow is the operator's. Ruling H55 (3): creds/backup-recipient.key stays on the laptop until the operator escrows it; this step does not delete it and the runbook says so",
+      "files": [
+        ".github/workflows/backup.yml",
+        "app/docs/runbooks/delivery.md"
+      ],
+      "proof": "Step 8 as the plan writes it, part A already done.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": true,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": true
+    },
+    {
+      "id": "g10",
+      "steps": "9,10",
+      "title": "Branch protection recorded as BLOCKED on GitHub Pro (declined, H5) with the merge gate as the standing substitute; then the close-out: workflows README, env names, ImportMetaEnv, the Sentry follow-ups",
+      "files": [
+        ".github/workflows/README.md",
+        "app/.env.example",
+        "app/src/env.d.ts",
+        "app/docs/runbooks/delivery.md"
+      ],
+      "proof": "Steps 9 and 10 as the plan writes them.",
+      "blocked": false,
+      "blockedOn": "Step 9 stays BLOCKED on GitHub Pro (H5); the builder records it and does step 10.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g11",
+      "steps": "11",
+      "title": "Edge rules, blocked on L1's domain attach",
+      "files": [
+        "app/scripts/cf-edge.mjs"
+      ],
+      "proof": "Step 11 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "L1 step 4 (the zone in front of the Worker).",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    }
   ]
 }
