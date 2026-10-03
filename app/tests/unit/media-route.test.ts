@@ -1,4 +1,6 @@
 import "../fixtures/worker-env";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
@@ -160,6 +162,14 @@ describe("GET /media/<key>", () => {
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("GET, HEAD");
     expect(fetched).toEqual([]);
+  });
+
+  it("declares ANY on the route file, so a method with no handler never renders the page shell (G-022)", () => {
+    const source = readFileSync(
+      fileURLToPath(new URL("../../src/routes/media.$.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source).toContain("handlers: { ANY: ({ request, context }) => serveMedia(");
   });
 
   it("answers HEAD with the same headers and no body", async () => {

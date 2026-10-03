@@ -32,11 +32,10 @@ describe("the public route table and its files", () => {
     expect(tablePaths.filter((path) => !files.map(pathOf).includes(path))).toEqual([]);
   });
 
-  it("has the method of each row in its file, and a file that only calls handlePublic", () => {
-    for (const route of routes.filter((candidate) => candidate.path.startsWith(PREFIX))) {
-      const file = files.find((name) => pathOf(name) === route.path);
-      const source = readFileSync(join(DIR, file ?? ""), "utf8");
-      expect(source).toContain(`${route.method}: ({ request, context }) =>`);
+  it("declares ANY in each file, so every method reaches handlePublic, and only calls handlePublic", () => {
+    for (const file of files) {
+      const source = readFileSync(join(DIR, file), "utf8");
+      expect(source).toContain("handlers: { ANY: ({ request, context }) =>");
       expect(source).toContain("handlePublic(request, context.requestId)");
       expect(source).not.toContain("supabase");
     }

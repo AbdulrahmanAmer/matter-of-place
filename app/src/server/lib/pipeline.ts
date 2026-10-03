@@ -1,6 +1,6 @@
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
-import { AppError } from "./errors";
+import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
 import { securityHeaders, type Flags } from "./headers";
 import { logLine } from "./log";
 
@@ -120,9 +120,6 @@ export function errorJson(
     { status, headers: { "cache-control": "no-store" } },
   );
 }
-
-// Seconds a client waits after a dependency outage (R09).
-const OUTAGE_RETRY_AFTER = "30";
 
 /** The calm failure page or R09 body: 503 `unavailable` for an outage (invariant 16), 500 `server` for anything else. */
 function calmServerError(

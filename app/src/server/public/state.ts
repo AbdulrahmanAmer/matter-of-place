@@ -54,7 +54,8 @@ let stateFlight: Promise<StateRead> | undefined;
 let catalogMemo: Catalog | undefined;
 // The version the state advertised when the memo was loaded, which the memo answers for.
 let catalogFor = Number.NaN;
-let catalogFlight: Promise<Catalog> | undefined;
+// One load per version: a request for a newer version never waits for a load of an older one.
+let catalogFlight: { version: number; load: Promise<Catalog> } | undefined;
 let catalogStale = false;
 let lastReportAt = Number.NEGATIVE_INFINITY;
 const pendingReports: unknown[] = [];
@@ -159,10 +160,13 @@ export async function readCatalog(db: Db): Promise<CatalogRead> {
     return { catalog: catalogMemo, state, stale };
   }
   try {
-    catalogFlight ??= loadCatalog(db, state).finally(() => {
-      catalogFlight = undefined;
-    });
-    const catalog = await catalogFlight;
+    if (catalogFlight?.version !== state.catalogVersion) {
+      const load: Promise<Catalog> = loadCatalog(db, state).finally(() => {
+        if (catalogFlight?.load === load) catalogFlight = undefined;
+      });
+      catalogFlight = { version: state.catalogVersion, load };
+    }
+    const catalog = await catalogFlight.load;
     catalogStale = false;
     return { catalog, state, stale };
   } catch (error) {

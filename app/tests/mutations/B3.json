@@ -736,6 +736,16 @@
     "expect": "× .*makes one snapshot call for requests that arrive together"
   },
   {
+    "id": "b3-g3-state-flight-version",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "if (catalogFlight?.version !== state.catalogVersion) {",
+    "replace": "if (catalogFlight === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*does not give a request for a newer version the load that is still reading an older one"
+  },
+  {
     "id": "b3-g3-state-reset",
     "kind": "file",
     "test": "tests/unit/state.test.ts",
@@ -1010,10 +1020,20 @@
     "kind": "file",
     "test": "tests/unit/media-route.test.ts",
     "file": "src/server/public/media.ts",
-    "find": "  return toErrorResponse(upstream.status === 404 ? notFound : storageUnavailable(), requestId);",
+    "find": "  return toErrorResponse((await isMissing(upstream)) ? notFound : storageUnavailable(), requestId);",
     "replace": "  return toErrorResponse(notFound, requestId);",
     "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
     "expect": "× .*answers 503 storage_unavailable when Storage fails"
+  },
+  {
+    "id": "b3-g3-media-any",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/routes/media.$.ts",
+    "find": "handlers: { ANY: (",
+    "replace": "handlers: { GET: (",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*declares ANY on the route file"
   },
   {
     "id": "b3-g3-media-prefix",
@@ -1089,11 +1109,11 @@
     "id": "b3-g3-parity-method",
     "kind": "file",
     "test": "tests/unit/routes-parity.test.ts",
-    "file": "src/server/public/routes.ts",
-    "find": "  method: \"GET\",\n  ...(detail",
-    "replace": "  method: \"POST\",\n  ...(detail",
+    "file": "src/routes/api/public/markets.ts",
+    "find": "handlers: { ANY: (",
+    "replace": "handlers: { GET: (",
     "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
-    "expect": "× .*has the method of each row in its file"
+    "expect": "× .*declares ANY in each file"
   },
   {
     "id": "b3-g3-parity-cache",

@@ -291,6 +291,28 @@ describe("getCatalog", () => {
     await expect(state.getCatalog(db)).rejects.toMatchObject({ code: "unavailable" });
   });
 
+  it("does not give a request for a newer version the load that is still reading an older one", async () => {
+    const { state } = await load();
+    const slow = Promise.withResolvers<Json>();
+    const answers = { state: stateJson(5), version: 5 };
+    const db = fakeDb({
+      rpc: {
+        public_state: () => answers.state,
+        public_catalog_snapshot: () => (answers.version === 5 ? slow.promise : snapshotJson(6)),
+      },
+    });
+    const first = state.getCatalog(db);
+    await vi.advanceTimersByTimeAsync(0);
+    vi.setSystemTime(new Date(T0.getTime() + 15_000));
+    answers.state = stateJson(6);
+    answers.version = 6;
+    const second = state.getCatalog(db);
+    await vi.advanceTimersByTimeAsync(0);
+    slow.resolve(snapshotJson(5));
+    expect((await second).version).toBe(6);
+    expect((await first).version).toBe(5);
+  });
+
   it("makes one snapshot call for requests that arrive together", async () => {
     const { state } = await load();
     const { db } = served(5);
