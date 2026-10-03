@@ -33,3 +33,19 @@
    - Evidence: plan-brief output: 'BLOCKED until the CEO has picked ...', '(the operator assigns the S-number)'. grep in sizing/B9.json: 'DIRECTION.md from the CEO's picks'. ASSUMED.md line 250 H55 (2).
 
 Two follow-ups on GOTCHAS.md are banked as P-705 and P-706, not listed here.
+
+## g3 · steps 3
+
+1. `app/src/templates/social/social.css` (not blocking)
+   - What: No automated check pins the slot weights. Only a manual, uncommitted probe proves the h1 renders at 400; the author labelled this UNPROVEN. If a later edit drops line 139 (`font-weight: var(--social-weight-text)` on .social-frame__headline), every headline goes back to 700 and check stays green. Step 6's shoot/render path, or a g4 template test that runs in a browser, should assert the computed weights.
+   - Evidence: My in-memory mutation removing that line made the headline 700 for carousel and story. templates.test.ts (g4) is SSR-only and cannot see the computed style. Confirmed by running.
+
+2. `workspace/05-plans/STANDARDS.md` (not blocking)
+   - What: The folder-map row for public/ (line 87) lists `fonts/*.woff2` only. The committed public/fonts/LICENSES.md is required by the plan, and app/scripts/check-layout.mjs now allows it. The document lags the gate. The author already logged this as P-704; it is the orchestrator's file.
+   - Evidence: STANDARDS.md line 87: `fonts/*.woff2`. check-layout.mjs diff: `public/fonts/{*.woff2,LICENSES.md}`. Confirmed by reading.
+
+3. `workspace/05-plans/B9.md` (not blocking)
+   - What: Stale plan line. The shoot.mjs Files entry says the fixture images are "files under src/assets/gallery/", but the fixture's hero is src/assets/los-altos.jpg. Step 6's shoot.mjs must read the paths from the fixture as written, not assume the gallery folder.
+   - Evidence: app/src/templates/social/fixtures/property.fixture.json images[0].path = "src/assets/los-altos.jpg". The plan-brief Files list for scripts/lib/shoot.mjs says the images are under `src/assets/gallery/`. Confirmed by reading.
+
+Two follow-ups on GOTCHAS.md are banked as P-709 and P-710, not listed here.
