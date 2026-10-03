@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { serverErrorHtml } from "../../src/server/lib/error-page";
+import { AppError } from "../../src/server/lib/errors";
 import { securityHeaders } from "../../src/server/lib/headers";
 import {
   browserCacheControl,
@@ -493,6 +494,23 @@ describe("an unhandled error", () => {
     expect(report).toHaveBeenCalledTimes(1);
     expect(report.mock.calls[0]?.[1]).toEqual({ requestId: id, route: "/california" });
     expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers an outage with the calm 503 and Retry-After, and reports nothing", async () => {
+    const outage = () => {
+      throw new AppError("unavailable", undefined, "down");
+    };
+    const { run, waitUntil, report } = setup({ render: outage });
+    const page = await run(get("/california", { headers: { accept: "text/html" } }));
+    expect(page.status).toBe(503);
+    expect(page.headers.get("retry-after")).toBe("30");
+    expect(page.headers.get("cache-control")).toBe("no-store");
+    expect(page.headers.get("content-type")).toContain("text/html");
+    const api = await run(get("/api/public/properties"));
+    expect(api.status).toBe(503);
+    expect(body.parse(await api.json()).error.code).toBe("unavailable");
+    expect(report).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
   });
 
   it("logs one unhandled_error line with the request id", async () => {

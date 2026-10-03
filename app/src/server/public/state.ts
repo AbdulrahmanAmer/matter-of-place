@@ -52,6 +52,8 @@ export interface CatalogRead extends StateRead {
 let stateMemo: { state: PublicState; checkedAt: number; stale: boolean } | undefined;
 let stateFlight: Promise<StateRead> | undefined;
 let catalogMemo: Catalog | undefined;
+// The version the state advertised when the memo was loaded, which the memo answers for.
+let catalogFor = Number.NaN;
 let catalogFlight: Promise<Catalog> | undefined;
 let catalogStale = false;
 let lastReportAt = Number.NEGATIVE_INFINITY;
@@ -145,13 +147,14 @@ async function loadCatalog(db: Db, state: PublicState): Promise<Catalog> {
     env: { MOP_ENV: readVar("MOP_ENV") ?? "production" },
   });
   catalogMemo = catalog;
+  catalogFor = state.catalogVersion;
   return catalog;
 }
 
 /** The mapped catalog, fetched again only when the state names a newer version. */
 export async function readCatalog(db: Db): Promise<CatalogRead> {
   const { state, stale } = await readState(db);
-  if (catalogMemo !== undefined && catalogMemo.version >= state.catalogVersion) {
+  if (catalogMemo !== undefined && catalogFor === state.catalogVersion) {
     catalogStale = false;
     return { catalog: catalogMemo, state, stale };
   }

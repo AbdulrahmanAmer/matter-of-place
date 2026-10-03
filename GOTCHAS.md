@@ -190,6 +190,7 @@ Entry template
 - hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
+- hit again: 2026-10-04, B3 g3: three times in one group (a `sed` with `\n` in the replacement, a `node -` patch with a regular expression, a heredoc with an apostrophe in a test title) the text lost its backslashes or ended in `unexpected EOF`; each was redone with the Write or Edit tool, and a `sed` that had written a literal line break into a string broke the file's parse.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -779,6 +780,7 @@ Entry template
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
 - hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
+- hit again: 2026-10-04, B3 g3: `python3 - <<EOF` for a four-line edit hung the shell for 120 seconds before anything ran; the edit was redone with `node` and the Edit tool.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1413,6 +1415,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
 - proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
 - hit again: 2026-10-03, B3 g1: the brief for steps 1 and 1b omitted the tests of the libs, `tests/mutations/B3.json`, the keys of `tests/e2e/fixtures/routes.ts` and three `file` values of `tests/mutations/B4.json` that the route renames break; all were added by the group and named in the log.
+- hit again: 2026-10-04, B3 g3: the brief for steps 3 and 3b listed `src/server/lib/cache.ts` and `src/server/lib/pipeline.ts`, where the plan and the folder map put `src/server/public/cache.ts` and `src/server/public/pipeline.ts` (B1b's `lib/pipeline.ts` is the other file); the group built the plan's names and also needed `src/start.ts`, `src/server/lib/{db,log-events,wait-until}.ts`, the domain files the mapper fills, `scripts/load-env.mjs`, `tests/e2e/fixtures/routes.ts` (the key for `media.$.ts`), `tests/fixtures/{fake-db,snapshot,worker-env}.ts` and 90 entries of `tests/mutations/B3.json`; all are named in the log.
 - added: 2026-10-03
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
@@ -1615,6 +1618,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: each of 3,000 media objects carried about 450 bytes of variant keys, all derivable from the `media_key` next to them (`o/<owner>/<n>-<sha8>.webp`); the review's own sum (20 to 30 KB per property) predicted it.
 - rule: `MediaVariants` is `{ thumb, card, hero, og, carousel }` each `{ w, h }` and nothing else; B3's `toImageVariants` derives every address from the master key with `variantKeys`' pattern, B9's render job stores sizes only. The budget is never raised.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/snapshot-budget.db.test.ts` → `snapshot 1239950 bytes for 100 properties`, `Tests 1 passed`; `node scripts/watchfail.mjs --registry tests/mutations --only bbb` → `WATCHED-FAIL OK` (measured 2026-10-03, B2 g11 rework).
+- hit again: 2026-10-04, B3 g3: the brief for steps 3 and 3b still quoted full-key variants (`{ card: { webp: "v/c.webp", w: 720, h: 480 } }`) and a test built on them; `toImageVariants` in `mappers.ts` derives each key from the master key and `tests/unit/mappers.test.ts` compares the result with `variantKeys` of `scripts/variants.ts`, so the two patterns cannot drift apart.
 - added: 2026-10-03
 
 ## P-336 · `git merge origin/main` conflicts in `app/knip.json` and `app/.prettierignore` every time both sides touched them: keep both sides
@@ -1675,3 +1679,42 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
+
+## G-302 · Supabase Storage answers a missing object with HTTP 400 and the status in the body, so a route that waits for a 404 reports an outage
+- paths: app/src/server/public/media.ts, app/src/server/lib/media-store.ts
+- severity: warn
+- symptom: under the built Worker (port 8828) `GET /media/v/none/0-aaaaaaaa/hero.webp` answered 503 `storage_unavailable` instead of 404, although the plan (H33 (4)) and the first `serveMedia` map a Storage 404 to `not_found`; the unit test passed because its fake Storage said 404.
+- cause: Storage's REST API answers a missing object, and a missing bucket, with `400 Bad Request` and `{"statusCode":"404","error":"not_found","message":"Object not found"}` (measured on mop-dev, 2026-10-04).
+- rule: classify a Storage answer by status 404, or by status 400 whose body has `statusCode` 404 (`isMissing` in `media.ts`); every later Storage reader (B6 signing, B8 delete, B9) does the same, and a fake of Storage models the real 400.
+- proof: `curl -s -o /dev/null -w "%{http_code}" "https://$DEV_SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/media/v/none/0-aaaaaaaa/hero.webp"` (dev profile loaded) prints `400`; `cd app && bunx vitest run --project unit tests/unit/media-route.test.ts` passes and registry entries `b3-g3-media-400` and `b3-g3-media-400-body` turn its "reads Storage's 400" case red.
+- added: 2026-10-04
+
+## G-303 · The public snapshot carries neither `campaign_tier` nor `source`, so `Property.campaignTier` and `source` are optional
+- paths: app/src/domain/property.ts, app/src/server/public/mappers.ts, app/tests/api/parity.api.test.ts
+- severity: warn
+- symptom: B3 step 3's mapper builds `Property` from `public_catalog_snapshot()`, whose property object lists neither column (`publicPropertyKeys` of B2, closed), while the schema required both; the live API could not satisfy its own type and the browser's `propertySchema.parse` would have refused every property.
+- cause: the plan's mapper line lists the mapped fields, the snapshot lists its public keys, and nobody compared them with the domain type. The two columns are commercial and internal, so leaving them out of the public snapshot is right.
+- rule: both fields are `.optional()` in `src/domain/property.ts` and the mapper never sets them; step 4's parity test compares every field but these two; `enums.check.ts` compares `NonNullable<...>` with the database enum; the seed writes `?? "Editorial"`, the column default.
+- proof: `cd app && grep -c "campaign_tier" supabase/sql/functions/public_catalog_snapshot.sql` → `0`; `grep -c "optional()" src/domain/property.ts` counts both fields among the optional ones; `bun run typecheck` exits 0 (2026-10-04, B3 g3).
+- added: 2026-10-04
+
+## P-807 · A hoisted `vi.mock` factory runs once and survives `vi.resetModules()`: rows pushed into its array pile up and its `AppError` is another class than the one a fresh import sees
+- symptom: B3 g3's `public-pipeline.test.ts` replaced `routes.ts` through a hoisted `vi.mock(path, factory)` that kept the table in `vi.hoisted` and called `vi.resetModules()` before each import of `pipeline.ts`: from the second test on every write answered 500, and the 404 test logged `AppError: There is nothing at this address.` as an unhandled error. The same case passed alone.
+- cause: vitest keeps the result of a `vi.mock` factory across `resetModules`: the extra rows of all earlier tests stayed in one array (the first test's `/api/public/echo` row won), and the factory's `importOriginal` had loaded `routes.ts` and `errors.ts` in the first graph, so `error instanceof AppError` was false in the fresh `pipeline.ts`.
+- rule: for a fresh module graph per case with one module replaced, call `vi.resetModules()`, then `vi.doMock(path, factory)` with an array made inside the same helper, then import the module under test. `vi.mock(path, { spy: true })` without a factory is fine with `resetModules`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/public-pipeline.test.ts tests/unit/log.test.ts` → both pass; `grep -c "vi.doMock" tests/unit/public-pipeline.test.ts` → `1` (2026-10-04, B3 g3).
+- added: 2026-10-04
+
+## P-808 · A script that imports server files is type-checked under `tsconfig.scripts.json`, which has no DOM library: `RequestInfo` in `db.ts` failed `bun run check`
+- symptom: once `scripts/deno-portable.ts` existed, `bun run check` failed in `tsc -p tsconfig.scripts.json` with `src/server/lib/db.ts(26,11): error TS2552: Cannot find name 'RequestInfo'`, while `tsconfig.json` was clean.
+- cause: `scripts/**/*.ts` is checked with `lib: ["ES2022"]`; the script's import chain (`state.ts` then `db.ts`) brings server files into that project, and `RequestInfo` is a DOM name.
+- rule: write `Parameters<typeof fetch>[0]` for a fetch input in any file a script can reach; every line added to `deno-portable.ts` (steps 7 and 8) is followed by `bun run typecheck`, not only by `deno check`.
+- proof: `cd app && bun run typecheck` exits 0; with `input: RequestInfo | URL` back in `src/server/lib/db.ts` it prints TS2552 (2026-10-04, B3 g3).
+- added: 2026-10-04
+
+## P-809 · The plan's `tests/api/env.ts` line promises exports the dev loader does not make, and an agent shell's own `SUPABASE_URL` would win
+- symptom: the plan says `tests/api/env.ts` sets `RATE_LIMIT_SALT` from `PREVIEW_RATE_LIMIT_SALT` and throws when neither exists, and that `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` "come from the dev loader shell"; the dev profile of `scripts/load-env.mjs` exported only the four `DEV_*` names, so every API test would have thrown on the salt, and the two Supabase names were never set (P-331).
+- cause: the plan was written before B2's loader fixed its allow-list.
+- rule: the dev profile exports `PREVIEW_RATE_LIMIT_SALT` too; `tests/api/env.ts` builds `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `DEV_SUPABASE_PROJECT_REF` and `DEV_SUPABASE_SERVICE_ROLE_KEY` when they exist, over any value a shell already holds, so the project written to is the guarded one. `SENTRY_DSN` is not exported: no API test sends to Sentry.
+- proof: `cd app && env -u CLOUDFLARE_API_TOKEN bash -c 'eval "$(node scripts/load-env.mjs --profile dev)"; bunx vitest run --project db tests/api/catalog.api.test.ts'` → `Tests 5 passed`; with the name removed from `load-env.mjs` it throws `PREVIEW_RATE_LIMIT_SALT is not set` (2026-10-04, B3 g3).
+- added: 2026-10-04

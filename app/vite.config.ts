@@ -17,6 +17,11 @@ import tsConfigPaths from "vite-tsconfig-paths";
 // Dropped on purpose: TanStack devtools injection, the vendor's editor telemetry plugins, its
 // sandbox assets proxy and the 1 s file-watch debounce; none of them serve a plain project.
 export default defineConfig(({ command, mode }) => {
+  // The dev server is a local Worker without secrets: `src/server/lib/env.ts` needs only this much of it.
+  if (command === "serve") {
+    process.env["MOP_ENV"] ??= "local";
+    process.env["RATE_LIMIT_SALT"] ??= "local-dev-salt";
+  }
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const define = Object.fromEntries(
     Object.entries(env).map(([key, value]) => [`import.meta.env.${key}`, JSON.stringify(value)]),

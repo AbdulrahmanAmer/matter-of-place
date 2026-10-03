@@ -97,6 +97,29 @@ describe("GET /media/<key>", () => {
     expect(fetched).toHaveLength(2);
   });
 
+  it("reads Storage's 400 with a 404 in its body as a missing file, and any other 400 as an outage", async () => {
+    const { media } = await load();
+    fakeCache();
+    const missing = JSON.stringify({
+      statusCode: "404",
+      error: "not_found",
+      message: "Object not found",
+    });
+    fakeStorage(
+      () => new Response(missing, { status: 400, headers: { "content-type": "application/json" } }),
+    );
+    const gone = await media.serveMedia(get("/media/o/p1/0-aaaaaaaa.webp"), "req-12345678");
+    expect(gone.status).toBe(404);
+    expect(gone.headers.get("cache-control")).toBe("no-store");
+    fakeStorage(() => new Response(JSON.stringify({ statusCode: "400" }), { status: 400 }));
+    const refused = await media.serveMedia(get("/media/o/p1/0-aaaaaaaa.webp"), "req-12345679");
+    expect(refused.status).toBe(503);
+    fakeStorage(() => new Response("not json", { status: 400 }));
+    expect(
+      (await media.serveMedia(get("/media/o/p1/0-aaaaaaaa.webp"), "req-1234567a")).status,
+    ).toBe(503);
+  });
+
   it("answers 503 storage_unavailable when Storage fails or does not answer", async () => {
     const { media } = await load();
     fakeCache();
@@ -163,10 +186,11 @@ describe("GET /media/<key>", () => {
     );
     expect(db.dbCallCount()).toBe(before);
     expect(response.headers.get("x-request-id")).toBe("req-12345678");
-    const line = z
-      .object({ event: z.string(), route: z.string(), status: z.number(), requestId: z.string() })
-      .parse(JSON.parse(written[0] ?? "{}"));
+    const line = z.record(z.string(), z.unknown()).parse(JSON.parse(written[0] ?? "{}"));
     expect(written).toHaveLength(1);
+    expect(Object.keys(line).sort()).toEqual(
+      ["event", "ipHash", "level", "ms", "requestId", "route", "status"].sort(),
+    );
     expect(line).toMatchObject({ event: "request", route: "/media", status: 200 });
   });
 });

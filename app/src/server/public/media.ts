@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { AppError, toErrorResponse } from "../lib/errors";
 import { readPublicObject, storageUnavailable } from "../lib/media-store";
 import { mediaCached } from "./cache";
@@ -22,11 +23,21 @@ function keyOf(pathname: string): string | undefined {
 
 const notFound = new AppError("not_found", undefined, "There is nothing at this address.");
 
+// Supabase Storage answers a missing object, and a missing bucket, with HTTP 400 and the status in the body.
+const storageStatusSchema = z.object({ statusCode: z.coerce.string() });
+
+async function isMissing(upstream: Response): Promise<boolean> {
+  if (upstream.status === 404) return true;
+  if (upstream.status !== 400) return false;
+  const body = storageStatusSchema.safeParse(await upstream.json().catch(() => null));
+  return body.success && body.data.statusCode === "404";
+}
+
 /** Storage's file as is, or the error that names what went wrong; neither is stored unless it is the file. */
 async function fromStorage(key: string, requestId: string): Promise<Response> {
   const upstream = await readPublicObject(key);
   if (upstream.status === 200) return upstream;
-  return toErrorResponse(upstream.status === 404 ? notFound : storageUnavailable(), requestId);
+  return toErrorResponse((await isMissing(upstream)) ? notFound : storageUnavailable(), requestId);
 }
 
 async function answer(request: Request, requestId: string): Promise<Response> {

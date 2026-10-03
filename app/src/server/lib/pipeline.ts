@@ -1,5 +1,6 @@
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
+import { AppError } from "./errors";
 import { securityHeaders, type Flags } from "./headers";
 import { logLine } from "./log";
 
@@ -105,6 +106,7 @@ const ERROR_MESSAGES = {
   method_not_allowed: "This address does not accept that method.",
   not_acceptable: "This address answers with a web page only.",
   server: "Something went wrong. Please try again in a moment.",
+  unavailable: "The service is busy. Please try again in a moment.",
 } as const;
 
 /** The R09 error body, never stored. B3's `toErrorResponse` in `errors.ts` takes this over. */
@@ -119,16 +121,28 @@ export function errorJson(
   );
 }
 
-function calmServerError(request: Request, underApi: boolean, requestId: string): Response {
+// Seconds a client waits after a dependency outage (R09).
+const OUTAGE_RETRY_AFTER = "30";
+
+/** The calm failure page or R09 body: 503 `unavailable` for an outage (invariant 16), 500 `server` for anything else. */
+function calmServerError(
+  request: Request,
+  underApi: boolean,
+  requestId: string,
+  outage: boolean,
+): Response {
   const readsPage = request.method === "GET" || request.method === "HEAD";
   const wantsHtml =
     readsPage && !underApi && (request.headers.get("accept") ?? "").includes("text/html");
-  return wantsHtml
+  const status = outage ? 503 : 500;
+  const response = wantsHtml
     ? new Response(serverErrorHtml(requestId), {
-        status: 500,
+        status,
         headers: { "content-type": "text/html; charset=utf-8" },
       })
-    : errorJson(500, "server", requestId);
+    : errorJson(status, outage ? "unavailable" : "server", requestId);
+  if (outage) response.headers.set("retry-after", OUTAGE_RETRY_AFTER);
+  return response;
 }
 
 /**
@@ -189,9 +203,14 @@ export async function handle(
     redirected = redirect !== null;
     response = redirect ?? (page ? await deps.cache(request, render) : await render());
   } catch (error) {
-    logLine("error", "unhandled_error", { requestId, route: pathname });
-    ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
-    response = calmServerError(request, underApi, requestId);
+    // A page that cannot read the database and holds no last good copy is an outage, already logged and
+    // reported once a minute by the read path: it answers 503, not an unhandled error.
+    const outage = error instanceof AppError && error.code === "unavailable";
+    if (!outage) {
+      logLine("error", "unhandled_error", { requestId, route: pathname });
+      ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
+    }
+    response = calmServerError(request, underApi, requestId, outage);
   }
   const refused = await refusedByRouter(request, response);
   if (refused && underApi) {

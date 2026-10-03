@@ -231,6 +231,17 @@ describe("getCatalog", () => {
     expect(rpcCalls(db, "public_catalog_snapshot")).toBe(2);
   });
 
+  it("reads the snapshot again when the version goes down, as after a restored database", async () => {
+    const { state } = await load();
+    const { db, answers } = served(9);
+    await state.getCatalog(db);
+    vi.setSystemTime(new Date(T0.getTime() + 15_000));
+    answers.state = stateJson(4);
+    answers.snapshot = snapshotJson(4);
+    expect((await state.getCatalog(db)).version).toBe(4);
+    expect(rpcCalls(db, "public_catalog_snapshot")).toBe(2);
+  });
+
   it("runs applyVisibility once per version with the state and MOP_ENV", async () => {
     const { state, visibility } = await load();
     const { db } = served(5);
