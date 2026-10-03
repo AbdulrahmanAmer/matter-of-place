@@ -23,10 +23,17 @@ const COLUMNS = `
   where table_schema = 'public'`;
 
 describe("manifest", () => {
+  // A monthly partition of analytics_events is a table too; its parent holds the manifest entry.
   it("every public table has a manifest entry", async () => {
-    const tables = await rows<{ table_name: string }>(
-      "select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
-    );
+    const tables = await rows<{ table_name: string }>(`
+      select t.table_name
+      from information_schema.tables t
+      where t.table_schema = 'public'
+        and t.table_type = 'BASE TABLE'
+        and not exists (
+          select 1 from pg_class c
+          where c.relnamespace = 'public'::regnamespace and c.relname = t.table_name and c.relispartition
+        )`);
     const missing = tables.map((t) => t.table_name).filter((name) => !(name in schemaManifest));
     expect(missing).toEqual([]);
   });
@@ -115,5 +122,31 @@ describe("pii_columns", () => {
       where table_name = 'representatives' and column_name in ('email', 'phone')
       order by 1`);
     expect(listed.map((r) => r.name)).toEqual(["representatives.email", "representatives.phone"]);
+  });
+
+  // Invariant 18: the fifteen columns migration 5 creates that hold personal data.
+  it("the intake tables list their fifteen personal-data columns", async () => {
+    const listed = await rows<{ name: string }>(`
+      select table_name || '.' || column_name as name
+      from public.pii_columns
+      where table_name in ('submissions', 'contacts', 'inquiries', 'subscribers')
+      order by 1`);
+    expect(listed.map((r) => r.name)).toEqual([
+      "contacts.email",
+      "contacts.name",
+      "contacts.notes",
+      "contacts.phone",
+      "inquiries.email",
+      "inquiries.location",
+      "inquiries.message",
+      "inquiries.name",
+      "inquiries.phone",
+      "submissions.address",
+      "submissions.listing_agent_name",
+      "submissions.submitter_email",
+      "submissions.submitter_name",
+      "submissions.submitter_phone",
+      "subscribers.email",
+    ]);
   });
 });

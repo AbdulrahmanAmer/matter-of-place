@@ -1302,6 +1302,27 @@ Entry template
 - proof: from `app/` on slice/b2, after the old loader, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape 2>&1 | grep "^Error"` prints the refusal above (exit 1); after `eval "$(node scripts/load-env.mjs --profile dev)"` the refusal is gone, and with `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)"` (P-312) it prints `Tests  4 passed | 22 skipped (26)`, exit 0 (measured 2026-10-03). Without the prelude the dev-profile run fails one case, `every money column is numeric(12,2)`, because migration 4 is not on mop-dev.
 - added: 2026-10-03
 
+## P-314 · A `MOP_MUTATION_SQL` prelude of several migrations crashes `bunx vitest`, and stripping every comment makes `function-source.db.test.ts` fail
+- symptom: B2 g5 applied migrations 4, 5 and 6 as one prelude (P-312). With 35,678 characters in `MOP_MUTATION_SQL`, `bunx vitest run --project db ...` printed nothing and exited 0; with the comment lines stripped (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`. After the runner was fixed, `function-source.db.test.ts` still reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`.
+- cause: bun on Windows does not survive a very large environment variable (the Windows limit is 32,767 characters per variable), and the first fix, `grep -v '^\s*--'` over the concatenated files, also deleted the comment lines inside the `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
+- rule: when the prelude is more than about 15 KB, run the db tests as `node node_modules/vitest/vitest.mjs run --project db ...` (the replay script rewrites `bunx vitest` the same way) and build the prelude with a script that drops comment and blank lines only outside `$$` bodies. A prelude over 32 KB cannot be passed as one variable at all: drop the migrations whose objects the tests do not touch, or wait for the CI `db` job.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && export MOP_MUTATION_SQL="$(cat ../scratch/g5-prelude.sql)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts` → `Tests  34 passed (34)`; the same line with `bunx vitest` → `panic: Segmentation fault` (measured 2026-10-03, B2 g5; `scratch/g5-prelude.mjs` builds the prelude).
+- added: 2026-10-03
+
+## P-315 · A plan's proof grep for the old `agent_*` names matches the `listing_agent_name` column the same step creates, and `git grep` cannot see the new migration
+- symptom: B2 step 5's proof `grep -rn "agentName\|...\|agent_name\|agent_email\|agent_phone" src/domain supabase/migrations` printed three lines of `20261001090400_intake.sql`, all `listing_agent_name`, although no `agent_name` column exists; `git grep` of the same pattern printed nothing because the new migration was still untracked.
+- cause: `agent_name` is a substring of `listing_agent_name`, a column invariant 22 itself requires; and `git grep` searches tracked files only.
+- rule: prove the rename with the name anchored, `grep -rnE "agentName|agentEmail|agentPhone|(^|[^_a-z])agent_(name|email|phone)" src/domain supabase/migrations`, which prints nothing; run it with `grep -r` on those two small folders (P-049 forbids it only from the repository root) or after `git add`. The header comment of a migration must not spell the old names either.
+- proof: `cd app && grep -rnE "agentName|agentEmail|agentPhone|(^|[^_a-z])agent_(name|email|phone)" src/domain supabase/migrations; echo $?` → no line, then `1` (measured 2026-10-03, B2 g5).
+- added: 2026-10-03
+
+## P-316 · mop-dev holds a stray committed function `__wf_probe`, which turns two db tests red whatever a lane does
+- symptom: B2 g5's full db run on `mop-dev` failed `function-source.db.test.ts` (`withoutFile: [__wf_probe]`) and the T-07 case of `harness.db.test.ts` (`error: function "__wf_probe" already exists with same argument types`), neither related to migrations 5 and 6. B2 g4 ran the same two files green a day earlier.
+- cause: some workflow probe created `public.__wf_probe()` (`select 1`) on `mop-dev` and committed it. A lane may not drop it: `mop-dev` is shared and DB-01 allows only `main` to change it.
+- rule: before reading a `function-source` or `withMutation` red as the lane's own, run `bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"`; a row is the stray probe, to be dropped by the orchestrator. The lane reports the two cases as red for that reason and does not drop it.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"` → `__wf_probe` (measured 2026-10-03, B2 g5).
+- added: 2026-10-03
+
 ## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
 - paths: app/supabase/migrations/**
 - severity: warn

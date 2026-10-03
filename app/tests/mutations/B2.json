@@ -833,9 +833,9 @@
     "id": "ccc",
     "kind": "sql",
     "test": "tests/db/schema.db.test.ts",
-    "sql": "delete from public.pii_columns where table_name = 'representatives' and column_name = 'email'",
+    "sql": "delete from public.pii_columns where table_name = 'inquiries' and column_name = 'email'",
     "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t pii_columns",
-    "expect": "\"representatives\\.email\""
+    "expect": "\"inquiries\\.email\""
   },
   {
     "id": "kk",
@@ -942,5 +942,370 @@
     "sql": "alter table public.properties drop constraint properties_region_market_fkey",
     "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t market",
     "expect": "× .*a Florida property in a California region"
+  },
+  {
+    "id": "m",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "create or replace function public.enforce_submission_media_limit()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GQ-07: the row lock makes concurrent inserts for one submission run one after another, so the count is exact.\n  perform 1 from public.submissions where id = new.submission_id for update;\n  if (select count(*) from public.submission_media where submission_id = new.submission_id) >= 41 then\n    raise exception 'upload_limit';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*refuses the 41st file of a request with upload_limit"
+  },
+  {
+    "id": "g5-limit-trigger",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "drop trigger enforce_submission_media_limit on public.submission_media",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*refuses the 41st file of a request with upload_limit"
+  },
+  {
+    "id": "g5-limit-scope",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "create or replace function public.enforce_submission_media_limit()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GQ-07: the row lock makes concurrent inserts for one submission run one after another, so the count is exact.\n  perform 1 from public.submissions where id = new.submission_id for update;\n  if (select count(*) from public.submission_media where true) >= 40 then\n    raise exception 'upload_limit';\n  end if;\n  return new;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*counts each request on its own"
+  },
+  {
+    "id": "n",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submissions alter column rights_version drop not null",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*a request carries its rights version, time and hash"
+  },
+  {
+    "id": "g5-rights-blank",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_rights_version_check",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*a request carries its rights version, time and hash"
+  },
+  {
+    "id": "g5-rights-time",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submissions alter column rights_confirmed_at drop not null",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*a request carries its rights version, time and hash"
+  },
+  {
+    "id": "g5-rights-hash",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submissions alter column rights_ip_hash drop not null",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*a request carries its rights version, time and hash"
+  },
+  {
+    "id": "g5-mime-other",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_mime_allowed",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*refuses any other type"
+  },
+  {
+    "id": "g5-mime-heic",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_mime_allowed, add constraint submission_media_mime_allowed check (mime in ('image/jpeg', 'image/png', 'image/webp'))",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*accepts the four image types"
+  },
+  {
+    "id": "g5-bytes-upper",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range, add constraint submission_media_bytes_range check (bytes between 1 and 26214401)",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*holds a file to 25 MB"
+  },
+  {
+    "id": "g5-bytes-lower",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range, add constraint submission_media_bytes_range check (bytes between 0 and 26214400)",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts",
+    "expect": "× .*holds a file to 25 MB"
+  },
+  {
+    "id": "ggg",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_brokerage_for_agent",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*an agent names a brokerage, an owner need not"
+  },
+  {
+    "id": "g5-brokerage-blank",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_brokerage_for_agent, add constraint submissions_brokerage_for_agent check (submitter_kind <> 'agent' or brokerage is not null)",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*an agent names a brokerage, an owner need not"
+  },
+  {
+    "id": "g5-listing-for-owner",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_listing_for_owner",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*only an owner names a listing agent"
+  },
+  {
+    "id": "g5-listed-flag",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_listing_for_owner, add constraint submissions_listing_for_owner check (submitter_kind = 'owner' or (listing_agent_name is null and listing_agent_brokerage is null))",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*an agent cannot say whether the home is listed"
+  },
+  {
+    "id": "hhh",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop index public.contacts_email_key",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*a second contact whose email differs only in case is refused"
+  },
+  {
+    "id": "g5-contact-indexes",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop index public.contacts_name_idx",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*a contact is found by name and a request by contact"
+  },
+  {
+    "id": "g5-currency",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.submissions drop constraint submissions_currency_check",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t submitter",
+    "expect": "× .*a request in any currency but USD is refused"
+  },
+  {
+    "id": "g5-markets-subset",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.subscribers drop constraint subscribers_markets_subset",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t markets",
+    "expect": "× .*a subscriber's markets stay inside the three"
+  },
+  {
+    "id": "g5-pii-row",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "delete from public.pii_columns where table_name = 'contacts' and column_name = 'notes'",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t pii_columns",
+    "expect": "× .*the intake tables list their fifteen personal-data columns"
+  },
+  {
+    "id": "g5-not-pii",
+    "kind": "file",
+    "test": "tests/db/schema.db.test.ts",
+    "file": "tests/db/schema-manifest.ts",
+    "find": "  \"decline_reasons.email_paragraph\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t pii_columns",
+    "expect": "\"decline_reasons\\.email_paragraph\""
+  },
+  {
+    "id": "g5-manifest-partitions",
+    "kind": "file",
+    "test": "tests/db/schema.db.test.ts",
+    "file": "tests/db/schema.db.test.ts",
+    "find": "and c.relname = t.table_name and c.relispartition",
+    "replace": "and c.relname = t.table_name and false",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t manifest",
+    "expect": "× .*every public table has a manifest entry"
+  },
+  {
+    "id": "g5-manifest-submissions",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.submissions drop column year_renovated",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t manifest",
+    "expect": "× .*submissions columns match the manifest"
+  },
+  {
+    "id": "g5-manifest-analytics",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.analytics_events drop column path",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t manifest",
+    "expect": "× .*analytics_events columns match the manifest"
+  },
+  {
+    "id": "g5-an-list",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "do $$ declare m timestamp := date_trunc('month', now() at time zone 'UTC') + interval '2 months'; begin execute format('drop table public.%I', 'analytics_events_y' || to_char(m, 'YYYY') || 'm' || to_char(m, 'MM')); end $$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*lists the current month, the next two and the default partition"
+  },
+  {
+    "id": "g5-an-now",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "do $$ declare m timestamp := date_trunc('month', now() at time zone 'UTC') + interval '0 months'; begin execute format('drop table public.%I', 'analytics_events_y' || to_char(m, 'YYYY') || 'm' || to_char(m, 'MM')); end $$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*a row dated now lands in the current month's partition"
+  },
+  {
+    "id": "g5-an-default",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "alter table public.analytics_events detach partition public.analytics_events_default",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*a row after the last partition waits in the default one"
+  },
+  {
+    "id": "g5-an-move",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.ensure_analytics_partitions(months_ahead int default 2)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamp;\n  v_from timestamptz;\n  v_to timestamptz;\n  v_name text;\nbegin\n  for i in 0..months_ahead loop\n    v_start := date_trunc('month', now() at time zone 'UTC') + make_interval(months => i);\n    v_from := v_start at time zone 'UTC';\n    v_to := (v_start + interval '1 month') at time zone 'UTC';\n    v_name := 'analytics_events_y' || to_char(v_start, 'YYYY') || 'm' || to_char(v_start, 'MM');\n    if to_regclass('public.' || v_name) is null then\n      -- Rows that arrived before their month had a partition wait in the default one, which refuses a new\n      -- partition over them: detach it, create the month, move the rows and attach it again.\n      if exists (\n        select 1 from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to\n      ) then\n        alter table public.analytics_events detach partition public.analytics_events_default;\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n        delete from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to;\n        alter table public.analytics_events attach partition public.analytics_events_default default;\n      else\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n      end if;\n      -- G-100: a partition is a table of its own and takes no default privileges.\n      execute format('alter table public.%I enable row level security', v_name);\n      execute format('revoke all on table public.%I from anon, authenticated', v_name);\n      execute format('grant all on table public.%I to service_role', v_name);\n    end if;\n  end loop;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*a row after the last partition waits in the default one"
+  },
+  {
+    "id": "g5-an-idempotent",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.ensure_analytics_partitions(months_ahead int default 2)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamp;\n  v_from timestamptz;\n  v_to timestamptz;\n  v_name text;\nbegin\n  for i in 0..months_ahead loop\n    v_start := date_trunc('month', now() at time zone 'UTC') + make_interval(months => i);\n    v_from := v_start at time zone 'UTC';\n    v_to := (v_start + interval '1 month') at time zone 'UTC';\n    v_name := 'analytics_events_y' || to_char(v_start, 'YYYY') || 'm' || to_char(v_start, 'MM');\n    if true then\n      -- Rows that arrived before their month had a partition wait in the default one, which refuses a new\n      -- partition over them: detach it, create the month, move the rows and attach it again.\n      if exists (\n        select 1 from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to\n      ) then\n        alter table public.analytics_events detach partition public.analytics_events_default;\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n        insert into public.analytics_events overriding system value\n        select * from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to;\n        delete from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to;\n        alter table public.analytics_events attach partition public.analytics_events_default default;\n      else\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n      end if;\n      -- G-100: a partition is a table of its own and takes no default privileges.\n      execute format('alter table public.%I enable row level security', v_name);\n      execute format('revoke all on table public.%I from anon, authenticated', v_name);\n      execute format('grant all on table public.%I to service_role', v_name);\n    end if;\n  end loop;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*ensure_analytics_partitions twice changes nothing"
+  },
+  {
+    "id": "g5-an-rls",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.ensure_analytics_partitions(months_ahead int default 2)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamp;\n  v_from timestamptz;\n  v_to timestamptz;\n  v_name text;\nbegin\n  for i in 0..months_ahead loop\n    v_start := date_trunc('month', now() at time zone 'UTC') + make_interval(months => i);\n    v_from := v_start at time zone 'UTC';\n    v_to := (v_start + interval '1 month') at time zone 'UTC';\n    v_name := 'analytics_events_y' || to_char(v_start, 'YYYY') || 'm' || to_char(v_start, 'MM');\n    if to_regclass('public.' || v_name) is null then\n      -- Rows that arrived before their month had a partition wait in the default one, which refuses a new\n      -- partition over them: detach it, create the month, move the rows and attach it again.\n      if exists (\n        select 1 from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to\n      ) then\n        alter table public.analytics_events detach partition public.analytics_events_default;\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n        insert into public.analytics_events overriding system value\n        select * from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to;\n        delete from public.analytics_events_default where occurred_at >= v_from and occurred_at < v_to;\n        alter table public.analytics_events attach partition public.analytics_events_default default;\n      else\n        execute format(\n          'create table public.%I partition of public.analytics_events for values from (%L) to (%L)',\n          v_name, v_from, v_to\n        );\n      end if;\n      -- G-100: a partition is a table of its own and takes no default privileges.\n      execute format('revoke all on table public.%I from anon, authenticated', v_name);\n      execute format('grant all on table public.%I to service_role', v_name);\n    end if;\n  end loop;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*ensure_analytics_partitions twice changes nothing"
+  },
+  {
+    "id": "g5-an-drop-more",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.drop_old_analytics_partitions(keep_months int default 3)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_cutoff timestamptz :=\n    (date_trunc('month', now() at time zone 'UTC') - make_interval(months => keep_months)) at time zone 'UTC';\n  v_name text;\n  v_dropped int := 0;\nbegin\n  for v_name in\n    select c.relname\n    from pg_inherits i\n    join pg_class c on c.oid = i.inhrelid\n    where i.inhparent = 'public.analytics_events'::regclass\n      and c.relname ~ '^analytics_events_y[0-9]{4}m[0-9]{2}$'\n      and substring(pg_get_expr(c.relpartbound, c.oid) from 'TO \\(''([^'']+)''\\)')::timestamptz <= v_cutoff + interval '1 month'\n    order by c.relname\n  loop\n    execute format('drop table public.%I', v_name);\n    v_dropped := v_dropped + 1;\n  end loop;\n  return v_dropped;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*drop_old_analytics_partitions drops a partition past the months kept"
+  },
+  {
+    "id": "g5-an-drop-none",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.drop_old_analytics_partitions(keep_months int default 3)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_cutoff timestamptz :=\n    (date_trunc('month', now() at time zone 'UTC') - make_interval(months => keep_months)) at time zone 'UTC';\n  v_name text;\n  v_dropped int := 0;\nbegin\n  for v_name in\n    select c.relname\n    from pg_inherits i\n    join pg_class c on c.oid = i.inhrelid\n    where i.inhparent = 'public.analytics_events'::regclass\n      and c.relname ~ '^analytics_events_y[0-9]{4}m[0-9]{2}$'\n      and substring(pg_get_expr(c.relpartbound, c.oid) from 'TO \\(''([^'']+)''\\)')::timestamptz <= v_cutoff\n    order by c.relname\n  loop\n    null;\n    v_dropped := v_dropped + 1;\n  end loop;\n  return v_dropped;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*drop_old_analytics_partitions drops a partition past the months kept"
+  },
+  {
+    "id": "g5-an-keep-default",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "create or replace function public.drop_old_analytics_partitions(keep_months int default 6)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_cutoff timestamptz :=\n    (date_trunc('month', now() at time zone 'UTC') - make_interval(months => keep_months)) at time zone 'UTC';\n  v_name text;\n  v_dropped int := 0;\nbegin\n  for v_name in\n    select c.relname\n    from pg_inherits i\n    join pg_class c on c.oid = i.inhrelid\n    where i.inhparent = 'public.analytics_events'::regclass\n      and c.relname ~ '^analytics_events_y[0-9]{4}m[0-9]{2}$'\n      and substring(pg_get_expr(c.relpartbound, c.oid) from 'TO \\(''([^'']+)''\\)')::timestamptz <= v_cutoff\n    order by c.relname\n  loop\n    execute format('drop table public.%I', v_name);\n    v_dropped := v_dropped + 1;\n  end loop;\n  return v_dropped;\nend;\n$$",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*keeps three months by default"
+  },
+  {
+    "id": "g5-an-index",
+    "kind": "sql",
+    "test": "tests/db/analytics.db.test.ts",
+    "sql": "drop index public.analytics_events_event_occurred_idx",
+    "run": "bunx vitest run --project db tests/db/analytics.db.test.ts",
+    "expect": "× .*an index on event and time serves the weekly counts"
+  },
+  {
+    "id": "iii",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "value.submitterKind === \"agent\" && !isSet(value.brokerage)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*an agent names a brokerage"
+  },
+  {
+    "id": "g5-owner-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "value.submitterKind === \"owner\" && isSet(value.brokerage)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*an owner needs no brokerage and names none"
+  },
+  {
+    "id": "g5-listing-name",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "!listed && isSet(value.listingAgentName)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*an owner names a listing agent only when the home is listed with one"
+  },
+  {
+    "id": "g5-listing-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "!listed && isSet(value.listingAgentBrokerage)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*an owner names a listing agent only when the home is listed with one"
+  },
+  {
+    "id": "g5-agent-listed",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "value.submitterKind === \"agent\" && value.listedWithAgent !== undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*an agent does not say whether the home is listed"
+  },
+  {
+    "id": "g5-rules-direct",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "refuse(\"listedWithAgent\",",
+    "replace": "refuse(\"brokerage\",",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*submitterRules reads the submitter fields alone"
+  },
+  {
+    "id": "g5-kind-required",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "submitterKind: z.enum(submitterKinds),",
+    "replace": "submitterKind: z.enum(submitterKinds).default(\"owner\"),",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*a payload without submitterKind is refused"
+  },
+  {
+    "id": "g5-submitter-name",
+    "kind": "file",
+    "test": "tests/unit/submitter-contract.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "submitterName: shortText.min(1),",
+    "replace": "submitterName: shortText.min(1).optional(),",
+    "run": "bunx vitest run --project unit tests/unit/submitter-contract.test.ts",
+    "expect": "× .*a payload that still uses agentName is refused on submitterName"
+  },
+  {
+    "id": "kkk",
+    "kind": "manual",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger refuse_hard_delete on public.contacts",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts",
+    "expect": "× .*contacts",
+    "note": "Recorded by B2 step 5; replayable once migration 8 creates refuse_hard_delete and its table-driven delete case lists contacts (step 7)."
   }
 ]

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { slugPattern } from "../../src/domain/contracts";
@@ -269,7 +270,7 @@ describe("price", () => {
 });
 
 // Invariants 6 and 7.
-describe("market", () => {
+describe("markets", () => {
   it("a market outside California, New York and Florida is refused", async () => {
     const code = await withRollback(async (db) =>
       outcome(
@@ -292,5 +293,120 @@ describe("market", () => {
       };
     });
     expect(codes).toEqual({ california: "ok", florida: "23503" });
+  });
+
+  it("a subscriber's markets stay inside the three", async () => {
+    const codes = await withRollback(async (db) => {
+      const subscribe =
+        "insert into public.subscribers (email, source, markets) values ($1, 'test', $2::text[])";
+      const email = () => `test-${randomUUID()}@example.test`;
+      return {
+        outside: await outcome(db, subscribe, [email(), "{california,texas}"]),
+        newYork: await outcome(db, subscribe, [email(), "{new-york}"]),
+        none: await outcome(db, subscribe, [email(), "{}"]),
+      };
+    });
+    expect(codes).toEqual({ outside: "23514", newYork: "ok", none: "ok" });
+  });
+});
+
+// Invariant 22 (S55). A fixture inserts a request directly, so contact_id stays null.
+const SUBMISSION = `insert into public.submissions (
+    address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, brokerage,
+    listed_with_agent, listing_agent_name, story, significance, package, source_path,
+    rights_version, rights_confirmed_at, rights_ip_hash
+  ) values (
+    '1 Test Way', 'Berkeley', 'California', '94702', 'Residence', $1, 'Test Person', 'person@example.test', $2,
+    $3, $4, 'x', 'x', 'The Feature', '/submit', 'test-v1', now(), 'test-hash'
+  )`;
+
+describe("submitter", () => {
+  it("an agent names a brokerage, an owner need not", async () => {
+    const codes = await withRollback(async (db) => ({
+      agentWithout: await outcome(db, SUBMISSION, ["agent", null, null, null]),
+      agentBlank: await outcome(db, SUBMISSION, ["agent", "  ", null, null]),
+      agentWith: await outcome(db, SUBMISSION, ["agent", "Test Realty", null, null]),
+      ownerWithout: await outcome(db, SUBMISSION, ["owner", null, null, null]),
+    }));
+    expect(codes).toEqual({
+      agentWithout: "23514",
+      agentBlank: "23514",
+      agentWith: "ok",
+      ownerWithout: "ok",
+    });
+  });
+
+  it("the brokerage refusal names submissions_brokerage_for_agent", async () => {
+    const failure = await withRollback((db) =>
+      failureOf(db.query(SUBMISSION, ["agent", null, null, null])),
+    );
+    expect(failure.message).toContain("submissions_brokerage_for_agent");
+  });
+
+  it("only an owner names a listing agent", async () => {
+    const [agent, owner] = await withRollback(async (db) => {
+      const allowed = await outcome(db, SUBMISSION, ["owner", null, true, "Other"]);
+      const refused = await failureOf(
+        db.query(SUBMISSION, ["agent", "Test Realty", null, "Other"]),
+      );
+      return [refused.message, allowed];
+    });
+    expect([agent.includes("submissions_listing_for_owner"), owner]).toEqual([true, "ok"]);
+  });
+
+  it("an agent cannot say whether the home is listed", async () => {
+    const code = await withRollback((db) =>
+      outcome(db, SUBMISSION, ["agent", "Test Realty", true, null]),
+    );
+    expect(code).toBe("23514");
+  });
+
+  it("a second contact whose email differs only in case is refused", async () => {
+    const insert =
+      "insert into public.contacts (kind, name, email) values ('agent', 'Test Person', $1)";
+    const { first, second, message } = await withRollback(async (db) => {
+      const email = `test-${randomUUID()}@example.test`;
+      const first = await outcome(db, insert, [email]);
+      const failure = await failureOf(db.query(insert, [email.toUpperCase()]));
+      return { first, second: "refused", message: failure.message };
+    });
+    expect({ first, second, named: message.includes("contacts_email_key") }).toEqual({
+      first: "ok",
+      second: "refused",
+      named: true,
+    });
+  });
+
+  it("a contact is found by name and a request by contact", async () => {
+    const indexes = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ indexname: string }>(
+            `select indexname from pg_indexes
+             where indexname in ('contacts_name_idx', 'submissions_contact_id_idx') order by 1`,
+          )
+        ).rows,
+    );
+    expect(indexes.map((i) => i.indexname)).toEqual([
+      "contacts_name_idx",
+      "submissions_contact_id_idx",
+    ]);
+  });
+
+  it("a request in any currency but USD is refused", async () => {
+    const codes = await withRollback(async (db) => {
+      const insert = `insert into public.submissions (
+          address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, story,
+          significance, package, source_path, currency, rights_version, rights_confirmed_at, rights_ip_hash
+        ) values (
+          '1 Test Way', 'Berkeley', 'California', '94702', 'Residence', 'owner', 'Test Person',
+          'person@example.test', 'x', 'x', 'The Feature', '/submit', $1, 'test-v1', now(), 'test-hash'
+        )`;
+      return {
+        euro: await outcome(db, insert, ["EUR"]),
+        dollar: await outcome(db, insert, ["USD"]),
+      };
+    });
+    expect(codes).toEqual({ euro: "23514", dollar: "ok" });
   });
 });
