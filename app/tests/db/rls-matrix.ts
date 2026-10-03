@@ -62,6 +62,9 @@ export const rlsMatrix: Record<string, Access> = {
   rate_limits: {},
   webhook_receipts: {},
   subject_requests: { select: ["chief_editor", "admin"], update: ["chief_editor", "admin"] },
+  events: staffRead,
+  jobs: staffRead,
+  job_events: staffRead,
 };
 
 /**
