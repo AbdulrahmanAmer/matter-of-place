@@ -1370,3 +1370,12 @@ Entry template
 - rule: a test that goes on after an expected error runs the failing statement under a savepoint (`savepoint x` before, `rollback to savepoint x` after), as `outcome` and `attempt` do; use bare `failureOf` only for a test's last statement.
 - proof: from `app/` with the g6 prelude, `node node_modules/vitest/vitest.mjs run --project db tests/db/integrity.db.test.ts -t hard_delete` → `Tests  8 passed | 43 skipped (51)`; without the two savepoint lines around `failureOf` in that case → `8 failed` with the message above (measured 2026-10-03, B2 g6).
 - added: 2026-10-03
+
+## G-103 · `Object.keys(obj) as K[]` fails the lint: `no-unsafe-type-assertion` refuses the narrowing
+- paths: app/tests/**, app/src/**
+- severity: warn
+- symptom: B2 g6's first `bun run check` failed lint on `Object.keys(submissionTransitions) as WorkflowState[]` in two test files: `Unsafe type assertion: type '(...)[]' is more narrow than the original type  @typescript-eslint/no-unsafe-type-assertion`.
+- cause: `Object.keys` returns `string[]`, and the strict type-aware preset (R01) refuses any cast to a narrower type.
+- rule: narrow the keys with a type guard instead of a cast: `Object.keys(obj).filter((key): key is K => key in obj)`.
+- proof: `cd app && bun run lint` exits 0 on slice/b2 at B2 g6; with the cast put back in `tests/unit/workflow.test.ts` it prints the error above (measured 2026-10-03).
+- added: 2026-10-03
