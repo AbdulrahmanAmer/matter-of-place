@@ -148,3 +148,28 @@ None of these blocks the group. Two reviewer follow-ups concern `GOTCHAS.md` and
 
 5. File `app/supabase/migrations/20261001090800_catalog_version.sql`. The slug_history trigger is `for each row`, which the log explains (P-321). A statement that touches several slug_history rows, for example the cascade when a property is deleted under retention, bumps once per row. The plan's Data changes item 9 says 'one bump per statement'. The only effect is extra cache invalidations, but that plan line is now stale.
    Evidence: Reading only: 'create trigger slug_history_bump_catalog_version after insert or update or delete on public.slug_history for each row'.
+
+## g9 · steps 9
+
+None of these blocks the group. The two reviewer items that belong in the gotcha bank are "Hit again" sentences in P-312 and P-325 in `GOTCHAS.md`, not here.
+
+1. File `workspace/05-plans/STANDARDS.md`. R20 names tests/db/rls.db.test.ts as the enforcer of 'every function sets search_path = ''', but no test asserts it. Step 9's proof list does not ask for it, so this is a coverage gap for H1 step 3 or the orchestrator, not a g9 break.
+   Evidence: Grep of app/tests for search_path or proconfig finds only registry sql text, no assertion. Today all 22 files in app/supabase/sql/functions contain search_path = '' (a loop over the files printed no offender).
+
+2. File `app/tests/db/rls.db.test.ts`. The anon and authenticated privilege assertions cover relkind 'r' and 'p' only. Views, materialized views and sequences are not checked, while R20 says 'anon holds no privilege'. A later `grant select on <view> to anon` (B3b adds market_interest_counts) would pass.
+   Evidence: Read lines 214-244: `where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')`. There is no has_sequence_privilege check. The plan's step 9 text says 'every table', so this is not a contract break.
+
+3. File `app/supabase/migrations/README.md`. The README says 'Row-level-security policies ship in the same migration as the table they protect'. Migration 10 ships every policy for the tables of migrations 1 to 8, as B2's plan designs. The doc needs a carve-out for B2's migration 10.
+   Evidence: README.md line 3. 20261001090900_rls.sql lines 74-172 create policies on tables created in 20261001090100..090700.
+
+4. File `workspace/05-plans/B2.md`. Data changes 10 prescribes `alter default privileges for role postgres in schema public revoke all on tables, sequences, functions from anon, authenticated`, which is not valid SQL (one object type per statement). The author split it correctly and noted it in the log, but the plan line is stale and not banked as a plan-vs-reality mismatch.
+   Evidence: Brief line for Data changes 10, compared with 20261001090900_rls.sql lines 18-20 and 26-28. Log B2.md g9: 'The plan's comma lists ... are not valid SQL'.
+
+5. File `app/tests/db/uploads.db.test.ts`. The `// STUB(B2 step 10)` copy of uploadLimits sits under tests/, which the stubs gate does not scan. Only the slice log and P-074 remind step 10 to swap in the import from src/domain/contracts.ts. If step 10 forgets, invariant 13's four-place comparison silently compares against a local copy.
+   Evidence: `git grep 'STUB(B2 step 10'` finds uploads.db.test.ts:8 and log/GOTCHAS text only. src/domain/contracts.ts has no uploadLimits yet. B2.md line 132 assigns it to step 10.
+
+6. File `app/supabase/migrations/20261001090900_rls.sql`. g8 follow-up 1 (P-324) is still undecided. 20261001090900 and 20261001091000 sort before the unmerged 20261003082557 fn migration. migration-order passes only because the whole slice lands as one PR against a main whose tip is 20261001090700. The decision still owed before migration 12 and B3's fixed names is the orchestrator's.
+   Evidence: `node scripts/check-migrations.mjs` -> 'migration-order: OK (8 on main, 4 added)'. workspace/05-plans/logs/B2-followups.md g8 item 1.
+
+7. File `app/tests/db/rls.db.test.ts`. UNPROVEN, as the author says: the policies under PostgREST with a real JWT, and migrations 10 and 11 on B4's fresh CI stack. My simulation reduces the risk but does not replace CI: Supabase-like default privileges re-added before the prelude gave 14/14 green, and new objects failed closed. Next check: once merged and pushed from main, call PostgREST on mop-dev with the anon key (GET /rest/v1/markets, POST /rest/v1/rpc/save_property) and with a non-staff user JWT, and confirm 401/42501 or empty arrays.
+   Evidence: x-fresh-stack replay: 'exit=0 | Tests 14 passed (14)'. control-pre-applies: '2 failed' (x_pre detected). The probe uses set local role plus request.jwt.claims (rls.db.test.ts lines 110-113), not HTTP.
