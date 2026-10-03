@@ -1325,3 +1325,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
 - added: 2026-10-03
+
+## P-505 · The merge of PR 43 never deployed the dev Worker: the `closed` run of `deploy.yml` reports every job skipped on the head, and the post-merge gate judged that latest run (the spine lane banked the same finding as P-155; this is the orchestrator entry with the fix)
+- symptom: `ci.yml` on main at e6f05e9 ended `merge-gate: failure` with `unverified merge e6f05e9...: preview skipped`; the `workflow_run` job of `deploy.yml` therefore never deployed dev, and `wrangler deployments list --name matter-of-place-dev` answered `This Worker does not exist on your account. [code: 10007]` (found by the B1b step 7b builder).
+- cause: closing a pull request runs `deploy.yml` once more (`types: [..., closed]`); the jobs of that run all report `skipped` on the same head SHA with higher check-run ids than the run that did the work, and `scripts/merge-gate.mjs` took the highest id of a name as the verdict.
+- rule: a skipped run counts only when every run of that name on the head was skipped (`latestRun` prefers the latest concluded run). Before a rollback rehearsal, read `deployments list` for the dev Worker; on code 10007 dispatch `rehearse_rollback=false` once so there is a version to return to.
+- proof: `cd app && bunx vitest run --project unit tests/unit/merge-gate.test.ts -t "closed event"` passes; with the old chooser (the highest id of the name) the case is red (watched 2026-10-03).
+- enforced-by: app/tests/unit/merge-gate.test.ts (the closed-event case)
+- added: 2026-10-03
+
+## P-155 · The merge of PR 43 never deployed `matter-of-place-dev`: the `closed` run of `deploy.yml` leaves a skipped `preview` as the latest run, so the post-merge gate turns `main` red
+- symptom: step 7b says "with step 7 merged, run the rehearsal"; `bunx wrangler deployments list --name matter-of-place-dev` answered `This Worker does not exist on your account. [code: 10007]`. A rehearsal then would only print `first deploy: nothing to roll back to`. The `ci` run of the merge commit `e6f05e98` (run 37118924301) ended red at `merge-gate` with `unverified merge e6f05e98399c9341e9aec3e181002d0418ac6634: preview skipped`, so the `workflow_run` deploy (37119002435) skipped `dev`.
+- cause: closing a pull request runs `deploy.yml` once more (`types: [..., closed]`) and every job of that run reports on the head SHA, `preview` as skipped. That run's `preview` row has the highest id of the head, and `scripts/merge-gate.mjs` judges the latest run of a name (P-107), so every merged pull request fails the gate. Not this group's file: an open defect for the owner of `scripts/merge-gate.mjs`.
+- rule: before a rollback rehearsal, read `deployments list` for the dev Worker; on code 10007 dispatch `rehearse_rollback=false` once so there is a version to return to. A gate that judges the latest check run of a name ignores runs started by the `closed` event (or judges only runs that concluded `success` or `failure`).
+- proof: `gh api "repos/AbdulrahmanAmer/matter-of-place/commits/b4888a0362db9fb0a33f571f5d502c5dd4330489/check-runs?per_page=100" --jq '.check_runs[] | select(.name=="preview") | [.id,.conclusion] | @tsv'` → `111190448027 skipped`, `111190510682 success`, `111191059304 skipped` (the last from the `closed` run at 11:12:37Z); `gh run view 37118924301 --log-failed | grep unverified` → `unverified merge e6f05e98...: preview skipped`.
+- added: 2026-10-03
+
+## P-156 · `bun run check` runs prettier over the app's markdown too, so a hand-written runbook table fails `format:check`
+- symptom: B1b g8's first `bun run check` after adding a table to `app/docs/runbooks/delivery.md` ended `[warn] docs/runbooks/delivery.md` and `error: script "format:check" exited with code 1`, a second full run of the check.
+- cause: `format:check` is `prettier --check .` from the app folder, which includes `docs/**/*.md`; prettier pads every markdown table column to one width, which a hand-typed table never has.
+- rule: after editing markdown under `app/`, run `bunx prettier --config .prettierrc --write <file>` on it before `bun run check`.
+- proof: `cd app && bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → `All matched files use Prettier code style!`.
+- added: 2026-10-03
+
+## P-157 · A proof that shows only the passing state does not show the rule: P-156 had no control that a hand-padded markdown table goes red
+- symptom: the reviewer of B1b g8 ran P-156's proof, `prettier --check docs/runbooks/delivery.md`, and got `All matched files use Prettier code style!`, exit 0. That output is the same whether or not prettier would refuse a misaligned table, so the entry's failure mode was told, never shown.
+- cause: P-156 was written from the one red run of `format:check` and proved with the file after the fix; it had no case that fails.
+- rule: a proof for a "this goes red" lesson carries a control: write the bad input to a temporary file, see the check exit 1, delete the file. Keep the passing run beside it.
+- proof: `cd app && printf '# t\n\n| a | b |\n|---|---|\n| longer cell | x |\n' > docs/zz-control.md; bunx prettier --config .prettierrc --check docs/zz-control.md; echo "exit $?"; rm docs/zz-control.md` → `Code style issues found in the above file` and `exit 1` (run by the recorder on 2026-10-03); `bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → exit 0.
+- added: 2026-10-03
