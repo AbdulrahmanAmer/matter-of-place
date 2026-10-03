@@ -1,0 +1,78 @@
+{
+  "property": {
+    "id": "mop-001",
+    "slug": "oak-hill-residence",
+    "name": "Oak Hill Residence",
+    "title": "A residence shaped around the landscape.",
+    "deck": "Long, low stone volumes open onto terraces that follow the contours of the site.",
+    "city": "Los Altos Hills",
+    "state": "California",
+    "market": "california",
+    "price": 8950000,
+    "currency": "USD",
+    "beds": 5,
+    "baths": 4.5,
+    "interiorSqFt": 4320,
+    "yearBuilt": 2021,
+    "type": "Estate",
+    "tier": "Campaign",
+    "features": [
+      "Detached studio among the oaks",
+      "Terraces following the site contours",
+      "Full-height glazing to the main living room"
+    ],
+    "place": "Los Altos Hills offers a quieter setting within reach of the Peninsula and Silicon Valley. Its winding lanes and open spaces give each property a distinct relationship with the surrounding terrain."
+  },
+  "images": [
+    {
+      "path": "src/assets/los-altos.jpg",
+      "alt": "Stone and glass residence with a terrace and an oak above the hills at sunset",
+      "orientation": "landscape",
+      "w": 1600,
+      "h": 1104
+    },
+    {
+      "path": "src/assets/gallery/ca-living.jpg",
+      "alt": "Living room opening to oaks and hills",
+      "orientation": "landscape",
+      "w": 1600,
+      "h": 1104
+    },
+    {
+      "path": "src/assets/gallery/ca-terrace.jpg",
+      "alt": "Terrace beneath the oaks at dusk",
+      "orientation": "landscape",
+      "w": 1600,
+      "h": 1104
+    },
+    {
+      "path": "src/assets/gallery/ca-stair.jpg",
+      "alt": "Concrete stair in soft light",
+      "orientation": "portrait",
+      "w": 1024,
+      "h": 1312
+    },
+    {
+      "path": "src/assets/gallery/ca-kitchen.jpg",
+      "alt": "Limestone kitchen island",
+      "orientation": "portrait",
+      "w": 1024,
+      "h": 1312
+    }
+  ],
+  "captions": {
+    "instagram": "Oak Hill Residence, Los Altos Hills, California. Long, low stone volumes open onto terraces that follow the contours of the site. Five bedrooms, four and a half baths and 4,320 square feet. Listed at $8,950,000.",
+    "x": "Oak Hill Residence, Los Altos Hills, California. Five bedrooms, 4,320 square feet, terraces among the oaks. $8,950,000.",
+    "linkedin": "Oak Hill Residence sits between mature oaks and a quiet ridge in Los Altos Hills. The main living spaces open through full-height glazing to terraces that follow the contours of the site, and a detached studio sits below the house. Five bedrooms, four and a half baths, 4,320 square feet. $8,950,000.",
+    "alt_text": "Stone and glass residence with a terrace and an oak above the hills at sunset.",
+    "slide_alts": [
+      "Stone and glass residence with a terrace and an oak above the hills at sunset.",
+      "Living room opening to oaks and hills.",
+      "Terrace beneath the oaks at dusk.",
+      "Concrete stair in soft light.",
+      "Limestone kitchen island.",
+      "Plan facts: five bedrooms, four and a half baths, 4,320 square feet.",
+      "Matter of Place wordmark on a dark field."
+    ]
+  }
+}

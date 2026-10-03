@@ -1,0 +1,191 @@
+[
+  {
+    "id": "b9g4-plan-over-8",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "count > 4 && maxSlides > MIN_SLIDES + (withPlace ? 1 : 0) ? 4 : 3",
+    "replace": "count > 4 && maxSlides > MIN_SLIDES + (withPlace ? 1 : 0) ? 5 : 3",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "× plans 6 to 8 slides for 12 images"
+  },
+  {
+    "id": "b9g4-plan-six",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "maxSlides > MIN_SLIDES + (withPlace ? 1 : 0)",
+    "replace": "maxSlides > MIN_SLIDES - 1",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "to have a length of 6 but got 7"
+  },
+  {
+    "id": "b9g4-plan-under-6",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "const photos = count > 4",
+    "replace": "const photos = count > 4 && maxSlides < 3 ? 2 : count > 4",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "to have a length of 6 but got 5"
+  },
+  {
+    "id": "b9g4-plan-close",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "slides.push({ kind: \"close\", image: 0 });",
+    "replace": "slides.push({ kind: \"close\", image: 1 });",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "expected .{1,4}0, 1 .{1,2}to deeply equal"
+  },
+  {
+    "id": "b9g4-plan-place-empty",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "const withPlace = place !== \"\" && ",
+    "replace": "const withPlace = ",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "to not include 'place'"
+  },
+  {
+    "id": "b9g4-plan-sentence",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "return match ? match[0] : text.trim();",
+    "replace": "return text.trim();",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "× puts the first sentence of the place paragraph on the place slide"
+  },
+  {
+    "id": "b9g4-plan-image-range",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "image: at % count });",
+    "replace": "image: at });",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "× points every slide at a photograph the gallery holds"
+  },
+  {
+    "id": "b9g4-plan-random",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "text: firstSentence(place) }",
+    "replace": "text: firstSentence(place) + String(Math.random()) }",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "× plans the same slides for the same spec"
+  },
+  {
+    "id": "b9g4-li-photos",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "const LINKEDIN_PHOTOS = 3;",
+    "replace": "const LINKEDIN_PHOTOS = 4;",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "× picks the cover and three photographs from a full gallery"
+  },
+  {
+    "id": "b9g4-li-gallery",
+    "test": "tests/unit/assets/carousel-plan.test.ts",
+    "file": "src/templates/social/slides.ts",
+    "find": "Math.min(LINKEDIN_PHOTOS, spec.images.length - 1)",
+    "replace": "LINKEDIN_PHOTOS",
+    "run": "bunx vitest run --project unit tests/unit/assets/carousel-plan.test.ts",
+    "expect": "to have a length of 3 but got 4"
+  },
+  {
+    "id": "b9g4-cover-price",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Cover.tsx",
+    "find": "      price={priceLine(property)}\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "Snapshot .Cover > draws the hero.*mismatched"
+  },
+  {
+    "id": "b9g4-cover-random",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Cover.tsx",
+    "find": "location={locationLine(property)}",
+    "replace": "location={locationLine(property) + String(Math.random())}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× gives the same HTML for the same spec"
+  },
+  {
+    "id": "b9g4-cover-crop",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Cover.tsx",
+    "find": "format={crop === \"x\" ? \"cover-x\" : \"cover\"}",
+    "replace": "format=\"cover\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× uses the taller frame for the X crop"
+  },
+  {
+    "id": "b9g4-story-headline",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Story.tsx",
+    "find": "      headline={property.title}\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "Snapshot .Story > draws the hero.*mismatched"
+  },
+  {
+    "id": "b9g4-og-title",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/OgCard.tsx",
+    "find": "price={props.title}",
+    "replace": "price={props.kicker}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× draws a photograph and the title on the market card"
+  },
+  {
+    "id": "b9g4-og-default-image",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/OgCard.tsx",
+    "find": "props.variant === \"default\" ? null :",
+    "replace": "props.variant === \"default\" ? <img src=\"\" alt=\"\" /> :",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "expected .{1,2}true, true .{1,2}to deeply equal .{1,2}false, true"
+  },
+  {
+    "id": "b9g4-slide-marker",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "${padIndex(index + 1)} / ${padIndex(total)}",
+    "replace": "${padIndex(index)} / ${padIndex(total)}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× carries the position, the location and one photograph on a photograph slide"
+  },
+  {
+    "id": "b9g4-slide-photo-price",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "return <SocialFrame {...frame} />;",
+    "replace": "return <SocialFrame {...frame} price={priceLine(property)} />;",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "expected .{1,2}true, true, true .{1,2}to deeply equal .{1,2}true, true, false"
+  },
+  {
+    "id": "b9g4-slide-facts-year",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": ", built ${String(property.yearBuilt)}`",
+    "replace": "`",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× carries the type, the year, the price and the specs on the facts slide"
+  },
+  {
+    "id": "b9g4-slide-place-text",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "headline={slide.text}",
+    "replace": "headline={property.title}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× carries the first sentence of the place paragraph on the place slide"
+  },
+  {
+    "id": "b9g4-facts-dash",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/facts.ts",
+    "find": "bed · ${",
+    "replace": "bed — ${",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× carry no em dash, no colour value and no inline style"
+  }
+]

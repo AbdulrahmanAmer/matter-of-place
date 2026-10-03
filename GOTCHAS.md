@@ -183,6 +183,7 @@ Entry template
 - cause: the Bash tool rewrites backslashes, and in a long command quotes, before the shell sees the command, so a quoted delimiter does not protect the text; when the delimiter or a quote no longer matches (an apostrophe pairs with another quote), the shell reads to the end of input or stops with a parse error and writes nothing. A `replace` whose search text does not occur changes nothing and reports nothing.
 - rule: any text that holds a backslash or an apostrophe (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`, test inputs, prose) goes in with the Write or Edit tool, or is built in code (`String.fromCharCode(92)`); never through an inline argument, a heredoc or `node -e`. Write a payload to a file and pipe the file in. After a scripted rewrite, read back the changed lines (`git diff`). `unexpected EOF` or a parse error means nothing was written: do not retry with other quoting, use Write or Edit, then read `git status --short`. A mutation applied by hand prints its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged, before any red or green is read; prefer a registry entry replayed by the runner (P-066). When a parser "misses" an input with a backslash, print its bytes (`od -c`) before blaming the code. A hook that fails open will hide all of this.
 - proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON; a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` → `E ' a \ \ '` (two backslashes where four were typed, 2026-10-02); `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the row written with the Edit tool keeps its escapes).
+- hit again: 2026-10-03, B9 g4: backslashes were dropped from text written through a heredoc, so the file had to be rewritten with the Write tool; the author listed it as a cost but the entry was not extended (recorded by the g4 review follow-up).
 - merged: P-070, P-111, P-115, P-309, P-406
 - added: 2026-09-30
 
@@ -655,6 +656,7 @@ Entry template
 - rule: type a spy's parameter `(line: unknown)` and convert with `String(line)`; type a `vi.fn` by its signature (`vi.fn<PipelineContext["waitUntil"]>()`); parse JSON into `unknown` and read it through a Zod schema; reject only with an `Error`; widen runtime-unsafe fields on purpose (`const { name, message }: { name: unknown; message: unknown } = error;`); a helper returns what it read and the test asserts it with one `expect(...).toEqual(...)` (never add helper names to the rule's config); read an `any` into a variable typed `unknown` and narrow it with `typeof`; compute plain values (`/re/.test(value)`, `list.includes(item)`) instead of asymmetric matchers, and give a zod record a value union instead of `z.unknown()` when the test converts its values; walk a yaml document from `contents` and read `range` without a guard; a `map` that carries several values returns an object; read a capture group as `regex.exec(text)?.[n]?.<member>`; a helper two `describe` blocks need lives at module scope. Never a cast, a `!` or an `eslint-disable`, and never turn a flag off. Run `bunx tsc --noEmit -p tsconfig.json` and `bunx eslint --max-warnings 0 <file>` on a new test file or block before its first vitest run or full check. Narrowing `Object.keys` is G-103.
 - proof: in scratch files under `app/tests/unit/` (measured 2026-10-02, deleted after): a `vi.spyOn(console, method)` loop over `["log", "warn", "error"] as const` → `bunx eslint --max-warnings 0 <file>; echo $?` prints `no-unsafe-argument` and `1`; `const parsed = JSON.parse('{"a":1}'); expect(parsed.a).toBe(1);` and `await expect(Promise.reject("plain text")).rejects.toBe("plain text");` → `no-unsafe-assignment`, `no-unsafe-member-access`, `prefer-promise-reject-errors`; `expect({ a: "1" }).toEqual({ a: expect.stringMatching(/1/) });` → `Unsafe assignment of an \`any\` value`; `function check(value: number) { expect(value).toBe(1); }` called from an `it` → `Test has no assertions  vitest/expect-expect`; `["a", "b"].map((name) => [name, name.toUpperCase()])` destructured → `bunx tsc -p tsconfig.json --noEmit` prints `error TS18048: 'name' is possibly 'undefined'.` and `2`; `export const width = /a(b)/.exec("ab")?.[1].length;` → `error TS2532`, and with `?.[1]?.length` → `0`; a helper declared in one `describe` and called in another → tsc `error TS2304: Cannot find name 'helper'.`, vitest `ReferenceError: helper is not defined`.
 - merged: P-082, P-085, P-086, P-091, P-097, P-102, P-103, P-117, P-122
+- hit again: 2026-10-03, B9 g3: `const meta = JSON.parse(...)` with a JSDoc `@type` in `scripts/fonts.mjs` gave `no-unsafe-assignment`, and a number inside a template literal gave `restrict-template-expressions`; the fix is `/** @type {unknown} */`, a `typeof` narrowing and `String(n)`.
 - added: 2026-10-02
 
 ## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
@@ -900,6 +902,7 @@ Entry template
 - rule: add a dependency in the step whose code first imports it (sharp and heic-convert with step 12's image library, `@supabase/supabase-js` with its first importer), with `trustedDependencies` in the same commit; a CLI used only from inside a script gets its plan-named `package.json` script (`db:lint` names `supabase`). A builder adds the smallest entry for its own files to a gate's configuration (`ignoreBinaries` in `knip.json` for psql, pg_dump, ffmpeg) and says so in the slice log (ruling H46 (1), in the build workflow's standing rules). A plan step that adds a script spawning a system binary names `knip.json` in its files.
 - proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1, and with `"ignoreBinaries": ["psql"]` → exit 0 (B2 c1); `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
 - merged: P-500
+- hit again: 2026-10-03, B9 g3: `bun add -d @fontsource-variable/*` (copied by `scripts/fonts.mjs` through a path, never imported) and a template component no script imports yet gave `Unused devDependencies (4)` and `Unused files (1)`; the entries are `ignoreDependencies: ["@fontsource-variable/*"]` and `src/templates/social/SocialFrame.tsx` in `entry`.
 - added: 2026-10-02
 
 ## P-301 · A pull request that conflicts with main gets no CI run at all, and `gh pr checks` only says "no checks reported"
@@ -1311,6 +1314,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the session scratchpad is shared by every workflow agent of the session and keeps files from earlier runs; a fixed folder name like `reg` is reused, and `--registry` replays every `*.json` in the folder it is given.
 - rule: make the scratch registry folder fresh with `mktemp -d` inside the scratchpad, `ls` it before the replay, and pass `--only <ids>` so only the entries meant are replayed.
 - proof: `d=$(mktemp -d) && ls "$d" | wc -l` → `0`; `cd app && grep -n "readdirSync" scripts/watchfail.mjs | cut -c1-120` shows the registry folder is read whole (every `*.json` in it).
+- hit again: 2026-10-03, B9 g4: the folder `<scratchpad>/reg` already held `B4.json` from an earlier agent, and the replay of my own entries started with B4 entries. See P-707 for what that did to the tree.
 - added: 2026-10-03
 
 ## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
@@ -1377,4 +1381,104 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: P-156 was written from the one red run of `format:check` and proved with the file after the fix; it had no case that fails.
 - rule: a proof for a "this goes red" lesson carries a control: write the bad input to a temporary file, see the check exit 1, delete the file. Keep the passing run beside it.
 - proof: `cd app && printf '# t\n\n| a | b |\n|---|---|\n| longer cell | x |\n' > docs/zz-control.md; bunx prettier --config .prettierrc --check docs/zz-control.md; echo "exit $?"; rm docs/zz-control.md` → `Code style issues found in the above file` and `exit 1` (run by the recorder on 2026-10-03); `bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → exit 0.
+- added: 2026-10-03
+
+## P-700 · `launch/engine/sheet.mjs` forces every tile to 16:9: contact sheets of portrait or tall options come out squashed
+- symptom: `node launch/engine/sheet.mjs sheet.jpg 3 640 A.png B.png C.png` on the story (1080×1920), carousel (1080×1350) and email (600×1280) options produced sheets with the images squeezed to 640×360, so a reviewer would pick on distorted layouts.
+- cause: the script computes one tile height as `w * 9 / 16` and `scale=w:h` every input with no aspect handling; it was written for 16:9 film stills (P-026).
+- rule: a contact sheet of non-16:9 stills is tiled at one height and each image's own proportions with ffmpeg directly (`scale=-2:H`, `hstack=inputs=3`); the owner of `sheet.mjs` should add the aspect-preserving mode before any lane relies on it for other shapes. B9 g1 did not edit it (one writer per file).
+- proof: `ffprobe -v error -show_entries stream=width,height -of csv=p=0 workspace/08-creative/options/story/sheet.jpg` → `1518,900` (three 506×900 tiles), where sheet.mjs makes `1920,360`.
+- added: 2026-10-03
+
+## P-701 · A bone wordmark over sky or branches in a photograph is unreadable: place it on a solid field
+- symptom: the first render of cover A and C, carousel A and C and story C put the small wordmark in the top-left of a full-bleed photograph; against bright sky and foliage it vanished, and the whole set had to be re-laid out.
+- cause: the wordmark is a thin geometric outline at 14 to 20 px tall; a 30% veil does not give it contrast on a bright sky.
+- rule: in the creative templates the wordmark sits on a solid obsidian or ivory field (a band, the foot of the page) or on a flat dark part of the photograph that was checked by eye, never on sky or branches. Look at the rendered PNG before the set is called done.
+- proof: `grep -o 'height:150px;background:var(--obsidian)"></div>' workspace/08-creative/options/cover/A.html` → one match (the band), and `grep -o 'right:64px;top:508px"><img src="[^"]*wordmark[^"]*' workspace/08-creative/options/cover/A.html` → the bone wordmark at y 508, inside the band that starts at y 480
+- added: 2026-10-03
+
+## P-702 · The reviewer brief passes the snapshot folder to `review-snapshot.mjs` as the lane root: `design-review` does not exist before `create`, and the argument would target `design-review-review`
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/design-review 8c8ac2a` from `E:/mop-build/design-review`; `cd /e/mop-build/design-review` gave "No such file or directory" (exit 1). The brief also called `E:/mop-build/design-review` the builder's working tree.
+- cause: the script derives the snapshot path as `${laneRoot}-review`, so `design-review` is its output, never its input; the template that writes the brief substitutes the snapshot path where the lane root belongs.
+- rule: run it from the lane root with the lane root as the argument: `cd E:/mop-build/design && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/design <sha>`; `remove` takes the lane root the same way. The builder's tree is the lane root, the snapshot is the reviewer's copy. The brief template is the owner of the fix.
+- proof: `sed -n 21p workspace/05-plans/review-snapshot.mjs` → ``const snap = `${laneRoot}-review`;``; `ls /e/mop-build/design-review` fails before `create` has run (exit 2).
+- added: 2026-10-03
+
+## P-703 · `review-snapshot.mjs` installs `app/node_modules` only: a review of `launch/` scripts fails in the snapshot until `bun install` runs in `launch`
+- symptom: in a fresh snapshot `ls launch/node_modules` gives "No such file or directory", so `launch/engine/still.mjs` and its siblings cannot run for the reviewer. The B9 g1 builder hit the same wall and listed it under P-027, which is about timeouts, so the cost was never banked under its own name.
+- cause: the script runs `bun install --frozen-lockfile` with `cwd: join(snap, "app")` and nowhere else.
+- rule: before reviewing anything under `launch/`, run `bun install --frozen-lockfile` in the snapshot's `launch` folder (64 packages, 18 s); the script should install there too, and until it does the reviewer brief says so.
+- proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → one line, `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...`.
+- added: 2026-10-03
+
+## P-704 · `public/fonts/LICENSES.md` is required by two plans and refused by three gates: layout, prettier and the folder map
+- symptom: B9 g3 ran `bun run fonts`, which writes the five `.woff2` files and `public/fonts/LICENSES.md` as B17 and B9 specify, then `bun run check` printed `layout: app/public/fonts/LICENSES.md: outside the folder map`; after that, `prettier --write` turned the licence's "1)" items into "1." and rewrote its rule line, so a second `bun run fonts` made `format:check` fail on a file the script had just written.
+- cause: STANDARDS section 1 row `public/` and `scripts/check-layout.mjs` list `fonts/*.woff2` only, while the plans commit the licences beside the fonts (OFL asks for the notice to travel with the files); the licence text is third-party legal text, so no formatter may rewrite it.
+- rule: `check-layout.mjs` allows `public/fonts/{*.woff2,LICENSES.md}` and `app/.prettierignore` names `public/fonts/LICENSES.md`; STANDARDS row `public/` should read `fonts/*.woff2` and `fonts/LICENSES.md` (the orchestrator edits STANDARDS, a builder does not). Never run prettier `--write` on the generated licence file.
+- proof: `cd app && bun run fonts && bun run layout && bunx prettier --config .prettierrc --check public/fonts/LICENSES.md` → `layout: OK` and `All matched files use Prettier code style!`; with the `LICENSES.md` entry removed from `check-layout.mjs` the first gate prints the symptom (measured 2026-10-03, B9 g3).
+- added: 2026-10-03
+
+## P-705 · Two writers wrote the same decision row: the orchestrator put an S65 row on main while step 2, which owns PROJECT-STATE.md, wrote its own
+- symptom: commit 179ed81 (B9 g2 step 2) conflicted with `origin/main` in `PROJECT-STATE.md`, and a conflicting pull request starts no CI run (P-136). The merge 6f373f9 resolved it ("kept the DIRECTION.md version") and banked nothing.
+- cause: the orchestrator committed an S65 decision row on main (PR #87, 96042cc, 13:39:33 +0300) while the plan gave the same row to step 2 of the lane, so both edited the same line of the file.
+- rule: a decision row has one writer. When a lane step names `PROJECT-STATE.md` and a decision number, the orchestrator does not write that row on main, or the step reuses the row already on main and adds nothing at that line; the one who finds two rows keeps one and says which in the merge message.
+- proof: `git merge-tree --write-tree origin/main 179ed81 >/dev/null; echo $?` → `1` (conflict in `PROJECT-STATE.md`); `git log -1 --format=%s 6f373f9` → `Merge origin/main into slice/b9 (PROJECT-STATE S65 row: kept the DIRECTION.md version)` (measured 2026-10-03, B9 g2 follow-ups).
+- added: 2026-10-03
+
+## P-706 · The reviewer brief says to run `plan-brief.mjs` from the builder's tree and also never to run anything there
+- symptom: the review brief reads "run `node workspace/05-plans/plan-brief.mjs B9 ...` from E:/mop-build/design" beside "never read, run or write anything there", so the B9 g2 reviewer ran `plan-brief` inside the snapshot to obey the second line.
+- cause: the brief template names the lane root for the one command and forbids the lane root for everything else; it is the same template defect as P-702, in a different command.
+- rule: the template tells the reviewer to run `plan-brief.mjs` from the snapshot folder (the plan files are identical there); until it does, a reviewer runs every command in the snapshot and treats the lane root as read-only for the builder alone. The brief template's owner makes the fix.
+- proof: `ls workspace/05-plans/plan-brief.mjs` inside `E:/mop-build/design-review` lists the file after `review-snapshot.mjs create`; `sed -n 1,5p workspace/05-plans/plan-brief.mjs` shows the usage line takes a slice and `--steps`, with no tree argument (measured 2026-10-03, B9 g2 follow-ups).
+- added: 2026-10-03
+
+## P-707 · A replay killed at the tool ceiling leaves the mutation in the file, and the entry `wf-restore` switches the restore off for every entry after it
+- symptom: B9 g4 ran `node scripts/watchfail.mjs --registry <scratchpad>/reg` in the foreground with `timeout 115`; the folder held B4 entries (P-154), the call hit the ceiling mid-replay and `git status` showed `app/src/lib/cx.ts` (B4's mutation) and later `app/scripts/watchfail.mjs` with its `restoreAll` loop deleted. The next replay of the group's own 21 entries printed `WATCHED-FAIL BAD: wrong reason` for five of them, because `restoreAll` no longer wrote anything and each mutation stayed in `slides.ts`, `Cover.tsx`, `Story.tsx` and `OgCard.tsx`; the six untracked files had to be rewritten by hand (they have no git copy to check out).
+- cause: a registry replay runs 4 to 8 s per entry on a loaded laptop, so 21 entries cannot finish inside 115 s; a killed `watchfail.mjs` cannot restore, and the B4 entry `wf-restore` mutates `restoreAll` itself, so a kill during or after it breaks the tool for everything that follows.
+- rule: replay a registry only in the background (`run_in_background`, output to a log, poll with a bounded loop) from a fresh `mktemp -d` folder that holds only your own file (P-154), never under `timeout`; before the replay commit or stage the files it mutates (an untracked file cannot be restored from git), and afterwards run `git status --short | grep -v "^??"` and the unmutated tests; to find one entry's red text use the single-mutation form (`--file/--find/--replace/--run/--expect`) or a scratch loop that restores from the bytes it read.
+- proof: `cd app && git status --short | grep -v "^??"` → no output after a finished replay; `node -e 'for(const e of require("./tests/mutations/B4.json")) if(e.id==="wf-restore") console.log(e.file)'` → `scripts/watchfail.mjs` (2026-10-03).
+- added: 2026-10-03
+
+## P-708 · `quiet.mjs` runs its command with `shell: true` and no quoting: `bash -c "cd app && ..."` runs the part after `&&` in the wrong folder
+- symptom: B9 g3 review ran `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` and got `error: Script not found "layout"` and `quiet: exit 1`, although the script exists in `app/package.json`.
+- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`; on Windows Node joins the arguments with spaces and no quotes, so cmd.exe sees `bash -c cd app && bun run layout`: `bash -c cd` ends at `&&` and `bun run layout` runs in the folder quiet.mjs was started from (the repository root).
+- rule: never pass a compound command (`&&`, `;`, pipes, quotes) through `quiet.mjs`; change into the folder first and run it from there: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run <script>`.
+- proof: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` → `error: Script not found "layout"`, `quiet: exit 1`; `cd app && node ../workspace/05-plans/quiet.mjs -- bun run layout` → `layout: OK (772 files)`, `quiet: ok` (measured 2026-10-03).
+- added: 2026-10-03
+
+## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
+- paths: app/src/templates/social/**, app/src/styles/tokens.css
+- severity: warn
+- symptom: every carousel and story headline rendered at weight 700 against DIRECTION.md's "nothing bold"; the by-eye check passed because it compared offsets, not weight (B9 g3 review).
+- cause: `SocialFrame` draws the headline as an `<h1>`; the reset in `social.css` clears margin and padding only, and the render scripts inline `tokens.css`, `fonts.css` and `social.css` alone, so the browser's own `h1` weight wins over the inherited `font-weight: 400` of `.social-frame`.
+- rule: every text slot of a social template sets its own `font-weight` from a token (`--social-weight-text` 400, `--social-weight-numeral` 500); never rely on inheritance through a heading element.
+- proof: render `SocialFrame` with react-dom/server, inline the three CSS files and read `getComputedStyle(h1).fontWeight` in puppeteer-core → `400` (with the `font-weight` line of `.social-frame__headline` removed → `700`) (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-709 · A render probe written outside `app/` cannot resolve `react/jsx-dev-runtime`, and the quick workaround is an untracked file inside `app/`
+- symptom: B9 g3 measured the headline weight of `SocialFrame` with a probe kept in the scratchpad: the import of `SocialFrame.tsx` failed to resolve `react/jsx-dev-runtime`, and the author ran the probe as a temporary untracked file inside `app/` (a file the folder map has no row for, written into a tree a reviewer treats as the diff).
+- cause: a `.tsx` file takes its JSX runtime from the `node_modules` nearest to the file that holds the JSX; the probe sat outside `app/`, but `SocialFrame.tsx` is inside it, and a probe that itself contains JSX is resolved from the probe's own folder, where there is no `react`.
+- rule: write the probe without JSX (`React.createElement`) and import `react`, `react-dom/server.node.js` and the component by absolute path; the component's own JSX then resolves from `app/node_modules`. Never write a probe file into `app/` to get a resolution.
+- proof: `bun -e 'const R=await import("E:/mop-build/design/app/node_modules/react/index.js");const S=await import("E:/mop-build/design/app/node_modules/react-dom/server.node.js");const {SocialFrame}=await import("E:/mop-build/design/app/src/templates/social/SocialFrame.tsx");console.log(S.renderToStaticMarkup(R.createElement(SocialFrame,{format:"story",image:null,headline:"A"})))'` run from the tree root → prints `<div class="social-frame social-frame--story">` with an `<h1 class="social-frame__headline">A</h1>` and no resolution error (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-710 · The proof line of G-250 is a description of a probe that was never committed, and the library it names is not installed
+- symptom: G-250 says to render `SocialFrame` and read `getComputedStyle(h1).fontWeight` in puppeteer-core; the B9 g3 review could not replay it: `ls app/node_modules/puppeteer-core` and the same in `launch/node_modules` found nothing, so the reviewer rebuilt the probe from scratch with Chrome `--dump-dom`. No test pins the weight either, so dropping the `font-weight` line from `.social-frame__headline` keeps `bun run check` green.
+- cause: the author measured with a scratch probe and wrote the finding down as prose; the bank's own rule is "a proof is a command someone else can run" (map, rules for the bank itself).
+- rule: a proof names a command that runs in the tree as committed; a measurement that needs a browser gets a committed script or test before it is cited as proof (step 6's shoot path or a browser test of g4 is where the computed weights belong); until then cite the static check.
+- proof: `grep -c "font-weight: var(--social-weight-text)" app/src/templates/social/social.css` → `2` (the `.social-frame` rule and the headline slot; with the headline line removed → `1`); `ls app/node_modules/puppeteer-core` → `No such file or directory` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-711 · A clamp that no input can reach passes every test with and without it: the watched-fail stays green, and the answer is to delete the clamp
+- symptom: B9 g4 wrote `planCarousel` with a clamp that forced the slide count into 6 to 8. Every test passed. The watched-fail of the clamp (remove it, expect red) stayed green, so the registry entry was a lie and the line looked like protection.
+- cause: the count is already inside 6 to 8 by construction (a cover, three or four photographs, the facts, an optional place slide and the close, with the photo and place counts decided from `maxSlides`), so the clamp could never change a result. A defence added "to be safe" against a state the code cannot produce is dead code, and no assertion can pin it. The same group then left a real branch unpinned: nothing tests `planCarousel(spec, 7)`, and mutating the place adjustment in the photo count also stayed green (see the follow-up under "## g4 · steps 4,5" in `workspace/05-plans/logs/B9-followups.md`).
+- rule: when a watched-fail of a guard stays green, first ask whether any input reaches the guard. If none does, delete it (do not add a test that calls the guard directly); if one does, the test is missing: add the input that reaches it. A range promised to a caller ("6 to 8") is pinned by a test per boundary and per branch that decides it (here 6, 7 and 8), not by a clamp.
+- proof: `grep -n "Math[.]" app/src/templates/social/slides.ts` → only the LinkedIn photo count (`Math.min(LINKEDIN_PHOTOS, ...)`), no clamp in `planCarousel` (2026-10-03).
+- added: 2026-10-03
+
+## P-712 · `bun run check` under load runs past the 600 s tool ceiling, and its vitest stage can then fail with `Failed to start forks worker ... Timeout waiting for worker to respond`: that is not a red test
+- symptom: the B9 g4 review ran `bun run check` in the foreground with other lanes running. The call passed the 600 s Bash ceiling and the vitest stage failed on `tests/unit/analytics.test.ts` with `Failed to start forks worker ... Timeout waiting for worker to respond`, which reads as a red gate. `bun run test` alone, re-run afterwards, passed 32 of 32 files.
+- cause: vitest starts one forks worker per test file; with several lanes building and the laptop saturated, a worker did not answer in time. The failure comes from starting the worker, not from an assertion in the file it names.
+- rule: run `bun run check` in the background (`run_in_background`, output to a log, a bounded poll loop; P-027), never in the foreground. When the only failure is the worker-start error, re-run the test stage alone (`bun run test`) before calling the gate red; a failure that names an assertion is a real red and is never re-run until green. Report both runs.
+- proof: `grep -c "Failed to start forks worker" GOTCHAS.md` → at least `1` (this entry); `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test` → `quiet: ok` on a quiet laptop (2026-10-03).
 - added: 2026-10-03

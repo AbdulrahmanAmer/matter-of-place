@@ -151,7 +151,7 @@ export const APP_ROWS = [
       "public/{_headers,robots.txt,sw.js,offline.html}",
       "public/{favicon,apple-touch-icon}*",
       "public/*.txt",
-      "public/fonts/*.woff2",
+      "public/fonts/{*.woff2,LICENSES.md}",
       "public/media/**",
       "public/og/static/*.png",
     ],

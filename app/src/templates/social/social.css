@@ -1,0 +1,163 @@
+/*
+ * The social frame: a photograph over a solid band that carries the wordmark and the text. Every number is a token
+ * from `src/styles/tokens.css` (the social block); a format only chooses which tokens apply. `cover-x` is the cover
+ * with the photograph taller by the X crop, band unchanged.
+ */
+.social-frame,
+.social-frame * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.social-frame {
+  position: relative;
+  overflow: hidden;
+  width: var(--frame-w);
+  height: var(--frame-h);
+  background: var(--social-band);
+  color: var(--social-ink);
+  font-family: var(--font-sans);
+  font-weight: var(--social-weight-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.social-frame--cover,
+.social-frame--cover-x {
+  --frame-w: var(--social-cover-w);
+  --frame-h: var(--social-cover-h);
+  --frame-margin: var(--social-cover-margin);
+  --frame-photo-h: var(--social-cover-photo-h);
+  --frame-mark-h: var(--social-cover-mark-h);
+  --frame-mark-top: var(--social-cover-mark-top);
+  --frame-location-size: var(--social-cover-location-size);
+  --frame-location-top: var(--social-cover-location-top);
+  --frame-price-size: var(--social-cover-price-size);
+  --frame-price-top: var(--social-cover-price-top);
+  --frame-specs-size: var(--social-cover-specs-size);
+  --frame-specs-top: var(--social-cover-specs-top);
+}
+
+.social-frame--cover-x {
+  --frame-h: var(--social-cover-x-h);
+  --frame-photo-h: var(--social-cover-photo-x-h);
+}
+
+.social-frame--carousel {
+  --frame-w: var(--social-carousel-w);
+  --frame-h: var(--social-carousel-h);
+  --frame-margin: var(--social-carousel-margin);
+  --frame-photo-h: var(--social-carousel-photo-h);
+  --frame-mark-h: var(--social-carousel-mark-h);
+  --frame-mark-top: var(--social-carousel-mark-top);
+  --frame-marker-size: var(--social-carousel-marker-size);
+  --frame-marker-top: var(--social-carousel-marker-top);
+  --frame-location-size: var(--social-carousel-location-size);
+  --frame-location-top: var(--social-carousel-location-top);
+  --frame-headline-size: var(--social-carousel-headline-size);
+  --frame-headline-top: var(--social-carousel-headline-top);
+  --frame-price-size: var(--social-carousel-price-size);
+  --frame-price-top: var(--social-carousel-price-top);
+  --frame-specs-size: var(--social-carousel-specs-size);
+  --frame-specs-top: var(--social-carousel-specs-top);
+}
+
+.social-frame--story {
+  --frame-w: var(--social-story-w);
+  --frame-h: var(--social-story-h);
+  --frame-margin: var(--social-story-margin);
+  --frame-photo-h: var(--social-story-photo-h);
+  --frame-mark-h: var(--social-story-mark-h);
+  --frame-mark-top: var(--social-story-mark-top);
+  --frame-location-size: var(--social-story-location-size);
+  --frame-location-top: var(--social-story-location-top);
+  --frame-headline-size: var(--social-story-headline-size);
+  --frame-headline-top: var(--social-story-headline-top);
+  --frame-price-size: var(--social-story-price-size);
+  --frame-price-top: var(--social-story-price-top);
+  --frame-specs-size: var(--social-story-specs-size);
+  --frame-specs-top: var(--social-story-specs-top);
+}
+
+.social-frame__photo {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--frame-photo-h);
+}
+
+.social-frame__photo > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-frame__mark {
+  position: absolute;
+  top: calc(var(--frame-photo-h) + var(--frame-mark-top));
+  left: var(--frame-margin);
+  display: block;
+  height: var(--frame-mark-h);
+  color: var(--social-ink);
+}
+
+.social-frame--cover .social-frame__mark,
+.social-frame--cover-x .social-frame__mark {
+  right: var(--frame-margin);
+  left: auto;
+}
+
+.social-frame__marker,
+.social-frame__location,
+.social-frame__specs {
+  position: absolute;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: var(--social-track);
+}
+
+.social-frame__marker {
+  top: calc(var(--frame-photo-h) + var(--frame-marker-top));
+  right: var(--frame-margin);
+  font-size: var(--frame-marker-size);
+}
+
+.social-frame__location {
+  top: calc(var(--frame-photo-h) + var(--frame-location-top));
+  left: var(--frame-margin);
+  font-size: var(--frame-location-size);
+  color: var(--social-ink-quiet);
+}
+
+.social-frame__headline {
+  position: absolute;
+  top: calc(var(--frame-photo-h) + var(--frame-headline-top));
+  left: var(--frame-margin);
+  width: var(--social-headline-w);
+  font-family: var(--font-serif);
+  font-size: var(--frame-headline-size);
+  font-weight: var(--social-weight-text);
+  line-height: var(--social-lh-display);
+}
+
+.social-frame__price {
+  position: absolute;
+  top: calc(var(--frame-photo-h) + var(--frame-price-top));
+  left: var(--frame-margin);
+  font-family: var(--font-serif);
+  font-size: var(--frame-price-size);
+  font-weight: var(--social-weight-numeral);
+  line-height: 1;
+}
+
+.social-frame__specs {
+  top: calc(var(--frame-photo-h) + var(--frame-specs-top));
+  right: var(--frame-margin);
+  font-size: var(--frame-specs-size);
+  letter-spacing: var(--social-track-specs);
+}
+
+.social-frame--story .social-frame__specs {
+  right: auto;
+  left: var(--frame-margin);
+}

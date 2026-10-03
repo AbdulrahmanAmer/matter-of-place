@@ -944,3 +944,17 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Review brief defect found by two reviewers: `review-snapshot.mjs create/remove` were given the snapshot folder, not
   the lane root; fixed (PR 86, `8404a67`). db `wf_57df2412-448` on g9 review and g10; spine `wf_f3345953-34d` on g10
   with g9 (step 8) BLOCKED for its dispatch proof until PR 43 merges (the spine's self-merge does that at run end).
+
+## 2026-10-03 15:40 · B1b closed except step 11; dev deploys from main by itself
+- B1b: steps 6 to 10 merged (PR 43), step 7b accepted and merged (PR 89, `56db5de`); the backup proof ran by the
+  orchestrator (run 37119111820, dump decrypted with the laptop key, 55 table data sections, analytics rows 0); the
+  rollback rehearsal ran (runs 37119539045, 37119653705, 37119768750: red smoke, `rolled back to 832ce8d2`). Step 9
+  BLOCKED on GitHub Pro (H5), step 11 waits on L1. B1b-followups.md holds the open items (incl. a path filter so docs-only
+  pull requests skip the preview deploy, about 80 s each today).
+- Found and fixed: the post-merge gate judged the pull request's `closed` run (every job skipped) as the verdict, so
+  main's CI was red and `workflow_run` never deployed dev (P-155 on the lane, P-505 on main; fix PR 90, `4a3f91d`,
+  watched failing). First self-started dev deploy from main: run 37123404226, `smoke: OK` on the dev workers.dev URL.
+- Running: db `wf_57df2412-448` (B2 steps 10 to 11 building, 9 accepted), design `wf_1fa7be00-8d5` (B9 step 3 fix
+  round 1, steps 4 to 5 in review; email parts held for B5). B4 waits on B3.
+- NEXT: when B2 closes (g13 then advisor check), open the B3 lane (`E:/mop-build/api`, port 8828, P-800/G-300); then
+  B3b; ledger at slice closes only.

@@ -9,5 +9,6 @@
     "src/db/index.ts"
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
-  "ignoreBinaries": ["psql"]
+  "ignoreBinaries": ["psql"],
+  "ignoreDependencies": ["@fontsource-variable/*"]
 }
