@@ -1162,3 +1162,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
 - proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
 - added: 2026-10-03
+
+## G-040 · A query inside `[ "$(psql ...)" = t ]` in a workflow step reads a failed query as the answer "no" and the step stays green
+- paths: .github/workflows/**
+- severity: warn
+- symptom: the first draft of `backup.yml`'s `record` step tested `to_regprocedure(...) is null` and `claim_schedule(...)` inside `[ "$(psql ...)" = t ]`; the plan wants a query error to fail the run red, and that form would have printed `backup last_run_at not recorded` and ended green.
+- cause: GitHub runs `run:` with `bash -e`, but `-e` ignores the status of a command substitution used as an argument (of `[`, `echo`, `if`); only a plain assignment `x=$(...)` carries the substitution's status.
+- rule: read every query answer in a workflow step into a variable first (`absent=$(psql "$DB_URL" -Atc "...")`), then test the variable; never put `$(psql ...)` inside a test or an echo where its failure matters.
+- proof: `bash -ec 'x=$(false); echo after'` prints nothing and exits 1; `bash -ec 'if [ "$(false)" = t ]; then echo t; else echo "read as f"; fi'` prints `read as f` and exits 0 (2026-10-03).
+- added: 2026-10-03
+
+## P-150 · Live `build-output` artifacts of the parallel lanes hold more than a Free account's 500 MB of Actions storage
+- symptom: sizing `backup.yml`'s retention (B1b step 8, DB-11), the repository's live artifacts were 137 `build-output` uploads, 1,284,006,728 bytes, all kept 1 day; the backup dump is 234,481 bytes.
+- cause: `ci.yml` uploads `.output/` (about 9.4 MB) on every pull request push, and four lanes push all day; a 1-day retention does not keep the sum under the quota while that rate lasts. The quota itself is UNPROVEN (the billing API needs the `user` scope; GitHub documents 500 MB for Free).
+- rule: before choosing an artifact's retention, sum the live artifacts, not only the new one; when the live sum nears the quota, the orchestrator reads the billing page and decides (fewer pushes or a smaller artifact), because an account over its storage quota with a zero spending limit may refuse new uploads, the backup's included (UNPROVEN until seen).
+- proof: `gh api --paginate "repos/AbdulrahmanAmer/matter-of-place/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .size_in_bytes'` summed → 1284006728 over 137 artifacts, all named `build-output` (2026-10-03 10:03 UTC).
+- added: 2026-10-03

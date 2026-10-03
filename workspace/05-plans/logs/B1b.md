@@ -4174,3 +4174,61 @@ Every exit 0. A count of every `file` entry's `find` in its file as it stands: `
 NOT DONE until the orchestrator sets `PRODUCTION_DEPLOY` to `on` once B3b (coming-soon mode) is on main (H49 (1)), proved at B3b's close: the first production deploy and every live production proof of step 7 (the run log with both `MEDIA_PUBLIC_BASE` values, `production` after `dev`, smoke and `x-robots-tag` on the production workers.dev URL, `SENTRY_DSN` put and listed on `matter-of-place`, the production Sentry event, watched-fail (p), the re-run guard on the real workflow, the manual rollback with the deploy token, the CPU tail). UNPROVEN until it runs live: the dev job's `current` step against Cloudflare (the `--json` shape `last | .versions[] | select(.percentage == 100)` and the code 10007 text) and the in-job rollback to a named id; step 7b proves them on the `dev` job. The production job's rollback still has no id: production has no secrets step, so the H49 (2) cause does not arise there, and the reviewer named the dev job only.
 
 GOTCHAS: no entry added. The one stale `find` (`hy-test-timeout`) was found by the count above before any replay and fixed in one edit; P-066 already holds the rule (replay a registry after a mutated file moves).
+
+## g9 · steps 8
+Started 2026-10-03 13:12 +0300 on `slice/b1b` after `git merge origin/main` (clean, sizing files only). Files: `.github/workflows/backup.yml` (new), `app/docs/runbooks/delivery.md` (section `## Backup`).
+
+Part A, already done (commit c7a5314), re-read:
+```
+git check-ignore -q creds/backup-recipient.key   -> exit 0
+git ls-files app/backup-recipient.pem            -> app/backup-recipient.pem
+gh secret list | grep -c BACKUP_                 -> 0
+openssl x509 -in app/backup-recipient.pem -noout -subject -enddate -fingerprint -sha256
+subject=CN=mop-backup
+notAfter=Sep 29 23:01:03 2036 GMT
+sha256 Fingerprint=1A:52:2D:5E:4D:E5:1A:78:2B:54:41:BB:90:F6:38:C8:14:F0:11:92:E6:CC:11:82:04:43:3F:66:3F:61:80:A0
+```
+
+G-012: `git rev-parse --show-toplevel` -> `E:/mop-build/spine` (the lane worktree, P-051); `ls .github/workflows` -> `README.md backup.yml ci.yml deploy.yml`.
+
+actionlint (P-139): `scratch/actionlint/actionlint.exe -shellcheck= .github/workflows/backup.yml` -> no output, `actionlint exit 0` (version 1.7.12).
+
+The job's own commands, run from the laptop against mop-dev (`.env` loaded without printing; the pooler string and flags exactly as in the workflow; the private key read by path as ruling H55 (3) allows, nothing else read in the main checkout):
+```
+pg_dump exit 0
+encrypt exit 0
+plain 233571 bytes, encrypted mop-dev-2026-10-03.dump.p7m 234481 bytes
+decrypt exit 0
+decrypted equals the dump
+;     TOC Entries: 569
+;     Dumped from database version: 17.11
+;     Dumped by pg_dump version: 18.4
+toc entries: 563
+public tables: 33
+auth tables: 27
+analytics data: 0          (pg_restore --list | grep -c 'TABLE DATA public analytics_events')
+claim absent: t            (to_regprocedure of claim_schedule: B8b not on mop-dev yet)
+beat absent: t             (to_regprocedure of beat: B8 not on mop-dev yet)
+```
+`pg_restore --list y.dump | grep analytics_events` shows `TABLE public analytics_events`, `_default`, `_y2026m10`, `_y2026m11` and the sequence: the tables are in the dump, their rows are not.
+
+Hygiene, with `backup.yml` present (its suite no longer skipped): `bun run test tests/unit/hygiene.test.ts` -> `Test Files  1 passed (1)`, `Tests  54 passed | 1 skipped (55)` (the one skip is B8's job runner).
+
+Watched-fails (at), (be), (bh), replayed with `node scripts/watchfail.mjs --registry <scratchpad folder>` holding three entries on `../.github/workflows/backup.yml` (run `bun run test tests/unit/hygiene.test.ts`; expects `"BACKUP_PASSPHRASE"`, `backup.yml: wrangler r2`, `"prod"`); exit 0, file restored each time:
+```
+  mutated ../.github/workflows/backup.yml:76  openssl enc -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE -outform DER -in x.dump -out "$DUMP" ba
+WATCHED-FAIL OK g9:at
+  mutated ../.github/workflows/backup.yml:88  - name: second copy
+WATCHED-FAIL OK g9:be
+  mutated ../.github/workflows/backup.yml:16  options: [dev, prod]
+WATCHED-FAIL OK g9:bh
+```
+The entries are not in `tests/mutations/B1b.json`: that file is not this group's, no gate asked for them (H46), and the hygiene test file already has entries there.
+
+Retention: 30 days. Encrypted dump 234,481 bytes (laptop), so 30 nights about 7 MB. Quota UNPROVEN: `gh api users/AbdulrahmanAmer/settings/billing/shared-storage` -> `This API operation needs the "user" scope`. Live artifacts at 2026-10-03 10:03 UTC: 137, all `build-output`, 1,284,006,728 bytes (GOTCHAS P-150).
+
+`cd app && bun run check` -> layout, typecheck, lint, knip (the two old configuration hints), jscpd, stubs, prettier pass, `check exit 0`; `bun run test` -> `Test Files  28 passed (28)`, `Tests  563 passed | 1 skipped (564)`. `bun run build` -> `quiet: ok (225 lines)`, `build exit 0`.
+
+NOT DONE, waiting on the orchestrator's merge of this pull request (`workflow_dispatch` finds only workflows on `main`; builders never merge): `gh workflow run backup.yml -f target=dev && gh run watch`, `gh run download <id> -n mop-dev-dump`, the decrypt and `pg_restore --list` of the runner's artifact, the artifact's `size_in_bytes`, and so the runner path (PGDG client 17 install, pooler from a runner) stays UNPROVEN. Escrow (DO-06): NOT DONE by design (H55 (3)); the key stays on the laptop and the runbook says so. Part B1 (`schedule:` line) waits for B8b; the `beat` log line and `ops_heartbeats` read wait for B8.
+
+GOTCHAS: added G-040 (a `$(psql ...)` inside `[ ]` hides a query error under `bash -e`; caught in the first draft of `record`) and P-150 (live `build-output` artifacts above the Free storage quota).

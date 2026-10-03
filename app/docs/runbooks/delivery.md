@@ -402,3 +402,78 @@ curl -s -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" "https://sentry.io/api/0/o
 The issue appears within about 20 seconds. On production, set the secret only for the test and delete it right after:
 `bunx wrangler secret put SENTRY_TEST_TOKEN --name matter-of-place`, then `bunx wrangler secret delete SENTRY_TEST_TOKEN
 --name matter-of-place`.
+
+## Backup
+
+`.github/workflows/backup.yml` dumps the one database (H35 (1)): before the launch switch it is the build database, after
+it production, and the workflow does not change, because the dump only reads. It runs by hand today
+(`gh workflow run backup.yml -f target=dev`; `dev` is the only target) and nightly at 03:17 UTC once B8b has created the
+`schedule_settings` row `backup` (step 8 part B1 adds the `schedule:` line then). A scheduled run first reads that row:
+`t` continues, `f` or no row ends green with `backup disabled`. A manual run ignores the switch.
+
+The job connects through the pooler (GitHub runners have no IPv6, E4) with the password percent-encoded, installs
+`postgresql-client-17` from the PGDG apt repository (the runner ships 16; the server is 17.11), runs
+`pg_dump --format=custom --no-owner --no-acl --schema=public --schema=auth --exclude-table-data='public.analytics_events*'`
+(raw analytics are not needed to run the business, DB-11), encrypts the dump to the committed certificate with
+`openssl cms -encrypt -binary -stream -aes256 -outform DER` and uploads `mop-dev-YYYY-MM-DD.dump.p7m` as the artifact
+`mop-dev-dump`. That artifact is the only copy (H33 (7)); Storage objects are not in it. Then it calls
+`claim_schedule('backup', false, null, now(), null)` (B8b) and `beat('backup', ...)` (B8), each skipped while the
+function does not exist yet. A failed run ends red and GitHub emails the owner; there is no retry, the next night is.
+
+### The key pair
+
+| Part               | Where                                                                          | Who holds it                                         |
+| ------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Public certificate | `app/backup-recipient.pem`, committed; `CN=mop-backup`, valid until 2036-09-29 | anyone: CI encrypts to it and can never decrypt      |
+| Private key        | `creds/backup-recipient.key` at the root of the laptop's checkout, git-ignored | the laptop only, until the operator's escrow (below) |
+| Escrowed copies    | the operator's password manager and a sealed paper copy (DO-06)                | the operator; not done on 2026-10-03                 |
+
+Certificate SHA-256 fingerprint:
+`1A:52:2D:5E:4D:E5:1A:78:2B:54:41:BB:90:F6:38:C8:14:F0:11:92:E6:CC:11:82:04:43:3F:66:3F:61:80:A0`
+(`openssl x509 -in app/backup-recipient.pem -noout -fingerprint -sha256`). There is no passphrase: no `BACKUP_PASSPHRASE`
+exists in GitHub or in `.env` (`gh secret list | grep -c BACKUP_` prints 0).
+
+The private key stays on the laptop until the operator has stored it in his password manager and on paper (ruling H55
+(3)). Nobody deletes it before then. After the escrow, write the date and the two places in the table above, then
+delete the laptop copy; `test -f creds/backup-recipient.key` then fails, and a restore takes the key from the escrow by
+path, never from `.env`.
+
+### Read a dump back
+
+```
+gh run download <run id> -n mop-dev-dump
+openssl cms -decrypt -binary -inform DER -inkey <path to the private key> -in mop-dev-YYYY-MM-DD.dump.p7m -out x.dump
+pg_restore --list x.dump | head
+pg_restore --list x.dump | grep -c "TABLE DATA public analytics_events"
+#   prints 0: the analytics tables are in the dump, their rows are not
+```
+
+The full restore is HARDEN H1's `docs/runbooks/restore.md`.
+
+### Out of Actions minutes
+
+The same dump from the laptop, `.env` loaded without printing it (ASSUMED E10), with the 18.4 client of E11:
+
+```
+DB_URL="postgresql://postgres.$DEV_SUPABASE_PROJECT_REF:$(node -p 'encodeURIComponent(process.env.DEV_SUPABASE_DB_PASSWORD)')@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+pg_dump --format=custom --no-owner --no-acl --schema=public --schema=auth --exclude-table-data='public.analytics_events*' --file=x.dump "$DB_URL"
+openssl cms -encrypt -binary -stream -aes256 -outform DER -in x.dump -out "mop-dev-$(date -u +%F).dump.p7m" app/backup-recipient.pem
+```
+
+Measured on 2026-10-03 from the laptop: both exit 0, the dump is 233,571 bytes and the encrypted file 234,481; it
+decrypts with the private key to a byte-identical file whose listing holds 33 `public` and 27 `auth` tables and no
+`TABLE DATA public analytics_events`. Keep the encrypted file only; delete `x.dump`.
+
+### Retention
+
+The artifact keeps `retention-days: 30`. On 2026-10-03 the encrypted dump of `mop-dev` was 234,481 bytes (laptop
+measure above), so 30 nights hold about 7 MB. The Actions storage quota of this Free account is taken as 500 MB, GitHub's
+documented figure for the plan (ASSUMED, not read here); UNPROVEN until read on the account's billing page, because the billing API needs the `user` scope this login lacks
+(`gh api users/AbdulrahmanAmer/settings/billing/shared-storage` answers that). The size of the artifact itself is read
+after the first run with
+`gh api repos/AbdulrahmanAmer/matter-of-place/actions/artifacts --jq '.artifacts[] | select(.name=="mop-dev-dump") | .size_in_bytes'`.
+Revisit when the dump grows past 8 MB: 30 nights then pass half the quota, and the value becomes 14.
+
+The quota is shared with `ci.yml`'s `build-output` artifact (about 9.4 MB each, kept 1 day). On 2026-10-03 at 10:03 UTC
+137 of them were live, 1,284,006,728 bytes in all, from the parallel lanes' pushes; that alone is above 500 MB while
+the lanes run, and it is the number to watch, not the backup.
