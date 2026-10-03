@@ -3,13 +3,168 @@
   "written": "2026-10-03 by the orchestrator (H53). Steps 1 and 2 are the designer's and need nothing; step 2 waits on the CEO's pick. Steps 3 onward need the pick, and steps 7 onward need B8 and B2 on main. Briefs from plan-brief.mjs.",
   "unmetDependencies": [],
   "groups": [
-    { "id": "g1", "steps": "1", "title": "Direction, part one: the builder creates launch/engine/still.mjs (puppeteer-core under launch/), the designer writes BRIEF.md and renders the fifteen option PNGs with their contact sheets", "files": ["launch/engine/still.mjs", "workspace/08-creative/BRIEF.md", "workspace/08-creative/options"], "proof": "Step 1 as the plan writes it.", "blocked": false, "blockedOn": "", "critical": false, "needsOrchestrator": "Send the five contact sheets to the CEO with SendUserFile (P-006) and ask for one pick per template.", "designer": true, "needsPullRequest": false },
-    { "id": "g2", "steps": "2", "title": "Direction, part two: DIRECTION.md from the CEO's picks and the new decision row", "files": ["workspace/08-creative/DIRECTION.md", "PROJECT-STATE.md"], "proof": "Step 2 as the plan writes it.", "blocked": true, "blockedOn": "The CEO's pick of one option per template (an operator decision, S-number assigned by him).", "critical": false, "needsOrchestrator": "Record the pick as a PROJECT-STATE decision row.", "designer": true, "needsPullRequest": false },
-    { "id": "g3", "steps": "3", "title": "Social tokens, fonts, the fixture, the shared SocialFrame and the templates README", "files": ["app/src/styles/tokens.css", "app/src/templates/social/fonts.css", "app/src/templates/social/social.css", "app/src/templates/social/SocialFrame.tsx", "app/src/templates/social/fixtures/property.fixture.json", "app/src/templates/README.md", "app/scripts/fonts.mjs", "app/public/fonts"], "proof": "Step 3 as the plan writes it.", "blocked": true, "blockedOn": "DIRECTION.md with five pick rows (g2).", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": false },
-    { "id": "g4", "steps": "4,5", "title": "Cover, Story and OgCard templates with SSR snapshot tests; the carousel planner and slides, NewsletterBlock and the property block in B5's standalone email", "files": ["app/src/templates/social/Cover.tsx", "app/src/templates/social/Story.tsx", "app/src/templates/social/OgCard.tsx", "app/src/templates/social/Carousel.tsx", "app/src/templates/social/slides.ts", "app/src/templates/social/NewsletterBlock.tsx", "app/src/templates/email/standalone.tsx", "app/tests/unit/assets/templates.test.ts", "app/tests/unit/assets/carousel-plan.test.ts"], "proof": "Steps 4 and 5 as the plan writes them.", "blocked": true, "blockedOn": "g3; the standalone.tsx part also waits on B5 steps 1 and 3 on main.", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": false },
-    { "id": "g5", "steps": "6", "title": "Render scripts and the shoot library run locally against the fixture: media-key, png-size, media-store, shoot, the three render scripts, render-variants, puppeteer-core", "files": ["app/scripts/lib/shoot.mjs", "app/scripts/lib/media-key.mjs", "app/scripts/lib/png-size.mjs", "app/scripts/lib/media-store.mjs", "app/scripts/render-cover.mjs", "app/scripts/render-carousel.mjs", "app/scripts/render-story.mjs", "app/scripts/render-variants.mjs", "app/tests/unit/assets", "app/package.json"], "proof": "Step 6 as the plan writes it.", "blocked": true, "blockedOn": "g4 templates; render-variants waits on B2 step 12's variants.ts (on main when B2 closes).", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": false },
-    { "id": "g6", "steps": "7,8", "title": "The assets migration with its function files (guards, upsert_asset_stub, claim_media_for_render, the job-step functions, the screen 10 functions), then the five render steps with onResult, spec, tier and state guards in the step registry; security definer SQL, critical", "files": ["app/supabase/migrations", "app/supabase/sql/functions", "app/src/server/jobs/steps", "app/src/server/assets/spec.ts"], "proof": "Steps 7 and 8 as the plan writes them.", "blocked": true, "blockedOn": "B8 steps 1 to 8 (jobs, step registry, render.yml) on main and g5.", "critical": true, "needsOrchestrator": "", "designer": false, "needsPullRequest": true },
-    { "id": "g7", "steps": "9", "title": "write_captions through the laptop runner (H34): voice lint, captions, links, the step and its runWriteCaptions, scripts/captions-runner.ts, the Claude stub, the install script for the scheduled task", "files": ["app/src/server/jobs/steps/write-captions.ts", "app/src/server/assets/voice.ts", "app/src/server/assets/captions.ts", "app/src/server/assets/links.ts", "app/scripts/captions-runner.ts", "app/scripts/install-captions-task.ps1", "app/tests/fixtures/claude-stub.ts"], "proof": "Step 9 as the plan writes it.", "blocked": true, "blockedOn": "g6.", "critical": false, "needsOrchestrator": "The scheduled task on the laptop is registered only with the operator's word, at launch (H34).", "designer": false, "needsPullRequest": false },
-    { "id": "g8", "steps": "10,11", "title": "Assets service, the six admin routes with defineAdminRoute, permissions/assets with its matrix rows, the selftest flags and render.yml change; then screen 10, assets.css, the RerenderAssetsButton and the whole path on mop-dev", "files": ["app/src/server/assets/service.ts", "app/src/routes/api/admin/assets", "app/src/server/lib/permissions/assets.ts", "app/scripts/job-selftest.ts", ".github/workflows/render.yml", "app/src/admin/assets", "app/src/styles/admin/assets.css", "app/src/admin/properties/PublishBar.tsx"], "proof": "Steps 10 and 11 as the plan writes them.", "blocked": true, "blockedOn": "g7 and B7 steps 1 to 3 (defineAdminRoute, UI kit) on main.", "critical": false, "needsOrchestrator": "", "designer": false, "needsPullRequest": true }
+    {
+      "id": "g1",
+      "steps": "1",
+      "title": "Direction, part one: the builder creates launch/engine/still.mjs (puppeteer-core under launch/), the designer writes BRIEF.md and renders the fifteen option PNGs with their contact sheets",
+      "files": [
+        "launch/engine/still.mjs",
+        "workspace/08-creative/BRIEF.md",
+        "workspace/08-creative/options"
+      ],
+      "proof": "Step 1 as the plan writes it.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": false,
+      "needsOrchestrator": "Ruling H55 (2): the CTO picks one option per template against the three brand tests and records the pick in logs/B9.md and PROJECT-STATE; the operator may overrule later.",
+      "designer": true,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g2",
+      "steps": "2",
+      "title": "Direction, part two: DIRECTION.md from the CEO's picks and the new decision row",
+      "files": [
+        "workspace/08-creative/DIRECTION.md",
+        "PROJECT-STATE.md"
+      ],
+      "proof": "Step 2 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "The CTO picks after g1 (H55 (2)); the orchestrator re-runs this lane from g2 with the picks in the brief.",
+      "critical": false,
+      "needsOrchestrator": "Record the pick as a PROJECT-STATE decision row.",
+      "designer": true,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g3",
+      "steps": "3",
+      "title": "Social tokens, fonts, the fixture, the shared SocialFrame and the templates README",
+      "files": [
+        "app/src/styles/tokens.css",
+        "app/src/templates/social/fonts.css",
+        "app/src/templates/social/social.css",
+        "app/src/templates/social/SocialFrame.tsx",
+        "app/src/templates/social/fixtures/property.fixture.json",
+        "app/src/templates/README.md",
+        "app/scripts/fonts.mjs",
+        "app/public/fonts"
+      ],
+      "proof": "Step 3 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "DIRECTION.md with five pick rows (g2).",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g4",
+      "steps": "4,5",
+      "title": "Cover, Story and OgCard templates with SSR snapshot tests; the carousel planner and slides, NewsletterBlock and the property block in B5's standalone email",
+      "files": [
+        "app/src/templates/social/Cover.tsx",
+        "app/src/templates/social/Story.tsx",
+        "app/src/templates/social/OgCard.tsx",
+        "app/src/templates/social/Carousel.tsx",
+        "app/src/templates/social/slides.ts",
+        "app/src/templates/social/NewsletterBlock.tsx",
+        "app/src/templates/email/standalone.tsx",
+        "app/tests/unit/assets/templates.test.ts",
+        "app/tests/unit/assets/carousel-plan.test.ts"
+      ],
+      "proof": "Steps 4 and 5 as the plan writes them.",
+      "blocked": true,
+      "blockedOn": "g3; the standalone.tsx part also waits on B5 steps 1 and 3 on main.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g5",
+      "steps": "6",
+      "title": "Render scripts and the shoot library run locally against the fixture: media-key, png-size, media-store, shoot, the three render scripts, render-variants, puppeteer-core",
+      "files": [
+        "app/scripts/lib/shoot.mjs",
+        "app/scripts/lib/media-key.mjs",
+        "app/scripts/lib/png-size.mjs",
+        "app/scripts/lib/media-store.mjs",
+        "app/scripts/render-cover.mjs",
+        "app/scripts/render-carousel.mjs",
+        "app/scripts/render-story.mjs",
+        "app/scripts/render-variants.mjs",
+        "app/tests/unit/assets",
+        "app/package.json"
+      ],
+      "proof": "Step 6 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g4 templates; render-variants waits on B2 step 12's variants.ts (on main when B2 closes).",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g6",
+      "steps": "7,8",
+      "title": "The assets migration with its function files (guards, upsert_asset_stub, claim_media_for_render, the job-step functions, the screen 10 functions), then the five render steps with onResult, spec, tier and state guards in the step registry; security definer SQL, critical",
+      "files": [
+        "app/supabase/migrations",
+        "app/supabase/sql/functions",
+        "app/src/server/jobs/steps",
+        "app/src/server/assets/spec.ts"
+      ],
+      "proof": "Steps 7 and 8 as the plan writes them.",
+      "blocked": true,
+      "blockedOn": "B8 steps 1 to 8 (jobs, step registry, render.yml) on main and g5.",
+      "critical": true,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": true
+    },
+    {
+      "id": "g7",
+      "steps": "9",
+      "title": "write_captions through the laptop runner (H34): voice lint, captions, links, the step and its runWriteCaptions, scripts/captions-runner.ts, the Claude stub, the install script for the scheduled task",
+      "files": [
+        "app/src/server/jobs/steps/write-captions.ts",
+        "app/src/server/assets/voice.ts",
+        "app/src/server/assets/captions.ts",
+        "app/src/server/assets/links.ts",
+        "app/scripts/captions-runner.ts",
+        "app/scripts/install-captions-task.ps1",
+        "app/tests/fixtures/claude-stub.ts"
+      ],
+      "proof": "Step 9 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g6.",
+      "critical": false,
+      "needsOrchestrator": "The scheduled task on the laptop is registered only with the operator's word, at launch (H34).",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g8",
+      "steps": "10,11",
+      "title": "Assets service, the six admin routes with defineAdminRoute, permissions/assets with its matrix rows, the selftest flags and render.yml change; then screen 10, assets.css, the RerenderAssetsButton and the whole path on mop-dev",
+      "files": [
+        "app/src/server/assets/service.ts",
+        "app/src/routes/api/admin/assets",
+        "app/src/server/lib/permissions/assets.ts",
+        "app/scripts/job-selftest.ts",
+        ".github/workflows/render.yml",
+        "app/src/admin/assets",
+        "app/src/styles/admin/assets.css",
+        "app/src/admin/properties/PublishBar.tsx"
+      ],
+      "proof": "Steps 10 and 11 as the plan writes them.",
+      "blocked": true,
+      "blockedOn": "g7 and B7 steps 1 to 3 (defineAdminRoute, UI kit) on main.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": true
+    }
   ]
 }
