@@ -186,7 +186,8 @@ describe("toolchain (GS-07)", () => {
   });
 
   it("the test script gives every test and hook 60 s on a loaded laptop (H49 (3))", () => {
-    expect(packageJson.scripts["test"]).toBe("vitest run --testTimeout=60000 --hookTimeout=60000");
+    expect(packageJson.scripts["test"]).toContain("--testTimeout=60000");
+    expect(packageJson.scripts["test"]).toContain("--hookTimeout=60000");
   });
 });
 
