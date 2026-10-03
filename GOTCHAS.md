@@ -62,12 +62,13 @@ Entry template
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
 ## G-004 · Field names live in three files and must change together
-- paths: app/src/domain/**, app/supabase/migrations/**
+- paths: app/src/domain/**, app/supabase/migrations/**, app/src/db/types.ts
 - severity: warn
-- symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error.
-- cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
-- rule: change the domain type, the Zod contract and the SQL column in the same commit; grep the old name across all three before finishing.
-- proof: `grep -rn "<oldName>" src/domain docs/database` → no hits.
+- symptom: a field renamed in one place returns `undefined` in the UI or fails the Zod parse on the server with no type error; an enum value added in a migration is missing from `contracts.ts` (the sketch's `Awaiting Payment` and `editorialRoles` outlived the schema).
+- cause: `src/domain/*.ts` (camelCase) = API JSON = the columns of `supabase/migrations` (snake_case) = the generated `src/db/types.ts`; the HTTP adapter has no mapping layer by design (ADR 0002).
+- rule: change the migration, the regenerated types, the domain type and the Zod contract in the same commit. Every enum a domain list mirrors is a pair in `src/domain/enums.check.ts`; a new enum or list adds its pair there.
+- proof: `cd app && bun run gen:types && bun run typecheck` exits 0, and after a value is added to `submission_state` in `src/db/types.ts` it fails in `src/domain/enums.check.ts` (`Type 'false' does not satisfy the constraint 'true'`); `grep -rn "<oldName>" src` → no hits.
+- enforced-by: src/domain/enums.check.ts
 - added: 2026-09-30
 
 ## G-006 · `VITE_*` variables ship to the browser
@@ -1144,6 +1145,13 @@ Entry template
 - cause: Postgres `format` continues an unnumbered specifier from the position after the last argument used, numbered or not; after `%1$s` the next bare specifier is argument 2.
 - rule: once a format string uses a numbered specifier, number every specifier after it (`%3$L`).
 - proof: `cd app && bun run db:psql -- -Atc "select format('%s %2\$s %1\$s %L', 'a', 'b', 'c')"` prints `a b a 'b'`, and with `%3\$L` prints `a b a 'c'` (Postgres format docs; measured 2026-10-03, B2 g9).
+- added: 2026-10-03
+
+## P-327 · `gen:types` is an ops command, its determinism proof can pass on an unchanged file, and mop-dev only holds main's migrations
+- symptom: B2 g10 ran `bun run gen:types` in the shell that the db tests need (`eval "$(node scripts/load-env.mjs --profile dev)"`, `env -u CLOUDFLARE_API_TOKEN`) and got `supabase gen types exited 1`; the step's determinism proof (`cp src/db/types.ts supabase/.temp/types.prev.ts && bun run gen:types && git diff --no-index --exit-code ...`) still exited 0, because nothing had been rewritten. After the copy, `bun run check` failed in `eslint .` with `supabase/.temp/types.prev.ts was not found by the project service`. The file also lacks every function of migrations 9 to 12 (`public_state` is absent), because `mop-dev` holds only the migrations on `main`.
+- cause: `SUPABASE_ACCESS_TOKEN` is an ops name (`scripts/load-env.mjs` loads it only from `.env.ops` and `guardEnv()` refuses it in a db-test shell, P-310), and the dev profile has `DEV_SUPABASE_PROJECT_REF` only; the CLI reads the Management API with the token. ESLint's type-aware config lints every tracked-or-not `.ts` under `app/`, and `supabase/.temp/` was not ignored. The generator reads the cloud project, which an unmerged lane never pushes to (DB-01), so the committed file is what `main`'s schema produces until `main` pushes the rest.
+- rule: run `gen:types` in a shell loaded with the inline loader (`set -a; . <(tr -d '' < .env | grep -E '^[A-Z0-9_]+='); set +a`), never in the db-test shell, and read its `wrote src/db/types.ts` line before the diff: an exit 0 of the diff alone proves nothing. `supabase/.temp` is in the ESLint ignores. A lane's `src/db/types.ts` lacks the functions of its own unmerged migrations: regenerate it in the first pull request after `main` has pushed them (B4's `gen:types -- --local` diff is red until then), and say so in the log.
+- proof: `cd app && bun run gen:types` in the db-test shell prints `supabase gen types exited 1`, in the inline-loader shell `wrote src/db/types.ts`; `grep -c public_state src/db/types.ts` prints `0` on slice/b2 at B2 g10 while `grep -c "create or replace function public.public_state" supabase/migrations/20261001090800_catalog_version.sql` prints `1` (measured 2026-10-03).
 - added: 2026-10-03
 
 ## Retired, enforced

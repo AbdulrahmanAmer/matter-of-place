@@ -173,6 +173,7 @@ export default defineConfig(
       "test-results",
       "src/routeTree.gen.ts",
       "src/db/types.ts",
+      "supabase/.temp",
     ],
   },
   {

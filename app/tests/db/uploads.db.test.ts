@@ -3,13 +3,8 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
+import { uploadLimits } from "../../src/domain/contracts";
 import { withRollback, type Db } from "../fixtures/db";
-
-// STUB(B2 step 10): `uploadLimits` of src/domain/contracts.ts replaces this copy of invariant 13's numbers.
-const uploadLimits = {
-  maxBytes: 26214400,
-  types: ["image/jpeg", "image/png", "image/heic", "image/webp"],
-};
 
 const SUBMISSION = `insert into public.submissions (
     address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, story, significance,
@@ -155,7 +150,7 @@ describe("submissions rights", () => {
 });
 
 describe("limits", () => {
-  const bucket = (id: string, isPublic: boolean, bytes: number, types: string[]) =>
+  const bucket = (id: string, isPublic: boolean, bytes: number, types: readonly string[]) =>
     `${id}: ${isPublic ? "public" : "private"}, ${String(bytes)}, ${types.join(" ")}`;
 
   it("storage.buckets holds exactly submissions, media and documents, with their sizes and types", async () => {

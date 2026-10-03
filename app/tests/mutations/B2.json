@@ -2320,5 +2320,35 @@
     "sql": "alter table public.submission_media drop constraint submission_media_mime_allowed; alter table public.submission_media add constraint submission_media_mime_allowed check (mime in ('image/jpeg', 'image/png', 'image/webp'));",
     "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
     "expect": "\\+\\s+\"image/heic\""
+  },
+  {
+    "id": "c",
+    "kind": "file",
+    "test": "src/domain/enums.check.ts",
+    "file": "src/db/types.ts",
+    "find": "        | \"Withdrawn\"\n",
+    "replace": "        | \"Withdrawn\"\n        | \"Probe\"\n",
+    "run": "bun run typecheck",
+    "expect": "enums.check.ts.*does not satisfy the constraint 'true'"
+  },
+  {
+    "id": "g10-contract-drift",
+    "kind": "file",
+    "test": "src/domain/enums.check.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  \"Completed\",\n  \"Withdrawn\",\n] as const;",
+    "replace": "  \"Completed\",\n] as const;",
+    "run": "bun run typecheck",
+    "expect": "enums.check.ts.*does not satisfy the constraint 'true'"
+  },
+  {
+    "id": "g10-upload-limit",
+    "kind": "file",
+    "test": "tests/db/uploads.db.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  maxBytes: 26_214_400,\n",
+    "replace": "  maxBytes: 26_214_401,\n",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "× .*storage file_size_limit equals uploadLimits.maxBytes"
   }
 ]

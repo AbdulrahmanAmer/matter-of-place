@@ -4,8 +4,10 @@
     "src/routes/**/*.{ts,tsx}",
     "scripts/**/*.{ts,mjs}",
     "supabase/functions/*/index.ts",
-    "tests/**/*.{ts,tsx}"
+    "tests/**/*.{ts,tsx}",
+    "src/domain/index.ts",
+    "src/db/index.ts"
   ],
-  "ignore": ["src/db/types.ts"],
+  "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql"]
 }
