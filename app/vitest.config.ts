@@ -1,14 +1,25 @@
 import { defineConfig } from "vitest/config";
 
 // An inline project does not inherit the root `test` block, so each project sets requireAssertions itself (CS-12).
+// Both setup files run in every unit and component test: hermetic.ts removes credentials and the network (R50).
 export default defineConfig({
   test: {
     projects: [
       {
         test: {
           name: "unit",
-          include: ["tests/unit/**/*.test.ts"],
+          include: ["tests/unit/**/*.test.ts", "src/**/*.test.ts"],
           environment: "node",
+          setupFiles: ["tests/setup/hermetic.ts"],
+          expect: { requireAssertions: true },
+        },
+      },
+      {
+        test: {
+          name: "component",
+          include: ["tests/unit/**/*.test.tsx", "src/**/*.test.tsx"],
+          environment: "jsdom",
+          setupFiles: ["tests/setup/dom.ts", "tests/setup/hermetic.ts"],
           expect: { requireAssertions: true },
         },
       },

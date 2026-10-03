@@ -45,8 +45,10 @@ const GROUPS = {
           critical: { type: 'boolean', description: 'true when a subtle mistake here is expensive: see rule 5 of the sizing instructions' },
           needsOrchestrator: { type: 'string', description: 'empty, or what only the orchestrator may do after this group (a production deploy, a secret to set by hand, a decision); merging to main is not one, the workflow merges through the gate' },
           designer: { type: 'boolean', description: 'true when the plan gives these steps to mop-designer' },
+          needsPullRequest: { type: 'boolean', description: 'true only when a proof of these steps is a CI job on a pull request' },
+          brief: { type: 'string', description: 'the packet the builder and the reviewer work from instead of the whole plan: the full text of each step of the group verbatim, then every line of the Contract and Invariants sections that names one of the group\'s files or one of the things the steps build, then the Files-list lines of those files, each quoted verbatim with its section name. Nothing paraphrased, nothing left out that those steps need.' },
         },
-        required: ['id', 'steps', 'title', 'files', 'proof', 'blocked', 'blockedOn', 'critical', 'needsOrchestrator', 'designer'],
+        required: ['id', 'steps', 'title', 'files', 'proof', 'blocked', 'blockedOn', 'critical', 'needsOrchestrator', 'designer', 'brief'],
       },
     },
     unmetDependencies: { type: 'array', items: { type: 'string' } },
@@ -81,7 +83,7 @@ const REVIEW = {
   required: ['verdict', 'reran', 'defects'],
 }
 
-const RULES = `Standing rules for this project (they overrule habit):
+const rulesFor = (ROOT, BASH_ROOT, PORT) => `Standing rules for this project (they overrule habit):
 - Read the map at the top of ${ROOT}/GOTCHAS.md (before the first entry), then run \`node workspace/05-plans/check-gotchas.mjs --for <every file you will touch>\` from ${ROOT} and read what it prints (path entries in full, process entries by title; open a title that concerns your work with grep). Ruling H51 replaced reading the whole file. The operator's standing order (2026-10-02): the bank is ALWAYS updated. The moment a tool error, a failed approach, a wrong assumption, a plan line that did not match reality or a rework costs you more than a few minutes, add the entry to ${ROOT}/GOTCHAS.md in the same session (next free number, the template at the top of the file, a proof command), run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}, commit it with your work and name it in gotchasAdded. Finishing with "nothing went wrong" after a second attempt at anything is a defect.
 - No Docker on this machine, ever (S50). There is one cloud database, the project named mop-dev: the build database now, production after the launch switch (ASSUMED H35). There is no R2: files live in Supabase Storage, buckets submissions, media and documents (H33). There is no Anthropic key: captions come from the laptop runner (H34).
 - Facts measured on this machine are in ${ROOT}/workspace/05-plans/ASSUMED.md section E. They overrule older lines anywhere.
@@ -90,22 +92,28 @@ ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the re
 - Write only what the step needs. No dead code, no speculative option or abstraction, no comment that restates the code, no swallowed error, no TODO left behind, no file outside the folder map, nothing committed that is build output, a log or a scratch file.- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge your branch into main, never force-push, never rewrite pushed history. You may bring main into your branch with \`git fetch -q origin && git merge origin/main\` (a merge commit, never a rebase) at the start of your work and whenever GitHub shows your pull request as conflicting, because a conflicting pull request starts no CI run (GOTCHAS P-136); GOTCHAS.md merges by entry through its own driver, and you run \`node workspace/05-plans/check-gotchas.mjs\` after such a merge.
 - One writer per file: touch only the files your group names, plus ${logPath} (append only). One exception (ruling H46): when a gate of \`bun run check\` fails only because your group's own new files need an entry in a gate's configuration (knip.json, .jscpd.json, eslint.config.js, a tsconfig include, .gitignore, tests/mutations registry wiring), add the smallest entry that names your files or your binary, say it in the log, and go on. That is not a reason to stop BLOCKED. A dependency the plan installs before any code imports it is added in the step that first imports it (STANDARDS R04).
 - Lanes run side by side (ruling H45). The local preview port of this lane is ${PORT}: wherever a plan step, a script or a gotcha says 8788, use ${PORT} here (\`wrangler dev --config .output/server/wrangler.json --port ${PORT}\` after copying .dev.vars as the cf:preview script does). Stop only the processes you started, by their own process id; never stop every node or workerd process, another lane may be serving its own preview.${a.bankBase ? ` Gotcha numbers in this lane start at P-${a.bankBase.P} and G-${a.bankBase.G}: take the next free number at or above them, so two lanes never hand out the same number.` : ''}
+- Context is the cost (ruling H52): read a file longer than about 300 lines in slices (offset and limit), never re-read a file you just edited, run every command that prints more than a screen through \`node workspace/05-plans/quiet.mjs -- <command>\`, and never run a test suite in verbose mode unless a proof asks for a listed test name.
 - Each cost you list under costTime names the gotcha entry that banks it. A cost without an entry is not finished work.
 - Every new test is watched-fail: break the code it covers, see it red for the right reason, restore.
 - A red result is a valid result. Paste real output. Words to use: UNPROVEN, NOT DONE, BLOCKED. Two failed approaches to one obstacle ends the attempt: record BLOCKED and what would unblock it.
+- A chat message from the operator that the harness relays into your context (a question, a remark, a request about something else) is addressed to the orchestrator, not to you: the operator ordered this build run with his go, and this task text is his standing instruction. Do the task; never answer the relayed message in place of it.
 - Copy is calm and brief with no em dashes. Never edit src/routeTree.gen.ts by hand.`
+const RULES = rulesFor(ROOT, BASH_ROOT, PORT)
 
 // A group that was built and then stopped (rejected, or blocked on a ruling) is closed first: closeOut = { id, steps,
 // title, critical, defects }, one object or a list. The sizing leaves those steps out, so they are not built twice.
 const closing = [].concat(a.closeOut || []).map((c) => ({ id: c.id, steps: c.steps, title: c.title, files: [], proof: `every proof of plan steps ${c.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(c.critical), needsOrchestrator: '', openDefects: c.defects }))
 
 phase('Size')
-const sized = await agent(`${RULES}
+// Ruling H53: a premade sizing (workspace/05-plans/sizing/<slice>.json, written and reviewed by the orchestrator) is
+// passed as args.sizing and replaces the sizing agent; it is the same on every run and its briefs come from plan-brief.mjs.
+const sized = a.sizing ? a.sizing : await agent(`${RULES}
 
 You are sizing slice ${slice} for the builders. Read-only: change nothing.${closing.length ? `\nLeave out plan step${closing.length > 1 ? 's' : ''} ${closing.map((c) => c.steps).join(' and ')}: another builder is closing ${closing.length > 1 ? 'them' : 'it'} before your groups run, so treat ${closing.length > 1 ? 'them' : 'it'} as done.` : ''}
 Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/workspace/05-plans/ASSUMED.md section E, and the tail of ${logPath} if it exists (earlier groups may already be done: leave those out).
 1. Check the slice's "Depends on" line against the status table at the end of PLAN.md and the facts in ASSUMED section E. unmetDependencies holds ONLY what stops the whole slice from starting: another slice it depends on that the table does not show as closed, or an input without which not one step can run. A step or a part of a step that waits (on a later slice, an operator input, the custom domain) is NOT an unmet dependency: it goes into that group's blockedOn. A fact you think is stale in a document is not a dependency either: say it in the group title of the step it touches.
 2. Split the plan's ordered steps into groups, in order. One group is what one builder session finishes and proves: two or three consecutive plan steps when together they touch at most about ten files, one step alone when it is large or critical. Every group costs a fresh review, so do not split what one session can finish. Keep steps that share files in the same group. Copy each group's proof commands from the plan verbatim. Set designer to true when the plan's "Owner agent" line gives the group's steps to mop-designer (design direction, layout decisions, copy); otherwise false.
+6. Write each group's brief (ruling H52): the text of its steps verbatim, then every Contract and Invariants line that names one of its files or one of the things its steps build, then the Files-list lines of those files, each verbatim under its section name. The builder and the reviewer read the brief instead of the plan, so a line they would need that is missing from it costs a fix round; a line they do not need costs every turn. Measured: the plan was read 91 times in one day and every read sat in the context of every later call.
 3. Mark a group blocked ONLY when nothing in it can run today (every step in it is marked BLOCKED in the plan or needs something section E says does not exist); say on what. When only a part is blocked, keep blocked false, put the waiting part in blockedOn, and say in the title which part runs: the builder builds and proves the part that runs and records the rest as BLOCKED.
 4. Set needsOrchestrator when the plan step deploys production, sets a production secret by hand, or needs a decision. A merge to main is not a reason: the workflow merges the slice through the merge gate itself.
 5. Set critical to true when the group writes or changes any of: row level security policies, grants or security definer SQL functions; sign-in, sessions, tokens, CSRF, permissions or the authorization matrix; the job system's claim, lease, retry or idempotency logic; payment, invoice or credit state; cryptography or signature checks; the launch switch, the production guard or any destructive database command; secrets handling in CI or deploy workflows. Otherwise false. A critical group is built by the stronger model (operator decision S62).`, { label: `size:${slice}`, phase: 'Size', model: 'sonnet', effort: 'high', schema: GROUPS })
@@ -115,7 +123,7 @@ log(`${slice}: ${sized.groups.length} groups, ${sized.groups.filter((g) => g.blo
 if (a.dryRun) return { slice, dryRun: true, ...sized }
 // The stop rule is mechanical (GOTCHAS P-061): what the sizing agent lists as unmet is information for the
 // orchestrator; the slice stops here only when not one group can run, or when the orchestrator asks for a strict stop.
-if (!sized.groups.some((g) => !g.blocked)) return { slice, stopped: 'no group can run', ...sized }
+if (!sized.groups.some((g) => !g.blocked) && !closing.length) return { slice, stopped: 'no group can run', ...sized }
 if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stopped: 'unmet dependencies (strict)', ...sized }
 
 let groups = sized.groups
@@ -128,25 +136,33 @@ if (a.only) groups = groups.filter((g) => a.only.includes(g.id))
 const buildPrompt = (g, defects) => `${RULES}
 
 You are building group ${g.id} of slice ${slice}: "${g.title}" (plan steps ${g.steps}).
-The plan is ${planPath}. Read it in full, then ${ROOT}/workspace/05-plans/STANDARDS.md, then ${APP}/AGENTS.md, then only the spec sections the plan cites and the files you will touch.
+Your brief, quoted from the plan ${planPath} (open the plan itself only for a section the brief names and does not quote):
+${g.brief || '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs ' + slice + ' --steps "' + g.steps.replace(/\s*(-|to)\s*/g, ',') + '" --files "' + g.files.join(',') + '"` from ' + ROOT + ' and read its output first)'}
+
+Then read the rule index \`node workspace/05-plans/standards-index.mjs\` (one line per rule of STANDARDS.md; open the full rule in STANDARDS.md only when its line concerns your files) and ${APP}/AGENTS.md, then only the spec sections the brief cites and the files you will touch.
 Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
 Proof you must run and paste: ${g.proof}
+Working style (ruling H52, measured on 69 agents: the context re-sent per call averaged 238k tokens and a builder made 97 calls): batch independent commands in one call; do not grep around when the brief names the files; run long commands through \`node workspace/05-plans/quiet.mjs -- <command>\`, which prints the summary when green and the failing part in full when red; replay watched-fails through the registry tool in one call when it exists, and never one entry per call by hand.
 
 ${defects ? `A fresh reviewer rejected the previous attempt. Fix exactly the defects marked blocking (or all of them when none carries the mark), then re-run every proof. A defect marked "blocking": false is a follow-up: fix it only when it is a small change inside your own files, otherwise leave it, another agent records it.\n${JSON.stringify(defects, null, 1)}\n` : `Start: \`git -C "${ROOT}" fetch -q origin && (git -C "${ROOT}" checkout ${branch} 2>/dev/null || git -C "${ROOT}" checkout -b ${branch} ${BASE}) && git -C "${ROOT}" merge origin/main\`. Other lanes land on main while you work, so every group starts from current main; if the merge conflicts in a code file, resolve it keeping both sides' intent, run \`bun run check\`, and say so in the log. Confirm the branch before you write.`}
-Build the steps in order. After each step run its proof. When the group is proven: run \`bun run check\` and \`bun run build\` in the app folder, commit on ${branch} with a message that names the slice and steps, push the branch (\`git push -u origin ${branch}\`). Push once per finished piece of work, not once per commit: every push to a pull request spends Actions minutes. CI runs only on a pull request: if \`gh pr list --head ${branch} --state open\` shows none after your first push, open a draft one (\`gh pr create --draft --base main --head ${branch}\` with a title that names the slice and a body that says which steps it holds). Never mark it ready and never merge it: the workflow's merge step does that through the merge gate when the slice is done.
-Append to ${logPath} a block headed "## ${g.id} · steps ${g.steps}" with each proof command and its real output (trim long output, never trim the failing part).
+Build the steps in order. After each step run its proof. When the group is proven: run \`bun run check\` and \`bun run build\` in the app folder, commit on ${branch} with a message that names the slice and steps, push the branch (\`git push -u origin ${branch}\`). Push once per finished piece of work, not once per commit: every push to a pull request spends Actions minutes. ${g.needsPullRequest ? `This group's proof needs CI: if \`gh pr list --head ${branch} --state open\` shows no pull request after your first push, open a draft one (\`gh pr create --draft --base main --head ${branch}\` with a title that names the slice and a body that says which steps it holds). Never mark it ready and never merge it.` : `Do not open a pull request: the workflow's merge step opens it when the slice is done and merges through the merge gate (ruling H54); your proof is local.`}
+Append to ${logPath} a block headed "## ${g.id} · steps ${g.steps}" with each proof command and its real output: at most 40 lines per proof, the summary lines when green and the failing part in full when red (ruling H52 (3)).
 If the plan is wrong, do not build something else quietly: stop, say what is wrong, and return status "blocked".`
 
-const reviewPrompt = (g, built) => `${RULES}
+const reviewPrompt = (g, built, where = { root: ROOT, bash: BASH_ROOT, port: PORT, rules: RULES, snapshot: null }) => `${where.rules}
+${where.snapshot ? `This review runs in a frozen snapshot of commit ${where.snapshot.sha.slice(0, 7)} (ruling H54): first run \`node workspace/05-plans/review-snapshot.mjs create ${where.root} ${where.snapshot.sha}\` from ${where.root}; it prints the snapshot folder, which is ${where.root}, and every path below is under it. The builder of the next group is working in ${where.root} at the same time: never read, run or write anything there. When you are done, run \`node workspace/05-plans/review-snapshot.mjs remove ${where.root}\`. If create fails twice, return verdict reject with one defect whose file is SNAPSHOT and whose what is the error text, and nothing else. No CI run exists for this commit; your snapshot is the proof.\n` : ''}
 
 You are a fresh reviewer for group ${g.id} of slice ${slice} ("${g.title}", plan steps ${g.steps}). You did not write this code and you were not given the author's reasoning. Read-only: do not edit, commit or push.
-The contract is ${planPath} (the sections Contract, Invariants and the steps ${g.steps} with their proofs). The branch is ${branch}; see what changed with \`git -C "${ROOT}" diff ${BASE}...${branch} --stat\` and read the changed files.
+The contract, quoted from the plan ${where.root}/workspace/05-plans/${slice}.md (open the plan only for a section the brief names and does not quote):
+${g.brief || '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs ' + slice + ' --steps "' + g.steps.replace(/\s*(-|to)\s*/g, ',') + '" --files "' + g.files.join(',') + '"` from ' + ROOT + ' and read its output first)'}
+The branch is ${branch}; see what changed with \`git -C "${where.root}" diff ${BASE}...${branch} --stat\` and read the changed files.
+Working style (ruling H52): batch independent commands in one call; run long commands through \`node workspace/05-plans/quiet.mjs -- <command>\` (summary when green, the failing part in full when red); replay only this group's new registry entries plus the registry's own consistency check, the whole registry is CI's job.
 The author claims: ${JSON.stringify({ status: built.status, proofs: built.proofs, unproven: built.unproven, watchedFail: built.watchedFail, costTime: built.costTime, gotchasAdded: built.gotchasAdded }, null, 1)}
 1. Re-run every proof command yourself and record what you observed.
 2. Try to refute "done": an invariant of the plan the code breaks, a proof that passes for the wrong reason, a test that cannot fail, a file the group should have created that is missing, a convention in AGENTS.md that is broken, a secret or an em dash in the diff, Docker assumed, R2 or a second database or an Anthropic key assumed (rulings H33, H34, H35).
 3. Run \`bun run check\` in the app folder.
-4. Read ${ROOT}/workspace/05-plans/STANDARDS.md and go through its reviewer checklist line by line against the diff, and check every new or moved file against its folder map. A broken rule of STANDARDS.md is a defect: name the rule and the line. So is code the step did not ask for: dead code, an unused export, a speculative option, a comment that restates the code, a swallowed error, a leftover TODO, a scratch or generated file in the commit.
-5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${ROOT}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${ROOT}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${ROOT} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so it gets added.
+4. Read ${where.root}/workspace/05-plans/STANDARDS.md and go through its reviewer checklist line by line against the diff, and check every new or moved file against its folder map. A broken rule of STANDARDS.md is a defect: name the rule and the line. So is code the step did not ask for: dead code, an unused export, a speculative option, a comment that restates the code, a swallowed error, a leftover TODO, a scratch or generated file in the commit.
+5. The gotcha bank (the operator's standing order). For each line the author lists under costTime, and for anything in the slice log or the diff that shows a second attempt or a workaround, there must be an entry in ${where.root}/GOTCHAS.md on this branch with a rule and a proof command: \`git -C "${where.root}" diff ${BASE}...${branch} -- GOTCHAS.md\` shows it and \`node workspace/05-plans/check-gotchas.mjs\` run from ${where.root} prints OK. A cost with no entry is a defect; say which. If something cost YOU time while reviewing, report it under defects with file "GOTCHAS.md" so it gets added.
 6. Mark every defect blocking or not (ruling ASSUMED H45 (1)). Blocking, true: behaviour that breaks the plan's Contract, an invariant or a rule of STANDARDS.md in the group's own files; a proof that fails, or a test that stays green when the thing it covers is removed; a risk to security or to data; a regression of something that worked; a false statement in a runbook or in the log. Follow-up, false: a missing gotcha entry; a stale line in a plan or document that is not this group's file (it is the orchestrator's to fold); a weakness the plan does not ask this step to close; a note for a later slice; anything you would accept without. Before you mark a defect blocking, name to yourself the concrete input or event that makes it go wrong for this product; if you cannot, it is a follow-up. Do not hunt for ever finer cases in a helper script once its contract holds: say what it does not cover in one follow-up.
 Verdict "reject" only when at least one defect is blocking or a proof did not reproduce. Otherwise "accept", and list the follow-ups: one agent banks or records every one of them, none is dropped. Taste alone is not a defect.`
 
@@ -169,38 +185,83 @@ Then run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}, commit on $
 
 The follow-ups, as the reviewer wrote them:\n${JSON.stringify(defects, null, 1)}`
 const out = []
+// Ruling H54: one serial chain of writers (builds, fixes, follow-ups) in the lane; each review runs in a frozen snapshot
+// of the group's last commit, one review at a time per lane, overlapping the next build. A group that moves the schema
+// of mop-dev (migrations, seed, db:push) waits for every pending review first. See review-overlap.md.
+const schemaWork = (g) => (g.files || []).some((f) => /supabase\/migrations|\/seed|db-push|db-reset/.test(f)) || /\b(db:push|db:reset|seed)\b/.test(g.title || '')
+const lastSha = (built) => { const line = (built.commits || []).at(-1) || ''; return (line.match(/^([0-9a-f]{7,40})\b/) || [])[1] || '' }
+const snapshotWhere = (sha) => ({ root: `${ROOT}-review`, bash: `${BASH_ROOT}-review`, port: PORT + 1, rules: rulesFor(`${ROOT}-review`, `${BASH_ROOT}-review`, PORT + 1), snapshot: { sha } })
+const snapshotFailed = (r) => Boolean(r && r.defects && r.defects.some((d) => d.file === 'SNAPSHOT'))
+const pending = []   // { g, built, review: Promise, settled: boolean, result, rounds, worker }
+let reviewQueue = Promise.resolve()
+const startReview = (item, round) => {
+  const sha = lastSha(item.built)
+  const label = `${round ? `review${round + 1}` : 'review'}:${slice}:${item.g.id}:${item.g.steps}`
+  const run = () => (a.noOverlap || !sha
+    ? agent(reviewPrompt(item.g, item.built), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+    : agent(reviewPrompt(item.g, item.built, snapshotWhere(sha)), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW }))
+  item.settled = false
+  item.review = reviewQueue.then(run).then((r) => { item.result = r; item.settled = true; return r }, () => { item.result = null; item.settled = true; return null })
+  reviewQueue = item.review
+}
+const finish = (item, accepted) => {
+  out.push({ group: item.g.id, steps: item.g.steps, status: accepted ? 'accepted' : 'rejected', fixRounds: item.rounds, builder: item.worker, critical: Boolean(item.g.critical), built: item.built, review: item.result, bankClosed: item.bankClosed || null, needsOrchestrator: item.g.needsOrchestrator })
+  log(`${item.g.id} (steps ${item.g.steps}): ${accepted ? 'accepted' : 'rejected'} after ${item.rounds} fix round(s)`)
+}
+// Writes for settled reviews, in the serial chain: a fix and a re-review, or the follow-up agent, or a review redone in the lane.
+const settle = async () => {
+  for (const item of pending.filter((x) => x.settled)) {
+    const r = item.result
+    if (!r || snapshotFailed(r)) {
+      if (item.redone) { pending.splice(pending.indexOf(item), 1); finish(item, false); continue }
+      item.redone = true
+      log(`${item.g.id}: review ${r ? 'could not make its snapshot' : 'died'}; redoing it in the lane`)
+      item.result = await agent(reviewPrompt(item.g, item.built), { label: `review-lane:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+      if (!item.result) { pending.splice(pending.indexOf(item), 1); finish(item, false); continue }
+    }
+    const review = item.result
+    if (blocks(review) && item.rounds < MAX_FIX) {
+      item.rounds++
+      const later = pending.filter((x) => x !== item && groups.indexOf(x.g) > groups.indexOf(item.g)).map((x) => `${x.g.id} (steps ${x.g.steps}): ${x.g.files.join(', ')}`)
+      const defects = later.length ? [...review.defects, { file: 'LATER GROUPS', what: `Built on top of this group since: ${later.join('; ')}. A fix repairs behaviour inside this group's contract; if it must change something those groups build on, stop and return status blocked naming the group (ruling H54).`, evidence: 'the writer chain', blocking: false }] : review.defects
+      const fixed = await agent(buildPrompt(item.g, defects), { label: `fix${item.rounds}:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: item.worker === 'mop-designer' ? builderModel(item.g) : builderModel(item.g), effort: 'high', agentType: item.worker, schema: BUILD })
+      if (!fixed || fixed.status === 'blocked') { pending.splice(pending.indexOf(item), 1); item.result = review; finish(item, false); continue }
+      item.built = fixed
+      startReview(item, item.rounds)
+      continue
+    }
+    pending.splice(pending.indexOf(item), 1)
+    if (blocks(review)) { finish(item, false); continue }
+    if (followUps(review).length) {
+      item.bankClosed = await agent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+      finish(item, Boolean(item.bankClosed && item.bankClosed.status === 'done'))
+    } else finish(item, true)
+  }
+}
+const settleAll = async () => { while (pending.length) { await Promise.all(pending.map((x) => x.review)); await settle() } }
+const failed = () => out.some((o) => o.status === 'rejected' || o.status === 'failed' || (o.status === 'blocked' && o.built))
+
 for (const g of groups) {
   if (g.blocked) {
     out.push({ group: g.id, steps: g.steps, status: 'blocked', blockedOn: g.blockedOn })
     log(`${g.id} (steps ${g.steps}) BLOCKED on ${g.blockedOn}`)
     continue
   }
-  // The label carries the steps so the progress board (workspace/05-plans/board.mjs) can read the journal.
-  const tag = (kind) => `${kind}:${slice}:${g.id}:${g.steps}`
+  if (schemaWork(g) && pending.length) { log(`${g.id} moves the schema: waiting for ${pending.length} pending review(s)`); await settleAll() }
+  if (failed()) { log(`stopping before ${g.id}: an earlier group was not accepted`); break }
   const worker = g.designer ? 'mop-designer' : 'mop-builder'
-  let built = await agent(buildPrompt(g, g.openDefects || null), { label: tag(g.openDefects ? 'close' : 'build'), phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: worker, schema: BUILD })
+  const tag = (kind) => `${kind}:${slice}:${g.id}:${g.steps}`
+  const built = await agent(buildPrompt(g, g.openDefects || null), { label: tag(g.openDefects ? 'close' : 'build'), phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: worker, schema: BUILD })
   if (!built) { out.push({ group: g.id, steps: g.steps, status: 'failed', blockedOn: 'builder agent died' }); break }
-  let review = null
-  let rounds = 0
-  if (built.status !== 'blocked') {
-    review = await agent(reviewPrompt(g, built), { label: tag('review'), phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    while (blocks(review) && rounds < MAX_FIX) {
-      rounds++
-      const fixed = await agent(buildPrompt(g, review.defects), { label: tag(`fix${rounds}`), phase: 'Fix', model: builderModel(g), effort: 'high', agentType: worker, schema: BUILD })
-      if (!fixed) break
-      built = fixed
-      review = await agent(reviewPrompt(g, built), { label: tag(`review${rounds + 1}`), phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    }
-  }
-  let bankClosed = null
-  const passed = Boolean(review && !blocks(review))
-  if (passed && followUps(review).length) bankClosed = await agent(bankPrompt(g, followUps(review)), { label: tag('bank'), phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
-  const accepted = passed && (!followUps(review).length || Boolean(bankClosed && bankClosed.status === 'done'))
-  out.push({ group: g.id, steps: g.steps, status: built.status === 'blocked' ? 'blocked' : accepted ? 'accepted' : 'rejected', fixRounds: rounds, builder: builderModel(g), critical: Boolean(g.critical), built, review, bankClosed, needsOrchestrator: g.needsOrchestrator })
-  log(`${g.id} (steps ${g.steps}): ${built.status}, review ${review ? review.verdict : 'not run'}, fix rounds ${rounds}`)
-  if (!accepted) { log(`stopping after ${g.id}: later groups depend on it`); break }
-  if (g.needsOrchestrator) { log(`stopping after ${g.id}: the orchestrator must act: ${g.needsOrchestrator}`); break }
+  if (built.status === 'blocked') { out.push({ group: g.id, steps: g.steps, status: 'blocked', built, blockedOn: built.blockedOn, needsOrchestrator: g.needsOrchestrator }); log(`${g.id}: builder returned blocked`); break }
+  const item = { g, built, rounds: 0, worker, settled: false, result: null }
+  pending.push(item)
+  startReview(item, 0)
+  await settle()
+  if (g.needsOrchestrator) { await settleAll(); log(`stopping after ${g.id}: the orchestrator must act: ${g.needsOrchestrator}`); break }
 }
+await settleAll()
+out.sort((x, y) => groups.findIndex((g) => g.id === x.group) - groups.findIndex((g) => g.id === y.group))
 
 const next = sized.groups.find((g) => !g.blocked && !out.some((o) => o.group === g.id && o.status === 'accepted'))
 
@@ -208,15 +269,17 @@ const next = sized.groups.find((g) => !g.blocked && !out.some((o) => o.group ===
 // group was just accepted), one agent brings main in, marks the pull request ready, waits for CI and runs the
 // merge gate. The orchestrator re-runs its own probes after the merge, in batches, instead of stopping each lane.
 // A merge spends CI minutes on main and a dev deploy, so the default is one merge per slice.
-const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.needsOrchestrator) && out.at(-1)?.needsOrchestrator
-const sliceDone = !next && out.length > 0 && out.every((o) => o.status === 'accepted')
+const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.needsOrchestrator)
+// A group the sizing marked blocked (waiting on another slice) has no `built` and does not hold the merge back;
+// a group a builder returned blocked, or a rejected or failed one, does.
+const sliceDone = !next && out.some((o) => o.status === 'accepted') && out.every((o) => o.status === 'accepted' || (o.status === 'blocked' && !o.built))
 let merged = null
 if (!a.noMerge && (sliceDone || (a.mergeEach && out.at(-1)?.status === 'accepted')) && !stoppedForOrchestrator) {
   merged = await agent(`${RULES}
 
 You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
 1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; resolve a conflict only in GOTCHAS.md (it merges by entry through its driver; run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}) or in a log file (keep both sides). Any other conflict: stop and return status "blocked" naming the file. Push.
-2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one (not draft). Otherwise \`gh pr ready <n>\`.
+2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one, not a draft (\`gh pr create --base main --head ${branch}\` with a title naming the slice and the steps it carries). Otherwise \`gh pr ready <n>\`.
 3. Wait for its checks: \`gh pr checks <n> --watch --interval 20\` (run it in the background and read its output file if it passes ten minutes). If a check fails, read the failing job's log (\`gh run view <id> --log-failed\`), fix nothing, and return status "blocked" with the failing step's output pasted.
 4. \`node workspace/05-plans/merge-gate.mjs <n>\` from ${ROOT}; paste its output. It must print the merge; if it refuses, return status "blocked" with its words.
 5. Record the merge commit (\`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid\`) in proofs, with the CI run id. Report status "done".`, { label: `merge:${slice}:all:${out.map((o) => o.steps).join(',')}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })

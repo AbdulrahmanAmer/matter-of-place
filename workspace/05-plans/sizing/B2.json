@@ -1,0 +1,133 @@
+{
+  "slice": "B2",
+  "written": "2026-10-03 by the orchestrator (ruling H53); covers the steps not built by the runs of 2026-10-02 and 2026-10-03 (steps 1 to 7). Briefs come from plan-brief.mjs.",
+  "unmetDependencies": [],
+  "groups": [
+    {
+      "id": "g8",
+      "steps": "8",
+      "title": "Migration 9: catalog_version bumps (triggers on properties, redirects, slug_history, markets, settings rows by key) and the two public reads public_state() and public_catalog_snapshot(); security definer SQL, so critical",
+      "files": [
+        "app/supabase/migrations/20261001090800_catalog_version.sql",
+        "app/supabase/sql/functions/public_state.sql",
+        "app/supabase/sql/functions/public_catalog_snapshot.sql",
+        "app/tests/db/catalog-version.db.test.ts",
+        "app/tests/db/public-reads.db.test.ts",
+        "app/tests/mutations/B2.json"
+      ],
+      "proof": "The Proof sentences of step 8 as the plan writes them: tests/db/catalog-version.db.test.ts (publish bumps once, draft edit does not, the version row itself does not loop, redirects, slug rename, flags, site, coming_soon_global, environment, og_static, markets.coming_soon, slug_history each bump once per statement; meta, invoice and caption_model rows do not), then bunx vitest run --project db tests/db/public-reads.db.test.ts (public_state() keys and defaults, site keys, illustrative_content by environment, public_catalog_snapshot() shape); every new test watched failing with a registry entry.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": true,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g9",
+      "steps": "9",
+      "title": "Migrations 10 and 11: row level security policies and grants for every table, the role matrix (six roles, anon, a two-role user), function execute privileges, the three storage buckets with their limits and types; critical",
+      "files": [
+        "app/supabase/migrations/20261001090900_rls.sql",
+        "app/supabase/migrations/20261001091000_storage.sql",
+        "app/tests/db/rls-matrix.ts",
+        "app/tests/db/rls.db.test.ts",
+        "app/tests/db/uploads.db.test.ts",
+        "app/supabase/config.toml",
+        "app/tests/mutations/B2.json"
+      ],
+      "proof": "The Proof sentences of step 9 as the plan writes them: bunx vitest run --project db tests/db/rls.db.test.ts (matrix over every table and operation, anon gets an error or zero rows, the two-role user gets the union, every public table has RLS on, grants equal the matrix, no anon execute on any function, authenticated execute only on the allow-list), then bunx vitest run --project db tests/db/uploads.db.test.ts -t limits (exactly the buckets submissions, media, documents with the plan's limits and types, no anon or authenticated policy on storage.objects, config.toml file_size_limit 25MiB equals uploadLimits.maxBytes, the submission_media check constraint holds 26214400); every new test watched failing with a registry entry.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": true,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g10",
+      "steps": "10,11",
+      "title": "Migration 12 (settings defaults), generated database types through gen-types.mjs, src/db/index.ts, the domain row types and enums drift check, the contract edits, the ignore entries; then the drift guard's watched-fail and the G-004 sweep (step 11 edits the bank entry G-004 at the repo root). Two small steps that share src/domain and the generated types",
+      "files": [
+        "app/supabase/migrations/20261001091100_settings_defaults.sql",
+        "app/scripts/gen-types.mjs",
+        "app/src/db/types.ts",
+        "app/src/db/index.ts",
+        "app/src/domain/rows.ts",
+        "app/src/domain/index.ts",
+        "app/src/domain/enums.check.ts",
+        "app/src/domain/contracts.ts",
+        "app/knip.json",
+        "app/.prettierignore",
+        "GOTCHAS.md"
+      ],
+      "proof": "Step 10: bun run gen:types && bun run check exits 0; the output is deterministic: cp src/db/types.ts supabase/.temp/types.prev.ts && bun run gen:types && git diff --no-index --exit-code supabase/.temp/types.prev.ts src/db/types.ts exits 0. Step 11: grep -rn \"Awaiting Payment\\|editorialRoles\" src docs prints no hit outside historical brief files; grep -n \"enforced-by: src/domain/enums.check.ts\" ../GOTCHAS.md prints one line; the watched-fails (c) and (d) of the plan's Verification section go red and are restored.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g11",
+      "steps": "12",
+      "title": "The image library (strip-exif, heic, the makeVariants and variantKeys part of variants.ts), then the seed: asset-loader, rows, seed-args, rows.test.ts, seed.ts for reference and full modes with --images skip; runs db:reset and the seed against mop-dev under this lane's single-writer exception (H45 (5))",
+      "files": [
+        "app/scripts/lib/strip-exif.ts",
+        "app/scripts/lib/heic.ts",
+        "app/scripts/variants.ts",
+        "app/scripts/lib/asset-loader.ts",
+        "app/scripts/lib/rows.ts",
+        "app/scripts/lib/seed-args.ts",
+        "app/scripts/seed.ts",
+        "app/tests/unit/rows.test.ts",
+        "app/tests/db/seed.db.test.ts",
+        "app/package.json",
+        "app/tests/mutations/B2.json"
+      ],
+      "proof": "The Proof sentences of step 12 as the plan writes them: bun run check exits 0 with the three library files; bunx vitest run --project unit tests/unit/rows.test.ts (propertyToRows shapes, parseSeedArgs accepted and refused forms); bun run seed -- --target prod exits 1 with seed: invalid arguments and opens no connection; bun run db:reset && bun run seed -- --target dev --mode full --images skip prints markets 3, regions 12, properties 16, stories 6; bunx vitest run --project db tests/db/seed.db.test.ts (16 Illustrative properties, 3 markets, public_catalog_snapshot() 16 properties under 500 KB, public_state() values); the reference seed and its idempotence as the plan writes (0 | 3, then 0 | 2 after the manual update); every new test watched failing with a registry entry. sharp and heic-convert are installed by this step, which first imports them (ruling H46 (2)).",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g12",
+      "steps": "13",
+      "title": "The variants CLI, make-fixtures.mjs, the two JPEG fixtures and the unit tests of the step 12 library (variants, strip-exif, heic). The upload part (--images upload, HEAD before PUT, the public media URL with its immutable cache header) waits on B9's scripts/lib/media-store.mjs and is recorded BLOCKED on B9",
+      "files": [
+        "app/scripts/variants.ts",
+        "app/scripts/make-fixtures.mjs",
+        "app/tests/fixtures/photo.jpg",
+        "app/tests/fixtures/photo-gps.jpg",
+        "app/tests/unit/variants.test.ts",
+        "app/tests/unit/strip-exif.test.ts",
+        "app/package.json",
+        "app/tests/mutations/B2.json"
+      ],
+      "proof": "The Proof sentences of step 13 as the plan writes them for the part that runs now: node scripts/make-fixtures.mjs writes the two fixtures and is deterministic (git diff --no-index --exit-code against the previous copy exits 0); bun run variants -- --file tests/fixtures/photo.jpg --owner test prints one key per variant and makes no network call; bunx vitest run --project unit tests/unit/variants.test.ts (sizes, formats, no AVIF, hero under 400 KB, key shapes, exactly five variants); bunx vitest run --project unit tests/unit/strip-exif.test.ts (GPS gone after strip and after every variant, gif refused, 6000x4000 comes out 2560x1707, the 2400x1600 fixture keeps its size, the HEIC case or its BLOCKED note); every new test watched failing with a registry entry. The upload part is BLOCKED on B9 and says so in the log.",
+      "blocked": false,
+      "blockedOn": "The upload part only: --images upload, the HEAD-before-PUT re-run and the public media URL check wait on B9's scripts/lib/media-store.mjs.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g13",
+      "steps": "14",
+      "title": "Close-out: confirm no pending migration with bun run db:push, the full seed with --images skip, delete docs/database/schema.sql, replace schema.md and data-model.md with the short page, write docs/runbooks/database.md with the launch section; the advisor check (get_advisors security on mop-dev) is the orchestrator's, it needs the Supabase MCP",
+      "files": [
+        "app/docs/database/schema.sql",
+        "app/docs/database/schema.md",
+        "app/docs/architecture/data-model.md",
+        "app/docs/runbooks/database.md",
+        "app/supabase/config.toml"
+      ],
+      "proof": "The Proof sentences of step 14 as the plan writes them: bunx supabase migration list --linked shows the same 12 versions locally and remotely; the dev API count of Illustrative properties prints 16 (keys loaded with eval \"$(node scripts/load-env.mjs --profile dev)\", never printed); grep -c \"create table\" docs/database/schema.md prints 0; grep -c \"public_catalog_snapshot\\|db:reset\\|-- down:\\|retention_policies\" docs/runbooks/database.md prints at least 4; bun run check and bun run build exit 0.",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": false,
+      "needsOrchestrator": "The advisor check: get_advisors security on mop-dev must return no lint 0028 or 0029 (S49); the orchestrator runs it through the Supabase MCP after this group, before the slice merges.",
+      "designer": false
+    }
+  ]
+}

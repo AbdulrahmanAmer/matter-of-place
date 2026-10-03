@@ -16,6 +16,7 @@ import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectRuns } from "./agent-cost.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -86,6 +87,20 @@ function readSlices() {
     slices.push({ id, title, planStatus: cells[2], closedOn: cells[3], steps, dependsOn });
   }
   return slices;
+}
+
+// Cost per run from the build journals and transcripts (agent-cost.mjs); heavy to read, so at most every five minutes.
+let costCache = { at: 0, runs: [] };
+function readCosts() {
+  if (Date.now() - costCache.at < 5 * 60_000) return costCache.runs;
+  let runs = [];
+  try {
+    runs = collectRuns({ since: Date.now() - 14 * 86_400_000 }).filter((r) => r.stepsAccepted > 0).sort((x, y) => y.at - x.at).slice(0, 12);
+  } catch {
+    // no journals readable: the board says nothing about cost
+  }
+  costCache = { at: Date.now(), runs };
+  return runs;
 }
 
 let gitCache = { at: 0, lanes: [] };
@@ -393,6 +408,7 @@ export function collect(now = new Date()) {
     arms,
     waiting: ledger.waiting,
     worktrees: readLanes(),
+    costs: readCosts(),
     runs: runs.runs,
     errors: [...new Set(errors)],
   };
@@ -608,6 +624,7 @@ ${data.arms.map((arm) => `<div class="tile"><h2>${esc(arm.label)}</h2><p class="
 <div class="tile wide"><h2>Now</h2><p>${esc(data.now)}</p><p class="meta">Orchestrator's note, ${esc(data.updated)}.</p></div>
 <div class="tile"><h2>Finish line</h2><p class="big">${o.total - o.accepted}</p><p class="meta">steps to go${remainingHours === null ? "" : ` · about ${remainingHours} hours at the measured pace of ${pace.hoursPerStep} h a step`}</p></div>
 <div class="tile"><h2>Slices</h2><p class="big">${o.slicesClosed} of ${o.slices}</p><p class="meta">closed</p></div>
+${data.costs[0] ? `<div class="tile"><h2>Latest run cost</h2><p class="big">${(data.costs[0].total.cacheRead / data.costs[0].stepsAccepted / 1e6).toFixed(0)}M</p><p class="meta">tokens re-read per step · ${Math.round(data.costs[0].total.min / data.costs[0].stepsAccepted)} agent minutes per step · baseline 121M and 119</p></div>` : ""}
 <div class="tile"><h2>Lanes</h2><p class="big">${data.worktrees.length}</p><p class="meta">open on the build laptop</p></div>
 </div>
 </section>
@@ -652,6 +669,13 @@ ${details}
 <h1 id="h-activity">Activity</h1>
 ${events || '<p class="meta">No build run in the last two hours.</p>'}
 ${worktrees}
+<h3>Cost per accepted step, by run (newest first)</h3>
+<div class="wrap"><table>
+<thead><tr><th scope="col">Run</th><th scope="col">Slice</th><th scope="col">Steps</th><th scope="col">Tokens re-read per step</th><th scope="col">Calls per step</th><th scope="col">Agent minutes per step</th><th scope="col">Context per call</th></tr></thead>
+<tbody>
+${data.costs.map((c) => `<tr><th scope="row">${esc(c.run.slice(3, 11))}</th><td>${esc(c.slice)}</td><td class="num">${c.stepsAccepted}</td><td class="num">${(c.total.cacheRead / c.stepsAccepted / 1e6).toFixed(1)}M</td><td class="num">${Math.round(c.total.calls / c.stepsAccepted)}</td><td class="num">${Math.round(c.total.min / c.stepsAccepted)}</td><td class="num">${c.total.calls ? Math.round(c.total.cacheRead / c.total.calls / 1000) : 0}k</td></tr>`).join("\n") || '<tr><td colspan="7" class="meta">No finished run with an accepted step in the last two weeks.</td></tr>'}
+</tbody></table></div>
+<p class="meta">Baseline of 2026-10-02: 121.4M tokens, 499 calls and 119 agent minutes per step, 243k per call.</p>
 <h3>Pace</h3>
 <p>${esc(paceLine)}</p>
 </section>
@@ -756,6 +780,28 @@ function main() {
   server.listen(port, "127.0.0.1", () => {
     console.log(`board: http://127.0.0.1:${port}`);
   });
+  // --snapshot <file>: rewrite the shareable snapshot whenever the board version changes (checked every minute),
+  // with a .version sidecar; the orchestrator watches the sidecar and republishes the artifact from the file.
+  const snapshotAt = args.indexOf("--snapshot");
+  if (snapshotAt >= 0) {
+    const file = args[snapshotAt + 1];
+    let written = existsSync(`${file}.version`) ? readFileSync(`${file}.version`, "utf8") : "";
+    const refresh = () => {
+      try {
+        const data = collect();
+        const version = versionOf(data);
+        if (version === written) return;
+        writeFileSync(file, render(data, version, true));
+        writeFileSync(`${file}.version`, version);
+        written = version;
+        console.log(`board: snapshot ${data.overall.percent}% written to ${file}`);
+      } catch (error) {
+        console.error(`board: snapshot not written: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    refresh();
+    setInterval(refresh, 60_000).unref();
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

@@ -47,17 +47,20 @@ export function merge(base, ours, theirs) {
   const baseById = new Map(b.entries.map((entry) => [entry.id, entry.body]));
   const theirsById = new Map(t.entries.map((entry) => [entry.id, entry.body]));
   const conflicts = [];
-  const merged = o.entries.map((entry) => {
+  const merged = o.entries.flatMap((entry) => {
     const other = theirsById.get(entry.id);
-    if (other === undefined || other === entry.body) return entry.body;
     const was = baseById.get(entry.id);
-    if (was === entry.body) return other;
-    if (was === other) return entry.body;
+    // retired on their side (gardening): gone from theirs, unchanged on ours since the base
+    if (other === undefined && was !== undefined && was === entry.body) return [];
+    if (other === undefined || other === entry.body) return [entry.body];
+    if (was === entry.body) return [other];
+    if (was === other) return [entry.body];
     conflicts.push(entry.id);
-    return entry.body;
+    return [entry.body];
   });
+  // an entry theirs has and ours lacks is new on their side, unless the base had it unchanged: then ours retired it
   const mine = new Set(o.entries.map((entry) => entry.id));
-  for (const entry of t.entries) if (!mine.has(entry.id)) merged.push(entry.body);
+  for (const entry of t.entries) if (!mine.has(entry.id) && baseById.get(entry.id) !== entry.body) merged.push(entry.body);
   const head = o.head === b.head ? t.head : o.head;
   return { text: `${[head, ...merged].join("\n\n")}\n`, conflicts };
 }

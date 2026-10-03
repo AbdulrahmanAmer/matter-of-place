@@ -848,3 +848,78 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   in each lane, then launch all four by scriptPath in one message, then the six plan audits (H50 item 1).
 - The stopped run wf_689ef72f-fa9 is NOT resumed; its work is the c7 close-out in restart.json (two items; the third
   is on main).
+
+## 2026-10-03 02:35 +0300 · Dry runs of the two new lanes done; everything quiet; PARKED until the operator's go
+- B4 (tests lane) sizes into g1(1-2) g2(3-4) g3(5) g4(6) g5(7-8): g1 runs today; parts that need B2 steps 7 and 9,
+  B3 steps 7 to 9 and B3b are marked waiting inside their groups, not blocked. Lane port 8788 in the plan reads 8808 here.
+- B9 (design lane) sizes into g1(1, designer: still.mjs then BRIEF.md and 15 option PNGs with contact sheets), g2(2,
+  designer, BLOCKED on the CEO's pick of one option per template: the orchestrator sends the five sheets with
+  SendUserFile and records the pick as a PROJECT-STATE decision), g3 to g7 wait on that pick. So the design lane
+  produces the five sheets, then needs Dave's choice before it goes on.
+- Both dry runs were one read-only sizing agent each (about 120k tokens, 3 to 4 minutes); no builder ran; both lane
+  trees unchanged. Nothing runs now except the board server.
+
+## 2026-10-03 06:45 +0300 · H52 context diet built; test run on the db lane next
+- Baseline (agent-cost.mjs over 2026-10-02): per accepted step 121.4M cache reads, 499 calls, 119 agent minutes,
+  context per call 243k. New: brief packets in the sizing schema and both prompts, standards-index.mjs, quiet.mjs,
+  batching and replay-scope rules, agent-cost.mjs in the repo.
+- NEXT: run the db lane (B2 from step 4) with the new pipeline, then `node workspace/05-plans/agent-cost.mjs --run <id>`
+  and compare per-step figures with the baseline; report the percentages; then ask the operator for the go.
+
+## 2026-10-03 07:35 +0300 · H53 premade sizing built while the agent-sized test run works
+- `workspace/05-plans/plan-brief.mjs` (mechanical brief), `workspace/05-plans/sizing/B2.json` (steps 8 to 14, six
+  groups, written by the orchestrator), workflow takes `args.sizing`. Test run 1 (agent sizing, `wf_8618b926-e77`)
+  is building B2 steps 4 to 7 in the db lane; when it ends: `agent-cost.mjs --run wf_8618b926-e77` against the
+  baseline (121.4M cache / 499 calls / 119 agent minutes per step), then run 2 with
+  `sizing: <contents of sizing/B2.json>` on the same lane, then compare both, then ask the operator for the go.
+
+## 2026-10-03 08:20 +0300 · Review-overlap design written (workspace/05-plans/review-overlap.md), awaiting sign-off
+- Adds to the calibration after the two runs (wf_8618b926-e77 agent-sized B2, wf_47216851-ce9 premade B4) report:
+  serial writer chain, reviews in commit snapshots (review-snapshot.mjs), schema groups wait for pending reviews,
+  no draft PR until slice end except groups marked needsPullRequest. Prove on one slice first.
+
+## 2026-10-03 · Calibration in progress (items 1 to 4 done)
+- 1: run 1's self-merge verified (PR 67 → main 810e7d9, CI green); migrations 4 to 8 pushed to mop-dev by the
+  orchestrator from main (`bun run db:push`); B4's branch merged main and needs one fixture fix (run `wf_728371a8-61d`,
+  close-out c2) before PR 68 can go through the gate.
+- 2: merge rule fixed (waiting groups do not block the merge). 3: context-trim rules (slices, quiet runner, 40-line
+  proofs). 4: overlap built (`review-snapshot.mjs`, writer chain, snapshot reviews, schema wait, needsPullRequest,
+  noOverlap) and simulated: 6 scenarios pass. Bank merge driver handles retired entries. agent-cost.mjs range fix.
+- NEXT: 5 premade sizing for every unbuilt slice; 9 bank gardening (Opus agent); 10 follow-ups folded; 11 cost on the
+  board; 6 prove on B2 steps 8 to 14; 7 ledger, restart.json; 8 report and the go question.
+
+## 2026-10-03 · Calibration done, build parked until the operator's go
+- Done and on main: 5 premade sizing for all 21 slices (PR 71); 9 bank gardened 200 to 139 entries (PRs 73, 75; the
+  first merge went through the old driver and brought every retired entry back, PR 74 fixed the driver both ways);
+  11 cost per step on the board (PR 76, `collectRuns` exported from `agent-cost.mjs`); 7 ledger (B2 1 to 7, B4 1, 2, 3, 5),
+  `restart.json` rewritten for the new workflow, B4 g4 unblocked; P-504 and the standing-order rule in the workflow
+  (PR 72). Accepted steps: 23 of 253. Main folder and `E:/mop-build/orch` are both on main.
+- Measured: run 2 (premade sizing, B4 steps 1 to 5) 24.1M cache per step, 37 agent minutes, 100 calls, wall 148 min
+  for 4 steps; run 1 (B2 steps 4 to 7) 28.8M, 50 min, 126 calls, wall 201 min. Baseline 2026-10-02: 121.4M, 119 min, 499.
+- BLOCKED — 6, the proving run of the overlap on B2 steps 8 to 14 — two launches (`wf_6e66a398-a29`, before and after
+  the rule) ended in 13 and 27 s: the builder took the operator's relayed chat question as its instruction and built
+  nothing. What unblocks it: launch right after the operator's go message, which is then the relayed instruction.
+- UNPROVEN: the overlap on a real run (simulated only), the builder context trim, four lanes at once, the self-merge
+  under the overlap. 10 (follow-ups folded) is owed at each slice close, not before. 12 WAITING ON OPERATOR: Actions
+  spending limit (~$20), design pick after B9 g1, escrow of `creds/backup-recipient.key` before B1b step 8.
+- NEXT: on the go, launch the four lanes of `restart.json` in one message; then PR 43 via the gate after c7; advisor
+  check after B2 g13; B3 lane when B2 closes.
+
+## 2026-10-03 · Proving run launched; the board's shared copy updates itself
+- The operator's message of this turn is an order, so the builders accept it: proving run `wf_57df2412-448` is building
+  B2 steps 8 to 14 on the db lane with the overlap (item 6, in progress). Watch its first result in the board.
+- The artifact Build Progress Board (https://claude.ai/artifact/23fZrWogVimK8NaoAkmrdd) is republished on every change:
+  the board runs with `--snapshot <scratchpad>/board/board-snapshot.html`, a Monitor watches the `.version` sidecar and
+  wakes the orchestrator, who republishes the file to that URL. Republished at 9.1% this turn. Re-arm the Monitor at expiry.
+
+## 2026-10-03 · Operating mode: autonomous to live (S63, H55)
+- The operator handed over: decide everything that does not need his hands, record it, keep going until the site is
+  live. Settled under H55: Actions spending stays zero; the B9 design pick is the CTO's; the backup key stays on the
+  laptop until he escrows it (step 8 no longer deletes it); lanes open after the proving run's first clean review, then
+  by dependency; L1's switch runs without a further go. Still his hands only: passwords, login codes, cards, accounts.
+- Proving run `wf_57df2412-448` (B2 steps 8 to 14) in progress; the g8 builder was at 70 minutes with no result yet.
+
+## 2026-10-03 · Accounts: no block (S64, H56)
+- The operator confirms the coding and programming accounts exist and are signed in on this laptop; only the social
+  media connections remain and they are done after launch by him. Steps marked "waits on an outside account" run;
+  social token steps are `AFTER LAUNCH (S64)`, not blocked; L1 does not need a connected channel.

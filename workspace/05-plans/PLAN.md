@@ -123,7 +123,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B2 | in progress | | started 2026-10-02 21:10 +0300 in the lane `E:/mop-build/db` (branch `slice/b2`, port 8798, bank numbers from P-300 and G-100); steps 1, 1b, 2 and 3 accepted at first review and on `main` (PR #49, `ecae323`); migrations 1 to 3 are on `mop-dev`; step 4 onward not started |
 | B3 | not started | | |
 | B3b | not started | | |
-| B4 | not started | | |
+| B4 | in progress | | started 2026-10-02 in the lane `E:/mop-build/tests` (branch `slice/b4`, port 8808, bank numbers from P-400 and G-150); steps 1, 2, 3 and 5 accepted and on `main` (PRs #67 and #68, `1cbcb4f`); step 4 next; steps 6 to 10 wait on B3 and B3b. |
 | B5 | not started | | |
 | B6 | not started | | |
 | B7 | not started | | |

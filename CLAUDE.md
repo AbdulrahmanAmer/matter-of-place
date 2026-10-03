@@ -67,6 +67,12 @@ bun run build     # .output/ for Cloudflare (nitro cloudflare_module)
 bun run dev       # http://localhost:8080
 ```
 
+## Operating mode (S63, 2026-10-03): autonomous to live
+The orchestrator decides everything that does not need the operator's hands and records each decision as a ruling in
+`workspace/05-plans/ASSUMED.md` (H55 holds the first five). A block is only a password, a login code, a card, an account he
+must create, or a thing he must physically hold; everything else is decided, logged and done. Lanes open by dependency
+without a go; the launch switch runs when H1 is closed and the checklist is green; the operator is told when the site is live.
+
 ## Model routing (token discipline is a project requirement)
 - Orchestrator: this session (Fable). Judgment, synthesis, RULE 2 verification only.
 - Workers (operator decision S62, 2026-10-02: "high effort on sonnet 5.5 and opus 5.5 since that is the sweet spot"):
