@@ -309,9 +309,10 @@ describe("claim_job", () => {
     const key = testKey();
     const claims = await committed(
       async (a) => {
+        // A message visible an hour from now, so a live runner on the same database never takes this job.
         const { id } = await one<{ id: string }>(
           a,
-          "select public.enqueue_job('test.job', '{}', $1) as id",
+          "select public.enqueue_job('test.job', '{}', $1, p_run_after => now() + interval '1 hour') as id",
           [key],
         );
         const b = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
@@ -320,6 +321,10 @@ describe("claim_job", () => {
           await a.query("begin");
           const first = await a.query("select locked_by from public.claim_job($1)", [id]);
           await b.query("begin");
+          // committed() never applies a registered mutation (it would commit it). The second claim applies it in its
+          // own transaction, which rolls back, so the replay of watched-fail (e) reaches the race (T-07).
+          const mutation = process.env["MOP_MUTATION_SQL"];
+          if (mutation !== undefined && mutation !== "") await b.query(mutation);
           const { pid } = await one<{ pid: number }>(b, "select pg_backend_pid() as pid");
           const second = b.query("select locked_by from public.claim_job($1)", [id]);
           // The second claim must be waiting on the first one's row lock before the first commits.
@@ -335,7 +340,7 @@ describe("claim_job", () => {
           }
           await a.query("commit");
           const secondRows = (await second).rows.length;
-          await b.query("commit");
+          await b.query("rollback");
           return { waiting, first: first.rows.length, second: secondRows };
         } finally {
           await b.end();
