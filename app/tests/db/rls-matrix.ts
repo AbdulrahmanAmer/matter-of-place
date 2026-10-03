@@ -58,6 +58,10 @@ export const rlsMatrix: Record<string, Access> = {
   },
   campaigns: staffRead,
   campaign_reports: staffRead,
+  // B3: only the service role reaches the first two; privacy requests are for admin and chief_editor (admin screens 25).
+  rate_limits: {},
+  webhook_receipts: {},
+  subject_requests: { select: ["chief_editor", "admin"], update: ["chief_editor", "admin"] },
   events: staffRead,
   jobs: staffRead,
   job_events: staffRead,
