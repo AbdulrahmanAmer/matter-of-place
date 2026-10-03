@@ -1,6 +1,6 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-03 13:30 (UTC+3)",
+  "updated": "2026-10-03 15:30 (UTC+3)",
   "now": "Calibration done, build parked until the operator's go. On main: B1b steps 1 to 5b, B2 steps 1 to 7 (migrations 1 to 8 on mop-dev), B4 steps 1, 2, 3 and 5; B1b steps 6 and 7 on their branch. New pipeline: premade sizing, briefs, snapshot reviews overlapping the next build, self-merge, cost on the board.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
@@ -26,9 +26,13 @@
         "5",
         "5b",
         "6",
-        "7"
+        "7",
+        "8",
+        "9",
+        "10"
       ],
-      "inReview": []
+      "inReview": [],
+      "note": "Steps 1 to 10 accepted and on main (PR 43 merged 2026-10-03, e6f05e9); step 7b running; step 9 is recorded BLOCKED on GitHub Pro (H5) with the merge gate as the substitute; step 11 waits on L1."
     },
     "B2": {
       "accepted": [
@@ -39,10 +43,12 @@
         "4",
         "5",
         "6",
-        "7"
+        "7",
+        "8",
+        "9"
       ],
       "inReview": [],
-      "note": "Steps 1 to 7 accepted by Opus review and merged (migrations 1 to 8 on mop-dev); steps 8 to 14 next on the db lane."
+      "note": "Steps 1 to 9 accepted on the db lane (8 and 9 on slice/b2, merged with the slice); 10 to 14 next."
     },
     "B4": {
       "accepted": [
@@ -54,6 +60,14 @@
       ],
       "inReview": [],
       "note": "Steps 1 to 5 accepted and merged (PR 84, 2026-10-03); 6 to 10 wait on B3 and B3b."
+    },
+    "B9": {
+      "accepted": [
+        "1",
+        "2"
+      ],
+      "inReview": [],
+      "note": "Direction picked (S65); steps 3 and 4 to 5 building on slice/b9."
     }
   },
   "lanes": [
