@@ -6,7 +6,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "Submit an existing residential property in California, New York or Florida for editorial review.";
 
-export const Route = createFileRoute("/submit")({
+export const Route = createFileRoute("/_site/submit")({
   head: () => pageHead({ title: "Submit a Property", description, path: "/submit" }),
   component: SubmitPage,
 });

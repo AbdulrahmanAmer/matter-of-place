@@ -15,7 +15,7 @@ import { padIndex } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_site/")({
   loader: async ({ context: { queryClient } }) => {
     const [properties, markets] = await Promise.all([
       queryClient.ensureQueryData(propertiesQuery()),

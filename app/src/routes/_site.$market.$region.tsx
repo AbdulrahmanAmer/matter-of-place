@@ -16,7 +16,7 @@ const legacyRegions: Record<string, string> = {
   "south-florida": "fort-lauderdale",
 };
 
-export const Route = createFileRoute("/$market/$region")({
+export const Route = createFileRoute("/_site/$market/$region")({
   beforeLoad: ({ params }) => {
     const renamed = legacyRegions[params.region];
     if (renamed)

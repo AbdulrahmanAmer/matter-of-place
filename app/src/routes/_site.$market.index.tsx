@@ -12,7 +12,7 @@ import { pluralize } from "../lib/format";
 import { marketQuery, propertiesQuery, storiesQuery } from "../lib/queries";
 import { pageHead, unavailableHead } from "../lib/seo";
 
-export const Route = createFileRoute("/$market/")({
+export const Route = createFileRoute("/_site/$market/")({
   loader: async ({ params, context: { queryClient } }) => {
     const [market, properties, stories] = await Promise.all([
       queryClient.ensureQueryData(marketQuery(params.market)),

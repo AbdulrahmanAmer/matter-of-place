@@ -7,7 +7,7 @@ import { useTrackView } from "../hooks/use-track-view";
 import { marketQuery } from "../lib/queries";
 import { pageHead, unavailableHead } from "../lib/seo";
 
-export const Route = createFileRoute("/$market/guide")({
+export const Route = createFileRoute("/_site/$market/guide")({
   loader: async ({ params, context: { queryClient } }) => {
     const market = await queryClient.ensureQueryData(marketQuery(params.market));
     if (!market) throw notFound();

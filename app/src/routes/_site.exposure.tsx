@@ -9,7 +9,7 @@ import { faqJsonLd, pageHead } from "../lib/seo";
 const description =
   "The Feature $295, The Reach $695, The Campaign $1,495 and Five Features $1,250. Editorial presentation with precision distribution, after editorial review.";
 
-export const Route = createFileRoute("/exposure")({
+export const Route = createFileRoute("/_site/exposure")({
   head: () =>
     pageHead({
       title: "Property Exposure",

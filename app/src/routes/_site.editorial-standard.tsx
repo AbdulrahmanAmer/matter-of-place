@@ -7,7 +7,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "What Matter of Place looks for in a property: architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not the measure.";
 
-export const Route = createFileRoute("/editorial-standard")({
+export const Route = createFileRoute("/_site/editorial-standard")({
   head: () => pageHead({ title: "Editorial Standard", description, path: "/editorial-standard" }),
   component: StandardPage,
 });

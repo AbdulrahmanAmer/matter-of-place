@@ -6,7 +6,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "Matter of Place is an independent real-estate media platform for exceptional residential property in California, New York and Florida. An Omnikom company.";
 
-export const Route = createFileRoute("/about")({
+export const Route = createFileRoute("/_site/about")({
   head: () => pageHead({ title: "About", description, path: "/about" }),
   component: AboutPage,
 });

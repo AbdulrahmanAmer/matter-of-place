@@ -6,7 +6,7 @@ import { faqJsonLd, pageHead } from "../lib/seo";
 const description =
   "Short answers about Matter of Place: what we feature, what it costs, who receives inquiries.";
 
-export const Route = createFileRoute("/faq")({
+export const Route = createFileRoute("/_site/faq")({
   head: () => pageHead({ title: "FAQ", description, path: "/faq", jsonLd: faqJsonLd(faq) }),
   component: FaqPage,
 });

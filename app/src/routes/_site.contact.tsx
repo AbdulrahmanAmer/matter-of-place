@@ -8,7 +8,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "Write to Matter of Place about a property, a market, or presenting a residence.";
 
-export const Route = createFileRoute("/contact")({
+export const Route = createFileRoute("/_site/contact")({
   head: () => pageHead({ title: "Contact", description, path: "/contact" }),
   component: ContactPage,
 });

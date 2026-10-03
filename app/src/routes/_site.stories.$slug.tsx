@@ -7,7 +7,7 @@ import { useTrackView } from "../hooks/use-track-view";
 import { propertiesQuery, storyQuery } from "../lib/queries";
 import { pageHead, unavailableHead } from "../lib/seo";
 
-export const Route = createFileRoute("/stories/$slug")({
+export const Route = createFileRoute("/_site/stories/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
     const [story, properties] = await Promise.all([
       queryClient.ensureQueryData(storyQuery(params.slug)),

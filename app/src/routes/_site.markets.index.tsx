@@ -6,7 +6,7 @@ import { pageHead } from "../lib/seo";
 
 const description = "California, New York and Florida. Three markets, one editorial point of view.";
 
-export const Route = createFileRoute("/markets/")({
+export const Route = createFileRoute("/_site/markets/")({
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(marketsQuery()),
   head: () => pageHead({ title: "Markets", description, path: "/markets" }),
   component: MarketsPage,

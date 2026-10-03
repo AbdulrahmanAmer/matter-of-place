@@ -14,7 +14,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "A quiet selection of places with something to say: residences across California, Florida and New York, searchable by place, price, type and architecture.";
 
-export const Route = createFileRoute("/properties")({
+export const Route = createFileRoute("/_site/properties")({
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
     const q = search["q"];
     return typeof q === "string" && q.trim() ? { q } : {};

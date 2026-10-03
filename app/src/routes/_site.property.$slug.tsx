@@ -24,7 +24,7 @@ import { formatNumber } from "../lib/format";
 import { marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
 import { pageHead, unavailableHead } from "../lib/seo";
 
-export const Route = createFileRoute("/property/$slug")({
+export const Route = createFileRoute("/_site/property/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
     const [property, properties, markets] = await Promise.all([
       queryClient.ensureQueryData(propertyQuery(params.slug)),

@@ -8,7 +8,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "Architecture, interiors and places across California, New York and Florida, from the Matter of Place editorial desks.";
 
-export const Route = createFileRoute("/stories/")({
+export const Route = createFileRoute("/_site/stories/")({
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(storiesQuery()),
   head: () => pageHead({ title: "Stories", description, path: "/stories" }),
   component: StoriesPage,

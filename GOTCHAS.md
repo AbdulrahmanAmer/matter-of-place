@@ -184,6 +184,8 @@ Entry template
 - rule: any text that holds a backslash or an apostrophe (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`, test inputs, prose) goes in with the Write or Edit tool, or is built in code (`String.fromCharCode(92)`); never through an inline argument, a heredoc or `node -e`. Write a payload to a file and pipe the file in. After a scripted rewrite, read back the changed lines (`git diff`). `unexpected EOF` or a parse error means nothing was written: do not retry with other quoting, use Write or Edit, then read `git status --short`. A mutation applied by hand prints its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged, before any red or green is read; prefer a registry entry replayed by the runner (P-066). When a parser "misses" an input with a backslash, print its bytes (`od -c`) before blaming the code. A hook that fails open will hide all of this.
 - proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON; a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` → `E ' a \ \ '` (two backslashes where four were typed, 2026-10-02); `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the row written with the Edit tool keeps its escapes).
 - hit again: 2026-10-03, B9 g4: backslashes were dropped from text written through a heredoc, so the file had to be rewritten with the Write tool; the author listed it as a cost but the entry was not extended (recorded by the g4 review follow-up).
+- hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
+` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - merged: P-070, P-111, P-115, P-309, P-406
 - added: 2026-09-30
 
@@ -771,6 +773,7 @@ Entry template
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B9 g3: a `python3 - <<'E' || node -e ...` conflict-resolution chain hung 120 seconds, moved to the background and the branch merge sat uncommitted until a `node` script did the same edit; the lesson was in the bank map and was still not followed.
 - hit again: 2026-10-03, B9 g4: `python - 2>/dev/null; node -e '<patch>'` hung 120 seconds in the background, the `node` half still ran, and the interpreter had to be found by its command line (`Get-CimInstance Win32_Process`, `CommandLine` = `python -`, created at the minute of the call) and stopped by its own process id.
+- hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1400,6 +1403,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
 - rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
 - proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
+- hit again: 2026-10-03, B3 g1: the brief for steps 1 and 1b omitted the tests of the libs, `tests/mutations/B3.json`, the keys of `tests/e2e/fixtures/routes.ts` and three `file` values of `tests/mutations/B4.json` that the route renames break; all were added by the group and named in the log.
 - added: 2026-10-03
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
@@ -1459,4 +1463,41 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `SUPABASE_ACCESS_TOKEN` is an ops name (`scripts/load-env.mjs` loads it only from `.env.ops` and `guardEnv()` refuses it in a db-test shell, P-310), and the dev profile has `DEV_SUPABASE_PROJECT_REF` only; the CLI reads the Management API with the token. ESLint's type-aware config lints every tracked-or-not `.ts` under `app/`, and `supabase/.temp/` was not ignored. The generator reads the cloud project, which an unmerged lane never pushes to (DB-01), so the committed file is what `main`'s schema produces until `main` pushes the rest.
 - rule: run `gen:types` in a shell loaded with the inline loader (`set -a; . <(tr -d '' < .env | grep -E '^[A-Z0-9_]+='); set +a`), never in the db-test shell, and read its `wrote src/db/types.ts` line before the diff: an exit 0 of the diff alone proves nothing. `supabase/.temp` is in the ESLint ignores. A lane's `src/db/types.ts` lacks the functions of its own unmerged migrations: regenerate it in the first pull request after `main` has pushed them (B4's `gen:types -- --local` diff is red until then), and say so in the log.
 - proof: `cd app && bun run gen:types` in the db-test shell prints `supabase gen types exited 1`, in the inline-loader shell `wrote src/db/types.ts`; `grep -c public_state src/db/types.ts` prints `0` on slice/b2 at B2 g10 while `grep -c "create or replace function public.public_state" supabase/migrations/20261001090800_catalog_version.sql` prints `1` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-800 · A route file named with a leading double underscore is a pathless layout, not the path `/__name`: B3's `src/routes/__spike.tsx` stops the build
+- symptom: B3 step 1's temporary page `src/routes/__spike.tsx` with `createFileRoute("/__spike")` made `bun run build` fail: `Conflicting configuration paths were found for the following routes: "/", "/". Conflicting files: src/routes/index.tsx, src/routes/__spike.tsx`.
+- cause: TanStack's file router reads a leading underscore as a pathless layout and `__root.tsx` is the only double-underscore name it knows, so `__spike` has no path of its own and its children resolve to `/`.
+- rule: a temporary or real route file never starts with an underscore unless it is meant as a pathless layout (`_site.tsx`); the spike page is `src/routes/spike.tsx` (URL `/spike`). A plan line that names `__spike` is a plan defect; the removal proof `test ! -e src/routes/spike.tsx` replaces the one for `__spike.tsx`.
+- proof: `cd app && bun run build` with `src/routes/__spike.tsx` present prints the error above and exits 1; renamed to `src/routes/spike.tsx` with `createFileRoute("/spike")` it exits 0 and `curl -s http://127.0.0.1:8828/spike | grep -c ok` prints 2 under `wrangler dev` (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## P-801 · The safety check on `rm` resolves a relative path against the session's start folder, not the folder a `cd` in the same command moved to
+- symptom: `cd /e/mop-build/api/app && ... rm ../spike-page.txt` was refused as "Dangerous rm operation detected: E:\spike-page.txt" and the refusal says it will not be shown again, so the scratch files stayed until a command with absolute paths removed them.
+- cause: the check reads the path before the `cd` takes effect, so `../x` resolves from the session folder (`E:\Matter Of Place`) to the drive root.
+- rule: give `rm` absolute paths only (`rm /e/mop-build/api/app/src/routes/spike.tsx`), and write scratch output (curl bodies, wrangler logs) into the session scratchpad, never into the lane folder.
+- proof: `rm /e/mop-build/api/spike-page.txt` removed the file that `rm ../spike-page.txt` was refused for (2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## P-802 · B3 step 1 says B2's generated types "exist by now", but `src/db/types.ts` is only on `origin/slice/b2` until B2 merges
+- symptom: `git ls-files app/src/db` on `main` lists only `README.md`; `db.ts` (`createClient<Database>`) and `fake-db.ts` (`Database['public']['Functions']`) cannot typecheck without the file, and B3's own brief said the rest of B3 waits for B2 step 12 on `main`.
+- cause: the plan reads B2 as finished; the file lands in B2 g10 (`origin/slice/b2`), and `main` holds only B2's early groups.
+- rule: a B3 group that needs `src/db/types.ts` before B2 is on `main` merges `origin/slice/b2` into its branch (a merge commit, never a rebase or a copy of one file, so the later merge of B2 sees the same commits), resolves `.prettierignore` and `knip.json` by keeping both sides, and says so in the log. The types predate migration 9 (P-327): a test that names `public_state` casts the name once with a reason.
+- proof: `git ls-tree -r --name-only origin/main -- app/src/db/types.ts` prints nothing and the same on `origin/slice/b2` prints `app/src/db/types.ts` (measured 2026-10-03, B3 g1); `bun run typecheck` exits 0 after the merge.
+- added: 2026-10-03
+
+## P-803 · `watchfail.mjs --only <id>` is global across registries: a plan letter that another registry already uses replays both
+- symptom: the first replay of B3's entries `oo` and `pp` printed `replayed 2: ok 1, bad 1` (`WATCHED-FAIL OK B3:oo` and a bad result from the other registry's entry of the same id), so a green slice looked red.
+- cause: `tests/mutations/*.json` are searched together and the plans hand out the same letters (`oo`, `pp`) to several slices; the uniqueness test of `mutation-registry.test.ts` checks one file at a time.
+- rule: give every registry entry the slice prefix (`b3-oo`, `b3-g1-env-prod`), whatever letter the plan uses; replay a slice in one call with `for id in $(node -e '...ids...'); do node scripts/watchfail.mjs --registry tests/mutations --only "$id"; done` and read only the summary line.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b3-oo | tail -1` → `replayed 1: ok 1, bad 0, stale 0; ...` (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## G-300 · `env.ts` parses `process.env` when it is first imported, so a unit test sets the environment before it imports `env.ts`, `db.ts` or anything that imports them
+- paths: app/src/server/lib/env.ts, app/src/server/lib/db.ts
+- severity: warn
+- symptom: B3 g1's first `env.test.ts` failed at load with `Invalid environment: RATE_LIMIT_SALT Required` before any test ran, because `import { parseEnv } from ".../env"` evaluated `export const env = parseEnv(process.env)` under the hermetic setup, which holds no secrets.
+- cause: the plan makes `env` a module-level constant read once (`tests/api/env.ts` relies on the same order), and `tests/setup/hermetic.ts` strips credentials.
+- rule: a unit test that needs `env.ts` (directly, or through `db.ts`) stubs the variables first and loads the module with a dynamic import after `vi.resetModules()` (`vi.stubEnv("MOP_ENV", "local")`, `vi.stubEnv("RATE_LIMIT_SALT", "salt")`, then `await import(...)`); a test that only needs the type `Db` imports it with `import type`, which loads nothing. Code the job runner shares reads variables with `readVar`, never `env.ts` (G39).
+- proof: `cd app && bunx vitest run --project unit tests/unit/env.test.ts tests/unit/db.test.ts` passes; with the stubs removed from the head of `env.test.ts` it fails at load with the error above (measured 2026-10-03, B3 g1).
 - added: 2026-10-03

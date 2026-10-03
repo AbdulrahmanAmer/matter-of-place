@@ -8,7 +8,7 @@ import { pageHead } from "../lib/seo";
 const description =
   "Illustrative-content notice, representation, editorial independence, privacy and terms for Matter of Place.";
 
-export const Route = createFileRoute("/legal")({
+export const Route = createFileRoute("/_site/legal")({
   head: () => pageHead({ title: "Legal", description, path: "/legal" }),
   component: LegalPage,
 });

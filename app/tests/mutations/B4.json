@@ -506,7 +506,7 @@
   {
     "id": "f",
     "test": "tests/e2e/sweep.spec.ts",
-    "file": "src/routes/about.tsx",
+    "file": "src/routes/_site.about.tsx",
     "find": "<main>",
     "replace": "<main><div style={{ width: 2000 }} />",
     "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /about$\"",
@@ -516,7 +516,7 @@
   {
     "id": "f-overflow",
     "test": "tests/e2e/sweep.spec.ts",
-    "file": "src/routes/about.tsx",
+    "file": "src/routes/_site.about.tsx",
     "find": "<main>",
     "replace": "<main><div style={{ width: 2000 }} />",
     "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8808 bunx playwright test --project=phone --project=desktop --grep @overflow",
@@ -566,7 +566,7 @@
   {
     "id": "q-context",
     "test": "tests/e2e/sweep.spec.ts",
-    "file": "src/routes/index.tsx",
+    "file": "src/routes/_site.index.tsx",
     "find": "\"@context\": \"https://schema.org\"",
     "replace": "\"@context\": \"http://schema.org\"",
     "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /$\"",
