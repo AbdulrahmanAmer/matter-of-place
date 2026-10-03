@@ -27,6 +27,7 @@ export const errorCodes = {
   hard_delete_refused: 409,
   append_only: 409,
   upload_limit: 422,
+  invalid_kind: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
