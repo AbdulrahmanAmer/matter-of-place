@@ -7,6 +7,7 @@ import {
   submissionReceiptSchema,
   submissionSchema,
   subscriberSchema,
+  uploadLimits,
 } from "../../src/domain/contracts";
 import { validInquiry, validSubmission, validSubscriber } from "../fixtures/builders";
 
@@ -105,12 +106,16 @@ describe("submissionSchema", () => {
     }
   });
 
-  it("rejects more than 20 media and accepts 20", () => {
+  it("rejects more than 40 media and accepts 40", () => {
     const photo = { name: "p.jpg", size: 1024, type: "image/jpeg" };
     expect(
-      submissionSchema.safeParse(validSubmission({ media: Array(20).fill(photo) })).success,
+      submissionSchema.safeParse(
+        validSubmission({ media: Array(uploadLimits.maxFiles).fill(photo) }),
+      ).success,
     ).toBe(true);
-    const result = submissionSchema.safeParse(validSubmission({ media: Array(21).fill(photo) }));
+    const result = submissionSchema.safeParse(
+      validSubmission({ media: Array(uploadLimits.maxFiles + 1).fill(photo) }),
+    );
     expect(issuePaths(result)).toEqual(["media"]);
   });
 
