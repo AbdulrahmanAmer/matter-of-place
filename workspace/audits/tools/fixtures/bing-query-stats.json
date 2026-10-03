@@ -1,0 +1,31 @@
+{
+  "d": [
+    {
+      "__type": "QueryStats:#Microsoft.Bing.Webmaster.Api",
+      "AvgClickPosition": 3,
+      "AvgImpressionPosition": 4,
+      "Clicks": 2,
+      "Date": "/Date(1790726400000)/",
+      "Impressions": 40,
+      "Query": "architect designed home california"
+    },
+    {
+      "__type": "QueryStats:#Microsoft.Bing.Webmaster.Api",
+      "AvgClickPosition": 5,
+      "AvgImpressionPosition": 6,
+      "Clicks": 1,
+      "Date": "/Date(1789257600000)/",
+      "Impressions": 25,
+      "Query": "new york townhouse"
+    },
+    {
+      "__type": "QueryStats:#Microsoft.Bing.Webmaster.Api",
+      "AvgClickPosition": 2,
+      "AvgImpressionPosition": 2,
+      "Clicks": 9,
+      "Date": "/Date(1785801600000)/",
+      "Impressions": 300,
+      "Query": "mid-century modern florida"
+    }
+  ]
+}

@@ -187,6 +187,7 @@ Entry template
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
 - hit again: 2026-10-03, B2 g11 (second attempt cost): a heredoc whose text held an apostrophe ended in `unexpected EOF` and wrote nothing, and a patch script that ran a `rm` of a path it had just made was refused by the safety check; the file went in with the Write tool instead.
 - merged: P-070, P-111, P-115, P-309, P-406
+- hit again: 2026-10-04, B14 g1: a `node -` patch fed from a heredoc wrote a code line whose escaped newline became a real line break, so `cache.mjs` stopped parsing and vitest printed `Failed to parse source for import analysis`; a second patch of the same kind failed on a `rep` anchor that held a `\n`. Edit code with the Edit tool or a Write-made script file. Proof: `grep -n 'join("' workspace/audits/tools/cache.mjs` shows the newline escape inside its string literal.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -1100,6 +1101,7 @@ Entry template
 - cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
 - rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
 - proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
+- hit again: 2026-10-04, B14 g1: the sized list named four paths; steps 2 and 3 also need `scripts/audit/lint-report.mjs`, `REPORT-TEMPLATE.md`, `ROUTINE-PROMPT.md`, `keywords.json`, `cost-alerts.md`, the nine unit tests, `tests/mutations/B14.json`, the `mop-auditor.md` line, and the lint, typecheck and format entries for the two root folders (`app/eslint.config.js`, `app/tsconfig.scripts.json`, `app/package.json`). Proof: `git diff --stat origin/main...slice/b14 | tail -1`.
 - added: 2026-10-03
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
@@ -1244,6 +1246,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: an entry's `find` is a copy of code; any edit of the mutated file can change that code. `bun run check` does not replay the registry, and P-081 only covers new entries. Hit again in B1b c7: putting the merge script into `package.json`'s `lint` moved `hy-lint-warnings`; `replay.mjs --check` printed `BAD hy-lint-warnings: find occurs 0 times` before the commit. Hit again in B1b c7 (H49): the new end of the production `if:` and the new `current` step moved `hy-main-event` and `hy-dev-db-order` (`find occurs 0 times`); both were rebuilt from the file by a script and replayed red.
 - rule: after every edit of a file the registry mutates (`node -e "console.log([...new Set(require('./tests/mutations/B1b.json').map(e=>e.file))].join('\n'))"` lists them), run the replay runner's `--check` (every `find` occurs exactly once) before the commit, and rewrite a moved entry to the new code, then replay it red. Keep a mutated line's text stable when the change does not need to touch it (bind a new value under the old name rather than renaming what an entry finds).
 - proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
+- hit again: 2026-10-04, B14 g1: eight B1b entries went stale at once, see P-1100.
 - added: 2026-10-02
 
 ## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
@@ -1595,3 +1598,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
+
+## P-1100 · Adding a path to `lint`, `format:check` or the root-scripts block stales eight B1b registry entries and a hygiene pin
+- symptom: B14 g1 put `workspace/audits/tools` and `scripts/audit` under the root lint, the format check and `tsconfig.scripts.json`. `bun run check` went red on `hygiene.test.ts` (it pins the `format:check` string), and a find-count pass over the registries printed STALE for hy-lint-warnings, hy-lint-warnings-gate, mg-gate-format-config, mg-gate-lint-prettier, hy-gate-include, hy-gate-lint, hy-gate-format-path and hy-gate-prettier.
+- cause: those entries quote exact lines of `package.json`, `eslint.config.js` and `tsconfig.scripts.json`; `bun run check` does not replay the registry (P-066) and the tsconfig include array grew past one line.
+- rule: after any edit of those three files run the find-count one-liner of the proof before the check, repair the finds and the hygiene pin in the same commit, and replay the repaired ids one by one (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`).
+- proof: `cd app && node -e "const fs=require('fs');for(const f of fs.readdirSync('tests/mutations'))for(const e of JSON.parse(fs.readFileSync('tests/mutations/'+f,'utf8'))){if(e.kind==='sql'||e.kind==='manual'||!e.file)continue;const n=fs.readFileSync(e.file,'utf8').split(e.find).length-1;if(n!==1)console.log('STALE',f,e.id,n)}"` → prints `STALE B4.json z 7` only (older than this entry) on slice/b14 at B14 g1; before the repair it listed the eight ids above too.
+- added: 2026-10-04
+
+## P-1101 · A slice sized with no unmet dependency can still need slices that are not on main: B14's live cache and crawl proofs found no cache layer, no catalog routes and no B13 checkers
+- symptom: `node workspace/audits/tools/cache.mjs --url http://127.0.0.1:8858` against the build of main printed `x-mop-cache -` and `x-catalog-version -` on every row, 404 on `/api/public/markets`, `/properties` and `/stories`, and `edge_hit_ratio: null`; `crawl.mjs` printed `error: Module not found "scripts/check-seo.ts"`; `scripts/dev-vars.mjs` and `scripts/cpu-gate.mjs` do not exist.
+- cause: B14 step 3 needs B3 (the pipeline cache layer, the catalog routes, `dev-vars.mjs`) and B13 (`check-seo.ts`, `validate-jsonld.ts`, `validate-llms.ts`); `sizing/B14.json` lists `unmetDependencies: []` while `app/scripts` and `app/src` hold none of them.
+- rule: before the live half of a proof, check that what it measures exists on the tree (the proof below); when it does not, prove the collector against fixtures, write the live row as UNPROVEN with the slice that unblocks it, and run it again when that slice lands.
+- proof: `cd app && grep -rl x-mop-cache src | wc -l` → `0`, and `ls scripts/check-seo.ts scripts/dev-vars.mjs` → `No such file or directory` twice, on main at 4a05fdb (2026-10-04).
+- added: 2026-10-04
+
+## P-1102 · New `.mjs` under the root tool folders is checked strict: a recursive JSDoc typedef, `typeof fetch`, template literals and a literal em dash each cost a round
+- symptom: `tsc -p tsconfig.scripts.json` printed TS2456 `Type alias 'Json' circularly references itself`; eslint printed `restrict-template-expressions` for `${new URLSearchParams(...)}` and `no-base-to-string` for `String(unknown)`; a test stub `(url) => Promise<Response>` did not fit `typeof fetch` (bun's types add `preconnect`); prettier rewrote the escape `"\u2014"` in a source file into a literal em dash.
+- cause: `checkJs` runs with `strict` and the `strictTypeChecked` rules on every `.mjs` of `tsconfig.scripts.json`, which now includes `workspace/audits/tools` and `scripts/audit`.
+- rule: type an injected fetch as `(url: string, init?: RequestInit) => Promise<Response>` (`Fetch` in `workspace/audits/tools/common.mjs`); write the open JSON type as `null | boolean | number | string | unknown[] | Record<string, unknown>`; call `.toString()` on a `URLSearchParams` before a template; build an em dash as `String.fromCodePoint(0x2014)`. Run each new command-line tool once by hand with every flag it documents: `util.parseArgs` is strict by default, and the shared `contextFromArgs` threw `Unknown option '--check-config'` on `uptime.mjs` while every unit test was green, because no test went through the command line.
+- proof: `cd app && node node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json` → no output, exit 0; `grep -c -P "\x{2014}" ../scripts/audit/lint-report.mjs` → `0`; `env -u UPTIME_API_KEY node ../workspace/audits/tools/uptime.mjs --check-config; echo $?` → `Not measured: uptime (UPTIME_API_KEY unset)` and `1` (2026-10-04).
+- added: 2026-10-04

@@ -1,0 +1,25 @@
+{
+  "vendor": "UptimeRobot, free plan, 5 minute interval (decision S59)",
+  "alert_contact": { "to": "the admin mailbox", "confirmed": false },
+  "monitors": [
+    {
+      "name": "Home",
+      "url": "https://matterofplace.com/",
+      "interval_s": 300,
+      "expect_status": 200
+    },
+    {
+      "name": "Public markets",
+      "url": "https://matterofplace.com/api/public/markets",
+      "interval_s": 300,
+      "expect_status": 200
+    },
+    {
+      "name": "Ops health",
+      "url": "https://matterofplace.com/api/hooks/ops-health/<OPS_HEALTH_TOKEN>",
+      "interval_s": 300,
+      "keyword": "ok",
+      "alert_when": "keyword missing"
+    }
+  ]
+}

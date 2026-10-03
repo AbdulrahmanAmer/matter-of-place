@@ -1,6 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["scripts/**/*.ts", "scripts/**/*.mjs", "../workspace/05-plans/merge-gate.mjs"],
+  "include": [
+    "scripts/**/*.ts",
+    "scripts/**/*.mjs",
+    "../workspace/05-plans/merge-gate.mjs",
+    "../workspace/audits/tools/*.mjs",
+    "../scripts/audit/*.mjs"
+  ],
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,

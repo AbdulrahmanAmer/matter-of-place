@@ -833,7 +833,10 @@ describe("the orchestrator's merge script is under the app's gates (H42 (2), G-0
         `&& cd .. && eslint --config app/eslint.config.js --max-warnings 0 ${GATE}`,
       ),
       formatCheck: packageJson.scripts["format:check"],
-    }).toEqual({ lint: true, formatCheck: `prettier --config .prettierrc --check . ../${GATE}` });
+    }).toEqual({
+      lint: true,
+      formatCheck: `prettier --config .prettierrc --check . ../${GATE} ../workspace/audits/tools ../scripts/audit`,
+    });
   });
 
   it("lint gives prettier/prettier the options of .prettierrc for it", async () => {
