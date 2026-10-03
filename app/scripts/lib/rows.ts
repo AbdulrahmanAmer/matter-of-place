@@ -9,7 +9,7 @@ import type { Story } from "../../src/domain/story.ts";
 /** The key a source image has in the `media` bucket: `o/<owner>/<n>-<sha8>.webp`. */
 export type KeyOf = (source: string, owner: string, n: number) => string;
 
-export interface MarketRows {
+interface MarketRows {
   market: TablesInsert<"markets">;
   regions: TablesInsert<"regions">[];
   notes: TablesInsert<"market_notes">[];
@@ -19,7 +19,7 @@ export interface MarketRows {
 /** `numeric(12,2)` travels as a string with two decimals, so no float rounds a price. */
 type PropertyInsert = Omit<TablesInsert<"properties">, "price"> & { price: string };
 
-export interface PropertyRows {
+interface PropertyRows {
   representative: TablesInsert<"representatives"> | null;
   property: PropertyInsert;
   media: TablesInsert<"property_media">[];

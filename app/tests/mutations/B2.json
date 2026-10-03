@@ -2543,35 +2543,53 @@
   },
   {
     "id": "g11-seed-db-status",
-    "kind": "sql",
+    "kind": "file",
     "test": "tests/db/seed.db.test.ts",
-    "sql": "update public.properties set status = 'Active' where slug = 'oak-hill-residence'",
+    "file": "scripts/lib/rows.ts",
+    "find": "      status: property.status,",
+    "replace": "      status: \"Active\",",
     "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
     "expect": "× .*leaves 16 published Illustrative properties"
   },
   {
     "id": "g11-seed-db-market",
-    "kind": "sql",
+    "kind": "file",
     "test": "tests/db/seed.db.test.ts",
-    "sql": "update public.markets set coming_soon = true where slug = 'florida'",
+    "file": "scripts/seed.ts",
+    "find": "{ coming_soon: false }",
+    "replace": "{ coming_soon: true }",
     "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
     "expect": "× .*reports every market open"
   },
   {
     "id": "g11-seed-db-hero",
-    "kind": "sql",
+    "kind": "file",
     "test": "tests/db/seed.db.test.ts",
-    "sql": "update public.properties set hero_image = 'x/y.webp' where slug = 'oak-hill-residence'",
+    "file": "scripts/lib/rows.ts",
+    "find": "      media_key: keyOf(photograph.src, slug, index),",
+    "replace": "      media_key: keyOf(photograph.src, slug, index).replace(\".webp\", \".jpg\"),",
     "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
     "expect": "× .*gives every property its hero image"
   },
   {
     "id": "g11-seed-db-snapshot",
-    "kind": "sql",
+    "kind": "file",
     "test": "tests/db/seed.db.test.ts",
-    "sql": "select set_config('mop.retention', 'on', true); delete from public.properties where slug = 'oak-hill-residence'",
+    "file": "scripts/seed.ts",
+    "find": "    for (const property of properties) {",
+    "replace": "    for (const property of properties.slice(1)) {",
     "run": "bunx vitest run --project db tests/db/seed.db.test.ts",
     "expect": "× .*serves 16 properties in one snapshot"
+  },
+  {
+    "id": "bbb",
+    "kind": "file",
+    "test": "tests/db/snapshot-budget.db.test.ts",
+    "file": "tests/db/snapshot-budget.db.test.ts",
+    "find": "const BUDGET_BYTES = 1_500_000;",
+    "replace": "const BUDGET_BYTES = 1_000;",
+    "run": "bunx vitest run --project db tests/db/snapshot-budget.db.test.ts",
+    "expect": "× .*holds 100 published properties of 30 photographs"
   },
   {
     "id": "g12-variants-hero-width",

@@ -86,6 +86,10 @@ async function completeDraft(db: Db, slug: string): Promise<string> {
 
 /** One property and one story in every editorial state, two redirects, a renamed draft and a staged photograph. */
 async function catalogFixture(db: Db): Promise<{ draftId: string }> {
+  // A catalog the seed already filled is not this test's: its rows go inside this rolled-back transaction (R52).
+  await db.query("select set_config('mop.retention', 'on', true)");
+  await db.query("delete from public.properties where slug not like 'test-pr-%'");
+  await db.query("delete from public.stories where slug not like 'test-pr-%'");
   await setting(db, "catalog_version", 1);
   await db.query(
     `insert into public.markets (slug, name, country, intro)

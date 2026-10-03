@@ -32,7 +32,7 @@ export interface SeedDb {
   update(table: string, values: Written, where: Readonly<Record<string, string>>): Promise<void>;
 }
 
-export interface SeedDeps {
+interface SeedDeps {
   db: SeedDb;
   /** The `<sha8>` of the stripped master of one source image. */
   sha8: (source: string) => Promise<string>;
@@ -40,7 +40,7 @@ export interface SeedDeps {
   guard?: (options: { dbUrl: string | undefined }) => Promise<void>;
 }
 
-export interface SeedCounts {
+interface SeedCounts {
   markets: number;
   regions: number;
   properties: number;

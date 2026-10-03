@@ -13,18 +13,17 @@ interface Sized {
   h: number;
 }
 
-/** The shape of `property_media.variants` and of the `image_variants` of markets, regions and stories (G59). */
-export interface MediaVariants {
-  thumb: Sized & { webp: string };
-  card: Sized & { webp: string };
-  hero: Sized & { webp: string };
-  og: Sized & { jpg: string };
-  carousel: Sized & { jpg: string };
-}
+/**
+ * The shape of `property_media.variants` and of the `image_variants` of markets, regions and stories (G59): the size
+ * of each rendition and nothing else. The keys come from `variantKeys` and the content hash is already in the
+ * stored master key `o/<owner>/<n>-<sha8>.webp`, so the snapshot stays under its budget (PERF-03) and B3 derives the
+ * address of every size from the master key.
+ */
+export type MediaVariants = Record<"thumb" | "card" | "hero" | "og" | "carousel", Sized>;
 
-export type VariantName = keyof MediaVariants;
+type VariantName = keyof MediaVariants;
 
-export interface VariantFile extends Sized {
+interface VariantFile extends Sized {
   body: Buffer;
   type: "image/webp" | "image/jpeg";
 }
