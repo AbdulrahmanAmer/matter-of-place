@@ -1,0 +1,128 @@
+{
+  "slice": "B4",
+  "written": "2026-10-03 by the orchestrator (ruling H53). Groups g1 to g3 run now; g4 to g7 wait on B3, B3b or B2 steps not yet on main and are listed so the sizing is complete. Briefs come from plan-brief.mjs. The lane's preview port is 8808 wherever the plan says 8788.",
+  "unmetDependencies": [],
+  "groups": [
+    {
+      "id": "g1",
+      "steps": "1,2",
+      "title": "Test configuration (component project, hermetic setup, scripts, ignore files) and the watched-fail tool: scripts/watchfail.mjs with its registry mode, its test, the ledger, tests/mutations/B4.json and mutation-registry.test.ts; replays B1b's and B2's registries. Needs only B2 step 1, which is on main",
+      "files": [
+        "app/vitest.config.ts",
+        "app/package.json",
+        "app/tests/setup/dom.ts",
+        "app/tests/setup/hermetic.ts",
+        "app/tsconfig.json",
+        "app/eslint.config.js",
+        "app/.prettierignore",
+        "app/.gitignore",
+        "app/scripts/watchfail.mjs",
+        "app/tests/unit/watchfail.test.ts",
+        "app/tests/WATCHED-FAIL.md",
+        "app/tests/mutations/B4.json",
+        "app/tests/unit/mutation-registry.test.ts"
+      ],
+      "proof": "Step 1 as the plan writes it: bun run test passes and bunx vitest run --project unit --reporter verbose tests/unit/seo.test.ts lists its 4 tests passed; bunx vitest run --project component --passWithNoTests exits 0; bun run check exits 0; watched-fail (y) (an it with no assertion goes red on requireAssertions and on vitest/expect-expect) and (gg) (a unit test calling fetch fails with hermetic: network call). Step 2 as the plan writes it: bunx vitest run tests/unit/watchfail.test.ts tests/unit/mutation-registry.test.ts passes; watched-fail (z); node scripts/watchfail.mjs --registry tests/mutations replays every entry of B1b.json and B2.json that is not kind manual and prints WATCHED-FAIL OK for each (an entry whose test stays green is fixed in that slice's test, never dropped); the by-hand --file/--find/--replace/--run/--expect/--record form prints WATCHED-FAIL OK and leaves git diff --stat empty; watched-fail (ii).",
+      "blocked": false,
+      "blockedOn": "",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g2",
+      "steps": "3",
+      "title": "Pure unit layer: builders.ts, clock.ts with atFrom, mulberry32 and deterministicUuid, contracts.test.ts, clock.test.ts, time-model.test.ts. The contract cases that read B2 step 9's uploadLimits or B3's contracts are written against what is on main and the rest recorded waiting",
+      "files": [
+        "app/tests/fixtures/builders.ts",
+        "app/tests/fixtures/clock.ts",
+        "app/tests/unit/contracts.test.ts",
+        "app/tests/unit/clock.test.ts",
+        "app/tests/unit/time-model.test.ts",
+        "app/tests/mutations/B4.json",
+        "app/tests/WATCHED-FAIL.md"
+      ],
+      "proof": "Step 3 as the plan writes it: bunx vitest run tests/unit/contracts.test.ts tests/unit/clock.test.ts tests/unit/time-model.test.ts passes (the contract assertions that exist on main today, determinism of mulberry32 and deterministicUuid, no db, api or e2e file importing FIXED_NOW or at); watched-fails (a), (b), the first half of (o) and (aa), each recorded in tests/mutations/B4.json through scripts/watchfail.mjs.",
+      "blocked": false,
+      "blockedOn": "The contract cases for uploadLimits (B2 step 9) and B3's contracts (B3 steps 7 and 9) are written when those land; say which cases wait.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g3",
+      "steps": "5",
+      "title": "Playwright: config with forbidOnly, the e2e fixtures (routes, page, jsonld, a11y with checkpoint), the no-op global-setup, service.ts and dev-lock.ts, scripts/e2e-coming-soon.ts and its script, sweep.spec.ts against the dev server with its axe baseline. Built alone: large. The coming-soon toggle leg ends in No tests found until B3b's spec exists and is recorded waiting",
+      "files": [
+        "app/playwright.config.ts",
+        "app/tests/e2e/fixtures/routes.ts",
+        "app/tests/e2e/fixtures/page.ts",
+        "app/tests/e2e/fixtures/jsonld.ts",
+        "app/tests/e2e/fixtures/a11y.ts",
+        "app/tests/e2e/axe-baseline.json",
+        "app/tests/e2e/sweep.spec.ts",
+        "app/tests/e2e/global-setup.ts",
+        "app/tests/fixtures/service.ts",
+        "app/tests/fixtures/dev-lock.ts",
+        "app/scripts/e2e-coming-soon.ts",
+        "app/package.json",
+        "app/tests/unit/routes-covered.test.ts",
+        "app/tests/mutations/B4.json"
+      ],
+      "proof": "Step 5 as the plan writes it: git grep -n assert-not-production -- scripts/e2e-coming-soon.ts prints its import and B2's guard-import unit test passes with this file in its list; watched-fail (u); watched-fail (bb): test.only on one sweep test makes CI=1 bunx playwright test sweep.spec.ts --project=desktop exit 1 naming forbidOnly; the toggle proof with the mop-dev variables loaded unprinted (lock held, coming_soon_global restored to false, Playwright's exit code, settings read back false); bunx playwright --version 1.52 or newer and watched-fail (w); bun run test:e2e:install && bun run test:e2e -- sweep.spec.ts prints one line per route and viewport ending <N> passed with N twice the route count, a second run identical, axe-baseline.json listing every accepted violation with a reason, jsonld ok marks; routes-covered.test.ts case seoFileRoutes equals the robots and llms route files present passes; watched-fails (f), (g), (h), (k), (q) with --record. The dev server port for this lane is 8808.",
+      "blocked": false,
+      "blockedOn": "The coming-soon toggle leg: coming-soon.spec.ts comes from B3b; until then the run exits 1 with No tests found, recorded as waiting on B3b.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g4",
+      "steps": "4",
+      "title": "state-machine.test.ts (needs B2 step 7, on main after the current db run), routes-covered additions, seo.test.ts additions, analytics.test.ts",
+      "files": ["app/tests/unit/state-machine.test.ts", "app/tests/unit/routes-covered.test.ts", "app/tests/unit/seo.test.ts", "app/tests/unit/analytics.test.ts", "app/tests/mutations/B4.json"],
+      "proof": "Step 4 as the plan writes it: bun run test passes; watched-fails (c), (d), (e).",
+      "blocked": true,
+      "blockedOn": "B2 step 7 (src/domain/workflow.ts) is being built in the db lane and is not on main yet.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g5",
+      "steps": "6",
+      "title": "forms.spec.ts and redirects.spec.ts on the live build with the two JPEG fixtures",
+      "files": ["app/tests/fixtures/tiny.jpg", "app/tests/fixtures/large.jpg", "app/tests/e2e/forms.spec.ts", "app/tests/e2e/redirects.spec.ts", "app/tests/mutations/B4.json"],
+      "proof": "Step 6 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "B3 step 8b (upload queue) and B3's dev-vars.mjs; B3 has not started.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g6",
+      "steps": "7,8",
+      "title": "CI e2e job on the live artifact and CI db job on an ephemeral stack, then the DB factories and dataset",
+      "files": [".github/workflows/ci.yml", "app/tests/fixtures/factories.ts", "app/tests/fixtures/dataset.ts", "app/scripts/load-fixtures.ts", "app/tests/e2e/global-setup.ts", "app/tests/unit/factories.test.ts", "app/tests/db/factories.db.test.ts"],
+      "proof": "Steps 7 and 8 as the plan writes them.",
+      "blocked": true,
+      "blockedOn": "B3's dev-vars.mjs and live build (step 7); B2 complete on main (step 8).",
+      "critical": true,
+      "needsOrchestrator": "",
+      "designer": false
+    },
+    {
+      "id": "g7",
+      "steps": "9,10",
+      "title": "Live specs of the e2e job, payload budget, then the Actions minutes measurement and tests/README.md",
+      "files": ["app/tests/e2e/live-forms.spec.ts", "app/tests/e2e/client-error.spec.ts", "app/tests/api/payload-budget.api.test.ts", "app/tests/README.md", ".github/workflows/ci.yml"],
+      "proof": "Steps 9 and 10 as the plan writes them.",
+      "blocked": true,
+      "blockedOn": "B3 (step 9) and the preview steps (step 10); the coming-soon and consent parts wait on B3b.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false
+    }
+  ]
+}
