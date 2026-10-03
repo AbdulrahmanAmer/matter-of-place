@@ -1729,3 +1729,31 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
 - added: 2026-10-04
+
+## P-508 · `supabase gen types --project-id` and `migration repair --linked` answer 403 for this account; the pooler route works
+- symptom: `bun run gen:types` exited 1 with `GenTypesUnexpectedStatusError ... Your account does not have the necessary privileges to access this endpoint`; `supabase migration repair --linked` failed the same way (`DbConfigLoginRoleStatusError 403`) (2026-10-04 01:00, main folder, stored CLI login and the `.env` token both present).
+- cause: the management endpoints the CLI uses for those two commands need an organisation privilege the account no longer has; the database itself is reachable through the pooler with the dev profile.
+- rule: regenerate types with `bun run gen:types -- --db` (reads mop-dev over the pooler, formats with prettier so `--local` in CI compares equal); repair migration history with SQL on `supabase_migrations.schema_migrations` and `public.migration_checksums` through `bun run db:psql`, never by hand-editing files.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run gen:types -- --db` → `wrote src/db/types.ts`; the project-id mode in the same shell → exit 1 with the 403 text.
+- added: 2026-10-04
+
+## P-509 · An agent that dies mid-group (network outage) ended the whole run; the harness now retries it once
+- symptom: `fix1:B3:g3:3,3b` died with `API Error: Can't reach the API server (ENOTFOUND)` when the laptop lost internet; `build-slice.js` took the null result as the fix's answer, the run ended with step 3 unfixed, 15 files of partial work sat uncommitted in the lane, and the groups after it never ran (run `wf_ea63edc9-5b1`, 2026-10-04 02:3x).
+- cause: the Workflow tool returns null for an agent that dies after its own retries; the script had no retry of its own.
+- rule: every agent call in `build-slice.js` goes through `callAgent`, which retries once after a pause (`retryPauseMs`, default two minutes) with a `:retry` label. After an outage, commit a dead agent's partial work as a WIP commit (so the next agent sees it in history and starts from a clean tree) before relaunching.
+- proof: `node <scratchpad>/trace/simulate-workflow.mjs` → `simulation: 6 scenarios passed` with the wrapper; the journal of `wf_ea63edc9-5b1` shows `fix1:B3:g3:3,3b` with no result and `types: ... failed`.
+- added: 2026-10-04
+
+## P-510 · `resumeFromRunId` on a run with concurrent agents re-runs accepted groups, because the cache is a prefix of the call order
+- symptom: resuming `wf_ea63edc9-5b1` after the dead fix restarted `build:B3:g4:4,5` (already built and accepted) and a second `review:B3:g3:3,3b`, both live (2026-10-04 02:45); stopped after four minutes.
+- cause: the Workflow tool replays only the longest unchanged prefix of agent calls; the overlap (H54) issues calls as promises settle, so the order after the first live call differs from the recorded one and every later call is treated as new.
+- rule: do not resume an overlapped run. Relaunch with `closeOut` carrying the rejected group's blocking defects (read them from the journal) and `sizing` holding only the groups not yet accepted; keep `startAt` for sized groups only (P-506).
+- proof: journal of `wf_ea63edc9-5b1` after the resume: `build:B3:g4:4,5` and `review:B3:g3:3,3b` started a second time with no cached result; the relaunch `wf_d557c78a-825` started `close:B3:c3:3,3b` first.
+- added: 2026-10-04
+
+## P-511 · Two lanes writing migrations to mop-dev at once: main's push refuses the second lane's file as remote-only, then as out of order
+- symptom: the api lane pushed B3's `20261003184651` to mop-dev from its branch (allowed as the schema writer); when B8's `20261003185349` merged first, main's dev job refused `remote-only migrations 20261003184651`, and after the rename to `20261003222954` it refused `out-of-order migration 20261003185349_jobs.sql` (runs 37156729391 and 37159340230, 2026-10-04).
+- cause: `db-push.mjs` compares main's files with the remote history; a lane's unmerged push creates a remote-only version, and a later-merged older file is out of order against it. R16 (new file after main's newest) only protects the branch, not the remote.
+- rule: while one lane pushes migrations, no other lane's migration merges to main before that lane's; if it must, apply the older file from main by hand in one transaction (`psql -1 -f`), record its version in `supabase_migrations.schema_migrations` and `public.migration_checksums`, and run `bun run db:push` from main until it prints `Remote database is up to date`. Merge a schema writer's accepted migration early (its own small PR) rather than letting it sit on the branch.
+- proof: `bun run db:push` from main at b3e90d1 → `refusing: remote-only migrations 20261003184651`; after the rename and the manual apply → `{"upToDate":true,...,"message":"Remote database is up to date."}`.
+- added: 2026-10-04

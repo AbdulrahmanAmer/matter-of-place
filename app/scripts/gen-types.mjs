@@ -1,7 +1,9 @@
-// `bun run gen:types [-- --local]`: writes src/db/types.ts from the `public` schema (B2 Files, ASSUMED E6, no Docker).
+// `bun run gen:types [-- --local | --db]`: writes src/db/types.ts from the `public` schema (B2 Files, ASSUMED E6, no Docker).
 // Without a flag it reads mop-dev by project id (the CLI needs SUPABASE_ACCESS_TOKEN for that); `--local` reads the
-// ephemeral stack of CI's `db` job (H1 b). Both outputs get the same header and LF endings (G-008), so CI's
-// `bun run gen:types -- --local && git diff --exit-code src/db/types.ts` compares like with like.
+// ephemeral stack of CI's `db` job (H1 b); `--db` reads mop-dev over its pooler with the dev profile's password
+// (the management endpoint answers 403 for this account since 2026-10-04, P-508). Every output gets the same header
+// and LF endings (G-008), so CI's `bun run gen:types -- --local && git diff --exit-code src/db/types.ts` compares
+// like with like.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -18,6 +20,16 @@ const HEADER =
  */
 function source(args) {
   if (args.length === 1 && args[0] === "--local") return ["--local"];
+  if (args.length === 1 && args[0] === "--db") {
+    const ref = process.env["DEV_SUPABASE_PROJECT_REF"] ?? "";
+    const password = process.env["DEV_SUPABASE_DB_PASSWORD"] ?? "";
+    if (ref === "" || password === "")
+      throw new Error(
+        "gen-types: --db needs the dev profile (DEV_SUPABASE_PROJECT_REF and DEV_SUPABASE_DB_PASSWORD)",
+      );
+    const url = `postgresql://postgres.${ref}:${encodeURIComponent(password)}@aws-0-us-east-1.pooler.supabase.com:5432/postgres`;
+    return ["--db-url", url];
+  }
   if (args.length > 0) throw new Error(`gen-types: unknown arguments ${args.join(" ")}`);
   const envRef = process.env["DEV_SUPABASE_PROJECT_REF"];
   const ref =
@@ -52,8 +64,22 @@ function main() {
     },
   );
   if (result.status !== 0) throw new Error(`supabase gen types exited ${String(result.status)}`);
+  // The CLI formats its output in some modes and not in others (the pooler mode prints it raw), so every mode goes
+  // through prettier here; src/db/types.ts stays in .prettierignore because it is generated, not hand-written.
+  const formatted = spawnSync(
+    process.execPath,
+    ["x", "prettier", "--config", ".prettierrc", "--stdin-filepath", "src/db/types.ts"],
+    {
+      cwd: APP,
+      encoding: "utf8",
+      input: result.stdout.replace(/\r\n?/g, "\n"),
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["pipe", "pipe", "inherit"],
+    },
+  );
+  if (formatted.status !== 0) throw new Error(`prettier exited ${String(formatted.status)}`);
   mkdirSync(TYPES_DIR, { recursive: true });
-  writeFileSync(`${TYPES_DIR}types.ts`, HEADER + result.stdout.replace(/\r\n?/g, "\n"));
+  writeFileSync(`${TYPES_DIR}types.ts`, HEADER + formatted.stdout.replace(/\r\n?/g, "\n"));
   console.log("wrote src/db/types.ts");
 }
 
