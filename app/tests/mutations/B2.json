@@ -2148,5 +2148,177 @@
     "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$;\n",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"a story publishes\"",
     "expect": "× a story publishes as the service role"
+  },
+  {
+    "id": "g9-matrix-tables",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "create table public.g9_probe (id int primary key); alter table public.g9_probe enable row level security;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"names.every.app_role\"",
+    "expect": "\\+\\s+\"g9_probe\""
+  },
+  {
+    "id": "dd",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter table public.redirects disable row level security;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"row.level.security.on\"",
+    "expect": "\\+\\s+\"redirects\""
+  },
+  {
+    "id": "ii",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant insert on public.campaigns to authenticated;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"exactly.the.matrix\"",
+    "expect": "\\+\\s+\"campaigns: select insert\""
+  },
+  {
+    "id": "cc",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "revoke all on all tables in schema public from service_role;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"service_role.selects\"",
+    "expect": "\\+\\s+\"markets\","
+  },
+  {
+    "id": "g9-anon-table",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant select on public.markets to anon;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"service_role.selects\"",
+    "expect": "\\+\\s+\"markets\","
+  },
+  {
+    "id": "w",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant execute on function public.save_property(uuid, int, jsonb) to public;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"executes.no.function\"",
+    "expect": "\\+\\s+\"save_property\","
+  },
+  {
+    "id": "b",
+    "kind": "file",
+    "test": "tests/db/rls.db.test.ts",
+    "file": "tests/db/rls-matrix.ts",
+    "find": "submissions: { select: staffRoles, update: [\"chief_editor\", \"managing_editor\"] },",
+    "replace": "submissions: { select: staffRoles, update: [\"chief_editor\"] },",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.managing_editor,\"",
+    "expect": "\\+\\s+\"submissions update: allowed\""
+  },
+  {
+    "id": "g9-chief-editor",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy submissions_update_deciders on public.submissions using (public.role_in('managing_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.chief_editor,\"",
+    "expect": "\\+\\s+\"submissions update: refused\""
+  },
+  {
+    "id": "g9-visual-editor",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy properties_update_editors on public.properties using (public.role_in('chief_editor', 'managing_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.visual_editor,\"",
+    "expect": "\\+\\s+\"properties update: refused\""
+  },
+  {
+    "id": "g9-media-ops",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy properties_insert_editors on public.properties with check (public.role_in('chief_editor', 'managing_editor', 'visual_editor', 'media_ops'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.media_ops,\"",
+    "expect": "\\+\\s+\"properties insert: allowed\""
+  },
+  {
+    "id": "g9-commercial",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy payments_update_finance on public.payments using (public.role_in('managing_editor', 'admin', 'commercial'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.commercial,\"",
+    "expect": "\\+\\s+\"payments update: allowed\""
+  },
+  {
+    "id": "g9-admin",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy agent_keys_delete_admin on public.agent_keys using (public.role_in('chief_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin,\"",
+    "expect": "\\+\\s+\"agent_keys delete: refused\""
+  },
+  {
+    "id": "g9-union",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy retention_policies_update_admin on public.retention_policies using (public.role_in('admin') and not public.role_in('chief_editor'));",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin.plus.chief_editor,\"",
+    "expect": "\\+\\s+\"retention_policies update: refused\""
+  },
+  {
+    "id": "g9-no-role",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy markets_select_staff on public.markets using (true);",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"with.no.role,\"",
+    "expect": "\\+\\s+\"markets select: allowed\""
+  },
+  {
+    "id": "g9-anon",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant select on public.markets to anon; create policy markets_select_anon on public.markets for select to anon using (true);",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.anon,\"",
+    "expect": "\\+\\s+\"markets select: allowed\""
+  },
+  {
+    "id": "ooo",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "update storage.buckets set public = false where id = 'media';",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"media: private"
+  },
+  {
+    "id": "ooo-documents",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "select set_config('storage.allow_delete_query', 'true', true); delete from storage.buckets where id = 'documents';",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "-\\s+\"documents: private"
+  },
+  {
+    "id": "g9-storage-policy",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "create policy g9_probe on storage.objects for select to anon using (true);",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"g9_probe\""
+  },
+  {
+    "id": "g9-config",
+    "kind": "file",
+    "test": "tests/db/uploads.db.test.ts",
+    "file": "supabase/config.toml",
+    "find": "file_size_limit = \"25MiB\"",
+    "replace": "file_size_limit = \"50MiB\"",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "expected 52428800 to be 26214400"
+  },
+  {
+    "id": "g9-check-bytes",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000);",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"maxBytes\": false"
+  },
+  {
+    "id": "g9-check-types",
+    "kind": "sql",
+    "test": "tests/db/uploads.db.test.ts",
+    "sql": "alter table public.submission_media drop constraint submission_media_mime_allowed; alter table public.submission_media add constraint submission_media_mime_allowed check (mime in ('image/jpeg', 'image/png', 'image/webp'));",
+    "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
+    "expect": "\\+\\s+\"image/heic\""
   }
 ]

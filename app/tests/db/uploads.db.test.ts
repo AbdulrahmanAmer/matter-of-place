@@ -1,8 +1,15 @@
-// Invariant 13 (GQ-07): the types, the size and the count of a request's photographs, and invariant 12 (GP-03): the
-// rights record every request carries. The comparison with uploadLimits and the bucket is step 9's.
+// Invariant 13 (GQ-07): the types, the size and the count of a request's photographs, the same numbers in the
+// buckets of ruling H33 and in config.toml, and invariant 12 (GP-03): the rights record every request carries.
+import { readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { withRollback, type Db } from "../fixtures/db";
+
+// STUB(B2 step 10): `uploadLimits` of src/domain/contracts.ts replaces this copy of invariant 13's numbers.
+const uploadLimits = {
+  maxBytes: 26214400,
+  types: ["image/jpeg", "image/png", "image/heic", "image/webp"],
+};
 
 const SUBMISSION = `insert into public.submissions (
     address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, story, significance,
@@ -144,5 +151,69 @@ describe("submissions rights", () => {
       noTime: "23502",
       noHash: "23502",
     });
+  });
+});
+
+describe("limits", () => {
+  const bucket = (id: string, isPublic: boolean, bytes: number, types: string[]) =>
+    `${id}: ${isPublic ? "public" : "private"}, ${String(bytes)}, ${types.join(" ")}`;
+
+  it("storage.buckets holds exactly submissions, media and documents, with their sizes and types", async () => {
+    const rows = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ id: string; public: boolean; bytes: number; types: string[] }>(
+            `select id, public, file_size_limit::int as bytes, allowed_mime_types as types
+             from storage.buckets order by id`,
+          )
+        ).rows,
+    );
+    expect(rows.map((row) => bucket(row.id, row.public, row.bytes, row.types))).toEqual([
+      bucket("documents", false, 10485760, [
+        "application/pdf",
+        "text/csv",
+        "text/markdown",
+        "application/json",
+      ]),
+      bucket("media", true, 12582912, ["image/webp", "image/jpeg", "image/png", "video/mp4"]),
+      bucket("submissions", false, uploadLimits.maxBytes, uploadLimits.types),
+    ]);
+  });
+
+  it("no policy on storage.objects reaches anon or authenticated", async () => {
+    const policies = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ policyname: string }>(
+            `select policyname from pg_policies
+             where schemaname = 'storage' and tablename = 'objects'
+               and roles && array['anon', 'authenticated', 'public']::name[]`,
+          )
+        ).rows,
+    );
+    expect(policies.map(({ policyname }) => policyname)).toEqual([]);
+  });
+
+  it("config.toml's storage file_size_limit equals uploadLimits.maxBytes", () => {
+    const config = readFileSync(new URL("../../supabase/config.toml", import.meta.url), "utf8");
+    const mebibytes = /^\[storage\][^[]*?^file_size_limit\s*=\s*"(\d+)MiB"/m.exec(config)?.[1];
+    expect(Number(mebibytes) * 1024 * 1024).toBe(uploadLimits.maxBytes);
+  });
+
+  it("the submission_media checks hold uploadLimits.maxBytes and the four types", async () => {
+    const checks = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ definition: string }>(
+            `select pg_get_constraintdef(oid) as definition from pg_constraint
+             where conrelid = 'public.submission_media'::regclass and contype = 'c'`,
+          )
+        ).rows,
+    );
+    const text = checks.map(({ definition }) => definition).join("\n");
+    expect({
+      maxBytes: text.includes(String(uploadLimits.maxBytes)),
+      missingTypes: uploadLimits.types.filter((type) => !text.includes(`'${type}'`)),
+    }).toEqual({ maxBytes: true, missingTypes: [] });
   });
 });
