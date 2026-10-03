@@ -1092,7 +1092,7 @@ Entry template
 - symptom: P-415 ended its symptom with "Hit again: P-094 ... and P-066" and carried both lessons (the python heredoc, the prettier padding) beside its own; P-094 and P-066 were not touched, so a search for either id missed the recurrence. The review of B4 g4 found it.
 - cause: the entry was written from the list of what went wrong in the turn, one heading for the turn, not from a search of the bank for each item.
 - rule: before a new entry, run `grep -n "<keyword>" GOTCHAS.md` for each cost; a cost the bank holds gets a "hit again" line inside that entry (date, lane, what repeated), and a new entry carries one lesson, never the whole turn.
-- proof: `git grep -c "^- hit again: 2026-10-03, B4 g4" -- GOTCHAS.md` → `2` (P-094 and P-066), and `grep -c "in the same turn) and P-066" GOTCHAS.md` → `0` (measured 2026-10-03, B4 g4 follow-ups).
+- proof: `git grep -c "^- hit again: 2026-10-03, B4 g4" -- GOTCHAS.md` → `2` (P-094 and P-066), and `grep -n "^## P-415" -A3 GOTCHAS.md | grep -c "Hit again"` → `0` (measured 2026-10-03, B4 g4 follow-ups).
 - added: 2026-10-03
 
 ## P-417 · A rule line that hands work to another slice's step names a file that slice's plan never lists
