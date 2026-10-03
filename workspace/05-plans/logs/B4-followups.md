@@ -21,3 +21,17 @@
 5. `app/scripts/watchfail.mjs` (not blocking)
    - What: Restore on SIGINT (lines 362-364: the exit handler calls restoreAll, and SIGINT/SIGTERM call process.exit(130)) is UNPROVEN. No test covers it, and on this Windows machine a child.kill('SIGINT') terminates the process without running handlers, so it can only be shown on Linux or with a real console Ctrl-C. The finally path is covered (wf-restore).
    - Evidence: Read: watchfail.test.ts has no signal case. B4.json has no entry mutating the signal or exit wiring.
+
+## g2 · steps 3
+
+1. `app/tests/unit/time-model.test.ts` (not blocking)
+   - What: The T-08 detector only sees named imports and re-exports (`import|export {...} from ".../clock"`). If a db, api or e2e file, factories.ts or dataset.ts uses a namespace import (`import * as clock` then `clock.FIXED_NOW` or `clock.at`) or a dynamic `import("../fixtures/clock")`, it gets FIXED_NOW or at past R51 and G19, and the gate stays green. The plan's watched-fail (aa) uses a named import, so it passes. Nothing in the repo uses these forms today, so this is a follow-up: G19 does not cover namespace or dynamic imports.
+   - Evidence: Confirmed by running: node scripts/watchfail.mjs --file tests/db/harness.db.test.ts --find 'import setup from "./global-setup";' --replace '...\nimport * as clock from "../fixtures/clock";\nexport const t = clock.FIXED_NOW;' --run "bunx vitest run --project unit tests/unit/time-model.test.ts" --expect harness.db.test.ts gave `WATCHED-FAIL BAD: stayed green`, exit 1.
+
+2. `app/tests/fixtures/builders.ts` (not blocking)
+   - What: Line 8 `export type SubscriberInput = z.input<typeof subscriberSchema>` repeats a type that src/domain/contracts.ts:170 already exports under the same name (STANDARDS C05, a second copy). The three exported types InquiryInput, SubmissionInput and SubscriberInput are not imported anywhere outside builders.ts (C04). knip cannot see this because knip.json makes tests/**/*.{ts,tsx} entry files, and knip does not report exports from entry files. Nothing breaks, so this is a follow-up: import SubscriberInput from contracts.ts, and keep the other exports only when an api or e2e test needs them.
+   - Evidence: Confirmed by reading: grep -rn "InquiryInput\|SubmissionInput\|SubscriberInput" src tests scripts finds uses only inside builders.ts and the contracts.ts/services/types.ts SubscriberInput; knip.json has "tests/**/*.{ts,tsx}" under entry.
+
+3. `workspace/05-plans/B4.md` (not blocking; this file is not g2's)
+   - What: The plan's GQ-03 proof line, `git grep -n "Date.now\|Math.random\|randomUUID" tests/fixtures` prints nothing, can no longer pass, because B2's tests/fixtures/db.ts calls randomUUID (lines 3 and 90). P-404 records this and clock.test.ts skips db.ts, but the plan text still states the impossible condition. The orchestrator should fold P-404 into the plan line.
+   - Evidence: Confirmed by running: grep -n "randomUUID\|Date.now\|Math.random" tests/fixtures/*.ts gave tests/fixtures/db.ts:3 and tests/fixtures/db.ts:90.

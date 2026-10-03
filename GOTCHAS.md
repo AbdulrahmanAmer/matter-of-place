@@ -1345,3 +1345,10 @@ Entry template
 - rule: assert that an empty `phone`, `location`, `architect` and the like are accepted, never that they become absent; a change to that behaviour belongs to the slice that owns `contracts.ts` (B3), with a test of its own.
 - proof: from `app/`, `bunx vitest run --project unit tests/unit/contracts.test.ts -t "accepts an empty optional field"` prints `Tests  1 passed`, and `-t "empty optional url into absent"` also passes (measured 2026-10-03).
 - added: 2026-10-03
+
+## P-406 · An apostrophe inside a Bash call with several heredocs makes the whole call fail to parse and nothing is written
+- symptom: in B4 g2 one Bash call that wrote several files through heredocs, with an apostrophe in the prose, failed to parse and wrote none of them. The author banked it under P-008, which is about `\` collapsing in single-quoted arguments, and a search of the bank for "apostrophe" found nothing.
+- cause: the Bash tool on this machine mangles quotes in a long command before the shell parses it (P-008, P-309), so an apostrophe in the body pairs with another quote and the shell reads on or stops with a parse error before it runs any line.
+- rule: text that carries an apostrophe goes in with the Write or Edit tool, never through a heredoc or a quoted `-e` argument; after a Bash call that failed to parse, read `git status --short` before going on, because the call wrote nothing. P-309 holds the `unexpected EOF` form of the same failure.
+- proof: `grep -n -i "apostrophe" GOTCHAS.md | cut -c1-60` prints this entry's heading and symptom lines, and `git grep -n "^## P-309" -- GOTCHAS.md` prints the sibling (reviewer follow-up, B4 g2).
+- added: 2026-10-03
