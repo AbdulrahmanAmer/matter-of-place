@@ -76,6 +76,10 @@ begin
   returning id into v_campaign;
   insert into public.campaign_reports (campaign_id, period_start, period_end)
   values (v_campaign, current_date, current_date);
+  perform public.enqueue_job(
+    'test.rls', '{}', 'test-rls:' || v_user,
+    p_event_id => public.emit_event('health.failed', 'system', null, '{}', null)
+  );
 end
 $$`;
 

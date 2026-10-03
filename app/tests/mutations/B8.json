@@ -1,0 +1,298 @@
+[
+  {
+    "id": "a",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.enqueue_job(\n  p_type text,\n  p_payload jsonb,\n  p_idempotency_key text,\n  p_heavy boolean default false,\n  p_status public.job_status default 'queued',\n  p_run_after timestamptz default now(),\n  p_event_id uuid default null,\n  p_recipe_id uuid default null,\n  p_step_id text default null,\n  p_max_attempts int default 5,\n  p_local boolean default false\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- Invariant 1: a second insert of a key never creates a second job, and the caller gets null.\n  insert into public.jobs (\n    type, payload, idempotency_key, heavy, status, run_after, event_id, recipe_id, step_id, max_attempts, run_local\n  ) values (\n    p_type, coalesce(p_payload, '{}'::jsonb), p_idempotency_key, p_heavy, p_status, p_run_after, p_event_id,\n    p_recipe_id, p_step_id, p_max_attempts, p_local\n  )\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  insert into public.job_events (job_id, kind, to_status, attempt) values (v_id, 'created', p_status, 0);\n  -- Ruling H34 (2): a local job never gets a message; the laptop runner finds it by reading jobs.\n  if p_status = 'queued' and not p_local then\n    update public.jobs set msg_id = public.job_queue_send(p_heavy, v_id, p_run_after) where id = v_id;\n  end if;\n  return v_id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"a repeat of the key returns null\"",
+    "expect": "× .*a repeat of the key returns null[\\s\\S]*duplicate key value"
+  },
+  {
+    "id": "ac",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.enqueue_job(\n  p_type text,\n  p_payload jsonb,\n  p_idempotency_key text,\n  p_heavy boolean default false,\n  p_status public.job_status default 'queued',\n  p_run_after timestamptz default now(),\n  p_event_id uuid default null,\n  p_recipe_id uuid default null,\n  p_step_id text default null,\n  p_max_attempts int default 5,\n  p_local boolean default false\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- Invariant 1: a second insert of a key never creates a second job, and the caller gets null.\n  insert into public.jobs (\n    type, payload, idempotency_key, heavy, status, run_after, event_id, recipe_id, step_id, max_attempts, run_local\n  ) values (\n    p_type, coalesce(p_payload, '{}'::jsonb), p_idempotency_key, p_heavy, p_status, p_run_after, p_event_id,\n    p_recipe_id, p_step_id, p_max_attempts, p_local\n  )\n  on conflict (idempotency_key) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  -- Ruling H34 (2): a local job never gets a message; the laptop runner finds it by reading jobs.\n  if p_status = 'queued' and not p_local then\n    update public.jobs set msg_id = public.job_queue_send(p_heavy, v_id, p_run_after) where id = v_id;\n  end if;\n  return v_id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"a repeat of the key returns null\"",
+    "expect": "× .*a repeat of the key returns null[\\s\\S]*\"events\": \\[\\]"
+  },
+  {
+    "id": "av",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.enqueue_job(\n  p_type text,\n  p_payload jsonb,\n  p_idempotency_key text,\n  p_heavy boolean default false,\n  p_status public.job_status default 'queued',\n  p_run_after timestamptz default now(),\n  p_event_id uuid default null,\n  p_recipe_id uuid default null,\n  p_step_id text default null,\n  p_max_attempts int default 5,\n  p_local boolean default false\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- Invariant 1: a second insert of a key never creates a second job, and the caller gets null.\n  insert into public.jobs (\n    type, payload, idempotency_key, heavy, status, run_after, event_id, recipe_id, step_id, max_attempts, run_local\n  ) values (\n    p_type, coalesce(p_payload, '{}'::jsonb), p_idempotency_key, p_heavy, p_status, p_run_after, p_event_id,\n    p_recipe_id, p_step_id, 5, p_local\n  )\n  on conflict (idempotency_key) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  insert into public.job_events (job_id, kind, to_status, attempt) values (v_id, 'created', p_status, 0);\n  -- Ruling H34 (2): a local job never gets a message; the laptop runner finds it by reading jobs.\n  if p_status = 'queued' and not p_local then\n    update public.jobs set msg_id = public.job_queue_send(p_heavy, v_id, p_run_after) where id = v_id;\n  end if;\n  return v_id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_max_attempts 10\"",
+    "expect": "× .*p_max_attempts 10 keeps the job failed[\\s\\S]*\"dead\""
+  },
+  {
+    "id": "bf",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.enqueue_job(\n  p_type text,\n  p_payload jsonb,\n  p_idempotency_key text,\n  p_heavy boolean default false,\n  p_status public.job_status default 'queued',\n  p_run_after timestamptz default now(),\n  p_event_id uuid default null,\n  p_recipe_id uuid default null,\n  p_step_id text default null,\n  p_max_attempts int default 5,\n  p_local boolean default false\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- Invariant 1: a second insert of a key never creates a second job, and the caller gets null.\n  insert into public.jobs (\n    type, payload, idempotency_key, heavy, status, run_after, event_id, recipe_id, step_id, max_attempts, run_local\n  ) values (\n    p_type, coalesce(p_payload, '{}'::jsonb), p_idempotency_key, p_heavy, p_status, p_run_after, p_event_id,\n    p_recipe_id, p_step_id, p_max_attempts, p_local\n  )\n  on conflict (idempotency_key) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  insert into public.job_events (job_id, kind, to_status, attempt) values (v_id, 'created', p_status, 0);\n  -- Ruling H34 (2): a local job never gets a message; the laptop runner finds it by reading jobs.\n  if p_status = 'queued' then\n    update public.jobs set msg_id = public.job_queue_send(p_heavy, v_id, p_run_after) where id = v_id;\n  end if;\n  return v_id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_local queues the job\"",
+    "expect": "× .*p_local queues the job with no message"
+  },
+  {
+    "id": "local-fail-send",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.fail_job(\n  p_job_id uuid,\n  p_claim text,\n  p_error text,\n  p_dead boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\n  v_run_after timestamptz;\nbegin\n  -- JOB-02: only the run that holds the claim may fail the job; the reaper passes the job's own claim.\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_job.attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  -- Invariant 2: the one place an attempt is used.\n  v_attempts := v_job.attempts + 1;\n  if p_dead or v_attempts >= v_job.max_attempts then\n    update public.jobs\n    set status = 'dead', attempts = v_attempts, error = p_error, finished_at = now()\n    where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (p_job_id, 'dead', 'running', 'dead', v_attempts, p_error);\n    return true;\n  end if;\n  -- Invariant 4: min(30 s * 2^(attempts - 1), 1 h), plus or minus 20 percent.\n  v_run_after := now() + make_interval(secs => least(30 * power(2, v_attempts - 1), 3600) * (0.8 + 0.4 * random()));\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'failed', attempts = v_attempts, error = p_error, run_after = v_run_after,\n    msg_id = public.job_queue_send(v_job.heavy, p_job_id, v_run_after)\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n  values (p_job_id, 'failed', 'running', 'failed', v_attempts, p_error);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_local queues the job\"",
+    "expect": "× .*p_local queues the job with no message"
+  },
+  {
+    "id": "local-reap-send",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.reap_stale_jobs()\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_error text;\n  v_lease_expired int := 0;\n  v_callback_timeout int := 0;\n  v_resent int := 0;\nbegin\n  -- JOB-02: an expired lease goes through the fail path (one attempt, backoff, dead at max_attempts), never a free\n  -- reset. A heavy job waits 30 minutes for its callback.\n  for v_job in\n    select * from public.jobs j\n    where j.status = 'running'\n      and j.locked_at < now() - case when j.heavy then interval '30 minutes' else interval '5 minutes' end\n    for update skip locked\n  loop\n    v_error := case when v_job.heavy then 'callback_timeout' else 'lease_expired' end;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (v_job.id, 'stale', 'running', 'running', v_job.attempts, v_error);\n    perform public.fail_job(v_job.id, v_job.locked_by, v_error);\n    if v_job.heavy then\n      v_callback_timeout := v_callback_timeout + 1;\n    else\n      v_lease_expired := v_lease_expired + 1;\n    end if;\n  end loop;\n  -- Invariant 5: a runnable job whose message is gone gets a new one. A local job never has one (ruling H34 (2)).\n  for v_job in\n    select * from public.jobs j\n    where j.status in ('queued', 'failed')\n      and j.run_after < now() - interval '5 minutes'\n      and (j.msg_id is null or not exists (\n        select 1 from pgmq.q_jobs_light q where not j.heavy and q.msg_id = j.msg_id\n        union all\n        select 1 from pgmq.q_jobs_heavy q where j.heavy and q.msg_id = j.msg_id\n      ))\n    for update skip locked\n  loop\n    update public.jobs set msg_id = public.job_queue_send(v_job.heavy, v_job.id, v_job.run_after) where id = v_job.id;\n    v_resent := v_resent + 1;\n  end loop;\n  return jsonb_build_object(\n    'lease_expired', v_lease_expired, 'callback_timeout', v_callback_timeout, 'resent', v_resent\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_local queues the job\"",
+    "expect": "× .*p_local queues the job with no message"
+  },
+  {
+    "id": "ae",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.enqueue_job_manual(\n  p_type text,\n  p_entity_id uuid,\n  p_payload jsonb,\n  p_max_attempts int default 5\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_prefix text := p_type || ':' || p_entity_id::text || ':';\n  v_n int;\nbegin\n  perform pg_advisory_xact_lock(hashtext(p_type || p_entity_id::text));\n  -- DB-09: the largest number plus one, never a count, so a pruned key is never handed out again. Only a numeric\n  -- third part counts, so a free-form key with the same prefix cannot break the cast.\n  select 1 + count(*)::int\n  into v_n\n  from public.jobs j\n  where starts_with(j.idempotency_key, v_prefix);\n  return public.enqueue_job(p_type, p_payload, v_prefix || v_n::text, p_max_attempts => p_max_attempts);\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"numbers keys\"",
+    "expect": "× .*numbers keys :1 and :2[\\s\\S]*null"
+  },
+  {
+    "id": "e",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.claim_job(p_job_id uuid)\nreturns setof public.jobs\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from public.job_status;\n  v_job public.jobs;\nbegin\n  -- Invariant 2: a second claim waits on the row lock, then sees `running` and gets no row.\n  select j.status into v_from\n  from public.jobs j\n  where j.id = p_job_id and j.status in ('queued', 'failed', 'running')\n  for update;\n  if not found then\n    return;\n  end if;\n  -- JOB-02: a fresh claim token per run; attempts change only in fail_job.\n  update public.jobs\n  set status = 'running', locked_at = now(), locked_by = gen_random_uuid()::text\n  where id = p_job_id\n  returning * into v_job;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'claimed', v_from, 'running', v_job.attempts);\n  return next v_job;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"two parallel claims\"",
+    "expect": "× .*two parallel claims[\\s\\S]*\\+   \"second\": 1"
+  },
+  {
+    "id": "e-single",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.claim_job(p_job_id uuid)\nreturns setof public.jobs\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from public.job_status;\n  v_job public.jobs;\nbegin\n  -- Invariant 2: a second claim waits on the row lock, then sees `running` and gets no row.\n  select j.status into v_from\n  from public.jobs j\n  where j.id = p_job_id and j.status in ('queued', 'failed', 'running')\n  for update;\n  if not found then\n    return;\n  end if;\n  -- JOB-02: a fresh claim token per run; attempts change only in fail_job.\n  update public.jobs\n  set status = 'running', locked_at = now(), locked_by = gen_random_uuid()::text\n  where id = p_job_id\n  returning * into v_job;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'claimed', v_from, 'running', v_job.attempts);\n  return next v_job;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"returns a fresh claim each time\"",
+    "expect": "× .*returns a fresh claim each time[\\s\\S]*\\+   \"again\": 1"
+  },
+  {
+    "id": "claim-attempts",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.claim_job(p_job_id uuid)\nreturns setof public.jobs\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from public.job_status;\n  v_job public.jobs;\nbegin\n  -- Invariant 2: a second claim waits on the row lock, then sees `running` and gets no row.\n  select j.status into v_from\n  from public.jobs j\n  where j.id = p_job_id and j.status in ('queued', 'failed')\n  for update;\n  if not found then\n    return;\n  end if;\n  -- JOB-02: a fresh claim token per run; attempts change only in fail_job.\n  update public.jobs\n  set status = 'running', attempts = attempts + 1, locked_at = now(), locked_by = gen_random_uuid()::text\n  where id = p_job_id\n  returning * into v_job;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'claimed', v_from, 'running', v_job.attempts);\n  return next v_job;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"returns a fresh claim each time\"",
+    "expect": "× .*returns a fresh claim each time[\\s\\S]*\"attempts\": 3"
+  },
+  {
+    "id": "fail-max",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.fail_job(\n  p_job_id uuid,\n  p_claim text,\n  p_error text,\n  p_dead boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\n  v_run_after timestamptz;\nbegin\n  -- JOB-02: only the run that holds the claim may fail the job; the reaper passes the job's own claim.\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_job.attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  -- Invariant 2: the one place an attempt is used.\n  v_attempts := v_job.attempts + 1;\n  if p_dead or v_attempts > v_job.max_attempts then\n    update public.jobs\n    set status = 'dead', attempts = v_attempts, error = p_error, finished_at = now()\n    where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (p_job_id, 'dead', 'running', 'dead', v_attempts, p_error);\n    return true;\n  end if;\n  -- Invariant 4: min(30 s * 2^(attempts - 1), 1 h), plus or minus 20 percent.\n  v_run_after := now() + make_interval(secs => least(30 * power(2, v_attempts - 1), 3600) * (0.8 + 0.4 * random()));\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'failed', attempts = v_attempts, error = p_error, run_after = v_run_after,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, v_run_after) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n  values (p_job_id, 'failed', 'running', 'failed', v_attempts, p_error);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"goes dead at attempt 5\"",
+    "expect": "× .*goes dead at attempt 5[\\s\\S]*-\\s+\"dead\","
+  },
+  {
+    "id": "fail-backoff",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.fail_job(\n  p_job_id uuid,\n  p_claim text,\n  p_error text,\n  p_dead boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\n  v_run_after timestamptz;\nbegin\n  -- JOB-02: only the run that holds the claim may fail the job; the reaper passes the job's own claim.\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_job.attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  -- Invariant 2: the one place an attempt is used.\n  v_attempts := v_job.attempts + 1;\n  if p_dead or v_attempts >= v_job.max_attempts then\n    update public.jobs\n    set status = 'dead', attempts = v_attempts, error = p_error, finished_at = now()\n    where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (p_job_id, 'dead', 'running', 'dead', v_attempts, p_error);\n    return true;\n  end if;\n  -- Invariant 4: min(30 s * 2^(attempts - 1), 1 h), plus or minus 20 percent.\n  v_run_after := now() + make_interval(secs => least(30 * power(2, v_attempts - 1), 3600) * (0.8 + 0.4 * random()));\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'failed', attempts = v_attempts, error = p_error, run_after = v_run_after,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, now()) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n  values (p_job_id, 'failed', 'running', 'failed', v_attempts, p_error);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"delayed by the backoff\"",
+    "expect": "× .*delayed by the backoff[\\s\\S]*\\+   \"delayed\": false"
+  },
+  {
+    "id": "fail-dead",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.fail_job(\n  p_job_id uuid,\n  p_claim text,\n  p_error text,\n  p_dead boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\n  v_run_after timestamptz;\nbegin\n  -- JOB-02: only the run that holds the claim may fail the job; the reaper passes the job's own claim.\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_job.attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  -- Invariant 2: the one place an attempt is used.\n  v_attempts := v_job.attempts + 1;\n  if v_attempts >= v_job.max_attempts then\n    update public.jobs\n    set status = 'dead', attempts = v_attempts, error = p_error, finished_at = now()\n    where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (p_job_id, 'dead', 'running', 'dead', v_attempts, p_error);\n    return true;\n  end if;\n  -- Invariant 4: min(30 s * 2^(attempts - 1), 1 h), plus or minus 20 percent.\n  v_run_after := now() + make_interval(secs => least(30 * power(2, v_attempts - 1), 3600) * (0.8 + 0.4 * random()));\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'failed', attempts = v_attempts, error = p_error, run_after = v_run_after,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, v_run_after) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n  values (p_job_id, 'failed', 'running', 'failed', v_attempts, p_error);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_dead sends the job\"",
+    "expect": "× .*p_dead sends the job to dead at once[\\s\\S]*\"failed\""
+  },
+  {
+    "id": "finish-dispatched",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.finish_job(\n  p_job_id uuid,\n  p_claim text,\n  p_result jsonb default null,\n  p_dispatched boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_attempts int;\nbegin\n  -- JOB-02: only the run that holds the claim may finish; a late runner or callback changes nothing.\n  select j.attempts into v_attempts\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  -- A 204 from the dispatch: the job stays running under its claim until the callback.\n  if false then\n    update public.jobs set result = p_result where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n    values (p_job_id, 'dispatched', 'running', 'running', v_attempts);\n    return true;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  update public.jobs\n  set status = 'done', result = coalesce(p_result, result), finished_at = now()\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'done', 'running', 'done', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_dispatched keeps the job running\"",
+    "expect": "× .*p_dispatched keeps the job running[\\s\\S]*\"done\""
+  },
+  {
+    "id": "finish-callback",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.finish_job(\n  p_job_id uuid,\n  p_claim text,\n  p_result jsonb default null,\n  p_dispatched boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_attempts int;\nbegin\n  -- JOB-02: only the run that holds the claim may finish; a late runner or callback changes nothing.\n  select j.attempts into v_attempts\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  -- A 204 from the dispatch: the job stays running under its claim until the callback.\n  if p_dispatched then\n    update public.jobs set result = p_result where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n    values (p_job_id, 'dispatched', 'running', 'running', v_attempts);\n    return true;\n  end if;\n  if false then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  update public.jobs\n  set status = 'done', result = coalesce(p_result, result), finished_at = now()\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'done', 'running', 'done', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_run_url writes callback\"",
+    "expect": "× .*p_run_url writes callback then done[\\s\\S]*\"claimed\""
+  },
+  {
+    "id": "finish-twice",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.finish_job(\n  p_job_id uuid,\n  p_claim text,\n  p_result jsonb default null,\n  p_dispatched boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_attempts int;\nbegin\n  -- JOB-02: only the run that holds the claim may finish; a late runner or callback changes nothing.\n  select j.attempts into v_attempts\n  from public.jobs j\n  where j.id = p_job_id and j.locked_by = p_claim\n  for update;\n  if not found then\n    return false;\n  end if;\n  -- A 204 from the dispatch: the job stays running under its claim until the callback.\n  if p_dispatched then\n    update public.jobs set result = p_result where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n    values (p_job_id, 'dispatched', 'running', 'running', v_attempts);\n    return true;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  update public.jobs\n  set status = 'done', result = coalesce(p_result, result), finished_at = now()\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'done', 'running', 'done', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"p_run_url writes callback\"",
+    "expect": "× .*p_run_url writes callback then done[\\s\\S]*\\+   \"second\": true"
+  },
+  {
+    "id": "af",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.finish_job(\n  p_job_id uuid,\n  p_claim text,\n  p_result jsonb default null,\n  p_dispatched boolean default false,\n  p_run_url text default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_attempts int;\nbegin\n  -- JOB-02: only the run that holds the claim may finish; a late runner or callback changes nothing.\n  select j.attempts into v_attempts\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'running'\n  for update;\n  if not found then\n    return false;\n  end if;\n  -- A 204 from the dispatch: the job stays running under its claim until the callback.\n  if p_dispatched then\n    update public.jobs set result = p_result where id = p_job_id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n    values (p_job_id, 'dispatched', 'running', 'running', v_attempts);\n    return true;\n  end if;\n  if p_run_url is not null then\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, data)\n    values (p_job_id, 'callback', 'running', 'running', v_attempts, jsonb_build_object('run_url', p_run_url));\n  end if;\n  update public.jobs\n  set status = 'done', result = coalesce(p_result, result), finished_at = now()\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, 'done', 'running', 'done', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"a wrong claim returns false\"",
+    "expect": "× .*a wrong claim returns false and changes nothing[\\s\\S]*expected true to be false"
+  },
+  {
+    "id": "ag",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.reap_stale_jobs()\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_error text;\n  v_lease_expired int := 0;\n  v_callback_timeout int := 0;\n  v_resent int := 0;\nbegin\n  -- JOB-02: an expired lease goes through the fail path (one attempt, backoff, dead at max_attempts), never a free\n  -- reset. A heavy job waits 30 minutes for its callback.\n  for v_job in\n    select * from public.jobs j\n    where j.status = 'running'\n      and j.locked_at < now() - case when j.heavy then interval '30 minutes' else interval '5 minutes' end\n    for update skip locked\n  loop\n    v_error := case when v_job.heavy then 'callback_timeout' else 'lease_expired' end;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (v_job.id, 'stale', 'running', 'running', v_job.attempts, v_error);\n    update public.jobs set status = 'queued', locked_at = null where id = v_job.id;\n    if v_job.heavy then\n      v_callback_timeout := v_callback_timeout + 1;\n    else\n      v_lease_expired := v_lease_expired + 1;\n    end if;\n  end loop;\n  -- Invariant 5: a runnable job whose message is gone gets a new one. A local job never has one (ruling H34 (2)).\n  for v_job in\n    select * from public.jobs j\n    where j.status in ('queued', 'failed')\n      and not j.run_local\n      and j.run_after < now() - interval '5 minutes'\n      and (j.msg_id is null or not exists (\n        select 1 from pgmq.q_jobs_light q where not j.heavy and q.msg_id = j.msg_id\n        union all\n        select 1 from pgmq.q_jobs_heavy q where j.heavy and q.msg_id = j.msg_id\n      ))\n    for update skip locked\n  loop\n    update public.jobs set msg_id = public.job_queue_send(v_job.heavy, v_job.id, v_job.run_after) where id = v_job.id;\n    v_resent := v_resent + 1;\n  end loop;\n  return jsonb_build_object(\n    'lease_expired', v_lease_expired, 'callback_timeout', v_callback_timeout, 'resent', v_resent\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"with lease_expired\"",
+    "expect": "× .*fails a stale running light job with lease_expired[\\s\\S]*\"queued\""
+  },
+  {
+    "id": "ag-max",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.reap_stale_jobs()\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_error text;\n  v_lease_expired int := 0;\n  v_callback_timeout int := 0;\n  v_resent int := 0;\nbegin\n  -- JOB-02: an expired lease goes through the fail path (one attempt, backoff, dead at max_attempts), never a free\n  -- reset. A heavy job waits 30 minutes for its callback.\n  for v_job in\n    select * from public.jobs j\n    where j.status = 'running'\n      and j.locked_at < now() - case when j.heavy then interval '30 minutes' else interval '5 minutes' end\n    for update skip locked\n  loop\n    v_error := case when v_job.heavy then 'callback_timeout' else 'lease_expired' end;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (v_job.id, 'stale', 'running', 'running', v_job.attempts, v_error);\n    update public.jobs set status = 'queued', locked_at = null where id = v_job.id;\n    if v_job.heavy then\n      v_callback_timeout := v_callback_timeout + 1;\n    else\n      v_lease_expired := v_lease_expired + 1;\n    end if;\n  end loop;\n  -- Invariant 5: a runnable job whose message is gone gets a new one. A local job never has one (ruling H34 (2)).\n  for v_job in\n    select * from public.jobs j\n    where j.status in ('queued', 'failed')\n      and not j.run_local\n      and j.run_after < now() - interval '5 minutes'\n      and (j.msg_id is null or not exists (\n        select 1 from pgmq.q_jobs_light q where not j.heavy and q.msg_id = j.msg_id\n        union all\n        select 1 from pgmq.q_jobs_heavy q where j.heavy and q.msg_id = j.msg_id\n      ))\n    for update skip locked\n  loop\n    update public.jobs set msg_id = public.job_queue_send(v_job.heavy, v_job.id, v_job.run_after) where id = v_job.id;\n    v_resent := v_resent + 1;\n  end loop;\n  return jsonb_build_object(\n    'lease_expired', v_lease_expired, 'callback_timeout', v_callback_timeout, 'resent', v_resent\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"max_attempts - 1 to dead\"",
+    "expect": "× .*reaped at attempts = max_attempts - 1 to dead[\\s\\S]*\"queued\""
+  },
+  {
+    "id": "reap-heavy-wait",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.reap_stale_jobs()\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_error text;\n  v_lease_expired int := 0;\n  v_callback_timeout int := 0;\n  v_resent int := 0;\nbegin\n  -- JOB-02: an expired lease goes through the fail path (one attempt, backoff, dead at max_attempts), never a free\n  -- reset. A heavy job waits 30 minutes for its callback.\n  for v_job in\n    select * from public.jobs j\n    where j.status = 'running'\n      and j.locked_at < now() - case when j.heavy then interval '5 minutes' else interval '5 minutes' end\n    for update skip locked\n  loop\n    v_error := case when v_job.heavy then 'callback_timeout' else 'lease_expired' end;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (v_job.id, 'stale', 'running', 'running', v_job.attempts, v_error);\n    perform public.fail_job(v_job.id, v_job.locked_by, v_error);\n    if v_job.heavy then\n      v_callback_timeout := v_callback_timeout + 1;\n    else\n      v_lease_expired := v_lease_expired + 1;\n    end if;\n  end loop;\n  -- Invariant 5: a runnable job whose message is gone gets a new one. A local job never has one (ruling H34 (2)).\n  for v_job in\n    select * from public.jobs j\n    where j.status in ('queued', 'failed')\n      and not j.run_local\n      and j.run_after < now() - interval '5 minutes'\n      and (j.msg_id is null or not exists (\n        select 1 from pgmq.q_jobs_light q where not j.heavy and q.msg_id = j.msg_id\n        union all\n        select 1 from pgmq.q_jobs_heavy q where j.heavy and q.msg_id = j.msg_id\n      ))\n    for update skip locked\n  loop\n    update public.jobs set msg_id = public.job_queue_send(v_job.heavy, v_job.id, v_job.run_after) where id = v_job.id;\n    v_resent := v_resent + 1;\n  end loop;\n  return jsonb_build_object(\n    'lease_expired', v_lease_expired, 'callback_timeout', v_callback_timeout, 'resent', v_resent\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"waits 30 minutes\"",
+    "expect": "× .*waits 30 minutes for a heavy job's callback[\\s\\S]*\\+   \"waiting\": \"failed\""
+  },
+  {
+    "id": "reap-resend",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.reap_stale_jobs()\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_error text;\n  v_lease_expired int := 0;\n  v_callback_timeout int := 0;\n  v_resent int := 0;\nbegin\n  -- JOB-02: an expired lease goes through the fail path (one attempt, backoff, dead at max_attempts), never a free\n  -- reset. A heavy job waits 30 minutes for its callback.\n  for v_job in\n    select * from public.jobs j\n    where j.status = 'running'\n      and j.locked_at < now() - case when j.heavy then interval '30 minutes' else interval '5 minutes' end\n    for update skip locked\n  loop\n    v_error := case when v_job.heavy then 'callback_timeout' else 'lease_expired' end;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, message)\n    values (v_job.id, 'stale', 'running', 'running', v_job.attempts, v_error);\n    perform public.fail_job(v_job.id, v_job.locked_by, v_error);\n    if v_job.heavy then\n      v_callback_timeout := v_callback_timeout + 1;\n    else\n      v_lease_expired := v_lease_expired + 1;\n    end if;\n  end loop;\n  -- Invariant 5: a runnable job whose message is gone gets a new one. A local job never has one (ruling H34 (2)).\n  for v_job in\n    select * from public.jobs j\n    where j.status in ('queued', 'failed')\n      and not j.run_local\n      and j.run_after < now() - interval '5 minutes'\n      and (j.msg_id is null or not exists (\n        select 1 from pgmq.q_jobs_light q where not j.heavy and q.msg_id = j.msg_id\n        union all\n        select 1 from pgmq.q_jobs_heavy q where j.heavy and q.msg_id = j.msg_id\n      ))\n    for update skip locked\n  loop\n    v_resent := v_resent + 1;\n  end loop;\n  return jsonb_build_object(\n    'lease_expired', v_lease_expired, 'callback_timeout', v_callback_timeout, 'resent', v_resent\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"whose message was deleted\"",
+    "expect": "× .*re-sends a message for a queued job whose message was deleted[\\s\\S]*\\+   \"resent\": 0"
+  },
+  {
+    "id": "requeue-attempts",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.requeue_job(\n  p_job_id uuid,\n  p_claim text,\n  p_run_after timestamptz,\n  p_kind text,\n  p_result jsonb default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\nbegin\n  if p_kind = 'requeued' then\n    -- A step's retry_at or a runner wait: only under the run's claim, and no attempt is used (invariant 3).\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n    for update;\n  elsif p_kind = 'manual_retry' then\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status in ('dead', 'failed')\n    for update;\n  else\n    raise exception 'invalid_kind';\n  end if;\n  if not found then\n    return false;\n  end if;\n  v_attempts := 0;\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'queued', attempts = v_attempts, run_after = p_run_after, result = coalesce(p_result, result),\n    error = case when p_kind = 'manual_retry' then null else error end,\n    finished_at = null,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, p_run_after) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, p_kind, v_job.status, 'queued', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"stores a new msg_id and keeps attempts\"",
+    "expect": "× .*stores a new msg_id and keeps attempts[\\s\\S]*\\+   \"attempts\": 0"
+  },
+  {
+    "id": "requeue-send",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.requeue_job(\n  p_job_id uuid,\n  p_claim text,\n  p_run_after timestamptz,\n  p_kind text,\n  p_result jsonb default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\nbegin\n  if p_kind = 'requeued' then\n    -- A step's retry_at or a runner wait: only under the run's claim, and no attempt is used (invariant 3).\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n    for update;\n  elsif p_kind = 'manual_retry' then\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status in ('dead', 'failed')\n    for update;\n  else\n    raise exception 'invalid_kind';\n  end if;\n  if not found then\n    return false;\n  end if;\n  v_attempts := case when p_kind = 'manual_retry' then 0 else v_job.attempts end;\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'queued', attempts = v_attempts, run_after = p_run_after, result = coalesce(p_result, result),\n    error = case when p_kind = 'manual_retry' then null else error end,\n    finished_at = null,\n    msg_id = msg_id\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, p_kind, v_job.status, 'queued', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"stores a new msg_id and keeps attempts\"",
+    "expect": "× .*stores a new msg_id and keeps attempts[\\s\\S]*no row from: select q.vt"
+  },
+  {
+    "id": "requeue-manual",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.requeue_job(\n  p_job_id uuid,\n  p_claim text,\n  p_run_after timestamptz,\n  p_kind text,\n  p_result jsonb default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\nbegin\n  if p_kind = 'requeued' then\n    -- A step's retry_at or a runner wait: only under the run's claim, and no attempt is used (invariant 3).\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n    for update;\n  elsif p_kind = 'manual_retry' then\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status in ('dead', 'failed')\n    for update;\n  else\n    raise exception 'invalid_kind';\n  end if;\n  if not found then\n    return false;\n  end if;\n  v_attempts := case when p_kind = 'manual_retry' then 0 else v_job.attempts end;\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'queued', attempts = v_attempts, run_after = p_run_after, result = coalesce(p_result, result),\n    error = error,\n    finished_at = null,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, p_run_after) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, p_kind, v_job.status, 'queued', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"manual_retry takes a dead job\"",
+    "expect": "× .*manual_retry takes a dead job back to queued[\\s\\S]*\\+   \"error\": \"boom\""
+  },
+  {
+    "id": "requeue-kind",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.requeue_job(\n  p_job_id uuid,\n  p_claim text,\n  p_run_after timestamptz,\n  p_kind text,\n  p_result jsonb default null\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\n  v_attempts int;\nbegin\n  if p_kind = 'requeued' then\n    -- A step's retry_at or a runner wait: only under the run's claim, and no attempt is used (invariant 3).\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status = 'running' and j.locked_by = p_claim\n    for update;\n  elsif p_kind = 'manual_retry' then\n    select * into v_job\n    from public.jobs j\n    where j.id = p_job_id and j.status in ('dead', 'failed')\n    for update;\n  else\n    return false;\n  end if;\n  if not found then\n    return false;\n  end if;\n  v_attempts := case when p_kind = 'manual_retry' then 0 else v_job.attempts end;\n  if v_job.msg_id is not null then\n    perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n  end if;\n  update public.jobs\n  set status = 'queued', attempts = v_attempts, run_after = p_run_after, result = coalesce(p_result, result),\n    error = case when p_kind = 'manual_retry' then null else error end,\n    finished_at = null,\n    msg_id = case when v_job.run_local then null else public.job_queue_send(v_job.heavy, p_job_id, p_run_after) end\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt)\n  values (p_job_id, p_kind, v_job.status, 'queued', v_attempts);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"raises invalid_kind\"",
+    "expect": "× .*raises invalid_kind for any other kind[\\s\\S]*Received: \"ok\""
+  },
+  {
+    "id": "cancel-message",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.cancel_job(p_job_id uuid, p_actor_id uuid default null, p_message text default null)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\nbegin\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status in ('queued', 'failed', 'waiting_approval')\n  for update;\n  if not found then\n    return false;\n  end if;\n  update public.jobs set status = 'cancelled', finished_at = now(), msg_id = null where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, message, actor_id)\n  values (p_job_id, 'cancelled', v_job.status, 'cancelled', v_job.attempts, p_message, p_actor_id);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"cancel_job deletes the message\"",
+    "expect": "× .*cancel_job deletes the message[\\s\\S]*\\+   \"messages\": 1"
+  },
+  {
+    "id": "approve-send",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.approve_job(p_job_id uuid, p_actor_id uuid default null)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job public.jobs;\nbegin\n  select * into v_job\n  from public.jobs j\n  where j.id = p_job_id and j.status = 'waiting_approval'\n  for update;\n  if not found then\n    return false;\n  end if;\n  update public.jobs\n  set status = 'queued',\n    msg_id = null\n  where id = p_job_id;\n  insert into public.job_events (job_id, kind, from_status, to_status, attempt, actor_id)\n  values (p_job_id, 'approved', 'waiting_approval', 'queued', v_job.attempts, p_actor_id);\n  return true;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"approve_job queues a waiting job\"",
+    "expect": "× .*approve_job queues a waiting job[\\s\\S]*\\+   \"messages\": 0"
+  },
+  {
+    "id": "emit-entity",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.emit_event(\n  p_type text,\n  p_entity text,\n  p_entity_id uuid,\n  p_payload jsonb,\n  p_actor_id uuid default null\n)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- A type outside the catalog fails the check constraint, so the caller's write rolls back with it.\n  insert into public.events (type, entity, entity_id, payload, actor_id)\n  values (p_type, p_entity, null, coalesce(p_payload, '{}'::jsonb), p_actor_id)\n  returning id\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"emit_event inserts a row\"",
+    "expect": "× .*emit_event inserts a row of a catalog type[\\s\\S]*\\+   \"entity_id\": null"
+  },
+  {
+    "id": "emit-check",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "alter table public.events drop constraint events_type_check",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"emit_event refuses a type\"",
+    "expect": "× .*emit_event refuses a type outside the catalog[\\s\\S]*expected 'ok' to match"
+  },
+  {
+    "id": "ad-entity",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.job_event_entity_id(j public.jobs)\nreturns uuid\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- G64: a PostgREST computed field, so one `or` filter finds an entity's jobs through their event.\n  select e.id from public.events e where e.id = j.event_id\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"job_event_entity_id gives\"",
+    "expect": "× .*job_event_entity_id gives the entity"
+  },
+  {
+    "id": "k",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.events_append_only()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- G16: only the retention job deletes, inside its own transaction.\n  if tg_op = 'DELETE' then\n    if current_setting('mop.retention', true) = 'on' then\n      return old;\n    end if;\n    raise exception 'append_only';\n  end if;\n  -- B8b's fan-out marks an event processed once; nothing else of an event ever changes.\n  if true then\n    return new;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"updating events.payload\"",
+    "expect": "× .*updating events.payload as the service role raises[\\s\\S]*Received: \"ok\""
+  },
+  {
+    "id": "processed-once",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.events_append_only()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- G16: only the retention job deletes, inside its own transaction.\n  if tg_op = 'DELETE' then\n    if current_setting('mop.retention', true) = 'on' then\n      return old;\n    end if;\n    raise exception 'append_only';\n  end if;\n  -- B8b's fan-out marks an event processed once; nothing else of an event ever changes.\n  if new.processed_at is not null\n    and to_jsonb(new) - 'processed_at' = to_jsonb(old) - 'processed_at' then\n    return new;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"setting events.processed_at once\"",
+    "expect": "× .*setting events.processed_at once succeeds[\\s\\S]*\\+   \"ok\","
+  },
+  {
+    "id": "job-events-update",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.job_events_append_only()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- Only prune_jobs and the retention job delete, inside their own transaction (G16).\n  if tg_op = 'UPDATE' or current_setting('mop.retention', true) = 'on' then\n    return old;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"updating a job_events row raises\"",
+    "expect": "× .*updating a job_events row raises[\\s\\S]*Received: \"ok\""
+  },
+  {
+    "id": "delete-refused",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "drop trigger job_events_append_only on public.job_events; drop trigger events_append_only on public.events",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"refuse a delete unless\"",
+    "expect": "× .*refuse a delete unless mop.retention is on[\\s\\S]*\\+     \"ok\","
+  },
+  {
+    "id": "delete-retention",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.job_events_append_only()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- Only prune_jobs and the retention job delete, inside their own transaction (G16).\n  if false then\n    return old;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"refuse a delete unless\"",
+    "expect": "× .*refuse a delete unless mop.retention is on[\\s\\S]*\\+     \"P0001 append_only\","
+  },
+  {
+    "id": "rls-jobs-insert",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant insert on public.jobs to authenticated",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"exactly the matrix's table privileges\"",
+    "expect": "× .*authenticated holds exactly the matrix's table privileges[\\s\\S]*jobs"
+  },
+  {
+    "id": "manifest-jobs",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.jobs add column zz_probe int",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t \"jobs columns match\"",
+    "expect": "× .*jobs columns match the manifest[\\s\\S]*zz_probe"
+  }
+]

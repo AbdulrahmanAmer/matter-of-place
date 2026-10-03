@@ -58,6 +58,9 @@ export const rlsMatrix: Record<string, Access> = {
   },
   campaigns: staffRead,
   campaign_reports: staffRead,
+  events: staffRead,
+  jobs: staffRead,
+  job_events: staffRead,
 };
 
 /**
