@@ -770,5 +770,177 @@
     "sql": "drop trigger user_roles_set_updated_at on public.user_roles",
     "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t updated_at",
     "expect": "× .*set_updated_at stamps the transaction's now\\(\\)"
+  },
+  {
+    "id": "d",
+    "kind": "file",
+    "test": "tests/db/schema.db.test.ts",
+    "file": "tests/db/schema-manifest.ts",
+    "find": "    taken_down_at: \"timestamptz?\",\n",
+    "replace": "    taken_down_off_at: \"timestamptz?\",\n",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t manifest",
+    "expect": "\"taken_down_off_at\": \"timestamptz\\?\""
+  },
+  {
+    "id": "fff",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.markets add column probe timestamp",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t shape",
+    "expect": "\"name\": \"markets\\.probe\""
+  },
+  {
+    "id": "g4-money",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.properties alter column price type numeric(14,2)",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t shape",
+    "expect": "\"properties\\.price\""
+  },
+  {
+    "id": "g4-fk-on-delete",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.market_notes drop constraint market_notes_market_slug_fkey, add constraint market_notes_market_slug_fkey foreign key (market_slug) references public.markets (slug)",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t shape",
+    "expect": "\"reason\": \"on delete a\""
+  },
+  {
+    "id": "g4-fk-index",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "drop index public.market_notes_market_idx",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t shape",
+    "expect": "\"reason\": \"no index\""
+  },
+  {
+    "id": "g4-view-invoker",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "create view public.probe_view as select 1 as one",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t shape",
+    "expect": "\"name\": \"probe_view\""
+  },
+  {
+    "id": "g4-manifest-table",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "create table public.probe_table (id int)",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t manifest",
+    "expect": "\"probe_table\""
+  },
+  {
+    "id": "ccc",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "delete from public.pii_columns where table_name = 'representatives' and column_name = 'email'",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t pii_columns",
+    "expect": "\"representatives\\.email\""
+  },
+  {
+    "id": "kk",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.properties drop constraint properties_slug_format",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t slug_format",
+    "expect": "× .*slug A Slug in properties and slug_history"
+  },
+  {
+    "id": "g4-slug-history-format",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.slug_history drop constraint slug_history_slug_format",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t slug_format",
+    "expect": "× .*slug A Slug in properties and slug_history"
+  },
+  {
+    "id": "g4-slug-pattern",
+    "kind": "file",
+    "test": "tests/db/integrity.db.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "export const slugPattern = \"^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)*$\";",
+    "replace": "export const slugPattern = \"^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)+$\";",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t slug_format",
+    "expect": "× .*both slug checks hold slugPattern"
+  },
+  {
+    "id": "g4-draft-not-null",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.properties alter column neighborhood set not null",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t slug_format",
+    "expect": "× .*a draft with only the seven not-null columns"
+  },
+  {
+    "id": "mm",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger property_media_orientation on public.property_media",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t property_media",
+    "expect": "× .*storing a staged row sets orientation"
+  },
+  {
+    "id": "g4-orientation-compare",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.property_media_orientation()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if tg_op = 'UPDATE' then\n    if new.variants is not distinct from old.variants then\n      return new;\n    end if;\n  end if;\n  if new.variants ? 'hero' then\n    new.orientation := case\n      when (new.variants -> 'hero' ->> 'h')::int < (new.variants -> 'hero' ->> 'w')::int\n        then 'portrait'::public.media_orientation\n      else 'landscape'::public.media_orientation\n    end;\n  end if;\n  return new;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t property_media",
+    "expect": "× .*storing a staged row sets orientation"
+  },
+  {
+    "id": "g4-staged-or-stored",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.property_media drop constraint property_media_staged_or_stored",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t property_media",
+    "expect": "× .*a row is staged or stored"
+  },
+  {
+    "id": "g4-orientation-when-stored",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.property_media drop constraint property_media_orientation_when_stored",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t property_media",
+    "expect": "× .*a row is staged or stored"
+  },
+  {
+    "id": "mm2",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "drop trigger property_media_hero_image on public.property_media",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t hero_image",
+    "expect": "× .*hero_image follows the first photograph"
+  },
+  {
+    "id": "g4-hero-order",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "create or replace function public.sync_property_hero_image()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\n  v_property_id uuid;\n  v_key text;\nbegin\n  if tg_op = 'INSERT' then\n    v_ids := array[new.property_id];\n  elsif tg_op = 'DELETE' then\n    v_ids := array[old.property_id];\n  else\n    v_ids := array[old.property_id, new.property_id];\n  end if;\n  foreach v_property_id in array v_ids loop\n    select m.media_key into v_key\n    from public.property_media m\n    where m.property_id = v_property_id\n    order by m.sort_order desc, m.id\n    limit 1;\n    update public.properties\n    set hero_image = v_key\n    where id = v_property_id\n      and hero_image is distinct from v_key;\n  end loop;\n  return null;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t hero_image",
+    "expect": "× .*hero_image follows the first photograph"
+  },
+  {
+    "id": "oo",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.properties drop constraint properties_price_check",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t price",
+    "expect": "× .*a draft price may be null, never 0"
+  },
+  {
+    "id": "g4-market-check",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.markets drop constraint markets_slug_check",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t market",
+    "expect": "× .*a market outside California, New York and Florida"
+  },
+  {
+    "id": "ee",
+    "kind": "sql",
+    "test": "tests/db/integrity.db.test.ts",
+    "sql": "alter table public.properties drop constraint properties_region_market_fkey",
+    "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t market",
+    "expect": "× .*a Florida property in a California region"
   }
 ]

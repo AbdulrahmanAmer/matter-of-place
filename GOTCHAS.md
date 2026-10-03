@@ -1281,6 +1281,20 @@ Entry template
 - proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
 - added: 2026-10-03
 
+## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
+- symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
+- cause: commit ddc0b4d renamed the app folder to `app/` after 8dd6f26; at 8dd6f26 the file is `Matter Of Place Codebase/docs/database/schema.sql`. The plan wrote today's path against an older commit.
+- rule: read the sketch at 8dd6f26 by its path at that commit, `git show "8dd6f26:Matter Of Place Codebase/docs/database/schema.sql"` (lines 94 to 439 are the tables), and after a folder rename check a historical path with `git ls-tree -r --name-only <commit> | grep <file>` before trusting a plan line.
+- proof: `git show "8dd6f26:Matter Of Place Codebase/docs/database/schema.sql" | sed -n 94p` → `create table markets (` (measured 2026-10-03, B2 g4).
+- added: 2026-10-03
+
+## P-312 · A lane's migration cannot reach mop-dev and CI has no `db` job yet: prove it inside each test's rolled-back transaction
+- symptom: B2 g4 (migration 4) could not run one database proof the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1), and B4's CI `db` job does not exist yet, so the plan's "wait for a database the lane may use" would have left every case of the step UNPROVEN.
+- cause: the harness already runs `MOP_MUTATION_SQL` first inside the rolled-back transaction of `withRollback` (T-07), and Postgres DDL is transactional, so the migration's whole text can be that SQL: each test sees the new schema and nothing is committed.
+- rule: until the `db` job runs, prove an unmerged migration with `MOP_MUTATION_SQL="$(cat supabase/migrations/<file>.sql)"` on the vitest command (the dev profile loaded, `env -u CLOUDFLARE_API_TOKEN`, P-310), and replay `sql` watched-fails with that file prepended to the entry's SQL; say in the log that the proof is mop-dev inside rolled-back transactions and that the CI job is still UNPROVEN. Without the prelude, `function-source.db.test.ts` fails on mop-dev for the new function files: that is the expected state until the migration is pushed from `main`. Two test files that both create the same tables wait on each other's catalog rows, so keep the files few or pass `--no-file-parallelism` when a run times out on `lock_timeout`.
+- proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t` (measured 2026-10-03).
+- added: 2026-10-03
+
 ## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
 - paths: app/supabase/migrations/**
 - severity: warn
@@ -1288,6 +1302,15 @@ Entry template
 - cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
 - rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
 - proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
+
+## G-101 · A catalog column of type `"char"` cannot be concatenated with a string literal
+- paths: app/tests/db/**, app/scripts/**
+- severity: warn
+- symptom: B2 g4's foreign-key shape case of `schema.db.test.ts` failed with `error: operator is not unique: unknown || "char"` on `'on delete ' || c.confdeltype`.
+- cause: `pg_constraint.confdeltype`, `contype`, `pg_class.relkind` and the other one-letter catalog codes are the type `"char"`, and `||` has no single candidate for an untyped literal on one side and `"char"` on the other.
+- rule: cast a `"char"` catalog column to `text` before `||` or `format`: `c.confdeltype::text`. Comparing it with a literal (`confdeltype in ('c', 'n', 'r')`) needs no cast.
+- proof: `cd app && bun run db:psql -- -Atc "select 'on delete ' || c.confdeltype from pg_constraint c where contype = 'f' limit 1"` → `ERROR:  operator is not unique: unknown || "char"`; with `c.confdeltype::text` → `on delete c` (measured 2026-10-03, B2 g4).
 - added: 2026-10-03
 
 ## P-502 · Git Bash rewrites an argument that starts with a slash into a Windows path

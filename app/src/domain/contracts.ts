@@ -74,6 +74,12 @@ export const exposurePackages = [
 const supportedCurrencies = ["USD"] as const;
 
 /**
+ * A property slug: lower-case letters and digits in words joined by single hyphens, at most 120 characters. The text
+ * of the database checks `properties_slug_format` and `slug_history_slug_format`; `__e2e-` is reserved for fixtures.
+ */
+export const slugPattern = "^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)*$";
+
+/**
  * Internal workflow. Never shown publicly; editorial acceptance must precede
  * any commercial state (Awaiting Payment onwards).
  * @public
