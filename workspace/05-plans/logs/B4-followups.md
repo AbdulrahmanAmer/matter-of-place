@@ -35,3 +35,17 @@
 3. `workspace/05-plans/B4.md` (not blocking; this file is not g2's)
    - What: The plan's GQ-03 proof line, `git grep -n "Date.now\|Math.random\|randomUUID" tests/fixtures` prints nothing, can no longer pass, because B2's tests/fixtures/db.ts calls randomUUID (lines 3 and 90). P-404 records this and clock.test.ts skips db.ts, but the plan text still states the impossible condition. The orchestrator should fold P-404 into the plan line.
    - Evidence: Confirmed by running: grep -n "randomUUID\|Date.now\|Math.random" tests/fixtures/*.ts gave tests/fixtures/db.ts:3 and tests/fixtures/db.ts:90.
+
+## g3 · steps 5
+
+1. `app/tests/e2e/fixtures/routes.ts` (not blocking; cross-slice, for the orchestrator)
+   - What: Cross-slice follow-up for the orchestrator. routeFileCoverage maps today's route names (index.tsx, about.tsx, ...). B4's own Files line expects the `_site.` names of B3 step 1b, but B3.md never names tests/e2e/fixtures/routes.ts or routes-covered.test.ts. Whichever of B3 and B4 merges second will turn routes-covered red, in a file the B3 lane does not own. The author declared this UNPROVEN. The orchestrator should add routes.ts to B3 step 1b's Change list or sequence the merges.
+   - Evidence: `grep -n 'fixtures/routes.ts|routes-covered' workspace/05-plans/B3.md` prints nothing. `ls app/src/routes` shows no `_site.` files.
+
+2. `app/scripts/e2e-coming-soon.ts` (not blocking)
+   - What: Suspected by reading, not run. Line 31 is `playwright?.kill(signal)` and the spawn uses `shell: true`. On Windows that signals the cmd.exe wrapper, not the Playwright process tree, so a SIGTERM delivered to this script alone could leave Playwright running while the flag is restored underneath it. The restore in finally still runs. The author already lists the signal path as UNPROVEN. Exercise it once B3b's spec exists.
+   - Evidence: Code reading of lines 27-46 (spawn with shell: true, kill(signal) on the child handle). Not reproduced.
+
+3. `app/tests/mutations/B4.json` (not blocking)
+   - What: Watched-fail (v) cannot show the plan's 'exits 1' half, because with no coming-soon spec Playwright already exits 1 ('No tests found'). Only the 'restored to true' text separates red from green, and it was proved against a stand-in PostgREST the author wrote. Rerun (v) and the db:psql read-back on the real settings table once B2's migration and B3b's spec land. It is UNPROVEN against mop-dev until then.
+   - Evidence: Entry v: run 'E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon', expect 'coming_soon_global restored to true', kind manual. The rerun against mop-dev shows the settings table count is 0.
