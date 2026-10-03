@@ -294,5 +294,113 @@
     "sql": "alter table public.jobs add column zz_probe int",
     "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t \"jobs columns match\"",
     "expect": "× .*jobs columns match the manifest[\\s\\S]*zz_probe"
+  },
+  {
+    "id": "backoff-base",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "const BASE_MS = 30_000;",
+    "replace": "const BASE_MS = 60_000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*doubles from 30 seconds"
+  },
+  {
+    "id": "backoff-cap",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "Math.min(BASE_MS * 2 ** (attempts - 1), CAP_MS)",
+    "replace": "BASE_MS * 2 ** (attempts - 1)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*caps the delay at one hour"
+  },
+  {
+    "id": "backoff-jitter",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "(0.8 + 0.4 * rand)",
+    "replace": "(0.9 + 0.2 * rand)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*jitters by plus or minus 20 percent"
+  },
+  {
+    "id": "av-outage",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "tests/unit/jobs/backoff.test.ts",
+    "find": "const PROVIDER_MAX_ATTEMPTS = 12;",
+    "replace": "const PROVIDER_MAX_ATTEMPTS = 5;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts -t outage",
+    "expect": "× .*a job with max_attempts 12 survives a 60 minute outage"
+  },
+  {
+    "id": "outage-dead",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "2 ** (attempts - 1)",
+    "replace": "2 ** 7",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts -t outage",
+    "expect": "× .*a job with max_attempts 5 is dead after its fifth failure"
+  },
+  {
+    "id": "b",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "hmacSha256(secret, ",
+    "replace": "hmacSha256(`${secret}x`, ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*signs the contract vector"
+  },
+  {
+    "id": "hmac-key-ignored",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "hmacSha256(secret, ",
+    "replace": "hmacSha256(\"render-callback-contract-secret\", ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses another secret"
+  },
+  {
+    "id": "hmac-timestamp",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "`${timestamp}.${rawBody}`",
+    "replace": "`.${rawBody}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses another timestamp"
+  },
+  {
+    "id": "hmac-body",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "`${timestamp}.${rawBody}`",
+    "replace": "`${timestamp}.`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses a changed body"
+  },
+  {
+    "id": "hmac-prefix",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "encoder.encode(signature)",
+    "replace": "encoder.encode(signature.startsWith(\"sha256=\") ? signature : `sha256=${signature}`)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses a signature without its prefix"
+  },
+  {
+    "id": "hmac-accept-all",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "return timingSafeEqual(encoder.encode(expected), encoder.encode(signature));",
+    "replace": "return expected !== \"\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses an empty signature"
+  },
+  {
+    "id": "hmac-refuse-all",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "return timingSafeEqual(encoder.encode(expected), encoder.encode(signature));",
+    "replace": "return expected === \"\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*accepts the contract vector"
   }
 ]
