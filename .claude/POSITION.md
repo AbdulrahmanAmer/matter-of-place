@@ -904,3 +904,10 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   spending limit (~$20), design pick after B9 g1, escrow of `creds/backup-recipient.key` before B1b step 8.
 - NEXT: on the go, launch the four lanes of `restart.json` in one message; then PR 43 via the gate after c7; advisor
   check after B2 g13; B3 lane when B2 closes.
+
+## 2026-10-03 · Proving run launched; the board's shared copy updates itself
+- The operator's message of this turn is an order, so the builders accept it: proving run `wf_57df2412-448` is building
+  B2 steps 8 to 14 on the db lane with the overlap (item 6, in progress). Watch its first result in the board.
+- The artifact Build Progress Board (https://claude.ai/artifact/23fZrWogVimK8NaoAkmrdd) is republished on every change:
+  the board runs with `--snapshot <scratchpad>/board/board-snapshot.html`, a Monitor watches the `.version` sidecar and
+  wakes the orchestrator, who republishes the file to that URL. Republished at 9.1% this turn. Re-arm the Monitor at expiry.

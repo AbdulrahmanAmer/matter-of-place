@@ -780,6 +780,28 @@ function main() {
   server.listen(port, "127.0.0.1", () => {
     console.log(`board: http://127.0.0.1:${port}`);
   });
+  // --snapshot <file>: rewrite the shareable snapshot whenever the board version changes (checked every minute),
+  // with a .version sidecar; the orchestrator watches the sidecar and republishes the artifact from the file.
+  const snapshotAt = args.indexOf("--snapshot");
+  if (snapshotAt >= 0) {
+    const file = args[snapshotAt + 1];
+    let written = existsSync(`${file}.version`) ? readFileSync(`${file}.version`, "utf8") : "";
+    const refresh = () => {
+      try {
+        const data = collect();
+        const version = versionOf(data);
+        if (version === written) return;
+        writeFileSync(file, render(data, version, true));
+        writeFileSync(`${file}.version`, version);
+        written = version;
+        console.log(`board: snapshot ${data.overall.percent}% written to ${file}`);
+      } catch (error) {
+        console.error(`board: snapshot not written: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    refresh();
+    setInterval(refresh, 60_000).unref();
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

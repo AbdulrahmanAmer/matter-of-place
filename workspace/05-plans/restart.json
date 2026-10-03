@@ -80,5 +80,6 @@
       }
     }
   ],
-  "after": "When B2 closes: B3 in a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300, sizing/B3.json), then B3b, and phase 1 lanes by dependency: public (B3b, B17, B16, B13, B15), jobs (B8, B8b), admin (B7, B6), email (B5, B11), content (B9 on, B10, B12, B14). Six lanes at most on this laptop. H1 then L1 on one lane. At each slice close the orchestrator folds its follow-ups file (logs/<slice>-followups.md) into a step or into H1 and runs its own probes on main."
+  "after": "When B2 closes: B3 in a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300, sizing/B3.json), then B3b, and phase 1 lanes by dependency: public (B3b, B17, B16, B13, B15), jobs (B8, B8b), admin (B7, B6), email (B5, B11), content (B9 on, B10, B12, B14). Six lanes at most on this laptop. H1 then L1 on one lane. At each slice close the orchestrator folds its follow-ups file (logs/<slice>-followups.md) into a step or into H1 and runs its own probes on main.",
+  "board": "The board runs on the laptop: node workspace/05-plans/board.mjs --snapshot <scratchpad>/board/board-snapshot.html (port 8790; it rewrites the snapshot and its .version sidecar whenever anything changes). The shared copy is the artifact Build Progress Board, https://claude.ai/artifact/23fZrWogVimK8NaoAkmrdd: the orchestrator keeps a Monitor on the .version file and republishes the snapshot to that URL (Artifact publish with url) on every change, and re-arms the Monitor when it expires (30 minutes). A session that resumes re-reads the artifact once, then republishes."
 }
