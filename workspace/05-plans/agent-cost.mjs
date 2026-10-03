@@ -13,10 +13,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const project = join(homedir(), ".claude", "projects", ROOT.replace(/[^A-Za-z0-9]/g, "-"));
-const args = process.argv.slice(2);
-const wanted = args.flatMap((a, i) => (a === "--run" ? [args[i + 1]] : []));
-const sinceAt = args.indexOf("--since");
-const since = sinceAt >= 0 ? Date.parse(args[sinceAt + 1]) : Date.now() - 7 * 86_400_000;
+/** The runs since a time (or the named runs), each with its agents summed by kind and its accepted steps. */
+export function collectRuns({ wanted = [], since = Date.now() - 7 * 86_400_000 } = {}) {
 
 // "5-6" is two steps, "10-11" two, "1,2" two, "4b" one (a range counts its two ends and the whole numbers between)
 const expand = (text) => [...String(text).matchAll(/(\d+)([a-z]?)(?:\s*(?:-|–|to)\s*(\d+)([a-z]?))?/g)].reduce((n, m) => n + (m[3] ? Math.max(1, Number(m[3]) - Number(m[1]) + 1) : 1), 0) || 1;
@@ -64,10 +62,18 @@ for (const session of existsSync(project) ? readdirSync(project) : []) {
       if (start !== null) { k.min += (end - start) / 60000; wallStart = Math.min(wallStart, start); wallEnd = Math.max(wallEnd, end); }
     }
     const total = Object.values(kinds).reduce((s, v) => ({ cacheRead: s.cacheRead + v.cacheRead, cacheWrite: s.cacheWrite + v.cacheWrite, out: s.out + v.out, calls: s.calls + v.calls, min: s.min + v.min, n: s.n + v.n }), { cacheRead: 0, cacheWrite: 0, out: 0, calls: 0, min: 0, n: 0 });
-    runs.push({ run, slice: [...labels.values()].map((l) => l.split(":")[1]).find(Boolean) ?? "?", stepsAccepted, kinds, total, wall: Number.isFinite(wallStart) ? (wallEnd - wallStart) / 60000 : 0 });
+    runs.push({ at: statSync(journal).mtimeMs, run, slice: [...labels.values()].map((l) => l.split(":")[1]).find(Boolean) ?? "?", stepsAccepted, kinds, total, wall: Number.isFinite(wallStart) ? (wallEnd - wallStart) / 60000 : 0 });
   }
 }
 runs.sort((a, b) => a.run.localeCompare(b.run));
+return runs;
+}
+
+if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("agent-cost.mjs")) {
+const args = process.argv.slice(2);
+const wanted = args.flatMap((a, i) => (a === "--run" ? [args[i + 1]] : []));
+const sinceAt = args.indexOf("--since");
+const runs = collectRuns({ wanted, since: sinceAt >= 0 ? Date.parse(args[sinceAt + 1]) : undefined });
 const sum = { cacheRead: 0, cacheWrite: 0, out: 0, calls: 0, min: 0, n: 0, steps: 0, wall: 0 };
 for (const r of runs) {
   const t = r.total;
@@ -76,3 +82,4 @@ for (const r of runs) {
   sum.cacheRead += t.cacheRead; sum.cacheWrite += t.cacheWrite; sum.out += t.out; sum.calls += t.calls; sum.min += t.min; sum.n += t.n; sum.steps += r.stepsAccepted; sum.wall += r.wall;
 }
 if (runs.length > 1) console.log(`\nall: ${runs.length} runs, ${sum.steps} steps accepted, ${sum.n} agents, ${sum.calls} calls, cache reads ${M(sum.cacheRead)}, output ${M(sum.out)}, agent minutes ${sum.min.toFixed(0)}` + (sum.steps ? `\nper accepted step: ${M(sum.cacheRead / sum.steps)} cache reads, ${M(sum.out / sum.steps)} output, ${(sum.calls / sum.steps).toFixed(0)} calls, ${(sum.min / sum.steps).toFixed(0)} agent minutes; context per call ${Math.round(sum.cacheRead / sum.calls / 1000)}k` : ""));
+}
