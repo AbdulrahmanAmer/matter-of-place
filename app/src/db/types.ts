@@ -1627,6 +1627,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_catalog_version: { Args: never; Returns: number }
       drop_old_analytics_partitions: {
         Args: { keep_months?: number }
         Returns: number
@@ -1642,11 +1643,8 @@ export type Database = {
         Args: { months_ahead?: number }
         Returns: undefined
       }
-      is_staff: { Args: never; Returns: boolean }
-      role_in: {
-        Args: { p_roles: Database["public"]["Enums"]["app_role"][] }
-        Returns: boolean
-      }
+      public_catalog_snapshot: { Args: never; Returns: Json }
+      public_state: { Args: never; Returns: Json }
       save_property: {
         Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: {

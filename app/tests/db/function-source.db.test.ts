@@ -1,4 +1,5 @@
-// DB-13, STANDARDS R19: supabase/sql/functions/<name>.sql holds the one current text of every function in `public`.
+// DB-13, STANDARDS R19: supabase/sql/functions/<name>.sql holds the one current text of every function in `public`
+// and `app`.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { withRollback } from "../fixtures/db";
@@ -19,7 +20,7 @@ const sources = new Map(
 const PUBLIC_FUNCTIONS = `
   select p.proname as name, p.prosrc as body
   from pg_proc p
-  where p.pronamespace = 'public'::regnamespace
+  where p.pronamespace in ('public'::regnamespace, 'app'::regnamespace)
     and p.proname <> 'rls_auto_enable'
     and not exists (
       select 1 from pg_depend d
@@ -27,7 +28,7 @@ const PUBLIC_FUNCTIONS = `
     )`;
 
 describe("function source", () => {
-  it("every function file's body equals pg_proc.prosrc, and every public function has a file", async () => {
+  it("every function file's body equals pg_proc.prosrc, and every public or app function has a file", async () => {
     const live = await withRollback(
       async (db) => (await db.query<{ name: string; body: string }>(PUBLIC_FUNCTIONS)).rows,
     );

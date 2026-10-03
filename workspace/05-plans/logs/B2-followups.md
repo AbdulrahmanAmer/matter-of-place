@@ -249,3 +249,13 @@ None of these blocks the group. The two reviewer items about `GOTCHAS.md` became
 
 6. File `app/docs/README.md`. This file is outside the group's named files (one writer per file). The edit is small and necessary, because its table linked the deleted schema.sql, and the log names it. The orchestrator should know the group touched a file it did not own.
    Evidence: git show --stat dbf641f lists app/docs/README.md | 6 +-
+
+## c9 · steps 9
+
+1. For H1, not schema: the security advisor on mop-dev reports `auth_leaked_password_protection` (WARN). It is an Auth setting (Authentication, password security, "Prevent use of leaked passwords"), not a migration; staff sign in by magic link only (`enable_signup = false`), so the warning has no live path today. H1 decides whether to turn it on (it may need a paid plan, G-011).
+   Evidence: `GET https://api.supabase.com/v1/projects/<ref>/advisors/security` on 2026-10-03 after c9 → `rls_enabled_no_policy INFO 6` and `auth_leaked_password_protection WARN 1`, no `authenticated_security_definer_function_executable`.
+2. For the orchestrator, plan text: the policy helpers now live in schema `app`. `workspace/05-plans/B9.md` line 126 writes `public.is_staff()` and `public.role_in(...)` in the `assets` policies, and B3.md line 73, B7.md line 28 and B8b.md line 170 write bare `role_in(...)`, which does not resolve in a migration (the session `search_path` has no `app`). Each must become `app.role_in(...)` / `app.is_staff()`, and a later slice that extends `authenticatedFunctions` in `tests/db/rls-matrix.ts` writes schema-qualified names (`app.is_staff`).
+   Evidence: `grep -noE "(public\.)?(role_in|is_staff)\(" workspace/05-plans/B3.md workspace/05-plans/B7.md workspace/05-plans/B8b.md workspace/05-plans/B9.md`.
+3. File `app/scripts/db-fn.mjs` (not this group's): `createOf` and the generated `drop function if exists public.<name>` accept only `public`, so `bun run db:fn is_staff` or `role_in` now refuses with `does not create public.is_staff`. Neither function needs a change today; the owner of db-fn makes it read the schema from the file's `create function` line.
+   Evidence: `createOf(name)` in `app/scripts/db-fn.mjs` builds `function\s+public\.${name}\s*\(`.
+4. File `app/scripts/db-reset-dev.mjs` (not this group's, touched because the move needs it): one line drops schema `app` with `public`, because `app.is_staff()` depends only on its schema and survives `drop schema public cascade`. The live `bun run db:reset` with that line has not run (it would empty the shared mop-dev mid-build): UNPROVEN until the next reset.

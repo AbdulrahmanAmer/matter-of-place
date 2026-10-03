@@ -1,4 +1,4 @@
-create or replace function public.role_in(variadic p_roles public.app_role[])
+create or replace function app.role_in(variadic p_roles public.app_role[])
 returns boolean
 language sql
 stable

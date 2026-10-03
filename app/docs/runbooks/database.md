@@ -61,7 +61,7 @@ It runs the checks below before the Supabase CLI, then records the sha256 of eve
 
 ### db:reset and its modes
 
-It empties `public`, drops the pgmq queues, unschedules the cron jobs the migrations created, truncates the migration history, then runs `db:push`, which applies every file from zero. `auth` and `storage` are never touched, so users and stored files survive a reset. It holds the `mop-dev-tests` lock for the whole run.
+It empties `public` and `app`, drops the pgmq queues, unschedules the cron jobs the migrations created, truncates the migration history, then runs `db:push`, which applies every file from zero. `auth` and `storage` are never touched, so users and stored files survive a reset. It holds the `mop-dev-tests` lock for the whole run.
 
 Before the first write it checks that the linked project, `DEV_SUPABASE_PROJECT_REF` and the user of `DEV_DB_URL` name the same project (`refusing: ref mismatch`), that `DEV_SUPABASE_DB_PASSWORD` is set, and that the stage is not `production` (`refusing: production database`, from `scripts/lib/assert-not-production.mjs`).
 
@@ -77,6 +77,12 @@ A public page or catalog JSON never queries a table (architecture 13, S52). Two 
 - `public.public_catalog_snapshot()`: the whole published catalog in one JSON value, asked at most once per catalog version per isolate. Its size is measured by `tests/db/snapshot-budget.db.test.ts`; the budget is 1,500,000 bytes.
 
 A warm read costs zero queries. A new public read is a new function in `supabase/sql/functions/`, never a table grant to `anon`. Both functions' text is in `supabase/sql/functions/<name>.sql`; the version of the catalog is `settings.catalog_version`, bumped by trigger on every catalog write.
+
+## Row level security and the security advisor
+
+Every table in `public` has RLS on and exactly the grants of `tests/db/rls-matrix.ts`. The two policy helpers, `app.role_in(...)` and `app.is_staff()`, are `security definer` and live in schema `app`, which PostgREST does not expose (`config.toml` `api.schemas = ["public"]`): `/rest/v1/rpc/is_staff` answers 404, and the advisor's lint 0029 has nothing to report. A new policy helper goes in `app`, never in `public`.
+
+Lint 0008 (RLS enabled, no policy) on the analytics partitions, `migration_checksums` and `pii_columns` is deny-all by design: only the service role and `postgres` read or write them.
 
 ## Auth URLs
 

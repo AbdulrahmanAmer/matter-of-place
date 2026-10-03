@@ -60,8 +60,11 @@ export const rlsMatrix: Record<string, Access> = {
   campaign_reports: staffRead,
 };
 
-/** The only functions in `public` that `authenticated` may execute: the policies call them. */
-export const authenticatedFunctions = ["is_staff", "role_in"];
+/**
+ * The only functions in `public` or `app` that `authenticated` may execute. The policies call these two, and they sit
+ * in `app`, outside the API, so no one reaches them through /rest/v1/rpc (security advisor lint 0029).
+ */
+export const authenticatedFunctions = ["app.is_staff", "app.role_in"];
 
 /** Whether a user holding `roles` may run `op` on `table`; a user holds the union of its roles. */
 export function allows(table: string, op: TableOperation, roles: readonly StaffRole[]): boolean {

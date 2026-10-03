@@ -69,7 +69,7 @@ describe("withRollback", () => {
 });
 
 const ROLE_ANSWERS =
-  "select public.role_in('admin') as admin, public.role_in('chief_editor') as editor, public.is_staff() as staff";
+  "select app.role_in('admin') as admin, app.role_in('chief_editor') as editor, app.is_staff() as staff";
 
 describe("roles", () => {
   it("an admin made by createStaffUser holds admin through role_in, and only admin", async () => {

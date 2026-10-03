@@ -256,17 +256,17 @@ describe("privileges", () => {
     }).toEqual({ anon: [], serviceRoleCannotSelect: [] });
   });
 
-  it("anon executes no function in public and authenticated only the allow-list", async () => {
+  it("anon executes no function in public or app and authenticated only the allow-list", async () => {
     const rows = await withRollback(
       async (db) =>
         (
           await db.query<{ name: string; anon: boolean; authenticated: boolean }>(
-            `select p.proname as name,
+            `select p.pronamespace::regnamespace::text || '.' || p.proname as name,
                has_function_privilege('anon', p.oid, 'execute') as anon,
                has_function_privilege('authenticated', p.oid, 'execute') as authenticated
              from pg_proc p
-             where p.pronamespace = 'public'::regnamespace
-             order by p.proname`,
+             where p.pronamespace in ('public'::regnamespace, 'app'::regnamespace)
+             order by name`,
           )
         ).rows,
     );

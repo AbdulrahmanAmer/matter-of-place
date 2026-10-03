@@ -563,7 +563,7 @@
     "id": "h-role-in-false",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*an admin made by createStaffUser holds admin"
   },
@@ -571,7 +571,7 @@
     "id": "h-is-staff-false",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*an admin made by createStaffUser holds admin"
   },
@@ -579,7 +579,7 @@
     "id": "h-role-in-disabled",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles)) $$",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles)) $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*a disabled admin holds no role and is not staff"
   },
@@ -587,7 +587,7 @@
     "id": "h-is-staff-disabled",
     "kind": "sql",
     "test": "tests/db/harness.db.test.ts",
-    "sql": "create or replace function public.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid()) $$",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid()) $$",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*a disabled admin holds no role and is not staff"
   },
@@ -1363,7 +1363,7 @@
     "id": "x",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    null;\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    null;\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish gate\"",
     "expect": "× .*a visual_editor cannot publish"
   },
@@ -1395,7 +1395,7 @@
     "id": "ll",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"publish_incomplete\"",
     "expect": "× .*publish_incomplete"
   },
@@ -1541,7 +1541,7 @@
     "id": "g6-chief",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"chief_editor\"",
     "expect": "× .*a chief_editor publishes"
   },
@@ -1549,7 +1549,7 @@
     "id": "g6-service-publish",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"service role publishes\"",
     "expect": "× .*the service role publishes"
   },
@@ -1565,7 +1565,7 @@
     "id": "g6-incomplete-place",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"without place\"",
     "expect": "× .*publish_incomplete without place"
   },
@@ -1633,7 +1633,7 @@
     "id": "g6-hero-published",
     "kind": "sql",
     "test": "tests/db/integrity.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$",
     "run": "bunx vitest run --project db tests/db/integrity.db.test.ts -t \"hero_image\"",
     "expect": "× .*a staged photograph put first on a published"
   },
@@ -2145,7 +2145,7 @@
     "id": "g8-story-publish",
     "kind": "sql",
     "test": "tests/db/gate.db.test.ts",
-    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or public.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$;\n",
+    "sql": "create or replace function public.enforce_publish_gate()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  if new.editorial_state <> 'published' then\n    return new;\n  end if;\n  -- Not security definer, so current_user is the caller; the server functions check roles before they call.\n  if (tg_op = 'INSERT' or old.editorial_state <> 'published')\n    and not (\n      current_user in ('service_role', 'postgres')\n      or app.role_in('chief_editor', 'managing_editor', 'admin')\n    ) then\n    raise exception 'publish_not_allowed';\n  end if;\n  -- A published property fills every field of the public Property type, whoever writes it.\n  if tg_table_name = 'properties' and (\n    new.region_slug is null or new.neighborhood is null or new.country is null or new.price is null\n    or new.beds is null or new.baths is null or new.interior_sq_ft is null or new.lot_acres is null\n    or new.year_built is null or new.style is null or new.hero_image is null or new.place is null\n  ) then\n    raise exception 'publish_incomplete' using errcode = '23514';\n  end if;\n  return new;\nend;\n$$;\n",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"a story publishes\"",
     "expect": "× a story publishes as the service role"
   },
@@ -2195,7 +2195,31 @@
     "test": "tests/db/rls.db.test.ts",
     "sql": "grant execute on function public.save_property(uuid, int, jsonb) to public;",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"executes.no.function\"",
-    "expect": "\\+\\s+\"save_property\","
+    "expect": "\\+\\s+\"public.save_property\","
+  },
+  {
+    "id": "c9-helper-in-public",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter function app.is_staff() set schema public;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"executes.no.function\"",
+    "expect": "\\+\\s+\"public.is_staff\","
+  },
+  {
+    "id": "c9-is-staff-dropped",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "drop function app.is_staff() cascade;",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"every.table.and.operation\"",
+    "expect": "\\+\\s+\"agent_keys select: refused\","
+  },
+  {
+    "id": "c9-function-source-app",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select false $$",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "\\+\\s+\"is_staff\","
   },
   {
     "id": "b",
@@ -2211,7 +2235,7 @@
     "id": "g9-chief-editor",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy submissions_update_deciders on public.submissions using (public.role_in('managing_editor'));",
+    "sql": "alter policy submissions_update_deciders on public.submissions using (app.role_in('managing_editor'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.chief_editor,\"",
     "expect": "\\+\\s+\"submissions update: refused\""
   },
@@ -2219,7 +2243,7 @@
     "id": "g9-visual-editor",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy properties_update_editors on public.properties using (public.role_in('chief_editor', 'managing_editor'));",
+    "sql": "alter policy properties_update_editors on public.properties using (app.role_in('chief_editor', 'managing_editor'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.visual_editor,\"",
     "expect": "\\+\\s+\"properties update: refused\""
   },
@@ -2227,7 +2251,7 @@
     "id": "g9-media-ops",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy properties_insert_editors on public.properties with check (public.role_in('chief_editor', 'managing_editor', 'visual_editor', 'media_ops'));",
+    "sql": "alter policy properties_insert_editors on public.properties with check (app.role_in('chief_editor', 'managing_editor', 'visual_editor', 'media_ops'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.media_ops,\"",
     "expect": "\\+\\s+\"properties insert: allowed\""
   },
@@ -2235,7 +2259,7 @@
     "id": "g9-commercial",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy payments_update_finance on public.payments using (public.role_in('managing_editor', 'admin', 'commercial'));",
+    "sql": "alter policy payments_update_finance on public.payments using (app.role_in('managing_editor', 'admin', 'commercial'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.commercial,\"",
     "expect": "\\+\\s+\"payments update: allowed\""
   },
@@ -2243,7 +2267,7 @@
     "id": "g9-admin",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy agent_keys_delete_admin on public.agent_keys using (public.role_in('chief_editor'));",
+    "sql": "alter policy agent_keys_delete_admin on public.agent_keys using (app.role_in('chief_editor'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin,\"",
     "expect": "\\+\\s+\"agent_keys delete: refused\""
   },
@@ -2251,7 +2275,7 @@
     "id": "g9-union",
     "kind": "sql",
     "test": "tests/db/rls.db.test.ts",
-    "sql": "alter policy retention_policies_update_admin on public.retention_policies using (public.role_in('admin') and not public.role_in('chief_editor'));",
+    "sql": "alter policy retention_policies_update_admin on public.retention_policies using (app.role_in('admin') and not app.role_in('chief_editor'));",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"as.admin.plus.chief_editor,\"",
     "expect": "\\+\\s+\"retention_policies update: refused\""
   },

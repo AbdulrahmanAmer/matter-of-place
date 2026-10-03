@@ -1,4 +1,4 @@
-create or replace function public.is_staff()
+create or replace function app.is_staff()
 returns boolean
 language sql
 stable
