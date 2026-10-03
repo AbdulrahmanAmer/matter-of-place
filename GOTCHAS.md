@@ -1150,3 +1150,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
 - added: 2026-10-03
+
+## P-702 · The reviewer brief passes the snapshot folder to `review-snapshot.mjs` as the lane root: `design-review` does not exist before `create`, and the argument would target `design-review-review`
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/design-review 8c8ac2a` from `E:/mop-build/design-review`; `cd /e/mop-build/design-review` gave "No such file or directory" (exit 1). The brief also called `E:/mop-build/design-review` the builder's working tree.
+- cause: the script derives the snapshot path as `${laneRoot}-review`, so `design-review` is its output, never its input; the template that writes the brief substitutes the snapshot path where the lane root belongs.
+- rule: run it from the lane root with the lane root as the argument: `cd E:/mop-build/design && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/design <sha>`; `remove` takes the lane root the same way. The builder's tree is the lane root, the snapshot is the reviewer's copy. The brief template is the owner of the fix.
+- proof: `sed -n 21p workspace/05-plans/review-snapshot.mjs` → ``const snap = `${laneRoot}-review`;``; `ls /e/mop-build/design-review` fails before `create` has run (exit 2).
+- added: 2026-10-03
+
+## P-703 · `review-snapshot.mjs` installs `app/node_modules` only: a review of `launch/` scripts fails in the snapshot until `bun install` runs in `launch`
+- symptom: in a fresh snapshot `ls launch/node_modules` gives "No such file or directory", so `launch/engine/still.mjs` and its siblings cannot run for the reviewer. The B9 g1 builder hit the same wall and listed it under P-027, which is about timeouts, so the cost was never banked under its own name.
+- cause: the script runs `bun install --frozen-lockfile` with `cwd: join(snap, "app")` and nowhere else.
+- rule: before reviewing anything under `launch/`, run `bun install --frozen-lockfile` in the snapshot's `launch` folder (64 packages, 18 s); the script should install there too, and until it does the reviewer brief says so.
+- proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → one line, `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...`.
+- added: 2026-10-03
