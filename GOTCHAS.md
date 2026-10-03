@@ -1718,3 +1718,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the dev profile exports `PREVIEW_RATE_LIMIT_SALT` too; `tests/api/env.ts` builds `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `DEV_SUPABASE_PROJECT_REF` and `DEV_SUPABASE_SERVICE_ROLE_KEY` when they exist, over any value a shell already holds, so the project written to is the guarded one. `SENTRY_DSN` is not exported: no API test sends to Sentry.
 - proof: `cd app && env -u CLOUDFLARE_API_TOKEN bash -c 'eval "$(node scripts/load-env.mjs --profile dev)"; bunx vitest run --project db tests/api/catalog.api.test.ts'` → `Tests 5 passed`; with the name removed from `load-env.mjs` it throws `PREVIEW_RATE_LIMIT_SALT is not set` (2026-10-04, B3 g3).
 - added: 2026-10-04
+
+## P-810 · A test client made with `createClient(url, key)` and no `Database` type is untyped, and the lint refuses every rpc argument passed to it
+- symptom: B3 g2's second red `bun run check` failed `bun run lint` with `@typescript-eslint/no-unsafe-argument` on the `.rpc(...)` calls in `tests/api/ratelimit.api.test.ts`; the prettier failure of the same run (P-415) hid it until the first was fixed.
+- cause: `serviceClient()` in `tests/fixtures/service.ts` called `createClient(url, key, ...)` without the generated `Database` type, so `rpc` took and returned `any` and the strict type-aware preset (R01) refused the arguments.
+- rule: every Supabase client in app or test code is `createClient<Database>(...)` with `Database` from `src/db`; run `bun run lint` on a new fixture before the first full `bun run check`.
+- proof: `grep -n "createClient<Database>" app/tests/fixtures/service.ts` → one line; with `<Database>` removed, `cd app && bunx eslint --max-warnings 0 tests/api/ratelimit.api.test.ts` prints `no-unsafe-argument` (recorded from the g2 review, not re-run).
+- added: 2026-10-04
+
+## P-811 · `bunx supabase migration list --linked` can fail once with `DbConnectError` "Connection terminated unexpectedly" and pass on the immediate rerun
+- symptom: the first run exited 1 with `{"code":"DbConnectError",...,"Connection terminated unexpectedly"}` (session pooler, `cli_login_postgres`); the same command run again at once exited 0 and listed the migrations. A reader can take the first red for a schema or link problem.
+- cause: the session pooler drops a cold connection; it is a transport error, not a state of the schema.
+- rule: on `DbConnectError` from a read-only `supabase` command, rerun it once before opening the migration or the link; two failures in a row is a real obstacle (record BLOCKED), and never repeat a write (`db push`) as a blind retry.
+- proof: `cd app && env -u CLOUDFLARE_API_TOKEN bunx supabase migration list --linked` → exit 0 and the migration table (after `supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"` in the dev loader shell); the failure is intermittent and was seen once (2026-10-04, B3 g2 review).
+- added: 2026-10-04

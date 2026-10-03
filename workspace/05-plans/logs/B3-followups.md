@@ -21,3 +21,29 @@
 5. `workspace/05-plans/B3.md` (not blocking; the plan half of a GOTCHAS.md follow-up)
    - what: The plan's and brief's step 1 proof `node scripts/dev-vars.mjs` refuses in this machine's default shell ('refusing: ops variables in this shell CLOUDFLARE_API_TOKEN'). P-310 and bank-map line 10 name only the db tests. The rule should also cover dev-vars.mjs (`env -u CLOUDFLARE_API_TOKEN node scripts/dev-vars.mjs`), and the plan's step 1 proof line should say so. (The bank half is done: P-310 and the map now name dev-vars.mjs; the plan line is the orchestrator's.)
    - evidence: `node scripts/dev-vars.mjs` → 'Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN', exit 1; with `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN` → 'wrote .dev.vars (8 keys)'.
+
+## g2 · steps 2
+
+1. `app/supabase/sql/functions/create_submission.sql` (migration 20261003184651_public_write_functions.sql lines 182-237) (not blocking)
+   - what: Suspected by reading, not run. The 10-minute double-post check and the 30-day duplicate_of lookup both read before they insert, and no lock serialises them (STANDARDS R22 last clause, checklist C11). Two concurrent POST /submissions with the same email, address and zip, each with its own valid Turnstile token (two tabs, or a client retry while the first request is still running), both run the select before either commits. The second then blocks on the contacts upsert (unique on lower(email)), resumes once the first commits, and inserts a second submission with duplicate_of null. Not blocking: the plan itself specified the read-then-return design, and Turnstile's single-use token makes a literal double click answer 403 before the database. Fix: take pg_advisory_xact_lock(hashtext(lower(email)||':'||normalised address||':'||zip)) before the select, and add a two-connection test.
+   - evidence: Lines 183-190 and 206-212 are plain selects that run before the insert at line 215. Under READ COMMITTED an earlier statement is not re-run after a lock wait. A proof would need committed writes on mop-dev, which a reviewer should not make.
+
+2. `app/supabase/migrations/20261003184651_public_write_functions.sql` lines 80-85 (not blocking)
+   - what: 'grant select, update on subject_requests to authenticated' plus the update policy lets admin and chief_editor change any column through PostgREST (email, kind, ip_hash, received_at), and status changes there without an owning function or write_audit (R21, R22). The plan prescribes exactly this, so it is a follow-up for B7 and the orchestrator: a column-level update grant or an owning function.
+   - evidence: Plan Files line: 'grant select, update to authenticated for those two policies'. R22: a state column changes only through its owning function.
+
+3. `workspace/05-plans/B3.md, B2.md, B7.md, B14.md, B16.md, trace.json (30 lines), workspace/06-architecture/architecture.md` (not blocking)
+   - what: These still name supabase/migrations/20261001100000_public_write_functions.sql, but the shipped file is 20261003184651. B3's later contracts-live.test.ts line parses the old path. The P-324 'hit again' line says this went to '(B3-followups)', but B3-followups.md holds no such entry. check-plans passes because it does not check that the file exists.
+   - evidence: Grep for 20261001100000 finds it in those files. Grep for 'contracts-live|20261003184651' in workspace/05-plans/logs/B3-followups.md finds nothing.
+
+4. `app/tests/mutations/B3.json` (not blocking)
+   - what: The one-hit-per-key behaviour that P-806 introduced (select distinct) has no replayable watched-fail. Its only assertion is in tests/api/ratelimit.api.test.ts, which runs over supabase-js on its own connection, so a sql mutation cannot reach it. A sql entry with a matching case in public-write.db.test.ts would make it replayable. I reproduced the claim by hand: distinct gives 3 hits, plain gives 4.
+   - evidence: Rolled-back psql run of the P-806 scenario: 3 with distinct, 4 without. No registry entry mutates 'select distinct c'.
+
+5. `app/tests/db` (rate_limit_check index use) (not blocking)
+   - what: UNPROVEN, and the author says so: the explain check that rate_limit_check uses rate_limits_bucket_key_at_idx was not written. The Files list names it as a withRollback example; step 2's proof does not.
+   - evidence: No explain assertion anywhere in tests/db.
+
+6. `app/supabase/migrations/20261003184651_public_write_functions.sql` (not blocking)
+   - what: UNPROVEN: the migration has never been applied from zero on CI's ephemeral stack (the db job). It is proven on mop-dev only.
+   - evidence: No CI run exists for b9258e0. Proof came from migration list, function-source and the whole tests/db run against mop-dev.
