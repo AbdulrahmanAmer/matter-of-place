@@ -128,9 +128,10 @@ if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stop
 
 let groups = sized.groups
 // Give each close-out an id the sizing cannot produce (c6, c7) so `only` can name it.
+// startAt skips sized groups only: a close-out always runs first (P-506).
+if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))
 groups = [...closing, ...groups]
 const MAX_FIX = Number.isInteger(a.maxFixRounds) ? a.maxFixRounds : 3
-if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))
 if (a.only) groups = groups.filter((g) => a.only.includes(g.id))
 
 const buildPrompt = (g, defects) => `${RULES}
