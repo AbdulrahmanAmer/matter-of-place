@@ -1174,3 +1174,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `check-layout.mjs` allows `public/fonts/{*.woff2,LICENSES.md}` and `app/.prettierignore` names `public/fonts/LICENSES.md`; STANDARDS row `public/` should read `fonts/*.woff2` and `fonts/LICENSES.md` (the orchestrator edits STANDARDS, a builder does not). Never run prettier `--write` on the generated licence file.
 - proof: `cd app && bun run fonts && bun run layout && bunx prettier --config .prettierrc --check public/fonts/LICENSES.md` → `layout: OK` and `All matched files use Prettier code style!`; with the `LICENSES.md` entry removed from `check-layout.mjs` the first gate prints the symptom (measured 2026-10-03, B9 g3).
 - added: 2026-10-03
+
+## P-705 · Two writers wrote the same decision row: the orchestrator put an S65 row on main while step 2, which owns PROJECT-STATE.md, wrote its own
+- symptom: commit 179ed81 (B9 g2 step 2) conflicted with `origin/main` in `PROJECT-STATE.md`, and a conflicting pull request starts no CI run (P-136). The merge 6f373f9 resolved it ("kept the DIRECTION.md version") and banked nothing.
+- cause: the orchestrator committed an S65 decision row on main (PR #87, 96042cc, 13:39:33 +0300) while the plan gave the same row to step 2 of the lane, so both edited the same line of the file.
+- rule: a decision row has one writer. When a lane step names `PROJECT-STATE.md` and a decision number, the orchestrator does not write that row on main, or the step reuses the row already on main and adds nothing at that line; the one who finds two rows keeps one and says which in the merge message.
+- proof: `git merge-tree --write-tree origin/main 179ed81 >/dev/null; echo $?` → `1` (conflict in `PROJECT-STATE.md`); `git log -1 --format=%s 6f373f9` → `Merge origin/main into slice/b9 (PROJECT-STATE S65 row: kept the DIRECTION.md version)` (measured 2026-10-03, B9 g2 follow-ups).
+- added: 2026-10-03
+
+## P-706 · The reviewer brief says to run `plan-brief.mjs` from the builder's tree and also never to run anything there
+- symptom: the review brief reads "run `node workspace/05-plans/plan-brief.mjs B9 ...` from E:/mop-build/design" beside "never read, run or write anything there", so the B9 g2 reviewer ran `plan-brief` inside the snapshot to obey the second line.
+- cause: the brief template names the lane root for the one command and forbids the lane root for everything else; it is the same template defect as P-702, in a different command.
+- rule: the template tells the reviewer to run `plan-brief.mjs` from the snapshot folder (the plan files are identical there); until it does, a reviewer runs every command in the snapshot and treats the lane root as read-only for the builder alone. The brief template's owner makes the fix.
+- proof: `ls workspace/05-plans/plan-brief.mjs` inside `E:/mop-build/design-review` lists the file after `review-snapshot.mjs create`; `sed -n 1,5p workspace/05-plans/plan-brief.mjs` shows the usage line takes a slice and `--steps`, with no tree argument (measured 2026-10-03, B9 g2 follow-ups).
+- added: 2026-10-03
