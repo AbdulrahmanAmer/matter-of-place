@@ -77,3 +77,27 @@ Two follow-ups on GOTCHAS.md are banked as P-709 and P-710, not listed here.
    - Evidence: Suspected by reading: B9.md line 13 (RenderSpec property list, no place) against slides.ts lines 1 to 31.
 
 Three follow-ups on GOTCHAS.md are banked as P-711 (the dead planner clamp), P-712 (the vitest worker-start error under load) and a hit-again line on P-008 (backslashes dropped in a heredoc), not listed here.
+
+## g5 · steps 6
+
+1. `app/tests/unit/assets/render-scripts.test.ts` (not blocking)
+   - What: The header comment says the render scripts refuse a spec that is not theirs before a browser starts. Only a malformed key_prefix is refused. renderSet in app/scripts/lib/shoot.mjs:302 never compares spec.kind with the script's own kind. So cover.run given {kind:'story', out.key_prefix:'assets/<id>/story/r1/'} would render cover frames and store them under the story folder; the deliver() prefix check passes because the key is built from spec.kind. No product path dispatches a mismatched kind today (the step modules and dispatchHeavy are later groups). Follow-up: either add the guard or correct the comment. Suspected from reading, not run.
+   - Evidence: shoot.mjs specSchema kind is z.enum(['cover','carousel','story']) and nothing ties it to the caller. render-scripts.test.ts only asserts rejects.toThrow('key_prefix').
+
+2. `app/scripts/lib/shoot.mjs` (not blocking)
+   - What: In upload mode, dataUrl() (line 239) treats any spec image URL that is not http(s) as a path under the app folder and reads it from the runner's disk. The plan says that in upload mode images are fetched from the spec's absolute mediaUrl addresses. A relative URL in a dispatched spec would be read from the local disk without any error. Follow-up: refuse non-absolute URLs outside --fixture. Suspected from reading.
+   - Evidence: dataUrl(): `if (/^https?:\/\//.test(url)) {...fetch...} const path = resolve(APP, url)`, with no mode check.
+
+3. `app/scripts/lib/shoot.mjs` (not blocking)
+   - What: --fixture builds the RenderSpec inline in runCli, not through buildRenderSpec as the plan says. The author logged why: spec.ts is step 8 and does not exist yet. The CLI must switch to buildRenderSpec when step 8 lands, with `place` carried.
+   - Evidence: src/server/assets does not exist in d9e1b7e. runCli assembles {kind, property, images, out} by hand.
+
+4. `app/scripts/lib/shoot.mjs` (not blocking)
+   - What: UNPROVEN, as the author declared: upload mode (putIfMissing and the image fetch were only exercised with fetch mocked, and no Storage call was made); Chrome and --no-sandbox on ubuntu-latest; no fetch timeouts. The browser invariants (frame size, fonts, network refusal, not-JPEG) are manual registry entries that CI cannot replay until step 10 runs Chrome in Actions.
+   - Evidence: tests/mutations/B9.json manual entries b9g5-cover-viewport, -cover-png, -cover-not-jpeg, -font-missing, -network-refused. The replay prints 'manual 6 not replayed'.
+
+5. `app/scripts/render-carousel.mjs` (not blocking)
+   - What: The 1080x1080 LinkedIn square is the top 1080 px of a photo slide. The cover pick carries no headline or price, and the location line sits about 40 px from the bottom edge. The author recorded a proper square format as a g3 follow-up.
+   - Evidence: Viewed .tmp/rv1/linkedin-set-0.1b4b06f9.jpg: photograph, then wordmark, '01 / 04' and location only.
+
+The sixth follow-up of the review is on GOTCHAS.md and is banked as P-717 (reading a redirected watchfail replay with `grep -a`), not listed here.

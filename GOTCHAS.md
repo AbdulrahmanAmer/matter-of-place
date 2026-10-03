@@ -875,6 +875,7 @@ Entry template
 - proof: `grep -c -- "--testTimeout=60000" app/package.json` → `1`; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware" --reporter=verbose` → `✓ ... lint is type-aware, zero-warning and refuses the named rules 1489ms` and `Tests  1 passed | 37 skipped (38)` (measured 2026-10-02).
 - enforced-by: the `test` script of `app/package.json` passes `--testTimeout=60000 --hookTimeout=60000` to every test of `bun run check` (ruling H49 (3)), pinned by `tests/unit/hygiene.test.ts` (`the test script gives every test and hook 60 s`); a bare `bunx vitest run` still has the 5000 ms default (P-140); one case, `lint gives prettier/prettier the options of .prettierrc for it`, carries its own `}, 20_000);` that overrides the 60 s (P-152)
 - added: 2026-10-02
+- hit again: 2026-10-03, B9 g5: four `render-variants.test.ts` cases (sharp on a 2400x1600 photograph, five sizes each) timed out at 5000 ms when four test files ran at once and passed alone and with `--testTimeout=60000`; the plan's own proof command (no flag) went red the same way under load, so `render-variants.test.ts` now carries `{ timeout: 60_000 }` on its `describe`.
 
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
 - symptom: H42 (1) says a documents-only pull request has no check, "measured on PRs 21 and 23", because every changed path is under `paths-ignore`. `gh pr view 23 --json files` lists `.claude/workflows/build-slice.js`, which matches none of `workspace/**`, `launch/**`, `**/*.md`, and `origin/main` holds no workflow at all, so neither PR could have had a check whatever it changed.
@@ -1514,6 +1515,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bun run check` in the background (`run_in_background`, output to a log, a bounded poll loop; P-027), never in the foreground. When the only failure is the worker-start error, re-run the test stage alone (`bun run test`) before calling the gate red; a failure that names an assertion is a real red and is never re-run until green. Report both runs.
 - proof: `grep -c "Failed to start forks worker" GOTCHAS.md` → at least `1` (this entry); `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test` → `quiet: ok` on a quiet laptop (2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-03, B9 g5: `bun run typecheck` plus `eslint` plus three render runs in one call passed the 120 s foreground limit and moved to the background; split them into calls under 100 s.
 
 ## P-333 · A watched-fail of a budget or a "nothing leaks" assertion stays green until the mutation makes something exceed the budget or leak
 - symptom: B2 g12's registry entry `g12-variants-hero-weight` (hero encoded lossless) stayed green: the 2400x1600 gradient fixture encodes to 296,510 bytes even lossless, under the 400 KB bound. A mutation that feeds the upload to the variants (`sharp(buffer)` instead of `sharp(master)`) also stays green for EXIF, because sharp drops metadata on every output by default.
@@ -1581,6 +1583,41 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: from a lane, confirm "no pending migration" with commands that write nothing: `bunx supabase migration list --linked` (every row has the same local and remote version) and `bunx supabase db push --linked --dry-run` (`"upToDate":true`), with `SUPABASE_DB_PASSWORD="$DEV_SUPABASE_DB_PASSWORD"` after the dev profile is loaded. Count the versions from `ls supabase/migrations/*.sql`, never from the plan; `bun run db:push` itself runs from `main`.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && SUPABASE_DB_PASSWORD="$DEV_SUPABASE_DB_PASSWORD" env -u CLOUDFLARE_API_TOKEN bunx supabase db push --linked --dry-run 2>&1 | tail -1` → `{"upToDate":true,"dryRun":true,"migrations":[],"seeds":[],"roles":[],"message":"Remote database is up to date."}` (measured 2026-10-03, B2 g13).
 - added: 2026-10-03
+
+## P-713 · `watchfail.mjs --registry tests/mutations` replays every registry of the repository, and `--changed` sees only committed work
+- symptom: B9 g5 ran `node scripts/watchfail.mjs --registry tests/mutations --kinds unit` to replay its 35 new entries; it started on B1b and went on through B2 and B4 (873 entries in all, the B4 ones mutate `scripts/watchfail.mjs` itself). Killing it left `src/lib/cx.ts` mutated and later `scripts/watchfail.mjs` (`git status --short` showed both). With `--changed origin/main` and the work still uncommitted it printed `replayed 0 ... 873 not selected`. Five minutes went on the two kills and the restores.
+- cause: `loadRegistries` reads every `*.json` of the folder, `--only` takes one id, and `--changed <ref>` diffs `<ref>...HEAD`, so uncommitted files are never selected; the runner starts each `run` through the Windows shell, where `!`, `rm -rf` and globs do not exist.
+- rule: commit locally first (no push), then run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` in the background and poll with loops under 100 s; never kill it, and if it must die, restore only the files `git status --short` shows modified and that were clean before (P-068). A `run` is a plain command line with no shell syntax; a mutation whose proof needs a pipe or a browser is a `manual` entry run by hand once.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit 2>&1 | tail -1` on slice/b9 after the group's commit → `watchfail: replayed 47: ok 47, bad 0, stale 0; manual 5 not replayed; 821 not selected` (measured 2026-10-03, B9 g5; before the registry fix of P-714 the line read `ok 45, ... stale 1`).
+- added: 2026-10-03
+
+## P-714 · A `.mjs` script that imports a `.tsx` template pulls `src/config/site.ts` into `tsconfig.scripts.json`, and the line it needs changes a registry `find`
+- symptom: `bun run typecheck` failed with four `TS4111: Property 'VITE_SITE_URL' comes from an index signature` in `src/config/site.ts` the moment `render-cover.mjs` imported `Cover.tsx` (which imports `src/lib/format.ts`, which imports `site.ts`). After the fix prettier wrapped the one-line `include` array, and the registry entry `hy-gate-include` of B1b went STALE (`find occurs 0 times in tsconfig.scripts.json`).
+- cause: `tsconfig.scripts.json` includes only `scripts/**`, so `src/env.d.ts`, which types `import.meta.env`, is outside that program; a script that reaches `site.ts` through a template sees the generic `ImportMetaEnv`. The registry entry quoted the include line's old text.
+- rule: add `"src/env.d.ts"` to the `include` of `tsconfig.scripts.json` (ruling H46) before the first script that imports a template, run `bunx prettier --write` on it, and then take the `find` of every registry entry on that file from the formatted text (P-066): `grep -rn "tsconfig.scripts.json" app/tests/mutations`.
+- proof: `cd app && grep -c "src/env.d.ts" tsconfig.scripts.json && bunx tsc --noEmit -p tsconfig.scripts.json; echo $?` → `1` then `0`; `node scripts/watchfail.mjs --registry tests/mutations --only hy-gate-include 2>&1 | tail -2 | head -1` → `WATCHED-FAIL OK B1b:hy-gate-include` (measured 2026-10-03, B9 g5).
+- added: 2026-10-03
+
+## P-715 · A size check that compares a screenshot with the viewport it was taken at measures nothing: declare the size apart and compare the frame's own box
+- symptom: B9 g5's first `shoot.mjs` checked the JPEG's header against `frame.viewport` (or the clip). Plan watched-fail (a), a cover viewport of 1200x628, would have stayed green: the page was shot at 628 and the file said 628.
+- cause: the expected value and the measured value came from the same number (global RULE 2: a check that shares its answer with the thing it checks proves nothing).
+- rule: each frame declares the size its file promises (`size`) as its own literal; the browser window is `size` unless the frame is clipped, and `shoot.mjs` measures the template's own box (`.social-frame` `getBoundingClientRect`) against the window and the file against `size`. A change of the window, of a template's tokens or of a clip then fails with both numbers named.
+- proof: with `size: { width: 1200, height: 628 }` on the `cover` frame of `scripts/render-cover.mjs`, `cd app && bun scripts/render-cover.mjs --fixture --out .tmp/wf 2>&1 | tail -1` → `shoot: cover frame is 1200x630, the viewport 1200x628` (registry entry `b9g5-cover-viewport`, measured 2026-10-03).
+- added: 2026-10-03
+
+## P-716 · A file named `.jpg` proves nothing about its bytes: assert the signature where the file is made
+- symptom: B9 g5's review: changing the screenshot `type` in `shoot.mjs` to png left every proof green. Three PNG files were written as `<name>.<hash>.jpg`, `png-size` accepts both formats, and the upload content-type is a literal; the author's watched-fail (t) changed only the extension literal, which tests naming.
+- cause: the extension, the screenshot type and the content-type were three separate literals, and nothing read the bytes back (global RULE 2: a mutation must be of the thing the contract names, not a neighbour of it).
+- rule: `capture()` in `scripts/lib/shoot.mjs` refuses a screenshot that does not start with the JPEG signature (`ff d8`) before anything is named or stored. The mutation is the screenshot `type`, not the extension.
+- proof: `cd app && node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find $'type: "jpeg",\n      quality: JPEG_QUALITY,' --replace 'type: "png",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'` → `WATCHED-FAIL OK scripts/lib/shoot.mjs` (registry entry `b9g5-cover-not-jpeg`, measured 2026-10-03).
+- added: 2026-10-03
+
+## P-717 · A watchfail replay written to a file holds NUL bytes and a nested replay: grep it with `-a` and read the last `watchfail: replayed` line
+- symptom: B9 g5's reviewer ran the full `watchfail.mjs --registry tests/mutations --changed origin/main` with stdout redirected to a file. `grep` answered `Binary file matches`, and the first summary found (`replayed 37 ... B8`) was not the result of the slice (a few minutes).
+- cause: the runner's child output carries NUL bytes, which makes grep treat the file as binary; the replay also runs the B8 registry as a nested replay with its own `watchfail: replayed 37` line ahead of the real summary (P-713: it replays every registry).
+- rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
+- added: 2026-10-04
 
 ## P-506 · `startAt` in build-slice.js dropped the close-out groups, so a run meant to fix and continue skipped the fix
 - symptom: B3 relaunch with `closeOut: [c1]` and `startAt: "g2"` started `build:B3:g2:2` straight away; `close:B3:c1:1` never ran and the lane began step 2 with a red typecheck (run `wf_ea63edc9-5b1`, 2026-10-03 22:10).

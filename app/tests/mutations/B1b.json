@@ -2841,8 +2841,8 @@
     "id": "hy-gate-include",
     "test": "tests/unit/hygiene.test.ts",
     "file": "tsconfig.scripts.json",
-    "find": ", \"../workspace/05-plans/merge-gate.mjs\"]",
-    "replace": "]",
+    "find": ",\n    \"../workspace/05-plans/merge-gate.mjs\"",
+    "replace": "",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× tsconfig\\.scripts\\.json type-checks it"
   },
