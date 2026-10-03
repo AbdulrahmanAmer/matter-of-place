@@ -100,6 +100,19 @@ ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the re
 - Copy is calm and brief with no em dashes. Never edit src/routeTree.gen.ts by hand.`
 const RULES = rulesFor(ROOT, BASH_ROOT, PORT)
 
+// An agent that dies on the way (a network outage, a terminal API error) returns null; the harness retries once after a
+// pause instead of ending the run with the group half done (P-509, the B3 step 3 fix that died on ENOTFOUND). The second
+// label carries a suffix so the journal shows both attempts.
+const callAgent = async (prompt, opts) => {
+  const first = await agent(prompt, opts)
+  if (first !== null && first !== undefined) return first
+  log(`${opts.label}: no result (the agent died); retrying once in two minutes`)
+  await new Promise((resolve) => setTimeout(resolve, Number.isInteger(a.retryPauseMs) ? a.retryPauseMs : 120000))
+  const second = await agent(prompt, { ...opts, label: `${opts.label}:retry` })
+  if (second === null || second === undefined) log(`${opts.label}: the retry died too`)
+  return second
+}
+
 // A group that was built and then stopped (rejected, or blocked on a ruling) is closed first: closeOut = { id, steps,
 // title, critical, defects }, one object or a list. The sizing leaves those steps out, so they are not built twice.
 const closing = [].concat(a.closeOut || []).map((c) => ({ id: c.id, steps: c.steps, title: c.title, files: [], proof: `every proof of plan steps ${c.steps}, as the plan writes them`, blocked: false, blockedOn: '', critical: Boolean(c.critical), needsOrchestrator: '', openDefects: c.defects }))
@@ -107,7 +120,7 @@ const closing = [].concat(a.closeOut || []).map((c) => ({ id: c.id, steps: c.ste
 phase('Size')
 // Ruling H53: a premade sizing (workspace/05-plans/sizing/<slice>.json, written and reviewed by the orchestrator) is
 // passed as args.sizing and replaces the sizing agent; it is the same on every run and its briefs come from plan-brief.mjs.
-const sized = a.sizing ? a.sizing : await agent(`${RULES}
+const sized = a.sizing ? a.sizing : await callAgent(`${RULES}
 
 You are sizing slice ${slice} for the builders. Read-only: change nothing.${closing.length ? `\nLeave out plan step${closing.length > 1 ? 's' : ''} ${closing.map((c) => c.steps).join(' and ')}: another builder is closing ${closing.length > 1 ? 'them' : 'it'} before your groups run, so treat ${closing.length > 1 ? 'them' : 'it'} as done.` : ''}
 Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/workspace/05-plans/ASSUMED.md section E, and the tail of ${logPath} if it exists (earlier groups may already be done: leave those out).
@@ -199,8 +212,8 @@ const startReview = (item, round) => {
   const sha = lastSha(item.built)
   const label = `${round ? `review${round + 1}` : 'review'}:${slice}:${item.g.id}:${item.g.steps}`
   const run = () => (a.noOverlap || !sha
-    ? agent(reviewPrompt(item.g, item.built), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
-    : agent(reviewPrompt(item.g, item.built, snapshotWhere(sha)), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW }))
+    ? callAgent(reviewPrompt(item.g, item.built), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+    : callAgent(reviewPrompt(item.g, item.built, snapshotWhere(sha)), { label, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW }))
   item.settled = false
   item.review = reviewQueue.then(run).then((r) => { item.result = r; item.settled = true; return r }, () => { item.result = null; item.settled = true; return null })
   reviewQueue = item.review
@@ -217,7 +230,7 @@ const settle = async () => {
       if (item.redone) { pending.splice(pending.indexOf(item), 1); finish(item, false); continue }
       item.redone = true
       log(`${item.g.id}: review ${r ? 'could not make its snapshot' : 'died'}; redoing it in the lane`)
-      item.result = await agent(reviewPrompt(item.g, item.built), { label: `review-lane:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
+      item.result = await callAgent(reviewPrompt(item.g, item.built), { label: `review-lane:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Review', model: 'opus', effort: 'high', agentType: 'unit-reviewer', schema: REVIEW })
       if (!item.result) { pending.splice(pending.indexOf(item), 1); finish(item, false); continue }
     }
     const review = item.result
@@ -225,7 +238,7 @@ const settle = async () => {
       item.rounds++
       const later = pending.filter((x) => x !== item && groups.indexOf(x.g) > groups.indexOf(item.g)).map((x) => `${x.g.id} (steps ${x.g.steps}): ${x.g.files.join(', ')}`)
       const defects = later.length ? [...review.defects, { file: 'LATER GROUPS', what: `Built on top of this group since: ${later.join('; ')}. A fix repairs behaviour inside this group's contract; if it must change something those groups build on, stop and return status blocked naming the group (ruling H54).`, evidence: 'the writer chain', blocking: false }] : review.defects
-      const fixed = await agent(buildPrompt(item.g, defects), { label: `fix${item.rounds}:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: item.worker === 'mop-designer' ? builderModel(item.g) : builderModel(item.g), effort: 'high', agentType: item.worker, schema: BUILD })
+      const fixed = await callAgent(buildPrompt(item.g, defects), { label: `fix${item.rounds}:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: item.worker === 'mop-designer' ? builderModel(item.g) : builderModel(item.g), effort: 'high', agentType: item.worker, schema: BUILD })
       if (!fixed || fixed.status === 'blocked') { pending.splice(pending.indexOf(item), 1); item.result = review; finish(item, false); continue }
       item.built = fixed
       startReview(item, item.rounds)
@@ -234,7 +247,7 @@ const settle = async () => {
     pending.splice(pending.indexOf(item), 1)
     if (blocks(review)) { finish(item, false); continue }
     if (followUps(review).length) {
-      item.bankClosed = await agent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+      item.bankClosed = await callAgent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
       finish(item, Boolean(item.bankClosed && item.bankClosed.status === 'done'))
     } else finish(item, true)
   }
@@ -252,7 +265,7 @@ for (const g of groups) {
   if (failed()) { log(`stopping before ${g.id}: an earlier group was not accepted`); break }
   const worker = g.designer ? 'mop-designer' : 'mop-builder'
   const tag = (kind) => `${kind}:${slice}:${g.id}:${g.steps}`
-  const built = await agent(buildPrompt(g, g.openDefects || null), { label: tag(g.openDefects ? 'close' : 'build'), phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: worker, schema: BUILD })
+  const built = await callAgent(buildPrompt(g, g.openDefects || null), { label: tag(g.openDefects ? 'close' : 'build'), phase: g.openDefects ? 'Fix' : 'Build', model: builderModel(g), effort: 'high', agentType: worker, schema: BUILD })
   if (!built) { out.push({ group: g.id, steps: g.steps, status: 'failed', blockedOn: 'builder agent died' }); break }
   if (built.status === 'blocked') { out.push({ group: g.id, steps: g.steps, status: 'blocked', built, blockedOn: built.blockedOn, needsOrchestrator: g.needsOrchestrator }); log(`${g.id}: builder returned blocked`); break }
   const item = { g, built, rounds: 0, worker, settled: false, result: null }
@@ -276,7 +289,7 @@ const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.need
 const sliceDone = !next && out.some((o) => o.status === 'accepted') && out.every((o) => o.status === 'accepted' || (o.status === 'blocked' && !o.built))
 let merged = null
 if (!a.noMerge && (sliceDone || (a.mergeEach && out.at(-1)?.status === 'accepted')) && !stoppedForOrchestrator) {
-  merged = await agent(`${RULES}
+  merged = await callAgent(`${RULES}
 
 You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
 1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; resolve a conflict only in GOTCHAS.md (it merges by entry through its driver; run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}) or in a log file (keep both sides). Any other conflict: stop and return status "blocked" naming the file. Push.
