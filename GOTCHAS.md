@@ -966,6 +966,7 @@ Entry template
 - cause: some workflow probe created `public.__wf_probe()` (`select 1`) on `mop-dev` and committed it. A lane may not drop it: `mop-dev` is shared and DB-01 allows only `main` to change it.
 - rule: before reading a `function-source` or `withMutation` red as the lane's own, run `bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"`; a row is the stray probe, to be dropped by the orchestrator. The lane reports the two cases as red for that reason and does not drop it.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"` → `__wf_probe` (measured 2026-10-03, B2 g5).
+- resolved: dropped by the orchestrator on 2026-10-03 12:10 laptop time (`drop function if exists public.__wf_probe()` → `DROP FUNCTION`, count 0); the rule stays, a new stray goes the same way
 - added: 2026-10-03
 
 ## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
