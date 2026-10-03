@@ -1,6 +1,6 @@
 [
   {
-    "id": "ll",
+    "id": "b3-ll",
     "kind": "file",
     "test": "tests/unit/error-codes.test.ts",
     "file": "src/server/lib/error-codes.ts",
@@ -10,7 +10,7 @@
     "expect": "× .*holds every message a migration raises"
   },
   {
-    "id": "mm",
+    "id": "b3-mm",
     "kind": "file",
     "test": "tests/unit/fake-db.test.ts",
     "file": "tests/fixtures/fake-db.ts",
@@ -20,7 +20,7 @@
     "expect": "× .*throws unexpected rpc zz for an unregistered RPC"
   },
   {
-    "id": "mm-table",
+    "id": "b3-mm-table",
     "kind": "file",
     "test": "tests/unit/fake-db.test.ts",
     "file": "tests/fixtures/fake-db.ts",
@@ -30,7 +30,7 @@
     "expect": "× .*serves registered table rows and throws for any other table"
   },
   {
-    "id": "mm-storage",
+    "id": "b3-mm-storage",
     "kind": "file",
     "test": "tests/unit/fake-db.test.ts",
     "file": "tests/fixtures/fake-db.ts",
@@ -40,7 +40,7 @@
     "expect": "× .*answers a registered storage method and throws for any other"
   },
   {
-    "id": "nn",
+    "id": "b3-nn",
     "kind": "file",
     "test": "tests/unit/lib/live-side-effects.test.ts",
     "file": "src/server/lib/runtime-env.ts",
@@ -50,7 +50,7 @@
     "expect": "× .*is false for both channels when MOP_ENV is unset"
   },
   {
-    "id": "nn-dry",
+    "id": "b3-nn-dry",
     "kind": "file",
     "test": "tests/unit/lib/live-side-effects.test.ts",
     "file": "src/server/lib/runtime-env.ts",
@@ -60,7 +60,7 @@
     "expect": "× .*lets a dry-run flag win over production"
   },
   {
-    "id": "nn-channel",
+    "id": "b3-nn-channel",
     "kind": "file",
     "test": "tests/unit/lib/live-side-effects.test.ts",
     "file": "src/server/lib/runtime-env.ts",
@@ -70,7 +70,7 @@
     "expect": "× .*lets EMAIL_LIVE make only email true"
   },
   {
-    "id": "nn-read",
+    "id": "b3-nn-read",
     "kind": "file",
     "test": "tests/unit/lib/live-side-effects.test.ts",
     "file": "src/server/lib/runtime-env.ts",
@@ -80,7 +80,7 @@
     "expect": "× .*reads at call time and answers undefined for an unset name"
   },
   {
-    "id": "oo",
+    "id": "b3-oo",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -90,7 +90,7 @@
     "expect": "× .*splits 2,500 keys into three requests"
   },
   {
-    "id": "oo-status",
+    "id": "b3-oo-status",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -100,7 +100,7 @@
     "expect": "× .*throws storage_unavailable on a 500 answer"
   },
   {
-    "id": "oo-network",
+    "id": "b3-oo-network",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -110,7 +110,7 @@
     "expect": "× .*throws storage_unavailable on a network error"
   },
   {
-    "id": "mmm-store",
+    "id": "b3-mmm-store",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -120,7 +120,7 @@
     "expect": "× .*answers the relative /media address without absolute"
   },
   {
-    "id": "mmm-once",
+    "id": "b3-mmm-once",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -130,7 +130,7 @@
     "expect": "× .*falls back to the relative address and warns once"
   },
   {
-    "id": "oo-cache",
+    "id": "b3-oo-cache",
     "kind": "file",
     "test": "tests/unit/media-store.test.ts",
     "file": "src/server/lib/media-store.ts",
@@ -140,7 +140,7 @@
     "expect": "× .*fetches the public object of the media bucket with edge caching on"
   },
   {
-    "id": "pp",
+    "id": "b3-pp",
     "kind": "file",
     "test": "tests/unit/hygiene.test.ts",
     "file": "src/server/lib/ids.ts",
@@ -150,7 +150,7 @@
     "expect": "× .*only src/server/lib/crypto.ts calls crypto.subtle"
   },
   {
-    "id": "g1-errors-store",
+    "id": "b3-g1-errors-store",
     "kind": "file",
     "test": "tests/unit/errors.test.ts",
     "file": "src/server/lib/errors.ts",
@@ -160,7 +160,7 @@
     "expect": "× .*is never stored"
   },
   {
-    "id": "g1-errors-status",
+    "id": "b3-g1-errors-status",
     "kind": "file",
     "test": "tests/unit/errors.test.ts",
     "file": "src/server/lib/errors.ts",
@@ -170,7 +170,7 @@
     "expect": "× .*takes its status from the code when none is given"
   },
   {
-    "id": "g1-errors-leak",
+    "id": "b3-g1-errors-leak",
     "kind": "file",
     "test": "tests/unit/errors.test.ts",
     "file": "src/server/lib/errors.ts",
@@ -180,7 +180,7 @@
     "expect": "× .*keeps the message of any other error inside the Worker"
   },
   {
-    "id": "g1-env-prod",
+    "id": "b3-g1-env-prod",
     "kind": "file",
     "test": "tests/unit/env.test.ts",
     "file": "src/server/lib/env.ts",
@@ -190,7 +190,7 @@
     "expect": "× .*names SUPABASE_URL when production lacks it"
   },
   {
-    "id": "g1-env-local",
+    "id": "b3-g1-env-local",
     "kind": "file",
     "test": "tests/unit/env.test.ts",
     "file": "src/server/lib/env.ts",
@@ -200,7 +200,7 @@
     "expect": "× .*needs the Turnstile secret and the Sentry DSN unless MOP_ENV is local"
   },
   {
-    "id": "g1-env-default",
+    "id": "b3-g1-env-default",
     "kind": "file",
     "test": "tests/unit/env.test.ts",
     "file": "src/server/lib/env.ts",
@@ -210,7 +210,7 @@
     "expect": "× .*treats MOP_ENV as production when it is unset"
   },
   {
-    "id": "g1-env-empty",
+    "id": "b3-g1-env-empty",
     "kind": "file",
     "test": "tests/unit/env.test.ts",
     "file": "src/server/lib/env.ts",
@@ -220,7 +220,7 @@
     "expect": "× .*treats an empty value as unset"
   },
   {
-    "id": "g1-db-count",
+    "id": "b3-g1-db-count",
     "kind": "file",
     "test": "tests/unit/db.test.ts",
     "file": "src/server/lib/db.ts",
@@ -230,7 +230,7 @@
     "expect": "× .*counts every request to Supabase and resets to zero"
   },
   {
-    "id": "g1-db-read",
+    "id": "b3-g1-db-read",
     "kind": "file",
     "test": "tests/unit/db.test.ts",
     "file": "src/server/lib/db.ts",
@@ -240,7 +240,7 @@
     "expect": "× .*abandons public_state after 2 seconds"
   },
   {
-    "id": "g1-db-write",
+    "id": "b3-g1-db-write",
     "kind": "file",
     "test": "tests/unit/db.test.ts",
     "file": "src/server/lib/db.ts",
@@ -250,7 +250,7 @@
     "expect": "× .*leaves a write function without the 2 second limit"
   },
   {
-    "id": "g1-db-unavailable",
+    "id": "b3-g1-db-unavailable",
     "kind": "file",
     "test": "tests/unit/db.test.ts",
     "file": "src/server/lib/db.ts",
@@ -260,7 +260,7 @@
     "expect": "× .*throws 503 unavailable when the Worker holds no Supabase key"
   },
   {
-    "id": "g1-ids-ip",
+    "id": "b3-g1-ids-ip",
     "kind": "file",
     "test": "tests/unit/ids.test.ts",
     "file": "src/server/lib/ids.ts",
@@ -270,7 +270,7 @@
     "expect": "× .*falls back to one shared address without the header"
   },
   {
-    "id": "g1-ids-hash",
+    "id": "b3-g1-ids-hash",
     "kind": "file",
     "test": "tests/unit/ids.test.ts",
     "file": "src/server/lib/ids.ts",
