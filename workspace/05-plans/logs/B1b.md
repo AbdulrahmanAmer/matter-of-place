@@ -4270,3 +4270,6 @@ GOTCHAS: none added; `bun run check` ran past 120 s and moved to the background 
 
 ## g9 · follow-ups recorded
 The review of g9 (steps 8) found no blocking defect and six follow-ups. Three had GOTCHAS.md as their file and went to the bank: P-066 (hit again: a registry replay prints no red text), P-153 (hit again: the snapshot command's lane root, and the builder's tree is spine) and the new P-154 (a scratch registry folder in the shared scratchpad). The other three (hygiene.test.ts upload-path assertion, the B1b.json entries for (at), (be), (bh) and the two backup.yml titles, the nightly claim in `.github/workflows/README.md`) are in `workspace/05-plans/logs/B1b-followups.md` under "## g9 · steps 8". No code changed.
+
+## g10 · follow-ups recorded
+The review of g10 (steps 9,10) found no blocking defect and four follow-ups. One had GOTCHAS.md as its file and went to the bank: P-153 (hit again: the snapshot command's lane root; commit 3bba6ce is on the branch and `build-slice.js` line 153 is fixed, so the brief came from a workflow run that started before it). The other three (the `.github/workflows/README.md` promise with no plan step behind it, the `app/.env.example` comment inaccuracies, the two unclear notes in `app/docs/runbooks/delivery.md`) are in `workspace/05-plans/logs/B1b-followups.md` under "## g10 · steps 9,10". No code changed.
