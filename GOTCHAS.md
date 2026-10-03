@@ -1656,3 +1656,31 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
 - added: 2026-10-04
+
+## P-1103 · A group's file list named `workspace/audits/tools/scope-check.mjs`; the plan, the routine prompt and trace.json say `scripts/audit/scope-check.mjs`
+- symptom: the g4 task listed `workspace/audits/tools/scope-check.mjs`, while B14.md invariant 2 and the Files list, `ROUTINE-PROMPT.md` (`node scripts/audit/scope-check.mjs origin/main HEAD`) and `trace.json` all name `scripts/audit/scope-check.mjs`, next to `lint-report.mjs`.
+- cause: the sized file list was typed from the folder of the other tools, not from the Files list of the plan.
+- rule: when a group's file list and the plan's Files list disagree on a path, the plan wins if two other artifacts (prompt, trace) already name its path; build there and say so in the log. The same lint, format and tsconfig entries cover both folders.
+- proof: `grep -n "scope-check" workspace/audits/ROUTINE-PROMPT.md | cut -c1-120` → the line names `scripts/audit/scope-check.mjs`; `git ls-files scripts/audit` → `scope-check.mjs` and `lint-report.mjs`.
+- added: 2026-10-04
+
+## P-1104 · A bare `cat > file; node - <<EOF` waited on stdin for the whole 120 s and left an empty file outside the worktree
+- symptom: a Bash call timed out at 120 s with no output and the heredoc script after it never ran; `E:/tmp_unused` (an empty file, one folder above the drive's project folders) appeared. Removing it was refused by the permission check, so it stays for the operator.
+- cause: a mistyped `cat > ../../../x 2>/dev/null` before the heredoc read the terminal instead of a file; the relative path went three folders up from `app/`.
+- rule: never write a scratch file with a bare redirect; use Write into the scratchpad. A call that prints nothing and times out has not run its later commands: check `git status` before trusting the state (P-056).
+- proof: `ls E:/tmp_unused` → exists, size 0 (the operator may delete it).
+- added: 2026-10-04
+
+## P-1105 · Tests that build a throwaway git repository on this laptop: `core.autocrlf` prints a warning on stderr, and `git mv` needs the target folder
+- symptom: a helper that asserted `stderr` empty after `git add -A` failed with `warning: in the working copy of 'app/wrangler.toml', LF will be replaced by CRLF`; `git mv` into a folder that did not exist exited 128.
+- cause: the machine's global `core.autocrlf` is on; `git mv` does not create directories.
+- rule: assert the exit status of setup commands, never an empty stderr; `mkdirSync` the target folder before `git mv`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/scope-check.test.ts` → `Tests  9 passed (9)`.
+- added: 2026-10-04
+
+## P-1106 · A guard line whose watched-fail stays green is dead code: the backslash refusal in `scope-check.mjs` was removed
+- symptom: the registry entry that removed `if (path.includes("\\")) return false;` replayed `WATCHED-FAIL BAD: stayed green`.
+- cause: a path with a backslash and no slash never starts with an allowed folder, and a backslash inside a slash path is a literal file-name character on Linux, so the allow-list refused every such path already.
+- rule: when a watched-fail of a guard stays green, first ask whether another line already refuses the case; delete the dead line and its entry instead of bending the test (R04, no dead code).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b14-scope-dotdot` → `WATCHED-FAIL OK B14:b14-scope-dotdot`; `grep -c 'includes(' scripts/audit/scope-check.mjs` → `1` (only the allow-list lookup).
+- added: 2026-10-04

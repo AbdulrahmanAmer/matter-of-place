@@ -691,5 +691,131 @@
     "replace": "if (false) return { uptime",
     "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
     "expect": "uptime collect > makes no request and records not_measure"
+  },
+  {
+    "id": "b14-scope-allow-public",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/public/\",",
+    "replace": "\"app/publicx/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > allows head, copy"
+  },
+  {
+    "id": "b14-scope-allow-prefix",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/src/routes/\",",
+    "replace": "\"src/routes/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > allows head, copy"
+  },
+  {
+    "id": "b14-scope-wrangler",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const ALLOWED_FILES = [\"GOTCHAS.md\"];",
+    "replace": "const ALLOWED_FILES = [\"GOTCHAS.md\", \"app/wrangler.toml\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-server",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/src/lib/\",",
+    "replace": "\"app/src/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-env",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": ".startsWith(\".env\")",
+    "replace": ".startsWith(\".envx\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-api-dir",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "path === API_FOLDER || path.startsWith(`${API_FOLDER}/`)",
+    "replace": "path === API_FOLDER",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-api-flat",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "path.startsWith(API_FLAT_PREFIX)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-claude-md",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const ALLOWED_FILES = [\"GOTCHAS.md\"];",
+    "replace": "const ALLOWED_FILES = [\"GOTCHAS.md\", \"CLAUDE.md\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses the plans, CLAUDE.md"
+  },
+  {
+    "id": "b14-scope-dotdot",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "segment === \"\" || segment === \".\" || segment === \"..\"",
+    "replace": "segment === \"\" || segment === \".\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses a path that only starts"
+  },
+  {
+    "id": "b14-scope-exit0",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = refused.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 1;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 0 when every changed path"
+  },
+  {
+    "id": "b14-scope-exit1",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = refused.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 1 and names each refused"
+  },
+  {
+    "id": "b14-scope-rename",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"--no-renames\", ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > checks the old path of a renamed"
+  },
+  {
+    "id": "b14-scope-merge-base",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "`${base}...${head}`]",
+    "replace": "`${base}..${head}`]",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > reads the diff from the merge base"
+  },
+  {
+    "id": "b14-scope-usage",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = 2;",
+    "replace": "process.exitCode = 1;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 2 with a usage line"
   }
 ]
