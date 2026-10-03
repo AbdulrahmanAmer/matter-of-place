@@ -53,7 +53,7 @@ export function jobKeys(text) {
  * re-run all stay beside the one that counts. The latest (highest id) of a name is the verdict,
  * except a skipped run, which only counts when every run of the name was skipped: closing the pull
  * request starts `deploy.yml` once more and that run reports every job as skipped on the same head
- * (GOTCHAS P-155), after the run that did the work.
+ * (GOTCHAS P-505), after the run that did the work.
  * @param {CheckRun[]} checkRuns
  * @param {string} name
  * @returns {CheckRun | undefined}
@@ -61,12 +61,11 @@ export function jobKeys(text) {
 function latestRun(checkRuns, name) {
   const named = checkRuns.filter((run) => run.name === name);
   const ran = named.filter((run) => run.conclusion !== "skipped");
-  return (ran.length ? ran : named)
-    .reduce(
-      (/** @type {CheckRun | undefined} */ latest, run) =>
-        latest === undefined || run.id > latest.id ? run : latest,
-      undefined,
-    );
+  return (ran.length ? ran : named).reduce(
+    (/** @type {CheckRun | undefined} */ latest, run) =>
+      latest === undefined || run.id > latest.id ? run : latest,
+    undefined,
+  );
 }
 
 /**
