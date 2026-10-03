@@ -1589,3 +1589,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before reading a red B2 schema test as your own, check `supabase_migrations.schema_migrations` against `ls supabase/migrations` on `origin/main`; when mop-dev is ahead, judge your change by the diff lines alone (`grep -E "^\s+[-+] " | grep -ciE "<your tables>"` prints 0 when none of the red is yours) and say in the log which reds are the other lane's. Never edit the manifest or matrix for another lane's tables.
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select version from supabase_migrations.schema_migrations order by version desc limit 1"` → `20261003184651` while `git ls-tree --name-only origin/main supabase/migrations/ | tail -1` ends `20261003173858_fn_enforce_publish_gate.sql`; `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts 2>&1 | grep "Tests "` → `7 failed | 33 passed (40)` on slice/b8 without the prelude (measured 2026-10-03, B8 g1).
 - added: 2026-10-03
+
+## P-506 · `startAt` in build-slice.js dropped the close-out groups, so a run meant to fix and continue skipped the fix
+- symptom: B3 relaunch with `closeOut: [c1]` and `startAt: "g2"` started `build:B3:g2:2` straight away; `close:B3:c1:1` never ran and the lane began step 2 with a red typecheck (run `wf_ea63edc9-5b1`, 2026-10-03 22:10).
+- cause: the script prepended the close-outs to the sized groups and then sliced from `startAt`; the close-out ids (c1) sit before g2, so the slice cut them off.
+- rule: `startAt` applies to the sized groups only; close-outs are prepended after the slice. When a close-out is owed, launch it alone or with `startAt` and check the journal's first label is `close:`.
+- proof: `node <scratchpad>/trace/simulate-workflow.mjs` → `simulation: 6 scenarios passed`; the journal of `wf_ea63edc9-5b1` shows `build:B3:g2:2` as its first label.
+- added: 2026-10-03
+
+## P-507 · Marking a slice `closed` in PLAN.md turns its remaining STUB markers into a red `stubs` gate, and a docs-only merge never runs that gate
+- symptom: the ledger pull request (PR 94) set B2 to `closed`; the gate called it documents-only and merged it without CI; the next code pull request (PR 95) failed `bun run stubs` with `scripts/seed.ts:89 STUB(B2) slice is closed` (2026-10-03 22:20).
+- cause: `scripts/stubs.ts` reads the slice status table of PLAN.md and refuses a marker whose slice is closed; the status change and the marker live in different files, so the docs-only shortcut let main go red without a check.
+- rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
+- proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
+- added: 2026-10-03
