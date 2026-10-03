@@ -1,31 +1,33 @@
 # GOTCHAS — the bank of things that already cost us time
 
-Purpose: never re-discover a fix, never re-break a thing that works. Every entry names the paths it protects, what
-went wrong, why, the rule, and how to prove the rule still holds. `.claude/hooks/gotcha-guard.mjs` reads this file
-before every Edit or Write and pushes the matching entries into the session (severity `block` refuses the edit;
-`warn` injects the entry as context). Entries without a `paths:` line are process gotchas and are never injected;
-they are read by `mop-work` at session start.
+Never re-discover a fix, never re-break a thing that works. This map is the part everyone reads; the entries below it are read by file.
+
+How the bank is organised
+- `G-NNN` are path entries: `- paths:` names the files they protect, `- severity:` what the guard does. `.claude/hooks/gotcha-guard.mjs` pushes every matching live G entry before each Edit or Write (`block` refuses the edit, `warn` injects the entry). `P-NNN` are process and tooling lessons, never injected.
+- Every entry has symptom, cause, rule, proof (a command and its output) and added. `- merged:` lists ids folded into an entry: an id with no heading of its own lives there (`grep -n "merged:.*P-070" GOTCHAS.md`). An entry a test, hook or script now enforces ends as one line under "Retired, enforced" at the end of the file. Merged and retired ids stay taken.
+
+How to read it (ruling H51)
+- Read this map, then from the tree root run `node workspace/05-plans/check-gotchas.mjs --for <every file you will touch>`: it prints the path entries that name your files in full and every process entry by title. Open a title that concerns your work with `grep -n "^## P-NNN" GOTCHAS.md`.
+
+The ten lessons that bite most often
+1. Shell escaping: the Bash tool drops backslashes and mangles quotes in inline text; anything with a backslash goes in with Write or Edit (P-008).
+2. Path conversion: Git Bash turns an argument that starts with `/` into `C:/Program Files/Git/...`; use `MSYS_NO_PATHCONV=1`, drop the slash, or double it (P-015).
+3. Heredocs: a heredoc or `node -e` that ends in `unexpected EOF` wrote nothing, so use Write (P-008); `python3 -` spins forever (P-094); a patch script validates before it writes (P-064).
+4. Timeouts under load: a busy laptop turns a slow test red at 5000 ms (G-031); a long Bash call moves to the background, so wait with a bounded loop, never a leading `sleep` (P-027).
+5. The registry: a `find` occurs exactly once in the file as it stands, an `expect` comes from the real red output, `--check` runs after every edit of a mutated file (P-066); every test title has an entry (P-079).
+6. The quiet runner: run long commands as `node workspace/05-plans/quiet.mjs -- <command>` so their output does not sit in your context (ruling H52 (3); no entry).
+7. Times: write them with the numeric offset, `date "+%Y-%m-%d %H:%M %z"`; "EDT" on this laptop is Egypt, UTC+3 (P-130).
+8. Lane ports and bank bases: each lane has its own preview port (spine 8788, db 8798, tests 8808, design 8818, api 8828) and its own number series here (P-503); the bank merges by entry (P-072).
+9. No Docker on this laptop, ever: schema reaches the cloud with `db push`, throwaway clusters come from native PostgreSQL 18 (P-038).
+10. One database: only `main` changes `mop-dev` (P-050); db tests load the dev profile and run under `env -u CLOUDFLARE_API_TOKEN` (P-310); an unmerged migration is proved inside rolled-back transactions (P-312).
+
+Also often needed: a lane is a worktree outside this folder (P-051) and two workers never share one tree (P-011); secrets never printed or in `VITE_*` (G-006, P-055, P-037); Chrome with the GPU off for anything compared (P-052); workflows only at the repository root (G-012); before saying done, re-run every proof yourself (P-059) and look at the real state after an interrupted call (P-056). Where a file goes and what a machine checks: `workspace/05-plans/STANDARDS.md`; rulings: `workspace/05-plans/ASSUMED.md` section H; measured machine facts: section E.
 
 Rules for the bank itself
-- Numbers are unique and never reused: before adding, `grep -c "^## P-" GOTCHAS.md` and take the next free number (the highest number in the file plus one; P-019 and P-020 were never used and stay unused). `node workspace/05-plans/check-gotchas.mjs` fails on a number used twice, on an entry without rule, proof or added, and on a path entry without paths or severity: run it after every change to this file. Duplicates from parallel workers get renumbered by the orchestrator, never silently merged.
-- Add an entry in the same turn something costs more than a few minutes or breaks after a push (CLAUDE.md). Do not wait for a retro.
-- Keep it under 40 live path entries (G entries without `enforced-by:`; there are 15 today). Process entries (P) are not injected, every worker reads them once, so each one must still be true: when the thing it describes is gone, shrink it to a retired line and keep the number. When one is covered by a test or a hook, mark it `enforced-by:` and it stops being
-  injected (the mechanism enforces it, the prose just documents it).
-- One `paths:` line, comma separated, project-relative globs (`**` and `*`). Severity is `block` only when an edit
-  is never legitimate; otherwise `warn`.
-- `proof:` is a command and the output that shows the rule holds. No proof, no entry.
-
-Read this first if you are about to build (2026-10-02)
-- Where a file goes, the 60 rules and what a machine checks: `workspace/05-plans/STANDARDS.md`. Rulings that overrule plan text: `workspace/05-plans/ASSUMED.md` section H. Measured facts about this machine: section E.
-- Your tree: a lane is a git worktree outside this folder (P-051); two workers never share one tree (P-011); a stale branch is checked before use (P-022).
-- The database: never Docker here (P-038); only `main` reaches `mop-dev` once lanes are open (P-050); migrations are the only schema (G-010); names change in three files together (G-004).
-- Secrets: never printed, never in a `VITE_*` name (G-006); how one gets into `.env` unseen (P-055); account-wide tokens are the operator's (P-037).
-- The shell on this machine: absolute paths (P-013); no leading `sleep`, bounded waits (P-046, P-027, P-014); Git Bash rewrites arguments that start with `/` (P-015, P-048) and mangles quotes in inline scripts (P-008: write the script to a file); search with `git grep`, never `grep -r` (P-049); line endings are LF and are checked with `git ls-files --eol` (G-008, P-057); `npx` can fail, use `bunx` (P-002).
-- Rendering and images: Chrome with the GPU off for anything we commit or compare (P-052); frames eat disk (P-016); fixed UI is judged from viewport shots (P-021); the logo comes from `brand/`, never retyped (G-015, P-053).
-- The site code: generated route tree never edited (G-001); routes read through `services` (G-005); tokens only, no hex (G-007); titles (G-003); contrast (G-013); no third-party request before consent (G-014).
-- Delivery: workflows only at the repository root (G-012); no branch protection, so the merge gate is the rule (P-028, P-060); free-tier limits are hard walls (P-009, G-011); a cache key carries everything that changes the page (P-041).
-- Outside services: Resend (P-054); Cloudflare and Zoho first-run quirks (P-034, P-035); a push can fail for a few seconds (P-033).
-- Before you say done: run every proof again, three times when the claim is "nothing changes" (P-059); a rejected or timed-out call may have run (P-056); "unused" is a claim about the whole repository (P-039); a plan names real catalog names (P-031) and every capability traces to a file and a proof (P-043, P-044).
+- Add an entry in the same turn something costs more than a few minutes or breaks after a push (CLAUDE.md), numbered in your lane's series (P-503). A lesson the bank already holds gets a "Hit again" sentence in that entry, not a new entry.
+- Run `node workspace/05-plans/check-gotchas.mjs` after every change: it fails on a number used twice, an entry without rule, proof or added, and a G entry without paths or severity.
+- One `paths:` line, comma separated, project-relative globs (`**` and `*`); severity `block` only when an edit is never legitimate. Keep under 40 live G entries.
+- A proof is a command someone else can run, never a path under `scratch/` (P-088).
 
 Entry template
 ```
@@ -59,16 +61,6 @@ Entry template
 - proof: `bun run build` → "built in"; `.output/nitro.json` preset `cloudflare-module`; `.output/server/wrangler.json` name `matter-of-place`.
 - added: 2026-09-30 (rewritten the same day when the preset was removed)
 
-## G-003 · Page titles: pass the bare title, `pageHead` adds the suffix
-- paths: app/src/lib/seo.ts, app/src/routes/index.tsx, app/src/routes/_site.index.tsx
-- severity: warn
-- symptom: home `<title>` renders "Matter of Place | Exceptional property. Properly considered. | Matter of Place".
-- cause: `pageHead` only skips the " | Matter of Place" suffix when the title already ends with it; the home route passes a title that starts with the brand instead.
-- rule: routes pass titles without the brand; `pageHead` skips the suffix when the title is the brand, starts with "Matter of Place | " or already ends with the suffix (fixed 2026-09-30, slice B1a).
-- proof: `curl -s http://localhost:8080/ | grep -o "<title>[^<]*"` → exactly one "Matter of Place".
-- enforced-by: tests/unit/seo.test.ts (`bun run test`, part of `bun run check`)
-- added: 2026-09-30
-
 ## G-004 · Field names live in three files and must change together
 - paths: app/src/domain/**, app/supabase/migrations/**
 - severity: warn
@@ -76,15 +68,6 @@ Entry template
 - cause: `src/domain/*.ts` (camelCase) = API JSON = `schema.sql` columns (snake_case); the HTTP adapter has no mapping layer by design (ADR 0002).
 - rule: change the domain type, the Zod contract and the SQL column in the same commit; grep the old name across all three before finishing.
 - proof: `grep -rn "<oldName>" src/domain docs/database` → no hits.
-- added: 2026-09-30
-
-## G-005 · Routes never import bundled data directly
-- paths: app/src/routes/**
-- severity: warn
-- symptom: a page keeps showing illustrative content after the API goes live because it bypassed the service boundary.
-- cause: importing `src/data/*` in a route hard-wires local mode.
-- rule: read through `src/lib/queries.ts` and `services`; the only allowed direct imports are `data/exposure.ts` and `data/faq.ts` (static marketing copy).
-- proof: `grep -rln "from \"../data/" src/routes` → only files that import exposure or faq.
 - added: 2026-09-30
 
 ## G-006 · `VITE_*` variables ship to the browser
@@ -183,12 +166,6 @@ Entry template
 - proof: `node workspace/03-diagrams/render.mjs` → "done → …/img".
 - added: 2026-09-30
 
-## P-004 · Mermaid rejects `:::class` on a subgraph line
-- symptom: "Expecting 'SEMI', 'NEWLINE', 'EOF', got 'STYLE_SEPARATOR'".
-- rule: style subgraphs with `style <id> stroke-dasharray: 5 5`; `:::class` is for nodes only.
-- proof: all four blocks in `big-diagram.md` parse (`render.mjs` exit 0).
-- added: 2026-09-30
-
 ## P-005 · The in-app browser renders `file://` pages as static snapshots
 - symptom: a local HTML page with a script never runs it; page tools refuse to act on the tab.
 - rule: serve the folder over `http://127.0.0.1:<port>` (`python -m http.server`) and open that URL in a new tab; stop the server afterwards.
@@ -200,10 +177,12 @@ Entry template
 - proof: `ls workspace/03-diagrams/img` → one PNG and one SVG per diagram.
 - added: 2026-09-30
 
-## P-008 · The Bash tool on this Windows machine collapses `\\` inside single quotes
-- symptom: a JSON payload typed inline as `'{"file_path":"E:\\Matter..."}'` reaches the process with single backslashes, so `JSON.parse` fails (or `\r` becomes a carriage return) and the test looks like a silent failure of the thing under test.
-- rule: never build Windows paths inline in Bash; write the payload with the Write tool (or use forward slashes) and pipe the file in. A hook that fails open will hide this from you.
-- proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON.
+## P-008 · The Bash tool on this machine drops backslashes and mangles quotes in inline text: single quotes, heredocs, `node -e`
+- symptom: an inline JSON payload `'{"file_path":"E:\\Matter..."}'` reached the process with single backslashes, so `JSON.parse` failed (or `\r` became a carriage return) and the test looked like a silent failure of the thing under test. A quoted heredoc (`<<'EOF'`) turned the Markdown table escape `\\|` into `|` in six table cells; a `node -e` append wrote `].join("` and a real line break instead of `].join("\n")` (prettier: `Unterminated string literal`); a `node -e` rewrite of registry `expect` values holding `\\.` found its anchor 0 times. A probe input `E'a\\\\'` written through a heredoc arrived as `E'a\\'` and read as a lexer defect (B1b c6). A hand mutation through `node -e` wrote `/drops+column/i`, the suite went red for an unrelated reason and was counted as a watched-fail (B1b g6). A long heredoc stopped with `unexpected EOF while looking for matching ''` and wrote no file (B2 g2; again in B2 g6 with a 300-line script).
+- cause: the Bash tool rewrites backslashes, and in a long command quotes, before the shell sees the command, so a quoted delimiter does not protect the text; when the delimiter or a quote no longer matches, the shell reads to the end of input and writes nothing. A `replace` whose search text does not occur changes nothing and reports nothing.
+- rule: any text that holds a backslash (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`, test inputs) goes in with the Write or Edit tool, or is built in code (`String.fromCharCode(92)`); never through an inline argument, a heredoc or `node -e`. Write a payload to a file and pipe the file in. After a scripted rewrite, read back the changed lines (`git diff`). `unexpected EOF` means nothing was written: do not retry with other quoting, use Write or Edit, then read `git status --short`. A mutation applied by hand prints its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged, before any red or green is read; prefer a registry entry replayed by the runner (P-066). When a parser "misses" an input with a backslash, print its bytes (`od -c`) before blaming the code. A hook that fails open will hide all of this.
+- proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON; a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` → `E ' a \ \ '` (two backslashes where four were typed, 2026-10-02); `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the row written with the Edit tool keeps its escapes).
+- merged: P-070, P-111, P-115, P-309
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -217,15 +196,6 @@ Entry template
 - symptom: `git branch --show-current` → `chore/remove-lovable` while the orchestrator still has uncommitted doc changes on "main"; anything committed now lands on the worker's branch, and `git add -A` by the worker sweeps the orchestrator's files into its PR.
 - rule: commit and push main work BEFORE spawning any agent that branches; while a branching worker runs in this tree, check the branch before every commit and never `git stash` or checkout under it. Workers that run side by side each get their own git worktree outside this folder (P-051); the build's lanes are exactly that.
 - proof: `git branch --show-current` → `main` before a commit on main.
-- added: 2026-09-30
-
-## P-012 · Mermaid quirks that broke renders this session (extends P-004)
-- enforced-by: `workspace/03-diagrams/render.mjs` lint (fails before rendering and prints file, block and line).
-- `;` inside a sequence-diagram message **or a `Note` line** ends the statement ("Expecting … got 'NEWLINE'"): use a comma. Happened three times on 2026-09-30 (big-diagram, admin-screens ×2).
-- `[/` at the start of a node or subgraph label opens a trapezoid shape ("got 'TRAPSTART'"): quote the label, `subgraph ADMIN["/admin › Automation"]`.
-- `:::class` on a `subgraph` line is invalid: use `style <id> …`.
-- rule: run `node workspace/03-diagrams/render.mjs` before claiming a diagram is done; a failure prints the parser's line number, which counts from the block's first line.
-- proof: `render.mjs` → "done → …/img" with no "failure".
 - added: 2026-09-30
 
 ## P-013 · The shell's working directory drifts between calls
@@ -265,11 +235,12 @@ Entry template
 - proof: `.claude/settings.json` → `enabledPlugins` lists them; `~/.claude/settings.json` does not.
 - added: 2026-09-30
 
-## P-015 · The Bash tool's Git Bash rewrites `/route` arguments into `C:/Program Files/Git/route`
-- symptom: `render-gate.mjs http://localhost:8080 / /properties` reported routes `C:/Program` and `Files/Git/properties`; every route failed with "Cannot navigate to invalid URL" although the site was fine.
-- cause: MSYS path conversion turns any argument that starts with `/` into a Windows path before Node sees it.
-- rule: prefix the command with `MSYS_NO_PATHCONV=1` and pass the script by its drive path (`D:/...`; `/d/...` is then no longer converted either), or run the gate from PowerShell.
-- proof: `MSYS_NO_PATHCONV=1 node "D:/Omincom/website work and agents output/V2 Pipeline/tools/render-gate.mjs" http://localhost:8080 / /properties` → `"pass": true`, exit 0.
+## P-015 · Git Bash rewrites any argument that starts with `/` into a Windows path (`C:/Program Files/Git/...`)
+- symptom: `render-gate.mjs http://localhost:8080 / /properties` reported routes `C:/Program` and `Files/Git/properties` and failed every one with "Cannot navigate to invalid URL"; `gh api /users/<login>/settings/billing/usage` answered `invalid API endpoint: "C:/Program Files/Git/users/..."`; `openssl req ... -subj "/CN=mop-backup"` failed with `This name is not in that format: 'C:/Program Files/Git/CN=mop-backup'`.
+- cause: MSYS path conversion turns any argument that looks like an absolute POSIX path (a route, an API endpoint, a certificate subject) into a Windows path before the program sees it.
+- rule: prefix the command with `MSYS_NO_PATHCONV=1` and pass a script by its drive path (`D:/...`), or write the argument without the leading slash (`gh api repos/...`) or with a doubled one (`//CN=...`), or run it from PowerShell. A failed first run can leave a half-written file: check its outputs before trusting them. The `gh` billing endpoints also need the `user` scope this login lacks (`gh auth refresh -s user` is interactive, the operator's): measure Actions minutes from `gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and sum the run durations (ruling DO-08).
+- proof: `MSYS_NO_PATHCONV=1 node "D:/Omincom/website work and agents output/V2 Pipeline/tools/render-gate.mjs" http://localhost:8080 / /properties` → `"pass": true`, exit 0; `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`; without the slash the billing call answered HTTP 404 "This API operation needs the user scope" (2026-10-02).
+- merged: P-048, P-502
 - added: 2026-09-30
 
 ## P-023 · `git worktree add <path> main` fails while `main` is checked out in the workspace
@@ -296,10 +267,12 @@ Entry template
 - proof: `node launch/engine/sheet.mjs out.jpg 3 640 a.png b.png` → prints `out.jpg`.
 - added: 2026-09-30
 
-## P-027 · A foreground Bash call over 120 s is moved to the background with its whole `&&` chain
-- symptom: `node overflow.mjs | tail` and a later `node states.mjs; python sheet.py` returned "moved to the background"; the sheets I read next did not exist yet.
-- rule: pass `timeout: 600000` for browser sweeps, or wait with `until [ -f <output> ]; do sleep 3; done` (Monitor is disabled in subagents) before reading anything the chain produces.
-- proof: `until [ -f scratchpad/am1.png ]; do sleep 3; done; echo ready` → ready.
+## P-027 · A long Bash call is moved to the background and a leading `sleep` is refused: wait with a bounded loop
+- symptom: `node overflow.mjs | tail` and a later `node states.mjs; python sheet.py` returned "moved to the background"; the sheets read next did not exist yet. A command that began with `sleep 90` was refused ("To wait for a condition, use Monitor"); loops that ran past the ten-minute limit were moved to the background and reported later, out of order; a `mermaid` render took over three minutes while seventeen agents were running and was moved too.
+- cause: the Bash tool moves a foreground call over 120 s to the background with its whole `&&` chain, blocks a bare leading `sleep`, and caps a call at ten minutes.
+- rule: pass `timeout: 600000` for browser sweeps, or wait with a bounded loop on a condition (`for i in $(seq 1 50); do <check> && break; sleep 10; done`, or `until [ -f <output> ]; do sleep 3; done`) kept under nine minutes, before reading anything the chain produces (Monitor is disabled in subagents). Read a workflow's progress from its `journal.jsonl` (count `started` and `result` lines by label). Render diagrams when no fan-out is running. The post-write hook reports "Illegal return statement" on a workflow script because its body is not a module: verify it by wrapping it in an async function, not with `node --check`.
+- proof: `until [ -f scratchpad/am1.png ]; do sleep 3; done; echo ready` → ready; `new Function(... 'return (async()=>{' + script + '})')` parses the workflow script that `node --check` rejects.
+- merged: P-046
 - added: 2026-09-30
 
 ## P-021 · Full-page screenshots misplace `position: fixed` UI and hide real defects
@@ -346,13 +319,6 @@ Entry template
 - symptom: `fonts.googleapis.com` is requested on first paint for every visitor, which sends EU visitors' IPs to Google before any consent (GDPR) and adds a render-blocking third party.
 - rule: fonts are self-hosted WOFF2 subsets (B17 step 2); the only third parties are Turnstile (necessary) and GA4 after consent. `grep -c fonts.googleapis` on the rendered home page must be 0.
 - proof: `curl -s http://127.0.0.1:8080/ | grep -c fonts.googleapis` → 0 after B17.
-- added: 2026-10-01
-
-## P-031 · Plans invent names: every event, step and table in a plan must be a catalog name
-- enforced-by: `node workspace/05-plans/check-plans.mjs` (run before committing any plan; add it to the H1 checklist).
-- symptom: the plan review found `subscriber.confirmation_pending` (no recipe would ever fire the confirm email), a confirm email sent outside the recipe engine, a 14-row recipe seed against a 17-event catalog, and a wave listing a slice beside the one it depends on.
-- rule: architecture 3.6 is the only event list; the 14 step types are the only steps; the seed covers every event; new names go into the architecture first, then into plans. The script fails the check on any of these.
-- proof: `node workspace/05-plans/check-plans.mjs` → "check-plans: OK".
 - added: 2026-10-01
 
 ## P-032 · Windows console is cp1252: a Python print with `→` or `›` raises UnicodeEncodeError after the file was already written
@@ -428,18 +394,12 @@ Entry template
 - proof: after stopping two `node.exe` parents, `listeners on 8799: 0` and `workerd left: 0`.
 - added: 2026-10-01
 
-## P-043 · "Is the how documented for every automation" was answered from memory; the check found two steps with no code file
-- symptom: the operator asked whether the plans say, in code terms, what makes each automation work. An audit of the 17 step types against the plans found that no plan named the step module for `render_variants` (B8b said B9 owns it, B9 said B2 owns it, B2 only had the image library) or for `render_og_static` (script named, step module not). Two more owners were ambiguous (`purge_cache` "B3 or B13", `build_newsletter_block` B11 in the table but B9 in the files). The project had been declared ready to build.
-- cause: `check-plans.mjs` verified that step names were in the catalog, not that each catalog step had an implementing file in some plan. Ownership stated in two plans was never cross-checked.
-- rule: an automation is documented when four things are named in a plan: the event that starts it, the recipe row (B8b seed), the step's code file `src/server/jobs/steps/<name>.ts`, and a proof command. `check-plans.mjs` now fails when a catalog step has no file named in any plan. Answer "is X covered" questions by running a check, not by describing the design.
-- proof: `node workspace/05-plans/check-plans.mjs` prints OK; deleting the `render-variants.ts` line from B9.md makes it print `no plan names the code file of step render_variants`.
-- added: 2026-10-01
-
-## P-044 · "Ready to build" was declared from a gate that checked accounts and syntax, not whether the documents could be built from
-- symptom: on 2026-10-01 the readiness gate printed `READY TO BUILD: yes` and the CTO session reported it. The operator did not believe it ("I felt that we were not ready to write the code for production") and asked how an automation would actually work in code. A full audit then found 1,152 gaps in the plans and spec in its first round: 299 contradictions between documents, 219 mechanisms described without the code that performs them, 104 things used and created by nobody, 96 with two owners, 88 with no proof, 67 with no code file.
-- cause: the gate measured what was easy to measure (tokens, tools, secrets, a checker for catalog names and section headings). Nothing measured whether a builder holding only a plan would have to invent an owner, a file, a table or a mechanism, or whether two plans disagreed. Two earlier passes with Sonnet workers at medium effort had made the plans longer and more confident without closing that.
-- rule (S53): a capability is documented only when a plan names what starts it, one owning slice, the code file, the data, the outside call, the failure path and a proof command. `workspace/05-plans/trace.json` lists every such item (1,100 and more) and `check-plans.mjs` fails when an item's plan stops naming its files, when a catalog step has no file, or when a slice is missing from the completion map. "Is it covered" and "are we ready" are answered by running `node workspace/05-plans/ready.mjs --full`, never from memory. Completeness audits run on Opus at high effort (operator's instruction); a cheaper pass that returns "all consistent" is a claim, not a result.
-- proof: `node workspace/05-plans/check-plans.mjs` prints OK with the trace enforced; the six audit rounds found 1,152, 1,191, 306, 150, 99 and 42 gaps.
+## P-043 · "Is it documented" and "are we ready" were answered from memory and from a gate that measured the wrong things
+- symptom: asked whether the plans say in code terms what makes each automation work, an audit of the 17 step types found no plan naming the step module of `render_variants` or `render_og_static`, and two more owners ambiguous, after the project had been declared ready. On 2026-10-01 the readiness gate printed `READY TO BUILD: yes`; the operator did not believe it, and a full audit found 1,152 gaps in its first round: 299 contradictions between documents, 219 mechanisms described without the code that performs them, 104 things used and created by nobody, 96 with two owners, 88 with no proof, 67 with no code file.
+- cause: the gate measured what was easy (tokens, tools, secrets, catalog names, section headings), not whether a builder holding only a plan would have to invent an owner, a file, a table or a mechanism; ownership stated in two plans was never cross-checked. Two earlier passes with Sonnet workers at medium effort made the plans longer and more confident without closing that.
+- rule (S53): a capability is documented only when a plan names what starts it, one owning slice, the code file (for a step, `src/server/jobs/steps/<name>.ts`), the data, the outside call, the failure path and a proof command. `workspace/05-plans/trace.json` lists every such item and `check-plans.mjs` fails when an item's plan stops naming its files, when a catalog step has no file, or when a slice is missing from the completion map. "Is it covered" and "are we ready" are answered by running `node workspace/05-plans/ready.mjs --full`, never from memory. Completeness audits run on Opus at high effort; a cheaper pass that returns "all consistent" is a claim, not a result.
+- proof: `node workspace/05-plans/check-plans.mjs` prints OK; deleting the `render-variants.ts` line from B9.md makes it print `no plan names the code file of step render_variants`; the six audit rounds found 1,152, 1,191, 306, 150, 99 and 42 gaps.
+- merged: P-044
 - added: 2026-10-01
 
 ## P-045 · An audit that fixes as it goes does not converge by itself: it needs rulings between rounds and a tighter bar each round
@@ -449,25 +409,11 @@ Entry template
 - proof: after 65 rulings the rounds went 1,191, 306, 150, 99, 42; `rounds` in the workflow result lists them.
 - added: 2026-10-01
 
-## P-046 · Waiting on long background work from the Bash tool
-- symptom: a command that began with `sleep 90` was refused ("To wait for a condition, use Monitor"); loops that ran past the tool's ten-minute limit were moved to the background and reported later, out of order; a `mermaid` render took over three minutes while seventeen agents were running and was moved to the background too.
-- cause: the Bash tool blocks a bare leading `sleep` and caps a foreground call at ten minutes.
-- rule: wait with a bounded loop that checks a condition (`for i in $(seq 1 50); do <check> && break; sleep 10; done`) and keep it under nine minutes; read progress from the workflow's `journal.jsonl` (count `started` and `result` lines by label). Render diagrams when no fan-out is running. The post-write hook reports "Illegal return statement" on a workflow script because the script body is not a module: verify such a script by wrapping it in an async function, not with `node --check`.
-- proof: this session's polls; `new Function(... 'return (async()=>{' + script + '})')` parses the workflow script that `node --check` rejects.
-- added: 2026-10-01
-
 ## P-047 · A deadline was answered with a smaller scope, recorded as decided
 - symptom: the operator set a 48-hour go-live; the orchestrator wrote a "launch cut" into PROJECT-STATE S54 and PLAN.md that deferred social, newsletter, reels, the money box and the audit robot. The operator: "we are not cutting anything we are getting it all built in 48 hours". The records had to be rewritten and pushed again.
 - cause: time pressure was treated as a reason to shrink the work instead of changing how it runs; a CTO recommendation was written down as a decision.
 - rule: scope belongs to the operator. Under a deadline the first move is orchestration (parallel lanes, worktrees, more workers), never a cut. A cut may be recommended in one sentence; it is recorded only after the operator says yes. State what is UNPROVEN about fitting the time.
 - proof: `grep -c "48-hour full build" workspace/05-plans/PLAN.md` prints 1 and `grep -c "launch cut" workspace/05-plans/PLAN.md` prints 1 (the line that says it was withdrawn).
-- added: 2026-10-02
-
-## P-048 · `gh api` with a leading slash under Git Bash, and the billing API
-- symptom: `gh api /users/<login>/settings/billing/usage` answered `invalid API endpoint: "C:/Program Files/Git/users/..."`; without the slash it answered HTTP 404 "This API operation needs the user scope".
-- cause: Git Bash rewrites an argument that starts with `/` into a Windows path; the billing endpoints need the `user` scope, which this `gh` login does not have and only the operator can add (`gh auth refresh -s user` is interactive).
-- rule: write `gh api` endpoints without the leading slash. Measure Actions minutes from the repository API instead: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and sum the run durations (ASSUMED section H, ruling DO-08).
-- proof: both outputs above, 2026-10-02.
 - added: 2026-10-02
 
 ## P-049 · `grep -r` from the repository root runs into node_modules and times out
@@ -584,11 +530,12 @@ Entry template
 - proof: the gate's own messages in this session; a message in the format passes.
 - added: 2026-10-02
 
-## P-064 · A patch script wrote the file first and checked it second, and left the build workflow broken on disk
-- symptom: a script that edits `.claude/workflows/build-slice.js` inserted text with backticks into a template literal, wrote the file, and only then ran the parse check, which threw `SyntaxError: Unexpected identifier 'node'`. The chain stopped, but the broken file was already in the working tree, and the commands after the `;` still ran (a pull request with no commit, a branch delete).
-- cause: write before validate; a backtick inside a template literal must be written `\``; an `&&` chain followed by `;` keeps going after the failure.
-- rule: a patch script builds the new text in memory, validates it (parse, anchors found, checker), and writes last. Text that lands inside a template literal escapes its backticks and every `${` it does not mean. After a patch fails, look at `git status` before anything else and restore with `git checkout -- <file>`. Never put cleanup or merge commands after a `;` behind a chain that may fail.
-- proof: `git status --short` showed ` M .claude/workflows/build-slice.js` after the failure; after `git checkout -- .claude/workflows/build-slice.js` the parse check passed.
+## P-064 · A patch script wrote the file first and checked it second; patching it again by text failed on its escaped backticks
+- symptom: a script that edits `.claude/workflows/build-slice.js` inserted text with backticks into a template literal, wrote the file, and only then ran the parse check, which threw `SyntaxError: Unexpected identifier 'node'`. The broken file was already in the working tree, and the commands after the `;` still ran (a pull request with no commit, a branch delete). A second script meant to correct two lines inside a first script stopped with `anchor not found`, and the commands after a `;` ran against a branch that was never created.
+- cause: write before validate; a backtick inside a template literal is written with a backslash in front, so an anchor typed as the text reads is not the text the file holds; an `&&` chain followed by `;` keeps going after the failure.
+- rule: a patch script builds the new text in memory, validates it (parse, anchors found, checker), and writes last. Text that lands inside a template literal escapes its backticks and every `${` it does not mean. Change a scratch script with the Edit tool, which shows the file as it is. One shell line is one `&&` chain from start to end; nothing follows a `;`, and no cleanup or merge command sits behind a chain that may fail. After a patch fails, read `git status` first and restore with `git checkout -- <file>` (only a file that had no uncommitted work, P-068).
+- proof: `git status --short` showed ` M .claude/workflows/build-slice.js` after the failure; after `git checkout -- .claude/workflows/build-slice.js` the parse check passed; `grep -c 'proof: a test file with \`it.each' <scratchpad>/trace/ruling-h43.mjs` prints 1 only when the backslash is part of the pattern.
+- merged: P-119
 - added: 2026-10-02
 
 ## P-130 · The shell on this laptop prints "EDT" for Egypt Daylight Time, not US Eastern
@@ -614,11 +561,12 @@ Entry template
 - proof: `cd app && bun run knip | grep -c "Configuration hints"` prints `1` before step 3 (the line counts the header, one block however many hints it lists); after step 4b the block lists 2 hints (`src/db/types.ts`, cleared by B2, and `supabase/functions/*/index.ts`, cleared by B8) and `bun run knip | grep -c "routeTree.gen.ts\|router.tsx"` prints `0`.
 - added: 2026-10-02
 
-## P-066 · A watched-fail registry entry must be one the owning runner can replay: no invented kind, no empty `find`
-- symptom: 16 of the 20 entries first written for `tests/mutations/B1b.json` used an invented `kind: "create"` with `"find": ""`. B4's `scripts/watchfail.mjs` (B4.md line 86) reads the file and asserts `find` occurs exactly once, and `mutation-registry.test.ts` rejects a file entry without a usable `find`, so none of them could be replayed.
-- cause: the plan's mutations say "a scratch file", and the author recorded them literally instead of expressing them in the runner's two kinds.
-- rule: every entry is a `file` entry on a tracked file with a `find` that occurs exactly once (a mutation that needs "a new file" edits an existing file inside the same lint scope), a `sql` entry, or `kind: "manual"` (recorded, not replayed). A rule whose scope has no tracked file yet (R14 in `src/server/**`) is `manual` until the first file of that scope lands. Replay the whole registry with a runner that checks the single occurrence before it trusts a result.
-- proof: `cd app && node -e "const a=require('./tests/mutations/B1b.json');console.log(a.filter(e=>e.kind==='create'||e.find==='').length)"` prints `0`.
+## P-066 · A watched-fail registry entry must replay: its `find` occurs exactly once in the file as it stands, its `expect` matches only what the failure prints
+- symptom: 16 of the 20 entries first written for `tests/mutations/B1b.json` used an invented `kind: "create"` with `"find": ""`, so none could be replayed. In B1b g4 one `find` held a log line that prettier had split over two lines (it occurred zero times); one `expect` said "not to have property" where vitest prints `to not have property "request"`; a test title went red for the right reason and still failed the replay because vitest cut it at about 80 characters (`... header whose lo…`), and an `it.each` `$name` value is cut at 40 characters whatever the terminal width. Code changes moved the `find` of older entries (`h`, `u-message`, `sentry-non-string`, then `u`, `pipe-guard-off`, `pipe-guard-path`, `pipe-guard-html`; in c7 `hy-lint-warnings`), each found late. The first `expect` of `mg-gate-format` matched the path bun echoes on every run, so any non-zero exit would have counted as the right red. Step 4b's watched-fail letters `bm` and `bn` were already ids of other mutations. An Edit anchored on the tail of an entry matched two entries.
+- cause: `find` and `expect` were copied from code as typed, from titles or from memory, not from the file after `prettier --write` and the red run's real output; any edit of a mutated file can move a `find`, and `bun run check` does not replay the registry; `bun run <script>` echoes the command (to stderr, so a baseline must read stderr on exit 0 too); letters were handed out over several steps; entries of one test share their `expect` line.
+- rule: every entry is a `file` entry on a tracked file whose `find` occurs exactly once (a mutation that needs a new file edits an existing file inside the same lint scope), a `sql` entry, or `kind: "manual"` (recorded, not replayed; also for a rule whose scope has no tracked file yet). Run `bunx prettier --write` before writing a `find` and take it from disk. Take `expect` from the red run's output; it is a regular expression (escape `.`, `*`, `?`, `(` or end before them) that matches only text the failure prints (the `×` line, the error line, prettier's `[warn]` line) and nothing in the unmutated run's stdout and stderr. Keep a test title under about 75 characters and an `it.each` row name at 40 or fewer, or match only their first words. After every edit of a file the registry mutates, run the replay runner's `--check` (every `find` once) before the commit, rewrite a moved entry and replay it red; keep a mutated line's text stable when the change need not touch it. List the ids before adding one; a taken plan letter becomes a prefix (`bm-page-refusal`); never reuse or rename an id. Anchor an Edit of an entry on its `"id"` or `replace` line, never on its `expect`.
+- proof: `cd app && node -e "const a=require('./tests/mutations/B1b.json');console.log(a.filter(e=>e.kind==='create'||e.find==='').length)"` → `0`; `node -e "const ids=require('./tests/mutations/B1b.json').map(e=>e.id);console.log(ids.length-new Set(ids).size)"` → `0`; `bun run format:check 2>&1 | grep -c "05-plans/merge-gate\.mjs"` → `1` on a green tree (the echo line); a scratch test `it.each([{ name: "0123456789012345678901234567890123456789X" }])("$name ends here", ({ name }) => { expect(name).toBe(""); })` prints `× 012345678901234567890123456789012345678… ends here` (measured 2026-10-02).
+- merged: P-081, P-090, P-093, P-116, P-121, P-133
 - added: 2026-10-02
 
 ## P-067 · Clearing a baseline "by fixing" is not making the tool quiet: a validator that validates nothing, and exports a later plan changes
@@ -642,13 +590,6 @@ Entry template
 - proof: put `const fire = useEffectEvent(() => { track(event, data); }); useEffect(() => { fire(); }, [key]);` in a scratch file under `app/src/hooks/` and run `cd app && bunx eslint --max-warnings 0 <file>; echo $?` → the `exhaustive-deps` warning on `'fire'` and exit 1; `bunx eslint --max-warnings 0 src/hooks/use-track-view.ts; echo $?` → exit 0.
 - added: 2026-10-02
 
-## P-070 · A Bash heredoc that carries a script or an edit drops its backslashes: `\|` becomes `|`, and the file is written wrong without an error
-- symptom: a Node fix script written inline with a quoted heredoc (`<<'EOF'`) turned the Markdown table escape `\\|` into `|` in six table cells, which split each cell in two. The registry rework of B1b g2 (regex and path text with backslashes) was lost the same way. Hit again in the B1b g4 close-out with `node -e "..."`: a test appended through it wrote `].join("` and a real line break instead of `].join("\n")`, and prettier failed with `Unterminated string literal`. P-008 names single-quoted arguments; this is the same collapse inside a heredoc, where it is easier to believe the quoting protects the text.
-- cause: the Bash tool on this machine rewrites backslashes before the shell sees the command, so a quoted delimiter does not preserve them. Hit again in B1b c7: a `node -e` rewrite of two registry `expect` values holding `\\.` found its anchor `0` times and stopped before writing; the Edit tool did it.
-- rule: any text that contains a backslash (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`) goes in with the Write or Edit tool, never through a heredoc or an inline script. After a scripted rewrite of such a file, read back the changed lines (`git diff`) before trusting it.
-- proof: `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the `type` row keeps its escapes); the same row written through a heredoc printed `"Estate" | "Residence"` with no backslash.
-- added: 2026-10-02
-
 ## P-071 · A relative redirect from `app/` wrote a scratch file outside the worktree
 - symptom: a builder in the lane redirected a check's output to `../../scratch-check.txt` from `E:/mop-build/spine/app`; the file landed in `E:/mop-build/`, outside the repository, and the builder's `rm` was refused there. The reviewer found it on disk.
 - cause: `../..` from `app/` is the lane's parent folder, not the lane. Nothing under git sees a file there, so no gate catches it.
@@ -656,20 +597,12 @@ Entry template
 - proof: `ls /e/mop-build/` prints `spine` and nothing else.
 - added: 2026-10-02
 
-## P-072 · Merging main into a lane: both sides append to the bank, the merge conflicts, and a shared last line goes missing
-- symptom: `git merge origin/main` on `slice/b1b` stopped with a conflict in `GOTCHAS.md` only. Keeping both sides left entry P-064 without its `- added:` line: git had treated the identical last line of both sides as common text and placed it after the conflict block, so it stayed with the lane's last entry.
-- cause: main and the lane each append entries at the end of the same file, and every entry ends with the same `- added: <date>` line.
-- rule: while one lane is open, the orchestrator adds its own bank entries on the lane's branch, not on main. When a merge does conflict in the bank, keep both sides (main's entries first), then run `node workspace/05-plans/check-gotchas.mjs` before committing: it names the entry that lost a line or a number used twice. Lanes take the next free number above the highest in both copies. History is never rewritten: bring main into a lane with a merge commit, never a rebase of pushed commits.
-- proof: after the merge `node workspace/05-plans/check-gotchas.mjs` printed `ERROR P-064: no added`; after restoring the line it printed `check-gotchas: OK (16 path entries, 69 process entries)`.
-- added: 2026-10-02
-
-## G-017 · Nitro appends its own rule to `public/_headers`, and a second block for one path replaces ours
-- paths: app/public/_headers
-- severity: warn
-- symptom: B1b step 3 said "Nitro copies the file unchanged" and proved it with `cmp public/_headers .output/public/_headers`. The build prints "Adding Nitro fallback to _headers" and appends `/assets/*` with `cache-control: public, max-age=31536000, immutable`, so the compare exits 1. With our own `/assets/*` block holding the security headers, `curl -I` on `/assets/<file>.js` under `wrangler dev` showed only Nitro's Cache-Control and none of the security headers.
-- cause: the Cloudflare preset's `writeCFHeaders` appends the route-rule headers after the file unless a line matches `^/\* ` (a slash, a star and a space; the Write tool and editors strip that trailing space, so the bypass cannot be kept). A second block for the same path won as a whole (observed under wrangler 4.145.0; the mechanism is inferred, not read).
-- rule: the security headers live in a `/*` block, a path Nitro does not use; `/media/*` carries `Cache-Control` only, so no header repeats. `public/_headers` holds no `/assets/*` block at all: Nitro appends one (`public, max-age=31536000, immutable`) and, measured 2026-10-02, a block of ours for the same path is dead text (our value set to `max-age=3600` in the built file, the served asset still answered `max-age=31536000, immutable`). Prove the copy with a prefix compare, never a full one.
-- proof: after `bun run build`, `cmp -n "$(wc -c < public/_headers)" public/_headers .output/public/_headers; echo $?` → 0; `bunx vitest run tests/unit/headers.test.ts` goes red when a block for `/assets/*` is put back (registry entry `k-assets`) or a security header is moved out of `/*`.
+## P-072 · Merging the bank: a text merge of two appends drops an entry's last line, and GitHub ignores the merge driver
+- symptom: `git merge origin/main` on `slice/b1b` conflicted in `GOTCHAS.md`; keeping both sides left P-064 without its `- added:` line. Later the `merge=union` driver gave a clean `git merge-tree` and still dropped P-500's `added` line and the blank line after it, and `check-gotchas` printed `ERROR P-137: no added` after a hand resolver (earlier P-064, P-130, P-132). `git merge-tree --write-tree origin/main slice/b2` exited 0 while `gh pr view 49 --json mergeable` said `CONFLICTING` and no workflow started (P-301).
+- cause: every entry ends with the same `- added: <date>` line; two sides that each append entries share it, a text merge writes it once, and the entry in the middle loses it. GitHub's merge machinery ignores merge drivers, so it reports such a pull request as conflicting.
+- rule: the bank merges by entry: `workspace/05-plans/merge-gotchas.mjs` is the merge driver (clone config `merge.gotchas.driver`, `.git/info/attributes` and `.gitattributes`). After any merge that touches the bank, clean or not, run `node workspace/05-plans/check-gotchas.mjs` before committing; restore a lost line by hand, main's entries first. Trust `gh pr view <n> --json mergeable,mergeStateStatus`, not a local merge test, for whether CI will run; when it says CONFLICTING the lane brings main in itself (ruling H48 (3)) with a merge commit, never a rebase of pushed commits. Lanes number in their own series (P-503).
+- proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree and `git config merge.gotchas.driver` prints the driver line; after the B1b merge `check-gotchas.mjs` printed `ERROR P-064: no added`, and after restoring the line `check-gotchas: OK (16 path entries, 69 process entries)`.
+- merged: P-302, P-303, P-501
 - added: 2026-10-02
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
@@ -711,11 +644,12 @@ Entry template
 - proof: `node -e "try{new Headers({'x-request-id':'abc'+String.fromCharCode(10)+'x'})}catch(e){console.log(e.name)}"` → `TypeError`; `bunx vitest run tests/unit/pipeline.test.ts` passes `replaces an inbound id that does not match: abc; Set-Cookie: x`.
 - added: 2026-10-02
 
-## P-076 · `vi.spyOn(console, method)` over a union of methods gives the implementation an `any` parameter and the lint refuses it
-- symptom: `vi.spyOn(console, method).mockImplementation((line) => { lines.push(line); })` inside `for (const method of METHODS)` fails `bun run lint` with `Unsafe argument of type any assigned to a parameter of type string  @typescript-eslint/no-unsafe-argument`; the first version of `log.test.ts` and `pipeline.test.ts` were written that way and both had to be rewritten.
-- cause: spying on a union of keys picks no single overload, so the callback's parameters are `any`.
-- rule: annotate the parameter `(line: unknown)` and convert with `String(line)`; type a `vi.fn` by its signature (`vi.fn<PipelineContext["waitUntil"]>()`), never with a bare `vi.fn()` assigned to a typed member. Run `bun run lint` on a new test file before the first full check.
-- proof: a scratch `tests/unit/` file with `vi.spyOn(console, method).mockImplementation((line) => { lines.push(line); })` in a loop over `["log", "warn", "error"] as const` → `bunx eslint --max-warnings 0 <file>; echo $?` prints the `no-unsafe-argument` error and `1`; `bunx eslint --max-warnings 0 tests/unit/log.test.ts` → exit `0`.
+## P-076 · The strict type-aware lint and `noUncheckedIndexedAccess` refuse common test idioms: write the typed form first, never cast or disable
+- symptom: each of these failed `bun run lint` or `tsc` on its first version and was rewritten (B1b): `vi.spyOn(console, method).mockImplementation((line) => ...)` over a union of methods gave `no-unsafe-argument`; values read from `JSON.parse` gave `no-unsafe-assignment` and `no-unsafe-member-access`, and `Promise.reject("text")` gave `prefer-promise-reject-errors`; `String(error.name)` gave `no-unnecessary-type-conversion`; `expect` calls inside a helper gave `Test has no assertions  vitest/expect-expect`; a field of the router's `getMatchedRoutes` result gave `no-unsafe-call` and `no-unsafe-member-access`; `expect.stringMatching` and `expect.arrayContaining` inside `toEqual` gave `no-unsafe-assignment`, and `String()` of a `z.unknown()` field gave `no-base-to-string`; a `range` guard on a yaml node reached from `contents` gave `no-unnecessary-condition`; destructuring `[name, text]` pairs built by `map` gave `TS18048: 'name' is possibly 'undefined'`; `DROP.exec(text)?.[1].replace(...)` gave `TS2532: Object is possibly 'undefined'`; a `describe` that used a sibling `describe`'s helper and an unimported `readFileSync` failed only at run time with `ReferenceError`.
+- cause: `strictTypeChecked` (R01) judges declared types: `JSON.parse`, router values and asymmetric matchers are `any`; `Error["name"]` is `string` though JavaScript can put any value there; `Scalar.Parsed` from `contents` has a non-null `range` (yaml 2.9.1) while a node from `get(key, true)` has `range?: Range | null`; spying on a union of keys picks no overload. `noUncheckedIndexedAccess` (R02) makes every index read `T | undefined`, regex groups and `map`-built arrays included; the `?.` before `[1]` covers only a `null` from `exec`. `vitest/expect-expect` looks for `expect` in the test's own body. Vitest strips types without checking them. The `.mjs` scripts are type-checked too (`checkJs` through `tsconfig.scripts.json`).
+- rule: type a spy's parameter `(line: unknown)` and convert with `String(line)`; type a `vi.fn` by its signature (`vi.fn<PipelineContext["waitUntil"]>()`); parse JSON into `unknown` and read it through a Zod schema; reject only with an `Error`; widen runtime-unsafe fields on purpose (`const { name, message }: { name: unknown; message: unknown } = error;`); a helper returns what it read and the test asserts it with one `expect(...).toEqual(...)` (never add helper names to the rule's config); read an `any` into a variable typed `unknown` and narrow it with `typeof`; compute plain values (`/re/.test(value)`, `list.includes(item)`) instead of asymmetric matchers, and give a zod record a value union instead of `z.unknown()` when the test converts its values; walk a yaml document from `contents` and read `range` without a guard; a `map` that carries several values returns an object; read a capture group as `regex.exec(text)?.[n]?.<member>`; a helper two `describe` blocks need lives at module scope. Never a cast, a `!` or an `eslint-disable`, and never turn a flag off. Run `bunx tsc --noEmit -p tsconfig.json` and `bunx eslint --max-warnings 0 <file>` on a new test file or block before its first vitest run or full check. Narrowing `Object.keys` is G-103.
+- proof: in scratch files under `app/tests/unit/` (measured 2026-10-02, deleted after): a `vi.spyOn(console, method)` loop over `["log", "warn", "error"] as const` → `bunx eslint --max-warnings 0 <file>; echo $?` prints `no-unsafe-argument` and `1`; `const parsed = JSON.parse('{"a":1}'); expect(parsed.a).toBe(1);` and `await expect(Promise.reject("plain text")).rejects.toBe("plain text");` → `no-unsafe-assignment`, `no-unsafe-member-access`, `prefer-promise-reject-errors`; `expect({ a: "1" }).toEqual({ a: expect.stringMatching(/1/) });` → `Unsafe assignment of an \`any\` value`; `function check(value: number) { expect(value).toBe(1); }` called from an `it` → `Test has no assertions  vitest/expect-expect`; `["a", "b"].map((name) => [name, name.toUpperCase()])` destructured → `bunx tsc -p tsconfig.json --noEmit` prints `error TS18048: 'name' is possibly 'undefined'.` and `2`; `export const width = /a(b)/.exec("ab")?.[1].length;` → `error TS2532`, and with `?.[1]?.length` → `0`; a helper declared in one `describe` and called in another → tsc `error TS2304: Cannot find name 'helper'.`, vitest `ReferenceError: helper is not defined`.
+- merged: P-082, P-085, P-086, P-091, P-097, P-102, P-103, P-117, P-122
 - added: 2026-10-02
 
 ## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
@@ -725,18 +659,20 @@ Entry template
 - proof: `cd app && bunx wrangler --version` → `4.145.0`; the same command in an empty scratch folder → `4.146.0` (2026-10-02).
 - added: 2026-10-02
 
-## P-078 · A plan's response shape can contradict STANDARDS: STANDARDS binds, and the plan line gets fixed
-- symptom: B1b step 3 and step 4 give the calm 500 as `{"error":{"code":"server","requestId":"..."}}`; STANDARDS R09 and B3 line 42 require `{ error: { code, message, issues?, requestId } }`. The first build followed the plan and a reviewer rejected it.
-- cause: the plan line was written before R09 and was not brought into line with it.
-- rule: a body shape is checked against R09 before it is written; where the plan is shorter than the standard, build the standard (here `message` was added: `Something went wrong. Please try again in a moment.`), and tell the orchestrator which plan lines are stale (B1b lines 126 and 176).
-- proof: `git grep -n "code: \"server\"" -- app/src/server/lib/pipeline.ts` → the object with `message`; `bunx vitest run tests/unit/pipeline.test.ts` passes `answers JSON for an API path, a write, or a client that does not accept HTML`, and registry entry `u-message` turns it red.
+## P-078 · A plan line can contradict STANDARDS (a body shape, where a file's logic goes, the clauses a gate asserts): STANDARDS binds, and the plan line gets named
+- symptom: B1b steps 3 and 4 give the calm 500 as `{"error":{"code":"server","requestId":"..."}}`; STANDARDS R09 and B3 line 42 require `{ error: { code, message, issues?, requestId } }`; the first build followed the plan and a reviewer rejected it. B1b line 131 put the bearer check of `sentry-test` in the route file; R11 and the folder map say an API route file is one wrapper line, so the logic moved to `src/server/hooks/sentry-test.ts` and the route, its test imports and six registry entries were rewritten. R54 names `hygiene.test.ts` as its enforcer, and two clauses (no attacker-controllable context such as `github.event.pull_request.title` or `github.head_ref` in a `run:` line; installs are `bun install --frozen-lockfile`) had no assertion, the checklist line C22 was missed, and in the next round invariant 15's clause "a step that calls `gh` reads `GH_TOKEN` from its `env`" had none either: three rejected rounds.
+- cause: plan lines were written before STANDARDS and not brought into line; a builder reads a plan's file line as the file's content and builds a gate from the plan's test list.
+- rule: before writing a file a plan names, check its line against the folder map (STANDARDS section 1), R11 and R09: an API route file holds one wrapper line, its logic goes to `src/server/<domain>/<name>.ts` (`hooks/` for `api/hooks/*`). Before closing a gate, open each STANDARDS rule whose `Enforced by:` names it and each plan invariant that says the gate "asserts all of this", and tick every clause against an assertion and a registry entry; walk the C-lines of section 3 for the artifact type (workflow: C22). A clause about something that does not exist yet still gets its assertion now, watched red by a mutation that adds the thing. Where the plan says less, STANDARDS binds; name the stale plan line to the orchestrator in the slice log.
+- proof: `git grep -n "code: \"server\"" -- app/src/server/lib/pipeline.ts` → the object with `message`; `git grep -n "timingSafeEqual" -- app/src/routes` → nothing; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "R54"` runs `no run: line holds attacker-controllable context (R54)` and `every bun install in a workflow is --frozen-lockfile (R54)`; `grep -c "Cost (C22)" .github/workflows/ci.yml` → `1`.
+- merged: P-083, P-101
 - added: 2026-10-02
 
-## P-079 · A group that adds tests must own `tests/mutations/<slice>.json`, and a missing registry entry is not "done"
-- symptom: the first step 3 report said "done" while its three test files had no entry in `tests/mutations/B1b.json` (R49, C08); the 17 mutations lived in a scratch spec outside the repository and could not be replayed. The same report left knip's `src/start.ts` configuration hint (P-065) because `knip.json` was not in its file list.
-- cause: the group's file list was copied from the plan's file lines, which do not name the registry or `knip.json`.
-- rule: a group's file list for a step that adds a test includes `tests/mutations/<slice>.json`, and one that creates a file knip reported as "no matches" includes `knip.json`. A watched-fail that is not yet a registry entry makes the status `partial`, never `done`. Entries are written in the registry's format and replayed by a runner that asserts `find` occurs once.
+## P-079 · A group that adds tests owns `tests/mutations/<slice>.json`, and every `it` title maps to an entry before it reports
+- symptom: the first step 3 report said "done" while its three test files had no entry in `tests/mutations/B1b.json` (R49, C08); the 17 mutations lived in a scratch spec outside the repository. The same report left knip's `src/start.ts` configuration hint (P-065) because `knip.json` was not in its file list. The g7 fix round added eight cases to `merge-gate.test.ts` and registered the seven it remembered; a reviewer's title-to-registry map printed `NONE` for the happy-path case and three older ones.
+- cause: the group's file list was copied from the plan's file lines, which name neither the registry nor `knip.json`; entries were written for the mutations the author thought of, not by walking the test file.
+- rule: a group's file list for a step that adds a test includes `tests/mutations/<slice>.json`, and one that creates a file knip reported as "no matches" includes `knip.json`. After any change to a test file, list every `it` title with the entries whose `expect` it contains and write the missing ones; every title ends with at least one entry replayed red for the right reason, and an order or a "does not" property needs its own mutation (swap the two calls, remove the guard). A watched-fail that is not yet a registry entry makes the status `partial`, never `done`.
 - proof: `git grep -c "tests/unit/pipeline.test.ts" -- app/tests/mutations/B1b.json` → at least `1`; `cd app && bun run knip | grep -c "src/start.ts"` → `0`.
+- merged: P-109
 - added: 2026-10-02
 
 ## G-020 · Sentry adds the sender's IP and city to a hand-built event unless the event forbids it
@@ -755,20 +691,6 @@ Entry template
 - proof: `cd app && bunx vitest run tests/unit/sentry.test.ts -t "never answers"` passes in milliseconds; registry entry `r` (no `AbortSignal.timeout`) turns it red with `Test timed out in 5000ms`.
 - added: 2026-10-02
 
-## P-081 · A registry entry written from memory does not match: prettier rewrites the `find`, vitest words and truncates the `expect`
-- symptom: in B1b g4 three entries of `tests/mutations/B1b.json` failed their replay although the mutation was right. One `find` held the non-2xx log line of `sentry.ts` on one line, but prettier had split it over two, so it occurred zero times. One `expect` said "not to have property"; vitest prints `to not have property "request"`. In the fix round a case named `... X-Sentry-Rate-Limits header whose longest window is 120 seconds` went red for the right reason and still failed the replay: vitest printed `... header whose lo…`, cut at about 80 characters, in both the `×` line and the `FAIL` line.
-- cause: `find` was copied from the code as typed, not from the file after `prettier --write`; `expect` was copied from the test title or from memory, not from the runner's output, and vitest shortens long test names when the output is not a wide terminal.
-- rule: run `bunx prettier --write` on the changed files before writing any `find`, and take `find` from the file on disk. Take `expect` from the red run's real output. `expect` is a regular expression (B4.md line 86, `--expect "<regex>"`): a replay runner that matches it as plain text reports entries such as `q` and `am` as not red (15 false reports in the g4 close-out), so match with `new RegExp(expect)`, and escape `.`, `*`, `?`, `(` in a new entry or end it before them. Keep a test title under about 75 characters, or match only its first words. Replay every new entry with a runner that asserts `find` occurs once and the output matches `expect` before you call it watched-fail.
-- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` with the rate-limits parse replaced by `return 60;` prints `× pauses every send for the window named by an X-Sentry-Rate-Limits header whose lo…` with the old title; with the title `X-Sentry-Rate-Limits 30 and 120` the replay of entry `sentry-rate-limits` prints `RED sentry-rate-limits: exit=1 expect=true`.
-- added: 2026-10-02
-
-## P-082 · Lint refuses `JSON.parse` results and string rejections in tests, not only console spies
-- symptom: the first lint run of `tests/unit/sentry.test.ts` failed on values read from `JSON.parse` and on a fake fetch that rejected with a string. P-076 names only `vi.spyOn(console, method)` over a union, so it did not warn about either.
-- cause: `JSON.parse` returns `any`, so any use of it trips `no-unsafe-assignment` and `no-unsafe-member-access` (strictTypeChecked); `Promise.reject("text")` trips `prefer-promise-reject-errors`. Tests are linted with the same type-aware rules as `src`.
-- rule: in a test, parse JSON into `unknown` (`const parseJson = (text: string): unknown => JSON.parse(text)`) and read it through a Zod schema; reject only with an `Error` (`Promise.reject(new TypeError("network down"))`). Run `bunx eslint --max-warnings 0 <new test file>` before the first full check.
-- proof: a scratch `tests/unit/zz-scratch.test.ts` holding `const parsed = JSON.parse('{"a":1}'); expect(parsed.a).toBe(1);` and `await expect(Promise.reject("plain text")).rejects.toBe("plain text");` → `bunx eslint --max-warnings 0` prints `no-unsafe-assignment`, `no-unsafe-member-access` and `prefer-promise-reject-errors`, exit 1 (measured 2026-10-02); `bunx eslint --max-warnings 0 tests/unit/sentry.test.ts` → exit 0.
-- added: 2026-10-02
-
 ## G-021 · A new route file fails the typecheck until a build regenerates the route tree
 - paths: app/src/routes/**
 - severity: warn
@@ -778,51 +700,11 @@ Entry template
 - proof: a scratch `src/routes/api/hooks/zz-scratch.ts` with `createFileRoute("/api/hooks/zz-scratch")` → `cd app && bunx tsc -p tsconfig.json --noEmit` prints that TS2345 error and exits 2 (measured 2026-10-02); deleting the file restores exit 0.
 - added: 2026-10-02
 
-## P-083 · A plan's "the route file does X" line can contradict R11 and the folder map: check where a file's logic goes before writing it
-- symptom: B1b line 131 puts the bearer check of `sentry-test` in the route file; the first g4 build followed it. STANDARDS R11 and the folder-map row `src/routes/` say an API route file is one wrapper line. The fix round moved the logic to `src/server/hooks/sentry-test.ts` and rewrote the route, its test imports and six registry entries. P-078 covered body shapes only, so it gave no warning.
-- cause: plan file lines were written before STANDARDS; a builder reads the plan's file line as the file's content.
-- rule: before writing any file a plan names, check its line against the folder map (STANDARDS section 1) and R11 as well as R09 (P-078): an API route file holds one wrapper line, its logic goes to `src/server/<domain>/<name>.ts` (`hooks/` for `api/hooks/*`, as B3's `hooks/resend.ts` and B8's `hooks/ops-health.ts`). STANDARDS binds; name the stale plan line to the orchestrator in the slice log.
-- proof: `git grep -c "" -- app/src/routes/api/hooks/sentry-test.ts` → `12` (definition, one STUB line, one handler call that prettier wraps over two lines, no logic); `git grep -n "timingSafeEqual" -- app/src/routes` → nothing.
-- added: 2026-10-02
-
 ## P-084 · Five plans call `captureException` without the options it really takes
 - symptom: `captureException(error, options)` needs `dsn`, `requestId`, `route`, `env` and `release` (`sentry.ts` reads no environment, R14). B3.md:89 and :95, B17.md:16, B8b.md:127 and B8.md:124 give shorter shapes or call `dsn` optional and new. Recorded only in the B1b log until a reviewer asked for it here.
 - cause: the plans were written against the plan's signature, which had no `dsn`; the built signature added it.
 - rule: a slice that reports to Sentry passes all five keys; read the signature from `app/src/server/lib/sentry.ts` (`CaptureOptions`), never from a plan line. `tsc` refuses a missing key, which is the safe failure; do not make a key optional to fit a plan line.
 - proof: `git grep -n "dsn: string | undefined;" -- app/src/server/lib/sentry.ts` → one line in `CaptureOptions`; a scratch `tests/unit/zz-scratch.ts` calling it without `dsn` → `cd app && bunx tsc -p tsconfig.json --noEmit` prints `TS2345 ... Property 'dsn' is missing in type ... but required in type 'CaptureOptions'` and exits 2 (measured 2026-10-02).
-- added: 2026-10-02
-
-## G-022 · An API route file with no `GET` handler answers a `GET` with 200 and the empty page shell
-- paths: app/src/routes/api/**
-- severity: warn
-- symptom: under `cf:preview`, `curl -s -D - http://127.0.0.1:8788/api/hooks/sentry-test` (a POST-only route) → `HTTP/1.1 200 OK`, `Content-Type: text/html; charset=utf-8`, 6807 bytes of app shell; `/api/hooks/nothing-here` → 404. A route meant to be inert is not.
-- cause: the file is also a router route; a method with no server handler falls through to the SSR render, which finds the route and renders it with no component (TanStack behaviour, inferred from the answers, not read in the source).
-- rule: ruled in ASSUMED H39 (2) and built in B1b g4 close-out: `handle()` in `src/server/lib/pipeline.ts` turns a `text/html` answer under `/api/` into R09 JSON with `no-store` (405 `method_not_allowed` when it rendered 200, otherwise its own status with `not_found`). Never remove that guard; B3's and B7's wrappers add `Allow` where they know the methods. A client whose Accept is not HTML never sees the shell: Start refuses it with a bare 500 instead, handled in the same place (G-025).
-- proof: `bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/api/hooks/sentry-test` → `405 application/json` (before the guard: `200 text/html; charset=utf-8`, 2026-10-02); registry entries `pipe-guard-off` and `pipe-guard-405` turn `tests/unit/pipeline.test.ts` red.
-- enforced-by: tests/unit/pipeline.test.ts (`a path under /api/ never answers the page shell`, part of `bun run check`)
-- added: 2026-10-02
-
-## G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws
-- paths: app/src/server/lib/sentry.ts
-- severity: warn
-- symptom: `captureException(Object.create(null), opts)` rejected with `TypeError: Cannot convert object to primitive value`; a throwing `message` getter and a proxy whose `getPrototypeOf` throws (so `instanceof` throws) rejected too. In the Worker the rejection lands in `waitUntil` and the event is lost; the fingerprint was already recorded, so the next 60 s of the same failure were dropped. Every test threw an `Error`, so none saw it.
-- cause: `String(value)`, `error.message` and `value instanceof Error` all run user code; the try around the fetch did not cover building the event.
-- rule: a function promised never to throw reads the thrown value inside its own try (`describeThrown` in `sentry.ts`, fixed text `unprintable value`) before it records anything, and its tests throw a null-prototype object, a throwing getter, a proxy and an Error whose `name` is not a string.
-- proof: `cd app && bunx vitest run tests/unit/sentry.test.ts` passes; registry entries `sentry-unprintable` and `sentry-non-string` turn it red (`promise rejected "TypeError: Cannot convert object to primi…" instead of resolving` before the fix).
-- added: 2026-10-02
-
-## P-085 · Lint refuses `String()` of a value typed `string`: read an Error's fields as `unknown` first
-- symptom: the first `describeThrown` in `sentry.ts` (B1b g4, second fix round) converted `String(error.name)` and `String(error.message)` so a non-string name could not throw later; `bun run lint` failed with `Passing a string to String() does not change the type or value of the string  @typescript-eslint/no-unnecessary-type-conversion` on both, and the function was rewritten.
-- cause: `Error["name"]` and `Error["message"]` are typed `string`, though plain JavaScript can put any value there (`Object.assign(new Error(), { name: 5 })`); `strictTypeChecked` judges the type, not the runtime.
-- rule: when runtime values may break their declared type, widen them on purpose before converting: `const { name, message }: { name: unknown; message: unknown } = error;` then `String(name)`. Never answer the rule with a cast or an `eslint-disable`.
-- proof: a scratch `src/server/lib/zz-scratch.ts` holding `export function describe(error: Error): string { return String(error.name) + String(error.message); }` → `cd app && bunx eslint --max-warnings 0 src/server/lib/zz-scratch.ts; echo $?` prints the `no-unnecessary-type-conversion` error twice and `1` (measured 2026-10-02); `bunx eslint --max-warnings 0 src/server/lib/sentry.ts` → exit `0`.
-- added: 2026-10-02
-
-## P-086 · `vitest/expect-expect` refuses a test whose `expect` calls live in a helper
-- symptom: the B1b g4 close-out moved the R09 404 checks of `sentry-test-route.test.ts` into an `async function expectNotFound(response, id)` full of `expect`; `bunx eslint` failed with `Test has no assertions  vitest/expect-expect` on the two tests that only called it, and the helper was rewritten.
-- cause: the rule looks for `expect` (or a configured assert function name) inside the test's own body; `eslint.config.js` names no helper.
-- rule: a helper returns what it read (`answerOf(response)` returning status, headers and the parsed body) and the test asserts it with one `expect(...).toEqual(...)`. Do not add helper names to the rule's config to make a test pass.
-- proof: a scratch `tests/unit/zz-scratch.test.ts` with `function check(value: number) { expect(value).toBe(1); }` and `it("checks in a helper", () => { check(1); });` → `cd app && bunx eslint --max-warnings 0 tests/unit/zz-scratch.test.ts; echo $?` prints `Test has no assertions  vitest/expect-expect` and `1` (measured 2026-10-02); `bunx eslint --max-warnings 0 tests/unit/sentry-test-route.test.ts` → exit `0`.
 - added: 2026-10-02
 
 ## G-024 · The router matches a path decoded and without regard to case; a prefix rule on the raw pathname does not
@@ -834,18 +716,20 @@ Entry template
 - proof: `cd app && bunx vitest run tests/unit/pipeline.test.ts` passes, and registry entries `pipe-path-case`, `pipe-path-decode`, `pipe-path-slashes`, `pipe-path-split`, `pipe-path-never-cached` and `pipe-path-page` turn it red; under `cf:preview` `curl -s --path-as-is -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/%61pi/hooks/sentry-test` → `405 application/json` (before: `200 text/html; charset=utf-8`).
 - added: 2026-10-02
 
-## P-087 · ESLint lints `app/scratch/` although git ignores it, so a scratch script there fails `bun run check`
-- symptom: in the B1b g4 close-out the replay and measurement scripts lived in `app/scratch/` (ignored by the root `.gitignore`); `bun run check` failed with 8 errors: `Parsing error: ...scratch/measure.ts was not found by the project service` and `prettier/prettier` on the `.mjs` files.
-- cause: flat-config ESLint does not read `.gitignore`; `app/eslint.config.js` ignores only build folders and generated files.
-- rule: scratch files go to the lane root `E:/mop-build/<lane>/scratch/` (ignored, outside `app/`, so no app gate sees it) or the session scratchpad; run them from `app/` as `node ../scratch/<file>`. Never add `scratch` to the lint config to make room for it.
-- proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (measured 2026-10-02); `rm -rf scratch` after.
+## P-087 · Scratch scripts live outside `app/`, because ESLint lints `app/scratch/` although git ignores it, and they import app packages through `createRequire`
+- symptom: in the B1b g4 close-out the replay and measurement scripts lived in `app/scratch/`; `bun run check` failed with 8 errors (`Parsing error: ...scratch/measure.ts was not found by the project service` and `prettier/prettier` on the `.mjs` files). Moved to the lane root, a probe died with `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from E:\mop-build\spine\scratch\...`, although it was run from `app/`.
+- cause: flat-config ESLint does not read `.gitignore`, and `app/eslint.config.js` ignores only build folders and generated files. Node resolves a bare import from the folder of the importing file, and no `node_modules` lies above the lane-root `scratch/`.
+- rule: scratch files go to the lane root `E:/mop-build/<lane>/scratch/` or the session scratchpad and run from `app/` as `node ../scratch/<file>`; such a script resolves an app package with `const fromApp = createRequire(join(process.cwd(), "package.json"));` then `await import(pathToFileURL(fromApp.resolve("eslint")).href)`. Never add `scratch` to the lint config, never move the script into `app/`, never install packages at the lane root. A proof never depends on a scratch file (P-088).
+- proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (then `rm -rf scratch`); from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` exits 1 with `ERR_MODULE_NOT_FOUND`, and the `createRequire` form prints `function` (measured 2026-10-02, files deleted after).
+- merged: P-100
 - added: 2026-10-02
 
-## P-088 · A slice log's proof named scratch scripts that were then deleted, so a reviewer could not replay it
-- symptom: the first g4 close-out block of `workspace/05-plans/logs/B1b.md` cited `node scratch/sentry-read.mjs`, `scratch/measure-frame.mjs`, `scratch/measure.mjs`, `scratch/replay.mjs` and `scratch/stop-wrangler.ps1`; the folder was gone when the reviewer came, who had to rebuild each script to check the claims. The review listed it as a defect.
-- cause: scratch files are never committed (STANDARDS 1.2), and the log treated them as if they were.
-- rule: a proof in a slice log is a command someone else can run: a tracked script, a self-contained command, or a scratch script whose full text is in the log block beside its output (fenced, written with the Edit tool so backslashes survive, P-070).
-- proof: `git grep -c "^// node ../scratch/replay.mjs --check" -- workspace/05-plans/logs/B1b.md` → `1` (the replay runner's text is in the log).
+## P-088 · A proof someone else cannot re-run is not a proof: scratch scripts are git-ignored and get deleted
+- symptom: the first g4 close-out block of `workspace/05-plans/logs/B1b.md` cited `node scratch/sentry-read.mjs` and four more scratch scripts; the folder was gone when the reviewer came, who had to rebuild each one. Later the rule and proofs of three bank entries read `scratch/g6-replay.mjs`, `../scratch/g6-envsize.mjs` and `../scratch/g6-prelude.sql`, which no other lane, the orchestrator or CI has.
+- cause: scratch files are never committed (STANDARDS 1.2; `.gitignore` line 37 ignores `scratch/`), and the log and the entries treated them as if they were.
+- rule: a proof in a slice log or a bank entry is a command someone else can run: a committed script under its folder-map row (B4's `scripts/watchfail.mjs` replays the registry once it lands), or a self-contained inline command; in a slice log only, a scratch script whose full text is fenced beside its output (written with the Edit tool, P-008).
+- proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/` followed by the path; `git grep -c "^// node ../scratch/replay.mjs --check" -- workspace/05-plans/logs/B1b.md` → `1` (the replay runner's text is in the log).
+- merged: P-319
 - added: 2026-10-02
 
 ## P-089 · A security property needs a test that breaks when the property goes and the answer stays
@@ -864,32 +748,11 @@ Entry template
 - proof: `cd app && grep -c "Only HTML requests are supported here" node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js` → `1`; `grep -rl handledProtocolRelativeURL .output/server` lists `.output/server/_ssr/ssr.mjs`; `bunx vitest run tests/unit/pipeline.test.ts` passes and registry entries `pipe-refusal-off`, `pipe-refusal-405`, `pipe-refusal-route-path`, `bm-page-refusal`, `bn-page-406-all` and `pipe-406-no-store` turn it red; under `cf:preview` the GET above → `405 application/json` with the R09 body, `/api/hooks/nothing-here` → `404 application/json`, and `curl -s -o /dev/null -w "%{http_code} %{content_type}" -H "Accept: application/json" http://127.0.0.1:8788/` → `406 application/json`.
 - added: 2026-10-02
 
-## P-090 · A code change moves the `find` of older registry entries, and nothing says so until a replay
-- symptom: in the B1b g4 close-out, three older entries of `tests/mutations/B1b.json` (`h`, `u-message`, `sentry-non-string`) stopped matching once `deps.render` took the request id; in the next fix round four more (`u`, `pipe-guard-off`, `pipe-guard-path`, `pipe-guard-html`) stopped once the guard took a boolean. Each was found late and rewritten, a cost listed in the round's report with no bank entry; a reviewer counted that as a defect.
-- cause: an entry's `find` is a copy of code; any edit of the mutated file can change that code. `bun run check` does not replay the registry, and P-081 only covers new entries. Hit again in B1b c7: putting the merge script into `package.json`'s `lint` moved `hy-lint-warnings`; `replay.mjs --check` printed `BAD hy-lint-warnings: find occurs 0 times` before the commit.
-- rule: after every edit of a file the registry mutates (`node -e "console.log([...new Set(require('./tests/mutations/B1b.json').map(e=>e.file))].join('\n'))"` lists them), run the replay runner's `--check` (every `find` occurs exactly once) before the commit, and rewrite a moved entry to the new code, then replay it red. Keep a mutated line's text stable when the change does not need to touch it (bind a new value under the old name rather than renaming what an entry finds).
-- proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
-- added: 2026-10-02
-
-## P-091 · A value the router hands back is typed `any`: reading a field of it fails the type-aware lint
-- symptom: in `src/start.ts`, `foundRoute?.fullPath.startsWith("/api/")` on the result of the router's `getMatchedRoutes` failed lint with `no-unsafe-call` and `no-unsafe-member-access`; the first attempt cost a rework.
-- cause: `getMatchedRoutes` returns route objects whose fields are typed `any`, and the lint of B1b step 2b refuses a call or a member access on `any`.
-- rule: read such a field into a variable typed `unknown` and narrow it (`typeof value === "string"`) before using it. Never cast and never disable the rule. The same holds for any third-party value typed `any`.
-- proof: replacing the narrowed read in `app/src/start.ts` with `foundRoute?.fullPath.startsWith("/api/")` and running `bunx eslint --max-warnings 0 src/start.ts` prints `Unsafe call of an any typed value`.
-- added: 2026-10-02
-
 ## P-092 · A new required member of a shared dependency type breaks every test that builds that type
 - symptom: adding the required `isApiRoute` to `PipelineDeps` made `tsc` fail in `tests/unit/sentry-test-route.test.ts`, a test of another file, because it builds its own `PipelineDeps`.
 - cause: tests construct the shared type by hand, so each one is a caller the change must update.
 - rule: before adding a required member to a type that tests build (`PipelineDeps`, later `PublicCtx` and the admin route context), `git grep` the type's name under `app/tests` and update every builder in the same commit; run `bun run typecheck` before the tests. A slice that adds a member names it in its plan's Files lines for the tests it touches.
 - proof: `git grep -n "isApiRoute" -- app/tests` lists every test that builds the dependency.
-- added: 2026-10-02
-
-## P-093 · A plan's watched-fail letter can already be a registry id: check before writing the entry
-- symptom: step 4b names its watched-fails (bm) and (bn); `tests/mutations/B1b.json` already held entries `bm` (the `price` check of `http-client.test.ts`) and `bn` (the `stubs.ts` walk) from step 2b, so writing the entries under the plan's letters would have made two ids that mean different mutations and a replay by id would run the wrong one.
-- cause: the letters were handed out one by one over several steps and the plan never says which are taken.
-- rule: before adding an entry, list the ids (`node -e "console.log(require('./tests/mutations/B1b.json').map(e=>e.id).join(' '))"`); when the plan's letter is taken, keep the letter as the prefix of a descriptive id (`bm-page-refusal`) and say so in the slice log. Never reuse or rename an existing id.
-- proof: `cd app && node -e "const ids=require('./tests/mutations/B1b.json').map(e=>e.id);console.log(ids.length-new Set(ids).size)"` → `0`.
 - added: 2026-10-02
 
 ## P-094 · `python3 -` (a script on stdin, or an empty heredoc) opens the interactive prompt here and spins until the tool's timeout
@@ -906,28 +769,11 @@ Entry template
 - proof: under `bun run cf:preview`, `curl -s -D - -o /dev/null http://127.0.0.1:8788/api/hooks/sentry-test/ | grep -ic "x-request-id\|x-frame-options"` → `2`; `curl -s --path-as-is -D - -o /dev/null http://127.0.0.1:8788//california | grep -ic "x-request-id\|x-frame-options"` → `0` (measured 2026-10-02).
 - added: 2026-10-02
 
-## G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop
-- paths: app/scripts/check-migrations.mjs
-- severity: warn
-- symptom: the first `checkMigrations` of B1b step 5 refused a plain expand migration: its R16 header `-- down: drop table notes` matched `drop table`, so every new table would have needed a `-- contract-of:` header. The fixture caught it before any migration existed.
-- cause: the destructive scan ran over the whole file text; R16 makes the `-- down:` line of every reversible create name the drop that undoes it.
-- rule: scan the statements with `--` line comments removed; read the `-- contract-of:` header from the raw first 30 lines. A change to the scan keeps the fixture whose `-- down:` names a drop.
-- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes; registry entry `cm-comments` (no comment stripping) turns `a down header that drops the new column needs no contract-of header` red (the clean-tree row is also held by the statement-start anchor of G-029, so it no longer goes red on this mutation alone, P-112).
-- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
-- added: 2026-10-02
-
 ## P-096 · A plan's text check can name a rule the config never spells: `no-floating-promises` comes from the preset
 - symptom: B1b's `hygiene.test.ts` line asks that `eslint.config.js` "names" `no-floating-promises`; the file does not contain the word, because `tseslint.configs.strictTypeChecked` switches the rule on. A text check would be red on a correct config, and writing the name into the config to please it would be dead text.
 - cause: the plan line was written from what the lint does, not from what the file says.
 - rule: assert lint rules on the resolved config (`new ESLint({ cwd }).calculateConfigForFile(<file>)`, severity `2`), and keep text checks for names that are literal config keys (`strictTypeChecked`). Name the stale plan line to the orchestrator in the slice log.
 - proof: `cd app && grep -c no-floating-promises eslint.config.js` → `0`; `bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware"` passes, and registry entry `hy-lint-floating` (the rule set `off`) turns it red.
-- added: 2026-10-02
-
-## P-097 · Asymmetric matchers are `any` to the type-aware lint
-- symptom: the first `hygiene.test.ts` failed `bun run lint` three times: `expect.stringMatching(...)` and `expect.arrayContaining(...)` inside `toEqual` gave `no-unsafe-assignment`, and `String(value)` on a field parsed as `z.unknown()` gave `no-base-to-string`. P-082 names `JSON.parse` and string rejections only.
-- cause: vitest types its asymmetric matchers as `any`; `strictTypeChecked` refuses an `any` placed into an object literal and a `String()` of a value that may be an object.
-- rule: compute plain values first (`/re/.test(value)`, `list.includes(item)`) and compare those; give a zod record a value union (`z.union([z.string(), z.number(), z.boolean()])`) instead of `z.unknown()` when the test converts its values. Run `bunx eslint --max-warnings 0 <new test>` before the first full check.
-- proof: a scratch `tests/unit/zz-scratch.test.ts` holding `expect({ a: "1" }).toEqual({ a: expect.stringMatching(/1/) });` → `cd app && bunx eslint --max-warnings 0 tests/unit/zz-scratch.test.ts; echo $?` prints `Unsafe assignment of an \`any\` value` and `1` (measured 2026-10-02).
 - added: 2026-10-02
 
 ## P-098 · Watched-fail commits on a lane: the guard refuses `--no-verify`, and `git revert` has no `-q`
@@ -942,49 +788,6 @@ Entry template
 - cause: upload-artifact (v4.4 and later, v7.0.1 here) searches with `@actions/glob` and `excludeHiddenFiles: true` by default; the globber skips any item whose basename starts with a dot, the search root itself included (`internal-globber.ts`, line 132).
 - rule: every upload of a dot-named folder (`.output`, `.lighthouseci`) sets `include-hidden-files: true`, and the proof is a download: `gh run download <id> -n <artifact>` lists the files. B4's `e2e` and B8's `render.yml` follow the same rule.
 - proof: `gh api "repos/actions/toolkit/contents/packages/glob/src/internal-globber.ts" --jq .content | base64 -d | grep -n "excludeHiddenFiles &&"` → `132:      if (options.excludeHiddenFiles && path.basename(item.path).match(/^\./)) {`; `gh run download 36996622633 -n build-output` holds `server/wrangler.json`.
-- added: 2026-10-02
-
-## G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:`
-- paths: app/tests/unit/hygiene.test.ts, .github/workflows/**
-- severity: warn
-- symptom: B1b g6's first `hygiene.test.ts` scanned each job's text for database secrets and for `mop-dev`. A reviewer put `env: DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}` at the top of `ci.yml`, which hands the production database password (H35 (1)) to every job a pull request reaches, and the test stayed green (`Tests 23 passed | 9 skipped`). The plan's own `grep` over the whole file would have caught it.
-- cause: the job slice runs from a job key to the next; the workflow's own keys sit outside every slice, yet their values reach every job.
-- rule: a check about what a job can see also scans the workflow text outside the `jobs:` map (`head` of `splitWorkflow` in `hygiene.test.ts`) whenever any job of that workflow is in scope; a rule about a whole file (invariant 13 on `ci.yml`) scans the whole file text. A test that stands in for a plan's `grep` is at least as wide as the `grep`.
-- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts` passes; registry entries `hy-workflow-env`, `hy-workflow-ref` and `hy-workflow-group` turn it red (`"ci.yml (workflow): secrets.DEV_SUPABASE_"`, `× no ci.yml job reads or writes mop-dev, workflow env included (13)`).
-- enforced-by: tests/unit/hygiene.test.ts (`bun run check`)
-- added: 2026-10-02
-
-## P-100 · A script in the lane-root `scratch/` cannot import an app package by its bare name
-- symptom: in B1b g6 a probe script under `E:/mop-build/spine/scratch/` that read the resolved ESLint config died with `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from E:\mop-build\spine\scratch\...`, although it was run from `app/`; it was rewritten to import eslint by its `node_modules` path.
-- cause: Node resolves a bare import from the folder of the importing file, not from the current folder; `scratch/` sits beside `app/`, so no `node_modules` is on its way up. P-087 sends scratch scripts there, so every such script meets this.
-- rule: a scratch script outside `app/` that needs an app package resolves it from the app: `const fromApp = createRequire(join(process.cwd(), "package.json"));` then `await import(pathToFileURL(fromApp.resolve("eslint")).href)`, run from `app/`. Never move the script into `app/` (P-087) and never install packages at the lane root.
-- proof: from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` → `node ../scratch/zz-bare.mjs` prints `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'eslint' imported from E:\mop-build\spine\scratch\zz-bare.mjs` and exits 1; the `createRequire` form prints `function` and exits 0 (measured 2026-10-02, both files deleted after).
-- added: 2026-10-02
-
-## P-101 · A gate STANDARDS names as the enforcer of a rule must assert every clause of it, not only the plan's list
-- symptom: STANDARDS R54 says it is enforced by `hygiene.test.ts`, and two of its clauses (no attacker-controllable context such as `github.event.pull_request.title` or `github.head_ref` in a `run:` line; installs are `bun install --frozen-lockfile`) had no assertion, because B1b's Files line for the test omits them. The reviewer's checklist line C22 (a new workflow states its Actions minutes and the P-009 line) was missed the same way. Both cost a rejected round. Hit again in the next round: invariant 15 ends "`hygiene.test.ts` asserts all of this", and its clause "a step that calls `gh` reads `GH_TOKEN` from its `env`" had no assertion because no step calls `gh` yet; the B1b Files line 147 omits it too. A third rejected round.
-- cause: the builder built from the plan's test list; the rule the test enforces and the checklist were read but not walked clause by clause.
-- rule: before closing a gate, open each STANDARDS rule whose `Enforced by:` names it, and each plan invariant that says the gate "asserts all of this", and tick every clause against an assertion and a registry entry; walk the C-lines of section 3 for the artifact type (workflow: C22). A clause about something that does not exist yet still gets its assertion now, watched red by a mutation that adds the thing. Where the plan lists less, STANDARDS binds (P-078, P-083), and the stale plan line is named in the slice log.
-- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "R54"` runs `no run: line holds attacker-controllable context (R54)` and `every bun install in a workflow is --frozen-lockfile (R54)`; registry entries `hy-untrusted-title`, `hy-untrusted-head-ref` and `hy-frozen` turn them red; `bunx vitest run tests/unit/hygiene.test.ts -t "GH_TOKEN"` runs `a step that calls gh reads GH_TOKEN from its env and nowhere else (15)` and entries `hy-gh-direct`, `hy-gh-script` and `hy-gh-token-elsewhere` turn it red; `grep -c "Cost (C22)" .github/workflows/ci.yml` → `1`.
-- added: 2026-10-02
-
-## P-102 · `yaml` types a node's `range` by how you reached it: non-null from the parsed tree, nullable from `get()`
-- symptom: B1b g6's first `splitWorkflow` in `hygiene.test.ts` guarded `!jobsPair.key.range` and `bun run lint` refused it with `Unnecessary conditional, value is always falsy  @typescript-eslint/no-unnecessary-condition`; the guard was dropped, while the same guard on the job keys (`!pair.key.range`) passed lint and stayed, and a reviewer flagged the pair as half a rework.
-- cause: `parseDocument(text).contents` is a `ParsedNode`, so `isMap` then `isScalar` narrow to `Scalar.Parsed`, whose `range: Range` is never null (yaml 2.9.1, `dist/nodes/Scalar.d.ts` line 8). `document.get("jobs", true)` returns an untyped node, so `isMap` gives `YAMLMap<unknown, unknown>` and `isScalar` a plain `Scalar`, whose `range?: Range | null` comes from `NodeBase` (`dist/nodes/Node.d.ts` line 33): there the guard is needed, and lint keeps quiet.
-- rule: walk a parsed document from `contents` (`root.items`, then `pair.value`) and read `range` without a guard; do not mix in `get(key, true)` for nodes whose ranges you read. Never answer the lint with a cast, a non-null assertion or an `eslint-disable`.
-- proof: in `app/tests/unit/hygiene.test.ts`, change `if (!isScalar(pair.key)) throw` to `if (!isScalar(pair.key) || !pair.key.range) throw` → `cd app && bunx eslint --max-warnings 0 tests/unit/hygiene.test.ts; echo $?` prints `Unnecessary conditional, value is always falsy  @typescript-eslint/no-unnecessary-condition` and `1` (measured 2026-10-02, bytes restored after); the file as committed → exit `0`.
-- added: 2026-10-02
-
-## P-103 · Destructuring an array built by `map` gives `T | undefined` under `noUncheckedIndexedAccess`
-- symptom: B1b g6's secret-scan rewrite in `hygiene.test.ts` built `[name, text]` pairs with `map` and destructured them; `tsc` refused every use with `TS18048: 'name' is possibly 'undefined'`, and the case was rewritten with objects.
-- cause: `(name) => [name, text]` infers `string[]`, not a tuple, and R02's `noUncheckedIndexedAccess` makes every element read of an array `T | undefined`, destructuring included. P-097 covers asymmetric matchers and `String()` of `unknown`, not this.
-- rule: a `map` that carries two or more values returns an object (`({ name, text })`) and the reader destructures `{ name, text }`. Never add `!` or a cast to quiet it, and never turn the flag off (`hygiene.test.ts` asserts it stays on).
-- proof: a scratch `app/tests/unit/zz-scratch.test.ts` holding `const rows = ["a", "b"].map((name) => [name, name.toUpperCase()]); const lengths = rows.map(([name, text]) => name.length + text.length);` → `cd app && bunx tsc -p tsconfig.json --noEmit; echo $?` prints `error TS18048: 'name' is possibly 'undefined'.`, the same for `'text'`, and `2`; the same file with `({ name, text: name.toUpperCase() })` and `({ name, text })` → `0` (measured 2026-10-02, file deleted after).
-- added: 2026-10-02
-
-## P-104 · (retired 2026-10-02) the merge gate refused every pull request with no check
-- rule: nothing to do. Ruling H42 (1) is built (B1b c7): with no check reported, `workspace/05-plans/merge-gate.mjs` merges only when every changed path matches the `paths-ignore` of `ci.yml` on `origin/main` and prints `documents only: no check expected`; any other pull request with no check is refused. Until B1b merges, `origin/main` has no `ci.yml`, so the gate still refuses every pull request with no check (P-120).
-- proof: `cd app && bunx vitest run tests/unit/merge-gate.test.ts -t "with no check"` passes, and registry entries `mg-docs-nochecks` and `mg-docs-every` turn it red.
 - added: 2026-10-02
 
 ## P-105 · The step 5b probe branch is cut from an older main that has no merge-gate script, and its tree is the lane tree
@@ -1015,35 +818,11 @@ Entry template
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/110835524574 --jq '.steps[] | [.name, .conclusion] | @tsv' | head -2` → `Set up job	success` and `Run actions/checkout@...	success`; `cd app && bunx vitest run tests/unit/merge-gate.test.ts -t "all skipped"` passes, and registry entries `mg-steps-bookkeeping` and `mg-steps-every` turn it red.
 - added: 2026-10-02
 
-## P-109 · A fix round that adds test cases must map every `it` title to a registry entry before it reports
-- symptom: the g7 fix round (P-106, P-107) added eight cases to `merge-gate.test.ts` and registered the seven it remembered; the case that guards the happy path and the status-before-merge order (`posts the status and merges when every check passes or is skipped`) and three older ones (`passes when ... are success`, `refuses a check that has not finished`, `says no pull request when the commit has none`) had no entry and no recorded red run. A reviewer's title-to-registry mapping printed `NONE` for exactly those four. P-079 says a group that adds tests owns the registry; it does not say how to know nothing was missed.
-- cause: entries were written for the mutations the author thought of, not by walking the test file.
-- rule: after any change to a test file, list every `it` title with the registry entries whose `expect` it contains (the script text is in the g7 round 2 block of `workspace/05-plans/logs/B1b.md`, P-088) and write the missing entries; every title ends with at least one entry replayed red for the right reason. An order or a "does not" property needs its own mutation (swap the two calls; remove the guard).
-- proof: `cd app && node ../scratch/g7r2-map.mjs | tail -1` (text in the log block) → `titles 25, without an entry 1` (the one is the `it.each` template, whose three buckets map through `mg-bucket` and `mg-bucket-pending`); with `mg-skipping` and `mg-order` removed from `tests/mutations/B1b.json` it prints `NONE  <-  posts the status and merges when every check passes or is skipped`.
-- added: 2026-10-02
-
 ## P-110 · A run of a saved workflow used a copy without the change made a minute earlier
 - symptom: `build-slice` was given `closeOut` to close a rejected group first. The run ignored it: it sized the remaining steps and built the next group on top of four open defects. The run's own script copy (under the session's `workflows/scripts` folder) held no `closeOut` at all, although the saved file did.
 - cause: the saved workflow had been edited on a branch, merged, and the tree switched back to main seconds before the start; the tool resolved the name to the version it had read before the pull finished. Nothing reports which version a named workflow resolves to.
 - rule: after editing a saved workflow, start it with `scriptPath` pointing at the file, not by name, and before waiting on it run `grep -c <new word> <the run's script copy>`; a count of 0 means stop the run. An argument a workflow does not know is ignored silently, so a wrong copy looks like a normal run.
 - proof: `grep -c closeOut` printed 3 for `.claude/workflows/build-slice.js` and 0 for `workflows/scripts/build-slice-wf_f5c085e7-212.js`.
-- added: 2026-10-02
-
-## P-111 · A hand-applied mutation that did not apply, or applied the wrong text, makes the red or green result a lie
-- symptom: in B1b g6 a positive-control mutation of `scripts/check-migrations.mjs` was applied with `node -e`; the command did not print the mutated text, and the shell-escaped regular expression lost its backslashes (it wrote `/drops+column/i`), so the suite went red for a reason that had nothing to do with the rule under test. The report counted it as a watched-fail; a reviewer found the cost with no bank entry. Hit again in c6 round 4: a `node -e` mutation whose `find` held `\\s+` arrived with the backslashes halved; the once-only guard stopped it (`Error: find count 0`) before anything was written, and the red reason was read through a scratch runner instead.
-- cause: a `replace` whose search text does not occur changes nothing and reports nothing, and inline shell text loses backslashes (P-008, P-070). Without printing the mutated line, a green run can mean "the test is blind" or "the patch never applied", and a red run can mean "broken for the wrong reason".
-- rule: a mutation applied by hand prints (or greps) its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged after the replace, before any red or green result is read. Prefer a registry entry replayed by the runner (it asserts the single occurrence, compares the output with `expect` as a regular expression and restores the saved bytes, P-081, P-090); write the entry with the Edit tool, never through the shell.
-- proof: `cd app && node ../scratch/replay.mjs --check` (runner text in `workspace/05-plans/logs/B1b.md`) → `checked 223, bad 0`; the same with one `find` of a `cm-` entry changed to text that is not in the file prints `BAD <id>: find occurs 0 times` and exits 1 instead of reporting a result (measured 2026-10-02 in B1b c6, entry restored after).
-- added: 2026-10-02
-
-## G-028 · The migration scan is a small SQL lexer: a regex over raw text both misses DDL and flags words
-- paths: app/scripts/check-migrations.mjs
-- severity: warn
-- symptom: B1b c6 anchored the `alter table` rules to the start of a statement and stripped only `--` comments. Three migrations the earlier script refused then passed with no `-- contract-of:` header: a `do $$ begin ... alter table notes drop column body; ... end $$;` block, `/* note */ alter table ...`, and any statement after a string holding `--` (the comment strip ate the closing quote, so the rest of the file read as one string). The same version flagged `rename` inside a string, policy and trigger renames, `serial not null`, and `drop table` inside a function body.
-- cause: SQL has four kinds of text that are not statements (line comments, nested block comments, strings with `E'...'` escapes, dollar-quoted bodies) and one kind of body that runs during the migration (a DO block). A regex over the raw text cannot tell them apart.
-- rule: `statementsOf` lexes the file once: comments go, every string, quoted name and dollar body is blanked in the statement text and kept in `literals`. A DO block's literals are scanned as SQL (its strings too, because `execute '...'` is how it runs conditional DDL); a function body is not scanned (it runs later). `alter table` is found anywhere in a statement, never only at its start. A change to the scan is run against the earlier version on the same inputs first: every input the old one refused and the new one passes is a regression until a ruling says otherwise.
-- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` passes; registry entries `cm-do-block`, `cm-do-execute`, `cm-block-comment`, `cm-string-dashes`, `cm-function-body`, `cm-comment-nesting` and `cm-escape-string` turn it red; `node ../scratch/c6r-probe.mjs ../scratch/check-migrations-33d3d4e.mjs` (text in the B1b log, c6 round 2) prints `ok  1` for the DO block, block comment and `--` string cases and the c6 version printed `BAD 0` for each.
-- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
 - added: 2026-10-02
 
 ## P-112 · A test row that two separate code paths both protect cannot be watched red by one mutation
@@ -1060,16 +839,6 @@ Entry template
 - proof: `git grep -n "drop function" -- workspace/05-plans/B2.md workspace/05-plans/B10.md` → `B2.md:71`, `B2.md:93`, `B10.md:166` (2026-10-02).
 - added: 2026-10-02
 
-## G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through
-- paths: app/scripts/check-migrations.mjs
-- severity: warn
-- symptom: B1b c6 round 2 refused `drop table`, `view`, `type`, `function` and `index` by name, so a reviewer passed `drop schema old cascade` (every table in it gone), `drop sequence`, `alter schema ... rename`, `alter sequence ... rename` and `alter foreign table ... drop column` with no `-- contract-of:` header. The same round refused `alter column type set default 'x'` as a column type change: with `COLUMN` optional, the regex read the keyword `column` as the column name and the column `type` as the keyword (events.type, jobs.type and submission_media.type exist in the plans). A NOT NULL add whose foreign key says `on delete set default` counted as having a default, and `create function f() ... ; select f();` ran a body the scan never read.
-- cause: a list of kinds is only as complete as its author's memory; an optional keyword lets a regex backtrack into a different reading of the same words.
-- rule: refuse every `drop <object>` and every `alter <object> ... rename` at the start of a statement (`START`: the text start, or after `begin`, `then`, `else`, `loop`), and name the exceptions instead (drop trigger or policy; rename of a policy, trigger, index or constraint). A rule with an optional keyword says what may follow when the keyword is absent (`(?:column\s+|(?!column\s))`). A negative lookahead after `\s+` is met by backtracking into a run of blanks (`alter  trigger` tests the lookahead on ` trigger`), which round 3 shipped: `statementsOf` collapses every run of blanks in the statement text to one space, and that stays. A function body is read when another statement of the file calls it (not when it is only granted, commented, altered or dropped); a name created twice keeps both bodies. Run the earlier version on the same inputs first (G-028), and put a run of blanks or a line break in a probe input for every exception.
-- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` → `Tests  89 passed (89)` (82 table rows, 45 refused and 37 allowed, and 7 single tests; 70 before rulings H43 and H44); registry entries `cm-drop-schema`, `cm-drop-any`, `cm-rename-schema`, `cm-alter-foreign`, `cm-type-named-type`, `cm-not-null-set-default`, `cm-called-body`, `cm-declares-grant`, `cm-one-space-rename`, `cm-one-space-clause-rename`, `cm-one-space-drop`, `cm-one-space-add` and `cm-bodies-twice` turn it red; `node ../scratch/c6r4-probe.mjs ../scratch/check-migrations-b0522a0.mjs` (text in the B1b log, c6 round 4) prints `cases 16, bad 10` for the round-3 script and `cases 16, bad 0` for this one.
-- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
-- added: 2026-10-02
-
 ## P-114 · `gh run list --commit` matches only the full 40-character SHA
 - symptom: after a push, `gh run list --commit e10236b --json databaseId --jq length` printed `0` although the run existed, and the watch looked like a run that never started.
 - cause: the flag compares the run's `head_sha` with the text as given; a short SHA matches nothing and gh prints no warning.
@@ -1077,68 +846,21 @@ Entry template
 - proof: `gh run list --commit e10236b --json databaseId --jq length` → `0`; `gh run list --commit e10236bf7dfdb9ccd13fc6959ddb7d76cf457ed0 --json databaseId --jq length` → `1` (gh 2.92.0, measured 2026-10-02).
 - added: 2026-10-02
 
-## P-115 · A probe input with a backslash typed through the shell makes correct code look wrong
-- symptom: the reviewer of B1b c6 round 2 wrote a probe holding `E'a\\\\'` in a quoted heredoc to test the escape-string lexer; the file got `E'a\\'`, the scan gave an answer that looked like a lexer miss, and tracing it took minutes. P-070 says the heredoc loses backslashes; it does not say the loss lands in the test input, where it reads as a defect of the code under test.
-- cause: the Bash tool halves doubled backslashes before the shell sees the text, quoted delimiter or not.
-- rule: a probe or test input that needs a backslash builds it in code (`String.fromCharCode(92)`) or is written with the Write tool; never type escapes through Bash. When a lexer or parser "misses" an input with a backslash, print the input's bytes (`od -c`) before blaming the code.
-- proof: a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` on it → `E ' a \ \ '` (two backslashes where four were typed, measured 2026-10-02); `scratch/c6r3-probe.mjs` builds its escape cases with `String.fromCharCode(92)` and prints `ok  1  escape string ending in two backslashes`.
-- added: 2026-10-02
-
-## P-116 · Vitest cuts an `it.each` `$name` value at 40 characters
-- symptom: two new rows of `check-migrations.test.ts` went red for the right reason and still failed the replay: the output said `a dropped NOT NULL on a column named ty… needs no contract-of header`, so an `expect` holding the whole name did not match. P-081 says titles are cut at about 80 characters; for an interpolated `$name` the limit is 40, whatever the terminal width.
-- cause: vitest formats each interpolated value with a 40-character threshold before it builds the title.
-- rule: keep every `it.each` row name at 40 characters or fewer (count them before the first replay), or end the `expect` before the 40th character of the name.
-- proof: a scratch `tests/unit/zz-scratch.test.ts` with `it.each([{ name: "0123456789012345678901234567890123456789X" }])("$name ends here", ({ name }) => { expect(name).toBe(""); });` → `cd app && bunx vitest run tests/unit/zz-scratch.test.ts` prints `× 012345678901234567890123456789012345678… ends here` (measured 2026-10-02, file deleted after).
-- added: 2026-10-02
-
-## P-117 · A regex capture group read through `?.[1]` is still `string | undefined`: chain a second `?.`
-- symptom: the round-3 `bun run check` of B1b c6 failed `scripts/check-migrations.mjs(235,21): error TS2532: Object is possibly 'undefined'.` on `DROP.exec(text)?.[1].replace(...)`; the fix (`?.[1]?.replace`) meant running the registry check and the replay of all 73 `check-migrations` entries again on the new bytes. P-103 covers destructuring a `map` result, not this.
-- cause: R02's `noUncheckedIndexedAccess` types every index of a `RegExpExecArray` as `string | undefined`; the `?.` before `[1]` only covers a `null` from `exec`. The `.mjs` scripts are type-checked with `checkJs` through `tsconfig.scripts.json`, so the same holds there.
-- rule: read a capture group as `regex.exec(text)?.[n]?.<member>` or into a variable compared with `undefined`; never `!` or a cast. Write the `?.` before the first `bun run check`, then write any registry `find` from the file as it stands after the fix (P-090).
-- proof: a scratch `app/tests/unit/zz-scratch.ts` holding `export const width = /a(b)/.exec("ab")?.[1].length;` → `cd app && bunx tsc -p tsconfig.json --noEmit; echo $?` prints `tests/unit/zz-scratch.ts(1,22): error TS2532: Object is possibly 'undefined'.` and `2`; with `?.[1]?.length` → `0` (measured 2026-10-02, file deleted after).
-- added: 2026-10-02
-
-## P-118 · Vitest prints one diff block for several failures with the same error
-- symptom: four table rows went red and the output showed three diff blocks. A filter written to read the reason of each red row missed lines, and a first log draft guessed why the counts differed.
-- cause: Vitest groups failures that carry an identical error from the same line (rows of one `it.each`) under one diff: it lists their `FAIL` lines together above a single block. Two separate `it` cases with the same message keep a block each (measured both ways). Hit again in B1b c7 round 2: the first `c7r-why.mjs` filter kept diff lines only, so two red rows printed no cause at all and the run was repeated with a wider filter (P-131).
-- rule: count red tests by the lines that start with `×` or `FAIL`, never by diff blocks, and read each row's reason from its own `×` line or by running that row alone (`-t "<title>"`). Write a count in a log only after counting those lines.
+## P-118 · Reading why vitest went red: count `×` and `FAIL` lines, not diff blocks, and check a reason filter on every failure shape
+- symptom: four table rows went red and the output showed three diff blocks; a filter written to read the reason of each red row missed lines, and a first log draft guessed why the counts differed. In B1b c7 round 2 the first `c7r-why.mjs` kept the `×`, `Tests` and diff lines; for `hy-gate-include` (a bare `expected false to be true`) and `hy-gate-prettier` (a zod error) it printed no cause at all, and every run was repeated with a wider filter.
+- cause: vitest groups failures that carry an identical error from the same line (rows of one `it.each`) under one diff block, while two separate `it` cases with the same message keep a block each. A red prints its cause in at least three shapes: a diff under `- Expected`/`+ Received`, a single `AssertionError:` line with no diff, and a thrown error's own text (a zod issue list, a `TypeError`).
+- rule: count red tests by the lines that start with `×` or `FAIL`, and read each row's reason from its own `×` line or by running it alone (`-t "<title>"`). Before trusting a reason filter, run it on a known red of each shape and see a cause line for every one; the filter reports a red run whose lines are only `×` and `Tests` as `NO CAUSE` and exits 1, and then the raw output is read, never a guess. Write a count in a log only after counting those lines.
 - proof: a test file with `it.each([{ name: "a" }, { name: "b" }, { name: "c" }])("row $name", () => { expect(["x"]).toEqual([]); })` run with `bunx vitest run <file>` prints three `×` lines, three `FAIL` lines and one `- Expected` block.
-- added: 2026-10-02
-
-## P-119 · Patching a patch script by text fails on the escaped backticks inside its template literal
-- symptom: a second script meant to correct two lines inside a first script stopped with `anchor not found`, and the commands after a `;` in the same shell line ran anyway against a branch that was never created.
-- cause: the first script holds its text in a template literal, where every backtick is written with a backslash in front; the anchor was typed as the text reads after writing, not as the file holds it. The chain mixed `&&` with `;` (P-064 again).
-- rule: change a scratch script with the Edit tool, which shows the file as it is. One shell line is one `&&` chain from start to end; nothing follows a `;`.
-- proof: `grep -c 'proof: a test file with \`it.each' <scratchpad>/trace/ruling-h43.mjs` prints 1 only when the backslash is part of the pattern.
-- added: 2026-10-02
-
-## G-030 · An exception to the destructive-change scan passes more than the statement the ruling meant
-- paths: app/scripts/check-migrations.mjs
-- severity: warn
-- symptom: B1b c6 round 5 built H43 (1) as "a routine drop needs no header when the file creates a function of every name it drops". A reviewer passed `drop function f(int) cascade;` followed by a create of `f` with no `-- contract-of:` header; on a throwaway PostgreSQL 18 the cascade dropped a stored generated column with its data, a column default and a view. `drop function other.f(int)` with a create of `public.f`, and `create or replace function f(text) ...; drop function f(text);`, passed too. The round before had refused all three; the exception opened the hole and no test row named a modifier or the order.
-- cause: the exception was written from the ruling's sentence, not from the one statement it exists for (`bun run db:fn` writes `drop function if exists public.<name>(<old types>);` before the create). A modifier (`cascade`), a schema and the order of statements change what the same words do.
-- rule: an exception passes only the exact form its reason needs and refuses every modifier that widens it: a routine drop is excepted only without `cascade`, when a later statement creates the same schema and name (no schema reads as `public`). For each new exception write one refused row per modifier, schema and order it does not cover, and put what it still does not compare (argument types, `set search_path`) in the runbook's "does not read" list.
-- proof: `cd app && bunx vitest run tests/unit/check-migrations.test.ts` → `Tests  89 passed (89)`; registry entries `cm-routine-cascade`, `cm-routine-other-schema` and `cm-routine-order` turn it red; `node ../scratch/c6r6-probe.mjs ../scratch/cm-saved-r5.mjs` (text in the B1b log, c6 round 6) → `cases 18, bad 10`, and on the current script `cases 18, bad 0`.
-- enforced-by: tests/unit/check-migrations.test.ts (`bun run check`, and the `migration-order` step of CI runs the script)
+- merged: P-131
 - added: 2026-10-02
 
 ## G-031 · The type-aware lint test has the default 5000 ms limit and goes red on a loaded laptop with no lint fault
 - paths: app/tests/unit/hygiene.test.ts
 - severity: warn
-- symptom: during the B1b c6 round 6 review `cd app && bun run check` exited 1 with `Error: Test timed out in 5000ms.` at `tests/unit/hygiene.test.ts:543:3` and `Tests  1 failed | 333 passed | 8 skipped (342)`; the next two runs exited 0 on the same bytes. The test is `lint is type-aware, zero-warning and refuses the named rules`. It cost the review two extra full check runs and timing runs, and a reader sees a lint regression that is not there.
-- cause: the test builds an `ESLint` with `projectService` (a type-aware program) and sets no timeout of its own, so vitest's 5000 ms default applies. Alone it takes about 1.5 s (1471 to 1489 ms measured), 1513 to 1698 ms in the full suite; with other lanes running on this shared laptop it took 5056 ms once. CI's check job has the same exposure on a slow runner.
-- rule: a test that starts ESLint with `projectService` (or any type-aware program) carries its own timeout in the third argument of `it`, sized for a loaded machine, not the default. Until this one does, a red `Test timed out in 5000ms` at that line with every other test green is this flake: run `bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware"` alone, and if it passes in about 1.5 s run `bun run check` again; never edit lint rules or `eslint.config.js` for it. A second red on a quiet machine is a real fault.
-- proof: `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware" --reporter=verbose` → `✓ ... lint is type-aware, zero-warning and refuses the named rules 1489ms` and `Tests  1 passed | 37 skipped (38)` (measured 2026-10-02); `grep -n "lint is type-aware" GOTCHAS.md workspace/05-plans/logs/B1b.md` finds this entry.
-- added: 2026-10-02
-
-## G-032 · A file outside `app/` gets none of the app's gates: prettier finds no config, ESLint calls it outside its base path, tsc never sees it
-- paths: workspace/05-plans/merge-gate.mjs, app/package.json, app/eslint.config.js, app/tsconfig.scripts.json
-- severity: warn
-- symptom: the orchestrator's merge script was formatted from `app/` with `bunx prettier --write ../workspace/05-plans/merge-gate.mjs` and checked by nothing. Prettier applied its defaults, not `app/.prettierrc` (`--find-config-path` → `Can not find configure file`); `bunx eslint ../workspace/05-plans/merge-gate.mjs` prints `File ignored because outside of base path` (a warning, so exit 1 under `--max-warnings 0`); `tsconfig.scripts.json` included `scripts/` only. Put under the gates in B1b c7 (ruling H42 (2)), lint found 8 `restrict-template-expressions` errors in code two reviews had passed.
-- cause: prettier resolves its config from the file's folder upward, and no folder above `workspace/05-plans/` holds one; eslint-plugin-prettier resolves it the same way. ESLint's config array treats any file whose path from the base path starts with `..` as external (`EXTERNAL_PATH_REGEX` in `@eslint/config-array`), and the base path is the config file's folder, or the current folder when `--config` is given (`locateConfigFileToUse` in `eslint/lib/config/config-loader.js`).
-- rule: a file outside `app/` that must pass the app's gates is named in four places: the `include` of `tsconfig.scripts.json`; `format` and `format:check` with `--config .prettierrc`; a second lint run from the repository root, `cd .. && eslint --config app/eslint.config.js --max-warnings 0 <path>`; and an `eslint.config.js` block with the root-relative path that passes `prettier/prettier` the options read from `.prettierrc`. Never format such a file from `app/` without `--config`.
-- proof: `cd app && bunx prettier --find-config-path ../workspace/05-plans/merge-gate.mjs` → `Can not find configure file`; `bunx eslint --max-warnings 0 ../workspace/05-plans/merge-gate.mjs` → `File ignored because outside of base path` (both measured 2026-10-02); `node ../scratch/replay.mjs mg-gate-type mg-gate-lint mg-gate-format mg-gate-format-config mg-gate-lint-prettier` → five `RED`; `node ../scratch/replay.mjs hy-gate-include hy-gate-lint hy-gate-format-path hy-gate-format-config hy-gate-prettier` → five `RED` (the wiring itself, inside `bun run check`).
-- enforced-by: tests/unit/hygiene.test.ts (`the orchestrator's merge script is under the app's gates`, part of `bun run check`)
+- symptom: during the B1b c6 round 6 review `cd app && bun run check` exited 1 with `Error: Test timed out in 5000ms.` at `tests/unit/hygiene.test.ts:543:3` and `Tests  1 failed | 333 passed | 8 skipped (342)`; the next two runs exited 0 on the same bytes. The test is `lint is type-aware, zero-warning and refuses the named rules`. Hit again in B1b step 7 with two lanes building: `tests/unit/deploy-guard.test.ts` timed out twice at 5 s in the orchestrator's `bun run check` and passed alone (ruling H49 (3)).
+- cause: the test builds an `ESLint` with `projectService` (a type-aware program) and sets no timeout of its own, so vitest's 5000 ms default applied. Alone it takes about 1.5 s; with other lanes running on this shared laptop it took 5056 ms once.
+- rule: since rulings H49 (3) and H51 (2) the `test` script runs `vitest run --project unit --maxWorkers=2 --testTimeout=60000 --hookTimeout=60000` (`app/package.json`), so `bun run check` gives every test 60 s and lanes testing at once share the cores; never remove those flags. A direct `bunx vitest run <file>` still has the 5000 ms default: a red `Test timed out in 5000ms` there with every other test green is load, so run it again with `--testTimeout=60000` (or through `bun run test`) before reading it as a fault, and never edit lint rules or `eslint.config.js` for it. A red at 60 s on a quiet machine is a real fault.
+- proof: `grep -c -- "--testTimeout=60000" app/package.json` → `1`; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware" --reporter=verbose` → `✓ ... lint is type-aware, zero-warning and refuses the named rules 1489ms` and `Tests  1 passed | 37 skipped (38)` (measured 2026-10-02).
 - added: 2026-10-02
 
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
@@ -1148,32 +870,11 @@ Entry template
 - proof: `gh pr view 23 --json files --jq '.files[].path' | grep -c build-slice.js` → `1`; `git ls-tree -r --name-only origin/main .github/` → `.github/workflows/README.md` only (both 2026-10-02, before the B1b merge).
 - added: 2026-10-02
 
-## P-121 · An `expect` that matches the passing run's output makes every non-zero exit look like the right red
-- symptom: in B1b c7 the first `expect` of the registry entries `mg-gate-format` and `mg-gate-format-config` matched the path `../workspace/05-plans/merge-gate.mjs`. Bun echoes every script it runs (`$ prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs`), so the expect matched on every run, mutated or not, and the replay would have called any failure of `format:check` (a crash, another file) "red for the right reason". The entries were tightened to prettier's `[warn]` line and replayed again. P-081 and P-111 cover a `find` or `expect` that matches nothing, not one that matches too much.
-- cause: `bun run <script>` prints the command line before its output, and a test runner prints file names and titles that a careless pattern also finds. The replay counts red as "exit non-zero and expect matches", so a pattern that always matches reduces the check to the exit code.
-- rule: an `expect` matches only text the failure prints: the error line, the `×` line of the test, prettier's `[warn]` line. Before trusting a new entry, run its `run` on the unmutated tree and see the `expect` match nothing in the whole output (`node ../scratch/replay.mjs --baseline <id> ...`, runner text in `workspace/05-plans/logs/B1b.md`, c7 round 2 block); `LOOSE` there means rewrite the `expect`. Such a baseline reads stdout and stderr on exit 0 too: bun writes its echo to stderr, and `execSync` returns only stdout when the command passes. The first baseline of c7 round 2 used `execSync` and printed `CLEAN` for the loose expect; only its watched-fail showed it.
-- proof: `cd app && bun run format:check 2>&1 | grep -c "05-plans/merge-gate\.mjs"` → `1` on a green tree (the echo line, exit 0); `node <scratchpad>/loose-probe.mjs` (text in the c7 round 2 block: it gives `mg-gate-format` the expect `05-plans/merge-gate\.mjs` and restores the registry) → `LOOSE mg-gate-format | $ prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs`; the registry as committed → `node ../scratch/replay.mjs --baseline mg-gate-format mg-gate-format-config` prints two `CLEAN` lines (measured 2026-10-02).
-- added: 2026-10-02
-
-## P-122 · A new `describe` that uses another `describe`'s helpers, or a function never imported, fails only when it runs
-- symptom: in B1b c7 the new `describe` of `merge-gate.test.ts` called helpers declared inside a sibling `describe` and used `readFileSync` with no import; the first run failed and the block was rewritten. Vitest strips types without checking them, so the run reports `ReferenceError`, not a type error, and a reader looks for a fault in the code under test.
-- cause: a `const` inside a `describe` callback is scoped to that callback; vitest transforms the file without `tsc`, so a missing name is found at run time only.
-- rule: a helper two `describe` blocks need lives at module scope or is repeated in the block that uses it; every import a new block needs is added with it. Run `bunx tsc --noEmit -p tsconfig.json` and `bunx eslint --max-warnings 0 <test file>` on a new or moved test block before its first vitest run.
-- proof: a scratch `app/tests/unit/zz-scratch.test.ts` whose second `describe` calls a helper declared in the first and calls `readFileSync` without an import → `cd app && bunx tsc --noEmit -p tsconfig.json` prints `error TS2304: Cannot find name 'helper'.` and `error TS2304: Cannot find name 'readFileSync'.` and exits 2; `bunx vitest run tests/unit/zz-scratch.test.ts` prints `ReferenceError: helper is not defined` and `ReferenceError: readFileSync is not defined` (measured 2026-10-02, file deleted after).
-- added: 2026-10-02
-
 ## P-123 · Output retyped or condensed into a slice log is no longer evidence: one mistyped path and the reviewer cannot trust any of it
 - symptom: in B1b c7 the first draft of the log's "why red" section was a condensed version of the diff that `c7-why.mjs` printed, and it carried a mistyped path. It was replaced with the raw output. A condensed block reads like evidence and is not: nothing ties it to a run.
 - cause: output was copied by reading and rewriting it, not by moving the bytes the command wrote.
 - rule: a command's output goes into a slice log as the bytes it wrote: redirect it to a file (`> <scratchpad>/<name>.txt 2>&1`), paste that file into a fenced block with the Edit tool (P-070), trim only whole lines at the ends, never inside the failing part, and check the paste with `node ../scratch/in-log.mjs workspace/05-plans/logs/B1b.md <file> ...` (text in the c7 round 2 block) before the commit. A summary sentence is allowed beside the block, never instead of it.
 - proof: `cd app && node ../scratch/in-log.mjs ../workspace/05-plans/logs/B1b.md <the c7 round 2 output files>` prints one `verbatim` line per file and exits 0; the same with one character of a file changed prints `NOT IN LOG <file>` and exits 1 (measured 2026-10-02).
-- added: 2026-10-02
-
-## P-131 · A filter that reads the reason of a red run is checked against known reds of every failure shape before its output is trusted
-- symptom: in B1b c7 round 2 the first `c7r-why.mjs` kept the `×` line, the `Tests` line and diff lines. For `hy-gate-include` (a bare `expected false to be true`, no diff) and `hy-gate-prettier` (a zod error whose cause is its `"message":` line) it printed the `×` and `Tests` lines and nothing else: two red rows with no cause. The filter was widened (`AssertionError`, `Expected:`/`Received:`, zod `"path"`/`"message"`) and every run repeated. P-118 names a filter that missed lines; it gave no way to know before reading the output.
-- cause: the filter was written from the one failure shape the author had in mind (a `toEqual` diff). A vitest red prints its cause in at least three shapes: a diff under `- Expected`/`+ Received`, a single `AssertionError:` line with no diff, and a thrown error's own text (a zod issue list, a `TypeError`). A filter that drops a shape fails silently: its output still looks like a red run.
-- rule: before trusting a reason filter, run it on known reds of each shape (here `mg-docs-star` for a diff, `hy-gate-include` for a bare assertion, `hy-gate-prettier` for a thrown zod error) and see a cause line for every one. The filter itself reports a red run whose filtered lines are only `×` and `Tests` as `NO CAUSE` and exits 1, so a miss is printed, not read past; then read that run's raw output, never a guess.
-- proof: `cd app && node ../scratch/why-check.mjs narrow mg-docs-star hy-gate-include hy-gate-prettier` (text in `workspace/05-plans/logs/B1b.md`, c7 bank close-out block) → `NO CAUSE` for `hy-gate-include` and `hy-gate-prettier`, `narrow: 3 red runs, 2 without a cause line`, exit 1; with `wide` (the shipped filter) → `wide: 3 red runs, 0 without a cause line`, exit 0, and the tree is clean after both (measured 2026-10-02).
 - added: 2026-10-02
 
 ## P-132 · A text check with `includes` goes blind when a change puts its needle into the text twice
@@ -1183,18 +884,12 @@ Entry template
 - proof: with `maxWarnings` read as `includes("--max-warnings 0")` in `app/tests/unit/hygiene.test.ts`, `cd app && node ../scratch/replay.mjs hy-lint-warnings-app` → `NOT RED hy-lint-warnings-app: exit=0 expect=false`; with the committed `startsWith("eslint . --max-warnings 0 && ")` → `RED hy-lint-warnings-app: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules` (measured 2026-10-02, B1b c7 round 3).
 - added: 2026-10-02
 
-## P-133 · An Edit anchor taken from the tail of a registry entry matches two entries
-- symptom: an edit of one entry in `app/tests/mutations/B1b.json` was refused because its `old_string` was found twice: two entries end with the same `expect` text.
-- cause: registry entries of one test share their `expect` line, so the tail of an entry is not unique. Only the `id` line and the `replace` line are.
-- rule: anchor an edit of a registry entry on its `"id"` line or its `replace` line, never on its `expect`.
-- proof: `grep -c '"expect": "lint is type-aware' app/tests/mutations/B1b.json` prints more than 1.
-- added: 2026-10-02
-
-## P-300 · Knip refuses a dependency no file imports yet and a system binary a script spawns, so a plan's "add the tools first" step fails `bun run check`
-- symptom: B2 step 1 adds `supabase`, `sharp`, `heic-convert`, `@supabase/supabase-js`, `pg` and `@types/pg` and writes `scripts/psql-dev.mjs`. `bun run knip` then printed `Unused devDependencies (4)` (`@supabase/supabase-js`, `heic-convert`, `sharp`, `supabase`) and `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1. The group's file list did not hold `knip.json`, so the binary could not be declared, and the group stopped with `bun run check` red.
-- cause: the plan was written before the knip gate (B1b step 2b, R04). Knip counts a dependency as used only when a file imports it or a `package.json` script names its binary; `bun x supabase` inside a script and `psql` (a scoop binary, not an npm package) are invisible to it or unlisted.
-- rule: add a dependency in the step whose code first imports it (sharp and heic-convert with step 12's image library, `@supabase/supabase-js` with its first importer), and add it to `trustedDependencies` in the same commit; a CLI used only from inside a script gets its plan-named `package.json` script (`db:lint` names `supabase`). The group that first spawns a binary no npm package provides (psql, pg_dump, ffmpeg) names it in `ignoreBinaries` of `knip.json` itself, says so in the slice log and goes on (ruling H46 (1)); stopping BLOCKED on that one line stood the lane still for a whole build.
-- proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1; `bun run knip` with `"ignoreBinaries": ["psql"]` in `knip.json` → exit 0 (measured 2026-10-02, B2 c1).
+## P-300 · Knip refuses a dependency no file imports yet and a system binary a script spawns; the builder adds the one-line gate entry itself
+- symptom: B2 step 1 adds `supabase`, `sharp`, `heic-convert`, `@supabase/supabase-js`, `pg` and `@types/pg` and writes `scripts/psql-dev.mjs`. `bun run knip` then printed `Unused devDependencies (4)` and `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1. The group's file list did not hold `app/knip.json`, so it reported BLOCKED and committed nothing, and the lane stood still until the orchestrator read the result.
+- cause: the plan was written before the knip gate (B1b step 2b, R04): knip counts a dependency as used only when a file imports it or a `package.json` script names its binary, and `psql` is a scoop binary, not an npm package. "One writer per file" was read as forbidding any file outside the list, a gate's own configuration included.
+- rule: add a dependency in the step whose code first imports it (sharp and heic-convert with step 12's image library, `@supabase/supabase-js` with its first importer), with `trustedDependencies` in the same commit; a CLI used only from inside a script gets its plan-named `package.json` script (`db:lint` names `supabase`). A builder adds the smallest entry for its own files to a gate's configuration (`ignoreBinaries` in `knip.json` for psql, pg_dump, ffmpeg) and says so in the slice log (ruling H46 (1), in the build workflow's standing rules). A plan step that adds a script spawning a system binary names `knip.json` in its files.
+- proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1, and with `"ignoreBinaries": ["psql"]` → exit 0 (B2 c1); `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
+- merged: P-500
 - added: 2026-10-02
 
 ## P-301 · A pull request that conflicts with main gets no CI run at all, and `gh pr checks` only says "no checks reported"
@@ -1202,20 +897,6 @@ Entry template
 - cause: a `pull_request` workflow runs on the PR's test merge commit; when GitHub cannot build it (a conflict), no run starts and nothing says why. Every lane appends to the bank, so a lane whose base is older than main's last bank entry is born conflicting (P-072).
 - rule: right after opening or pushing a pull request, read `gh pr view <n> --json mergeable,mergeStateStatus` before waiting on any check; `CONFLICTING` means no CI will come, so report it to the orchestrator (who merges main into the lane, P-072) instead of polling. An empty `gh run list` is not "CI is slow".
 - proof: `gh pr view 49 --json mergeable,mergeStateStatus` → `{"mergeStateStatus":"DIRTY","mergeable":"CONFLICTING"}` and `gh pr checks 49` → `no checks reported on the 'slice/b2' branch` (measured 2026-10-02, B2 c1).
-- added: 2026-10-02
-
-## P-302 · The union merge of main into a lane is clean on this laptop and still drops the last entry's `added` line
-- symptom: `git merge-tree --write-tree origin/main slice/b2` exits 0 with no conflict, but in the merged `GOTCHAS.md` P-500's `proof:` line is followed directly by `## P-300`: its `- added: 2026-10-02` line and the blank line after it are gone. `check-gotchas.mjs` then fails on P-500, or the entry ships broken when nobody runs it.
-- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; both sides end their last entry with the same `- added:` line, so union keeps it once, after the lane's block (the P-072 hazard, here without any conflict marker to warn).
-- rule: after every merge of main into a lane, clean or not, run `node workspace/05-plans/check-gotchas.mjs` before committing the merge, and restore the missing `added` line and the blank line by hand (main's entries first).
-- proof: `T=$(git merge-tree --write-tree origin/main slice/b2 | head -1); git show $T:GOTCHAS.md | grep -A5 "^## P-500" | grep -c "^- added"` prints 0 (it should print 1), and `git show $T:GOTCHAS.md | grep -B1 "^## P-300"` shows the `proof:` line of P-500 directly above the heading (measured 2026-10-02, B2 c1 review).
-- added: 2026-10-02
-
-## P-303 · A local `git merge-tree` is clean while GitHub reports the same merge CONFLICTING, because GitHub ignores merge drivers
-- symptom: P-301 says PR 49 conflicts in `GOTCHAS.md`, yet `git merge-tree --write-tree origin/main slice/b2` printed a tree and exited 0. A reviewer spent time looking for a conflict that the laptop cannot show. `gh pr view 49 --json mergeable` → `CONFLICTING` and no workflow starts.
-- cause: `.gitattributes` sets `GOTCHAS.md merge=union`; the laptop's git applies it, GitHub's merge machinery does not, so both sides appending to the bank conflict there only.
-- rule: trust `gh pr view <n> --json mergeable,mergeStateStatus`, not a local merge test, for whether CI will run (P-301). When it says CONFLICTING and the local merge is clean, the cause is the bank: merge main into the lane with the union driver, then run `node workspace/05-plans/check-gotchas.mjs` (P-072, P-302) before committing.
-- proof: `git merge-tree --write-tree origin/main slice/b2 > /dev/null; echo $?` prints 0 while `gh pr view 49 --json mergeable` prints `{"mergeable":"CONFLICTING"}`; `grep -n GOTCHAS .gitattributes` prints `GOTCHAS.md merge=union` (measured 2026-10-02, B2 c1 review).
 - added: 2026-10-02
 
 ## P-304 · A proof that says "run in a terminal" cannot run in the Bash tool: it has no console, and the first two ways to make one failed
@@ -1239,46 +920,20 @@ Entry template
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; export SUPABASE_ACCESS_TOKEN=sbp_0000000000000000000000000000000000000000; bunx supabase migration list --linked | head -2; bun run db:push | tail -1` → `DbConfigLoginRoleStatusError ... 401` for the first, `"message":"Remote database is up to date."` for the second (measured 2026-10-02, B2 g2).
 - added: 2026-10-02
 
-## P-307 · `supabase init` defaults differ from the live project, and `config push` writes every key the file declares
-- symptom: B2 step 2 says "`supabase config push` (auth URLs, sign-ups closed, storage limit)" and F20 says it has no dry-run. The file `supabase init` wrote declared 14 differences from `mop-dev`; pushing it unchanged would also have set the email OTP length 8 to 6, `max_frequency` 1m to 1s, email confirmations on to off, TOTP MFA on to off, the pooler 15 and 200 to 20 and 100, and Iceberg analytics on to off.
-- cause: the template is written for a local stack. CLI 2.119.0 has `supabase config diff` (no Docker; prints the changes as JSON on the last line), so F20 is stale for this CLI. `config push` asks per service and honours piped `y` or `--yes`; keys the file does not declare are left alone.
-- rule: run `bunx supabase config diff` before every `config push` and after it (it must list only what the plan means to change). A key the plan does not pin takes the live value in `config.toml`; a changed value is a decision. `config.toml` is read only by `config push` and the storage-limit test, so matching the live project costs nothing. The diff never lists `storage.image_transformation` (remote true, undeclared): left unchanged, free tier.
-- proof: `cd app && bunx supabase config diff | tail -1 | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(j.counts)'` (token loaded in that shell) → `{ update: 0, remote_only: 1, local_only: 0, total: 1 }` after the push; before the alignment it printed `update: 12` (measured 2026-10-02, B2 g2).
+## P-307 · `supabase init` defaults differ from the live project, and `config.toml` has two readers: `config push` and CI's `supabase start`
+- symptom: B2 step 2 says "`supabase config push` (auth URLs, sign-ups closed, storage limit)" and F20 says it has no dry-run. The file `supabase init` wrote declared 14 differences from `mop-dev`; pushing it unchanged would have set the email OTP length 8 to 6, `max_frequency` 1m to 1s, email confirmations on to off, TOTP MFA on to off, the pooler 15 and 200 to 20 and 100, and Iceberg analytics on to off. The live values copied in to avoid that also apply to the ephemeral stack that B4's CI jobs `db` and `e2e` start from the same file (B4.md lines 15, 103, 117 and 118; ASSUMED H1 (b)): `max_frequency` 1m0s, `otp_length` 8, confirmations on, TOTP on, `[storage.analytics] enabled = true` (marked hosted only in the template).
+- cause: the template is written for a local stack. CLI 2.119.0 has `supabase config diff` (no Docker; the changes as JSON on the last line), so F20 is stale for this CLI; `config push` asks per service, honours piped `y` or `--yes`, and leaves keys the file does not declare alone. What `max_frequency` and `storage.analytics` do under `supabase start` is UNPROVEN: no Docker here (S50).
+- rule: run `bunx supabase config diff` before and after every `config push` (it must list only what the plan means to change). A key the plan does not pin takes the live value in `config.toml`; a changed value is a decision, and also a change to the CI stack: B4 reads the list above before its first `db` or `e2e` run, and a test that asks for a magic link twice for one address within 60 s expects a rate-limit error. The diff lists `storage.image_transformation` (remote true, undeclared) as `remote_only` on every run: left unchanged, free tier.
+- proof: `cd app && bunx supabase config diff | tail -1 | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(j.counts)'` (token loaded in that shell) → `{ update: 0, remote_only: 1, local_only: 0, total: 1 }` after the push, `update: 12` before the alignment; `grep -n -A1 "max_frequency\|^\[storage.analytics\]" app/supabase/config.toml` → `max_frequency = "1m0s"` and `enabled = true` (measured 2026-10-02, B2 g2).
+- merged: P-308
 - added: 2026-10-02
 
-## P-308 · P-307 is wrong in two places: CI starts a stack from `config.toml`, and `config diff` does list `storage.image_transformation`
-- symptom: P-307 says `config.toml` "is read only by `config push` and the storage-limit test, so matching the live project costs nothing", and that the diff "never lists `storage.image_transformation`". B4.md lines 15 and 103 and ASSUMED H1 (b) have the CI jobs `db` and `e2e` run `bunx supabase start` on this same file, so the hosted values copied in apply to that ephemeral stack too: email `max_frequency` 1m0s (a second magic link or OTP to one address inside 60 s can be refused), `otp_length` 8, confirmations on, TOTP on, and `[storage.analytics] enabled = true`, which the template marks as hosted only. `bunx supabase config diff` does print `["storage","image_transformation","enabled"]` as `remote_only` on every run. The behaviour on `mop-dev` is correct; only the banked rule misleads.
-- cause: P-307 was written from the `config push` side alone, before the CI jobs that start a stack from the same file were read. What `max_frequency` and `storage.analytics` do under `supabase start` is UNPROVEN: no Docker here (S50).
-- rule: `config.toml` has two readers, `config push` against `mop-dev` and `supabase start` in CI (B4). A value changed to match the live project is also a change to the CI stack: B4 reads the list above before its first `db` or `e2e` run, and a test that asks for a magic link twice for one address within 60 s expects a rate-limit error. Read P-307 with this entry; `remote_only: 1` in its proof is `storage.image_transformation`.
-- proof: `git grep -n "supabase start" -- workspace/05-plans/B4.md | cut -c1-60` → lines 15, 103, 117 and 118 start a stack; `grep -n -A1 "max_frequency\|^\[storage.analytics\]" app/supabase/config.toml` → `max_frequency = "1m0s"` and `enabled = true`; `cd app && bunx supabase config diff | tail -1 | grep -o image_transformation` → `image_transformation` (token loaded in that shell; measured 2026-10-02, g2 review).
-- added: 2026-10-02
-
-## P-309 · A quoted heredoc that fails with `unexpected EOF` writes nothing: the workaround is the same as P-070, the symptom is not
-- symptom: in B2 g2 a Bash command that carried text through a heredoc stopped with `unexpected EOF` and wrote no file. A search of the bank for that message finds nothing, because P-070 describes the other failure, backslashes dropped from text that is written.
-- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input. Hit again in B2 g6 (2026-10-03): a 300-line `cat > script.mjs <<'EOF'` carrying test code with template literals ended `line 101: unexpected EOF while looking for matching ''`, nothing written; the same text went in through four Edit calls.
-- rule: when a heredoc or `node -e` ends in `unexpected EOF`, nothing was written: do not retry with other quoting, put the text in with the Write or Edit tool (as P-070 says), then read `git status --short` before going on.
-- proof: `grep -n "unexpected EOF" GOTCHAS.md | cut -c1-40` → this entry's heading and symptom lines; `git grep -n "^## P-070" -- GOTCHAS.md` → the cause it shares (reviewer follow-up, B2 g2).
-- added: 2026-10-02
-
-## P-500 · A builder stops BLOCKED on a one-line entry in a gate's configuration
-- symptom: the first group of B2 finished its files, then reported BLOCKED and committed nothing: `bun run check` failed only at knip with `Unlisted binaries (1) psql scripts/psql-dev.mjs`, and `app/knip.json` was not in the group's file list. The lane stood still until the orchestrator read the result.
-- cause: "one writer per file" was read as forbidding any file outside the list, the gates' own configuration included. A new script that spawns a system binary always needs such an entry, and no plan lists it.
-- rule: a builder adds the smallest entry for its own files to a gate's configuration and says so in the log (ruling H46 (1)); the build workflow's standing rules say it. When writing a plan step that adds a script spawning a system binary, name `knip.json` in its files.
-- proof: `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
-- added: 2026-10-02
-
-## P-501 · A text merge of two appends to GOTCHAS.md drops the last line of an entry
-- symptom: after merging main into a lane, `check-gotchas` printed `ERROR P-137: no added` (earlier: P-064, P-130, P-132). The built-in `merge=union` driver did it, and so did the hand resolver that "keeps both sides".
-- cause: every entry ends with the same line, `- added: <date>`. Two sides that each append entries share that last line, the merge takes it for common text and writes it once, so the entry in the middle loses it. GitHub ignores merge drivers altogether, so it shows such a pull request as conflicting and starts no run on it (P-136).
-- rule: the bank merges by entry, never by text: `workspace/05-plans/merge-gotchas.mjs` is the merge driver (clone config `merge.gotchas.driver`, `.git/info/attributes` and `.gitattributes`). After any merge that touches the bank run `node workspace/05-plans/check-gotchas.mjs`. A lane brings main in itself when its pull request shows a conflict (ruling H48 (3)).
-- proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree, and `git config merge.gotchas.driver` prints the driver line.
-- added: 2026-10-02
-
-## P-310 · Every Bash tool shell here already exports `CLOUDFLARE_API_TOKEN`, so the `db` test project refuses to start
-- symptom: the first `bunx vitest run --project db tests/db/migration-headers.test.ts` in B2 g3, in a shell with the dev profile loaded, printed `No test files found, exiting with code 1` and `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)`. Nothing in the command had loaded that name.
-- cause: the shell the harness starts inherits `CLOUDFLARE_API_TOKEN` from the user environment, and `tests/db/global-setup.ts` calls `guardEnv()` first (SEC-08), as it must. A fresh shell is not a clean shell on this laptop. The `No test files found` line is vitest's wording for a global setup that threw; the cause is the `Error:` line under it.
-- rule: run every database test, `bun run test:db` and any script that calls `guardEnv()` as `env -u CLOUDFLARE_API_TOKEN <command>` after `eval "$(node scripts/load-env.mjs --profile dev)"`. Never weaken the guard or unset the name in a config file. When vitest prints `No test files found` for a path that exists, read the `Error:` line first.
+## P-310 · Database tests refuse to start in this shell: load the dev profile, then `env -u CLOUDFLARE_API_TOKEN`
+- symptom: the first `bunx vitest run --project db tests/db/migration-headers.test.ts` in B2 g3 printed `No test files found, exiting with code 1` and `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)`. In the review of B2 g4, after the standing-rule loader `set -a; . <(tr -d '\r' < .env | grep ...); set +a`, the refusal also named `PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN`; in the g5 review, loading only `DEV_DB_URL` still gave `CLOUDFLARE_API_TOKEN`.
+- cause: the shell the harness starts inherits `CLOUDFLARE_API_TOKEN` from the user environment (a fresh shell is not a clean shell on this laptop), and the inline loader loads every name of the single `.env`, ops names included. `tests/db/global-setup.ts` calls `guardEnv()` first (SEC-08), as it must. Ruling H30 (3) replaced the inline loader with `eval "$(node scripts/load-env.mjs --profile dev)"` from B2 on. `No test files found` is vitest's wording for a global setup that threw.
+- rule: a db test, `bun run test:db` or any script that calls `guardEnv()` runs from `app/` as `eval "$(node scripts/load-env.mjs --profile dev)"`, then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order. The inline loader is for commands that are not db tests. Never weaken the guard or unset the name in a config file; unsetting `.env` values never helps. When vitest prints `No test files found` for a path that exists, read the `Error:` line first. Still open for the orchestrator (checked 2026-10-03): `.claude/workflows/build-slice.js` line 90 and `.claude/agents/mop-builder.md` line 41 still print the inline loader.
 - proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
+- merged: P-313
 - added: 2026-10-03
 
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
@@ -1288,25 +943,12 @@ Entry template
 - proof: `git show "8dd6f26:Matter Of Place Codebase/docs/database/schema.sql" | sed -n 94p` → `create table markets (` (measured 2026-10-03, B2 g4).
 - added: 2026-10-03
 
-## P-312 · A lane's migration cannot reach mop-dev and CI has no `db` job yet: prove it inside each test's rolled-back transaction
-- symptom: B2 g4 (migration 4) could not run one database proof the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1), and B4's CI `db` job does not exist yet, so the plan's "wait for a database the lane may use" would have left every case of the step UNPROVEN.
-- cause: the harness already runs `MOP_MUTATION_SQL` first inside the rolled-back transaction of `withRollback` (T-07), and Postgres DDL is transactional, so the migration's whole text can be that SQL: each test sees the new schema and nothing is committed.
-- rule: until the `db` job runs, prove an unmerged migration with `MOP_MUTATION_SQL="$(cat supabase/migrations/<file>.sql)"` on the vitest command (the dev profile loaded, `env -u CLOUDFLARE_API_TOKEN`, P-310), and replay `sql` watched-fails with that file prepended to the entry's SQL; say in the log that the proof is mop-dev inside rolled-back transactions and that the CI job is still UNPROVEN. Without the prelude, `function-source.db.test.ts` fails on mop-dev for the new function files: that is the expected state until the migration is pushed from `main`. Two test files that both create the same tables wait on each other's catalog rows, so keep the files few or pass `--no-file-parallelism` when a run times out on `lock_timeout`.
-- proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t` (measured 2026-10-03).
-- added: 2026-10-03
-
-## P-313 · The loader the computed brief prints makes every db test refuse: since H30 (3) it is the dev profile, and P-310 names only half of the refusal
-- symptom: in the review of B2 g4, after the standing-rule line `set -a; . <(tr -d '\r' < .env | grep ...); set +a`, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape` exited 1 with `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` and no test ran. P-310 reads as if unsetting `CLOUDFLARE_API_TOKEN` were the whole fix.
-- cause: that line loads every name of the single `.env`, ops names included, and `guardEnv()` (SEC-08) refuses them all. Ruling H30 (3) replaced it from B2 on with `eval "$(node scripts/load-env.mjs --profile dev)"` run from `app/`. The prompt template still prints the old line: `.claude/workflows/build-slice.js` line 89 and `.claude/agents/mop-builder.md` line 41 (ASSUMED E10 as well). `CLOUDFLARE_API_TOKEN` is the one name the Bash tool exports by itself (P-310), so it needs its own `env -u`.
-- rule: a db test or any script that calls `guardEnv()` runs as `eval "$(node scripts/load-env.mjs --profile dev)"` then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order, from `app/`. The inline `set -a; . <(...)` loader is for commands that are not db tests only. The orchestrator owns the template fix: replace the loader in `.claude/workflows/build-slice.js` and `.claude/agents/mop-builder.md` for B2 lanes and later. Until then a worker that sees the refusal reads the `Error:` line first (P-310) and switches loader. Hit again in the g5 review (2026-10-03): the reviewer brief still printed the old loader, the first db run gave `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN`, and after loading only `DEV_DB_URL` it still gave `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN` because that name also comes from the shell profile; unsetting `.env` values never helps, only `env -u CLOUDFLARE_API_TOKEN`. The template fix stays open until a brief prints the new loader.
-- proof: from `app/` on slice/b2, after the old loader, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape 2>&1 | grep "^Error"` prints the refusal above (exit 1); after `eval "$(node scripts/load-env.mjs --profile dev)"` the refusal is gone, and with `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)"` (P-312) it prints `Tests  4 passed | 22 skipped (26)`, exit 0 (measured 2026-10-03). Without the prelude the dev-profile run fails one case, `every money column is numeric(12,2)`, because migration 4 is not on mop-dev.
-- added: 2026-10-03
-
-## P-314 · A `MOP_MUTATION_SQL` prelude of several migrations crashes `bunx vitest`, and stripping every comment makes `function-source.db.test.ts` fail
-- symptom: B2 g5 applied migrations 4, 5 and 6 as one prelude (P-312). With 35,678 characters in `MOP_MUTATION_SQL`, `bunx vitest run --project db ...` printed nothing and exited 0; with the comment lines stripped (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`. After the runner was fixed, `function-source.db.test.ts` still reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`.
-- cause: bun on Windows does not survive a very large environment variable (the Windows limit is 32,767 characters per variable), and the first fix, `grep -v '^\s*--'` over the concatenated files, also deleted the comment lines inside the `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
-- rule: when the prelude is more than about 15 KB, run the db tests as `node node_modules/vitest/vitest.mjs run --project db ...` (the replay script rewrites `bunx vitest` the same way) and build the prelude with a script that drops comment and blank lines only outside `$$` bodies. The 32 KB limit is wrong for node (P-317): a 43,805-character prelude reaches vitest through `node`, so keep every migration in it.
-- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && export MOP_MUTATION_SQL="$(cat ../scratch/g5-prelude.sql)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts` → `Tests  34 passed (34)`; the same line with `bunx vitest` → `panic: Segmentation fault` (measured 2026-10-03, B2 g5; `scratch/g5-prelude.mjs` builds the prelude).
+## P-312 · Prove an unmerged migration inside each db test's rolled-back transaction, and pass a large prelude through node, not bun
+- symptom: B2 g4 could not run its database proofs the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1) and B4's CI `db` job does not exist yet. In B2 g5, with migrations 4 to 6 as one 35,678-character prelude, `bunx vitest run --project db ...` printed nothing and exited 0; stripped of comment lines (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`, and `function-source.db.test.ts` then reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`. In B2 g6 migrations 4 to 8 made a 43,805-character prelude, which the earlier "32 KB limit" said could not be passed.
+- cause: the harness runs `MOP_MUTATION_SQL` first inside the rolled-back transaction of `withRollback` (T-07), and Postgres DDL is transactional, so a migration's whole text can be that SQL. bun on Windows crashes on a very large environment variable; node does not: 32,767 characters is the limit of `SetEnvironmentVariable`, not of the block `CreateProcess` passes, and Git Bash `export` and `spawnSync(process.execPath, ..., { env })` hand the whole value on. Stripping with `grep -v '^\s*--'` also deleted the comment lines inside `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
+- rule: until the `db` job runs, prove an unmerged migration with `MOP_MUTATION_SQL="$(cat supabase/migrations/<file>.sql)"` on the command (dev profile and `env -u CLOUDFLARE_API_TOKEN`, P-310), replay `sql` watched-fails with that file prepended, and say in the log that the proof is mop-dev inside rolled-back transactions and the CI job is still UNPROVEN. Run a prelude over about 15 KB through `node node_modules/vitest/vitest.mjs run --project db ...`, spawn replays with `spawnSync(process.execPath, args, { env })` (never `shell: true`), build the prelude with a script that drops comment and blank lines only outside `$$` bodies, and keep every migration the tests read in it. Without the prelude, `function-source.db.test.ts` fails on mop-dev for the new function files until the migration is pushed from `main`. Two test files that create the same tables wait on each other's catalog rows: keep the files few, or pass `--no-file-parallelism` when a run times out on `lock_timeout`.
+- proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t`; at B2 g6, with the 43,805-character prelude exported, `node -e "console.log(process.env.MOP_MUTATION_SQL.length)"` → `43805` and the db project run through node gave `Tests  2 failed | 144 passed (146)`, the two reds being P-316's stray function (measured 2026-10-03).
+- merged: P-314, P-317
 - added: 2026-10-03
 
 ## P-315 · A plan's proof grep for the old `agent_*` names matches the `listing_agent_name` column the same step creates, and `git grep` cannot see the new migration
@@ -1341,25 +983,11 @@ Entry template
 - proof: `cd app && bun run db:psql -- -Atc "select 'on delete ' || c.confdeltype from pg_constraint c where contype = 'f' limit 1"` → `ERROR:  operator is not unique: unknown || "char"`; with `c.confdeltype::text` → `on delete c` (measured 2026-10-03, B2 g4).
 - added: 2026-10-03
 
-## P-502 · Git Bash rewrites an argument that starts with a slash into a Windows path
-- symptom: `openssl req ... -subj "/CN=mop-backup"` failed with `This name is not in that format: 'C:/Program Files/Git/CN=mop-backup'`. The shell had turned `/CN=...` into a path before openssl saw it.
-- cause: MSYS path conversion applies to any argument that looks like an absolute POSIX path, subjects and URL paths included (same family as the `gh api` leading slash, P-048).
-- rule: run such a command with `MSYS_NO_PATHCONV=1` in front, or write the argument with a doubled slash (`//CN=...`). Check the first attempt's output files before trusting them: a failed run can leave a half-written file behind.
-- proof: `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`.
-- added: 2026-10-03
-
 ## P-503 · A lane without a bank number base takes the next number after everyone else's entries
 - symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
 - cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
-- rule: every lane runs with a `bankBase` (restart.json carries them: spine P-150/G-40, db P-300/G-100, tests P-400/G-150, design P-700/G-250; the orchestrator writes from P-500/G-200). When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
-- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4.
-- added: 2026-10-03
-
-## P-317 · P-314's "a prelude over 32 KB cannot be passed" is false: node carries 100 KB, only bun and `cmd` are in the way
-- symptom: B2 g6 needed migrations 4 to 8 as one prelude (43,805 characters after stripping). P-314 said that cannot be passed as one variable, which would have meant dropping migrations or leaving every database proof of step 7 UNPROVEN.
-- cause: P-314 measured `bunx vitest`, and bun is what crashes. Windows' 32,767-character figure is the limit of `SetEnvironmentVariable`, not of the environment block `CreateProcess` passes: Git Bash `export` and node's `spawnSync(process.execPath, ..., { env })` both hand the whole value on, and vitest's workers inherit it from node.
-- rule: run a large prelude through `node node_modules/vitest/vitest.mjs`, and spawn replays with `spawnSync(process.execPath, args, { env })`, never `shell: true` (the replay runner `scratch/g6-replay.mjs` splits the registry's `run` into arguments). Keep every migration the tests read in the prelude.
-- proof: from `app/`, `export MOP_MUTATION_SQL="$(cat ../scratch/g6-prelude.sql)" && node -e "console.log(process.env.MOP_MUTATION_SQL.length)"` → `43805`; `node ../scratch/g6-envsize.mjs` → `100000 0 100000` (a child read a 100,000-character variable); the db project on that prelude ran `Tests  2 failed | 144 passed (146)`, the two reds being P-316's stray function (measured 2026-10-03, B2 g6).
+- rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
+- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
 - added: 2026-10-03
 
 ## G-102 · A statement that fails inside `withRollback` aborts the whole test transaction unless a savepoint wraps it
@@ -1387,9 +1015,21 @@ Entry template
 - proof: from `app/`, `printf -- '-- probe\n' > supabase/migrations/20261001099999_probe.sql && node scripts/check-migrations.mjs; rm supabase/migrations/20261001099999_probe.sql` → `migration-order: OK (3 on main, 5 added)`, the probe not counted (measured 2026-10-03, B2 g6 follow-up).
 - added: 2026-10-03
 
-## P-319 · A proof that reads `scratch/` cannot be re-run by anyone else: the folder is git-ignored
-- symptom: the rule of P-317 names `scratch/g6-replay.mjs`, and the proofs of P-317 and G-102 read `../scratch/g6-envsize.mjs` and `../scratch/g6-prelude.sql`. Another lane, the orchestrator or CI that follows those proofs finds no such file.
-- cause: `.gitignore` line 37 ignores `scratch/`, so a script written there during a group never reaches the branch. The gotcha template asks for a proof a reader can run and the group's author ran it from their own scratch folder.
-- rule: a proof names a committed script or an inline command, never a path under `scratch/`; when the proof needs a helper, commit it under its folder-map row (B4's `scripts/watchfail.mjs` replays the mutation registry once it lands) or inline it in the command.
-- proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/	scratch/g6-prelude.sql`; `git grep -n "scratch/g6" -- GOTCHAS.md` lists the P-317 and G-102 lines that still depend on it until B4 lands the replay script (measured 2026-10-03, B2 g6 follow-up).
-- added: 2026-10-03
+## Retired, enforced
+
+A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
+
+- G-003 · Page titles: pass the bare title, `pageHead` adds the suffix · enforced-by app/tests/unit/seo.test.ts
+- G-005 · Routes never import bundled data directly · enforced-by app/tests/unit/boundaries.test.ts
+- G-017 · Nitro appends its own rule to `public/_headers`, and a second block for one path replaces ours · enforced-by app/tests/unit/headers.test.ts
+- G-022 · An API route file with no `GET` handler answers a `GET` with 200 and the empty page shell · enforced-by app/tests/unit/pipeline.test.ts
+- G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws · enforced-by app/tests/unit/sentry.test.ts
+- G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop · enforced-by app/tests/unit/check-migrations.test.ts
+- G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:` · enforced-by app/tests/unit/hygiene.test.ts
+- G-028 · The migration scan is a small SQL lexer: a regex over raw text both misses DDL and flags words · enforced-by app/tests/unit/check-migrations.test.ts
+- G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through · enforced-by app/tests/unit/check-migrations.test.ts
+- G-030 · An exception to the destructive-change scan passes more than the statement the ruling meant · enforced-by app/tests/unit/check-migrations.test.ts
+- G-032 · A file outside `app/` gets none of the app's gates: prettier finds no config, ESLint calls it outside its base path, tsc never sees it · enforced-by app/tests/unit/hygiene.test.ts
+- P-004 · Mermaid syntax that breaks a render: `:::class` on a subgraph line, `;` in a sequence message or Note, a label that starts with `[/` · enforced-by workspace/03-diagrams/render.mjs · merged P-012
+- P-031 · Plans invent names: every event, step and table in a plan must be a catalog name · enforced-by workspace/05-plans/check-plans.mjs
+- P-104 · The merge gate refused every pull request with no check (ruling H42 (1)) · enforced-by app/tests/unit/merge-gate.test.ts
