@@ -768,6 +768,7 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B9 g3: a `python3 - <<'E' || node -e ...` conflict-resolution chain hung 120 seconds, moved to the background and the branch merge sat uncommitted until a `node` script did the same edit; the lesson was in the bank map and was still not followed.
+- hit again: 2026-10-03, B9 g4: `python - 2>/dev/null; node -e '<patch>'` hung 120 seconds in the background, the `node` half still ran, and the interpreter had to be found by its command line (`Get-CimInstance Win32_Process`, `CommandLine` = `python -`, created at the minute of the call) and stopped by its own process id.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1299,4 +1300,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the session scratchpad is shared by every workflow agent of the session and keeps files from earlier runs; a fixed folder name like `reg` is reused, and `--registry` replays every `*.json` in the folder it is given.
 - rule: make the scratch registry folder fresh with `mktemp -d` inside the scratchpad, `ls` it before the replay, and pass `--only <ids>` so only the entries meant are replayed.
 - proof: `d=$(mktemp -d) && ls "$d" | wc -l` → `0`; `cd app && grep -n "readdirSync" scripts/watchfail.mjs | cut -c1-120` shows the registry folder is read whole (every `*.json` in it).
+- hit again: 2026-10-03, B9 g4: the folder `<scratchpad>/reg` already held `B4.json` from an earlier agent, and the replay of my own entries started with B4 entries. See P-707 for what that did to the tree.
+- added: 2026-10-03
+
+## P-707 · A replay killed at the tool ceiling leaves the mutation in the file, and the entry `wf-restore` switches the restore off for every entry after it
+- symptom: B9 g4 ran `node scripts/watchfail.mjs --registry <scratchpad>/reg` in the foreground with `timeout 115`; the folder held B4 entries (P-154), the call hit the ceiling mid-replay and `git status` showed `app/src/lib/cx.ts` (B4's mutation) and later `app/scripts/watchfail.mjs` with its `restoreAll` loop deleted. The next replay of the group's own 21 entries printed `WATCHED-FAIL BAD: wrong reason` for five of them, because `restoreAll` no longer wrote anything and each mutation stayed in `slides.ts`, `Cover.tsx`, `Story.tsx` and `OgCard.tsx`; the six untracked files had to be rewritten by hand (they have no git copy to check out).
+- cause: a registry replay runs 4 to 8 s per entry on a loaded laptop, so 21 entries cannot finish inside 115 s; a killed `watchfail.mjs` cannot restore, and the B4 entry `wf-restore` mutates `restoreAll` itself, so a kill during or after it breaks the tool for everything that follows.
+- rule: replay a registry only in the background (`run_in_background`, output to a log, poll with a bounded loop) from a fresh `mktemp -d` folder that holds only your own file (P-154), never under `timeout`; before the replay commit or stage the files it mutates (an untracked file cannot be restored from git), and afterwards run `git status --short | grep -v "^??"` and the unmutated tests; to find one entry's red text use the single-mutation form (`--file/--find/--replace/--run/--expect`) or a scratch loop that restores from the bytes it read.
+- proof: `cd app && git status --short | grep -v "^??"` → no output after a finished replay; `node -e 'for(const e of require("./tests/mutations/B4.json")) if(e.id==="wf-restore") console.log(e.file)'` → `scripts/watchfail.mjs` (2026-10-03).
 - added: 2026-10-03

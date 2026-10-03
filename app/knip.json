@@ -4,8 +4,7 @@
     "src/routes/**/*.{ts,tsx}",
     "scripts/**/*.{ts,mjs}",
     "supabase/functions/*/index.ts",
-    "tests/**/*.{ts,tsx}",
-    "src/templates/social/SocialFrame.tsx"
+    "tests/**/*.{ts,tsx}"
   ],
   "ignore": ["src/db/types.ts"],
   "ignoreBinaries": ["psql"],
