@@ -430,5 +430,177 @@
     "replace": "import setup from \"./global-setup\";\nimport { FIXED_NOW } from \"../fixtures/clock\";",
     "run": "bunx vitest run --project unit tests/unit/time-model.test.ts",
     "expect": "tests/db/harness.db.test.ts imports FIXED_NOW"
+  },
+  {
+    "id": "u",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/e2e-coming-soon.ts",
+    "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "\\+\\s+\"scripts/e2e-coming-soon\\.ts\""
+  },
+  {
+    "id": "u-call",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/e2e-coming-soon.ts",
+    "find": "await assertNotProduction();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "\\+\\s+\"scripts/e2e-coming-soon\\.ts\""
+  },
+  {
+    "id": "e",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"about.tsx\": \"/about\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "\\+\\s+\"about\\.tsx\""
+  },
+  {
+    "id": "rc-gone",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"about.tsx\": \"/about\",",
+    "replace": "  \"about-gone.tsx\": \"/about\",",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "FAIL .*are all still on disk when the map names them"
+  },
+  {
+    "id": "rc-redirect",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"pricing.tsx\": \"redirect\",",
+    "replace": "  \"pricing.tsx\": \"/exposure\",",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "FAIL .*map a redirect-only file to redirect"
+  },
+  {
+    "id": "rc-pattern",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"legal.tsx\": \"/legal\",",
+    "replace": "  \"legal.tsx\": \"/legal-notice\",",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "FAIL .*serve a pattern the sweep lists"
+  },
+  {
+    "id": "rc-path-rules",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  if (path.startsWith(\"api/\")) return \"server\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "FAIL .*path rules: api is server"
+  },
+  {
+    "id": "rc-seo",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  .filter((name) => SEO_FILE.test(name))",
+    "replace": "  .filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "FAIL .*seoFileRoutes equals the robots and llms route files present"
+  },
+  {
+    "id": "f",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/routes/about.tsx",
+    "find": "<main>",
+    "replace": "<main><div style={{ width: 2000 }} />",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /about$\"",
+    "expect": "elements wider than the viewport",
+    "kind": "manual"
+  },
+  {
+    "id": "f-overflow",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/routes/about.tsx",
+    "find": "<main>",
+    "replace": "<main><div style={{ width: 2000 }} />",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8808 bunx playwright test --project=phone --project=desktop --grep @overflow",
+    "expect": "elements wider than the viewport",
+    "kind": "manual"
+  },
+  {
+    "id": "g",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/components/site/property-card.tsx",
+    "find": "alt={`Illustrative architecture in ${property.city}`}",
+    "replace": "",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /properties$\"",
+    "expect": "axe: new violations on /properties",
+    "kind": "manual"
+  },
+  {
+    "id": "h",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const fullTitle = hasBrand ? title : `${title}${suffix}`;",
+    "replace": "const fullTitle = `${title}${suffix}`;",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /$\"",
+    "expect": "the brand appears once in the title",
+    "kind": "manual"
+  },
+  {
+    "id": "k",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "tests/e2e/axe-baseline.json",
+    "find": "[]",
+    "replace": "[{\"route\":\"/about\",\"rule\":\"image-alt\",\"target\":\"img\",\"reason\":\"zz\",\"ticket\":\"zz\"}]",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --grep \" /about$\"",
+    "expect": "baseline entries on /about that no longer occur",
+    "kind": "manual"
+  },
+  {
+    "id": "q",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: JSON.stringify(jsonLd)",
+    "replace": "children: \"{\"",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /faq$\"",
+    "expect": "ld[+]json block is not valid JSON",
+    "kind": "manual"
+  },
+  {
+    "id": "q-context",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "src/routes/index.tsx",
+    "find": "\"@context\": \"https://schema.org\"",
+    "replace": "\"@context\": \"http://schema.org\"",
+    "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /$\"",
+    "expect": "@context of each ld[+]json block",
+    "kind": "manual"
+  },
+  {
+    "id": "w",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "tests/e2e/sweep.spec.ts",
+    "find": "    const seen = await collect(page);",
+    "replace": "    if (test.info().retry === 0) throw new Error(\"zz flaky\"); const seen = await collect(page);",
+    "run": "CI=1 E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --grep \" /about$\"",
+    "expect": "1 flaky",
+    "kind": "manual"
+  },
+  {
+    "id": "bb",
+    "test": "tests/e2e/sweep.spec.ts",
+    "file": "tests/e2e/sweep.spec.ts",
+    "find": "test(sitemapRoute, async ({ request }) => {",
+    "replace": "test.only(sitemapRoute, async ({ request }) => {",
+    "run": "CI=1 E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop",
+    "expect": "forbidOnly",
+    "kind": "manual"
+  },
+  {
+    "id": "v",
+    "test": "bun run test:e2e:coming-soon (needs mop-dev with the settings table of B2, and the dev profile loaded)",
+    "file": "scripts/e2e-coming-soon.ts",
+    "find": "    await writeFlag(original);",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "coming_soon_global restored to true",
+    "kind": "manual"
   }
 ]

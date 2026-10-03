@@ -29,6 +29,11 @@
     "db:push": "bun scripts/db-push.mjs",
     "db:fn": "bun scripts/db-fn.mjs",
     "test:db": "vitest run --project db",
+    "test:e2e": "playwright test --project=desktop --project=phone",
+    "test:e2e:live": "playwright test --project=live-desktop",
+    "test:e2e:edge": "playwright test --project=edge",
+    "test:e2e:coming-soon": "bun scripts/e2e-coming-soon.ts",
+    "test:e2e:install": "playwright install --with-deps chromium",
     "watchfail": "node scripts/watchfail.mjs",
     "db:reset": "bun scripts/db-reset-dev.mjs",
     "db:psql": "bun scripts/psql-dev.mjs",
@@ -53,8 +58,11 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.63.0",
+    "@supabase/supabase-js": "^2.117.2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/bun": "^1.4.2",
