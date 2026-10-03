@@ -1489,8 +1489,16 @@ Entry template
 
 ## P-412 · A fixture that mirrors a contract breaks when main changes the contract under a lane
 - severity: warn
-- symptom: B4 c2 was proven green, then B2 step 5 reached main and replaced `agentName`, `agentEmail` with `submitterKind`, `submitterName`, `submitterEmail` (S55); after merging main, `bun run typecheck` failed with `tests/fixtures/builders.ts(31,5): error TS2353: 'agentName' does not exist in type 'SubmissionInput'`, and `contracts.test.ts` named `agentEmail` in a rejection case that the schema would now strip and accept.
-- cause: `builders.ts` types its payload from `z.input<typeof submissionSchema>` and a string-keyed rejection table names fields by text; the type check catches the first, nothing catches the second until the case goes green for the wrong reason.
-- rule: after every `git merge origin/main` in a lane that owns a fixture, run `bun run typecheck` and grep the tests for the renamed field names before `bun run check`; a rejection table that names a field a schema no longer has passes silently.
+- symptom: B4 c2 was proven green, then B2 step 5 reached main and replaced `agentName`, `agentEmail` with `submitterKind`, `submitterName`, `submitterEmail` (S55); after merging main, `bun run typecheck` failed with `tests/fixtures/builders.ts(31,5): error TS2353: 'agentName' does not exist in type 'SubmissionInput'`, and `contracts.test.ts` named `agentEmail` in a rejection case; the schema now strips that key and accepts the payload, so the row would have gone red with `[] expected ["agentEmail"]`.
+- cause: `builders.ts` types its payload from `z.input<typeof submissionSchema>` and a string-keyed rejection table names fields by text; the type check catches the first, only the test run catches the second.
+- rule: after every `git merge origin/main` in a lane that owns a fixture, run `bun run typecheck` and grep the tests for the renamed field names before `bun run check`. A rejection row that asserts `toEqual([field])` goes red on a stripped key; an acceptance check (`success === true`) is the kind that passes silently on one.
 - proof: `cd app && git grep -n "agentName\|agentEmail" -- tests/fixtures tests/unit/contracts.test.ts` prints nothing (measured 2026-10-03, B4 c2).
+- added: 2026-10-03
+
+## P-413 · A cause written into the bank without running it was wrong, and the bank pushes it to later workers
+- severity: warn
+- symptom: P-412 said the stale `agentEmail` rejection row "would have gone green for the wrong reason" and that a rejection table naming a removed field "passes silently". The review of B4 c2 ran the case: the schema strips the unknown key, the payload parses, `issuePaths` returns `[]`, and the row asserting `toEqual([field])` goes red.
+- cause: the cause line of P-412 was reasoned from how a schema treats an acceptance check and never run against the rejection table it describes; the rename and the proof were right, so the entry looked verified.
+- rule: before a cause or rule line goes into the bank, run the smallest probe that shows it (a one-line `safeParse`, a failing test) and put that probe in the proof; a gotcha's cause is a claim and gets the same watched-fail as a test.
+- proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03
