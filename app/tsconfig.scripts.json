@@ -3,6 +3,7 @@
   "include": [
     "scripts/**/*.ts",
     "scripts/**/*.mjs",
+    "src/env.d.ts",
     "../workspace/05-plans/merge-gate.mjs",
     "../workspace/audits/tools/*.mjs",
     "../scripts/audit/*.mjs"
