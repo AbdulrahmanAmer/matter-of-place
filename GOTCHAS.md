@@ -186,6 +186,7 @@ Entry template
 - hit again: 2026-10-03, B9 g4: backslashes were dropped from text written through a heredoc, so the file had to be rewritten with the Write tool; the author listed it as a cost but the entry was not extended (recorded by the g4 review follow-up).
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
 - hit again: 2026-10-03, B2 g11 (second attempt cost): a heredoc whose text held an apostrophe ended in `unexpected EOF` and wrote nothing, and a patch script that ran a `rm` of a path it had just made was refused by the safety check; the file went in with the Write tool instead.
+- hit again: 2026-10-04, B16 g1: a registry generator written through a Bash heredoc lost the backslash of `/\d/`, so the entry replayed `STALE: find occurs 0 times`; fixed with the Edit tool.
 - merged: P-070, P-111, P-115, P-309, P-406
 - added: 2026-09-30
 
@@ -1595,3 +1596,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
+
+## P-1000 · B16 steps 1 and 2 are not buildable "any time after B2": `service.ts`, `readiness.ts` and `set-site.ts` import B3 files that are not on main
+- severity: warn
+- symptom: B16 g1 found `src/server/public/state.ts` (`getPublicState`), `src/server/lib/db.ts` (the client type) and `src/server/lib/errors.ts` (`AppError`) absent from main; `git log --all -- app/src/server/public/state.ts` prints nothing, and `slice/b3` holds the lib files but not `public/`.
+- cause: the plan's landing order says "B16 steps 1 and 2 any time after B2", while its Depends line and the Files list make `getSiteSettings` read `getPublicState(db).site` (B3) and throw `AppError` (R09); step 2's list was sized as if only the migration were needed.
+- rule: before a group that imports another slice's file, `git ls-tree -r --name-only origin/main | grep <file>`; if it is missing, build the parts that do not import it (domain, migration) and report the rest BLOCKED on the named B3 group, never stub the import.
+- proof: `git ls-tree -r --name-only origin/main app/src/server | grep -c "public/state.ts"` → `0` at 4a05fdb (measured 2026-10-04, B16 g1).
+- added: 2026-10-04
+
+## P-1001 · A plan Files line that names an export before its first importer lands fails knip; a zod 3 `.default(x)` mutation on a preprocessed leaf stays green
+- severity: warn
+- symptom: `settings.ts` exported `PublicSite` and `SiteFieldKey` as the Files list says, and `bun run knip` printed `Unused exported types (2)` and exited 1 (the configuration hint alone exits 0 on main). Separately the registry entry that changed `.default(null)` to `.default("")` on a leaf stayed `BAD: stayed green`.
+- cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
+- rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
+- proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+- added: 2026-10-04

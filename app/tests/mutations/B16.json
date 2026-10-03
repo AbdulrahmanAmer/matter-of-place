@@ -1,0 +1,155 @@
+[
+  {
+    "id": "blank-null",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "return trimmed === \"\" ? null : trimmed;",
+    "replace": "return trimmed;",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > turns blank strings into null"
+  },
+  {
+    "id": "seed-shape",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "      privacy_email: emailLeaf,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > parses B2's seeded object"
+  },
+  {
+    "id": "partial-null",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "z.preprocess(unset, inner.nullable()).default(null);",
+    "replace": "z.preprocess(unset, inner.nullable());",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "\"message\": \"Required\""
+  },
+  {
+    "id": "fully-set",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "urlOn(\"linkedin.com\", \"/company/\",",
+    "replace": "urlOn(\"linkedin.com\", \"/in/\",",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > accepts a fully set object"
+  },
+  {
+    "id": "email-max",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "z.string().email().max(254)",
+    "replace": "z.string().email().max(255)",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > needs a valid email"
+  },
+  {
+    "id": "phone-digit",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": ".regex(/\\d/, \"Include at least one digit\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > needs a phone"
+  },
+  {
+    "id": "entity-max",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "entity: leaf(z.string().min(3).max(200)),",
+    "replace": "entity: leaf(z.string().min(3).max(201)),",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > bounds the entity"
+  },
+  {
+    "id": "instagram-https",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "url === null || url.protocol !== \"https:\" ||",
+    "replace": "url === null ||",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > takes an Instagram address"
+  },
+  {
+    "id": "x-host",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "x: urlOn(\"x.com\", \"/\", \"Use an https address on x.com\"),",
+    "replace": "x: urlOn(\"twitter.com\", \"/\", \"Use an https address on x.com\"),",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteSettingsSchema > takes X only"
+  },
+  {
+    "id": "lines-empty",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "return trimmed === undefined || trimmed === \"\" ? [] : [trimmed];",
+    "replace": "return trimmed === undefined ? [] : [trimmed];",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> presentLines > yields no line for an all-null site"
+  },
+  {
+    "id": "lines-trim",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "const trimmed = value?.trim();",
+    "replace": "const trimmed = value ?? undefined;",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> presentLines > yields the set values trimmed"
+  },
+  {
+    "id": "privacy-own",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "presentLines(site.contact.privacy_email ?? site.contact.email)",
+    "replace": "presentLines(site.contact.email)",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> privacyLines > prints the privacy email"
+  },
+  {
+    "id": "privacy-fallback",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "presentLines(site.contact.privacy_email ?? site.contact.email)",
+    "replace": "presentLines(site.contact.privacy_email)",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> privacyLines > falls back to the contact email"
+  },
+  {
+    "id": "privacy-none",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "presentLines(site.contact.privacy_email ?? site.contact.email)",
+    "replace": "presentLines(site.contact.privacy_email ?? site.contact.email ?? \"x\")",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> privacyLines > yields no line when both"
+  },
+  {
+    "id": "specs-leaf",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "key: \"social.x\",",
+    "replace": "key: \"social.y\",",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteFieldSpecs > name every leaf"
+  },
+  {
+    "id": "specs-required",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/settings.ts",
+    "find": "    help: \"The full https address of our X profile.\",\n    required: false,",
+    "replace": "    help: \"The full https address of our X profile.\",\n    required: true,",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> siteFieldSpecs > require the three launch fields"
+  },
+  {
+    "id": "one-unit",
+    "test": "tests/unit/settings.test.ts",
+    "file": "src/domain/retention.ts",
+    "find": "rate_limits: { hours: 25 },",
+    "replace": "rate_limits: { hours: 25, days: 1 },",
+    "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
+    "expect": "FAIL .*> retentionPeriods > give each key exactly one unit"
+  }
+]
