@@ -60,7 +60,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("render_variants", () => {
+// Each case decodes and encodes a 2400x1600 photograph six times; the 5 s default fails on a loaded laptop (G-031).
+describe("render_variants", { timeout: 60_000 }, () => {
   it("GPS fixture's stripped copy has no EXIF", async () => {
     const { stored } = stubStorage(gps);
     expect((await sharp(gps).metadata()).exif).toBeDefined();
