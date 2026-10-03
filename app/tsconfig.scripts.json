@@ -5,6 +5,6 @@
     "allowJs": true,
     "checkJs": true,
     "lib": ["ES2022"],
-    "types": ["node", "bun"]
+    "types": ["node", "bun", "vite/client"]
   }
 }
