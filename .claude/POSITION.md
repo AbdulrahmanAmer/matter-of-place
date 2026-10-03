@@ -877,3 +877,13 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Adds to the calibration after the two runs (wf_8618b926-e77 agent-sized B2, wf_47216851-ce9 premade B4) report:
   serial writer chain, reviews in commit snapshots (review-snapshot.mjs), schema groups wait for pending reviews,
   no draft PR until slice end except groups marked needsPullRequest. Prove on one slice first.
+
+## 2026-10-03 · Calibration in progress (items 1 to 4 done)
+- 1: run 1's self-merge verified (PR 67 → main 810e7d9, CI green); migrations 4 to 8 pushed to mop-dev by the
+  orchestrator from main (`bun run db:push`); B4's branch merged main and needs one fixture fix (run `wf_728371a8-61d`,
+  close-out c2) before PR 68 can go through the gate.
+- 2: merge rule fixed (waiting groups do not block the merge). 3: context-trim rules (slices, quiet runner, 40-line
+  proofs). 4: overlap built (`review-snapshot.mjs`, writer chain, snapshot reviews, schema wait, needsPullRequest,
+  noOverlap) and simulated: 6 scenarios pass. Bank merge driver handles retired entries. agent-cost.mjs range fix.
+- NEXT: 5 premade sizing for every unbuilt slice; 9 bank gardening (Opus agent); 10 follow-ups folded; 11 cost on the
+  board; 6 prove on B2 steps 8 to 14; 7 ledger, restart.json; 8 report and the go question.
