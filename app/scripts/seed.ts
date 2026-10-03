@@ -86,7 +86,7 @@ export async function runSeed(
   args: SeedArgs,
   { db, sha8, guard = (options) => assertNotProduction(options) }: SeedDeps,
 ): Promise<SeedCounts> {
-  // STUB(B2 step 13): the upload mode waits for the media-store of B9 and then writes `variants` too.
+  // STUB(B9 step 6): the upload mode waits for the media-store of B9 and then writes `variants` too (B2 step 13 left it here; B2 is closed).
   if (args.images === "upload")
     throw new Error("seed: --images upload needs the media-store of B9");
   if (args.mode === "full") await guard({ dbUrl: process.env["DEV_DB_URL"] });
