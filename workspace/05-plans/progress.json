@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-03 15:30 (UTC+3)",
-  "now": "Calibration done, build parked until the operator's go. On main: B1b steps 1 to 5b, B2 steps 1 to 7 (migrations 1 to 8 on mop-dev), B4 steps 1, 2, 3 and 5; B1b steps 6 and 7 on their branch. New pipeline: premade sizing, briefs, snapshot reviews overlapping the next build, self-merge, cost on the board.",
+  "updated": "2026-10-03 22:10 (UTC+3)",
+  "now": "Build running on three lanes: api (B3 steps 2 to 13), ops (B8 steps 1 to 8a), design (B9 step 6). B1b closed except step 11; B2 closed; B4 and the rest of B9 wait on B3, B7 and B8.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -45,10 +45,15 @@
         "6",
         "7",
         "8",
-        "9"
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
       ],
       "inReview": [],
-      "note": "Steps 1 to 9 accepted on the db lane (8 and 9 on slice/b2, merged with the slice); 10 to 14 next."
+      "note": "Closed 2026-10-03 (PR 93, afe750c; close-out c9 moved the policy helpers to schema app for advisor lint 0029). The upload half of step 13 waits on B9 step 6."
     },
     "B4": {
       "accepted": [
@@ -64,10 +69,28 @@
     "B9": {
       "accepted": [
         "1",
-        "2"
+        "2",
+        "3",
+        "4",
+        "5"
       ],
       "inReview": [],
-      "note": "Direction picked (S65); steps 3 and 4 to 5 building on slice/b9."
+      "note": "Steps 1 to 5 merged (PR 92); step 6 running; 7 to 11 wait on B8 and B7."
+    },
+    "B3": {
+      "accepted": [
+        "1",
+        "1b"
+      ],
+      "inReview": [],
+      "note": "Steps 1 and 1b accepted on slice/b3; steps 2 to 13 running on the api lane after B2 closed."
+    },
+    "B8": {
+      "accepted": [],
+      "inReview": [
+        "1"
+      ],
+      "note": "Started 2026-10-03 on the ops lane (E:/mop-build/ops, slice/b8, port 8838, P-900/G-350); migrations proven in rolled-back transactions until merge (H1 (a)). Step 1 shown in work while the lane builds it."
     }
   },
   "lanes": [
