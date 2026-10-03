@@ -872,3 +872,8 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   is building B2 steps 4 to 7 in the db lane; when it ends: `agent-cost.mjs --run wf_8618b926-e77` against the
   baseline (121.4M cache / 499 calls / 119 agent minutes per step), then run 2 with
   `sizing: <contents of sizing/B2.json>` on the same lane, then compare both, then ask the operator for the go.
+
+## 2026-10-03 08:20 +0300 · Review-overlap design written (workspace/05-plans/review-overlap.md), awaiting sign-off
+- Adds to the calibration after the two runs (wf_8618b926-e77 agent-sized B2, wf_47216851-ce9 premade B4) report:
+  serial writer chain, reviews in commit snapshots (review-snapshot.mjs), schema groups wait for pending reviews,
+  no draft PR until slice end except groups marked needsPullRequest. Prove on one slice first.
