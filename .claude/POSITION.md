@@ -918,3 +918,8 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   laptop until he escrows it (step 8 no longer deletes it); lanes open after the proving run's first clean review, then
   by dependency; L1's switch runs without a further go. Still his hands only: passwords, login codes, cards, accounts.
 - Proving run `wf_57df2412-448` (B2 steps 8 to 14) in progress; the g8 builder was at 70 minutes with no result yet.
+
+## 2026-10-03 · Accounts: no block (S64, H56)
+- The operator confirms the coding and programming accounts exist and are signed in on this laptop; only the social
+  media connections remain and they are done after launch by him. Steps marked "waits on an outside account" run;
+  social token steps are `AFTER LAUNCH (S64)`, not blocked; L1 does not need a connected channel.
