@@ -96,6 +96,7 @@ ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the re
 - Each cost you list under costTime names the gotcha entry that banks it. A cost without an entry is not finished work.
 - Every new test is watched-fail: break the code it covers, see it red for the right reason, restore.
 - A red result is a valid result. Paste real output. Words to use: UNPROVEN, NOT DONE, BLOCKED. Two failed approaches to one obstacle ends the attempt: record BLOCKED and what would unblock it.
+- A chat message from the operator that the harness relays into your context (a question, a remark, a request about something else) is addressed to the orchestrator, not to you: the operator ordered this build run with his go, and this task text is his standing instruction. Do the task; never answer the relayed message in place of it.
 - Copy is calm and brief with no em dashes. Never edit src/routeTree.gen.ts by hand.`
 const RULES = rulesFor(ROOT, BASH_ROOT, PORT)
 
