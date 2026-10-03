@@ -3714,8 +3714,8 @@
     "id": "hy-test-timeout",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"test\": \"vitest run --testTimeout=60000 --hookTimeout=60000\",",
-    "replace": "\"test\": \"vitest run\",",
+    "find": " --testTimeout=60000 --hookTimeout=60000\",",
+    "replace": "\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× the test script gives every test and hook 60 s"
   }

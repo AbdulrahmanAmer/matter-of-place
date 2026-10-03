@@ -4129,3 +4129,48 @@ GOTCHAS: P-139 added (actionlint is not on this laptop and `bunx actionlint` run
 
 ## g1 · follow-ups recorded
 The review of group g1 (steps 7) found no blocking defect and four follow-ups; no code changed. None was a cost with no entry in the bank, so GOTCHAS.md gains no entry. All four are in `workspace/05-plans/logs/B1b-followups.md` under "## g1 · steps 7" for the orchestrator to fold or assign (a red dev smoke may roll back to the code it just deployed, the deploy-flag cases of `hygiene.test.ts` pin presence and not value, production serves the illustrative catalogue on workers.dev until B3 and B3b and needs a ruling, and the live step 7 proofs that are UNPROVEN until after the merge).
+
+## c7 · steps 7
+2026-10-03 12:50 +0300. Close-out of ruling H49 (1) and (2), finishing the work parked in 88994da (not started over). The workflow, hygiene and registry edits of 88994da stand as committed; this group re-anchored the one stale entry and proved them all.
+
+Files: `app/tests/mutations/B1b.json` (entry `hy-test-timeout` re-anchored: e9cc900 pinned the flags, not the whole script, and the `test` script on main now carries `--project unit --project component --maxWorkers=2`, so the old `find` no longer occurred). Already in 88994da: `.github/workflows/deploy.yml` (production `if:` ends `&& vars.PRODUCTION_DEPLOY == 'on'`; dev step `current` before `deploy` writes the version serving 100 percent, empty on Cloudflare code 10007; dev `rollback` names `$PREVIOUS` or prints `first deploy: nothing to roll back to` and exits 1, else prints `rolled back to <id>`), `app/tests/unit/hygiene.test.ts` (two new cases: `production runs only while PRODUCTION_DEPLOY is on, dev always (H49 (1))` and `dev rolls back to the version that served before its deploy (H49 (2))`), 9 new registry entries.
+
+`gh variable list | grep PRODUCTION_DEPLOY` → `PRODUCTION_DEPLOY	off	2026-10-02T21:19:40Z`
+
+Static proofs of step 7 (repo root):
+- `grep -n "workflow_run\|workflows: \[ci\]\|conclusion == 'success'\|workflow_run.head_sha" .github/workflows/deploy.yml` → lines 19, 20 (trigger), 206 (dev `if:`), 216, 224 (dev ref `head_sha || github.sha`), 356 (production `if:` with `vars.PRODUCTION_DEPLOY == 'on'`), 365, 370 (production ref)
+- `grep -F -c -- '--var MEDIA_PUBLIC_BASE:' .github/workflows/deploy.yml` → `3`
+- `grep -c "MEDIA_BASE_URL\|db:push.*confirm-production" .github/workflows/deploy.yml` → `0`
+- `grep -c "HAS_DB" .github/workflows/deploy.yml` → `7`
+- `git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows` → nothing, exit 1
+
+`cd app && bunx vitest run tests/unit/hygiene.test.ts tests/unit/deploy-guard.test.ts tests/unit/mutation-registry.test.ts --testTimeout=60000`
+```
+ Test Files  3 passed (3)
+      Tests  61 passed | 3 skipped (64)
+```
+The 3 skipped are the `skipIf` blocks of step 6 (deploy absent: never here), step 8 (`backup.yml` not yet written) and B8's job runner.
+
+Watched-fail, replayed through the registry (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`, one id per run, file restored by the tool each time):
+```
+WATCHED-FAIL OK B1b:hy-prod-deploy-off      (production if: without the PRODUCTION_DEPLOY clause)
+WATCHED-FAIL OK B1b:hy-prod-deploy-dev      (the clause added to the dev if:)
+WATCHED-FAIL OK B1b:hy-rollback-no-id       (rollback without "$PREVIOUS")
+WATCHED-FAIL OK B1b:hy-rollback-first-ok    (first deploy exits 0)
+WATCHED-FAIL OK B1b:hy-current-order        (current moved after deploy)
+WATCHED-FAIL OK B1b:hy-current-any-error    (any list error read as first deploy)
+WATCHED-FAIL OK B1b:hy-current-not-serving  (percentage > 0 instead of == 100)
+WATCHED-FAIL OK B1b:hy-current-target       (PREVIOUS read from the deploy step)
+WATCHED-FAIL OK B1b:hy-test-timeout         (timeout flags dropped from the test script)
+WATCHED-FAIL OK B1b:hy-main-event           (re-anchored in 88994da)
+WATCHED-FAIL OK B1b:hy-dev-db-order         (re-anchored in 88994da)
+WATCHED-FAIL OK B1b:hy-cleanup-exit         (re-anchored in 88994da)
+```
+Every exit 0. A count of every `file` entry's `find` in its file as it stands: `file entries 409, stale 0`.
+
+`cd app && bun run check` → layout, typecheck, lint, knip (two configuration hints, not errors), jscpd, stubs, prettier all pass; `bun run test` → `Test Files  28 passed (28)`, `Tests  561 passed | 3 skipped (564)`, exit 0.
+`cd app && bun run build` → exit 0 (`quiet: ok (231 lines)`).
+
+NOT DONE until the orchestrator sets `PRODUCTION_DEPLOY` to `on` once B3b (coming-soon mode) is on main (H49 (1)), proved at B3b's close: the first production deploy and every live production proof of step 7 (the run log with both `MEDIA_PUBLIC_BASE` values, `production` after `dev`, smoke and `x-robots-tag` on the production workers.dev URL, `SENTRY_DSN` put and listed on `matter-of-place`, the production Sentry event, watched-fail (p), the re-run guard on the real workflow, the manual rollback with the deploy token, the CPU tail). UNPROVEN until it runs live: the dev job's `current` step against Cloudflare (the `--json` shape `last | .versions[] | select(.percentage == 100)` and the code 10007 text) and the in-job rollback to a named id; step 7b proves them on the `dev` job. The production job's rollback still has no id: production has no secrets step, so the H49 (2) cause does not arise there, and the reviewer named the dev job only.
+
+GOTCHAS: no entry added. The one stale `find` (`hy-test-timeout`) was found by the count above before any replay and fixed in one edit; P-066 already holds the rule (replay a registry after a mutated file moves).
