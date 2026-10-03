@@ -935,3 +935,12 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   (main's text plus the lane's enforced-by line), hygiene pin of the 60 s flags loosened to `toContain` (`e9cc900`).
 - NEXT: on each run's end: agent-cost, merge check, follow-ups; after B2 g13 the advisor check; B3 lane
   (`E:/mop-build/api`, port 8828, P-800/G-300) when B2 closes; PR 43 through the gate after c7, then spine from g8.
+
+## 2026-10-03 14:10 · Lanes: B4 g4 merged; B9 direction picked; review brief fixed
+- B4 step 4 accepted and self-merged (PR 84); ledger and plan row current (PR 85). B4 g5 to g7 wait on B3 and B3b.
+- B9 g1 accepted; the CTO picked the direction (S65: cover A, carousel A, story C, newsletter-block A, standalone-email
+  C; reasons in the lane's logs/B9.md, commit `2e148a3` on slice/b9). Design lane relaunched from g2: `wf_1fa7be00-8d5`
+  (g2, g3, g4 runnable; g5 waits on B2 step 12, g6 on B8, g8 on B7).
+- Review brief defect found by two reviewers: `review-snapshot.mjs create/remove` were given the snapshot folder, not
+  the lane root; fixed (PR 86, `8404a67`). db `wf_57df2412-448` on g9 review and g10; spine `wf_f3345953-34d` on g10
+  with g9 (step 8) BLOCKED for its dispatch proof until PR 43 merges (the spine's self-merge does that at run end).
