@@ -1624,6 +1624,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only retention-seed` → `WATCHED-FAIL OK B16:retention-seed` (measured 2026-10-04, B16 g1 retry).
 - added: 2026-10-04
 
+## P-1003 · A merge of origin/main that brings a new dependency leaves `node_modules` behind: run `bun install` before the first typecheck
+- severity: warn
+- symptom: after `git merge origin/main` into slice/b16 (the B9 g5 merge, 9fcf7f5), `tsc` failed on `puppeteer-core` in B16 g1 and the group's cost line named P-1002, which says nothing about it; the fresh reviewer found the cost unbanked.
+- cause: the merge brought `"puppeteer-core"` into `app/package.json` and `bun.lock`, but a lane's `node_modules` is installed once and a merge never runs the install, so the typecheck saw a package that was declared and absent.
+- rule: after any merge of origin/main, if `git diff --name-only HEAD~1 HEAD -- app/package.json app/bun.lock` names a file, run `cd app && bun install` before `bun run check`; a typecheck error that names an import of a package present in `package.json` is a stale `node_modules`, not a code defect. The other half of that cost, a registry entry going STALE after an edit to a mutated file, is banked in the registry rule (P-066).
+- proof: `cd app && grep -c '"puppeteer-core"' package.json` → `1` on slice/b16 at bec47c2 (line 98, merged from main with 500d04b); `cd app && bun install --frozen-lockfile 2>&1 | tail -1` then `bunx tsc --noEmit` exits 0 (the red output of the missed install was not kept: UNPROVEN as text, reported by the g1 cost line and the reviewer).
+- added: 2026-10-04
+
 ## P-713 · `watchfail.mjs --registry tests/mutations` replays every registry of the repository, and `--changed` sees only committed work
 - symptom: B9 g5 ran `node scripts/watchfail.mjs --registry tests/mutations --kinds unit` to replay its 35 new entries; it started on B1b and went on through B2 and B4 (873 entries in all, the B4 ones mutate `scripts/watchfail.mjs` itself). Killing it left `src/lib/cx.ts` mutated and later `scripts/watchfail.mjs` (`git status --short` showed both). With `--changed origin/main` and the work still uncommitted it printed `replayed 0 ... 873 not selected`. Five minutes went on the two kills and the restores.
 - cause: `loadRegistries` reads every `*.json` of the folder, `--only` takes one id, and `--changed <ref>` diffs `<ref>...HEAD`, so uncommitted files are never selected; the runner starts each `run` through the Windows shell, where `!`, `rm -rf` and globs do not exist.
