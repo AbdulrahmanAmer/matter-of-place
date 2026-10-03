@@ -1255,7 +1255,7 @@ Entry template
 
 ## P-309 · A quoted heredoc that fails with `unexpected EOF` writes nothing: the workaround is the same as P-070, the symptom is not
 - symptom: in B2 g2 a Bash command that carried text through a heredoc stopped with `unexpected EOF` and wrote no file. A search of the bank for that message finds nothing, because P-070 describes the other failure, backslashes dropped from text that is written.
-- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input.
+- cause: the Bash tool on this machine mangles quotes and backslashes in a long command before the shell parses it (P-008, P-070), so the delimiter or a quote inside the body no longer matches and the shell reads to the end of input. Hit again in B2 g6 (2026-10-03): a 300-line `cat > script.mjs <<'EOF'` carrying test code with template literals ended `line 101: unexpected EOF while looking for matching ''`, nothing written; the same text went in through four Edit calls.
 - rule: when a heredoc or `node -e` ends in `unexpected EOF`, nothing was written: do not retry with other quoting, put the text in with the Write or Edit tool (as P-070 says), then read `git status --short` before going on.
 - proof: `grep -n "unexpected EOF" GOTCHAS.md | cut -c1-40` → this entry's heading and symptom lines; `git grep -n "^## P-070" -- GOTCHAS.md` → the cause it shares (reviewer follow-up, B2 g2).
 - added: 2026-10-02
@@ -1395,4 +1395,94 @@ Entry template
 - cause: `bunx` resolves the package from the scratch folder, which has no `node_modules` (the same family as P-403 for vitest). `watchfail.mjs` prints the run's output only when the result is red, so a probe whose purpose is to print measurements gets none through it.
 - rule: run a scratch Playwright config from `app/` as `NODE_PATH=<app>/node_modules node node_modules/@playwright/test/cli.js test --config <scratch config>`. When the probe runs inside `--run` of `watchfail.mjs`, have the spec write its measurements to a file in the scratch folder and read that file afterwards; do not count on the tool's output. The probe edits nothing in the tree, so it needs no `watchfail` at all unless the point is a mutation.
 - proof: from `app/`, with a one-test spec that does `import { test } from "@playwright/test"` and a config whose `testDir` is the scratch folder, `bunx playwright test --config <scratch config>` prints `Cannot find module '@playwright/test'`, and `NODE_PATH="$PWD/node_modules" node node_modules/@playwright/test/cli.js test --config <scratch config>` prints `1 passed` (measured 2026-10-03, B4 follow-up record).
+- added: 2026-10-03
+
+## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
+- symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
+- cause: commit ddc0b4d renamed the app folder to `app/` after 8dd6f26; at 8dd6f26 the file is `Matter Of Place Codebase/docs/database/schema.sql`. The plan wrote today's path against an older commit.
+- rule: read the sketch at 8dd6f26 by its path at that commit, `git show "8dd6f26:Matter Of Place Codebase/docs/database/schema.sql"` (lines 94 to 439 are the tables), and after a folder rename check a historical path with `git ls-tree -r --name-only <commit> | grep <file>` before trusting a plan line.
+- proof: `git show "8dd6f26:Matter Of Place Codebase/docs/database/schema.sql" | sed -n 94p` → `create table markets (` (measured 2026-10-03, B2 g4).
+- added: 2026-10-03
+
+## P-312 · A lane's migration cannot reach mop-dev and CI has no `db` job yet: prove it inside each test's rolled-back transaction
+- symptom: B2 g4 (migration 4) could not run one database proof the ordinary way: phase 1 forbids pushing an unmerged migration (DB-01, H1), and B4's CI `db` job does not exist yet, so the plan's "wait for a database the lane may use" would have left every case of the step UNPROVEN.
+- cause: the harness already runs `MOP_MUTATION_SQL` first inside the rolled-back transaction of `withRollback` (T-07), and Postgres DDL is transactional, so the migration's whole text can be that SQL: each test sees the new schema and nothing is committed.
+- rule: until the `db` job runs, prove an unmerged migration with `MOP_MUTATION_SQL="$(cat supabase/migrations/<file>.sql)"` on the vitest command (the dev profile loaded, `env -u CLOUDFLARE_API_TOKEN`, P-310), and replay `sql` watched-fails with that file prepended to the entry's SQL; say in the log that the proof is mop-dev inside rolled-back transactions and that the CI job is still UNPROVEN. Without the prelude, `function-source.db.test.ts` fails on mop-dev for the new function files: that is the expected state until the migration is pushed from `main`. Two test files that both create the same tables wait on each other's catalog rows, so keep the files few or pass `--no-file-parallelism` when a run times out on `lock_timeout`.
+- proof: from `app/` on slice/b2 at B2 g4, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)" env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db` → `Tests  60 passed (60)`, and afterwards `bun run db:psql -- -Atc "select to_regclass('public.properties') is null"` → `t` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-313 · The loader the computed brief prints makes every db test refuse: since H30 (3) it is the dev profile, and P-310 names only half of the refusal
+- symptom: in the review of B2 g4, after the standing-rule line `set -a; . <(tr -d '\r' < .env | grep ...); set +a`, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape` exited 1 with `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` and no test ran. P-310 reads as if unsetting `CLOUDFLARE_API_TOKEN` were the whole fix.
+- cause: that line loads every name of the single `.env`, ops names included, and `guardEnv()` (SEC-08) refuses them all. Ruling H30 (3) replaced it from B2 on with `eval "$(node scripts/load-env.mjs --profile dev)"` run from `app/`. The prompt template still prints the old line: `.claude/workflows/build-slice.js` line 89 and `.claude/agents/mop-builder.md` line 41 (ASSUMED E10 as well). `CLOUDFLARE_API_TOKEN` is the one name the Bash tool exports by itself (P-310), so it needs its own `env -u`.
+- rule: a db test or any script that calls `guardEnv()` runs as `eval "$(node scripts/load-env.mjs --profile dev)"` then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order, from `app/`. The inline `set -a; . <(...)` loader is for commands that are not db tests only. The orchestrator owns the template fix: replace the loader in `.claude/workflows/build-slice.js` and `.claude/agents/mop-builder.md` for B2 lanes and later. Until then a worker that sees the refusal reads the `Error:` line first (P-310) and switches loader. Hit again in the g5 review (2026-10-03): the reviewer brief still printed the old loader, the first db run gave `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN`, and after loading only `DEV_DB_URL` it still gave `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN` because that name also comes from the shell profile; unsetting `.env` values never helps, only `env -u CLOUDFLARE_API_TOKEN`. The template fix stays open until a brief prints the new loader.
+- proof: from `app/` on slice/b2, after the old loader, `env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/schema.db.test.ts -t shape 2>&1 | grep "^Error"` prints the refusal above (exit 1); after `eval "$(node scripts/load-env.mjs --profile dev)"` the refusal is gone, and with `MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090300_catalog.sql)"` (P-312) it prints `Tests  4 passed | 22 skipped (26)`, exit 0 (measured 2026-10-03). Without the prelude the dev-profile run fails one case, `every money column is numeric(12,2)`, because migration 4 is not on mop-dev.
+- added: 2026-10-03
+
+## P-314 · A `MOP_MUTATION_SQL` prelude of several migrations crashes `bunx vitest`, and stripping every comment makes `function-source.db.test.ts` fail
+- symptom: B2 g5 applied migrations 4, 5 and 6 as one prelude (P-312). With 35,678 characters in `MOP_MUTATION_SQL`, `bunx vitest run --project db ...` printed nothing and exited 0; with the comment lines stripped (27,968 characters) it printed `panic: Segmentation fault at address 0xFFFFFFFFFFFFFFFF`. After the runner was fixed, `function-source.db.test.ts` still reported `differs: [enforce_submission_media_limit, ensure_analytics_partitions]`.
+- cause: bun on Windows does not survive a very large environment variable (the Windows limit is 32,767 characters per variable), and the first fix, `grep -v '^\s*--'` over the concatenated files, also deleted the comment lines inside the `$$` function bodies, so `pg_proc.prosrc` no longer equalled the function file.
+- rule: when the prelude is more than about 15 KB, run the db tests as `node node_modules/vitest/vitest.mjs run --project db ...` (the replay script rewrites `bunx vitest` the same way) and build the prelude with a script that drops comment and blank lines only outside `$$` bodies. The 32 KB limit is wrong for node (P-317): a 43,805-character prelude reaches vitest through `node`, so keep every migration in it.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && export MOP_MUTATION_SQL="$(cat ../scratch/g5-prelude.sql)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts` → `Tests  34 passed (34)`; the same line with `bunx vitest` → `panic: Segmentation fault` (measured 2026-10-03, B2 g5; `scratch/g5-prelude.mjs` builds the prelude).
+- added: 2026-10-03
+
+## P-315 · A plan's proof grep for the old `agent_*` names matches the `listing_agent_name` column the same step creates, and `git grep` cannot see the new migration
+- symptom: B2 step 5's proof `grep -rn "agentName\|...\|agent_name\|agent_email\|agent_phone" src/domain supabase/migrations` printed three lines of `20261001090400_intake.sql`, all `listing_agent_name`, although no `agent_name` column exists; `git grep` of the same pattern printed nothing because the new migration was still untracked.
+- cause: `agent_name` is a substring of `listing_agent_name`, a column invariant 22 itself requires; and `git grep` searches tracked files only.
+- rule: prove the rename with the name anchored, `grep -rnE "agentName|agentEmail|agentPhone|(^|[^_a-z])agent_(name|email|phone)" src/domain supabase/migrations`, which prints nothing; run it with `grep -r` on those two small folders (P-049 forbids it only from the repository root) or after `git add`. The header comment of a migration must not spell the old names either.
+- proof: `cd app && grep -rnE "agentName|agentEmail|agentPhone|(^|[^_a-z])agent_(name|email|phone)" src/domain supabase/migrations; echo $?` → no line, then `1` (measured 2026-10-03, B2 g5).
+- added: 2026-10-03
+
+## P-316 · mop-dev holds a stray committed function `__wf_probe`, which turns two db tests red whatever a lane does
+- symptom: B2 g5's full db run on `mop-dev` failed `function-source.db.test.ts` (`withoutFile: [__wf_probe]`) and the T-07 case of `harness.db.test.ts` (`error: function "__wf_probe" already exists with same argument types`), neither related to migrations 5 and 6. B2 g4 ran the same two files green a day earlier.
+- cause: some workflow probe created `public.__wf_probe()` (`select 1`) on `mop-dev` and committed it. A lane may not drop it: `mop-dev` is shared and DB-01 allows only `main` to change it.
+- rule: before reading a `function-source` or `withMutation` red as the lane's own, run `bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"`; a row is the stray probe, to be dropped by the orchestrator. The lane reports the two cases as red for that reason and does not drop it.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select proname from pg_proc where proname like '\_\_wf%'"` → `__wf_probe` (measured 2026-10-03, B2 g5).
+- added: 2026-10-03
+
+## G-101 · A catalog column of type `"char"` cannot be concatenated with a string literal
+- paths: app/tests/db/**, app/scripts/**
+- severity: warn
+- symptom: B2 g4's foreign-key shape case of `schema.db.test.ts` failed with `error: operator is not unique: unknown || "char"` on `'on delete ' || c.confdeltype`.
+- cause: `pg_constraint.confdeltype`, `contype`, `pg_class.relkind` and the other one-letter catalog codes are the type `"char"`, and `||` has no single candidate for an untyped literal on one side and `"char"` on the other.
+- rule: cast a `"char"` catalog column to `text` before `||` or `format`: `c.confdeltype::text`. Comparing it with a literal (`confdeltype in ('c', 'n', 'r')`) needs no cast.
+- proof: `cd app && bun run db:psql -- -Atc "select 'on delete ' || c.confdeltype from pg_constraint c where contype = 'f' limit 1"` → `ERROR:  operator is not unique: unknown || "char"`; with `c.confdeltype::text` → `on delete c` (measured 2026-10-03, B2 g4).
+- added: 2026-10-03
+
+## P-317 · P-314's "a prelude over 32 KB cannot be passed" is false: node carries 100 KB, only bun and `cmd` are in the way
+- symptom: B2 g6 needed migrations 4 to 8 as one prelude (43,805 characters after stripping). P-314 said that cannot be passed as one variable, which would have meant dropping migrations or leaving every database proof of step 7 UNPROVEN.
+- cause: P-314 measured `bunx vitest`, and bun is what crashes. Windows' 32,767-character figure is the limit of `SetEnvironmentVariable`, not of the environment block `CreateProcess` passes: Git Bash `export` and node's `spawnSync(process.execPath, ..., { env })` both hand the whole value on, and vitest's workers inherit it from node.
+- rule: run a large prelude through `node node_modules/vitest/vitest.mjs`, and spawn replays with `spawnSync(process.execPath, args, { env })`, never `shell: true` (the replay runner `scratch/g6-replay.mjs` splits the registry's `run` into arguments). Keep every migration the tests read in the prelude.
+- proof: from `app/`, `export MOP_MUTATION_SQL="$(cat ../scratch/g6-prelude.sql)" && node -e "console.log(process.env.MOP_MUTATION_SQL.length)"` → `43805`; `node ../scratch/g6-envsize.mjs` → `100000 0 100000` (a child read a 100,000-character variable); the db project on that prelude ran `Tests  2 failed | 144 passed (146)`, the two reds being P-316's stray function (measured 2026-10-03, B2 g6).
+- added: 2026-10-03
+
+## G-102 · A statement that fails inside `withRollback` aborts the whole test transaction unless a savepoint wraps it
+- paths: app/tests/db/**
+- severity: warn
+- symptom: B2 g6's eight `hard_delete` cases all failed with `error: current transaction is aborted, commands ignored until end of transaction block` on the `set_config('mop.retention', ...)` line, after the refused delete had raised exactly as intended.
+- cause: `withRollback` runs the whole test in one transaction, and `failureOf` only catches the error: Postgres marks the transaction aborted, so every later statement in that test fails.
+- rule: a test that goes on after an expected error runs the failing statement under a savepoint (`savepoint x` before, `rollback to savepoint x` after), as `outcome` and `attempt` do; use bare `failureOf` only for a test's last statement.
+- proof: from `app/` with the g6 prelude, `node node_modules/vitest/vitest.mjs run --project db tests/db/integrity.db.test.ts -t hard_delete` → `Tests  8 passed | 43 skipped (51)`; without the two savepoint lines around `failureOf` in that case → `8 failed` with the message above (measured 2026-10-03, B2 g6).
+- added: 2026-10-03
+
+## G-103 · `Object.keys(obj) as K[]` fails the lint: `no-unsafe-type-assertion` refuses the narrowing
+- paths: app/tests/**, app/src/**
+- severity: warn
+- symptom: B2 g6's first `bun run check` failed lint on `Object.keys(submissionTransitions) as WorkflowState[]` in two test files: `Unsafe type assertion: type '(...)[]' is more narrow than the original type  @typescript-eslint/no-unsafe-type-assertion`.
+- cause: `Object.keys` returns `string[]`, and the strict type-aware preset (R01) refuses any cast to a narrower type.
+- rule: narrow the keys with a type guard instead of a cast: `Object.keys(obj).filter((key): key is K => key in obj)`.
+- proof: `cd app && bun run lint` exits 0 on slice/b2 at B2 g6; with the cast put back in `tests/unit/workflow.test.ts` it prints the error above (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
+- symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
+- cause: the script lists added files with `git diff --relative --name-only origin/main...HEAD --diff-filter=A -- supabase/migrations`, a diff of commits. A file that is untracked or only staged is not in it, so it is neither ordered nor checksummed.
+- rule: run `check-migrations.mjs` after committing the migration, and compare the `added` count with the number of new files under `supabase/migrations`; a count that is lower means the run proved nothing about the new file.
+- proof: from `app/`, `printf -- '-- probe\n' > supabase/migrations/20261001099999_probe.sql && node scripts/check-migrations.mjs; rm supabase/migrations/20261001099999_probe.sql` → `migration-order: OK (3 on main, 5 added)`, the probe not counted (measured 2026-10-03, B2 g6 follow-up).
+- added: 2026-10-03
+
+## P-319 · A proof that reads `scratch/` cannot be re-run by anyone else: the folder is git-ignored
+- symptom: the rule of P-317 names `scratch/g6-replay.mjs`, and the proofs of P-317 and G-102 read `../scratch/g6-envsize.mjs` and `../scratch/g6-prelude.sql`. Another lane, the orchestrator or CI that follows those proofs finds no such file.
+- cause: `.gitignore` line 37 ignores `scratch/`, so a script written there during a group never reaches the branch. The gotcha template asks for a proof a reader can run and the group's author ran it from their own scratch folder.
+- rule: a proof names a committed script or an inline command, never a path under `scratch/`; when the proof needs a helper, commit it under its folder-map row (B4's `scripts/watchfail.mjs` replays the mutation registry once it lands) or inline it in the command.
+- proof: `git check-ignore -v scratch/g6-prelude.sql` → `.gitignore:37:scratch/	scratch/g6-prelude.sql`; `git grep -n "scratch/g6" -- GOTCHAS.md` lists the P-317 and G-102 lines that still depend on it until B4 lands the replay script (measured 2026-10-03, B2 g6 follow-up).
 - added: 2026-10-03
