@@ -4232,3 +4232,9 @@ Retention: 30 days. Encrypted dump 234,481 bytes (laptop), so 30 nights about 7 
 NOT DONE, waiting on the orchestrator's merge of this pull request (`workflow_dispatch` finds only workflows on `main`; builders never merge): `gh workflow run backup.yml -f target=dev && gh run watch`, `gh run download <id> -n mop-dev-dump`, the decrypt and `pg_restore --list` of the runner's artifact, the artifact's `size_in_bytes`, and so the runner path (PGDG client 17 install, pooler from a runner) stays UNPROVEN. Escrow (DO-06): NOT DONE by design (H55 (3)); the key stays on the laptop and the runbook says so. Part B1 (`schedule:` line) waits for B8b; the `beat` log line and `ops_heartbeats` read wait for B8.
 
 GOTCHAS: added G-040 (a `$(psql ...)` inside `[ ]` hides a query error under `bash -e`; caught in the first draft of `record`) and P-150 (live `build-output` artifacts above the Free storage quota).
+
+## c7 · follow-ups recorded
+
+The c7 review found no blocking defect and five follow-ups; no code changed. Two had GOTCHAS.md as their file and are banked: P-151 (G-031's reference to P-504 pointed at the wrong entry after the merge renumbered the lane entry to P-140; the reference in G-031 is corrected) and P-153 (the review brief's `review-snapshot.mjs create` line names the snapshot folder as the lane root), with the second cost of that follow-up, the hygiene case's own 20 s timeout, banked as P-152 and added to G-031's enforced-by line. The other three follow-ups (hygiene.test.ts 20_000 timeout, the B1b.md proof that needs a script outside the repository, the deploy.yml production rollback and gradual-split cases) are in `workspace/05-plans/logs/B1b-followups.md` under "c7 · steps 7" for the orchestrator to fold or assign.
+
+GOTCHAS: added P-151, P-152, P-153.
