@@ -1072,6 +1072,20 @@ Entry template
 - proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03
 
+## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
+- symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
+- cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
+- rule: write the matrix 11x11 with the `Withdrawn` column and row taken from B2 invariant 5; in `analytics.test.ts` type the name list as `Record<AnalyticsEvent, true>`, which fails the typecheck when the union gains or loses a name, and replace it with `analyticsEvents` when B3 step 5 lands (B3 changes `analytics.ts` and updates this test).
+- proof: `cd app && node -e "const s=require('fs').readFileSync('tests/unit/state-machine.test.ts','utf8');console.log(s.match(/^ {2}(\"[A-Za-z ]+\"|[A-Za-z]+): .*\"[01 ]+\",$/gm).length)"` → `11`; `git grep -c "Record<AnalyticsEvent, true>" -- tests/unit/analytics.test.ts` → `1`.
+- added: 2026-10-03
+
+## P-415 · `expect.objectContaining` and `expect.stringMatching` return `any`: the lint refuses them inside an object or a return, and prettier realigns comment padding a registry `find` copied before formatting
+- symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written. Hit again: P-094 (a `python -` heredoc hung 120 seconds in the same turn) and P-066.
+- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
+- rule: build the observed values with `typeof x === "object" && x !== null && "key" in x ? x.key : null` (it narrows to `unknown`) and compare plain values; run `bunx prettier --write` on the test file before writing any registry `find` that quotes it, and replay the entry at once.
+- proof: `cd app && bunx eslint --max-warnings 0 tests/unit/analytics.test.ts` → no output, exit 0; `node scripts/watchfail.mjs --registry tests/mutations --only sm-rows` → `WATCHED-FAIL OK B4:sm-rows`.
+- added: 2026-10-03
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
