@@ -4,9 +4,10 @@
 --   delete from public.settings where key in ('coming_soon_global', 'site', 'environment', 'catalog_version');
 set lock_timeout = '5s';
 
--- Structural rows, so they belong in a migration and run in production too. `catalog_version` goes in last: the
--- three public keys before it fire `settings_bump_catalog_version`, which finds no row to raise and does nothing, so
--- the version starts at 1. A replay conflicts on every key and changes nothing.
+-- Structural rows, so they belong in a migration and run in production too. `catalog_version` is its own statement,
+-- after the three public keys: Postgres fires the AFTER ROW triggers of one statement at its end, so a row inserted
+-- in the same statement would be raised by `settings_bump_catalog_version` three times. A replay conflicts on every
+-- key and changes nothing.
 -- `site` is B16's shape (G23): contact, legal, social. `hello@` is the public contact and the reply-to of automatic
 -- mail, `privacy@` takes privacy requests; `admin@` stays the address for alerts, DMARC reports and accounts (E19).
 -- `environment` is the stage before the launch switch, which sets `production` once (ruling H35).
@@ -17,8 +18,11 @@ values
     'site',
     '{"contact":{"email":"hello@matterofplace.com","phone":null,"privacy_email":"privacy@matterofplace.com"},"legal":{"entity":null,"address":null},"social":{"instagram":null,"x":null,"linkedin":null}}'::jsonb
   ),
-  ('environment', '"development"'::jsonb),
-  ('catalog_version', '1'::jsonb)
+  ('environment', '"development"'::jsonb)
+on conflict (key) do nothing;
+
+insert into public.settings (key, value)
+values ('catalog_version', '1'::jsonb)
 on conflict (key) do nothing;
 
 -- Retention for the tables this slice creates (architecture 10, GD-03; the slice that creates a table seeds its row,

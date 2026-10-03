@@ -2350,5 +2350,15 @@
     "replace": "  maxBytes: 26_214_401,\n",
     "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
     "expect": "× .*storage file_size_limit equals uploadLimits.maxBytes"
+  },
+  {
+    "id": "g10-catalog-version-start",
+    "kind": "file",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "file": "supabase/migrations/20261001091100_settings_defaults.sql",
+    "find": "  ('environment', '\"development\"'::jsonb)\non conflict (key) do nothing;\n\ninsert into public.settings (key, value)\nvalues ('catalog_version', '1'::jsonb)\non conflict (key) do nothing;\n",
+    "replace": "  ('environment', '\"development\"'::jsonb),\n  ('catalog_version', '1'::jsonb)\non conflict (key) do nothing;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/catalog-version.db.test.ts -t although",
+    "expect": "× .*starts catalog_version at 1 although the three public keys"
   }
 ]

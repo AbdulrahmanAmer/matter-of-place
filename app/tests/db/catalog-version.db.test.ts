@@ -1,5 +1,6 @@
 // Invariant 8 (G21, F25 a): settings.catalog_version rises by one on every change to published catalog content, to
 // slug_history and redirects, to markets.coming_soon and to the five public settings keys, and on nothing else.
+import { readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, withRollback, type Db } from "../fixtures/db";
@@ -234,5 +235,37 @@ describe("bump_catalog_version()", () => {
       authenticated: "42501 permission denied for function bump_catalog_version",
       serviceRole: 1,
     });
+  });
+});
+
+describe("migration 12: catalog_version starts at 1", () => {
+  const defaults = new URL(
+    "../../supabase/migrations/20261001091100_settings_defaults.sql",
+    import.meta.url,
+  );
+
+  it("starts catalog_version at 1 although the three public keys are inserted before it", async () => {
+    const start = await withRollback(async (db) => {
+      const trigger = await db.query(
+        "select 1 from pg_trigger where tgrelid = 'public.settings'::regclass and tgname = 'settings_bump_catalog_version'",
+      );
+      expect(
+        trigger.rowCount,
+        "settings_bump_catalog_version exists, or the case proves nothing",
+      ).toBe(1);
+      await db.query(
+        "delete from public.settings where key in ('coming_soon_global', 'site', 'environment', 'catalog_version')",
+      );
+      await db.query(readFileSync(defaults, "utf8"));
+      const read = await db.query<{ key: string; value: string }>(
+        "select key, value #>> '{}' as value from public.settings where key in ('catalog_version', 'environment', 'coming_soon_global') order by key",
+      );
+      return read.rows;
+    });
+    expect(start).toEqual([
+      { key: "catalog_version", value: "1" },
+      { key: "coming_soon_global", value: "false" },
+      { key: "environment", value: "development" },
+    ]);
   });
 });
