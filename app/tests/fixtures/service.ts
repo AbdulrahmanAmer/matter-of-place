@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../src/db";
 
 function required(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
@@ -19,5 +20,7 @@ export function serviceClient() {
     ref === undefined || ref === "" ? undefined : `https://${ref}.supabase.co`,
   );
   const key = required("SUPABASE_SERVICE_ROLE_KEY", process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"]);
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }

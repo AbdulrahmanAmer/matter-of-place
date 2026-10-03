@@ -19,7 +19,7 @@ The ten lessons that bite most often
 7. Times: write them with the numeric offset, `date "+%Y-%m-%d %H:%M %z"`; "EDT" on this laptop is Egypt, UTC+3 (P-130).
 8. Lane ports and bank bases: each lane has its own preview port (spine 8788, db 8798, tests 8808, design 8818, api 8828) and its own number series here (P-503); the bank merges by entry (P-072).
 9. No Docker on this laptop, ever: schema reaches the cloud with `db push`, throwaway clusters come from native PostgreSQL 18 (P-038).
-10. One database: only `main` changes `mop-dev` (P-050); db tests load the dev profile and run under `env -u CLOUDFLARE_API_TOKEN` (P-310); an unmerged migration is proved inside rolled-back transactions (P-312).
+10. One database: only `main` changes `mop-dev` (P-050); db tests and `scripts/dev-vars.mjs` load the dev profile and run under `env -u CLOUDFLARE_API_TOKEN` (P-310); an unmerged migration is proved inside rolled-back transactions (P-312).
 
 Also often needed: a lane is a worktree outside this folder (P-051) and two workers never share one tree (P-011); secrets never printed or in `VITE_*` (G-006, P-055, P-037); Chrome with the GPU off for anything compared (P-052); workflows only at the repository root (G-012); before saying done, re-run every proof yourself (P-059) and look at the real state after an interrupted call (P-056). Where a file goes and what a machine checks: `workspace/05-plans/STANDARDS.md`; rulings: `workspace/05-plans/ASSUMED.md` section H; measured machine facts: section E.
 
@@ -187,6 +187,9 @@ Entry template
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
 - hit again: 2026-10-03, B2 g11 (second attempt cost): a heredoc whose text held an apostrophe ended in `unexpected EOF` and wrote nothing, and a patch script that ran a `rm` of a path it had just made was refused by the safety check; the file went in with the Write tool instead.
 - merged: P-070, P-111, P-115, P-309, P-406
+- hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
+` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
+- hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -397,6 +400,7 @@ Entry template
 - rule: start a server through Playwright's own `webServer` when a test run needs one, so it stops with the run. One started by hand is stopped by the process that owns the port: find it with `netstat -ano | grep ":<port>.*LISTENING" | awk '{print $NF}' | tr -d '\r'` and stop it with its children (`taskkill /PID <id> /T /F` under `MSYS_NO_PATHCONV=1`, `//PID` without it); for `wrangler dev`, in PowerShell stop the `node.exe` or `bun.exe` whose command line contains `wrangler` and the port, then any `workerd`, filtering by process name so the command does not match and kill its own shell. Confirm the port is free (`Get-NetTCPConnection -LocalPort <port> -State Listen`, or `netstat -ano | grep -c ":<port>.*LISTENING"` → 0) before the next run. Never stop every node process: another lane may be serving (ruling H45).
 - proof: after stopping two `node.exe` parents, `listeners on 8799: 0` and `workerd left: 0` (2026-10-01); `MSYS_NO_PATHCONV=1 bash -c 'P=$(netstat -ano | grep ":8808.*LISTENING" | head -1 | awk "{print \$NF}" | tr -d "\r"); echo pid=[$P]'` prints the bare id while a dev server runs, and `netstat -ano | grep -c ":8808.*LISTENING"` prints `0` after `taskkill /PID <id> /T /F` (2026-10-03, B4 g3).
 - merged: P-407
+- hit again: 2026-10-03, B3 g1: stopping the built Worker on port 8828 took four `taskkill` calls because killing the listener's process id left the respawning `node.exe` parent; the group's log banked the cost under P-094 (python), which is the wrong entry. The review found it.
 - added: 2026-10-01
 
 ## P-043 · "Is it documented" and "are we ready" were answered from memory and from a gate that measured the wrong things
@@ -426,6 +430,7 @@ Entry template
 - cause: `app/node_modules` and `launch/node_modules` hold tens of thousands of files and `--include` does not stop the directory walk. `git grep` searches tracked files only; a new file is invisible to it until `git add` or `git add -N`.
 - rule: search tracked files with `git grep -I` (or the Grep tool); never `grep -r` from the root (a small named folder is fine). A proof that searches a file the same step created uses `git grep --untracked` or runs after `git add` (or `git add -N`); never read an empty `git grep` as "the line is not there" until `git ls-files --error-unmatch <file>` says the file is tracked.
 - proof: `git grep -c "08-visual-pass"` returns at once; from `app/`, `echo 'export const zzProbe = 1;' > scratch-probe-zz.ts; git grep -n zzProbe; echo $?; git grep -n --untracked zzProbe; rm scratch-probe-zz.ts` prints `1`, then `scratch-probe-zz.ts:1:export const zzProbe = 1;` (2026-10-03, B4 follow-up record).
+- hit again: 2026-10-03, B3 g1 review: a recursive `grep -rnE` over `app/` without `--exclude-dir` for `node_modules` and `.output` ran past the 120 s limit; the Grep tool with a glob answered in seconds.
 - merged: P-410
 - added: 2026-10-02
 
@@ -773,6 +778,8 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
+- hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
+- hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -952,6 +959,7 @@ Entry template
 - proof: `env | grep -c '^CLOUDFLARE_API_TOKEN='` in a new Bash tool call prints `1`; from `app/` with the dev profile loaded, `bunx vitest run --project db tests/db/migration-headers.test.ts 2>&1 | grep "^Error"` prints the refusal above, and the same with `env -u CLOUDFLARE_API_TOKEN` prints `Tests  3 passed (3)` (measured 2026-10-03, B2 g3).
 - Hit again in the third B2 g11 re-review (the seed refusal): the plan's step 12 proof `API_URL=https://x.supabase.co SERVICE_ROLE_KEY=x bun run seed -- --target local` cannot print its planned message in a harness shell, because `guardEnv` refuses first with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)`, exit 1. With `env -u CLOUDFLARE_API_TOKEN` in front it prints `seed: invalid arguments local target must be 127.0.0.1`, exit 1. A proof line that runs a script calling `guardEnv()` carries the `env -u` prefix too; it cost the reviewer one rerun.
 - merged: P-313
+- rule: a db test, `bun run test:db` or any script that calls `guardEnv()` (`scripts/dev-vars.mjs` too: B3's step 1 proof `node scripts/dev-vars.mjs` refuses in the default shell with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`, and `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node scripts/dev-vars.mjs` prints `wrote .dev.vars (8 keys)`, measured 2026-10-03, B3 g1 review) runs from `app/` as `eval "$(node scripts/load-env.mjs --profile dev)"`, then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order. The inline loader is for commands that are not db tests. Never weaken the guard or unset the name in a config file; unsetting `.env` values never helps. When vitest prints `No test files found` for a path that exists, read the `Error:` line first. Still open for the orchestrator (checked 2026-10-03): `.claude/workflows/build-slice.js` line 90 and `.claude/agents/mop-builder.md` line 41 still print the inline loader.
 - added: 2026-10-03
 
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
@@ -1055,7 +1063,7 @@ Entry template
 - symptom: B4 g3 watched-fail (f) put `<div style={{ width: 2000 }} />` into `src/routes/about.tsx`. The first replay was BAD (wrong reason): the assertion `document.documentElement.scrollWidth <= window.innerWidth` still passed on `/about` in both projects, and only the second assertion, the list of elements wider than the viewport, went red (`div.`). Read this as a fact about a div with no height, not as proof that the scroll-width clause is dead.
 - cause: a div with no height adds no scrollable overflow in Chromium, so `scrollWidth` stays at the viewport width while the element is 2000 px wide. Nothing in `src` clips horizontal overflow at `html`, `body` or `main` (`git grep -n overflow -- 'app/src/**/*.css' 'app/src/**/*.tsx'` finds only component-level `overflow: hidden` and the modal's body lock), and the same div given a height of 10 px widens `scrollWidth` from 390 to 2000 on the phone. The plan words the overflow rule as two clauses (scroll width, and no element wider than the viewport outside an `overflow-x: auto` ancestor); the second sees an element of any height, the first only one that has height.
 - rule: never reduce `expectNoOverflow` to either clause: the element list catches a flat element, the scroll width catches one with height. Word the `expect` of each watched-fail from the clause that goes red: (f) with the zero-height div goes red on `elements wider than the viewport`, and the scroll-width clause has its own mutation with a div that has height. The `@overflow` subset runs only with `E2E_TARGET=url` (the desktop and phone projects invert it otherwise), so (f) on a local run is proved by the main `/about` test, and the subset by `E2E_TARGET=url E2E_BASE_URL=<dev server> --grep @overflow`.
-- proof: from `app/`, `MSYS_NO_PATHCONV=1 node scripts/watchfail.mjs --file src/routes/about.tsx --find '<main>' --replace '<main><div style={{ width: 2000 }} />' --run 'E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep " /about$"' --expect 'elements wider than the viewport'` prints `WATCHED-FAIL OK`; with `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL BAD: wrong reason`; with `--replace '<main><div style={{ width: 2000, height: 10 }} />'` and `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL OK src/routes/about.tsx` (measured 2026-10-03, B4 g3; the height form re-run in the follow-up record).
+- proof: from `app/`, `MSYS_NO_PATHCONV=1 node scripts/watchfail.mjs --file src/routes/_site.about.tsx --find '<main>' --replace '<main><div style={{ width: 2000 }} />' --run 'E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep " /about$"' --expect 'elements wider than the viewport'` prints `WATCHED-FAIL OK`; with `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL BAD: wrong reason`; with `--replace '<main><div style={{ width: 2000, height: 10 }} />'` and `--expect 'document scroll width against the viewport'` it prints `WATCHED-FAIL OK src/routes/_site.about.tsx` (measured 2026-10-03, B4 g3; the height form re-run in the follow-up record; the file had no `_site.` prefix until B3 step 1b, P-804).
 - added: 2026-10-03
 
 ## P-408 · B4 step 5's toggle proof and `serviceClient()` assume names and a table that `mop-dev` does not have on main yet
@@ -1069,7 +1077,7 @@ Entry template
 - symptom: the plan assumes the first sweep run is not clean and that watched-fail (k) deletes a baseline entry that still occurs. The first full run of 106 tests had zero axe violations, so the baseline is `[]` and there is no entry to delete. Watched-fail (g) says the removed `alt` goes red as axe `image-alt`, but the explicit `img:not([alt])` assertion in the same test fails first and stops it, so axe never ran.
 - cause: warm grey contrast was already fixed (G-013), and an assertion that throws ends a Playwright test. Also, axe reports a low-contrast paragraph only when its own background is set; with the page background it lands in `incomplete`, so a synthetic violation needs `color` and `background` both.
 - rule: the structural checks of a route are `expect.soft`, so one run reports every problem and the scans after them still run. (k) is proved in three states by hand, with a synthetic `color-contrast` violation: no baseline entry (red, new violation), the entry present (green), the violation fixed with the entry left (red, stale entry); the registry entry `k` holds the last state. A watched-fail that needs a browser is `kind: "manual"` in `tests/mutations/B4.json`, because the CI `db` job replays every `file` entry a diff touches and has no browser; it is run by hand through `scripts/watchfail.mjs` with `--record`.
-- proof: `cd app && bunx playwright test sweep.spec.ts --project=desktop --grep " /about$"` prints `1 passed` on a clean tree; with `<main><p style={{ color: "#f5f2eb", background: "#eeeae1" }}>x</p>` in `src/routes/about.tsx` it prints `axe: new violations on /about` and `"/about | color-contrast | main > p"` (measured 2026-10-03, B4 g3).
+- proof: `cd app && bunx playwright test sweep.spec.ts --project=desktop --grep " /about$"` prints `1 passed` on a clean tree; with `<main><p style={{ color: "#f5f2eb", background: "#eeeae1" }}>x</p>` in `src/routes/_site.about.tsx` it prints `axe: new violations on /about` and `"/about | color-contrast | main > p"` (measured 2026-10-03, B4 g3).
 - added: 2026-10-03
 
 ## P-412 · A fixture that mirrors a contract breaks when main changes the contract under a lane
@@ -1086,133 +1094,6 @@ Entry template
 - cause: the cause line of P-412 was reasoned from how a schema treats an acceptance check and never run against the rejection table it describes; the rename and the proof were right, so the entry looked verified.
 - rule: before a cause or rule line goes into the bank, run the smallest probe that shows it (a one-line `safeParse`, a failing test) and put that probe in the proof; a gotcha's cause is a claim and gets the same watched-fail as a test.
 - proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
-- added: 2026-10-03
-
-## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
-- paths: app/supabase/sql/functions/**, app/supabase/migrations/**
-- severity: warn
-- symptom: B2 g8's snapshot fixture could not publish a story: `error: record "new" has no field "region_slug"` from `enforce_publish_gate() line 15 at IF`. On main since migration 8, no story could be published by anyone; `gate.db.test.ts` only checked that the trigger exists on `stories`.
-- cause: the completeness check was one condition, `tg_table_name = 'properties' and (new.region_slug is null or ...)`. PL/pgSQL resolves every `new.<field>` the expression names before SQL evaluates it, so the `and` never short-circuits the missing field on a `stories` row.
-- rule: in a trigger function attached to more than one table, put a table's own columns inside a nested `if tg_table_name = '<table>' then ... end if;`, and give every table that uses the function a test that runs the branch on it (publish a story, not only list the trigger).
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin; insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x') on conflict (slug) do nothing; insert into public.stories (slug, title, deck, category, market_slug, image, editorial_state, published_at) values ('test-story-probe', 'x', 'x', 'Places', 'california', 'test/a.webp', 'published', now()); rollback;` prints `record "new" has no field "region_slug"` on main before migration `20261003082557_fn_enforce_publish_gate_stories.sql`; the watched-fail `g8-story-publish` of `tests/mutations/B2.json` replays it (measured 2026-10-03, B2 g8).
-- added: 2026-10-03
-
-## P-320 · A group's file list from `plan-brief.mjs` can omit files its own step requires: the function files of new functions and the manifest exports its proof reads
-- symptom: B2 g8's brief named six files. Step 8's proof compares key sets with `publicPropertyKeys`, `publicStoryKeys` and `publicMediaKeys` of `tests/db/schema-manifest.ts`, which did not export them, and migration 9 creates `bump_catalog_version` and `tg_bump_catalog_version`, whose `supabase/sql/functions/<name>.sql` files (invariant 19, and the plan's own watched-fail (tt)) were not in the list; `function-source.db.test.ts` would have gone red on them. The plan's index list also named six indexes migration 4 already holds (`properties_market_idx`, `property_media_idx`, `regions_market_idx`, `market_notes_market_idx`, `market_guide_entries_market_idx`, `slug_history_property_idx`) and two that a primary key serves.
-- cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
-- rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
-- proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
-- added: 2026-10-03
-
-## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
-- symptom: B2 g8's first run of `renaming a draft's slug bumps it once` received `2`.
-- cause: the rename runs `delete from public.slug_history where slug = new.slug` (usually no row) and then the insert of the old slug; a `for each statement` trigger fires for both statements whether or not they touch a row.
-- rule: a catalog-version trigger on a table that a function writes with a guard statement before the real one is `for each row`, so a statement that matches nothing does not bump; `slug_history` is the one row-level plain trigger of migration 9, and the watched-fail `g8-slug-rename` puts the statement form back and goes red.
-- proof: from `app/`, `MOP_PRELUDE=<migration 9 and the fn migration> node <replay> g8-slug-rename` prints `× renaming a draft's slug bumps it once` with `expected 2 to be 1` (measured 2026-10-03, B2 g8).
-- added: 2026-10-03
-
-## P-322 · Database tests on mop-dev time out at 30 s or hit `lock timeout` in bursts, and pass on the next run unchanged
-- symptom: in B2 g8, four runs of the same unchanged files gave `Test timed out in 30000ms` on one to five cases and `canceling statement due to lock timeout` on another, then `17 passed (17)` and `18 passed (18)` on rerun; a single case that took 30 s took 3 s alone a minute later. Once one case times out, the next ones often time out too.
-- cause: not proven. Observed: every connection goes through Supavisor (`application_name` `Supavisor` in `pg_stat_activity`), vitest does not cancel a timed-out case, so its transaction keeps its locks while the next case starts, and other lanes run db tests on the same project.
-- rule: read a burst of 30 s timeouts as the shared database, not the code: look at `pg_stat_activity` for other sessions, rerun once, and report the rerun with the first output. A case that fails the same way twice is a real failure. Never raise `testTimeout` to hide it.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
-- added: 2026-10-03
-
-## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
-- symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
-- cause: Postgres infers one type per parameter and refuses two; jsonb stores keys sorted by length then bytes, so `{"w":..,"h":..}` comes back as `{"h":..,"w":..}`.
-- rule: cast a parameter once per use (`$3::public.editorial_state`, `$3::text`), and compare jsonb values as parsed objects (`toEqual(JSON.parse(...))`), never as strings.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select jsonb_build_object('w', 1, 'h', 2)"` → `{"h": 2, "w": 1}` (measured 2026-10-03, B2 g8).
-- added: 2026-10-03
-
-## P-324 · A db:fn fix made mid-slice gets today's migration timestamp, which is later than every migration the plan still has to add under a fixed name
-- symptom: B2 g8's fn migration `20261003082557_fn_enforce_publish_gate_stories.sql` sorts after the five names the plan still lists for B2 g9 and B3 (`20261001090900_rls.sql`, `20261001091000_storage.sql`, `20261001091100_settings_defaults.sql`, `20261001100000_public_write_functions.sql`, `20261001110000_coming_soon.sql`). After the merge `checkMigrations` answers `rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557` for each, and db-push refuses them as out-of-order. The plan's Files list, its "numbered 1 to 12" text and the "12 migrations" exit line go stale.
-- cause: `db:fn` stamps the migration with the clock, while the plan fixed the later names in advance. Invariant 17 allows renaming, so nothing broke, but nobody had listed the renames.
-- rule: before running `db:fn` mid-slice, `git grep` the plan for planned migration names newer than the main tip and older than today; if any exist, say in the log which names will have to be renamed after the fix merges and ask the orchestrator to update the plan before the next group starts. The other way, putting the fix inside an unmerged migration, conflicts with R19's db:fn path.
-- proof: from the tree root, `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md | sort -u` lists the planned names, and `ls app/supabase/migrations | tail -3` shows the fn migration stamped `20261003082557`, later than every one of them (measured 2026-10-03, B2 g8 review).
-- added: 2026-10-03
-
-## P-325 · The review brief's snapshot command and builder path use the snapshot folder where the script wants the lane root
-- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/db-review 2223e63` from `E:/mop-build/db-review`, which gave `cd: /e/mop-build/db-review: No such file or directory`; it also called `E:/mop-build/db-review` the builder's working folder.
-- cause: the script's argument is the lane root and it creates `<laneRoot>-review` itself (`const snap = ${laneRoot}-review`), so the folder does not exist before the first run. The brief generator substituted the snapshot path where the lane path belongs, in both places.
-- rule: a reviewer runs the script from the lane root with the lane root as argument: `node E:/mop-build/db/workspace/05-plans/review-snapshot.mjs create E:/mop-build/db <sha>`; it prints the snapshot folder. The brief generator names the lane root as the builder's folder and the snapshot only as the reviewer's. Fix the generator, not each brief.
-- proof: `sed -n '5p;21p' workspace/05-plans/review-snapshot.mjs` prints the usage line `create <laneRoot> <sha>` and `const snap = ${laneRoot}-review;` (measured 2026-10-03, B2 g8 review).
-- Hit again in B2 g9 review: the brief still passed the snapshot folder as the lane root and still said to run create and remove from that folder, which does not exist until create has run (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 45db5a3` gave `cd: /e/mop-build/db-review: No such file or directory`). The working form was `cd /e/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db 45db5a3`, and remove with `E:/mop-build/db`. The generator is still unfixed: fix the review brief in `.claude/workflows/build-slice.js` (it names review-snapshot.mjs), not each brief.
-- Hit again in B2 g10 review: the brief again passed `E:/mop-build/db-review` as the lane root and said to run it from that folder (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 4378d02` gave `cd: /e/mop-build/db-review: No such file or directory`); the lane-root form worked first time.
-- Hit again in the B2 g10 re-review (third hit): the brief again named `E:/mop-build/db-review` as the lane root (`cd /e/mop-build/db-review` gave `No such file or directory`; from the lane, `create E:/mop-build/db-review bf2d74f` failed with `fatal: cannot change to 'E:/mop-build/db-review'`; `create E:/mop-build/db bf2d74f` worked first time). Three briefs in a row: the generator fix is overdue.
-- Hit again in the B2 g11 review (fourth hit): the brief again passed `E:/mop-build/db-review` as the lane root and said to run create from that folder (`No such file or directory`).
-- Hit again in the B2 g12 review (fifth hit): `cd /e/mop-build/db-review` failed with `No such file or directory`; `review-snapshot.mjs` line 21 reads ``const snap = `${laneRoot}-review` ``. Five hits in one slice: the generator in `.claude/workflows/build-slice.js` is the fix, and it is still open.
-- Hit again in the B2 g11 re-review (sixth hit): the brief again passed `E:/mop-build/db-review` as the lane root and called it the builder's folder (`cd /e/mop-build/db-review` gave `No such file or directory`); `create E:/mop-build/db 3fe3560` run from `E:/mop-build/db` worked first time. The generator is still not fixed.
-- Hit again in the second B2 g11 re-review (seventh hit): the brief again named `E:/mop-build/db-review` as the lane root and the builder's folder; `cd /e/mop-build/db-review` gave `No such file or directory`, `create E:/mop-build/db c7b7c92` from `E:/mop-build/db` worked first time.
-- Hit again in the third B2 g11 re-review (eighth hit): the brief again named `E:/mop-build/db-review` as the lane root, as the folder to run create from and as the builder's folder (`cd /e/mop-build/db-review` gave `No such file or directory`); `cd E:/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db a7b23b1` printed `E:/mop-build/db-review` and exited 0. The generator in `.claude/workflows/build-slice.js` is still not fixed.
-- Hit again in the B2 g13 review (ninth hit): the brief ran `review-snapshot.mjs create E:/mop-build/db-review dbf641f` from `E:/mop-build/db-review`; `cd /e/mop-build/db-review` gave `No such file or directory`, exit 1, while `cd E:/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db dbf641f` printed `E:/mop-build/db-review`, exit 0. The brief also told the reviewer to run `plan-brief` from `E:/mop-build/db` and never read `db-review` there, which swaps the two folders the same way. The fix is in the brief generator `.claude/workflows/build-slice.js` (an orchestrator follow-up), not in the reviewer.
-- added: 2026-10-03
-
-## P-326 · `quiet.mjs` splits a quoted argument at its spaces, so `-t "as admin plus"` filters on `as`
-- symptom: B2 g9 ran `node workspace/05-plans/quiet.mjs -- node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts -t "as admin plus"` to run one case and got `Tests  9 failed | 1 passed | 4 skipped (14)`: every case whose name holds `as` ran, about 30 s instead of 3.
-- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`, and with `shell: true` Node joins the arguments with spaces without quoting them, so the shell sees `-t as admin plus`.
-- rule: through `quiet.mjs`, write a test-name filter without spaces (`-t "as.admin.plus"`, a regex dot matches the space), or run the command without `quiet.mjs` when an argument must keep a space.
-- proof: from the tree root, `node workspace/05-plans/quiet.mjs -- node -p process.argv.length "a b"` prints `3`, and with `"a.b"` prints `2` (measured 2026-10-03, B2 g9).
-- added: 2026-10-03
-
-## G-105 · In `format()`, a bare `%s` or `%L` after a numbered `%2$s` takes the argument after that one, not the next unused one
-- paths: app/tests/db/**, app/supabase/sql/functions/**
-- severity: warn
-- symptom: B2 g9's RLS probe built its insert as `format('insert into %s (%s) select %2$s from jsonb_populate_record(null::%1$s, %L)', p_table, v_columns, v_row)`, and every insert of every role answered `22P02` (invalid input syntax): the `%L` received the column list, not the row.
-- cause: Postgres `format` continues an unnumbered specifier from the position after the last argument used, numbered or not; after `%1$s` the next bare specifier is argument 2.
-- rule: once a format string uses a numbered specifier, number every specifier after it (`%3$L`).
-- proof: `cd app && bun run db:psql -- -Atc "select format('%s %2\$s %1\$s %L', 'a', 'b', 'c')"` prints `a b a 'b'`, and with `%3\$L` prints `a b a 'c'` (Postgres format docs; measured 2026-10-03, B2 g9).
-- added: 2026-10-03
-
-## G-106 · Moving a function to another schema: policies follow it, but function bodies, test SQL, the registry and `db:reset` do not
-- paths: app/supabase/migrations/**, app/supabase/sql/functions/**, app/scripts/db-reset-dev.mjs, app/tests/mutations/**
-- severity: warn
-- symptom: B2 c9 moved `is_staff()` and `role_in(...)` from `public` to `app` (security advisor lint 0029). The review's remedy named only the move and two test files. Measured on mop-dev after `alter function ... set schema app`: the 44 policies read `app.role_in(...)` at once, but `enforce_publish_gate` (plpgsql, text body) still said `public.role_in`, `harness.db.test.ts` selected `public.role_in(...)`, 17 `sql` entries of `tests/mutations/B2.json` created or called `public.role_in`/`public.is_staff`, and `pg_depend` showed `app.is_staff()` depending only on schema `app` (`pg_namespace|n`), so `db:reset`'s `drop schema public cascade` would leave it behind and the replayed move would fail with "function is_staff() already exists in schema app".
-- cause: a policy stores the function's oid, a `language sql`/`plpgsql` body stores text resolved at call time, and a body that only names tables records no dependency on them. `alter function ... set schema` is not flagged by `check-migrations.mjs` and drops nothing, so no gate catches the stale names.
-- rule: before moving a function, `git grep -n "public\.<name>"` across `supabase/sql/functions`, `tests`, `scripts` and the plans; regenerate every function that names it with `bun run db:fn`, repoint test SQL and registry `sql` entries, and make `db:reset` drop the new schema too. Replay every registry entry whose `sql` names the function.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select d.refclassid::regclass, d.deptype from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = 'app.is_staff()'::regprocedure"` → `pg_namespace|n` only (measured 2026-10-03, B2 c9).
-- added: 2026-10-03
-
-## P-327 · `gen:types` is an ops command, its determinism proof can pass on an unchanged file, and mop-dev only holds main's migrations
-- symptom: B2 g10 ran `bun run gen:types` in the shell that the db tests need (`eval "$(node scripts/load-env.mjs --profile dev)"`, `env -u CLOUDFLARE_API_TOKEN`) and got `supabase gen types exited 1`; the step's determinism proof (`cp src/db/types.ts supabase/.temp/types.prev.ts && bun run gen:types && git diff --no-index --exit-code ...`) still exited 0, because nothing had been rewritten. After the copy, `bun run check` failed in `eslint .` with `supabase/.temp/types.prev.ts was not found by the project service`. The file also lacks every function of migrations 9 to 12 (`public_state` is absent), because `mop-dev` holds only the migrations on `main`.
-- cause: `SUPABASE_ACCESS_TOKEN` is an ops name (`scripts/load-env.mjs` loads it only from `.env.ops` and `guardEnv()` refuses it in a db-test shell, P-310), and the dev profile has `DEV_SUPABASE_PROJECT_REF` only; the CLI reads the Management API with the token. ESLint's type-aware config lints every tracked-or-not `.ts` under `app/`, and `supabase/.temp/` was not ignored. The generator reads the cloud project, which an unmerged lane never pushes to (DB-01), so the committed file is what `main`'s schema produces until `main` pushes the rest.
-- rule: run `gen:types` in a shell loaded with the inline loader (`set -a; . <(tr -d '\r' < .env | grep -E '^[A-Z0-9_]+='); set +a`), never in the db-test shell, and read its `wrote src/db/types.ts` line before the diff: an exit 0 of the diff alone proves nothing. `supabase/.temp` is in the ESLint ignores. A lane's `src/db/types.ts` lacks the functions of its own unmerged migrations: regenerate it in the first pull request after `main` has pushed them (B4's `gen:types -- --local` diff is red until then), and say so in the log.
-- proof: `cd app && bun run gen:types` in the db-test shell prints `supabase gen types exited 1`, in the inline-loader shell `wrote src/db/types.ts`; `grep -c public_state src/db/types.ts` prints `0` on slice/b2 at B2 g10 while `grep -c "create or replace function public.public_state" supabase/migrations/20261001090800_catalog_version.sql` prints `1` (measured 2026-10-03).
-- added: 2026-10-03
-
-## P-328 · A proof of a migration that runs on mop-dev can pass because mop-dev lacks the object the proof is about
-- symptom: B2 g10 proved migration 12 with `catalog_version 1` read from `mop-dev`, and the review found the real stack gives `4`: all four settings keys went in one `insert`, Postgres queues the AFTER ROW triggers of a statement and fires them at its end, so `settings_bump_catalog_version` (migration 9) raised the freshly inserted `catalog_version` row once for each of `coming_soon_global`, `site` and `environment`. The file's own comment said the opposite.
-- cause: `mop-dev` holds only the migrations on `main`, so the trigger did not exist there and the insert could not bump anything; no test read the starting value, and `catalogVersion()` in `catalog-version.db.test.ts` inserts the row when it is missing, which hides a missing seed too.
-- rule: a migration whose behaviour depends on an earlier unmerged migration is proved with that migration in the prelude (P-312), never on bare `mop-dev`; the case asserts its precondition (the trigger exists) so it cannot pass on a database without it. Rows that a trigger watches go in a statement before the row the trigger raises, never in the same `insert`.
-- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; export MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090800_catalog_version.sql)"; env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/catalog-version.db.test.ts -t although` → `1 passed`; with the registry entry `g10-catalog-version-start` applied (one `insert` again) the received value is `"4"` (measured 2026-10-03, B2 g10 rework).
-- added: 2026-10-03
-
-## P-329 · `bun run check` can exit 1 on `Failed to start forks worker` while other lanes run: rerun the test step before looking at code
-- symptom: a reviewer's first `bun run check` of B2 g10 exited 1 on `[vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts. Caused by: Error: [vitest-pool-runner]: Timeout waiting for worker to respond` and `error: script "check" exited with code 1`; `bun run test` alone then printed `Tests  576 passed | 1 skipped (577)`.
-- cause: a busy laptop (several lanes build and test at once) starts a vitest worker slower than the pool's wait; no test ran, so no case failed.
-- rule: one red `check` whose only message is a worker-start timeout is not a code failure: rerun the test step once and quote both runs (P-322 says the same of the database project); a case that fails the same way twice is real.
-- proof: `grep -n "Timeout waiting for worker to respond" workspace/05-plans/logs/B2.md` finds the g10 review's first run (measured 2026-10-03).
-- added: 2026-10-03
-
-## P-331 · An agent shell can hold `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` of another project, and `serviceClient()` prefers them to the dev profile
-- symptom: B2 g11's first `bun run seed -- --target dev --mode full --images skip` printed `lock mop-dev-tests held` and then `seed: markets upsert failed: Could not find the table 'public.markets' in the schema cache`, three times, although `curl` with `DEV_SUPABASE_SERVICE_ROLE_KEY` read `markets` on mop-dev with 200 (`[]`). A `NOTIFY pgrst, 'reload schema'` changed nothing.
-- cause: the shell the builder ran in already exported `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for a different Supabase project (the host is not `$DEV_SUPABASE_PROJECT_REF`); `tests/fixtures/service.ts` reads those two names first and the dev names only as a fallback, so supabase-js talked to the other project while the guard and the advisory lock were on `DEV_DB_URL`. It failed only because that project has no `markets` table; with one, the seed would have written there.
-- rule: a script that writes through supabase-js builds its client from the dev profile's own names (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`) and never through `serviceClient()`, so the project written to is the one guarded and locked; `scripts/seed.ts` does. Before reading a PGRST205 as a stale cache, compare the host of `SUPABASE_URL` with `https://$DEV_SUPABASE_PROJECT_REF.supabase.co`. `serviceClient()` and `guardEnv()` still do not catch this: logged as a follow-up for B3's `tests/api`, which uses the same helper.
-- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && node -e 'console.log(process.env.SUPABASE_URL === "https://" + process.env.DEV_SUPABASE_PROJECT_REF + ".supabase.co")'` → `false` in that shell (measured 2026-10-03, B2 g11); `env -u CLOUDFLARE_API_TOKEN bun run seed -- --target dev --mode full --images skip` → `markets 3, regions 12, properties 16, stories 6`.
-- added: 2026-10-03
-
-## P-332 · The seed's two small gate costs: `guardedScripts` needs the literal call `assertNotProduction(`, and an untyped supabase-js client cannot be named as a type
-- symptom: `bunx vitest run --project unit tests/unit/assert-not-production.test.ts` failed with `expected [ 'scripts/seed.ts' ] to deeply equal []` although `seed.ts` imported the guard and defaulted its `guard` parameter to it; then `bun run lint` printed `no-unsafe-return` on a function typed `SupabaseClient`, and `ReturnType<typeof createClient>` made `.upsert` take `never[]`.
-- cause: the `guardedScripts` case tests the file text for `assertNotProduction(` with the open parenthesis, which `guard = assertNotProduction` does not contain; `createClient` without a `Database` type returns `SupabaseClient<any, any, "public", any, any>`, which no named type reproduces under the strict preset.
-- rule: a guarded script holds the literal call (`guard = (options) => assertNotProduction(options)`); an adapter over an untyped supabase-js client is built in the function that creates the client, so the type is inferred and never written.
-- proof: `cd app && bunx vitest run --project unit tests/unit/assert-not-production.test.ts` → `Tests  9 passed (9)`; with `guard = (options) => assertNotProduction(options)` replaced by `guard = () => Promise.resolve()` in `scripts/seed.ts` the registry entry `mmm-seed-text` replays `WATCHED-FAIL OK B2:mmm-seed-text` (2026-10-03, B2 g11).
-- added: 2026-10-03
-
-## P-330 · A db project run can fail with `getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com` before any test runs, and pass on the next run unchanged
-- symptom: a reviewer's `vitest run --project db tests/db/catalog-version.db.test.ts` of B2 g10 failed in global setup with `Error: getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com`, exit 1, no test run; the run with migrations 9 and 12 as prelude failed the same way. `nslookup` resolved the host straight after (44.216.29.125 and others) and each rerun gave `18 passed`. Two reruns of cost.
-- cause: a transient DNS failure on the laptop's resolver, not the code: global setup opens the pooler connection first, so a lookup failure reports as a red project with no case named.
-- rule: one `ENOTFOUND` on the pooler host is not a code failure: rerun once and quote both runs (P-322 and P-329 say the same of timeouts and worker starts); a lookup that fails twice with `nslookup aws-0-us-east-1.pooler.supabase.com` also failing is a network fault, so report BLOCKED with that output, not a test result.
-- proof: `grep -n "ENOTFOUND" GOTCHAS.md` finds this entry; `nslookup aws-0-us-east-1.pooler.supabase.com` prints the pooler's addresses when the resolver is healthy (measured 2026-10-03, B2 g10 review).
 - added: 2026-10-03
 
 ## Retired, enforced
@@ -1239,6 +1120,93 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the harness relays the session's latest user message into every subagent's context as "the user's request"; when that message is a question or a remark, the agent takes it as its instruction and the computed task as secondary.
 - rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
 - proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
+- added: 2026-10-03
+
+## P-700 · `launch/engine/sheet.mjs` forces every tile to 16:9: contact sheets of portrait or tall options come out squashed
+- symptom: `node launch/engine/sheet.mjs sheet.jpg 3 640 A.png B.png C.png` on the story (1080×1920), carousel (1080×1350) and email (600×1280) options produced sheets with the images squeezed to 640×360, so a reviewer would pick on distorted layouts.
+- cause: the script computes one tile height as `w * 9 / 16` and `scale=w:h` every input with no aspect handling; it was written for 16:9 film stills (P-026).
+- rule: a contact sheet of non-16:9 stills is tiled at one height and each image's own proportions with ffmpeg directly (`scale=-2:H`, `hstack=inputs=3`); the owner of `sheet.mjs` should add the aspect-preserving mode before any lane relies on it for other shapes. B9 g1 did not edit it (one writer per file).
+- proof: `ffprobe -v error -show_entries stream=width,height -of csv=p=0 workspace/08-creative/options/story/sheet.jpg` → `1518,900` (three 506×900 tiles), where sheet.mjs makes `1920,360`.
+- added: 2026-10-03
+
+## P-701 · A bone wordmark over sky or branches in a photograph is unreadable: place it on a solid field
+- symptom: the first render of cover A and C, carousel A and C and story C put the small wordmark in the top-left of a full-bleed photograph; against bright sky and foliage it vanished, and the whole set had to be re-laid out.
+- cause: the wordmark is a thin geometric outline at 14 to 20 px tall; a 30% veil does not give it contrast on a bright sky.
+- rule: in the creative templates the wordmark sits on a solid obsidian or ivory field (a band, the foot of the page) or on a flat dark part of the photograph that was checked by eye, never on sky or branches. Look at the rendered PNG before the set is called done.
+- proof: `grep -o 'height:150px;background:var(--obsidian)"></div>' workspace/08-creative/options/cover/A.html` → one match (the band), and `grep -o 'right:64px;top:508px"><img src="[^"]*wordmark[^"]*' workspace/08-creative/options/cover/A.html` → the bone wordmark at y 508, inside the band that starts at y 480
+- added: 2026-10-03
+
+## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
+- symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
+- cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
+- rule: write the matrix 11x11 with the `Withdrawn` column and row taken from B2 invariant 5; in `analytics.test.ts` type the name list as `Record<AnalyticsEvent, true>`, which fails the typecheck when the union gains or loses a name, and replace it with `analyticsEvents` when B3 step 5 lands (B3 changes `analytics.ts` and updates this test).
+- proof: `cd app && node -e "const s=require('fs').readFileSync('tests/unit/state-machine.test.ts','utf8');console.log(s.match(/^ {2}(\"[A-Za-z ]+\"|[A-Za-z]+): .*\"[01 ]+\",$/gm).length)"` → `11`; `git grep -c "Record<AnalyticsEvent, true>" -- tests/unit/analytics.test.ts` → `2` (the comment and the declaration).
+- added: 2026-10-03
+
+## P-415 · `expect.objectContaining` and `expect.stringMatching` return `any`: the lint refuses them inside an object or a return, and prettier realigns comment padding a registry `find` copied before formatting
+- symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written.- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
+- rule: build the observed values with `typeof x === "object" && x !== null && "key" in x ? x.key : null` (it narrows to `unknown`) and compare plain values; run `bunx prettier --write` on the test file before writing any registry `find` that quotes it, and replay the entry at once.
+- hit again: 2026-10-03, B3 g2: the registry entries for `src/server/lib/ratelimit.ts` were written and replayed green before the first `bun run check`; prettier then split `if (error !== null || row === undefined) throw new AppError(...)` over two lines, so the entry `b3-g2-db-error` went stale and the five `tests/api` cases needed a second replay. Run `bunx prettier --write` on a source file before copying any `find` out of it.
+- proof: `cd app && bunx eslint --max-warnings 0 tests/unit/analytics.test.ts` → no output, exit 0; `node scripts/watchfail.mjs --registry tests/mutations --only sm-rows` → `WATCHED-FAIL OK B4:sm-rows`.
+- added: 2026-10-03
+
+## P-416 · A recurrence went into a new entry instead of the entry that already holds the lesson
+- severity: warn
+- symptom: P-415 ended its symptom with "Hit again: P-094 ... and P-066" and carried both lessons (the python heredoc, the prettier padding) beside its own; P-094 and P-066 were not touched, so a search for either id missed the recurrence. The review of B4 g4 found it.
+- cause: the entry was written from the list of what went wrong in the turn, one heading for the turn, not from a search of the bank for each item.
+- rule: before a new entry, run `grep -n "<keyword>" GOTCHAS.md` for each cost; a cost the bank holds gets a "hit again" line inside that entry (date, lane, what repeated), and a new entry carries one lesson, never the whole turn.
+- proof: `git grep -c "^- hit again: 2026-10-03, B4 g4" -- GOTCHAS.md` → `2` (P-094 and P-066), and `grep -n "^## P-415" -A3 GOTCHAS.md | grep -c "Hit again"` → `0` (measured 2026-10-03, B4 g4 follow-ups).
+- added: 2026-10-03
+
+## P-417 · A rule line that hands work to another slice's step names a file that slice's plan never lists
+- severity: warn
+- symptom: P-414 says "B3 changes `analytics.ts` and updates this test", but `workspace/05-plans/B3.md` never names `tests/unit/analytics.test.ts`, so the swap from `Record<AnalyticsEvent, true>` to `analyticsEvents` has no owner. Nothing breaks today: B3 derives `AnalyticsEvent` from `analyticsEvents`, so the typecheck keeps checking the full list.
+- cause: the sentence was written as an expectation about B3, not read from B3's Files list.
+- rule: a gotcha or log line that says another step will change a file is checked against that step's Files list before it is written, and names the step or follow-up that carries it; a line that cannot be checked says UNPROVEN. The orchestrator either adds the test to B3's Files list or drops the claim from P-414.
+- proof: `grep -c "analytics\.test\.ts" workspace/05-plans/B3.md` → `0`; `grep -n "analyticsEvents" workspace/05-plans/B3.md | head -3` shows the derived union near line 140 (measured 2026-10-03, B4 g4 follow-ups).
+- added: 2026-10-03
+
+## P-418 · `watchfail.mjs --only <letter>` replays that id in every registry, so a bare letter goes red in a shell that holds `CLOUDFLARE_API_TOKEN`
+- severity: warn
+- symptom: `node scripts/watchfail.mjs --registry tests/mutations --only d` prints `WATCHED-FAIL BAD: wrong reason (B2:d)` with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`, then `WATCHED-FAIL OK B4:d`, then `replayed 2: ok 1, bad 1` and exits 1, although B4:d is fine.
+- cause: B1b, B2 and B4 each have an entry `d`; `--only` matches the id in every registry, and the B2 entry is a db entry that the guard-env refuses in a shell with ops variables (P-310).
+- rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
+- added: 2026-10-03
+
+## P-702 · The reviewer brief passes the snapshot folder to `review-snapshot.mjs` as the lane root: `design-review` does not exist before `create`, and the argument would target `design-review-review`
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/design-review 8c8ac2a` from `E:/mop-build/design-review`; `cd /e/mop-build/design-review` gave "No such file or directory" (exit 1). The brief also called `E:/mop-build/design-review` the builder's working tree.
+- cause: the script derives the snapshot path as `${laneRoot}-review`, so `design-review` is its output, never its input; the template that writes the brief substitutes the snapshot path where the lane root belongs.
+- rule: run it from the lane root with the lane root as the argument: `cd E:/mop-build/design && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/design <sha>`; `remove` takes the lane root the same way. The builder's tree is the lane root, the snapshot is the reviewer's copy. The brief template is the owner of the fix.
+- proof: `sed -n 21p workspace/05-plans/review-snapshot.mjs` → ``const snap = `${laneRoot}-review`;``; `ls /e/mop-build/design-review` fails before `create` has run (exit 2).
+- added: 2026-10-03
+
+## P-703 · `review-snapshot.mjs` installs `app/node_modules` only: a review of `launch/` scripts fails in the snapshot until `bun install` runs in `launch`
+- symptom: in a fresh snapshot `ls launch/node_modules` gives "No such file or directory", so `launch/engine/still.mjs` and its siblings cannot run for the reviewer. The B9 g1 builder hit the same wall and listed it under P-027, which is about timeouts, so the cost was never banked under its own name.
+- cause: the script runs `bun install --frozen-lockfile` with `cwd: join(snap, "app")` and nowhere else.
+- rule: before reviewing anything under `launch/`, run `bun install --frozen-lockfile` in the snapshot's `launch` folder (64 packages, 18 s); the script should install there too, and until it does the reviewer brief says so.
+- proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → one line, `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...`.
+- added: 2026-10-03
+
+## P-704 · `public/fonts/LICENSES.md` is required by two plans and refused by three gates: layout, prettier and the folder map
+- symptom: B9 g3 ran `bun run fonts`, which writes the five `.woff2` files and `public/fonts/LICENSES.md` as B17 and B9 specify, then `bun run check` printed `layout: app/public/fonts/LICENSES.md: outside the folder map`; after that, `prettier --write` turned the licence's "1)" items into "1." and rewrote its rule line, so a second `bun run fonts` made `format:check` fail on a file the script had just written.
+- cause: STANDARDS section 1 row `public/` and `scripts/check-layout.mjs` list `fonts/*.woff2` only, while the plans commit the licences beside the fonts (OFL asks for the notice to travel with the files); the licence text is third-party legal text, so no formatter may rewrite it.
+- rule: `check-layout.mjs` allows `public/fonts/{*.woff2,LICENSES.md}` and `app/.prettierignore` names `public/fonts/LICENSES.md`; STANDARDS row `public/` should read `fonts/*.woff2` and `fonts/LICENSES.md` (the orchestrator edits STANDARDS, a builder does not). Never run prettier `--write` on the generated licence file.
+- proof: `cd app && bun run fonts && bun run layout && bunx prettier --config .prettierrc --check public/fonts/LICENSES.md` → `layout: OK` and `All matched files use Prettier code style!`; with the `LICENSES.md` entry removed from `check-layout.mjs` the first gate prints the symptom (measured 2026-10-03, B9 g3).
+- added: 2026-10-03
+
+## P-705 · Two writers wrote the same decision row: the orchestrator put an S65 row on main while step 2, which owns PROJECT-STATE.md, wrote its own
+- symptom: commit 179ed81 (B9 g2 step 2) conflicted with `origin/main` in `PROJECT-STATE.md`, and a conflicting pull request starts no CI run (P-136). The merge 6f373f9 resolved it ("kept the DIRECTION.md version") and banked nothing.
+- cause: the orchestrator committed an S65 decision row on main (PR #87, 96042cc, 13:39:33 +0300) while the plan gave the same row to step 2 of the lane, so both edited the same line of the file.
+- rule: a decision row has one writer. When a lane step names `PROJECT-STATE.md` and a decision number, the orchestrator does not write that row on main, or the step reuses the row already on main and adds nothing at that line; the one who finds two rows keeps one and says which in the merge message.
+- proof: `git merge-tree --write-tree origin/main 179ed81 >/dev/null; echo $?` → `1` (conflict in `PROJECT-STATE.md`); `git log -1 --format=%s 6f373f9` → `Merge origin/main into slice/b9 (PROJECT-STATE S65 row: kept the DIRECTION.md version)` (measured 2026-10-03, B9 g2 follow-ups).
+- added: 2026-10-03
+
+## P-706 · The reviewer brief says to run `plan-brief.mjs` from the builder's tree and also never to run anything there
+- symptom: the review brief reads "run `node workspace/05-plans/plan-brief.mjs B9 ...` from E:/mop-build/design" beside "never read, run or write anything there", so the B9 g2 reviewer ran `plan-brief` inside the snapshot to obey the second line.
+- cause: the brief template names the lane root for the one command and forbids the lane root for everything else; it is the same template defect as P-702, in a different command.
+- rule: the template tells the reviewer to run `plan-brief.mjs` from the snapshot folder (the plan files are identical there); until it does, a reviewer runs every command in the snapshot and treats the lane root as read-only for the builder alone. The brief template's owner makes the fix.
+- proof: `ls workspace/05-plans/plan-brief.mjs` inside `E:/mop-build/design-review` lists the file after `review-snapshot.mjs create`; `sed -n 1,5p workspace/05-plans/plan-brief.mjs` shows the usage line takes a slice and `--steps`, with no tree argument (measured 2026-10-03, B9 g2 follow-ups).
 - added: 2026-10-03
 
 ## P-090 · A code change moves the `find` of older registry entries, and nothing says so until a replay
@@ -1352,41 +1320,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again, wider form: 2026-10-04, B8 g1 review: not only the registry folder collides. The reviewer wrote its watchfail output to `<scratchpad>/wf.txt` while a B9 lane ran its own watchfail into the same name; `grep` then printed `Binary file ... wf.txt matches` (NUL bytes) and lines 37-73 were `WATCHED-FAIL OK B9:b9g5-*` under the reviewer's `replayed 37: ok 37`. The reviewer's `rm -rf pg`, `> stubs.sql`, `> brief.txt` and `> run1.txt` may have destroyed another agent's files: the B8 author's log used the names `pg` and `stubs.sql` too. Rule widened: every scratch file and folder (output files, `pg` clusters, sql dumps), not only the registry folder, goes inside a fresh `d=$(mktemp -d)` under the scratchpad, never a bare fixed name; check `ps` for another `watchfail` before reading a shared output.
 - added: 2026-10-03
 
-## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
-- symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
-- cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
-- rule: write the matrix 11x11 with the `Withdrawn` column and row taken from B2 invariant 5; in `analytics.test.ts` type the name list as `Record<AnalyticsEvent, true>`, which fails the typecheck when the union gains or loses a name, and replace it with `analyticsEvents` when B3 step 5 lands (B3 changes `analytics.ts` and updates this test).
-- proof: `cd app && node -e "const s=require('fs').readFileSync('tests/unit/state-machine.test.ts','utf8');console.log(s.match(/^ {2}(\"[A-Za-z ]+\"|[A-Za-z]+): .*\"[01 ]+\",$/gm).length)"` → `11`; `git grep -c "Record<AnalyticsEvent, true>" -- tests/unit/analytics.test.ts` → `2` (the comment and the declaration).
+## P-707 · A replay killed at the tool ceiling leaves the mutation in the file, and the entry `wf-restore` switches the restore off for every entry after it
+- symptom: B9 g4 ran `node scripts/watchfail.mjs --registry <scratchpad>/reg` in the foreground with `timeout 115`; the folder held B4 entries (P-154), the call hit the ceiling mid-replay and `git status` showed `app/src/lib/cx.ts` (B4's mutation) and later `app/scripts/watchfail.mjs` with its `restoreAll` loop deleted. The next replay of the group's own 21 entries printed `WATCHED-FAIL BAD: wrong reason` for five of them, because `restoreAll` no longer wrote anything and each mutation stayed in `slides.ts`, `Cover.tsx`, `Story.tsx` and `OgCard.tsx`; the six untracked files had to be rewritten by hand (they have no git copy to check out).
+- cause: a registry replay runs 4 to 8 s per entry on a loaded laptop, so 21 entries cannot finish inside 115 s; a killed `watchfail.mjs` cannot restore, and the B4 entry `wf-restore` mutates `restoreAll` itself, so a kill during or after it breaks the tool for everything that follows.
+- rule: replay a registry only in the background (`run_in_background`, output to a log, poll with a bounded loop) from a fresh `mktemp -d` folder that holds only your own file (P-154), never under `timeout`; before the replay commit or stage the files it mutates (an untracked file cannot be restored from git), and afterwards run `git status --short | grep -v "^??"` and the unmutated tests; to find one entry's red text use the single-mutation form (`--file/--find/--replace/--run/--expect`) or a scratch loop that restores from the bytes it read.
+- proof: `cd app && git status --short | grep -v "^??"` → no output after a finished replay; `node -e 'for(const e of require("./tests/mutations/B4.json")) if(e.id==="wf-restore") console.log(e.file)'` → `scripts/watchfail.mjs` (2026-10-03).
 - added: 2026-10-03
 
-## P-415 · `expect.objectContaining` and `expect.stringMatching` return `any`: the lint refuses them inside an object or a return, and prettier realigns comment padding a registry `find` copied before formatting
-- symptom: `bun run lint` printed `no-unsafe-return` and `no-unsafe-assignment` on `analytics.test.ts` for an asymmetric matcher inside `names.map(...)` and as an object property; the registry entry `sm-rows` replayed `STALE ... find occurs 0 times` because prettier changed the padding of an aligned `/* */` comment after the entry was written.- cause: vitest types the asymmetric matchers as `any`, which the strict type-aware preset (R01) refuses wherever it flows into a typed position; the entry was written from the file as typed, before `prettier --write`.
-- rule: build the observed values with `typeof x === "object" && x !== null && "key" in x ? x.key : null` (it narrows to `unknown`) and compare plain values; run `bunx prettier --write` on the test file before writing any registry `find` that quotes it, and replay the entry at once.
-- proof: `cd app && bunx eslint --max-warnings 0 tests/unit/analytics.test.ts` → no output, exit 0; `node scripts/watchfail.mjs --registry tests/mutations --only sm-rows` → `WATCHED-FAIL OK B4:sm-rows`.
+## P-708 · `quiet.mjs` runs its command with `shell: true` and no quoting: `bash -c "cd app && ..."` runs the part after `&&` in the wrong folder
+- symptom: B9 g3 review ran `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` and got `error: Script not found "layout"` and `quiet: exit 1`, although the script exists in `app/package.json`.
+- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`; on Windows Node joins the arguments with spaces and no quotes, so cmd.exe sees `bash -c cd app && bun run layout`: `bash -c cd` ends at `&&` and `bun run layout` runs in the folder quiet.mjs was started from (the repository root).
+- rule: never pass a compound command (`&&`, `;`, pipes, quotes) through `quiet.mjs`; change into the folder first and run it from there: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run <script>`.
+- proof: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` → `error: Script not found "layout"`, `quiet: exit 1`; `cd app && node ../workspace/05-plans/quiet.mjs -- bun run layout` → `layout: OK (772 files)`, `quiet: ok` (measured 2026-10-03).
 - added: 2026-10-03
 
-## P-416 · A recurrence went into a new entry instead of the entry that already holds the lesson
+## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
+- paths: app/src/templates/social/**, app/src/styles/tokens.css
 - severity: warn
-- symptom: P-415 ended its symptom with "Hit again: P-094 ... and P-066" and carried both lessons (the python heredoc, the prettier padding) beside its own; P-094 and P-066 were not touched, so a search for either id missed the recurrence. The review of B4 g4 found it.
-- cause: the entry was written from the list of what went wrong in the turn, one heading for the turn, not from a search of the bank for each item.
-- rule: before a new entry, run `grep -n "<keyword>" GOTCHAS.md` for each cost; a cost the bank holds gets a "hit again" line inside that entry (date, lane, what repeated), and a new entry carries one lesson, never the whole turn.
-- proof: `git grep -c "^- hit again: 2026-10-03, B4 g4" -- GOTCHAS.md` → `2` (P-094 and P-066), and `grep -n "^## P-415" -A3 GOTCHAS.md | grep -c "Hit again"` → `0` (measured 2026-10-03, B4 g4 follow-ups).
-- added: 2026-10-03
-
-## P-417 · A rule line that hands work to another slice's step names a file that slice's plan never lists
-- severity: warn
-- symptom: P-414 says "B3 changes `analytics.ts` and updates this test", but `workspace/05-plans/B3.md` never names `tests/unit/analytics.test.ts`, so the swap from `Record<AnalyticsEvent, true>` to `analyticsEvents` has no owner. Nothing breaks today: B3 derives `AnalyticsEvent` from `analyticsEvents`, so the typecheck keeps checking the full list.
-- cause: the sentence was written as an expectation about B3, not read from B3's Files list.
-- rule: a gotcha or log line that says another step will change a file is checked against that step's Files list before it is written, and names the step or follow-up that carries it; a line that cannot be checked says UNPROVEN. The orchestrator either adds the test to B3's Files list or drops the claim from P-414.
-- proof: `grep -c "analytics\.test\.ts" workspace/05-plans/B3.md` → `0`; `grep -n "analyticsEvents" workspace/05-plans/B3.md | head -3` shows the derived union near line 140 (measured 2026-10-03, B4 g4 follow-ups).
-- added: 2026-10-03
-
-## P-418 · `watchfail.mjs --only <letter>` replays that id in every registry, so a bare letter goes red in a shell that holds `CLOUDFLARE_API_TOKEN`
-- severity: warn
-- symptom: `node scripts/watchfail.mjs --registry tests/mutations --only d` prints `WATCHED-FAIL BAD: wrong reason (B2:d)` with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`, then `WATCHED-FAIL OK B4:d`, then `replayed 2: ok 1, bad 1` and exits 1, although B4:d is fine.
-- cause: B1b, B2 and B4 each have an entry `d`; `--only` matches the id in every registry, and the B2 entry is a db entry that the guard-env refuses in a shell with ops variables (P-310).
-- rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
+- symptom: every carousel and story headline rendered at weight 700 against DIRECTION.md's "nothing bold"; the by-eye check passed because it compared offsets, not weight (B9 g3 review).
+- cause: `SocialFrame` draws the headline as an `<h1>`; the reset in `social.css` clears margin and padding only, and the render scripts inline `tokens.css`, `fonts.css` and `social.css` alone, so the browser's own `h1` weight wins over the inherited `font-weight: 400` of `.social-frame`.
+- rule: every text slot of a social template sets its own `font-weight` from a token (`--social-weight-text` 400, `--social-weight-numeral` 500); never rely on inheritance through a heading element.
+- proof: render `SocialFrame` with react-dom/server, inline the three CSS files and read `getComputedStyle(h1).fontWeight` in puppeteer-core → `400` (with the `font-weight` line of `.social-frame__headline` removed → `700`) (measured 2026-10-03).
 - added: 2026-10-03
 
 ## P-505 · The merge of PR 43 never deployed the dev Worker: the `closed` run of `deploy.yml` reports every job skipped on the head, and the post-merge gate judged that latest run (the spine lane banked the same finding as P-155; this is the orchestrator entry with the fix)
@@ -1418,78 +1372,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && printf '# t\n\n| a | b |\n|---|---|\n| longer cell | x |\n' > docs/zz-control.md; bunx prettier --config .prettierrc --check docs/zz-control.md; echo "exit $?"; rm docs/zz-control.md` → `Code style issues found in the above file` and `exit 1` (run by the recorder on 2026-10-03); `bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → exit 0.
 - added: 2026-10-03
 
-## P-700 · `launch/engine/sheet.mjs` forces every tile to 16:9: contact sheets of portrait or tall options come out squashed
-- symptom: `node launch/engine/sheet.mjs sheet.jpg 3 640 A.png B.png C.png` on the story (1080×1920), carousel (1080×1350) and email (600×1280) options produced sheets with the images squeezed to 640×360, so a reviewer would pick on distorted layouts.
-- cause: the script computes one tile height as `w * 9 / 16` and `scale=w:h` every input with no aspect handling; it was written for 16:9 film stills (P-026).
-- rule: a contact sheet of non-16:9 stills is tiled at one height and each image's own proportions with ffmpeg directly (`scale=-2:H`, `hstack=inputs=3`); the owner of `sheet.mjs` should add the aspect-preserving mode before any lane relies on it for other shapes. B9 g1 did not edit it (one writer per file).
-- proof: `ffprobe -v error -show_entries stream=width,height -of csv=p=0 workspace/08-creative/options/story/sheet.jpg` → `1518,900` (three 506×900 tiles), where sheet.mjs makes `1920,360`.
-- added: 2026-10-03
-
-## P-701 · A bone wordmark over sky or branches in a photograph is unreadable: place it on a solid field
-- symptom: the first render of cover A and C, carousel A and C and story C put the small wordmark in the top-left of a full-bleed photograph; against bright sky and foliage it vanished, and the whole set had to be re-laid out.
-- cause: the wordmark is a thin geometric outline at 14 to 20 px tall; a 30% veil does not give it contrast on a bright sky.
-- rule: in the creative templates the wordmark sits on a solid obsidian or ivory field (a band, the foot of the page) or on a flat dark part of the photograph that was checked by eye, never on sky or branches. Look at the rendered PNG before the set is called done.
-- proof: `grep -o 'height:150px;background:var(--obsidian)"></div>' workspace/08-creative/options/cover/A.html` → one match (the band), and `grep -o 'right:64px;top:508px"><img src="[^"]*wordmark[^"]*' workspace/08-creative/options/cover/A.html` → the bone wordmark at y 508, inside the band that starts at y 480
-- added: 2026-10-03
-
-## P-702 · The reviewer brief passes the snapshot folder to `review-snapshot.mjs` as the lane root: `design-review` does not exist before `create`, and the argument would target `design-review-review`
-- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/design-review 8c8ac2a` from `E:/mop-build/design-review`; `cd /e/mop-build/design-review` gave "No such file or directory" (exit 1). The brief also called `E:/mop-build/design-review` the builder's working tree.
-- cause: the script derives the snapshot path as `${laneRoot}-review`, so `design-review` is its output, never its input; the template that writes the brief substitutes the snapshot path where the lane root belongs.
-- rule: run it from the lane root with the lane root as the argument: `cd E:/mop-build/design && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/design <sha>`; `remove` takes the lane root the same way. The builder's tree is the lane root, the snapshot is the reviewer's copy. The brief template is the owner of the fix.
-- proof: `sed -n 21p workspace/05-plans/review-snapshot.mjs` → ``const snap = `${laneRoot}-review`;``; `ls /e/mop-build/design-review` fails before `create` has run (exit 2).
-- added: 2026-10-03
-
-## P-703 · `review-snapshot.mjs` installs `app/node_modules` only: a review of `launch/` scripts fails in the snapshot until `bun install` runs in `launch`
-- symptom: in a fresh snapshot `ls launch/node_modules` gives "No such file or directory", so `launch/engine/still.mjs` and its siblings cannot run for the reviewer. The B9 g1 builder hit the same wall and listed it under P-027, which is about timeouts, so the cost was never banked under its own name.
-- cause: the script runs `bun install --frozen-lockfile` with `cwd: join(snap, "app")` and nowhere else.
-- rule: before reviewing anything under `launch/`, run `bun install --frozen-lockfile` in the snapshot's `launch` folder (64 packages, 18 s); the script should install there too, and until it does the reviewer brief says so.
-- proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → one line, `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...`.
-- added: 2026-10-03
-
-## P-704 · `public/fonts/LICENSES.md` is required by two plans and refused by three gates: layout, prettier and the folder map
-- symptom: B9 g3 ran `bun run fonts`, which writes the five `.woff2` files and `public/fonts/LICENSES.md` as B17 and B9 specify, then `bun run check` printed `layout: app/public/fonts/LICENSES.md: outside the folder map`; after that, `prettier --write` turned the licence's "1)" items into "1." and rewrote its rule line, so a second `bun run fonts` made `format:check` fail on a file the script had just written.
-- cause: STANDARDS section 1 row `public/` and `scripts/check-layout.mjs` list `fonts/*.woff2` only, while the plans commit the licences beside the fonts (OFL asks for the notice to travel with the files); the licence text is third-party legal text, so no formatter may rewrite it.
-- rule: `check-layout.mjs` allows `public/fonts/{*.woff2,LICENSES.md}` and `app/.prettierignore` names `public/fonts/LICENSES.md`; STANDARDS row `public/` should read `fonts/*.woff2` and `fonts/LICENSES.md` (the orchestrator edits STANDARDS, a builder does not). Never run prettier `--write` on the generated licence file.
-- proof: `cd app && bun run fonts && bun run layout && bunx prettier --config .prettierrc --check public/fonts/LICENSES.md` → `layout: OK` and `All matched files use Prettier code style!`; with the `LICENSES.md` entry removed from `check-layout.mjs` the first gate prints the symptom (measured 2026-10-03, B9 g3).
-- added: 2026-10-03
-
-## P-705 · Two writers wrote the same decision row: the orchestrator put an S65 row on main while step 2, which owns PROJECT-STATE.md, wrote its own
-- symptom: commit 179ed81 (B9 g2 step 2) conflicted with `origin/main` in `PROJECT-STATE.md`, and a conflicting pull request starts no CI run (P-136). The merge 6f373f9 resolved it ("kept the DIRECTION.md version") and banked nothing.
-- cause: the orchestrator committed an S65 decision row on main (PR #87, 96042cc, 13:39:33 +0300) while the plan gave the same row to step 2 of the lane, so both edited the same line of the file.
-- rule: a decision row has one writer. When a lane step names `PROJECT-STATE.md` and a decision number, the orchestrator does not write that row on main, or the step reuses the row already on main and adds nothing at that line; the one who finds two rows keeps one and says which in the merge message.
-- proof: `git merge-tree --write-tree origin/main 179ed81 >/dev/null; echo $?` → `1` (conflict in `PROJECT-STATE.md`); `git log -1 --format=%s 6f373f9` → `Merge origin/main into slice/b9 (PROJECT-STATE S65 row: kept the DIRECTION.md version)` (measured 2026-10-03, B9 g2 follow-ups).
-- added: 2026-10-03
-
-## P-706 · The reviewer brief says to run `plan-brief.mjs` from the builder's tree and also never to run anything there
-- symptom: the review brief reads "run `node workspace/05-plans/plan-brief.mjs B9 ...` from E:/mop-build/design" beside "never read, run or write anything there", so the B9 g2 reviewer ran `plan-brief` inside the snapshot to obey the second line.
-- cause: the brief template names the lane root for the one command and forbids the lane root for everything else; it is the same template defect as P-702, in a different command.
-- rule: the template tells the reviewer to run `plan-brief.mjs` from the snapshot folder (the plan files are identical there); until it does, a reviewer runs every command in the snapshot and treats the lane root as read-only for the builder alone. The brief template's owner makes the fix.
-- proof: `ls workspace/05-plans/plan-brief.mjs` inside `E:/mop-build/design-review` lists the file after `review-snapshot.mjs create`; `sed -n 1,5p workspace/05-plans/plan-brief.mjs` shows the usage line takes a slice and `--steps`, with no tree argument (measured 2026-10-03, B9 g2 follow-ups).
-- added: 2026-10-03
-
-## P-707 · A replay killed at the tool ceiling leaves the mutation in the file, and the entry `wf-restore` switches the restore off for every entry after it
-- symptom: B9 g4 ran `node scripts/watchfail.mjs --registry <scratchpad>/reg` in the foreground with `timeout 115`; the folder held B4 entries (P-154), the call hit the ceiling mid-replay and `git status` showed `app/src/lib/cx.ts` (B4's mutation) and later `app/scripts/watchfail.mjs` with its `restoreAll` loop deleted. The next replay of the group's own 21 entries printed `WATCHED-FAIL BAD: wrong reason` for five of them, because `restoreAll` no longer wrote anything and each mutation stayed in `slides.ts`, `Cover.tsx`, `Story.tsx` and `OgCard.tsx`; the six untracked files had to be rewritten by hand (they have no git copy to check out).
-- cause: a registry replay runs 4 to 8 s per entry on a loaded laptop, so 21 entries cannot finish inside 115 s; a killed `watchfail.mjs` cannot restore, and the B4 entry `wf-restore` mutates `restoreAll` itself, so a kill during or after it breaks the tool for everything that follows.
-- rule: replay a registry only in the background (`run_in_background`, output to a log, poll with a bounded loop) from a fresh `mktemp -d` folder that holds only your own file (P-154), never under `timeout`; before the replay commit or stage the files it mutates (an untracked file cannot be restored from git), and afterwards run `git status --short | grep -v "^??"` and the unmutated tests; to find one entry's red text use the single-mutation form (`--file/--find/--replace/--run/--expect`) or a scratch loop that restores from the bytes it read.
-- proof: `cd app && git status --short | grep -v "^??"` → no output after a finished replay; `node -e 'for(const e of require("./tests/mutations/B4.json")) if(e.id==="wf-restore") console.log(e.file)'` → `scripts/watchfail.mjs` (2026-10-03).
-- added: 2026-10-03
-
-## P-708 · `quiet.mjs` runs its command with `shell: true` and no quoting: `bash -c "cd app && ..."` runs the part after `&&` in the wrong folder
-- symptom: B9 g3 review ran `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` and got `error: Script not found "layout"` and `quiet: exit 1`, although the script exists in `app/package.json`.
-- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`; on Windows Node joins the arguments with spaces and no quotes, so cmd.exe sees `bash -c cd app && bun run layout`: `bash -c cd` ends at `&&` and `bun run layout` runs in the folder quiet.mjs was started from (the repository root).
-- rule: never pass a compound command (`&&`, `;`, pipes, quotes) through `quiet.mjs`; change into the folder first and run it from there: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run <script>`.
-- proof: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` → `error: Script not found "layout"`, `quiet: exit 1`; `cd app && node ../workspace/05-plans/quiet.mjs -- bun run layout` → `layout: OK (772 files)`, `quiet: ok` (measured 2026-10-03).
-- added: 2026-10-03
-
-## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
-- paths: app/src/templates/social/**, app/src/styles/tokens.css
-- severity: warn
-- symptom: every carousel and story headline rendered at weight 700 against DIRECTION.md's "nothing bold"; the by-eye check passed because it compared offsets, not weight (B9 g3 review).
-- cause: `SocialFrame` draws the headline as an `<h1>`; the reset in `social.css` clears margin and padding only, and the render scripts inline `tokens.css`, `fonts.css` and `social.css` alone, so the browser's own `h1` weight wins over the inherited `font-weight: 400` of `.social-frame`.
-- rule: every text slot of a social template sets its own `font-weight` from a token (`--social-weight-text` 400, `--social-weight-numeral` 500); never rely on inheritance through a heading element.
-- proof: render `SocialFrame` with react-dom/server, inline the three CSS files and read `getComputedStyle(h1).fontWeight` in puppeteer-core → `400` (with the `font-weight` line of `.social-frame__headline` removed → `700`) (measured 2026-10-03).
-- added: 2026-10-03
-
 ## P-709 · A render probe written outside `app/` cannot resolve `react/jsx-dev-runtime`, and the quick workaround is an untracked file inside `app/`
 - symptom: B9 g3 measured the headline weight of `SocialFrame` with a probe kept in the scratchpad: the import of `SocialFrame.tsx` failed to resolve `react/jsx-dev-runtime`, and the author ran the probe as a temporary untracked file inside `app/` (a file the folder map has no row for, written into a tree a reviewer treats as the diff).
 - cause: a `.tsx` file takes its JSX runtime from the `node_modules` nearest to the file that holds the JSX; the probe sat outside `app/`, but `SocialFrame.tsx` is inside it, and a probe that itself contains JSX is resolved from the probe's own folder, where there is no `react`.
@@ -1516,8 +1398,206 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: vitest starts one forks worker per test file; with several lanes building and the laptop saturated, a worker did not answer in time. The failure comes from starting the worker, not from an assertion in the file it names.
 - rule: run `bun run check` in the background (`run_in_background`, output to a log, a bounded poll loop; P-027), never in the foreground. When the only failure is the worker-start error, re-run the test stage alone (`bun run test`) before calling the gate red; a failure that names an assertion is a real red and is never re-run until green. Report both runs.
 - proof: `grep -c "Failed to start forks worker" GOTCHAS.md` → at least `1` (this entry); `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test` → `quiet: ok` on a quiet laptop (2026-10-03).
+- hit again: 2026-10-03, B3 g1 review: `bun run check` failed in its vitest stage (`Test Files  39 passed ... Errors  1 error ... Failed to start forks worker for test files .../tests/unit/analytics.test.ts`, exit 1) while other lanes ran; `bun run test` alone then passed 40 of 40, exit 0.
 - added: 2026-10-03
 - hit again: 2026-10-03, B9 g5: `bun run typecheck` plus `eslint` plus three render runs in one call passed the 120 s foreground limit and moved to the background; split them into calls under 100 s.
+
+## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
+- paths: app/supabase/sql/functions/**, app/supabase/migrations/**
+- severity: warn
+- symptom: B2 g8's snapshot fixture could not publish a story: `error: record "new" has no field "region_slug"` from `enforce_publish_gate() line 15 at IF`. On main since migration 8, no story could be published by anyone; `gate.db.test.ts` only checked that the trigger exists on `stories`.
+- cause: the completeness check was one condition, `tg_table_name = 'properties' and (new.region_slug is null or ...)`. PL/pgSQL resolves every `new.<field>` the expression names before SQL evaluates it, so the `and` never short-circuits the missing field on a `stories` row.
+- rule: in a trigger function attached to more than one table, put a table's own columns inside a nested `if tg_table_name = '<table>' then ... end if;`, and give every table that uses the function a test that runs the branch on it (publish a story, not only list the trigger).
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin; insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x') on conflict (slug) do nothing; insert into public.stories (slug, title, deck, category, market_slug, image, editorial_state, published_at) values ('test-story-probe', 'x', 'x', 'Places', 'california', 'test/a.webp', 'published', now()); rollback;` prints `record "new" has no field "region_slug"` on main before migration `20261003082557_fn_enforce_publish_gate_stories.sql`; the watched-fail `g8-story-publish` of `tests/mutations/B2.json` replays it (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-320 · A group's file list from `plan-brief.mjs` can omit files its own step requires: the function files of new functions and the manifest exports its proof reads
+- symptom: B2 g8's brief named six files. Step 8's proof compares key sets with `publicPropertyKeys`, `publicStoryKeys` and `publicMediaKeys` of `tests/db/schema-manifest.ts`, which did not export them, and migration 9 creates `bump_catalog_version` and `tg_bump_catalog_version`, whose `supabase/sql/functions/<name>.sql` files (invariant 19, and the plan's own watched-fail (tt)) were not in the list; `function-source.db.test.ts` would have gone red on them. The plan's index list also named six indexes migration 4 already holds (`properties_market_idx`, `property_media_idx`, `regions_market_idx`, `market_notes_market_idx`, `market_guide_entries_market_idx`, `slug_history_property_idx`) and two that a primary key serves.
+- cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
+- rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
+- proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
+- hit again: 2026-10-03, B3 g1: the brief for steps 1 and 1b omitted the tests of the libs, `tests/mutations/B3.json`, the keys of `tests/e2e/fixtures/routes.ts` and three `file` values of `tests/mutations/B4.json` that the route renames break; all were added by the group and named in the log.
+- added: 2026-10-03
+
+## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
+- symptom: B2 g8's first run of `renaming a draft's slug bumps it once` received `2`.
+- cause: the rename runs `delete from public.slug_history where slug = new.slug` (usually no row) and then the insert of the old slug; a `for each statement` trigger fires for both statements whether or not they touch a row.
+- rule: a catalog-version trigger on a table that a function writes with a guard statement before the real one is `for each row`, so a statement that matches nothing does not bump; `slug_history` is the one row-level plain trigger of migration 9, and the watched-fail `g8-slug-rename` puts the statement form back and goes red.
+- proof: from `app/`, `MOP_PRELUDE=<migration 9 and the fn migration> node <replay> g8-slug-rename` prints `× renaming a draft's slug bumps it once` with `expected 2 to be 1` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-322 · Database tests on mop-dev time out at 30 s or hit `lock timeout` in bursts, and pass on the next run unchanged
+- symptom: in B2 g8, four runs of the same unchanged files gave `Test timed out in 30000ms` on one to five cases and `canceling statement due to lock timeout` on another, then `17 passed (17)` and `18 passed (18)` on rerun; a single case that took 30 s took 3 s alone a minute later. Once one case times out, the next ones often time out too.
+- cause: not proven. Observed: every connection goes through Supavisor (`application_name` `Supavisor` in `pg_stat_activity`), vitest does not cancel a timed-out case, so its transaction keeps its locks while the next case starts, and other lanes run db tests on the same project.
+- rule: read a burst of 30 s timeouts as the shared database, not the code: look at `pg_stat_activity` for other sessions, rerun once, and report the rerun with the first output. A case that fails the same way twice is a real failure. Never raise `testTimeout` to hide it.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
+- symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
+- cause: Postgres infers one type per parameter and refuses two; jsonb stores keys sorted by length then bytes, so `{"w":..,"h":..}` comes back as `{"h":..,"w":..}`.
+- rule: cast a parameter once per use (`$3::public.editorial_state`, `$3::text`), and compare jsonb values as parsed objects (`toEqual(JSON.parse(...))`), never as strings.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select jsonb_build_object('w', 1, 'h', 2)"` → `{"h": 2, "w": 1}` (measured 2026-10-03, B2 g8).
+- added: 2026-10-03
+
+## P-324 · A db:fn fix made mid-slice gets today's migration timestamp, which is later than every migration the plan still has to add under a fixed name
+- symptom: B2 g8's fn migration `20261003082557_fn_enforce_publish_gate_stories.sql` sorts after the five names the plan still lists for B2 g9 and B3 (`20261001090900_rls.sql`, `20261001091000_storage.sql`, `20261001091100_settings_defaults.sql`, `20261001100000_public_write_functions.sql`, `20261001110000_coming_soon.sql`). After the merge `checkMigrations` answers `rename supabase/migrations/20261001090900_rls.sql to a timestamp after 20261003082557` for each, and db-push refuses them as out-of-order. The plan's Files list, its "numbered 1 to 12" text and the "12 migrations" exit line go stale.
+- cause: `db:fn` stamps the migration with the clock, while the plan fixed the later names in advance. Invariant 17 allows renaming, so nothing broke, but nobody had listed the renames.
+- rule: before running `db:fn` mid-slice, `git grep` the plan for planned migration names newer than the main tip and older than today; if any exist, say in the log which names will have to be renamed after the fix merges and ask the orchestrator to update the plan before the next group starts. The other way, putting the fix inside an unmerged migration, conflicts with R19's db:fn path.
+- proof: from the tree root, `grep -rhoE "2026100[0-9]{7}_[a-z_]+\.sql" workspace/05-plans/*.md | sort -u` lists the planned names, and `ls app/supabase/migrations | tail -3` shows the fn migration stamped `20261003082557`, later than every one of them (measured 2026-10-03, B2 g8 review).
+- hit again: 2026-10-03, B3 g2: the plan still names `20261001100000_public_write_functions.sql`, older than main's `20261003173858`; R16 and `db:push` (`refusing: out-of-order migration`) refuse it, so the file was made with `bunx supabase migration new public_write_functions` as `20261003184651_public_write_functions.sql`. The plan's proof `migration list shows 20261001100000` reads `20261003184651`, and B3's later `contracts-live.test.ts` line that parses `supabase/migrations/20261001100000_public_write_functions.sql` must name the new file (B3-followups).
+- added: 2026-10-03
+
+## P-325 · The review brief's snapshot command and builder path use the snapshot folder where the script wants the lane root
+- symptom: the brief said to run `review-snapshot.mjs create E:/mop-build/db-review 2223e63` from `E:/mop-build/db-review`, which gave `cd: /e/mop-build/db-review: No such file or directory`; it also called `E:/mop-build/db-review` the builder's working folder.
+- cause: the script's argument is the lane root and it creates `<laneRoot>-review` itself (`const snap = ${laneRoot}-review`), so the folder does not exist before the first run. The brief generator substituted the snapshot path where the lane path belongs, in both places.
+- rule: a reviewer runs the script from the lane root with the lane root as argument: `node E:/mop-build/db/workspace/05-plans/review-snapshot.mjs create E:/mop-build/db <sha>`; it prints the snapshot folder. The brief generator names the lane root as the builder's folder and the snapshot only as the reviewer's. Fix the generator, not each brief.
+- proof: `sed -n '5p;21p' workspace/05-plans/review-snapshot.mjs` prints the usage line `create <laneRoot> <sha>` and `const snap = ${laneRoot}-review;` (measured 2026-10-03, B2 g8 review).
+- Hit again in B2 g9 review: the brief still passed the snapshot folder as the lane root and still said to run create and remove from that folder, which does not exist until create has run (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 45db5a3` gave `cd: /e/mop-build/db-review: No such file or directory`). The working form was `cd /e/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db 45db5a3`, and remove with `E:/mop-build/db`. The generator is still unfixed: fix the review brief in `.claude/workflows/build-slice.js` (it names review-snapshot.mjs), not each brief.
+- Hit again in B2 g10 review: the brief again passed `E:/mop-build/db-review` as the lane root and said to run it from that folder (`cd /e/mop-build/db-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db-review 4378d02` gave `cd: /e/mop-build/db-review: No such file or directory`); the lane-root form worked first time.
+- Hit again in the B2 g10 re-review (third hit): the brief again named `E:/mop-build/db-review` as the lane root (`cd /e/mop-build/db-review` gave `No such file or directory`; from the lane, `create E:/mop-build/db-review bf2d74f` failed with `fatal: cannot change to 'E:/mop-build/db-review'`; `create E:/mop-build/db bf2d74f` worked first time). Three briefs in a row: the generator fix is overdue.
+- Hit again in the B2 g11 review (fourth hit): the brief again passed `E:/mop-build/db-review` as the lane root and said to run create from that folder (`No such file or directory`).
+- Hit again in the B2 g12 review (fifth hit): `cd /e/mop-build/db-review` failed with `No such file or directory`; `review-snapshot.mjs` line 21 reads ``const snap = `${laneRoot}-review` ``. Five hits in one slice: the generator in `.claude/workflows/build-slice.js` is the fix, and it is still open.
+- Hit again in the B2 g11 re-review (sixth hit): the brief again passed `E:/mop-build/db-review` as the lane root and called it the builder's folder (`cd /e/mop-build/db-review` gave `No such file or directory`); `create E:/mop-build/db 3fe3560` run from `E:/mop-build/db` worked first time. The generator is still not fixed.
+- Hit again in the second B2 g11 re-review (seventh hit): the brief again named `E:/mop-build/db-review` as the lane root and the builder's folder; `cd /e/mop-build/db-review` gave `No such file or directory`, `create E:/mop-build/db c7b7c92` from `E:/mop-build/db` worked first time.
+- Hit again in the third B2 g11 re-review (eighth hit): the brief again named `E:/mop-build/db-review` as the lane root, as the folder to run create from and as the builder's folder (`cd /e/mop-build/db-review` gave `No such file or directory`); `cd E:/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db a7b23b1` printed `E:/mop-build/db-review` and exited 0. The generator in `.claude/workflows/build-slice.js` is still not fixed.
+- Hit again in the B2 g13 review (ninth hit): the brief ran `review-snapshot.mjs create E:/mop-build/db-review dbf641f` from `E:/mop-build/db-review`; `cd /e/mop-build/db-review` gave `No such file or directory`, exit 1, while `cd E:/mop-build/db && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/db dbf641f` printed `E:/mop-build/db-review`, exit 0. The brief also told the reviewer to run `plan-brief` from `E:/mop-build/db` and never read `db-review` there, which swaps the two folders the same way. The fix is in the brief generator `.claude/workflows/build-slice.js` (an orchestrator follow-up), not in the reviewer.
+- added: 2026-10-03
+
+## P-326 · `quiet.mjs` splits a quoted argument at its spaces, so `-t "as admin plus"` filters on `as`
+- symptom: B2 g9 ran `node workspace/05-plans/quiet.mjs -- node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts -t "as admin plus"` to run one case and got `Tests  9 failed | 1 passed | 4 skipped (14)`: every case whose name holds `as` ran, about 30 s instead of 3.
+- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`, and with `shell: true` Node joins the arguments with spaces without quoting them, so the shell sees `-t as admin plus`.
+- rule: through `quiet.mjs`, write a test-name filter without spaces (`-t "as.admin.plus"`, a regex dot matches the space), or run the command without `quiet.mjs` when an argument must keep a space.
+- proof: from the tree root, `node workspace/05-plans/quiet.mjs -- node -p process.argv.length "a b"` prints `3`, and with `"a.b"` prints `2` (measured 2026-10-03, B2 g9).
+- added: 2026-10-03
+
+## G-105 · In `format()`, a bare `%s` or `%L` after a numbered `%2$s` takes the argument after that one, not the next unused one
+- paths: app/tests/db/**, app/supabase/sql/functions/**
+- severity: warn
+- symptom: B2 g9's RLS probe built its insert as `format('insert into %s (%s) select %2$s from jsonb_populate_record(null::%1$s, %L)', p_table, v_columns, v_row)`, and every insert of every role answered `22P02` (invalid input syntax): the `%L` received the column list, not the row.
+- cause: Postgres `format` continues an unnumbered specifier from the position after the last argument used, numbered or not; after `%1$s` the next bare specifier is argument 2.
+- rule: once a format string uses a numbered specifier, number every specifier after it (`%3$L`).
+- proof: `cd app && bun run db:psql -- -Atc "select format('%s %2\$s %1\$s %L', 'a', 'b', 'c')"` prints `a b a 'b'`, and with `%3\$L` prints `a b a 'c'` (Postgres format docs; measured 2026-10-03, B2 g9).
+- added: 2026-10-03
+
+## P-327 · `gen:types` is an ops command, its determinism proof can pass on an unchanged file, and mop-dev only holds main's migrations
+- symptom: B2 g10 ran `bun run gen:types` in the shell that the db tests need (`eval "$(node scripts/load-env.mjs --profile dev)"`, `env -u CLOUDFLARE_API_TOKEN`) and got `supabase gen types exited 1`; the step's determinism proof (`cp src/db/types.ts supabase/.temp/types.prev.ts && bun run gen:types && git diff --no-index --exit-code ...`) still exited 0, because nothing had been rewritten. After the copy, `bun run check` failed in `eslint .` with `supabase/.temp/types.prev.ts was not found by the project service`. The file also lacks every function of migrations 9 to 12 (`public_state` is absent), because `mop-dev` holds only the migrations on `main`.
+- cause: `SUPABASE_ACCESS_TOKEN` is an ops name (`scripts/load-env.mjs` loads it only from `.env.ops` and `guardEnv()` refuses it in a db-test shell, P-310), and the dev profile has `DEV_SUPABASE_PROJECT_REF` only; the CLI reads the Management API with the token. ESLint's type-aware config lints every tracked-or-not `.ts` under `app/`, and `supabase/.temp/` was not ignored. The generator reads the cloud project, which an unmerged lane never pushes to (DB-01), so the committed file is what `main`'s schema produces until `main` pushes the rest.
+- rule: run `gen:types` in a shell loaded with the inline loader (`set -a; . <(tr -d '\r' < .env | grep -E '^[A-Z0-9_]+='); set +a`), never in the db-test shell, and read its `wrote src/db/types.ts` line before the diff: an exit 0 of the diff alone proves nothing. `supabase/.temp` is in the ESLint ignores. A lane's `src/db/types.ts` lacks the functions of its own unmerged migrations: regenerate it in the first pull request after `main` has pushed them (B4's `gen:types -- --local` diff is red until then), and say so in the log.
+- proof: `cd app && bun run gen:types` in the db-test shell prints `supabase gen types exited 1`, in the inline-loader shell `wrote src/db/types.ts`; `grep -c public_state src/db/types.ts` prints `0` on slice/b2 at B2 g10 while `grep -c "create or replace function public.public_state" supabase/migrations/20261001090800_catalog_version.sql` prints `1` (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-800 · A route file named with a leading double underscore is a pathless layout, not the path `/__name`: B3's `src/routes/__spike.tsx` stops the build
+- symptom: B3 step 1's temporary page `src/routes/__spike.tsx` with `createFileRoute("/__spike")` made `bun run build` fail: `Conflicting configuration paths were found for the following routes: "/", "/". Conflicting files: src/routes/index.tsx, src/routes/__spike.tsx`.
+- cause: TanStack's file router reads a leading underscore as a pathless layout and `__root.tsx` is the only double-underscore name it knows, so `__spike` has no path of its own and its children resolve to `/`.
+- rule: a temporary or real route file never starts with an underscore unless it is meant as a pathless layout (`_site.tsx`); the spike page is `src/routes/spike.tsx` (URL `/spike`). A plan line that names `__spike` is a plan defect; the removal proof `test ! -e src/routes/spike.tsx` replaces the one for `__spike.tsx`.
+- proof: `cd app && bun run build` with `src/routes/__spike.tsx` present prints the error above and exits 1; renamed to `src/routes/spike.tsx` with `createFileRoute("/spike")` it exits 0 and `curl -s http://127.0.0.1:8828/spike | grep -c ok` prints 2 under `wrangler dev` (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## P-801 · The safety check on `rm` resolves a relative path against the session's start folder, not the folder a `cd` in the same command moved to
+- symptom: `cd /e/mop-build/api/app && ... rm ../spike-page.txt` was refused as "Dangerous rm operation detected: E:\spike-page.txt" and the refusal says it will not be shown again, so the scratch files stayed until a command with absolute paths removed them.
+- cause: the check reads the path before the `cd` takes effect, so `../x` resolves from the session folder (`E:\Matter Of Place`) to the drive root.
+- rule: give `rm` absolute paths only (`rm /e/mop-build/api/app/src/routes/spike.tsx`), and write scratch output (curl bodies, wrangler logs) into the session scratchpad, never into the lane folder.
+- proof: `rm /e/mop-build/api/spike-page.txt` removed the file that `rm ../spike-page.txt` was refused for (2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## P-802 · B3 step 1 says B2's generated types "exist by now", but `src/db/types.ts` is only on `origin/slice/b2` until B2 merges
+- symptom: `git ls-files app/src/db` on `main` lists only `README.md`; `db.ts` (`createClient<Database>`) and `fake-db.ts` (`Database['public']['Functions']`) cannot typecheck without the file, and B3's own brief said the rest of B3 waits for B2 step 12 on `main`.
+- cause: the plan reads B2 as finished; the file lands in B2 g10 (`origin/slice/b2`), and `main` holds only B2's early groups.
+- rule: a B3 group that needs `src/db/types.ts` before B2 is on `main` merges `origin/slice/b2` into its branch (a merge commit, never a rebase or a copy of one file, so the later merge of B2 sees the same commits), resolves `.prettierignore` and `knip.json` by keeping both sides, and says so in the log. The types predate migration 9 (P-327): a test that names `public_state` casts the name once with a reason.
+- proof: `git ls-tree -r --name-only origin/main -- app/src/db/types.ts` prints nothing and the same on `origin/slice/b2` prints `app/src/db/types.ts` (measured 2026-10-03, B3 g1); `bun run typecheck` exits 0 after the merge.
+- added: 2026-10-03
+
+## P-803 · `watchfail.mjs --only <id>` is global across registries: a plan letter that another registry already uses replays both
+- symptom: the first replay of B3's entries `oo` and `pp` printed `replayed 2: ok 1, bad 1` (`WATCHED-FAIL OK B3:oo` and a bad result from the other registry's entry of the same id), so a green slice looked red.
+- cause: `tests/mutations/*.json` are searched together and the plans hand out the same letters (`oo`, `pp`) to several slices; the uniqueness test of `mutation-registry.test.ts` checks one file at a time.
+- rule: give every registry entry the slice prefix (`b3-oo`, `b3-g1-env-prod`), whatever letter the plan uses; replay a slice in one call with `for id in $(node -e '...ids...'); do node scripts/watchfail.mjs --registry tests/mutations --only "$id"; done` and read only the summary line.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b3-oo | tail -1` → `replayed 1: ok 1, bad 0, stale 0; ...` (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## P-804 · Moving a route file leaves the banked proof commands that name the old file unrunnable, and nothing checks them
+- symptom: B3 step 1b moved `src/routes/about.tsx` to `_site.about.tsx` and updated the three `tests/mutations/B4.json` entries, but the proofs of G-150 and P-409 still named `src/routes/about.tsx`, a file that no longer exists; the same move left `trace.json` (22 code paths), `pages-and-wording.md` (47) and `app/docs/architecture/frontend.md` (11) on the old names, and `check-plans.mjs` still printed OK.
+- cause: a registry test replays `file` entries and so caught B4.json, but a proof written as prose in the bank, an S53 trace item or a site-index line is not read by any test, and `check-plans.mjs` checks that a plan names its files, not that the files exist.
+- rule: a step that renames or moves a file greps the whole repository for the old path (`git grep -n '<old path>' -- . ':!app/src/routeTree.gen.ts'`) and fixes every hit in a file it owns; a hit in a file it does not own goes to the follow-ups for the orchestrator. The two bank proofs are corrected by this entry; the trace, site-index and architecture hits are open (B3-followups).
+- proof: `git grep -c '^- proof:.*src/routes/about[.]tsx' -- GOTCHAS.md` → no output (the proofs of G-150 and P-409 name `_site.about.tsx`); `ls app/src/routes | grep -c '^about[.]tsx'` → `0`; `git grep -l 'routes/about[.]tsx' -- workspace/05-plans/trace.json` → `workspace/05-plans/trace.json` while the hit is open (measured 2026-10-03, B3 g1 review).
+- added: 2026-10-03
+
+## P-805 · Two plans order `submission_media` by `sort_order`, a column no migration and no plan creates
+- symptom: B3 step 2's `submission_upload_paths` returns its rows "in `sort_order`" and B7 reads uploaded media "in `sort_order`", but `submission_media` (B2 migration 5, `tests/db/schema-manifest.ts`) has id, submission_id, name, storage_path, uploaded_at, bytes, mime and sha256 only. `create_submission` also has to answer a double click with the first request's media in payload order, which needs the position stored.
+- cause: the plans wrote the read before anyone owned the column; the Data changes list of B3 names `duplicate_of` and `pending_source` and not this one.
+- rule: before writing a function body from a plan line, check every column it names against `tests/db/schema-manifest.ts`; a missing column is added by the migration of the function that first writes it, named in the log and the report, never left to a later slice. B3's migration `20261003184651_public_write_functions.sql` adds `submission_media.sort_order int not null default 0`, written by `create_submission` as the 0-based payload index.
+- proof: `cd app && git grep -c "sort_order" -- supabase/migrations/20261001090400_intake.sql` → no output; `git grep -c "add column sort_order" -- supabase/migrations/20261003184651_public_write_functions.sql` → `1` (measured 2026-10-03, B3 g2).
+- added: 2026-10-03
+
+## P-806 · `rate_limit_check` as the plan words it ("one row per check") counts a call twice when two checks share a bucket and key
+- symptom: B3's Files line says `rate_limit_check` "inserts one row per check" and also that `checkDb` "accepts two checks on one bucket with different windows" (B7's `agent:<key_id>` at 60 per minute beside a daily limit). With one row per check each call writes two hits under the same bucket and key, and both windows count both, so the minute limit of 60 would refuse at the 31st call.
+- cause: the two sentences were written for different callers; a check is a window on a key, while a hit belongs to the key.
+- rule: `rate_limit_check` inserts one hit per distinct (bucket, key_hash) of the call (`select distinct`). `tests/api/ratelimit.api.test.ts` "counts two checks on one bucket against their own windows and records one hit per call" asserts 3 hits after two calls on a key that held 2.
+- proof: `cd app` in the dev loader shell, `bunx vitest run --project db tests/api/ratelimit.api.test.ts -t "own windows"` passes; `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -f <file>` on a file holding `begin;`, the text of `supabase/sql/functions/rate_limit_check.sql` up to `$$;` with `select distinct c` changed to `select c`, two hits for one key dated 2 minutes ago, two calls of `rate_limit_check` with the checks `{limit 2, window_seconds 60}` and `{limit 3, window_seconds 86400}` on that key, a count of its hits and `rollback;` prints `t | 0`, then `f | 86280` and `4`; with `distinct` the count is `3` (measured 2026-10-03, B3 g2).
+- added: 2026-10-03
+
+## G-300 · `env.ts` parses `process.env` when it is first imported, so a unit test sets the environment before it imports `env.ts`, `db.ts` or anything that imports them
+- paths: app/src/server/lib/env.ts, app/src/server/lib/db.ts
+- severity: warn
+- symptom: B3 g1's first `env.test.ts` failed at load with `Invalid environment: RATE_LIMIT_SALT Required` before any test ran, because `import { parseEnv } from ".../env"` evaluated `export const env = parseEnv(process.env)` under the hermetic setup, which holds no secrets.
+- cause: the plan makes `env` a module-level constant read once (`tests/api/env.ts` relies on the same order), and `tests/setup/hermetic.ts` strips credentials.
+- rule: a unit test that needs `env.ts` (directly, or through `db.ts`) stubs the variables first and loads the module with a dynamic import after `vi.resetModules()` (`vi.stubEnv("MOP_ENV", "local")`, `vi.stubEnv("RATE_LIMIT_SALT", "salt")`, then `await import(...)`); a test that only needs the type `Db` imports it with `import type`, which loads nothing. Code the job runner shares reads variables with `readVar`, never `env.ts` (G39).
+- proof: `cd app && bunx vitest run --project unit tests/unit/env.test.ts tests/unit/db.test.ts` passes; with the stubs removed from the head of `env.test.ts` it fails at load with the error above (measured 2026-10-03, B3 g1).
+- added: 2026-10-03
+
+## G-301 · `AbortSignal.timeout` on a Storage `fetch` also cuts the response body, so `readPublicObject` and the delete batches carry no timeout
+- paths: app/src/server/lib/media-store.ts
+- severity: warn
+- symptom: B3 g1 wrapped every Storage call in `AbortSignal.timeout(10_000)`; the review showed a response whose stream lasts longer than the limit prints `headers status 200` and then `body error after headers: TimeoutError` (Node/undici), so a property video on a slow phone would be cut off mid-body and the edge could not fill its cache; the same cap turned a slow but working 1,000-key delete into `storage_unavailable` and a retry loop.
+- cause: a fetch signal covers the whole exchange including the body; `readPublicObject` hands the answer to `src/server/public/media.ts` to stream, and the plan names no timeout.
+- rule: `storageFetch` passes the init untouched, with no signal. A bound on a Storage call is a decision of its own, taken where the body is not streamed to a client.
+- proof: `cd app && bunx vitest run --project unit tests/unit/media-store.test.ts` passes; with `signal: AbortSignal.timeout(10_000)` put back in `storageFetch` it fails `sets no abort signal, so a slow stream of a large file is never cut off` (measured 2026-10-03, B3 g1 review fix).
+- added: 2026-10-03
+
+## G-106 · Moving a function to another schema: policies follow it, but function bodies, test SQL, the registry and `db:reset` do not
+- paths: app/supabase/migrations/**, app/supabase/sql/functions/**, app/scripts/db-reset-dev.mjs, app/tests/mutations/**
+- severity: warn
+- symptom: B2 c9 moved `is_staff()` and `role_in(...)` from `public` to `app` (security advisor lint 0029). The review's remedy named only the move and two test files. Measured on mop-dev after `alter function ... set schema app`: the 44 policies read `app.role_in(...)` at once, but `enforce_publish_gate` (plpgsql, text body) still said `public.role_in`, `harness.db.test.ts` selected `public.role_in(...)`, 17 `sql` entries of `tests/mutations/B2.json` created or called `public.role_in`/`public.is_staff`, and `pg_depend` showed `app.is_staff()` depending only on schema `app` (`pg_namespace|n`), so `db:reset`'s `drop schema public cascade` would leave it behind and the replayed move would fail with "function is_staff() already exists in schema app".
+- cause: a policy stores the function's oid, a `language sql`/`plpgsql` body stores text resolved at call time, and a body that only names tables records no dependency on them. `alter function ... set schema` is not flagged by `check-migrations.mjs` and drops nothing, so no gate catches the stale names.
+- rule: before moving a function, `git grep -n "public\.<name>"` across `supabase/sql/functions`, `tests`, `scripts` and the plans; regenerate every function that names it with `bun run db:fn`, repoint test SQL and registry `sql` entries, and make `db:reset` drop the new schema too. Replay every registry entry whose `sql` names the function.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select d.refclassid::regclass, d.deptype from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = 'app.is_staff()'::regprocedure"` → `pg_namespace|n` only (measured 2026-10-03, B2 c9).
+- hit again: 2026-10-03, B3 g2: the move did not regenerate `src/db/types.ts`, so main's file still listed `is_staff` and `role_in` under `public`; the next `bun run gen:types` dropped them, and `bun run check` failed typecheck in `tests/unit/db.test.ts` and `tests/unit/fake-db.test.ts`, which used `is_staff` as a sample RPC (`Argument of type '"is_staff"' is not assignable`). Moving a function regenerates the types in the same commit; the two tests now call `public_state` and `record_webhook_receipt`.
+- added: 2026-10-03
+
+## P-328 · A proof of a migration that runs on mop-dev can pass because mop-dev lacks the object the proof is about
+- symptom: B2 g10 proved migration 12 with `catalog_version 1` read from `mop-dev`, and the review found the real stack gives `4`: all four settings keys went in one `insert`, Postgres queues the AFTER ROW triggers of a statement and fires them at its end, so `settings_bump_catalog_version` (migration 9) raised the freshly inserted `catalog_version` row once for each of `coming_soon_global`, `site` and `environment`. The file's own comment said the opposite.
+- cause: `mop-dev` holds only the migrations on `main`, so the trigger did not exist there and the insert could not bump anything; no test read the starting value, and `catalogVersion()` in `catalog-version.db.test.ts` inserts the row when it is missing, which hides a missing seed too.
+- rule: a migration whose behaviour depends on an earlier unmerged migration is proved with that migration in the prelude (P-312), never on bare `mop-dev`; the case asserts its precondition (the trigger exists) so it cannot pass on a database without it. Rows that a trigger watches go in a statement before the row the trigger raises, never in the same `insert`.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; export MOP_MUTATION_SQL="$(cat supabase/migrations/20261001090800_catalog_version.sql)"; env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/catalog-version.db.test.ts -t although` → `1 passed`; with the registry entry `g10-catalog-version-start` applied (one `insert` again) the received value is `"4"` (measured 2026-10-03, B2 g10 rework).
+- added: 2026-10-03
+
+## P-329 · `bun run check` can exit 1 on `Failed to start forks worker` while other lanes run: rerun the test step before looking at code
+- symptom: a reviewer's first `bun run check` of B2 g10 exited 1 on `[vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts. Caused by: Error: [vitest-pool-runner]: Timeout waiting for worker to respond` and `error: script "check" exited with code 1`; `bun run test` alone then printed `Tests  576 passed | 1 skipped (577)`.
+- cause: a busy laptop (several lanes build and test at once) starts a vitest worker slower than the pool's wait; no test ran, so no case failed.
+- rule: one red `check` whose only message is a worker-start timeout is not a code failure: rerun the test step once and quote both runs (P-322 says the same of the database project); a case that fails the same way twice is real.
+- proof: `grep -n "Timeout waiting for worker to respond" workspace/05-plans/logs/B2.md` finds the g10 review's first run (measured 2026-10-03).
+- added: 2026-10-03
+
+## P-331 · An agent shell can hold `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` of another project, and `serviceClient()` prefers them to the dev profile
+- symptom: B2 g11's first `bun run seed -- --target dev --mode full --images skip` printed `lock mop-dev-tests held` and then `seed: markets upsert failed: Could not find the table 'public.markets' in the schema cache`, three times, although `curl` with `DEV_SUPABASE_SERVICE_ROLE_KEY` read `markets` on mop-dev with 200 (`[]`). A `NOTIFY pgrst, 'reload schema'` changed nothing.
+- cause: the shell the builder ran in already exported `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for a different Supabase project (the host is not `$DEV_SUPABASE_PROJECT_REF`); `tests/fixtures/service.ts` reads those two names first and the dev names only as a fallback, so supabase-js talked to the other project while the guard and the advisory lock were on `DEV_DB_URL`. It failed only because that project has no `markets` table; with one, the seed would have written there.
+- rule: a script that writes through supabase-js builds its client from the dev profile's own names (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`) and never through `serviceClient()`, so the project written to is the one guarded and locked; `scripts/seed.ts` does. Before reading a PGRST205 as a stale cache, compare the host of `SUPABASE_URL` with `https://$DEV_SUPABASE_PROJECT_REF.supabase.co`. `serviceClient()` and `guardEnv()` still do not catch this: logged as a follow-up for B3's `tests/api`, which uses the same helper.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && node -e 'console.log(process.env.SUPABASE_URL === "https://" + process.env.DEV_SUPABASE_PROJECT_REF + ".supabase.co")'` → `false` in that shell (measured 2026-10-03, B2 g11); `env -u CLOUDFLARE_API_TOKEN bun run seed -- --target dev --mode full --images skip` → `markets 3, regions 12, properties 16, stories 6`.
+- added: 2026-10-03
+
+## P-332 · The seed's two small gate costs: `guardedScripts` needs the literal call `assertNotProduction(`, and an untyped supabase-js client cannot be named as a type
+- symptom: `bunx vitest run --project unit tests/unit/assert-not-production.test.ts` failed with `expected [ 'scripts/seed.ts' ] to deeply equal []` although `seed.ts` imported the guard and defaulted its `guard` parameter to it; then `bun run lint` printed `no-unsafe-return` on a function typed `SupabaseClient`, and `ReturnType<typeof createClient>` made `.upsert` take `never[]`.
+- cause: the `guardedScripts` case tests the file text for `assertNotProduction(` with the open parenthesis, which `guard = assertNotProduction` does not contain; `createClient` without a `Database` type returns `SupabaseClient<any, any, "public", any, any>`, which no named type reproduces under the strict preset.
+- rule: a guarded script holds the literal call (`guard = (options) => assertNotProduction(options)`); an adapter over an untyped supabase-js client is built in the function that creates the client, so the type is inferred and never written.
+- proof: `cd app && bunx vitest run --project unit tests/unit/assert-not-production.test.ts` → `Tests  9 passed (9)`; with `guard = (options) => assertNotProduction(options)` replaced by `guard = () => Promise.resolve()` in `scripts/seed.ts` the registry entry `mmm-seed-text` replays `WATCHED-FAIL OK B2:mmm-seed-text` (2026-10-03, B2 g11).
+- added: 2026-10-03
+
+## P-330 · A db project run can fail with `getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com` before any test runs, and pass on the next run unchanged
+- symptom: a reviewer's `vitest run --project db tests/db/catalog-version.db.test.ts` of B2 g10 failed in global setup with `Error: getaddrinfo ENOTFOUND aws-0-us-east-1.pooler.supabase.com`, exit 1, no test run; the run with migrations 9 and 12 as prelude failed the same way. `nslookup` resolved the host straight after (44.216.29.125 and others) and each rerun gave `18 passed`. Two reruns of cost.
+- cause: a transient DNS failure on the laptop's resolver, not the code: global setup opens the pooler connection first, so a lookup failure reports as a red project with no case named.
+- rule: one `ENOTFOUND` on the pooler host is not a code failure: rerun once and quote both runs (P-322 and P-329 say the same of timeouts and worker starts); a lookup that fails twice with `nslookup aws-0-us-east-1.pooler.supabase.com` also failing is a network fault, so report BLOCKED with that output, not a test result.
+- proof: `grep -n "ENOTFOUND" GOTCHAS.md` finds this entry; `nslookup aws-0-us-east-1.pooler.supabase.com` prints the pooler's addresses when the resolver is healthy (measured 2026-10-03, B2 g10 review).
+- added: 2026-10-03
 
 ## P-333 · A watched-fail of a budget or a "nothing leaks" assertion stays green until the mutation makes something exceed the budget or leak
 - symptom: B2 g12's registry entry `g12-variants-hero-weight` (hero encoded lossless) stayed green: the 2400x1600 gradient fixture encodes to 296,510 bytes even lossless, under the 400 KB bound. A mutation that feeds the upload to the variants (`sharp(buffer)` instead of `sharp(master)`) also stays green for EXIF, because sharp drops metadata on every output by default.

@@ -1058,6 +1058,27 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          at: string
+          bucket: string
+          id: number
+          key_hash: string
+        }
+        Insert: {
+          at?: string
+          bucket: string
+          id?: never
+          key_hash: string
+        }
+        Update: {
+          at?: string
+          bucket?: string
+          id?: never
+          key_hash?: string
+        }
+        Relationships: []
+      }
       redirects: {
         Row: {
           archived_at: string | null
@@ -1325,6 +1346,57 @@ export type Database = {
           },
         ]
       }
+      subject_requests: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          email: string
+          fulfilled_at: string | null
+          handled_by: string | null
+          id: string
+          ip_hash: string | null
+          kind: string
+          note: string | null
+          received_at: string
+          status: string
+          turnstile_ok: boolean
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          email: string
+          fulfilled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          ip_hash?: string | null
+          kind: string
+          note?: string | null
+          received_at?: string
+          status?: string
+          turnstile_ok?: boolean
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          email?: string
+          fulfilled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          ip_hash?: string | null
+          kind?: string
+          note?: string | null
+          received_at?: string
+          status?: string
+          turnstile_ok?: boolean
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       submission_media: {
         Row: {
           bytes: number | null
@@ -1332,6 +1404,7 @@ export type Database = {
           mime: string | null
           name: string
           sha256: string | null
+          sort_order: number
           storage_path: string
           submission_id: string
           uploaded_at: string | null
@@ -1342,6 +1415,7 @@ export type Database = {
           mime?: string | null
           name: string
           sha256?: string | null
+          sort_order?: number
           storage_path: string
           submission_id: string
           uploaded_at?: string | null
@@ -1352,6 +1426,7 @@ export type Database = {
           mime?: string | null
           name?: string
           sha256?: string | null
+          sort_order?: number
           storage_path?: string
           submission_id?: string
           uploaded_at?: string | null
@@ -1383,6 +1458,7 @@ export type Database = {
           decline_note: string | null
           decline_reason_id: string | null
           designer: string | null
+          duplicate_of: string | null
           id: string
           interior_sq_ft: number | null
           ip_hash: string | null
@@ -1435,6 +1511,7 @@ export type Database = {
           decline_note?: string | null
           decline_reason_id?: string | null
           designer?: string | null
+          duplicate_of?: string | null
           id?: string
           interior_sq_ft?: number | null
           ip_hash?: string | null
@@ -1487,6 +1564,7 @@ export type Database = {
           decline_note?: string | null
           decline_reason_id?: string | null
           designer?: string | null
+          duplicate_of?: string | null
           id?: string
           interior_sq_ft?: number | null
           ip_hash?: string | null
@@ -1539,6 +1617,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "submissions_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -1556,6 +1641,7 @@ export type Database = {
           email: string
           id: string
           markets: string[]
+          pending_source: string | null
           resend_contact_id: string | null
           source: string
           unsubscribed_at: string | null
@@ -1569,6 +1655,7 @@ export type Database = {
           email: string
           id?: string
           markets?: string[]
+          pending_source?: string | null
           resend_contact_id?: string | null
           source: string
           unsubscribed_at?: string | null
@@ -1582,6 +1669,7 @@ export type Database = {
           email?: string
           id?: string
           markets?: string[]
+          pending_source?: string | null
           resend_contact_id?: string | null
           source?: string
           unsubscribed_at?: string | null
@@ -1622,12 +1710,53 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_receipts: {
+        Row: {
+          id: string
+          provider: string
+          received_at: string
+        }
+        Insert: {
+          id: string
+          provider: string
+          received_at?: string
+        }
+        Update: {
+          id?: string
+          provider?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       bump_catalog_version: { Args: never; Returns: number }
+      confirm_subscriber: { Args: { p_token_hash: string }; Returns: string }
+      create_inquiry: {
+        Args: { p: Json }
+        Returns: {
+          id: string
+          received_at: string
+        }[]
+      }
+      create_subject_request: {
+        Args: { p: Json }
+        Returns: {
+          id: string
+          received_at: string
+        }[]
+      }
+      create_submission: {
+        Args: { p: Json }
+        Returns: {
+          id: string
+          media: Json
+          received_at: string
+        }[]
+      }
       drop_old_analytics_partitions: {
         Args: { keep_months?: number }
         Returns: number
@@ -1643,8 +1772,28 @@ export type Database = {
         Args: { months_ahead?: number }
         Returns: undefined
       }
+      forget_webhook_receipt: {
+        Args: { p_id: string; p_provider: string }
+        Returns: undefined
+      }
+      mark_media_uploaded: {
+        Args: { p_media_id: string; p_mime: string; p_sha256: string }
+        Returns: boolean
+      }
       public_catalog_snapshot: { Args: never; Returns: Json }
       public_state: { Args: never; Returns: Json }
+      rate_limit_check: {
+        Args: { p_checks: Json }
+        Returns: {
+          allowed: boolean
+          retry_after: number
+        }[]
+      }
+      record_analytics_events: { Args: { p_rows: Json }; Returns: number }
+      record_webhook_receipt: {
+        Args: { p_id: string; p_provider: string }
+        Returns: boolean
+      }
       save_property: {
         Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: {
@@ -1713,6 +1862,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      submission_upload_paths: {
+        Args: { p_media_ids: string[]; p_submission_id: string }
+        Returns: {
+          media_id: string
+          storage_path: string
+        }[]
+      }
+      unsubscribe_email: { Args: { p_email: string }; Returns: boolean }
+      upsert_subscriber: { Args: { p: Json }; Returns: string }
     }
     Enums: {
       accepted_state: "California" | "New York" | "Florida"

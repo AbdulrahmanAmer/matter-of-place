@@ -76,6 +76,9 @@ begin
   returning id into v_campaign;
   insert into public.campaign_reports (campaign_id, period_start, period_end)
   values (v_campaign, current_date, current_date);
+  insert into public.rate_limits (bucket, key_hash) values ('test-rls', 'test-rls-' || v_user);
+  insert into public.webhook_receipts (provider, id) values ('test-rls', 'test-rls-' || v_user);
+  insert into public.subject_requests (email, kind) values ('test-rls-' || v_user || '@example.test', 'access');
   perform public.enqueue_job(
     'test.rls', '{}', 'test-rls:' || v_user,
     p_event_id => public.emit_event('health.failed', 'system', null, '{}', null)
