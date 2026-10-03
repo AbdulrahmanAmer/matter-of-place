@@ -1331,3 +1331,17 @@ Entry template
 - rule: a scratch config that loads a setup file from the app sets `server: { fs: { strict: false } }`. Run it from `app/` (`bunx vitest run --root <scratch> --config <scratch>/<name>.mjs`) so `vitest` resolves; keep one test file per scratch folder, because `--root` collects every test file under it.
 - proof: with a folder holding `a.test.tsx` (one passing test) and two configs naming `E:/mop-build/tests/app/tests/setup/dom.ts` under `environment: "jsdom"`, run from `app/`: the config without `server.fs.strict: false` prints `Error: Cannot find module '/@fs/E:/mop-build/tests/app/tests/setup/dom.ts'`; the config with it prints `Tests  1 passed (1)` (measured 2026-10-03).
 - added: 2026-10-03
+
+## P-404 · The plan's grep over `tests/fixtures/*.ts` for `randomUUID` also finds B2's harness, `db.ts`
+- symptom: B4 invariant 8 and the GQ-03 proof say `git grep -n "Date.now\|Math.random\|randomUUID" tests/fixtures` prints nothing and `clock.test.ts` greps `tests/fixtures/*.ts`. On main, `tests/fixtures/db.ts` (B2's harness, F22) has `import { randomUUID } from "node:crypto"` and `const id = randomUUID()` in `createAuthUser`, so the first form of the test was red before any factory existed (found in the B4 g2 plan reading, not in a run).
+- cause: the plan wrote the grep for the factories and the dataset but placed it over the whole folder, which already held B2's file; B4 invariant 4 says its tests never call `createAuthUser`.
+- rule: the grep covers every `tests/fixtures/*.ts` except `db.ts`, and `clock.test.ts` says so in a comment. The plan's proof line is read the same way: `git grep` over `tests/fixtures` prints only the `db.ts` lines. If `createAuthUser` ever moves to `deterministicUuid`, drop the exception.
+- proof: from `app/`, `git grep -n "randomUUID" -- tests/fixtures` prints only `tests/fixtures/db.ts:3` and `tests/fixtures/db.ts:90`, and `bunx vitest run --project unit tests/unit/clock.test.ts` prints `Tests  11 passed (11)`.
+- added: 2026-10-03
+
+## P-405 · `optionalShort` in `contracts.ts` never turns an empty string into absent: its union takes the first branch
+- symptom: a test written from the plan wording ("trimming, empty optional fields") expected `inquirySchema.parse({ ..., phone: "" }).phone` to be `undefined` and got `""`.
+- cause: `shortText.optional().or(z.literal("").transform(() => undefined))` is a union and `""` already passes `shortText.optional()`, so the transform branch is never reached (`optionalUrl` does turn `""` into absent because `""` fails `.url()` first).
+- rule: assert that an empty `phone`, `location`, `architect` and the like are accepted, never that they become absent; a change to that behaviour belongs to the slice that owns `contracts.ts` (B3), with a test of its own.
+- proof: from `app/`, `bunx vitest run --project unit tests/unit/contracts.test.ts -t "accepts an empty optional field"` prints `Tests  1 passed`, and `-t "empty optional url into absent"` also passes (measured 2026-10-03).
+- added: 2026-10-03

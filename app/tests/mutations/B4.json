@@ -394,5 +394,41 @@
     "replace": ".reverse()",
     "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
     "expect": "FAIL .*> loadRegistries > reads every json file in name order and ignores the rest"
+  },
+  {
+    "id": "a",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "rightsConfirmed: z.literal(true),",
+    "replace": "rightsConfirmed: z.boolean(),",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "FAIL .*> submissionSchema > rejects rightsConfirmed set to a bad value"
+  },
+  {
+    "id": "b",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "media: z.array(submissionMediaSchema).max(20).default([]),",
+    "replace": "media: z.array(submissionMediaSchema).max(21).default([]),",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "FAIL .*> submissionSchema > rejects more than 20 media and accepts 20"
+  },
+  {
+    "id": "o",
+    "test": "tests/unit/clock.test.ts",
+    "file": "tests/fixtures/clock.ts",
+    "find": "export function deterministicUuid(namespace: string, n: number): string {",
+    "replace": "export function deterministicUuid(namespace: string, n: number): string {\n  return crypto.randomUUID();",
+    "run": "bunx vitest run --project unit tests/unit/clock.test.ts",
+    "expect": "FAIL .*> deterministicUuid > gives the same id for the same call"
+  },
+  {
+    "id": "aa",
+    "test": "tests/unit/time-model.test.ts",
+    "file": "tests/db/harness.db.test.ts",
+    "find": "import setup from \"./global-setup\";",
+    "replace": "import setup from \"./global-setup\";\nimport { FIXED_NOW } from \"../fixtures/clock\";",
+    "run": "bunx vitest run --project unit tests/unit/time-model.test.ts",
+    "expect": "tests/db/harness.db.test.ts imports FIXED_NOW"
   }
 ]
