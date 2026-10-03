@@ -1,13 +1,18 @@
 {
-  "written": "2026-10-03, after the build was parked at the operator's request",
-  "how": "On the operator's go, the orchestrator launches every lane below in one message: Workflow({ scriptPath: \"E:/Matter Of Place/.claude/workflows/build-slice.js\", args: <lane.args> }). Before that: git -C <root> fetch origin && git -C <root> merge origin/main in each lane (the builders also do it at every group). The board at http://127.0.0.1:8790 shows the lanes live (node workspace/05-plans/board.mjs). First thing after launch, run the plan audits of ruling H50 item 1 as read-only Opus agents over B1b, B2, B4, B3, B3b and B9.",
+  "written": "2026-10-03, after the calibration (rulings H50 to H54)",
+  "how": "On the operator's go, the orchestrator launches every lane below in one message: Workflow({ scriptPath: \"E:/Matter Of Place/.claude/workflows/build-slice.js\", args: { ...lane.args, sizing: <contents of lane.sizing with the groups already accepted removed> } }). Before that: git fetch and merge origin/main in each lane. The build agents take the operator's latest chat message as their instruction (P-504): launch right after his go, not after a question. The board at http://127.0.0.1:8790 shows the lanes live. Every sizing file in workspace/05-plans/sizing is the orchestrator's (H53); the briefs come from plan-brief.mjs; reviews run in snapshots (H54); each slice merges itself through the gate when done.",
   "lanes": [
     {
       "name": "spine",
-      "note": "B1b steps 7 to 11. Step 7's additions by ruling H49 were being built when the run was stopped; the WIP commit 88994da on slice/b1b holds them unproven. Item (3) of H49, the test timeouts and worker cap, is already on main (package.json test script), so the close-out carries two items. Bank numbers from P-150 and G-40: without a base this lane continued from the highest number in the file and collided with the orchestrator's P-502 (P-503 on main).",
+      "note": "B1b: first the close-out c7 (step 7's H49 additions, saved as WIP 88994da on slice/b1b, item (3) already on main), then sizing/B1b.json (7b, 8, 9-10; 11 waits on L1). Pull request 43 (steps 6 and 7) merges with the slice.",
+      "sizing": "workspace/05-plans/sizing/B1b.json",
       "args": {
         "slice": "B1b",
         "root": "E:/mop-build/spine",
+        "bankBase": {
+          "P": 150,
+          "G": 40
+        },
         "closeOut": [
           {
             "id": "c7",
@@ -29,16 +34,13 @@
               }
             ]
           }
-        ],
-        "bankBase": {
-          "P": 150,
-          "G": 40
-        }
+        ]
       }
     },
     {
       "name": "db",
-      "note": "B2 from step 4. Steps 1, 1b, 2 and 3 are on main (PR 49); the sizing reads the slice log and leaves them out. This lane alone changes the schema of mop-dev (H45 (5)).",
+      "note": "B2 steps 8 to 14 (sizing groups g8 to g13); steps 1 to 7 are on main and on mop-dev. This lane alone changes the schema (H45 (5)). The advisor check after g13 is the orchestrator's.",
+      "sizing": "workspace/05-plans/sizing/B2.json",
       "args": {
         "slice": "B2",
         "root": "E:/mop-build/db",
@@ -51,7 +53,8 @@
     },
     {
       "name": "tests",
-      "note": "B4 from step 1; step 1 needs only B2 step 1, which is on main. Groups that need later B2 steps block and are picked up on the next run. The builder creates branch slice/b4.",
+      "note": "B4 from g2 (step 3 is accepted and merged with steps 1, 2 and 5): g4 (step 4) runs now that B2 step 7 is on main; g5 to g7 wait on B3 and B3b.",
+      "sizing": "workspace/05-plans/sizing/B4.json",
       "args": {
         "slice": "B4",
         "root": "E:/mop-build/tests",
@@ -64,7 +67,8 @@
     },
     {
       "name": "design",
-      "note": "B9 steps 1 and 2 are designer steps (mop-designer, creative direction); later groups block on B8. The builder creates branch slice/b9.",
+      "note": "B9 g1 (designer: still.mjs, BRIEF.md, fifteen options, five contact sheets); g2 waits for the CEO's pick, which the orchestrator asks for with the sheets.",
+      "sizing": "workspace/05-plans/sizing/B9.json",
       "args": {
         "slice": "B9",
         "root": "E:/mop-build/design",
@@ -76,5 +80,5 @@
       }
     }
   ],
-  "after": "When B2 closes, start B3 in the tests lane or a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300). The orchestrator re-runs its own probes on main after each self-merge and records them in progress.json."
+  "after": "When B2 closes: B3 in a fifth lane (E:/mop-build/api, port 8828, bank P-800/G-300, sizing/B3.json), then B3b, and phase 1 lanes by dependency: public (B3b, B17, B16, B13, B15), jobs (B8, B8b), admin (B7, B6), email (B5, B11), content (B9 on, B10, B12, B14). Six lanes at most on this laptop. H1 then L1 on one lane. At each slice close the orchestrator folds its follow-ups file (logs/<slice>-followups.md) into a step or into H1 and runs its own probes on main."
 }

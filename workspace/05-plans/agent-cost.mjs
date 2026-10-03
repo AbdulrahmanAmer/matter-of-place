@@ -12,13 +12,13 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const M = (n) => `${(n / 1e6).toFixed(1)}M`;
 const project = join(homedir(), ".claude", "projects", ROOT.replace(/[^A-Za-z0-9]/g, "-"));
 /** The runs since a time (or the named runs), each with its agents summed by kind and its accepted steps. */
 export function collectRuns({ wanted = [], since = Date.now() - 7 * 86_400_000 } = {}) {
 
 // "5-6" is two steps, "10-11" two, "1,2" two, "4b" one (a range counts its two ends and the whole numbers between)
 const expand = (text) => [...String(text).matchAll(/(\d+)([a-z]?)(?:\s*(?:-|–|to)\s*(\d+)([a-z]?))?/g)].reduce((n, m) => n + (m[3] ? Math.max(1, Number(m[3]) - Number(m[1]) + 1) : 1), 0) || 1;
-const M = (n) => `${(n / 1e6).toFixed(1)}M`;
 const runs = [];
 for (const session of existsSync(project) ? readdirSync(project) : []) {
   const dir = join(project, session, "subagents", "workflows");
