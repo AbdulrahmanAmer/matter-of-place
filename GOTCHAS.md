@@ -1588,3 +1588,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `startAt` applies to the sized groups only; close-outs are prepended after the slice. When a close-out is owed, launch it alone or with `startAt` and check the journal's first label is `close:`.
 - proof: `node <scratchpad>/trace/simulate-workflow.mjs` → `simulation: 6 scenarios passed`; the journal of `wf_ea63edc9-5b1` shows `build:B3:g2:2` as its first label.
 - added: 2026-10-03
+
+## P-507 · Marking a slice `closed` in PLAN.md turns its remaining STUB markers into a red `stubs` gate, and a docs-only merge never runs that gate
+- symptom: the ledger pull request (PR 94) set B2 to `closed`; the gate called it documents-only and merged it without CI; the next code pull request (PR 95) failed `bun run stubs` with `scripts/seed.ts:89 STUB(B2) slice is closed` (2026-10-03 22:20).
+- cause: `scripts/stubs.ts` reads the slice status table of PLAN.md and refuses a marker whose slice is closed; the status change and the marker live in different files, so the docs-only shortcut let main go red without a check.
+- rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
+- proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
+- added: 2026-10-03
