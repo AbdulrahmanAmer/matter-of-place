@@ -12,7 +12,7 @@ The weekly audit of the live site: what it measured, what it could not, what it 
 | `ROUTINE-PROMPT.md` | The exact prompt the routine runs, with its PR flow. |
 | `keywords.json` | The terms Search Console coverage is measured against (`terms`). |
 | `tools/` | One script per source. Everything a script can measure is a script (zero tokens); the model only ranks, explains and writes patches. |
-| `tools/fixtures/` | Recorded or documented-shape answers the tests read. Replace one with a real recorded answer when a live run has produced it. |
+| `tools/fixtures/` | Answers the tests read. None is recorded from a live call yet: each follows the vendor's documented shape. A live run must confirm two assumptions: UptimeRobot `keyword_type` 2 means alert when the keyword is missing, and the line format of `check-seo.ts` in `crawl-seo.json`. Replace a fixture with a real recorded answer when a live run has produced it. |
 | `monitoring/uptime.json` | The three uptime monitors the owner sets up, and what the collector expects. |
 | `monitoring/cost-alerts.md` | The vendor usage notifications to switch on, and who confirmed them. |
 

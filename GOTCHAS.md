@@ -774,6 +774,7 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
+- hit again: 2026-10-04, B14 g1 fix: a leading `python - <<'EOF'` before a `node -e` hung 120 seconds; the node edit ran only after the python process was killed by its process id, and the Edit calls made meanwhile duplicated an import. After a hung call read `git diff` before editing again.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1701,3 +1702,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a committed case that a `sql` entry covers applies `MOP_MUTATION_SQL` itself, in a connection whose transaction rolls back (the parallel claim applies it in the second claim's transaction and ends that one with `rollback`). Otherwise its entry is `manual` with a procedure someone can re-run. Replay every entry on a database that holds the migration before calling it replayable; a red for the wrong reason (`relation ... does not exist`) proves nothing about the replay.
 - proof: from `app/`, with a native cluster holding the B8 migration (`DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/postgres`), `node scripts/watchfail.mjs --registry <folder with B8.json> --only e` → `WATCHED-FAIL OK B8:e`; with the line that runs `MOP_MUTATION_SQL` in the parallel-claim case removed → `BAD: stayed green` (measured 2026-10-03, B8 g1 fix).
 - added: 2026-10-03
+
+## P-1107 · A collector's own sidecar was never run through the report lint: the cache probe wrote an ops-health path the lint refuses, so no real report could pass
+- symptom: `run-all.mjs` against a stub wrote `data/<date>.json` holding `"check": "never_cached /api/hooks/ops-health/probe"`, and `lintReport` answered `secret: the sidecar holds an ops-health path segment other than <redacted> (DO-03)`; every unit test was green because the sidecar fixture has no `cache.checks`.
+- cause: the lint (a secret check) and the cache probe (a list of paths) were built and tested apart; each was right alone, and the DO-03 rule "a path segment after `ops-health/` is `<redacted>`" was only applied in `uptime.mjs`.
+- rule: a tool that writes into the sidecar redacts through `redactUrl` of `uptime.mjs` at the moment it records a path, and its test passes the collected sidecar to `lintReport` instead of asserting on the probe alone.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/cache.test.ts` → the case "writes a sidecar the report lint accepts" passes; `node scripts/watchfail.mjs --registry tests/mutations --only b14-cache-redacted-path` → `WATCHED-FAIL OK B14:b14-cache-redacted-path`.
+- added: 2026-10-04
+
+## P-1108 · Replaying one slice's registry out of a shared scratch folder ran another slice's entry and printed BAD
+- symptom: a reviewer's `node scripts/watchfail.mjs --registry <folder>` ran `B8:a` (a `db`-project entry) and printed `WATCHED-FAIL BAD: wrong reason`; the folder held `B14.json` and `B8.json` from an earlier run.
+- cause: `--registry` replays every `*.json` in the folder; a reused scratch folder keeps the last slice's file.
+- rule: build the single-slice registry folder fresh each time (`R=$(mktemp -d); cp tests/mutations/B14.json $R/; ls $R`) and look at the listing before replaying.
+- proof: `R=$(mktemp -d); cp app/tests/mutations/B14.json $R/; ls $R` → `B14.json` only.
+- added: 2026-10-04
+
+## P-1109 · `npx prettier --write` on a root tool file from `app/` ignores the app's config and reflows the whole file at 80 columns
+- symptom: `npx prettier --write ../workspace/audits/tools/common.mjs` run in `app/` rewrote 15 untouched lines; `bun run lint` then reported seven prettier errors in the file it had just formatted.
+- cause: prettier finds its config from the file's folder upward; `workspace/audits/tools` has none, and the repository's settings live in `app/eslint.config.js` (the `prettier/prettier` rule), which only the lint command applies.
+- rule: format a file outside `app/` with the lint's own command from the repository root, `./app/node_modules/.bin/eslint --config app/eslint.config.js --fix <file>`, and read `git diff --stat` before going on; if a file was reflowed, `git checkout` it and redo the edit.
+- proof: `./app/node_modules/.bin/eslint --config app/eslint.config.js workspace/audits/tools scripts/audit` → no output, exit 0.
+- added: 2026-10-04

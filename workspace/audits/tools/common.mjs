@@ -40,8 +40,7 @@ export const notMeasured = (reason) => ({ notMeasured: reason });
  * @param {unknown} value
  * @returns {value is Record<string, unknown>}
  */
-export const isRecord = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
  * @param {unknown} value
@@ -129,8 +128,9 @@ export async function getJson(fetchImpl, url, init, timeoutMs) {
  * @param {string} cwd
  * @returns {Ran}
  */
-export function spawnRun(command, args, cwd) {
+function spawnRun(command, args, cwd) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: 300_000 });
+  if (result.error !== undefined) throw result.error;
   return { status: result.status ?? 1, stdout: `${result.stdout}${result.stderr}` };
 }
 
@@ -174,7 +174,7 @@ export function contextFromArgs(argv = process.argv.slice(2)) {
  * @param {Collected} collected
  * @returns {string[]} one line per key
  */
-export function describeCollected(collected) {
+function describeCollected(collected) {
   return Object.entries(collected).map(([key, outcome]) =>
     "notMeasured" in outcome
       ? `Not measured: ${key} (${outcome.notMeasured})`

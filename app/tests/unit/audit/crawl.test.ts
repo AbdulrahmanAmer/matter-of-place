@@ -17,6 +17,12 @@ function recordedOutput(): string {
     : "";
 }
 
+describe("the default run", () => {
+  it("throws when the program cannot start, so the source lands under not_measured", () => {
+    expect(() => makeContext({ env: {} }).run("no-such-binary-xyz", ["a"], ".")).toThrow("ENOENT");
+  });
+});
+
 describe("parseRows", () => {
   it("reads ok, skip and fail lines, and ignores the echo of the command", () => {
     expect(

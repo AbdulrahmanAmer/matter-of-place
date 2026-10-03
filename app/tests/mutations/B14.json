@@ -817,5 +817,23 @@
     "replace": "process.exitCode = 1;",
     "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
     "expect": "scope-check command > exits 2 with a usage line"
+  },
+  {
+    "id": "b14-cache-redacted-path",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "const shown = redactUrl(path);",
+    "replace": "const shown = path;",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > writes a sidecar the report lint accepts"
+  },
+  {
+    "id": "b14-crawl-spawn-error",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/common.mjs",
+    "find": "  if (result.error !== undefined) throw result.error;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "the default run > throws when the program cannot start"
   }
 ]

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { lintReport } from "../../../../scripts/audit/lint-report.mjs";
 import { makeContext } from "../../../../workspace/audits/tools/common.mjs";
 import { collect, describeProbe, probe } from "../../../../workspace/audits/tools/cache.mjs";
 
@@ -64,6 +65,15 @@ describe("the cache probe on recorded header sets", () => {
     expect(collected["cache"]).toMatchObject({
       value: { edge_hit_ratio: null, never_cached_ok: true, stale_count: 0 },
     });
+  });
+
+  it("writes a sidecar the report lint accepts: the ops-health route carries no token segment", async () => {
+    const { ctx } = serve("cache-all-hit");
+    const sidecarText = JSON.stringify(await collect(ctx));
+    expect(sidecarText).toContain("/api/hooks/ops-health/<redacted>");
+    expect(
+      lintReport({ report: "", sidecarText, env: {} }).filter((p) => p.startsWith("secret")),
+    ).toEqual([]);
   });
 
   it("gives a red row for a never-cached route without no-store", async () => {

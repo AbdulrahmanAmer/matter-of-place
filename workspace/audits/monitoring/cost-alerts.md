@@ -1,7 +1,7 @@
 # Cost and usage alerts
 
 The vendors send their own notifications at thresholds they choose (assumed 80 and 100 percent).
-They are a second net: our own gauges in `tools/limits.json` warn at 50, 70 and 90 percent.
+They are a second net: our own gauges (the table `tools/limits.json`, added with the usage collectors) warn at 50, 70 and 90 percent.
 The owner turns each one on, once, in the vendor's dashboard, and signs below. The audit robot
 never changes a vendor setting.
 

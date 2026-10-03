@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { contextFromArgs, isMain, measured, messageOf, notMeasured } from "./common.mjs";
+import { redactUrl } from "./uptime.mjs";
 
 // The cache probe (S52, architecture 13). It reads response headers only, sends no cookie and no
 // `Cache-Control` request header, and puts no query string on the two measured passes (invariant 11).
@@ -31,6 +32,7 @@ const TIMEOUT_MS = 30_000;
  * @returns {Promise<ProbeRow>}
  */
 async function probeOnce(ctx, base, path, pass) {
+  const shown = redactUrl(path);
   const query = pass === "variant" ? `?probe=${randomUUID().slice(0, 8)}` : "";
   try {
     const response = await ctx.fetchImpl(`${base}${path}${query}`, {
@@ -41,7 +43,7 @@ async function probeOnce(ctx, base, path, pass) {
     });
     await response.body?.cancel();
     return {
-      path,
+      path: shown,
       pass,
       status: response.status,
       cache: response.headers.get("x-mop-cache"),
@@ -52,7 +54,7 @@ async function probeOnce(ctx, base, path, pass) {
     };
   } catch (error) {
     return {
-      path,
+      path: shown,
       pass,
       status: 0,
       cache: null,
@@ -83,7 +85,7 @@ const verdict = (passed) => (passed ? "ok" : "red");
  * @param {ProbeRow[]} rows
  * @param {string} host
  */
-export function judge(rows, host) {
+function judge(rows, host) {
   const cached = rows.filter((row) => row.pass !== "never" && row.status > 0 && row.status < 400);
   const second = cached.filter((row) => row.pass === "second");
   const variants = cached.filter((row) => row.pass === "variant");

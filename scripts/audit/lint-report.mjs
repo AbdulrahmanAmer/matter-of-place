@@ -262,7 +262,7 @@ function numberProblems(report, sidecarText) {
  * @param {string} reportPath
  * @returns {string[]}
  */
-export function lintFile(reportPath) {
+function lintFile(reportPath) {
   const date = /(\d{4}-\d{2}-\d{2})\.md$/.exec(basename(reportPath))?.[1];
   if (date === undefined) return ["the report file name must be YYYY-MM-DD.md"];
   const sidecarPath = join(dirname(reportPath), "data", `${date}.json`);
