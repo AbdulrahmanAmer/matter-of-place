@@ -1,0 +1,398 @@
+[
+  {
+    "id": "y",
+    "test": "tests/unit/seo.test.ts",
+    "file": "tests/unit/seo.test.ts",
+    "find": "describe(\"pageHead\", () => {",
+    "replace": "describe(\"pageHead\", () => {\n  it(\"x\", () => {});",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "expected any number of assertion, but got none"
+  },
+  {
+    "id": "y-lint",
+    "test": "bun run lint",
+    "file": "tests/unit/seo.test.ts",
+    "find": "describe(\"pageHead\", () => {",
+    "replace": "describe(\"pageHead\", () => {\n  it(\"x\", () => {});",
+    "run": "bunx eslint --max-warnings 0 tests/unit/seo.test.ts",
+    "expect": "vitest/expect-expect"
+  },
+  {
+    "id": "gg",
+    "test": "tests/setup/hermetic.ts",
+    "file": "tests/unit/seo.test.ts",
+    "find": "describe(\"pageHead\", () => {",
+    "replace": "describe(\"pageHead\", () => {\n  it(\"calls out\", async () => {\n    await fetch(\"https://example.com\");\n    expect(1).toBe(1);\n  });",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "hermetic: network call to https://example.com in a unit test"
+  },
+  {
+    "id": "gg-env",
+    "test": "tests/setup/hermetic.ts",
+    "file": "tests/unit/seo.test.ts",
+    "find": "describe(\"pageHead\", () => {",
+    "replace": "describe(\"pageHead\", () => {\n  it(\"sees the key\", () => {\n    expect(process.env[\"RESEND_API_KEY\"]).toBe(\"leak\");\n  });",
+    "run": "RESEND_API_KEY=leak bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "expected undefined to be 'leak'"
+  },
+  {
+    "id": "ii",
+    "test": "node scripts/watchfail.mjs --registry tests/mutations",
+    "file": "tests/mutations/B1b.json",
+    "find": "\"find\": \"  return text.replace(EMAIL, \\\"[email]\\\");\",",
+    "replace": "\"find\": \"  return text.replace(MAIL, \\\"[email]\\\");\",",
+    "run": "node scripts/watchfail.mjs --registry tests/mutations --only an",
+    "expect": "STALE B1b:an: find occurs 0 times in src/server/lib/log\\.ts"
+  },
+  {
+    "id": "z",
+    "test": "tests/unit/mutation-registry.test.ts",
+    "file": "tests/mutations/B4.json",
+    "find": "\"test\": \"tests/unit/seo.test.ts\",",
+    "replace": "\"test\": \"tests/unit/seo-gone.test.ts\",",
+    "run": "bunx vitest run --project unit tests/unit/mutation-registry.test.ts",
+    "expect": "FAIL .*> name every test file as the test of at least one entry[\\s\\S]*tests/unit/seo\\.test\\.ts"
+  },
+  {
+    "id": "mr-malformed",
+    "test": "tests/unit/mutation-registry.test.ts",
+    "file": "tests/mutations/B4.json",
+    "find": "\"run\": \"bunx eslint --max-warnings 0 tests/unit/seo.test.ts\",",
+    "replace": "\"run\": \"\",",
+    "run": "bunx vitest run --project unit tests/unit/mutation-registry.test.ts",
+    "expect": "FAIL .*> hold entries the replay tool can run"
+  },
+  {
+    "id": "mr-duplicate-id",
+    "test": "tests/unit/mutation-registry.test.ts",
+    "file": "tests/mutations/B4.json",
+    "find": "\"id\": \"y-lint\",",
+    "replace": "\"id\": \"y\",",
+    "run": "bunx vitest run --project unit tests/unit/mutation-registry.test.ts",
+    "expect": "FAIL .*> use each id once per registry file"
+  },
+  {
+    "id": "n",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (count !== 1) return stale(",
+    "replace": "if (count > 1) return stale(",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> exits 2 and changes nothing when find is absent"
+  },
+  {
+    "id": "wf-multi",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (count !== 1) return stale(",
+    "replace": "if (count === 0) return stale(",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> exits 2 when find occurs more than once"
+  },
+  {
+    "id": "wf-restore",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "for (const [path, bytes] of mutatedNow) writeFileSync(path, bytes);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> mutates the file for the run, sees it red, restores the bytes"
+  },
+  {
+    "id": "wf-replace-equals",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (find === replace) return stale(label, \"replace equals find\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> exits 2 when the replacement equals find"
+  },
+  {
+    "id": "wf-stayed-green",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (finished.code === 0) return bad(label, \"stayed green\", \"\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> reports BAD: stayed green when the run passes"
+  },
+  {
+    "id": "wf-wrong-reason",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (!new RegExp(entry.expect).test(finished.output)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> reports BAD: wrong reason, with the red run's output"
+  },
+  {
+    "id": "wf-after-skipped",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (entry.after !== undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> runs --after on the restored file"
+  },
+  {
+    "id": "wf-after-fails",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (again.code !== 0) return bad(",
+    "replace": "if (again.code === 99) return bad(",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> reports BAD when the --after command fails"
+  },
+  {
+    "id": "wf-ledger",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "appendLedger({ test: values.record, entry, observed });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> appends a ledger row for --record"
+  },
+  {
+    "id": "wf-no-run",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "[\"id\", \"test\", \"run\", \"expect\"]",
+    "replace": "[\"id\", \"test\", \"expect\"]",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> refuses a call without --run and names it"
+  },
+  {
+    "id": "wf-reg-all",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "counts[(await replay(entry, label)).outcome] += 1;",
+    "replace": "counts.ok += 1;",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> replays every file entry and prints OK for each"
+  },
+  {
+    "id": "wf-only",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "(only !== undefined && entry.id !== only)",
+    "replace": "(false && entry.id !== only)",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --only replays the one entry with that id"
+  },
+  {
+    "id": "wf-only-unknown",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (only !== undefined && total === 0 && counts.manual === 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --only an id no entry has exits 64"
+  },
+  {
+    "id": "wf-exit-stale",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "return counts.stale > 0 ? 2 : counts.bad > 0 ? 1 : 0;",
+    "replace": "return counts.bad > 0 ? 1 : 0;",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> exits 2 naming the stale entry, and replays the others"
+  },
+  {
+    "id": "wf-exit-bad",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "counts.bad > 0 ? 1 : 0",
+    "replace": "0",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> exits 1 when an entry stays green"
+  },
+  {
+    "id": "wf-manual",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "} else if (kindOf(entry) === \"manual\") {",
+    "replace": "} else if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> never replays a manual entry"
+  },
+  {
+    "id": "wf-malformed",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (problems.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> reports a malformed entry as stale, not replayed"
+  },
+  {
+    "id": "wf-sql-env",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "{ MOP_MUTATION_SQL: entry.sql ?? \"\" }",
+    "replace": "{}",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> runs a sql entry with MOP_MUTATION_SQL set to its sql"
+  },
+  {
+    "id": "wf-kinds",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "!wanted.includes(kindOf(entry))",
+    "replace": "wanted.includes(kindOf(entry))",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --kinds sql replays only the sql entries"
+  },
+  {
+    "id": "wf-changed",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "touched === undefined ||",
+    "replace": "true ||",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --changed <ref> replays only entries the diff touches"
+  },
+  {
+    "id": "ep-file-ok",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "typeof fields[\"replace\"] !== \"string\"",
+    "replace": "typeof fields[\"replace\"] !== \"number\"",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > a file entry\\n"
+  },
+  {
+    "id": "ep-empty-replace",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "typeof fields[\"replace\"] !== \"string\"",
+    "replace": "typeof fields[\"replace\"] !== \"number\"",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > an empty replace\\n"
+  },
+  {
+    "id": "ep-no-replace",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "typeof fields[\"replace\"] !== \"string\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > no replace\\n"
+  },
+  {
+    "id": "ep-sql-ok",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (!isText(fields[\"sql\"]))",
+    "replace": "if (isText(fields[\"sql\"]))",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > a sql entry\\n"
+  },
+  {
+    "id": "ep-sql-missing",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (!isText(fields[\"sql\"]))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > a sql entry without sql\\n"
+  },
+  {
+    "id": "ep-manual",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "} else if (kind !== \"manual\") {",
+    "replace": "} else {",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > a manual entry without file\\n"
+  },
+  {
+    "id": "ep-no-id",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "[\"id\", \"test\", \"run\", \"expect\"]",
+    "replace": "[\"test\", \"run\", \"expect\"]",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > no id\\n"
+  },
+  {
+    "id": "ep-no-test",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "[\"id\", \"test\", \"run\", \"expect\"]",
+    "replace": "[\"id\", \"run\", \"expect\"]",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > no test\\n"
+  },
+  {
+    "id": "ep-no-expect",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "[\"id\", \"test\", \"run\", \"expect\"]",
+    "replace": "[\"id\", \"test\", \"run\"]",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > no expect\\n"
+  },
+  {
+    "id": "ep-no-file",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (!isText(fields[\"file\"]))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > no file\\n"
+  },
+  {
+    "id": "ep-empty-find",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "if (!isText(fields[\"find\"]))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > an empty find\\n"
+  },
+  {
+    "id": "ep-unknown-kind",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "KINDS.includes(kind)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > an unknown kind\\n"
+  },
+  {
+    "id": "ep-regex",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "new RegExp(fields[\"expect\"]);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > an expect that is no regex\\n"
+  },
+  {
+    "id": "ep-no-object",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "typeof entry !== \"object\" || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> entryProblems > something that is no object\\n"
+  },
+  {
+    "id": "lr-filter",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": ".filter((name) => name.endsWith(\".json\"))",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> loadRegistries > reads every json file in name order and ignores the rest"
+  },
+  {
+    "id": "lr-sort",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": ".sort()",
+    "replace": ".reverse()",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> loadRegistries > reads every json file in name order and ignores the rest"
+  }
+]

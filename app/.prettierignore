@@ -7,3 +7,6 @@ package-lock.json
 bun.lock
 routeTree.gen.ts
 .tanstack
+playwright-report
+test-results
+tests/WATCHED-FAIL.md
