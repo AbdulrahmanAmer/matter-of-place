@@ -227,3 +227,25 @@ None of these blocks the group. The three gotcha items went into the bank (P-325
 
 3. File `app/tests/mutations/B2.json`. Carried forward from the author's own follow-up. Entry g11-rls-own-row runs `seed --target dev`. B4's CI replay (`--changed`) must change it to --target local or to a stack-aware step.
    Evidence: `grep -n g11-rls-own-row app/tests/mutations/B2.json` gives line 2806. Read, not replayed.
+
+## g13 · steps 14
+
+None of these blocks the group. The two reviewer items about `GOTCHAS.md` became hit lines in P-325 and P-337, not entries here.
+
+1. File `app/docs/runbooks/database.md`. Line 22 says `bun run gen:types -- --local` refuses any host except 127.0.0.1. It has no such check: gen-types.mjs only passes `--local` to the Supabase CLI. db:reset --local does have the check (isLocalDbUrl). The CLI's --local mode reaches only the local stack anyway, so I cannot name an input that goes wrong, but the sentence claims a guard that does not exist.
+   Evidence: Read in the snapshot: scripts/gen-types.mjs source() returns ["--local"] with no host check; scripts/lib/reset-guard.mjs isLocalDbUrl is called only from db-reset-dev.mjs.
+
+2. File `app/docs/runbooks/database.md`. Some lines describe later-slice behaviour in the present tense with no UNPROVEN mark. Line 76: 'The Worker memoises it for 15 seconds per isolate' (B3). Line 125: 'The Worker streams .../storage/v1/object/public/media/<key>, caches it' and 'every upload to media sets cache-control ... immutable' (B3/B9). Line 127: 'measured by `limits.json`' (workspace/audits/tools/limits.json, B14). None of this code exists on slice/b2 or on origin/main. The author's unproven list names B3b, B7, B8 and B9 --images upload, but not these lines.
+   Evidence: git grep -ln "storage/v1/object/public\|public_state" origin/main -- src finds nothing (same on slice/b2); git ls-tree -r origin/main | grep limits.json finds nothing.
+
+3. File `app/docs/runbooks/database.md`. Lines 148-151 (reading a down block) say every migration's down block is SQL comment lines that you copy with the leading `--   ` removed. Migrations made by `db:fn` have a prose down line instead. The 13th migration says '-- down: re-run bun run db:fn enforce_publish_gate from the previous commit ...', so the runbook's steps produce invalid SQL for every db:fn migration.
+   Evidence: head -2 supabase/migrations/20261003082557_fn_enforce_publish_gate_stories.sql gives '-- down: re-run bun run db:fn enforce_publish_gate from the previous commit of supabase/sql/functions/enforce_publish_gate.sql'
+
+4. File `app/scripts/db-push.mjs`. This file is not this group's. The remote-only refusal tells the user '(rebase onto origin/main first)', but the project forbids rebase and the runbook's fix is 'git fetch and merge origin/main'. The runbook is correct; the script's message is the stale one. This is for the owner of an earlier B2 group.
+   Evidence: scripts/db-push.mjs historyRefusals: `refusing: remote-only migrations ${...} (rebase onto origin/main first)` vs runbook line 54.
+
+5. File `workspace/05-plans/logs/B2.md`. The log's list of stale mentions of the deleted schema.sql and the replaced pages is incomplete. It misses app/docs/decisions/0002-shared-contracts.md:15 ('mirrored by docs/database/schema.sql'), root CLAUDE.md:10 ('data model, schema.sql') and workspace/05-plans/B3.md:48 ('matches docs/database/schema.md intent': that intent is no longer in schema.md). For the orchestrator to fold.
+   Evidence: git grep -n "schema\.sql" and git grep -n "database/schema\.md" in the snapshot.
+
+6. File `app/docs/README.md`. This file is outside the group's named files (one writer per file). The edit is small and necessary, because its table linked the deleted schema.sql, and the log names it. The orchestrator should know the group touched a file it did not own.
+   Evidence: git show --stat dbf641f lists app/docs/README.md | 6 +-
