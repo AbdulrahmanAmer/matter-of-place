@@ -58,8 +58,9 @@ export function merge(base, ours, theirs) {
     conflicts.push(entry.id);
     return [entry.body];
   });
+  // an entry theirs has and ours lacks is new on their side, unless the base had it unchanged: then ours retired it
   const mine = new Set(o.entries.map((entry) => entry.id));
-  for (const entry of t.entries) if (!mine.has(entry.id)) merged.push(entry.body);
+  for (const entry of t.entries) if (!mine.has(entry.id) && baseById.get(entry.id) !== entry.body) merged.push(entry.body);
   const head = o.head === b.head ? t.head : o.head;
   return { text: `${[head, ...merged].join("\n\n")}\n`, conflicts };
 }
