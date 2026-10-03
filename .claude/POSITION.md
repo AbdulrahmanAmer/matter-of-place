@@ -865,3 +865,10 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   batching and replay-scope rules, agent-cost.mjs in the repo.
 - NEXT: run the db lane (B2 from step 4) with the new pipeline, then `node workspace/05-plans/agent-cost.mjs --run <id>`
   and compare per-step figures with the baseline; report the percentages; then ask the operator for the go.
+
+## 2026-10-03 07:35 +0300 · H53 premade sizing built while the agent-sized test run works
+- `workspace/05-plans/plan-brief.mjs` (mechanical brief), `workspace/05-plans/sizing/B2.json` (steps 8 to 14, six
+  groups, written by the orchestrator), workflow takes `args.sizing`. Test run 1 (agent sizing, `wf_8618b926-e77`)
+  is building B2 steps 4 to 7 in the db lane; when it ends: `agent-cost.mjs --run wf_8618b926-e77` against the
+  baseline (121.4M cache / 499 calls / 119 agent minutes per step), then run 2 with
+  `sizing: <contents of sizing/B2.json>` on the same lane, then compare both, then ask the operator for the go.
