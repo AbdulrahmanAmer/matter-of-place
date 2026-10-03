@@ -1,0 +1,282 @@
+[
+  {
+    "id": "ll",
+    "kind": "file",
+    "test": "tests/unit/error-codes.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  wrong_state: 409,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/error-codes.test.ts",
+    "expect": "× .*holds every message a migration raises"
+  },
+  {
+    "id": "mm",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "if (typeof handler !== \"function\") throw new Error(`unexpected rpc ${name}`);",
+    "replace": "if (typeof handler !== \"function\") return Promise.resolve({ data: null, error: null });",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*throws unexpected rpc zz for an unregistered RPC"
+  },
+  {
+    "id": "mm-table",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "    if (!Array.isArray(rows)) throw new Error(`unexpected table ${name}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*serves registered table rows and throws for any other table"
+  },
+  {
+    "id": "mm-storage",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "              if (typeof handler !== \"function\") {\n                throw new Error(`unexpected storage ${bucket}.${method}`);\n              }\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*answers a registered storage method and throws for any other"
+  },
+  {
+    "id": "nn",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  return readVar(\"MOP_ENV\") === \"production\" || readVar(flags.live) === \"1\";",
+    "replace": "  const mopEnv = readVar(\"MOP_ENV\");\n  return mopEnv === undefined || mopEnv === \"production\" || readVar(flags.live) === \"1\";",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*is false for both channels when MOP_ENV is unset"
+  },
+  {
+    "id": "nn-dry",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  if (readVar(flags.dryRun) === \"1\") return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*lets a dry-run flag win over production"
+  },
+  {
+    "id": "nn-channel",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "readVar(flags.live) === \"1\"",
+    "replace": "readVar(FLAGS.email.live) === \"1\"",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*lets EMAIL_LIVE make only email true"
+  },
+  {
+    "id": "nn-read",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  return runtime.process?.env?.[name] ?? runtime.Deno?.env.get(name);",
+    "replace": "  return runtime.Deno?.env.get(name);",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*reads at call time and answers undefined for an unset name"
+  },
+  {
+    "id": "oo",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  for (let start = 0; start < keys.length; start += DELETE_BATCH) {\n    deleted += await deleteBatch(bucket, keys.slice(start, start + DELETE_BATCH), serviceKey);\n  }",
+    "replace": "  deleted += await deleteBatch(bucket, keys, serviceKey);",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*splits 2,500 keys into three requests"
+  },
+  {
+    "id": "oo-status",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  if (!response.ok) throw storageUnavailable();\n  const removed",
+    "replace": "  const removed",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*throws storage_unavailable on a 500 answer"
+  },
+  {
+    "id": "oo-network",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  } catch {\n    throw storageUnavailable();\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*throws storage_unavailable on a network error"
+  },
+  {
+    "id": "mmm-store",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  if (opts?.absolute !== true) return `/media/${key}`;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*answers the relative /media address without absolute"
+  },
+  {
+    "id": "mmm-once",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "      baseWarned = true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*falls back to the relative address and warns once"
+  },
+  {
+    "id": "oo-cache",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "{ cf: { cacheEverything: true } }",
+    "replace": "{}",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*fetches the public object of the media bucket with edge caching on"
+  },
+  {
+    "id": "pp",
+    "kind": "file",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "export { sha256Hex };",
+    "replace": "export const subtleProbe = crypto.subtle.digest;",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts",
+    "expect": "× .*only src/server/lib/crypto.ts calls crypto.subtle"
+  },
+  {
+    "id": "g1-errors-store",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "\"cache-control\": \"no-store\", ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*is never stored"
+  },
+  {
+    "id": "g1-errors-status",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "status: number = errorCodes[code],",
+    "replace": "status: number = 500,",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*takes its status from the code when none is given"
+  },
+  {
+    "id": "g1-errors-leak",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "new AppError(\"server\", undefined, SERVER_MESSAGE);",
+    "replace": "new AppError(\"server\", undefined, String(error));",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*keeps the message of any other error inside the Worker"
+  },
+  {
+    "id": "g1-env-prod",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "...(value.MOP_ENV === \"production\" ? REQUIRED_IN_PRODUCTION : []),",
+    "replace": "...(value.MOP_ENV === \"production\" ? [] : []),",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*names SUPABASE_URL when production lacks it"
+  },
+  {
+    "id": "g1-env-local",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "...(value.MOP_ENV === \"local\" ? [] : REQUIRED_OUTSIDE_LOCAL),",
+    "replace": "...[],",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*needs the Turnstile secret and the Sentry DSN unless MOP_ENV is local"
+  },
+  {
+    "id": "g1-env-default",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": ".default(\"production\")",
+    "replace": ".default(\"local\")",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*treats MOP_ENV as production when it is unset"
+  },
+  {
+    "id": "g1-env-empty",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "value !== undefined && value !== \"\"",
+    "replace": "value !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*treats an empty value as unset"
+  },
+  {
+    "id": "g1-db-count",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    calls += 1;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*counts every request to Supabase and resets to zero"
+  },
+  {
+    "id": "g1-db-read",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    if (!READ_RPC.test(url.pathname)) return fetch(input, init ?? {});\n",
+    "replace": "    return fetch(input, init ?? {});\n",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*abandons public_state after 2 seconds"
+  },
+  {
+    "id": "g1-db-write",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    if (!READ_RPC.test(url.pathname)) return fetch(input, init ?? {});\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*leaves a write function without the 2 second limit"
+  },
+  {
+    "id": "g1-db-unavailable",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "  if (url === undefined || key === undefined) {",
+    "replace": "  if (url === \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*throws 503 unavailable when the Worker holds no Supabase key"
+  },
+  {
+    "id": "g1-ids-ip",
+    "kind": "file",
+    "test": "tests/unit/ids.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "?? \"0.0.0.0\"",
+    "replace": "?? \"127.0.0.1\"",
+    "run": "bunx vitest run --project unit tests/unit/ids.test.ts",
+    "expect": "× .*falls back to one shared address without the header"
+  },
+  {
+    "id": "g1-ids-hash",
+    "kind": "file",
+    "test": "tests/unit/ids.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "sha256Hex(`${salt}:${value}`)",
+    "replace": "sha256Hex(`${value}${salt}`)",
+    "run": "bunx vitest run --project unit tests/unit/ids.test.ts",
+    "expect": "× .*is the SHA-256 of salt, a colon and the value"
+  }
+]
