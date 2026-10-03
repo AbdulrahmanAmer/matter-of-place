@@ -570,6 +570,7 @@ Entry template
 - proof: `cd app && bunx vitest run tests/unit/mutation-registry.test.ts` passes; `node scripts/watchfail.mjs --registry tests/mutations --only z` prints `WATCHED-FAIL OK B4:z`, and with the `test` of `y-lint` changed to `tests/unit/seo.test.ts` it prints `STALE B4:z: find occurs 2 times in tests/mutations/B4.json` and exits 2 (2026-10-03, restored); `bun run format:check 2>&1 | grep -c "05-plans/merge-gate\.mjs"` → `1` on a green tree (the echo line); a scratch test `it.each([{ name: "0123456789012345678901234567890123456789X" }])("$name ends here", ({ name }) => { expect(name).toBe(""); })` prints `× 012345678901234567890123456789012345678… ends here` (2026-10-02).
 - merged: P-081, P-090, P-093, P-116, P-121, P-133, P-401, P-402
 - hit again: 2026-10-03, B4 g4: prettier changed the padding of an aligned `/* */` comment after the entry `sm-rows` was written, and its replay printed `STALE ... find occurs 0 times`; the `find` was rewritten from the formatted file.
+- hit again: 2026-10-03, B1b g9: a second replay of the registry, run only to capture the red output for the log, added nothing: on a replay that is red for the right reason `watchfail.mjs` prints the mutated line and `WATCHED-FAIL OK <id>`, never the failure text, and prints that text only for a BAD one. Take the red text from the first run of the mutation (the `--file/--find/--replace/--run/--expect` form), and keep it then. Proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only z 2>&1 | head -2` → `  mutated src/server/lib/pipeline.ts:69  export function isPageRequest(pathname: string): boolean {` and `WATCHED-FAIL OK B1b:z` (an id shared by several registries replays them all; later lines are the other registries' entries).
 - added: 2026-10-02
 
 ## P-067 · Clearing a baseline "by fixing" is not making the tool quiet: a validator that validates nothing, and exports a later plan changes
@@ -751,6 +752,13 @@ Entry template
 - proof: `cd app && grep -c "Only HTML requests are supported here" node_modules/@tanstack/start-server-core/dist/esm/createStartHandler.js` → `1`; `grep -rl handledProtocolRelativeURL .output/server` lists `.output/server/_ssr/ssr.mjs`; `bunx vitest run tests/unit/pipeline.test.ts` passes and registry entries `pipe-refusal-off`, `pipe-refusal-405`, `pipe-refusal-route-path`, `bm-page-refusal`, `bn-page-406-all` and `pipe-406-no-store` turn it red; under `cf:preview` the GET above → `405 application/json` with the R09 body, `/api/hooks/nothing-here` → `404 application/json`, and `curl -s -o /dev/null -w "%{http_code} %{content_type}" -H "Accept: application/json" http://127.0.0.1:8788/` → `406 application/json`.
 - added: 2026-10-02
 
+## P-090 · A code change moves the `find` of older registry entries, and nothing says so until a replay
+- symptom: in the B1b g4 close-out, three older entries of `tests/mutations/B1b.json` (`h`, `u-message`, `sentry-non-string`) stopped matching once `deps.render` took the request id; in the next fix round four more (`u`, `pipe-guard-off`, `pipe-guard-path`, `pipe-guard-html`) stopped once the guard took a boolean. Each was found late and rewritten, a cost listed in the round's report with no bank entry; a reviewer counted that as a defect.
+- cause: an entry's `find` is a copy of code; any edit of the mutated file can change that code. `bun run check` does not replay the registry, and P-081 only covers new entries. Hit again in B1b c7: putting the merge script into `package.json`'s `lint` moved `hy-lint-warnings`; `replay.mjs --check` printed `BAD hy-lint-warnings: find occurs 0 times` before the commit. Hit again in B1b c7 (H49): the new end of the production `if:` and the new `current` step moved `hy-main-event` and `hy-dev-db-order` (`find occurs 0 times`); both were rebuilt from the file by a script and replayed red.
+- rule: after every edit of a file the registry mutates (`node -e "console.log([...new Set(require('./tests/mutations/B1b.json').map(e=>e.file))].join('\n'))"` lists them), run the replay runner's `--check` (every `find` occurs exactly once) before the commit, and rewrite a moved entry to the new code, then replay it red. Keep a mutated line's text stable when the change does not need to touch it (bind a new value under the old name rather than renaming what an entry finds).
+- proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
+- added: 2026-10-02
+
 ## P-092 · A new required member of a shared dependency type breaks every test that builds that type
 - symptom: adding the required `isApiRoute` to `PipelineDeps` made `tsc` fail in `tests/unit/sentry-test-route.test.ts`, a test of another file, because it builds its own `PipelineDeps`.
 - cause: tests construct the shared type by hand, so each one is a caller the change must update.
@@ -866,6 +874,7 @@ Entry template
 - cause: the test builds an `ESLint` with `projectService` (a type-aware program) and sets no timeout of its own, so vitest's 5000 ms default applied. Alone it takes about 1.5 s; with other lanes running on this shared laptop it took 5056 ms once.
 - rule: since rulings H49 (3) and H51 (2) the `test` script runs `vitest run --project unit --maxWorkers=2 --testTimeout=60000 --hookTimeout=60000` (`app/package.json`), so `bun run check` gives every test 60 s and lanes testing at once share the cores; never remove those flags. A direct `bunx vitest run <file>` still has the 5000 ms default: a red `Test timed out in 5000ms` there with every other test green is load, so run it again with `--testTimeout=60000` (or through `bun run test`) before reading it as a fault, and never edit lint rules or `eslint.config.js` for it. A red at 60 s on a quiet machine is a real fault.
 - proof: `grep -c -- "--testTimeout=60000" app/package.json` → `1`; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "lint is type-aware" --reporter=verbose` → `✓ ... lint is type-aware, zero-warning and refuses the named rules 1489ms` and `Tests  1 passed | 37 skipped (38)` (measured 2026-10-02).
+- enforced-by: the `test` script of `app/package.json` passes `--testTimeout=60000 --hookTimeout=60000` to every test of `bun run check` (ruling H49 (3)), pinned by `tests/unit/hygiene.test.ts` (`the test script gives every test and hook 60 s`); a bare `bunx vitest run` still has the 5000 ms default (P-140); one case, `lint gives prettier/prettier the options of .prettierrc for it`, carries its own `}, 20_000);` that overrides the 60 s (P-152)
 - added: 2026-10-02
 
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
@@ -885,9 +894,66 @@ Entry template
 ## P-132 · A text check with `includes` goes blind when a change puts its needle into the text twice
 - symptom: `hygiene.test.ts` guarded the zero-warning lint (invariant 16, CS-02) with `scripts.lint.includes("--max-warnings 0")`. B1b c7 added a second ESLint run to the same script, with its own `--max-warnings 0`, so dropping the flag from `eslint .` (the run over all of `app/`) left the test green while `react-hooks/exhaustive-deps` stays a warning. The registry entry `hy-lint-warnings` was rewritten to strip both flags, so its replay stayed red and hid the gap. A reviewer rejected the round. Writing the fix, a new `find` (`--max-warnings 0 workspace/05-plans/merge-gate.mjs"`) also occurred twice, because `lint:fix` repeats the same tail; `replay.mjs` printed `BAD hy-lint-warnings-gate: find occurs 2 times` and the entry was rewritten.
 - cause: `includes` asks "is it anywhere", which stays true while one copy survives. A mutation that removes every copy tests the stronger claim and says nothing about the weaker one; a script line copied into a sibling script (`lint`, `lint:fix`) doubles any short `find`.
+- Hit again in B1b g1 step 7: the new `dev` and `production` jobs repeat the preview's build, wait and smoke lines, and `replay.mjs --check` printed 12 `BAD` entries whose `find` now occurred 2 or 3 times; each was anchored on a neighbouring line that only the preview holds (its `$PREVIEW_URL`, its comment text) and replayed red again. Hit again in B1b c7 (H49 (2)): the dev job's new `current` and `rollback` steps each hold an `exit 1` at the same indent, so `hy-cleanup-exit` (`find` `            exit 1\n`) occurred 3 times; it is now anchored on the cleanup's own `printf` line.
 - rule: when a change adds a second copy of a text a test looks for, the test pins the copy it means (`startsWith`, the exact command, or a count) and the registry gets one entry per copy that removes that copy alone. A `find` in `package.json` carries the script's own key or enough of its line to occur once; run `replay.mjs --check` before replaying.
 - proof: with `maxWarnings` read as `includes("--max-warnings 0")` in `app/tests/unit/hygiene.test.ts`, `cd app && node ../scratch/replay.mjs hy-lint-warnings-app` → `NOT RED hy-lint-warnings-app: exit=0 expect=false`; with the committed `startsWith("eslint . --max-warnings 0 && ")` → `RED hy-lint-warnings-app: exit=1 expect=true | × lint is type-aware, zero-warning and refuses the named rules` (measured 2026-10-02, B1b c7 round 3).
 - added: 2026-10-02
+
+## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
+- symptom: B1b step 6 builds the `pr-<n>` preview in live mode whenever `PREVIEW_WORKER_SECRETS_JSON` holds `SUPABASE_URL` (invariant 13a, true today), and expects its smoke to pass. Under `bun run cf:preview` a build with `VITE_API_BASE_URL=/api/public` answered `500 text/html` on `/`, `/properties`, `/markets`, `/california` and `/stories`, and `500 application/json` on `/sitemap.xml`; `/submit` and `/contact` answered 200.
+- cause: the http services adapter fetches `${baseUrl}${path}` with the relative base `/api/public`; inside the Worker's server render a relative address cannot be fetched, and the routes it would reach are B3's and do not exist yet. The plan's landing order puts B1b steps 6 and 7 before B3, so it assumed a deploy before B3 smokes green.
+- rule: before a plan step deploys and smokes a build, build it with the same `VITE_*` values the workflow passes and smoke it locally under `cf:preview`; a preview, dev or production smoke of a live-mode build is red until B3 lands. A smoke that names those URLs is that gap, not a smoke defect: report it, do not weaken the smoke or change the build mode without a ruling. Ruling H48 removed the repository variable `VITE_API_BASE_URL` until B3's last step sets it back, so previews build on the local adapter and smoke green (probe PRs #53 and #54, 2026-10-02).
+- proof: `cd app && VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && bun run cf:preview`, then `curl -s -o /dev/null -w "%{http_code} %{content_type}" http://127.0.0.1:8788/properties` → `500 text/html; charset=utf-8` (measured 2026-10-02); the same after a plain `bun run build` → `200 text/html; charset=utf-8`.
+- added: 2026-10-02
+
+## P-135 · `git grep` does not search a file git does not track: a new file's "prints nothing" proves nothing
+- symptom: the B1b step 6 proof `git grep -n -I "R2_\|wrangler r2\|PROD_SUPABASE\|MEDIA_BASE_URL" -- .github/workflows` was first run while the new `deploy.yml` was still untracked; it printed nothing because it never read the file.
+- cause: `git grep` searches the tracked files of the work tree only, unless `--untracked` is given.
+- rule: a `git grep` proof over files the change creates runs after `git add` (or with `--untracked`); P-049's advice to search with `git grep` assumes the files are tracked.
+- proof: in a scratch repository, `printf 'R2_X\n' > new.yml && git grep -c R2_; echo $?` → `1`, and `git grep --untracked -c R2_` → `new.yml:1` (git 2.55.0).
+- added: 2026-10-02
+
+## P-136 · GitHub ignores `GOTCHAS.md merge=union`: a lane that appends to the bank while main does gets a "dirty" pull request and no pull_request run at all
+- symptom: after B1b g1 pushed a commit to `slice/b1b` and opened probe PR #47 from it, no `ci` or `deploy` run started in ten minutes, on either pull request. `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/47 --jq '[.mergeable, .mergeable_state]'` printed `false dirty`, while `git merge-tree --write-tree origin/main slice/b1b` on the laptop exited 0. Main had appended P-500 to the end of the bank and the lane had appended P-134 and P-135.
+- cause: `.gitattributes` holds `GOTCHAS.md merge=union`, a custom merge driver that only local git applies; GitHub's test merge uses no driver, so two appends at the end of the file conflict there. With no test merge commit, GitHub starts no `pull_request` workflow.
+- rule: when a pull request shows no run a minute after a push, read `mergeable_state` before anything else; `dirty` means bring main into the lane with a merge commit (P-072; the orchestrator does it when the builder's brief forbids merges). A probe branch that must run now is cut from `origin/main` with only the files under test checked out from the lane.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/47 --jq '[.mergeable, .mergeable_state] | @tsv'` → `false	dirty`; `git merge-tree --write-tree origin/main slice/b1b >/dev/null; echo $?` → `0` (both 2026-10-02); probe PR #50, cut from `origin/main`, answered `true` and ran.
+- added: 2026-10-02
+
+## P-137 · A Worker name deployed for the first time answers Cloudflare's own 404 now and then for about 20 seconds
+- symptom: probe PR #44's preview smoked `pr-44` two seconds after its first deploy: every URL answered 404 with `cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0` and no header of ours. With a wait for one answer of ours (PR #50), the next twelve requests still mixed that 404 with our answers.
+- cause: the new `workers.dev` route reaches the edge gradually. Measured from the laptop with a throwaway Worker (`pr-990003`, deployed 19:15:33 UTC, one request a second): 404 at 2 s, ours at 6 s, 404 at 11, 13 and 17 s, then ours on all 145 requests from 21 s. A redeploy of an existing name does not show it.
+- rule: before smoking a Worker name's first deploy, wait for ten answers of ours in a row (every answer of ours carries `x-request-id`), at most 180 s; the `wait` step of `deploy.yml`'s `preview` does this, and step 7's first deploy of `matter-of-place` and `matter-of-place-dev` needs the same. Never let the smoke itself retry a wrong answer.
+- proof: `bash ../scratch/g1s6-propagation2.sh pr-990003` from `app/` with `.env` loaded (text in `workspace/05-plans/logs/B1b.md`, g1 block) → the trace above; `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "ten answers"` passes, and registry entries `hy-wait-reset`, `hy-wait-ten` and `hy-wait-fails` turn it red.
+- added: 2026-10-02
+
+## P-138 · A replay of every registry entry outlasts the 10-minute tool ceiling, and `scratch/replay.mjs` reads `tests/mutations` from the cwd
+- symptom: the 51-entry replay of group c1 ran past the Bash tool's 600000 ms ceiling and was moved to the background; P-027 covers a chain over 120 s but not a single call longer than the ceiling itself. A reviewer who ran `node scratch/replay.mjs --check` from the repository root got `ENOENT 'E:\mop-build\spine\tests\mutations\B1b.json'`.
+- cause: the whole replay takes longer than 600 s, so `timeout: 600000` alone does not save it. The script is a git-ignored scratch file (`.gitignore` line 37, `scratch/`) that resolves `tests/mutations` relative to the working directory, and the registry lives under `app/`. The pasted command `cd app && bun run build && bun run cf:preview & ; node ...` is not valid shell (`& ;`). Nobody can re-run the evidence from a fresh clone; B4's `scripts/watchfail.mjs` is the planned home.
+- rule: start a replay of the whole registry in the background from the first call and wait on its output file with a bounded `until [ -f <output> ]` loop (P-027), or split it into batches that each stay under 600 s. Run it from `app/`. Write a proof command that starts the preview and the replay as two commands, never `& ;`. Until `scripts/watchfail.mjs` exists, a proof that rests on a scratch script says so in the log.
+- proof: `git check-ignore -v scratch/replay.mjs` prints `.gitignore:37:scratch/	scratch/replay.mjs`; `cd app && node ../scratch/replay.mjs --check` prints `checked 367, bad 0`; the same command from the repository root ends in `ENOENT`.
+- added: 2026-10-02
+
+## P-139 · actionlint is not on this laptop, and `bunx actionlint` runs nothing: lint a workflow with the release binary
+- symptom: B1b g1 step 7 wrote the `dev` and `production` jobs of `deploy.yml`, which run only after a merge (`workflow_run`, `workflow_dispatch`), so no pull request run could check them first. `bunx actionlint@2.0.6 --version` downloaded a package and stopped with `error: could not determine executable to run for package actionlint`; no `actionlint` is on the PATH.
+- cause: the npm package of that name has no executable for bunx; actionlint is a Go binary published on its GitHub releases. `hygiene.test.ts` parses the YAML and asserts our rules, but it does not check expressions, contexts or `needs:` names.
+- rule: before pushing a workflow change whose jobs run only after a merge, lint it from the repository root with the release binary in the lane's ignored scratch folder: `gh release download -R rhysd/actionlint -p '*windows_amd64.zip' -D scratch/actionlint && unzip -o -q scratch/actionlint/*.zip -d scratch/actionlint`, then `scratch/actionlint/actionlint.exe -shellcheck= .github/workflows/<file>` (no shellcheck on this laptop). Exit 0 is the gate; paste its output in the slice log.
+- proof: `bunx actionlint@2.0.6 --version` → `error: could not determine executable to run for package actionlint`; `scratch/actionlint/actionlint.exe -version` → `1.7.12`; on `deploy.yml` → exit `0`; on a copy whose `needs: dev` reads `needs: devv` → `job "production" needs job "devv" which does not exist in this workflow [job-needs]`, exit `1` (measured 2026-10-02).
+- added: 2026-10-02
+
+## P-140 · A proof written as `bunx vitest run <file>` skips the test script's 60 s timeout and times out on a loaded laptop
+- symptom: in B1b c7 (ruling H49 (3)) `bun run test` gained `--testTimeout=60000 --hookTimeout=60000`, then the plan's own step 7 proof `bunx vitest run tests/unit/deploy-guard.test.ts` went red: `Tests  1 failed | 5 passed (6)`, and on a repeat `× deploys when main gained only workspace, launch and Markdown commits 5943ms` with `Error: Test timed out in 5000ms.` (1 of 4 runs). Through the script, 3 of 3 runs passed.
+- cause: the flags live in the `test` script of `app/package.json`, not in `vitest.config.ts`; a bare `bunx vitest run` reads the config only and keeps vitest's 5000 ms default. The guard's cases spawn git in a temporary repository and take 2 to 4.4 s each alone.
+- rule: run a single-file proof as `bun run test <file>` (bun passes the path on and the script's flags apply) or add `--testTimeout=60000 --hookTimeout=60000` to a bare `bunx vitest run`. A `Test timed out in 5000ms` from a bare run is the default limit, not a fault: re-run it through the script before reading it as red. Whether the limit should move into `vitest.config.ts`, where every runner reads it, is the orchestrator's call (logged as a follow-up).
+- proof: `cd app && for i in 1 2 3 4; do bunx vitest run tests/unit/deploy-guard.test.ts 2>&1 | grep -E "Tests |timed out"; done` → at least one `Test timed out in 5000ms` while two lanes build (measured 2026-10-03); `for i in 1 2 3; do bun run test tests/unit/deploy-guard.test.ts 2>&1 | grep "Tests "; done` → three `Tests  6 passed (6)`.
+- added: 2026-10-03
+
+## P-141 · A job's text slice in `hygiene.test.ts` holds the comment above the next job, so a "not in this job" check reads another job's words
+- symptom: B1b c7's first case for H49 (1) asserted `has("dev", "PRODUCTION_DEPLOY")` is false (dev is not gated); it went red on a correct workflow, because the comment written above `production:` names `PRODUCTION_DEPLOY`. The same case first read `deployJob("production")?.if?.split(...)` and `tsc` refused it: `Property 'split' does not exist on type 'string | boolean'`. Two reworks before the case was right.
+- cause: `splitWorkflow` cuts a job's text from its key to the next job key, so the comment lines that introduce the next job belong to the one before. `JobDef.if` is typed `string | boolean` because YAML lets `if: true` through.
+- rule: when the claim is about one field (`if:`, `needs:`, a step's `run`), assert on the parsed field, read as `String(deployJob(job)?.if)`; keep `textOf` and `has` for claims about the whole job, and never for "this word is absent" when a neighbouring comment may carry it.
+- proof: in `app/tests/unit/hygiene.test.ts` replace `dev: String(deployJob("dev")?.if).includes("PRODUCTION_DEPLOY"),` with `dev: has("dev", "PRODUCTION_DEPLOY"),` → `cd app && bunx vitest run tests/unit/hygiene.test.ts -t "PRODUCTION_DEPLOY"` prints `× production runs only while PRODUCTION_DEPLOY is on, dev always (H49 (1))` on the committed workflow (measured 2026-10-03, bytes restored after).
+- added: 2026-10-03
 
 ## P-300 · Knip refuses a dependency no file imports yet and a system binary a script spawns; the builder adds the one-line gate entry itself
 - symptom: B2 step 1 adds `supabase`, `sharp`, `heic-convert`, `@supabase/supabase-js`, `pg` and `@types/pg` and writes `scripts/psql-dev.mjs`. `bun run knip` then printed `Unused devDependencies (4)` and `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1. The group's file list did not hold `app/knip.json`, so it reported BLOCKED and committed nothing, and the lane stood still until the orchestrator read the result.
@@ -941,6 +1007,22 @@ Entry template
 - merged: P-313
 - added: 2026-10-03
 
+## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
+- paths: app/supabase/migrations/**
+- severity: warn
+- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
+- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
+- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
+- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
+- added: 2026-10-03
+
+## P-503 · A lane without a bank number base takes the next number after everyone else's entries
+- symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
+- cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
+- rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
+- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
+- added: 2026-10-03
+
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
 - symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
 - cause: commit ddc0b4d renamed the app folder to `app/` after 8dd6f26; at 8dd6f26 the file is `Matter Of Place Codebase/docs/database/schema.sql`. The plan wrote today's path against an older commit.
@@ -971,15 +1053,6 @@ Entry template
 - resolved: dropped by the orchestrator on 2026-10-03 12:10 laptop time (`drop function if exists public.__wf_probe()` → `DROP FUNCTION`, count 0); the rule stays, a new stray goes the same way
 - added: 2026-10-03
 
-## G-100 · `db:reset` removes Supabase's automatic RLS: a table whose migration does not enable RLS stays open
-- paths: app/supabase/migrations/**
-- severity: warn
-- symptom: none hit; seen in B2 g3. Before the first `bun run db:reset` on `mop-dev`, `pg_event_trigger` listed `ensure_rls` calling `public.rls_auto_enable`; after it the function and the event trigger are both gone (`drop schema public cascade` takes the event trigger with the function it calls).
-- cause: Supabase's automatic RLS lives in `public`, and the reset empties `public` (S49 revokes the helper's execute grant; nothing puts the trigger back). The same reset drops the schema's default privileges, so a new table also gets no grant at all until migration 10.
-- rule: every migration that creates a table enables RLS on it in the same file and states its grants (`revoke all ... from anon, authenticated`, `grant all ... to service_role`), as migrations 1 and 2 do; never rely on Supabase defaults that `db:reset` removes. Migration 10's grants and RLS list stay the full statement of the matrix.
-- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_event_trigger where evtname = 'ensure_rls'"` prints `0` after a reset; `bun run db:psql -- -Atc "select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity"` prints nothing (measured 2026-10-03, B2 g3).
-- added: 2026-10-03
-
 ## G-101 · A catalog column of type `"char"` cannot be concatenated with a string literal
 - paths: app/tests/db/**, app/scripts/**
 - severity: warn
@@ -987,13 +1060,6 @@ Entry template
 - cause: `pg_constraint.confdeltype`, `contype`, `pg_class.relkind` and the other one-letter catalog codes are the type `"char"`, and `||` has no single candidate for an untyped literal on one side and `"char"` on the other.
 - rule: cast a `"char"` catalog column to `text` before `||` or `format`: `c.confdeltype::text`. Comparing it with a literal (`confdeltype in ('c', 'n', 'r')`) needs no cast.
 - proof: `cd app && bun run db:psql -- -Atc "select 'on delete ' || c.confdeltype from pg_constraint c where contype = 'f' limit 1"` → `ERROR:  operator is not unique: unknown || "char"`; with `c.confdeltype::text` → `on delete c` (measured 2026-10-03, B2 g4).
-- added: 2026-10-03
-
-## P-503 · A lane without a bank number base takes the next number after everyone else's entries
-- symptom: merging main into the delivery lane left `GOTCHAS.md` unmerged: `merge-gotchas: both sides changed P-502`. The lane's builder had numbered its new entries P-502 to P-505, right after the orchestrator's P-500 and P-501 that an earlier merge had brought in, while the orchestrator wrote its own P-502 on main.
-- cause: the lane was started before bank bases existed (H45 (5)), so its builders followed the old rule, "the next free number above the highest in the file", and the highest was now an orchestrator number.
-- rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
-- proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
 - added: 2026-10-03
 
 ## G-102 · A statement that fails inside `withRollback` aborts the whole test transaction unless a savepoint wraps it
@@ -1074,6 +1140,78 @@ Entry template
 - proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03
 
+## Retired, enforced
+
+A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
+
+- G-003 · Page titles: pass the bare title, `pageHead` adds the suffix · enforced-by app/tests/unit/seo.test.ts
+- G-005 · Routes never import bundled data directly · enforced-by app/tests/unit/boundaries.test.ts
+- G-017 · Nitro appends its own rule to `public/_headers`, and a second block for one path replaces ours · enforced-by app/tests/unit/headers.test.ts
+- G-022 · An API route file with no `GET` handler answers a `GET` with 200 and the empty page shell · enforced-by app/tests/unit/pipeline.test.ts
+- G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws · enforced-by app/tests/unit/sentry.test.ts
+- G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop · enforced-by app/tests/unit/check-migrations.test.ts
+- G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:` · enforced-by app/tests/unit/hygiene.test.ts
+- G-028 · The migration scan is a small SQL lexer: a regex over raw text both misses DDL and flags words · enforced-by app/tests/unit/check-migrations.test.ts
+- G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through · enforced-by app/tests/unit/check-migrations.test.ts
+- G-030 · An exception to the destructive-change scan passes more than the statement the ruling meant · enforced-by app/tests/unit/check-migrations.test.ts
+- G-032 · A file outside `app/` gets none of the app's gates: prettier finds no config, ESLint calls it outside its base path, tsc never sees it · enforced-by app/tests/unit/hygiene.test.ts
+- P-004 · Mermaid syntax that breaks a render: `:::class` on a subgraph line, `;` in a sequence message or Note, a label that starts with `[/` · enforced-by workspace/03-diagrams/render.mjs · merged P-012
+- P-031 · Plans invent names: every event, step and table in a plan must be a catalog name · enforced-by workspace/05-plans/check-plans.mjs
+- P-104 · The merge gate refused every pull request with no check (ruling H42 (1)) · enforced-by app/tests/unit/merge-gate.test.ts
+
+## P-504 · A build agent answers the operator's last chat message instead of doing its task
+- symptom: a builder launched right after the operator asked a question in chat returned status blocked with "The user did not ask for a build. They asked a question", built nothing, and the whole run ended after 13 seconds.
+- cause: the harness relays the session's latest user message into every subagent's context as "the user's request"; when that message is a question or a remark, the agent takes it as its instruction and the computed task as secondary.
+- rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
+- proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
+- added: 2026-10-03
+
+## G-040 · A query inside `[ "$(psql ...)" = t ]` in a workflow step reads a failed query as the answer "no" and the step stays green
+- paths: .github/workflows/**
+- severity: warn
+- symptom: the first draft of `backup.yml`'s `record` step tested `to_regprocedure(...) is null` and `claim_schedule(...)` inside `[ "$(psql ...)" = t ]`; the plan wants a query error to fail the run red, and that form would have printed `backup last_run_at not recorded` and ended green.
+- cause: GitHub runs `run:` with `bash -e`, but `-e` ignores the status of a command substitution used as an argument (of `[`, `echo`, `if`); only a plain assignment `x=$(...)` carries the substitution's status.
+- rule: read every query answer in a workflow step into a variable first (`absent=$(psql "$DB_URL" -Atc "...")`), then test the variable; never put `$(psql ...)` inside a test or an echo where its failure matters.
+- proof: `bash -ec 'x=$(false); echo after'` prints nothing and exits 1; `bash -ec 'if [ "$(false)" = t ]; then echo t; else echo "read as f"; fi'` prints `read as f` and exits 0 (2026-10-03).
+- added: 2026-10-03
+
+## P-150 · Live `build-output` artifacts of the parallel lanes hold more than a Free account's 500 MB of Actions storage
+- symptom: sizing `backup.yml`'s retention (B1b step 8, DB-11), the repository's live artifacts were 137 `build-output` uploads, 1,284,006,728 bytes, all kept 1 day; the backup dump is 234,481 bytes.
+- cause: `ci.yml` uploads `.output/` (about 9.4 MB) on every pull request push, and four lanes push all day; a 1-day retention does not keep the sum under the quota while that rate lasts. The quota itself is UNPROVEN (the billing API needs the `user` scope; GitHub documents 500 MB for Free).
+- rule: before choosing an artifact's retention, sum the live artifacts, not only the new one; when the live sum nears the quota, the orchestrator reads the billing page and decides (fewer pushes or a smaller artifact), because an account over its storage quota with a zero spending limit may refuse new uploads, the backup's included (UNPROVEN until seen).
+- proof: `gh api --paginate "repos/AbdulrahmanAmer/matter-of-place/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .size_in_bytes'` summed → 1284006728 over 137 artifacts, all named `build-output` (2026-10-03 10:03 UTC).
+- added: 2026-10-03
+
+## P-151 · A bank entry that cites another entry by number points at the wrong entry once a merge renumbers the cited one
+- symptom: G-031's `enforced-by` line, added in B1b c7's WIP commit 88994da, ended `a bare bunx vitest run still has the 5000 ms default (P-504)`. The entry meant is P-140; P-504 on this branch is "A build agent answers the operator's last chat message", so a reader following the reference landed on the wrong entry. Found by the c7 reviewer; no check flagged it.
+- cause: the lane wrote the lesson under one number and the merge gave it another (P-140); the sentence that cites it by number in a different entry was not rewritten, and `check-gotchas.mjs` checks headings, duplicates and required lines, not that a cited `P-NNN` or `G-NNN` is the entry the sentence means.
+- rule: after a merge that renumbers a bank entry, run `grep -n "<old number>" GOTCHAS.md` and read each hit for the new meaning; write a cross-reference as the number plus a few words of the title, so a wrong number reads as wrong.
+- proof: `git show 88994da:GOTCHAS.md | grep -c "5000 ms default (P-504)"` → `1`; `grep -c "^- enforced-by:.*5000 ms default (P-140)" GOTCHAS.md` → `1` (corrected in the c7 follow-up commit); `grep -n "^## P-140" GOTCHAS.md` → `941:## P-140 · A proof written as bunx vitest run <file> skips the test script's 60 s timeout and times out on a loaded laptop`.
+- added: 2026-10-03
+
+## P-152 · A per-test timeout overrides `--testTimeout=60000`: one hygiene case still times out at 20 s on a loaded laptop
+- symptom: the c7 reviewer's first run of `bunx vitest run tests/unit/hygiene.test.ts tests/unit/deploy-guard.test.ts tests/unit/mutation-registry.test.ts --testTimeout=60000` printed `× lint gives prettier/prettier the options of .prettierrc for it 30299ms ... Error: Test timed out in 20000ms`; alone and inside `bun run check` the case passes. It is the flake ruling H49 (3) set out to end.
+- cause: a timeout written in the test itself beats the command-line `--testTimeout`. `app/tests/unit/hygiene.test.ts:849` ends `}, 20_000);` (from commit 3afa483), the only explicit timeout in `app/tests/unit/`. The `hy-test-timeout` mutation cannot see it because it only edits `app/package.json`, so the claim "every test and hook gets 60 s" (H49 (3), the hygiene case `the test script gives every test and hook 60 s`, G-031) is false for this case.
+- rule: when a test is slow under load, raise or remove its own timeout rather than rely on the script flag; a hygiene check that claims every test gets 60 s must also refuse a numeric timeout argument in `app/tests/unit/**` (follow-up recorded in `workspace/05-plans/logs/B1b-followups.md`, c7).
+- proof: `grep -n "}, [0-9_]*);" app/tests/unit/*.ts` → `app/tests/unit/hygiene.test.ts:849:  }, 20_000);` and no other hit (2026-10-03).
+- added: 2026-10-03
+
+## P-153 · The review brief's snapshot command names the snapshot folder, which does not exist yet, as the lane root
+- symptom: the c7 reviewer ran the brief's line `cd /e/mop-build/spine-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/spine-review cbaeed1` and got `cd: /e/mop-build/spine-review: No such file or directory`, exit 1. The working call is `cd /e/mop-build/spine && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/spine cbaeed1`, which prints `E:/mop-build/spine-review`, exit 0.
+- cause: `.claude/workflows/build-slice.js` line 153 builds the first instruction from `where.root`, and `snapshotWhere` (line 193) sets `root` to `${ROOT}-review` for a snapshot review. The script's usage is `create <laneRoot> <sha>` and it adds `-review` itself (`workspace/05-plans/review-snapshot.mjs` line 17), so the create line must carry the lane's own root, not the snapshot's.
+- rule: a brief that creates the snapshot names the lane root (`ROOT`) in the `cd` and in the `create` argument, and the snapshot root only for the steps that run inside it; fix it in `build-slice.js` (not this group's file), and a reviewer who sees the `cd` error runs the call from the lane root at once.
+- proof: `grep -n "review-snapshot.mjs create" .claude/workflows/build-slice.js | cut -c1-90` → line 153 with `create ${where.root}`; `grep -n "usage" workspace/05-plans/review-snapshot.mjs` → `usage: review-snapshot.mjs create <laneRoot> <sha> | remove <laneRoot> | sweep <laneRoot>`.
+- hit again: 2026-10-03, B1b g9 review: the same brief failed the same way (`cd: E:/mop-build/spine-review: No such file or directory`, exit 1; the call from `/e/mop-build/spine` with `E:/mop-build/spine 6edd7ac` printed `E:/mop-build/spine-review`, exit 0). The same brief also names spine-review as the builder's tree; the builder's tree is spine, and `remove E:/mop-build/spine-review` would address a non-existent spine-review-review and leave the real snapshot behind (the script adds `-review` to every verb's argument, line 17 and `snap`). The brief template passes `E:/mop-build/spine` to `create` and `remove`. Proof: `grep -n 'const snap' workspace/05-plans/review-snapshot.mjs` → `const snap = \`${laneRoot}-review\`;`.
+- hit again: 2026-10-03, B1b g10 review: the brief still said `cd /e/mop-build/spine-review && node workspace/05-plans/review-snapshot.mjs create E:/mop-build/spine-review e957a35` and failed with `cd: /e/mop-build/spine-review: No such file or directory`, exit 1; the call from `/e/mop-build/spine` with `E:/mop-build/spine` printed `E:/mop-build/spine-review`, exit 0. The fix is not missing from the script: commit 3bba6ce (2026-10-03 13:35 +0300) is an ancestor of slice/b1b and line 153 of `.claude/workflows/build-slice.js` now uses `where.snapshot.lane`. The brief therefore came from a workflow run that loaded the script before that commit (a running workflow keeps the script text it started with; inferred, not observed). Rule added: a fix to `build-slice.js` reaches only workflow runs started after it, so after such a fix the orchestrator re-issues the pending review briefs from the new script, and a reviewer who sees the `cd` error runs the call from the lane root at once. Proof: `git merge-base --is-ancestor 3bba6ce HEAD && echo ancestor` → `ancestor`; `grep -c 'where.snapshot.lane' .claude/workflows/build-slice.js` → `1`.
+- added: 2026-10-03
+
+## P-154 · A scratch registry folder inside the shared session scratchpad holds the registries of earlier runs, and `watchfail.mjs --registry` replays them all
+- symptom: the g9 reviewer ran `watchfail.mjs --registry <scratchpad>/reg` to replay its own scratch entries and the output began `WATCHED-FAIL OK B4:y`: the folder already held `B4.json` (dated 07:54) beside `g9.json`, so 44 B4 entries were replayed against the snapshot, about 10 extra minutes (files restored).
+- cause: the session scratchpad is shared by every workflow agent of the session and keeps files from earlier runs; a fixed folder name like `reg` is reused, and `--registry` replays every `*.json` in the folder it is given.
+- rule: make the scratch registry folder fresh with `mktemp -d` inside the scratchpad, `ls` it before the replay, and pass `--only <ids>` so only the entries meant are replayed.
+- proof: `d=$(mktemp -d) && ls "$d" | wc -l` → `0`; `cd app && grep -n "readdirSync" scripts/watchfail.mjs | cut -c1-120` shows the registry folder is read whole (every `*.json` in it).
+- added: 2026-10-03
+
 ## P-414 · Plan lines for B4 step 4 named a 10x10 matrix and B3's `analyticsEvents`; main has eleven states and no such constant
 - symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
 - cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
@@ -1109,30 +1247,4 @@ Entry template
 - cause: B1b, B2 and B4 each have an entry `d`; `--only` matches the id in every registry, and the B2 entry is a db entry that the guard-env refuses in a shell with ops variables (P-310).
 - rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
-- added: 2026-10-03
-
-## Retired, enforced
-
-A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
-
-- G-003 · Page titles: pass the bare title, `pageHead` adds the suffix · enforced-by app/tests/unit/seo.test.ts
-- G-005 · Routes never import bundled data directly · enforced-by app/tests/unit/boundaries.test.ts
-- G-017 · Nitro appends its own rule to `public/_headers`, and a second block for one path replaces ours · enforced-by app/tests/unit/headers.test.ts
-- G-022 · An API route file with no `GET` handler answers a `GET` with 200 and the empty page shell · enforced-by app/tests/unit/pipeline.test.ts
-- G-023 · "Never throws" broke on the value, not the send: `String()` of a null-prototype object throws · enforced-by app/tests/unit/sentry.test.ts
-- G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop · enforced-by app/tests/unit/check-migrations.test.ts
-- G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:` · enforced-by app/tests/unit/hygiene.test.ts
-- G-028 · The migration scan is a small SQL lexer: a regex over raw text both misses DDL and flags words · enforced-by app/tests/unit/check-migrations.test.ts
-- G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through · enforced-by app/tests/unit/check-migrations.test.ts
-- G-030 · An exception to the destructive-change scan passes more than the statement the ruling meant · enforced-by app/tests/unit/check-migrations.test.ts
-- G-032 · A file outside `app/` gets none of the app's gates: prettier finds no config, ESLint calls it outside its base path, tsc never sees it · enforced-by app/tests/unit/hygiene.test.ts
-- P-004 · Mermaid syntax that breaks a render: `:::class` on a subgraph line, `;` in a sequence message or Note, a label that starts with `[/` · enforced-by workspace/03-diagrams/render.mjs · merged P-012
-- P-031 · Plans invent names: every event, step and table in a plan must be a catalog name · enforced-by workspace/05-plans/check-plans.mjs
-- P-104 · The merge gate refused every pull request with no check (ruling H42 (1)) · enforced-by app/tests/unit/merge-gate.test.ts
-
-## P-504 · A build agent answers the operator's last chat message instead of doing its task
-- symptom: a builder launched right after the operator asked a question in chat returned status blocked with "The user did not ask for a build. They asked a question", built nothing, and the whole run ended after 13 seconds.
-- cause: the harness relays the session's latest user message into every subagent's context as "the user's request"; when that message is a question or a remark, the agent takes it as its instruction and the computed task as secondary.
-- rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
-- proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
 - added: 2026-10-03

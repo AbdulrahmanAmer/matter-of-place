@@ -2881,5 +2881,842 @@
     "replace": "",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint gives prettier/prettier the options of \\.prettierrc"
+  },
+  {
+    "id": "c",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (headers.get(\"x-request-id\") === null) problems.push(\"no x-request-id\");",
+    "replace": "if (headers.get(\"x-request-id\") === \"skip\") problems.push(\"no x-request-id\");",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on no x-request-id on /properties"
+  },
+  {
+    "id": "smoke-status",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (answer.status !== 200) problems.push(",
+    "replace": "if (answer.status === 0) problems.push(",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on a 500 on /california"
+  },
+  {
+    "id": "smoke-nosniff",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (headers.get(\"x-content-type-options\") !== \"nosniff\")",
+    "replace": "if (headers.get(\"x-content-type-options\") === \"never\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on no nosniff on /contact"
+  },
+  {
+    "id": "smoke-frame",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (headers.get(\"x-frame-options\") !== \"DENY\")",
+    "replace": "if (headers.get(\"x-frame-options\") === \"never\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on x-frame-options SAMEORIGIN on /stories"
+  },
+  {
+    "id": "smoke-robots-noindex",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (robots === \"noindex\" && robotsTag !== NOINDEX)",
+    "replace": "if (robots === \"noindex\" && robotsTag === \"never\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on no x-robots-tag on /markets"
+  },
+  {
+    "id": "smoke-robots-indexable",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (robots === \"indexable\" && robotsTag !== null)",
+    "replace": "if (robots === \"indexable\" && robotsTag === \"never\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× requires no x-robots-tag on matterofplace"
+  },
+  {
+    "id": "smoke-workers-dev",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "const required = hostname.endsWith(\".workers.dev\")",
+    "replace": "const required = hostname.endsWith(\".never.dev\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× exits 2 before any request when the flag contradicts"
+  },
+  {
+    "id": "smoke-apex",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": ": hostname === \"matterofplace.com\"",
+    "replace": ": hostname === \"never.example\"",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× requires no x-robots-tag on matterofplace"
+  },
+  {
+    "id": "smoke-default-noindex",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (required === undefined) return flag ?? \"noindex\";",
+    "replace": "if (required === undefined) return flag ?? \"indexable\";",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× lets another host follow the flag"
+  },
+  {
+    "id": "smoke-contradiction",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "return flag === undefined || flag === required ? required : null;",
+    "replace": "return flag ?? required;",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× exits 2 before any request when the flag contradicts"
+  },
+  {
+    "id": "smoke-home-cache",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (!cacheControl.includes(\"max-age=0\") || !cacheControl.includes(\"must-revalidate\"))",
+    "replace": "if (!cacheControl.includes(\"max-age=0\"))",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on / without must-revalidate"
+  },
+  {
+    "id": "smoke-two-ids",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "secondId !== null && secondId === firstId",
+    "replace": "secondId === \"never\"",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on one request id on both requests of /"
+  },
+  {
+    "id": "smoke-no-asset",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "report(new URL(\"/\", base).href, [\"no /assets/*.js in the HTML\"]);",
+    "replace": "report(new URL(\"/\", base).href, []);",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on / with no /assets/"
+  },
+  {
+    "id": "smoke-asset-immutable",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (!cacheControl.includes(\"immutable\") || !cacheControl.includes(\"max-age=31536000\"))",
+    "replace": "if (!cacheControl.includes(\"max-age=31536000\"))",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on an asset that is not immutable"
+  },
+  {
+    "id": "smoke-asset-status",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (asset.answer.status !== 200)",
+    "replace": "if (asset.answer.status === 0)",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on an asset that answers 404"
+  },
+  {
+    "id": "smoke-asset-nosniff",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (asset.answer.headers.get(\"x-content-type-options\") !== \"nosniff\")",
+    "replace": "if (asset.answer.headers.get(\"x-content-type-options\") === \"never\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on an asset without nosniff"
+  },
+  {
+    "id": "smoke-media-age",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (!cacheControl.includes(\"max-age=604800\"))",
+    "replace": "if (!cacheControl.includes(\"max-age=\"))",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on the media file kept one hour"
+  },
+  {
+    "id": "smoke-media-status",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (media.answer.status !== 200)",
+    "replace": "if (media.answer.status === 0)",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on the media file missing"
+  },
+  {
+    "id": "smoke-hook-no-store",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "cacheControl === \"no-store\" ? []",
+    "replace": "cacheControl?.includes(\"no-store\") ? []",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× fails on the hook merged no-store with private"
+  },
+  {
+    "id": "aw",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (options.forceFail === \"1\") {",
+    "replace": "if (options.forceFail === \"never\") {",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× returns 1 before any fetch when SMOKE_FORCE_FAIL is 1"
+  },
+  {
+    "id": "smoke-redirect",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "redirect: \"manual\",",
+    "replace": "redirect: \"follow\",",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× passes a complete set of answers"
+  },
+  {
+    "id": "smoke-signal",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "        signal: AbortSignal.timeout(TIMEOUT_MS),\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× passes a complete set of answers"
+  },
+  {
+    "id": "smoke-retry",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "const ATTEMPTS = 3;",
+    "replace": "const ATTEMPTS = 1;",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× retries a refused connection"
+  },
+  {
+    "id": "smoke-usage-url",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "!URL.canParse(baseUrl)",
+    "replace": "!URL.canParse(\"http://x\")",
+    "run": "bunx vitest run tests/unit/smoke.test.ts",
+    "expect": "× refuses a missing base URL"
+  },
+  {
+    "id": "o",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && github.event.pull_request.draft",
+    "replace": "github.event.action != 'closed' && github.actor != 'dependabot[bot]' && github.event.pull_request.draft",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× every pull request job refuses forks and Dependabot"
+  },
+  {
+    "id": "hy-deploy-dependabot",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'",
+    "replace": "github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× every pull request job refuses forks and Dependabot"
+  },
+  {
+    "id": "ar",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
+    "replace": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× no job a pull request can reach references a database"
+  },
+  {
+    "id": "ar-dev-key",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n",
+    "replace": "(invariant 13a).\n    env:\n      HAS_DB: ${{ fromJSON(secrets.PREVIEW_WORKER_SECRETS_JSON).SUPABASE_URL != '' }}\n      DB_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× no job a pull request can reach references a database"
+  },
+  {
+    "id": "as",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'",
+    "replace": " && vars.CI_HEAVY != 'off'",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× the heavy jobs skip drafts and obey CI_HEAVY"
+  },
+  {
+    "id": "hy-deploy-types",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "types: [opened, synchronize, reopened, ready_for_review, closed]",
+    "replace": "types: [opened, synchronize, reopened, ready_for_review]",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× runs on pull requests into main, marked ready and closed"
+  },
+  {
+    "id": "hy-deploy-closed",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'\n",
+    "replace": "if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db and preview skip a closed pull request"
+  },
+  {
+    "id": "hy-deploy-secret-allow",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          WORKER: pr-${{ github.event.number }}\n",
+    "replace": "          WORKER: pr-${{ github.event.number }}\n          EXTRA: ${{ secrets.SENTRY_AUTH_TOKEN }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× pull request jobs read only the secrets the plan names"
+  },
+  {
+    "id": "hy-preview-db-once",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "select(startswith(\"preview-db:\"))",
+    "replace": "select(startswith(\"never\"))",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db comments once, on a changed migration only"
+  },
+  {
+    "id": "hy-preview-db-sql",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "-- 'supabase/migrations/*.sql'",
+    "replace": "-- 'supabase/migrations'",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db comments once, on a changed migration only"
+  },
+  {
+    "id": "hy-preview-db-three-dots",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "\"$BASE...$HEAD\"",
+    "replace": "\"$BASE\" \"$HEAD\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db comments once, on a changed migration only"
+  },
+  {
+    "id": "hy-preview-db-when",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        if: steps.migrations.outputs.changed == 'true'\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db comments once, on a changed migration only"
+  },
+  {
+    "id": "hy-preview-db-supabase",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: comment\n        if: steps.migrations.outputs.changed == 'true'\n",
+    "replace": "      - run: bunx supabase --version\n      - name: comment\n        if: steps.migrations.outputs.changed == 'true'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-db comments once, on a changed migration only"
+  },
+  {
+    "id": "hy-preview-mop-env",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--name pr-${{ github.event.number }} --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }}",
+    "replace": "--name pr-${{ github.event.number }} --var MOP_ENV:preview",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
+  },
+  {
+    "id": "hy-preview-api-base",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "replace": "workers.dev\n          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
+  },
+  {
+    "id": "hy-preview-release",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var SENTRY_RELEASE:${{ github.sha }}",
+    "replace": "--var SENTRY_RELEASE:${{ github.event.pull_request.head.sha }}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
+  },
+  {
+    "id": "hy-preview-media",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media",
+    "replace": "--var MEDIA_PUBLIC_BASE:https://matterofplace.com/media",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
+  },
+  {
+    "id": "hy-preview-turnstile",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "replace": "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build\n      # On a pull request",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
+  },
+  {
+    "id": "hy-preview-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "answers the calm 500.\n      - name: secrets\n",
+    "replace": "answers the calm 500.\n      - name: smoke-early\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: secrets\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview deploys, then sets the secrets, then smokes"
+  },
+  {
+    "id": "hy-preview-url-once",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: smoke\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n",
+    "replace": "      - run: echo \"PREVIEW_URL=https://example.com\" >> \"$GITHUB_ENV\"\n      - name: smoke\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview deploys, then sets the secrets, then smokes"
+  },
+  {
+    "id": "hy-preview-wait",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: wait\n        run: |\n",
+    "replace": "      - name: smoke-first\n        run: node scripts/smoke.mjs \"$PREVIEW_URL\"\n      - name: wait\n        run: |\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview deploys, then sets the secrets, then smokes"
+  },
+  {
+    "id": "hy-wait-reset",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n",
+    "replace": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            fi\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
+    "id": "hy-wait-ten",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n            if [ \"$ok\" -ge 10 ]; then",
+    "replace": "\"$PREVIEW_URL/\" | grep -qi '^x-request-id:'; then\n              ok=$((ok + 1))\n            else\n              ok=0\n            fi\n            if [ \"$ok\" -ge 1 ]; then",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
+    "id": "hy-wait-fails",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n          exit 1\n      - name: smoke\n        run:",
+    "replace": "          echo \"the Worker did not answer ten times in a row in 180 s\"\n      - name: smoke\n        run:",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview waits for ten answers of the Worker in a row"
+  },
+  {
+    "id": "hy-cleanup-forgive",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "elif printf '%s' \"$out\" | grep -q \"code: 10090\"; then",
+    "replace": "elif true; then",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-cleanup deletes pr-<n> and forgives only"
+  },
+  {
+    "id": "hy-cleanup-exit",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "            printf '%s\\n' \"$out\"\n            exit 1\n",
+    "replace": "            printf '%s\\n' \"$out\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-cleanup deletes pr-<n> and forgives only"
+  },
+  {
+    "id": "hy-cleanup-waits",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      group: preview-${{ github.event.number }}\n      cancel-in-progress: false\n",
+    "replace": "      group: preview-${{ github.event.number }}\n      cancel-in-progress: true\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× preview-cleanup deletes pr-<n> and forgives only"
+  },
+  {
+    "id": "av",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "  return revListOutput.trim() !== \"\";",
+    "replace": "  return false;",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× a listed commit supersedes the deployed one"
+  },
+  {
+    "id": "dg-workspace",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "\":!workspace\", ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-launch",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "\":!launch\", ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-md",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": ", \":!*.md\"",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× deploys when main gained only workspace, launch and Markdown commits"
+  },
+  {
+    "id": "dg-range",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "`${sha}..origin/main`",
+    "replace": "`origin/main..${sha}`",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded once a newer code commit is on main"
+  },
+  {
+    "id": "dg-root",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "    cwd: root,\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded by a newer commit outside app, such as a workflow"
+  },
+  {
+    "id": "dg-output",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "appendFileSync(output, `superseded=${String(superseded)}\\n`);",
+    "replace": "appendFileSync(output, \"superseded=false\\n\");",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× is superseded once a newer code commit is on main"
+  },
+  {
+    "id": "dg-usage",
+    "test": "tests/unit/deploy-guard.test.ts",
+    "file": "scripts/deploy-guard.mjs",
+    "find": "/^[0-9a-f]{40}$/",
+    "replace": "/^[0-9a-f]{7,40}$/",
+    "run": "bunx vitest run tests/unit/deploy-guard.test.ts",
+    "expect": "× refuses a SHA that is not 40 hex characters"
+  },
+  {
+    "id": "w",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED == 'true' && 'https://matterofplace.com/media' || 'https://matter-of-place.holy-meadow-4327.workers.dev/media' }}",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "w-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "w-old-name",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media",
+    "replace": "--var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media --var MEDIA_BASE_URL:x",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× no workflow names R2 or a media base variable"
+  },
+  {
+    "id": "bf",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "replace": "      - if: steps.guard.outputs.superseded != 'true'\n        run: bun run db:push\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "bf-needs",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "  production:\n    needs: dev\n",
+    "replace": "  production:\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "bg",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n",
+    "replace": "VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev deploys matter-of-place-dev and switches on HAS_DB"
+  },
+  {
+    "id": "hy-main-trigger",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    workflows: [ci]\n",
+    "replace": "    workflows: [deploy]\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-event",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "replace": "    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-ref",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          ref: ${{ github.event.workflow_run.head_sha }}\n",
+    "replace": "          ref: ${{ github.sha }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-release",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "--var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED",
+    "replace": "--var SENTRY_RELEASE:${{ github.sha }} --var MEDIA_PUBLIC_BASE:${{ vars.MOP_LAUNCHED",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-main-dispatch",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')",
+    "replace": "(github.event_name == 'workflow_dispatch')",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production deploy only the commit ci passed on main"
+  },
+  {
+    "id": "hy-guard-first",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          ref: ${{ github.event.workflow_run.head_sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - name: guard\n        id: guard\n        run: node scripts/deploy-guard.mjs \"$SHA\"\n",
+    "replace": "          ref: ${{ github.event.workflow_run.head_sha }}\n          fetch-depth: 0\n          persist-credentials: false\n      - name: guard\n        id: guard\n        run: echo superseded=false >> \"$GITHUB_OUTPUT\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-guard-gate",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev",
+    "replace": "      - name: build\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-guard-rollback",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure() && steps.deploy.outcome == 'success'\n",
+    "replace": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure()\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production run the guard first"
+  },
+  {
+    "id": "hy-smoke-url",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      URL: https://matter-of-place.holy-meadow-4327.workers.dev\n",
+    "replace": "      URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-wait-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          exit 1\n      # rehearse_rollback forces",
+    "replace": "      # rehearse_rollback forces",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-wait-prod",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          exit 1\n      # The workers.dev address",
+    "replace": "      # The workers.dev address",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          SMOKE_FORCE_FAIL: ${{ inputs.rehearse_rollback && '1' || '' }}\n        run: node scripts/smoke.mjs \"$URL\"\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-smoke-rehearse",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "SMOKE_FORCE_FAIL: ${{ inputs.rehearse_rollback && '1' || '' }}",
+    "replace": "SMOKE_FORCE_FAIL: \"\"",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-rollback-name",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "rollback --name matter-of-place --message",
+    "replace": "rollback --name matter-of-place-dev --message",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-dev-db-when",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n",
+    "replace": "        if: steps.guard.outputs.superseded != 'true'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-dev-db-detect",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "git ls-files 'supabase/migrations/*.sql' | grep -q .",
+    "replace": "git ls-files 'supabase/migrations' | grep -q .",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-dev-db-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      # The version serving now is the rollback target. The secrets step below makes a deployment\n      # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers\n      # code 10007 for a Worker that does not exist yet: then there is no target.\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
+    "replace": "      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).\n      # The version serving now is the rollback target. The secrets step below makes a deployment\n      # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers\n      # code 10007 for a Worker that does not exist yet: then there is no target.\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: db-push\n        if: steps.guard.outputs.superseded != 'true' && steps.migrations.outputs.has_migrations == 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n          DEV_SUPABASE_DB_PASSWORD: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n        run: |\n          bunx supabase link --project-ref \"$DEV_SUPABASE_PROJECT_REF\" --password \"$DEV_SUPABASE_DB_PASSWORD\"\n          bun run db:push\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev pushes main's migrations before its deploy"
+  },
+  {
+    "id": "hy-prod-secrets",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE",
+    "replace": "          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n          EXTRA: ${{ secrets.SENTRY_AUTH_TOKEN }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --var SENTRY_RELEASE",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production needs dev, touches no database"
+  },
+  {
+    "id": "hy-main-ci-heavy",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      group: production\n",
+    "replace": "      group: production-${{ vars.CI_HEAVY }}\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production and dev never read CI_HEAVY"
+  },
+  {
+    "id": "hy-prod-deploy-off",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": " && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "replace": "\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production runs only while PRODUCTION_DEPLOY is on"
+  },
+  {
+    "id": "hy-prod-deploy-dev",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "github.ref == 'refs/heads/main')\n",
+    "replace": "github.ref == 'refs/heads/main') && vars.PRODUCTION_DEPLOY == 'on'\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× production runs only while PRODUCTION_DEPLOY is on"
+  },
+  {
+    "id": "hy-rollback-no-id",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "bunx wrangler rollback \"$PREVIOUS\" --name matter-of-place-dev",
+    "replace": "bunx wrangler rollback --name matter-of-place-dev",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-rollback-first-ok",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "echo \"first deploy: nothing to roll back to\"\n            exit 1\n",
+    "replace": "echo \"first deploy: nothing to roll back to\"\n            exit 0\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
+  },
+  {
+    "id": "hy-current-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n",
+    "replace": "      - name: build\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          VITE_SITE_URL: https://matter-of-place-dev.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # The unmodified config, so the Worker keeps its keep-warm cron once B8b adds it.\n      - name: deploy\n        id: deploy\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: bunx wrangler deploy --config .output/server/wrangler.json --name matter-of-place-dev --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:$SHA --var MEDIA_PUBLIC_BASE:https://matter-of-place-dev.holy-meadow-4327.workers.dev/media\n      - name: current\n        id: current\n        if: steps.guard.outputs.superseded != 'true'\n        env:\n          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        run: |\n          if out=$(bunx wrangler deployments list --name matter-of-place-dev --json 2>\"$RUNNER_TEMP/current.err\"); then\n            version=$(printf '%s' \"$out\" | jq -r 'last | .versions[] | select(.percentage == 100) | .version_id')\n          elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then\n            version=\"\"\n          else\n            cat \"$RUNNER_TEMP/current.err\"\n            exit 1\n          fi\n          echo \"serving: ${version:-none}\"\n          echo \"version=$version\" >> \"$GITHUB_OUTPUT\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-any-error",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "elif grep -q \"code: 10007\" \"$RUNNER_TEMP/current.err\"; then",
+    "replace": "elif true; then",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-not-serving",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "select(.percentage == 100)",
+    "replace": "select(.percentage > 0)",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-current-target",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "PREVIOUS: ${{ steps.current.outputs.version }}",
+    "replace": "PREVIOUS: ${{ steps.deploy.outputs.version }}",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev rolls back to the version that served before its deploy"
+  },
+  {
+    "id": "hy-test-timeout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "package.json",
+    "find": " --testTimeout=60000 --hookTimeout=60000\",",
+    "replace": "\",",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× the test script gives every test and hook 60 s"
   }
 ]
