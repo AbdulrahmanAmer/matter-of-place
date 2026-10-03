@@ -150,7 +150,7 @@ Append to ${logPath} a block headed "## ${g.id} · steps ${g.steps}" with each p
 If the plan is wrong, do not build something else quietly: stop, say what is wrong, and return status "blocked".`
 
 const reviewPrompt = (g, built, where = { root: ROOT, bash: BASH_ROOT, port: PORT, rules: RULES, snapshot: null }) => `${where.rules}
-${where.snapshot ? `This review runs in a frozen snapshot of commit ${where.snapshot.sha.slice(0, 7)} (ruling H54): first run \`node workspace/05-plans/review-snapshot.mjs create ${where.root} ${where.snapshot.sha}\` from ${where.root}; it prints the snapshot folder, which is ${where.root}, and every path below is under it. The builder of the next group is working in ${where.root} at the same time: never read, run or write anything there. When you are done, run \`node workspace/05-plans/review-snapshot.mjs remove ${where.root}\`. If create fails twice, return verdict reject with one defect whose file is SNAPSHOT and whose what is the error text, and nothing else. No CI run exists for this commit; your snapshot is the proof.\n` : ''}
+${where.snapshot ? `This review runs in a frozen snapshot of commit ${where.snapshot.sha.slice(0, 7)} (ruling H54): first run \`node workspace/05-plans/review-snapshot.mjs create ${where.snapshot.lane} ${where.snapshot.sha}\` from ${where.snapshot.lane} (the lane root; the tool makes the snapshot beside it); it prints the snapshot folder, which is ${where.root}, and every path below is under it. The builder of the next group is working in the lane ${where.snapshot.lane} at the same time: never read, run or write anything there. When you are done, run \`node workspace/05-plans/review-snapshot.mjs remove ${where.snapshot.lane}\`. If create fails twice, return verdict reject with one defect whose file is SNAPSHOT and whose what is the error text, and nothing else. No CI run exists for this commit; your snapshot is the proof.\n` : ''}
 
 You are a fresh reviewer for group ${g.id} of slice ${slice} ("${g.title}", plan steps ${g.steps}). You did not write this code and you were not given the author's reasoning. Read-only: do not edit, commit or push.
 The contract, quoted from the plan ${where.root}/workspace/05-plans/${slice}.md (open the plan only for a section the brief names and does not quote):
@@ -190,7 +190,7 @@ const out = []
 // of mop-dev (migrations, seed, db:push) waits for every pending review first. See review-overlap.md.
 const schemaWork = (g) => (g.files || []).some((f) => /supabase\/migrations|\/seed|db-push|db-reset/.test(f)) || /\b(db:push|db:reset|seed)\b/.test(g.title || '')
 const lastSha = (built) => { const line = (built.commits || []).at(-1) || ''; return (line.match(/^([0-9a-f]{7,40})\b/) || [])[1] || '' }
-const snapshotWhere = (sha) => ({ root: `${ROOT}-review`, bash: `${BASH_ROOT}-review`, port: PORT + 1, rules: rulesFor(`${ROOT}-review`, `${BASH_ROOT}-review`, PORT + 1), snapshot: { sha } })
+const snapshotWhere = (sha) => ({ root: `${ROOT}-review`, bash: `${BASH_ROOT}-review`, port: PORT + 1, rules: rulesFor(`${ROOT}-review`, `${BASH_ROOT}-review`, PORT + 1), snapshot: { sha, lane: ROOT } })
 const snapshotFailed = (r) => Boolean(r && r.defects && r.defects.some((d) => d.file === 'SNAPSHOT'))
 const pending = []   // { g, built, review: Promise, settled: boolean, result, rounds, worker }
 let reviewQueue = Promise.resolve()
