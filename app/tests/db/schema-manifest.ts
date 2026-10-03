@@ -446,6 +446,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     turnstile_ok: "boolean",
     created_at: "timestamptz",
     updated_at: "timestamptz",
+  },
   events: {
     id: "uuid",
     type: "text",
