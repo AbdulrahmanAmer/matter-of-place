@@ -1248,3 +1248,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read the `B4:<id>` line, not the exit code, when the id is a bare letter; or run under `env -u CLOUDFLARE_API_TOKEN` with the dev profile loaded; a proof that quotes a bare letter names the slice-qualified line it expects. Whether the runner should accept `B4:d` is the orchestrator's follow-up.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only d 2>&1 | grep -c "^WATCHED-FAIL"` → `2` in a shell with `CLOUDFLARE_API_TOKEN` (one BAD B2:d, one OK B4:d); `grep -n '"id": "d"' tests/mutations/*.json` lists B1b.json, B2.json and B4.json (measured 2026-10-03, B4 g4 follow-ups).
 - added: 2026-10-03
+
+## P-155 · The merge of PR 43 never deployed the dev Worker: the `closed` run of `deploy.yml` reports every job skipped on the head, and the post-merge gate judged that latest run
+- symptom: `ci.yml` on main at e6f05e9 ended `merge-gate: failure` with `unverified merge e6f05e9...: preview skipped`; the `workflow_run` job of `deploy.yml` therefore never deployed dev, and `wrangler deployments list --name matter-of-place-dev` answered `This Worker does not exist on your account. [code: 10007]` (found by the B1b step 7b builder).
+- cause: closing a pull request runs `deploy.yml` once more (`types: [..., closed]`); the jobs of that run all report `skipped` on the same head SHA with higher check-run ids than the run that did the work, and `scripts/merge-gate.mjs` took the highest id of a name as the verdict.
+- rule: a skipped run counts only when every run of that name on the head was skipped (`latestRun` prefers the latest concluded run). Before a rollback rehearsal, read `deployments list` for the dev Worker; on code 10007 dispatch `rehearse_rollback=false` once so there is a version to return to.
+- proof: `cd app && bunx vitest run --project unit tests/unit/merge-gate.test.ts -t "closed event"` passes; with the old chooser (the highest id of the name) the case is red (watched 2026-10-03).
+- enforced-by: app/tests/unit/merge-gate.test.ts (the closed-event case)
+- added: 2026-10-03

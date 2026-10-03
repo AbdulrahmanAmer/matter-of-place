@@ -138,6 +138,20 @@ describe("evaluateMergeGate, a head with several runs of one check", () => {
     ]).toEqual([[OK], [OK]]);
   });
 
+  it("ignores a later skipped run when an earlier run of the name concluded (the closed event, P-155)", () => {
+    const closedEvent = [
+      run("preview", "success", "completed", 7),
+      run("preview", "skipped", "completed", 9),
+      run("e2e", "failure", "completed", 6),
+      run("e2e", "skipped", "completed", 8),
+    ];
+    expect(evaluate({ checkRuns: [...rest, ...closedEvent] }).lines).toEqual([
+      `unverified merge ${SHA}: e2e failure`,
+    ]);
+    const onlySkipped = [...rest, run("preview", "skipped", "completed", 9), run("e2e", "success", "completed", 8)];
+    expect(evaluate({ checkRuns: onlySkipped }).lines).toEqual([`unverified merge ${SHA}: preview skipped`]);
+  });
+
   it("refuses when the latest run failed, whatever an older run of the name did", () => {
     const checkRuns = [
       ...GREEN.filter((r) => r.name !== "build"),

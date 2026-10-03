@@ -50,14 +50,18 @@ export function jobKeys(text) {
 
 /**
  * The check runs of one SHA hold one run per workflow run: the draft run, a cancelled one and a
- * re-run all stay beside the one that counts. The latest (highest id) of a name is the verdict.
+ * re-run all stay beside the one that counts. The latest (highest id) of a name is the verdict,
+ * except a skipped run, which only counts when every run of the name was skipped: closing the pull
+ * request starts `deploy.yml` once more and that run reports every job as skipped on the same head
+ * (GOTCHAS P-155), after the run that did the work.
  * @param {CheckRun[]} checkRuns
  * @param {string} name
  * @returns {CheckRun | undefined}
  */
 function latestRun(checkRuns, name) {
-  return checkRuns
-    .filter((run) => run.name === name)
+  const named = checkRuns.filter((run) => run.name === name);
+  const ran = named.filter((run) => run.conclusion !== "skipped");
+  return (ran.length ? ran : named)
     .reduce(
       (/** @type {CheckRun | undefined} */ latest, run) =>
         latest === undefined || run.id > latest.id ? run : latest,
