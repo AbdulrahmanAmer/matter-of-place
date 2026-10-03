@@ -1309,3 +1309,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: replay a registry only in the background (`run_in_background`, output to a log, poll with a bounded loop) from a fresh `mktemp -d` folder that holds only your own file (P-154), never under `timeout`; before the replay commit or stage the files it mutates (an untracked file cannot be restored from git), and afterwards run `git status --short | grep -v "^??"` and the unmutated tests; to find one entry's red text use the single-mutation form (`--file/--find/--replace/--run/--expect`) or a scratch loop that restores from the bytes it read.
 - proof: `cd app && git status --short | grep -v "^??"` → no output after a finished replay; `node -e 'for(const e of require("./tests/mutations/B4.json")) if(e.id==="wf-restore") console.log(e.file)'` → `scripts/watchfail.mjs` (2026-10-03).
 - added: 2026-10-03
+
+## P-708 · `quiet.mjs` runs its command with `shell: true` and no quoting: `bash -c "cd app && ..."` runs the part after `&&` in the wrong folder
+- symptom: B9 g3 review ran `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` and got `error: Script not found "layout"` and `quiet: exit 1`, although the script exists in `app/package.json`.
+- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`; on Windows Node joins the arguments with spaces and no quotes, so cmd.exe sees `bash -c cd app && bun run layout`: `bash -c cd` ends at `&&` and `bun run layout` runs in the folder quiet.mjs was started from (the repository root).
+- rule: never pass a compound command (`&&`, `;`, pipes, quotes) through `quiet.mjs`; change into the folder first and run it from there: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run <script>`.
+- proof: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` → `error: Script not found "layout"`, `quiet: exit 1`; `cd app && node ../workspace/05-plans/quiet.mjs -- bun run layout` → `layout: OK (772 files)`, `quiet: ok` (measured 2026-10-03).
+- added: 2026-10-03
+
+## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
+- paths: app/src/templates/social/**, app/src/styles/tokens.css
+- severity: warn
+- symptom: every carousel and story headline rendered at weight 700 against DIRECTION.md's "nothing bold"; the by-eye check passed because it compared offsets, not weight (B9 g3 review).
+- cause: `SocialFrame` draws the headline as an `<h1>`; the reset in `social.css` clears margin and padding only, and the render scripts inline `tokens.css`, `fonts.css` and `social.css` alone, so the browser's own `h1` weight wins over the inherited `font-weight: 400` of `.social-frame`.
+- rule: every text slot of a social template sets its own `font-weight` from a token (`--social-weight-text` 400, `--social-weight-numeral` 500); never rely on inheritance through a heading element.
+- proof: render `SocialFrame` with react-dom/server, inline the three CSS files and read `getComputedStyle(h1).fontWeight` in puppeteer-core → `400` (with the `font-weight` line of `.social-frame__headline` removed → `700`) (measured 2026-10-03).
+- added: 2026-10-03

@@ -18,7 +18,7 @@
   background: var(--social-band);
   color: var(--social-ink);
   font-family: var(--font-sans);
-  font-weight: 400;
+  font-weight: var(--social-weight-text);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -136,6 +136,7 @@
   width: var(--social-headline-w);
   font-family: var(--font-serif);
   font-size: var(--frame-headline-size);
+  font-weight: var(--social-weight-text);
   line-height: var(--social-lh-display);
 }
 
