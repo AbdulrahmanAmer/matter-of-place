@@ -887,3 +887,20 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   noOverlap) and simulated: 6 scenarios pass. Bank merge driver handles retired entries. agent-cost.mjs range fix.
 - NEXT: 5 premade sizing for every unbuilt slice; 9 bank gardening (Opus agent); 10 follow-ups folded; 11 cost on the
   board; 6 prove on B2 steps 8 to 14; 7 ledger, restart.json; 8 report and the go question.
+
+## 2026-10-03 · Calibration done, build parked until the operator's go
+- Done and on main: 5 premade sizing for all 21 slices (PR 71); 9 bank gardened 200 to 139 entries (PRs 73, 75; the
+  first merge went through the old driver and brought every retired entry back, PR 74 fixed the driver both ways);
+  11 cost per step on the board (PR 76, `collectRuns` exported from `agent-cost.mjs`); 7 ledger (B2 1 to 7, B4 1, 2, 3, 5),
+  `restart.json` rewritten for the new workflow, B4 g4 unblocked; P-504 and the standing-order rule in the workflow
+  (PR 72). Accepted steps: 23 of 253. Main folder and `E:/mop-build/orch` are both on main.
+- Measured: run 2 (premade sizing, B4 steps 1 to 5) 24.1M cache per step, 37 agent minutes, 100 calls, wall 148 min
+  for 4 steps; run 1 (B2 steps 4 to 7) 28.8M, 50 min, 126 calls, wall 201 min. Baseline 2026-10-02: 121.4M, 119 min, 499.
+- BLOCKED — 6, the proving run of the overlap on B2 steps 8 to 14 — two launches (`wf_6e66a398-a29`, before and after
+  the rule) ended in 13 and 27 s: the builder took the operator's relayed chat question as its instruction and built
+  nothing. What unblocks it: launch right after the operator's go message, which is then the relayed instruction.
+- UNPROVEN: the overlap on a real run (simulated only), the builder context trim, four lanes at once, the self-merge
+  under the overlap. 10 (follow-ups folded) is owed at each slice close, not before. 12 WAITING ON OPERATOR: Actions
+  spending limit (~$20), design pick after B9 g1, escrow of `creds/backup-recipient.key` before B1b step 8.
+- NEXT: on the go, launch the four lanes of `restart.json` in one message; then PR 43 via the gate after c7; advisor
+  check after B2 g13; B3 lane when B2 closes.

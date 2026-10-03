@@ -79,11 +79,17 @@
     {
       "id": "g4",
       "steps": "4",
-      "title": "state-machine.test.ts (needs B2 step 7, on main after the current db run), routes-covered additions, seo.test.ts additions, analytics.test.ts",
-      "files": ["app/tests/unit/state-machine.test.ts", "app/tests/unit/routes-covered.test.ts", "app/tests/unit/seo.test.ts", "app/tests/unit/analytics.test.ts", "app/tests/mutations/B4.json"],
+      "title": "state-machine.test.ts (B2 step 7 is on main since 2026-10-03), routes-covered additions, seo.test.ts additions, analytics.test.ts",
+      "files": [
+        "app/tests/unit/state-machine.test.ts",
+        "app/tests/unit/routes-covered.test.ts",
+        "app/tests/unit/seo.test.ts",
+        "app/tests/unit/analytics.test.ts",
+        "app/tests/mutations/B4.json"
+      ],
       "proof": "Step 4 as the plan writes it: bun run test passes; watched-fails (c), (d), (e).",
-      "blocked": true,
-      "blockedOn": "B2 step 7 (src/domain/workflow.ts) is being built in the db lane and is not on main yet.",
+      "blocked": false,
+      "blockedOn": "",
       "critical": false,
       "needsOrchestrator": "",
       "designer": false
@@ -92,7 +98,13 @@
       "id": "g5",
       "steps": "6",
       "title": "forms.spec.ts and redirects.spec.ts on the live build with the two JPEG fixtures",
-      "files": ["app/tests/fixtures/tiny.jpg", "app/tests/fixtures/large.jpg", "app/tests/e2e/forms.spec.ts", "app/tests/e2e/redirects.spec.ts", "app/tests/mutations/B4.json"],
+      "files": [
+        "app/tests/fixtures/tiny.jpg",
+        "app/tests/fixtures/large.jpg",
+        "app/tests/e2e/forms.spec.ts",
+        "app/tests/e2e/redirects.spec.ts",
+        "app/tests/mutations/B4.json"
+      ],
       "proof": "Step 6 as the plan writes it.",
       "blocked": true,
       "blockedOn": "B3 step 8b (upload queue) and B3's dev-vars.mjs; B3 has not started.",
@@ -104,7 +116,15 @@
       "id": "g6",
       "steps": "7,8",
       "title": "CI e2e job on the live artifact and CI db job on an ephemeral stack, then the DB factories and dataset",
-      "files": [".github/workflows/ci.yml", "app/tests/fixtures/factories.ts", "app/tests/fixtures/dataset.ts", "app/scripts/load-fixtures.ts", "app/tests/e2e/global-setup.ts", "app/tests/unit/factories.test.ts", "app/tests/db/factories.db.test.ts"],
+      "files": [
+        ".github/workflows/ci.yml",
+        "app/tests/fixtures/factories.ts",
+        "app/tests/fixtures/dataset.ts",
+        "app/scripts/load-fixtures.ts",
+        "app/tests/e2e/global-setup.ts",
+        "app/tests/unit/factories.test.ts",
+        "app/tests/db/factories.db.test.ts"
+      ],
       "proof": "Steps 7 and 8 as the plan writes them.",
       "blocked": true,
       "blockedOn": "B3's dev-vars.mjs and live build (step 7); B2 complete on main (step 8).",
@@ -116,7 +136,13 @@
       "id": "g7",
       "steps": "9,10",
       "title": "Live specs of the e2e job, payload budget, then the Actions minutes measurement and tests/README.md",
-      "files": ["app/tests/e2e/live-forms.spec.ts", "app/tests/e2e/client-error.spec.ts", "app/tests/api/payload-budget.api.test.ts", "app/tests/README.md", ".github/workflows/ci.yml"],
+      "files": [
+        "app/tests/e2e/live-forms.spec.ts",
+        "app/tests/e2e/client-error.spec.ts",
+        "app/tests/api/payload-budget.api.test.ts",
+        "app/tests/README.md",
+        ".github/workflows/ci.yml"
+      ],
       "proof": "Steps 9 and 10 as the plan writes them.",
       "blocked": true,
       "blockedOn": "B3 (step 9) and the preview steps (step 10); the coming-soon and consent parts wait on B3b.",
