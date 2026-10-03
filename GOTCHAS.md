@@ -1097,3 +1097,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
 - proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
 - added: 2026-10-03
+
+## P-700 · `launch/engine/sheet.mjs` forces every tile to 16:9: contact sheets of portrait or tall options come out squashed
+- symptom: `node launch/engine/sheet.mjs sheet.jpg 3 640 A.png B.png C.png` on the story (1080×1920), carousel (1080×1350) and email (600×1280) options produced sheets with the images squeezed to 640×360, so a reviewer would pick on distorted layouts.
+- cause: the script computes one tile height as `w * 9 / 16` and `scale=w:h` every input with no aspect handling; it was written for 16:9 film stills (P-026).
+- rule: a contact sheet of non-16:9 stills is tiled at one height and each image's own proportions with ffmpeg directly (`scale=-2:H`, `hstack=inputs=3`); the owner of `sheet.mjs` should add the aspect-preserving mode before any lane relies on it for other shapes. B9 g1 did not edit it (one writer per file).
+- proof: `ffprobe -v error -show_entries stream=width,height -of csv=p=0 workspace/08-creative/options/story/sheet.jpg` → `1518,900` (three 506×900 tiles), where sheet.mjs makes `1920,360`.
+- added: 2026-10-03
+
+## P-701 · A bone wordmark over sky or branches in a photograph is unreadable: place it on a solid field
+- symptom: the first render of cover A and C, carousel A and C and story C put the small wordmark in the top-left of a full-bleed photograph; against bright sky and foliage it vanished, and the whole set had to be re-laid out.
+- cause: the wordmark is a thin geometric outline at 14 to 20 px tall; a 30% veil does not give it contrast on a bright sky.
+- rule: in the creative templates the wordmark sits on a solid obsidian or ivory field (a band, the foot of the page) or on a flat dark part of the photograph that was checked by eye, never on sky or branches. Look at the rendered PNG before the set is called done.
+- proof: `grep -o 'height:150px;background:var(--obsidian)"></div>' workspace/08-creative/options/cover/A.html` → one match (the band), and `grep -o 'right:64px;top:508px"><img src="[^"]*wordmark[^"]*' workspace/08-creative/options/cover/A.html` → the bone wordmark at y 508, inside the band that starts at y 480
+- added: 2026-10-03
