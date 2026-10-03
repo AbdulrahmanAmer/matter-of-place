@@ -175,6 +175,7 @@ async function capture(browser, css, frame) {
     } = readySchema.parse(await page.evaluate(READY));
     if (missingFonts.length > 0)
       throw new Error(`shoot: font not loaded: ${missingFonts.join(", ")}`);
+    if (refused.length > 0) throw new Error(`shoot: ${frame.name} asked for ${String(refused[0])}`);
     if (brokenImages.length > 0)
       throw new Error(`shoot: image not decoded: ${brokenImages.join(", ")}`);
     const viewport = frame.viewport ?? frame.size;
@@ -183,7 +184,6 @@ async function capture(browser, css, frame) {
         `shoot: ${frame.name} frame is ${String(box.width)}x${String(box.height)}, the viewport ${String(viewport.width)}x${String(viewport.height)}`,
       );
     }
-    if (refused.length > 0) throw new Error(`shoot: ${frame.name} asked for ${String(refused[0])}`);
     const shot = await page.screenshot({
       type: "jpeg",
       quality: JPEG_QUALITY,

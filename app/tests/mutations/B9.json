@@ -509,15 +509,15 @@
     "test": "tests/unit/assets/render-scripts.test.ts",
     "run": "bun scripts/render-cover.mjs --fixture --out .tmp/wf",
     "expect": "cover frame is 1200x630, the viewport 1200x628",
-    "what": "(a) the cover size becomes 1200x628 in render-cover.mjs"
+    "what": "by hand: render-cover.mjs size of the cover becomes 1200x630 to 1200x628; needs Chrome"
   },
   {
     "id": "b9g5-cover-png",
     "kind": "manual",
     "test": "tests/unit/assets/render-scripts.test.ts",
-    "run": "bun scripts/render-cover.mjs --fixture --out .tmp/wf && ls .tmp/wf | grep -c png",
-    "expect": "cover.[0-9a-f]{8}.png",
-    "what": "(t) deliver writes ext png in shoot.mjs"
+    "run": "bun scripts/render-cover.mjs --fixture --out .tmp/wf && ls .tmp/wf | grep -c \"[.]png$\"",
+    "expect": "^3$",
+    "what": "by hand: shoot.mjs deliver writes ext png; the proof is the ls of the output folder"
   },
   {
     "id": "b9g5-font-missing",
@@ -525,14 +525,14 @@
     "test": "tests/unit/assets/render-scripts.test.ts",
     "run": "bun scripts/render-story.mjs --fixture --out .tmp/wf",
     "expect": "shoot: font not loaded: Jost",
-    "what": "the Jost face is not in fonts.css"
+    "what": "by hand: fonts.css names the Jost face Jostx; needs Chrome"
   },
   {
     "id": "b9g5-network-refused",
     "kind": "manual",
     "test": "tests/unit/assets/render-scripts.test.ts",
     "run": "bun scripts/render-story.mjs --fixture --out .tmp/wf",
-    "expect": "shoot: story asked for https://",
-    "what": "a template draws an image from an address outside the page"
+    "expect": "shoot: story asked for https://example.invalid/a.jpg",
+    "what": "by hand: render-story.mjs gives the story photograph an address outside the page; needs Chrome"
   }
 ]
