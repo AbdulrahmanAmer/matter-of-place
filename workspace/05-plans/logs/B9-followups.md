@@ -49,3 +49,31 @@ Two follow-ups on GOTCHAS.md are banked as P-705 and P-706, not listed here.
    - Evidence: app/src/templates/social/fixtures/property.fixture.json images[0].path = "src/assets/los-altos.jpg". The plan-brief Files list for scripts/lib/shoot.mjs says the images are under `src/assets/gallery/`. Confirmed by reading.
 
 Two follow-ups on GOTCHAS.md are banked as P-709 and P-710, not listed here.
+
+## g4 · steps 4,5
+
+1. `app/tests/unit/assets/carousel-plan.test.ts` (not blocking)
+   - What: No test pins planCarousel(spec, 7). The plan says the planner chooses 6 to maxSlides slides, and 7 is a valid render_carousel max_slides value. The tests check only 6, the default 8 and out-of-range values. If the place adjustment in the photo count regresses, a recipe with max_slides 7 posts 8 slides and every test stays green. The current code is correct (it returns 7). This is a coverage gap, not a present misbehaviour, so it is a follow-up. Fix: add a case where (12, PLACE) with max_slides 7 has length 7, plus a registry entry.
+   - Evidence: Confirmed by running: watchfail single mutation at slides.ts:54, `maxSlides > MIN_SLIDES + (withPlace ? 1 : 0) ? 4 : 3` changed to `maxSlides > MIN_SLIDES ? 4 : 3`, gave 'WATCHED-FAIL BAD: stayed green (src/templates/social/slides.ts)'.
+
+2. `app/src/templates/social/NewsletterBlock.tsx` (not blocking)
+   - What: NOT DONE (and so is the standalone.tsx property block). The orchestrator's brief listed only the standalone block as blocked on B5. The author also left NewsletterBlock unbuilt, because the plan requires its colours to come from B5's src/templates/theme.gen.ts, which is not on main. That dependency is real (B5 step 1 owns gen-theme.ts and theme.gen.ts). The orchestrator has to schedule NewsletterBlock, newsletter-block.test.ts and the renderTemplate case in templates.test.ts after B5 steps 1 and 3 merge.
+   - Evidence: Confirmed by running: `git ls-tree -r origin/main --name-only | grep theme.gen` prints nothing; B5.md line 161 has step 1 creating theme.gen.ts. The B9.md log under 'g4 · steps 4,5' records it as BLOCKED on B5.
+
+3. `app/src/templates/social/facts.ts` (not blocking)
+   - What: A new file the plan does not name. Its folder-map row (STANDARDS 1.3, src/templates: '`social/`: Pascal `.tsx` (B9 names)') covers neither its name nor its kind. The author declared it in the log and gave a reason (shared lines for four templates, jscpd, R43), and check-layout passes. slides.ts, which the plan names, sets the same precedent. The orchestrator should widen the row to allow kebab `.ts` helper modules in social/ (C03).
+   - Evidence: Suspected by reading: STANDARDS.md line 69, naming column. `bun run layout` passed in the check run.
+
+4. `app/tests/unit/assets/templates.test.ts` (not blocking)
+   - What: Minor test weaknesses. (1) The 'carry no em dash, no colour value and no inline style' scan covers Cover, Story and the carousel slides but leaves out OgCard. (2) In carousel-plan.test.ts, the it.each title 'plans 6 to 8 slides for $count images' is the same for the with-place and without-place cases, so a red line does not say which one failed.
+   - Evidence: Suspected by reading: templates.test.ts, the final describe builds `all` from Cover, Story and planCarousel slides only. The carousel-plan.test.ts it.each title has no $place.
+
+5. `app/src/templates/README.md` (not blocking)
+   - What: The module map lists SocialFrame, social.css, fonts.css and the fixture, but not this group's Cover.tsx, Story.tsx, OgCard.tsx, Carousel.tsx, slides.ts or facts.ts. Nothing in it is false, it is just incomplete. The README is not this group's file, so the orchestrator should fold the rows in.
+   - Evidence: Suspected by reading: cat app/src/templates/README.md.
+
+6. `app/src/templates/social/slides.ts` (not blocking)
+   - What: Note for step 8. SocialSource and SpecProperty are a second definition of the RenderSpec property and image shape from the Contract, plus an optional `place` that the Contract's RenderSpec lacks (the author flagged this as a plan gap). When step 8 writes RenderSpec in src/server/assets/spec.ts, it should import SpecProperty from slides.ts or replace it, not copy the shape (C05). Step 8's buildRenderSpec must also carry `place`, or the place slide never appears.
+   - Evidence: Suspected by reading: B9.md line 13 (RenderSpec property list, no place) against slides.ts lines 1 to 31.
+
+Three follow-ups on GOTCHAS.md are banked as P-711 (the dead planner clamp), P-712 (the vitest worker-start error under load) and a hit-again line on P-008 (backslashes dropped in a heredoc), not listed here.
