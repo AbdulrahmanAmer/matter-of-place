@@ -74,6 +74,7 @@ const fixtureSchema = z.object({
  * @property {{ width: number, height: number }} size the size the file promises, checked on the frame and on the file
  * @property {{ width: number, height: number }} [viewport] the browser window, `size` unless the frame is clipped
  * @property {{ x: number, y: number }} [clip] where the file of `size` starts inside the viewport
+ * @property {"png"} [type] the file type when it is not the JPEG of every owned render (the static Open Graph cards are flat PNGs)
  * @property {import("react").ReactElement} element
  */
 
@@ -146,7 +147,7 @@ const readySchema = z.object({
  * @param {import("puppeteer-core").Browser} browser
  * @param {string} css
  * @param {Frame} frame
- * @returns {Promise<Buffer>} the JPEG, checked against the size the frame promises
+ * @returns {Promise<Buffer>} the JPEG (or the PNG the frame asks for), checked against the size the frame promises
  */
 async function capture(browser, css, frame) {
   const page = await browser.newPage();
@@ -184,13 +185,16 @@ async function capture(browser, css, frame) {
         `shoot: ${frame.name} frame is ${String(box.width)}x${String(box.height)}, the viewport ${String(viewport.width)}x${String(viewport.height)}`,
       );
     }
+    const png = frame.type === "png";
     const shot = await page.screenshot({
-      type: "jpeg",
-      quality: JPEG_QUALITY,
+      ...(png ? { type: "png" } : { type: "jpeg", quality: JPEG_QUALITY }),
       ...(frame.clip === undefined ? {} : { clip: { ...frame.clip, ...frame.size } }),
     });
     const body = Buffer.from(shot);
-    if (body[0] !== 0xff || body[1] !== 0xd8) throw new Error(`shoot: ${frame.name} is not a JPEG`);
+    const signature = png
+      ? body[0] === 0x89 && body[1] === 0x50
+      : body[0] === 0xff && body[1] === 0xd8;
+    if (!signature) throw new Error(`shoot: ${frame.name} is not a ${png ? "PNG" : "JPEG"}`);
     const got = imageSize(body);
     if (got.width !== frame.size.width || got.height !== frame.size.height) {
       throw new Error(
@@ -207,7 +211,7 @@ async function capture(browser, css, frame) {
  * @param {Frame[]} frames
  * @returns {Promise<{ frame: Frame, body: Buffer }[]>}
  */
-async function shoot(frames) {
+export async function shoot(frames) {
   const css = await pageCss();
   const browser = await puppeteer.launch({
     executablePath: await chromePath(),

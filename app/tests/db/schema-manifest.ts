@@ -509,6 +509,24 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     events: "integer",
     p75: "numeric(,)?",
   },
+  assets: {
+    id: "uuid",
+    property_id: "uuid",
+    kind: "asset_kind",
+    revision: "integer",
+    files: "jsonb",
+    caption: "text?",
+    alt_text: "text?",
+    meta: "jsonb",
+    status: "asset_status",
+    approved_by: "uuid?",
+    approved_at: "timestamptz?",
+    rejection_note: "text?",
+    job_id: "uuid?",
+    render_error: "text?",
+    created_at: "timestamptz",
+    updated_at: "timestamptz",
+  },
 };
 
 /** Every money column, each `numeric(12,2)` (STANDARDS R24); a table with a currency column checks it is USD. */

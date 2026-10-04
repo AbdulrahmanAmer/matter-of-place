@@ -523,9 +523,9 @@
     "id": "b9g5-cover-not-jpeg",
     "kind": "manual",
     "test": "tests/unit/assets/render-scripts.test.ts",
-    "run": "node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find 'type: \"jpeg\",\\n      quality: JPEG_QUALITY,' --replace 'type: \"png\",' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'",
+    "run": "node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find '{ type: \"jpeg\", quality: JPEG_QUALITY }' --replace '{ type: \"png\" }' --run 'bun scripts/render-cover.mjs --fixture --out .tmp/wfp' --expect 'not a JPEG'",
     "expect": "shoot: cover is not a JPEG",
-    "what": "by hand: the screenshot type in shoot.mjs capture becomes png, so the file is PNG under a .jpg name; needs Chrome (the find spans two lines: pass it with $'...')"
+    "what": "by hand: the screenshot type in shoot.mjs capture becomes png, so the file is PNG under a .jpg name; needs Chrome"
   },
   {
     "id": "b9g5-font-missing",
@@ -542,5 +542,1239 @@
     "run": "bun scripts/render-story.mjs --fixture --out .tmp/wf",
     "expect": "shoot: story asked for https://example.invalid/a.jpg",
     "what": "by hand: render-story.mjs gives the story photograph an address outside the page; needs Chrome"
+  },
+  {
+    "id": "b9g6-guard-cover",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"cover approves when complete and is refused when it is not\"",
+    "expect": "× .*cover approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-guard-carousel",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"carousel approves when complete and is refused when it is not\"",
+    "expect": "× .*carousel approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-guard-story",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"story approves when complete and is refused when it is not\"",
+    "expect": "× .*story approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-guard-reel",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"reel approves when complete and is refused when it is not\"",
+    "expect": "× .*reel approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-guard-newsletter_block",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"newsletter_block approves when complete and is refused when it is not\"",
+    "expect": "× .*newsletter_block approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-guard-standalone_email",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"standalone_email approves when complete and is refused when it is not\"",
+    "expect": "× .*standalone_email approves when complete and is refused when it is not[\\s\\S]*(expected null to match|toMatchObject|asset_incomplete)"
+  },
+  {
+    "id": "b9g6-lint",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.assets_approve_guard()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\ndeclare\n  v_missing text;\nbegin\n  -- B9 invariant 4: what each kind needs before a human may approve it. The first missing part names itself.\n  if new.kind in ('cover', 'carousel', 'story', 'reel') then\n    v_missing := case\n      when jsonb_array_length(new.files) = 0 then 'files'\n      when coalesce(btrim(new.caption), '') = '' then 'caption'\n      when coalesce(btrim(new.alt_text), '') = '' then 'alt_text'\n    end;\n    if v_missing is null and false then\n      raise exception 'caption_lint_failed' using errcode = '23514';\n    end if;\n  elsif new.kind = 'newsletter_block' then\n    v_missing := case\n      when coalesce(btrim(new.meta #>> '{block,title}'), '') = '' then 'meta.block.title'\n      when coalesce(btrim(new.meta #>> '{block,deck}'), '') = '' then 'meta.block.deck'\n      when coalesce(btrim(new.meta #>> '{block,image_key}'), '') = '' then 'meta.block.image_key'\n      when coalesce(btrim(new.meta #>> '{block,image_url}'), '') = '' then 'meta.block.image_url'\n      when coalesce(btrim(new.alt_text), '') = '' then 'alt_text'\n    end;\n  elsif new.kind = 'standalone_email' then\n    v_missing := case\n      when coalesce(btrim(new.meta ->> 'subject'), '') = '' then 'meta.subject'\n      when coalesce(btrim(new.meta ->> 'preheader'), '') = '' then 'meta.preheader'\n      when jsonb_typeof(new.meta -> 'block') is distinct from 'object' or new.meta -> 'block' = '{}'::jsonb\n        then 'meta.block'\n    end;\n  else\n    v_missing := 'kind';\n  end if;\n  if v_missing is not null then\n    raise exception 'asset_incomplete' using errcode = '23514', detail = v_missing;\n  end if;\n  return new;\nend;\n$$;\n\nrevoke execute on function public.assets_approve_guard() from public, anon, authenticated;\n",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses an approval whose caption_lint is failed\"",
+    "expect": "× .*refuses an approval whose caption_lint is failed"
+  },
+  {
+    "id": "b9g6-note",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_reject_note on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses a reject without a note and accepts one with a note\"",
+    "expect": "× .*refuses a reject without a note and accepts one with a note"
+  },
+  {
+    "id": "b9g6-approve-event",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', 'Editorial', 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"writes one audit row and one asset.approved event\"",
+    "expect": "× .*writes one audit row and one asset.approved event[\\s\\S]*Campaign"
+  },
+  {
+    "id": "b9g6-approve-refused",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_approve_guard on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"a refused approval writes no audit row and no event\"",
+    "expect": "× .*a refused approval writes no audit row and no event"
+  },
+  {
+    "id": "b9g6-agent",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if false then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses an agent with manual_approval\"",
+    "expect": "× .*refuses an agent with manual_approval"
+  },
+  {
+    "id": "b9g6-not-pending",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses an asset that is not pending\"",
+    "expect": "× .*refuses an asset that is not pending"
+  },
+  {
+    "id": "b9g6-og-cover",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if false then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"an approved cover sets og_image_key to its main file\"",
+    "expect": "× .*an approved cover sets og_image_key to its main file"
+  },
+  {
+    "id": "b9g6-og-none",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      null\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"a cover with no main file leaves og_image_key as it is\"",
+    "expect": "× .*a cover with no main file leaves og_image_key as it is"
+  },
+  {
+    "id": "b9g6-reject-event",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.reject_asset(\n  p_asset uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status not in ('pending', 'approved') then\n    raise exception 'asset_not_rejectable' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The trigger assets_reject_note runs here and refuses a reject without a note. A reject never changes\n  -- properties.og_image_key: the old key is immutable and stays served until the next approved cover replaces it.\n  update public.assets set status = 'rejected', rejection_note = p_note where id = p_asset;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, p_actor_kind, 'assets.reject', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'rejected'), p_request_id, p_note\n  );\n  return null;\nend;\n$$;\n\nrevoke execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"with a note writes one asset.rejected event carrying the note\"",
+    "expect": "× .*with a note writes one asset.rejected event carrying the note"
+  },
+  {
+    "id": "b9g6-reject-bare",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_reject_note on public.assets;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"without a note is refused and writes nothing\"",
+    "expect": "× .*without a note is refused and writes nothing"
+  },
+  {
+    "id": "b9g6-reject-twice",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.reject_asset(\n  p_asset uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    raise exception 'asset_not_rejectable' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The trigger assets_reject_note runs here and refuses a reject without a note. A reject never changes\n  -- properties.og_image_key: the old key is immutable and stays served until the next approved cover replaces it.\n  update public.assets set status = 'rejected', rejection_note = p_note where id = p_asset;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, p_actor_kind, 'assets.reject', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'rejected'), p_request_id, p_note\n  );\n  return public.emit_event(\n    'asset.rejected', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier,\n      'market', v_market, 'note', p_note\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses an asset that is already rejected\"",
+    "expect": "× .*refuses an asset that is already rejected"
+  },
+  {
+    "id": "b9g6-rerender-job",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => false\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"makes revision 2 with the copied text, supersedes revision 1 and creates one heavy job\"",
+    "expect": "× .*makes revision 2 with the copied text[\\s\\S]*heavy"
+  },
+  {
+    "id": "b9g6-rerender-twice",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if false then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"answers a second call on the old revision with the new revision and its job\"",
+    "expect": "× .*answers a second call on the old revision with the new revision and its job"
+  },
+  {
+    "id": "b9g6-rerender-next",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where false;\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"re-rendering the latest revision makes the next one\"",
+    "expect": "× .*re-rendering the latest revision makes the next one"
+  },
+  {
+    "id": "b9g6-rerender-news",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"creates a light job for a newsletter_block and keys each newsletter kind\"",
+    "expect": "× .*creates a light job for a newsletter_block and keys each newsletter kind"
+  },
+  {
+    "id": "b9g6-rerender-kind",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if false then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"refuses a kind that has no job type\"",
+    "expect": "× .*refuses a kind that has no job type"
+  },
+  {
+    "id": "b9g6-caption-edited",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_caption(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_captions jsonb default null,\n  p_alt_text text default null,\n  p_request_id text default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_job record;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n\n  -- The caption column mirrors captions.instagram. The service has already linted every edited variant, and\n  -- caption_lint = 'edited' tells write_captions never to overwrite what an editor typed (H34 (5)).\n  update public.assets\n  set caption = coalesce(p_captions ->> 'instagram', caption),\n    alt_text = coalesce(p_alt_text, alt_text),\n    meta = meta\n      || '{}'::jsonb\n      || case\n        when p_captions is null then '{}'::jsonb\n        else jsonb_build_object('captions', coalesce(meta -> 'captions', '{}'::jsonb) || p_captions)\n      end\n  where id = p_asset;\n\n  -- H34 (5): nothing downstream waits on the laptop. A queued write_captions job of this property is done; a running\n  -- one is the runner's and stays running.\n  for v_job in\n    select j.id, j.attempts, j.heavy, j.msg_id\n    from public.jobs j\n    where j.type = 'write_captions'\n      and j.status = 'queued'\n      and j.payload -> 'data' ->> 'property_id' = v_asset.property_id::text\n    for update\n  loop\n    if v_job.msg_id is not null then\n      perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n    end if;\n    update public.jobs\n    set status = 'done', result = '{\"manual\": true}'::jsonb, finished_at = now(), msg_id = null\n    where id = v_job.id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, actor_id)\n    values (v_job.id, 'done', 'queued', 'done', v_job.attempts, p_actor);\n  end loop;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, request_id)\n  values (p_actor, p_actor_kind, 'assets.caption', 'assets', p_asset, p_request_id);\nend;\n$$;\n\nrevoke execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"marks the caption edited, merges the variants\"",
+    "expect": "× .*marks the caption edited, merges the variants"
+  },
+  {
+    "id": "b9g6-caption-job",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_caption(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_captions jsonb default null,\n  p_alt_text text default null,\n  p_request_id text default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_job record;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n\n  -- The caption column mirrors captions.instagram. The service has already linted every edited variant, and\n  -- caption_lint = 'edited' tells write_captions never to overwrite what an editor typed (H34 (5)).\n  update public.assets\n  set caption = coalesce(p_captions ->> 'instagram', caption),\n    alt_text = coalesce(p_alt_text, alt_text),\n    meta = meta\n      || jsonb_build_object('caption_lint', 'edited')\n      || case\n        when p_captions is null then '{}'::jsonb\n        else jsonb_build_object('captions', coalesce(meta -> 'captions', '{}'::jsonb) || p_captions)\n      end\n  where id = p_asset;\n\n  -- H34 (5): nothing downstream waits on the laptop. A queued write_captions job of this property is done; a running\n  -- one is the runner's and stays running.\n  for v_job in\n    select j.id, j.attempts, j.heavy, j.msg_id\n    from public.jobs j\n    where j.type = 'write_captions'\n      and false\n      and j.payload -> 'data' ->> 'property_id' = v_asset.property_id::text\n    for update\n  loop\n    if v_job.msg_id is not null then\n      perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n    end if;\n    update public.jobs\n    set status = 'done', result = '{\"manual\": true}'::jsonb, finished_at = now(), msg_id = null\n    where id = v_job.id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, actor_id)\n    values (v_job.id, 'done', 'queued', 'done', v_job.attempts, p_actor);\n  end loop;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, request_id)\n  values (p_actor, p_actor_kind, 'assets.caption', 'assets', p_asset, p_request_id);\nend;\n$$;\n\nrevoke execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"completes a queued write_captions job of the property\"",
+    "expect": "× .*completes a queued write_captions job of the property[\\s\\S]*queued"
+  },
+  {
+    "id": "b9g6-job-error-failed",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_job_error on public.jobs;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"a job moved to failed sets render_error on its asset\"",
+    "expect": "× .*a job moved to failed sets render_error on its asset"
+  },
+  {
+    "id": "b9g6-job-error-dead",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "drop trigger assets_job_error on public.jobs;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"a job moved to dead sets render_error on its asset\"",
+    "expect": "× .*a job moved to dead sets render_error on its asset"
+  },
+  {
+    "id": "b9g6-job-delete",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "alter table public.assets drop constraint assets_job_id_fkey, add constraint assets_job_id_fkey foreign key (job_id) references public.jobs (id) on delete restrict;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"deleting the job leaves the asset with a null job_id\"",
+    "expect": "× .*deleting the job leaves the asset with a null job_id[\\s\\S]*assets_job_id_fkey"
+  },
+  {
+    "id": "b9g6-seed",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "update public.settings set value = '\"other-model\"' where key = 'caption_model';",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"holds the caption model\"",
+    "expect": "× .*holds the caption model[\\s\\S]*other-model"
+  },
+  {
+    "id": "b9g6-stub-twice",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "alter table public.assets drop constraint assets_property_kind_revision_key;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"called twice gives one row, and a second insert of the same revision\"",
+    "expect": "× .*called twice gives one row, and a second insert of the same revision"
+  },
+  {
+    "id": "b9g6-stub-rejected",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.upsert_asset_stub(\n  p_property uuid,\n  p_kind public.asset_kind,\n  p_revision int default null,\n  p_job_id uuid default null\n)\nreturns public.assets\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_revision int := p_revision;\n  v_row public.assets;\nbegin\n  if v_revision is null then\n    -- The current revision is the highest one not rejected. When every revision was rejected a new one starts, so a\n    -- second publish after a rejection gets fresh creative instead of writing into a rejected row.\n    select coalesce(max(a.revision) filter (where a.status <> 'rejected'), 1, 1)\n    into v_revision\n    from public.assets a\n    where a.property_id = p_property and a.kind = p_kind;\n  end if;\n\n  -- The render steps and write_captions run at once; whichever comes first creates the row and the other finds it.\n  insert into public.assets (property_id, kind, revision, job_id)\n  values (p_property, p_kind, v_revision, p_job_id)\n  on conflict (property_id, kind, revision) do nothing;\n\n  select * into v_row\n  from public.assets a\n  where a.property_id = p_property and a.kind = p_kind and a.revision = v_revision;\n\n  -- Only a pending row follows a new job: an approved asset keeps the job that made it (invariant 12).\n  if p_job_id is not null and v_row.status = 'pending' and v_row.job_id is distinct from p_job_id then\n    update public.assets set job_id = p_job_id where id = v_row.id returning * into v_row;\n  end if;\n  return v_row;\nend;\n$$;\n\nrevoke execute on function public.upsert_asset_stub(uuid, public.asset_kind, int, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.upsert_asset_stub(uuid, public.asset_kind, int, uuid) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"starts the next revision when every revision was rejected\"",
+    "expect": "× .*starts the next revision when every revision was rejected"
+  },
+  {
+    "id": "b9g6-stub-job",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.upsert_asset_stub(\n  p_property uuid,\n  p_kind public.asset_kind,\n  p_revision int default null,\n  p_job_id uuid default null\n)\nreturns public.assets\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_revision int := p_revision;\n  v_row public.assets;\nbegin\n  if v_revision is null then\n    -- The current revision is the highest one not rejected. When every revision was rejected a new one starts, so a\n    -- second publish after a rejection gets fresh creative instead of writing into a rejected row.\n    select coalesce(max(a.revision) filter (where a.status <> 'rejected'), max(a.revision) + 1, 1)\n    into v_revision\n    from public.assets a\n    where a.property_id = p_property and a.kind = p_kind;\n  end if;\n\n  -- The render steps and write_captions run at once; whichever comes first creates the row and the other finds it.\n  insert into public.assets (property_id, kind, revision, job_id)\n  values (p_property, p_kind, v_revision, p_job_id)\n  on conflict (property_id, kind, revision) do nothing;\n\n  select * into v_row\n  from public.assets a\n  where a.property_id = p_property and a.kind = p_kind and a.revision = v_revision;\n\n  -- Only a pending row follows a new job: an approved asset keeps the job that made it (invariant 12).\n  if p_job_id is not null and v_row.job_id is distinct from p_job_id then\n    update public.assets set job_id = p_job_id where id = v_row.id returning * into v_row;\n  end if;\n  return v_row;\nend;\n$$;\n\nrevoke execute on function public.upsert_asset_stub(uuid, public.asset_kind, int, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.upsert_asset_stub(uuid, public.asset_kind, int, uuid) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"gives a pending stub the new job and an approved one keeps its own\"",
+    "expect": "× .*gives a pending stub the new job and an approved one keeps its own"
+  },
+  {
+    "id": "b9g6-files",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_files(p_asset uuid, p_files jsonb, p_spec_hash text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The render onResult: files and the spec hash only, and a stored error is cleared (invariant 11). It never touches\n  -- caption, alt_text or meta.captions, so the order of the concurrent steps does not matter.\n  update public.assets\n  set files = p_files,\n    meta = meta || jsonb_build_object('spec_hash', p_spec_hash)\n  where id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.set_asset_files(uuid, jsonb, text) from public, anon, authenticated;\ngrant execute on function public.set_asset_files(uuid, jsonb, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"set_asset_files fills files and meta.spec_hash\"",
+    "expect": "× .*set_asset_files fills files and meta.spec_hash[\\s\\S]*render_error"
+  },
+  {
+    "id": "b9g6-files-unknown",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_files(p_asset uuid, p_files jsonb, p_spec_hash text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The render onResult: files and the spec hash only, and a stored error is cleared (invariant 11). It never touches\n  -- caption, alt_text or meta.captions, so the order of the concurrent steps does not matter.\n  update public.assets\n  set files = p_files,\n    meta = meta || jsonb_build_object('spec_hash', p_spec_hash),\n    render_error = null\n  where id = p_asset;\n  null;\nend;\n$$;\n\nrevoke execute on function public.set_asset_files(uuid, jsonb, text) from public, anon, authenticated;\ngrant execute on function public.set_asset_files(uuid, jsonb, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"set_asset_files names an unknown asset\"",
+    "expect": "× .*set_asset_files names an unknown asset"
+  },
+  {
+    "id": "b9g6-text-max",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_text(\n  p_asset uuid,\n  p_caption text default null,\n  p_alt_text text default null,\n  p_meta jsonb default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_meta jsonb := coalesce(p_meta, '{}'::jsonb);\nbegin\n  -- A null caption or alt text keeps the stored one. max_slides is written only while meta has none, so whichever of\n  -- render_carousel and write_captions comes first sets the slide count both plan from.\n  update public.assets\n  set caption = coalesce(p_caption, caption),\n    alt_text = coalesce(p_alt_text, alt_text),\n    meta = meta || v_meta\n  where id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.set_asset_text(uuid, text, text, jsonb) from public, anon, authenticated;\ngrant execute on function public.set_asset_text(uuid, text, text, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"set_asset_text keeps an existing max_slides and a null alt text\"",
+    "expect": "× .*set_asset_text keeps an existing max_slides and a null alt text[\\s\\S]*max_slides"
+  },
+  {
+    "id": "b9g6-text-first",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_text(\n  p_asset uuid,\n  p_caption text default null,\n  p_alt_text text default null,\n  p_meta jsonb default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_meta jsonb := coalesce(p_meta, '{}'::jsonb);\nbegin\n  -- A null caption or alt text keeps the stored one. max_slides is written only while meta has none, so whichever of\n  -- render_carousel and write_captions comes first sets the slide count both plan from.\n  update public.assets\n  set caption = coalesce(p_caption, caption),\n    alt_text = coalesce(p_alt_text, alt_text),\n    meta = meta || v_meta - 'max_slides'\n  where id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.set_asset_text(uuid, text, text, jsonb) from public, anon, authenticated;\ngrant execute on function public.set_asset_text(uuid, text, text, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"set_asset_text writes max_slides when meta has none\"",
+    "expect": "× .*set_asset_text writes max_slides when meta has none"
+  },
+  {
+    "id": "b9g6-apply-store",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.apply_media_variants(p_items jsonb)\nreturns jsonb\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-03: one statement for every photograph of a callback. An item stores only while the row's staging_path still\n  -- equals the path that was signed, so a replaced photograph keeps its new path for the next job. Orientation is not\n  -- written here: property_media_orientation sets it from variants -> hero in this same update (G63).\n  with items as (\n    select e.ord,\n      (e.item ->> 'media_id')::uuid as media_id,\n      e.item ->> 'staging_path' as staging_path,\n      e.item ->> 'media_key' as media_key,\n      e.item -> 'variants' as variants\n    from jsonb_array_elements(p_items) with ordinality as e(item, ord)\n  ),\n  stored as (\n    update public.property_media m\n    set media_key = i.media_key,\n      -- The same stripped original rendered again keeps its other sizes; another photograph never inherits them.\n      variants = m.variants\n    from items i\n    where m.id = i.media_id and m.staging_path = i.staging_path\n    returning m.id\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', i.media_id, 'staging_path', i.staging_path, 'stored', s.id is not null)\n      order by i.ord\n    ),\n    '[]'::jsonb\n  )\n  from items i\n  left join stored s on s.id = i.media_id\n$$;\n\nrevoke execute on function public.apply_media_variants(jsonb) from public, anon, authenticated;\ngrant execute on function public.apply_media_variants(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"stores the key and the variants of a staged row\"",
+    "expect": "× .*stores the key and the variants of a staged row[\\s\\S]*variants"
+  },
+  {
+    "id": "b9g6-apply-path",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.apply_media_variants(p_items jsonb)\nreturns jsonb\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-03: one statement for every photograph of a callback. An item stores only while the row's staging_path still\n  -- equals the path that was signed, so a replaced photograph keeps its new path for the next job. Orientation is not\n  -- written here: property_media_orientation sets it from variants -> hero in this same update (G63).\n  with items as (\n    select e.ord,\n      (e.item ->> 'media_id')::uuid as media_id,\n      e.item ->> 'staging_path' as staging_path,\n      e.item ->> 'media_key' as media_key,\n      e.item -> 'variants' as variants\n    from jsonb_array_elements(p_items) with ordinality as e(item, ord)\n  ),\n  stored as (\n    update public.property_media m\n    set media_key = i.media_key,\n      -- The same stripped original rendered again keeps its other sizes; another photograph never inherits them.\n      variants = case when m.media_key = i.media_key then m.variants || i.variants else i.variants end\n    from items i\n    where m.id = i.media_id\n    returning m.id\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', i.media_id, 'staging_path', i.staging_path, 'stored', s.id is not null)\n      order by i.ord\n    ),\n    '[]'::jsonb\n  )\n  from items i\n  left join stored s on s.id = i.media_id\n$$;\n\nrevoke execute on function public.apply_media_variants(jsonb) from public, anon, authenticated;\ngrant execute on function public.apply_media_variants(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"an item with another path returns stored false and changes nothing\"",
+    "expect": "× .*an item with another path returns stored false and changes nothing"
+  },
+  {
+    "id": "b9g6-apply-merge",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.apply_media_variants(p_items jsonb)\nreturns jsonb\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-03: one statement for every photograph of a callback. An item stores only while the row's staging_path still\n  -- equals the path that was signed, so a replaced photograph keeps its new path for the next job. Orientation is not\n  -- written here: property_media_orientation sets it from variants -> hero in this same update (G63).\n  with items as (\n    select e.ord,\n      (e.item ->> 'media_id')::uuid as media_id,\n      e.item ->> 'staging_path' as staging_path,\n      e.item ->> 'media_key' as media_key,\n      e.item -> 'variants' as variants\n    from jsonb_array_elements(p_items) with ordinality as e(item, ord)\n  ),\n  stored as (\n    update public.property_media m\n    set media_key = i.media_key,\n      -- The same stripped original rendered again keeps its other sizes; another photograph never inherits them.\n      variants = i.variants\n    from items i\n    where m.id = i.media_id and m.staging_path = i.staging_path\n    returning m.id\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', i.media_id, 'staging_path', i.staging_path, 'stored', s.id is not null)\n      order by i.ord\n    ),\n    '[]'::jsonb\n  )\n  from items i\n  left join stored s on s.id = i.media_id\n$$;\n\nrevoke execute on function public.apply_media_variants(jsonb) from public, anon, authenticated;\ngrant execute on function public.apply_media_variants(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"the same media_key keeps the other sizes and replaces the one given\"",
+    "expect": "× .*the same media_key keeps the other sizes and replaces the one given"
+  },
+  {
+    "id": "b9g6-apply-replace",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.apply_media_variants(p_items jsonb)\nreturns jsonb\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-03: one statement for every photograph of a callback. An item stores only while the row's staging_path still\n  -- equals the path that was signed, so a replaced photograph keeps its new path for the next job. Orientation is not\n  -- written here: property_media_orientation sets it from variants -> hero in this same update (G63).\n  with items as (\n    select e.ord,\n      (e.item ->> 'media_id')::uuid as media_id,\n      e.item ->> 'staging_path' as staging_path,\n      e.item ->> 'media_key' as media_key,\n      e.item -> 'variants' as variants\n    from jsonb_array_elements(p_items) with ordinality as e(item, ord)\n  ),\n  stored as (\n    update public.property_media m\n    set media_key = i.media_key,\n      -- The same stripped original rendered again keeps its other sizes; another photograph never inherits them.\n      variants = m.variants || i.variants\n    from items i\n    where m.id = i.media_id and m.staging_path = i.staging_path\n    returning m.id\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', i.media_id, 'staging_path', i.staging_path, 'stored', s.id is not null)\n      order by i.ord\n    ),\n    '[]'::jsonb\n  )\n  from items i\n  left join stored s on s.id = i.media_id\n$$;\n\nrevoke execute on function public.apply_media_variants(jsonb) from public, anon, authenticated;\ngrant execute on function public.apply_media_variants(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"another media_key drops the old sizes\"",
+    "expect": "× .*another media_key drops the old sizes"
+  },
+  {
+    "id": "b9g6-clear",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.clear_media_staging(p_items jsonb)\nreturns integer\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-03: after apply_media_variants and the removal of the staged objects. The path match leaves a row whose\n  -- staging_path changed meanwhile alone.\n  with items as (\n    select (e.item ->> 'media_id')::uuid as media_id, e.item ->> 'staging_path' as staging_path\n    from jsonb_array_elements(p_items) as e(item)\n  ),\n  cleared as (\n    update public.property_media m\n    set staging_path = null, render_job_id = null\n    from items i\n    where m.id = i.media_id\n    returning m.id\n  )\n  select count(*)::int from cleared\n$$;\n\nrevoke execute on function public.clear_media_staging(jsonb) from public, anon, authenticated;\ngrant execute on function public.clear_media_staging(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"updates 40 rows in one call and clear_media_staging clears the stored ones\"",
+    "expect": "× .*updates 40 rows in one call and clear_media_staging clears the stored ones[\\s\\S]*40"
+  },
+  {
+    "id": "b9g6-target",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_target_image(\n  p_target text,\n  p_slug text,\n  p_image text,\n  p_variants jsonb\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The render_variants target job (G42): the row's own image and sizes in one update; B2's triggers bump the version.\n  if p_target = 'story' then\n    update public.stories set image = p_image, image_variants = p_variants where slug = p_slug;\n  elsif p_target = 'market' then\n    update public.markets set image = p_image, image_variants = p_variants where slug = p_slug;\n  elsif p_target = 'region' then\n    update public.regions set image = p_image, image_variants = p_variants where slug = p_slug;\n  else\n    null;\n  end if;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.set_target_image(text, text, text, jsonb) from public, anon, authenticated;\ngrant execute on function public.set_target_image(text, text, text, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"writes the image and its sizes of a region\"",
+    "expect": "× .*writes the image and its sizes of a region"
+  },
+  {
+    "id": "b9g6-og-static",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_og_static(p_value jsonb)\nreturns void\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- og_static is a public settings key, so B2's trigger bumps catalog_version (G21).\n  insert into public.settings (key, value)\n  values ('og_static', p_value)\n  on conflict (key) do nothing\n$$;\n\nrevoke execute on function public.set_og_static(jsonb) from public, anon, authenticated;\ngrant execute on function public.set_og_static(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"set_og_static called twice leaves one row with the second value\"",
+    "expect": "× .*set_og_static called twice leaves one row with the second value"
+  },
+  {
+    "id": "b9g6-auth-upsert_asset_stub",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.upsert_asset_stub(uuid, public.asset_kind, int, uuid) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.upsert_asset_stub\"",
+    "expect": "× .*authenticated is refused: select public.upsert_asset_stub"
+  },
+  {
+    "id": "b9g6-auth-claim_media_for_render",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.claim_media_for_render(uuid, uuid, int) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select \\* from public.claim_media_for_render\"",
+    "expect": "× .*authenticated is refused: select \\* from public.claim_media_for_render"
+  },
+  {
+    "id": "b9g6-auth-set_asset_files",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.set_asset_files(uuid, jsonb, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.set_asset_files\"",
+    "expect": "× .*authenticated is refused: select public.set_asset_files"
+  },
+  {
+    "id": "b9g6-auth-set_asset_text",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.set_asset_text(uuid, text, text, jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.set_asset_text\"",
+    "expect": "× .*authenticated is refused: select public.set_asset_text"
+  },
+  {
+    "id": "b9g6-auth-apply_media_variants",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.apply_media_variants(jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.apply_media_variants\"",
+    "expect": "× .*authenticated is refused: select public.apply_media_variants"
+  },
+  {
+    "id": "b9g6-auth-clear_media_staging",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.clear_media_staging(jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.clear_media_staging\"",
+    "expect": "× .*authenticated is refused: select public.clear_media_staging"
+  },
+  {
+    "id": "b9g6-auth-set_target_image",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.set_target_image(text, text, text, jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.set_target_image\"",
+    "expect": "× .*authenticated is refused: select public.set_target_image"
+  },
+  {
+    "id": "b9g6-auth-set_og_static",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.set_og_static(jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.set_og_static\"",
+    "expect": "× .*authenticated is refused: select public.set_og_static"
+  },
+  {
+    "id": "b9g6-auth-approve_asset",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.approve_asset\"",
+    "expect": "× .*authenticated is refused: select public.approve_asset"
+  },
+  {
+    "id": "b9g6-auth-reject_asset",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.reject_asset\"",
+    "expect": "× .*authenticated is refused: select public.reject_asset"
+  },
+  {
+    "id": "b9g6-auth-rerender_asset",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.rerender_asset\"",
+    "expect": "× .*authenticated is refused: select public.rerender_asset"
+  },
+  {
+    "id": "b9g6-auth-set_asset_caption",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "grant execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/assets.db.test.ts -t \"authenticated is refused: select public.set_asset_caption\"",
+    "expect": "× .*authenticated is refused: select public.set_asset_caption"
+  },
+  {
+    "id": "b9g6-claim-forty",
+    "kind": "sql",
+    "test": "tests/db/render-claim.db.test.ts",
+    "sql": "create or replace function public.claim_media_for_render(\n  p_property_id uuid,\n  p_job_id uuid,\n  p_limit int default 40\n)\nreturns setof public.property_media\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-01: each staged row goes to exactly one render_variants job. A claim of a job that is no longer running lapses\n  -- by itself, a retry reclaims its own rows, and skip locked keeps two concurrent claims disjoint.\n  with claimed as (\n    update public.property_media pm\n    set render_job_id = p_job_id\n    where pm.id in (\n      select m.id\n      from public.property_media m\n      where m.property_id = p_property_id\n        and m.staging_path is not null\n\n      order by m.sort_order\n      limit p_limit\n      for update skip locked\n    )\n    returning pm.*\n  )\n  select c.* from claimed c order by c.sort_order, c.id\n$$;\n\nrevoke execute on function public.claim_media_for_render(uuid, uuid, int) from public, anon, authenticated;\ngrant execute on function public.claim_media_for_render(uuid, uuid, int) to service_role;",
+    "run": "bunx vitest run --project db tests/db/render-claim.db.test.ts -t \"gives 40 staged rows to the first of 40 running jobs and nothing to the others\"",
+    "expect": "× .*gives 40 staged rows to the first of 40 running jobs and nothing to the others[\\s\\S]*40"
+  },
+  {
+    "id": "b9g6-claim-race",
+    "kind": "sql",
+    "test": "tests/db/render-claim.db.test.ts",
+    "sql": "create or replace function public.claim_media_for_render(\n  p_property_id uuid,\n  p_job_id uuid,\n  p_limit int default 40\n)\nreturns setof public.property_media\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-01: each staged row goes to exactly one render_variants job. A claim of a job that is no longer running lapses\n  -- by itself, a retry reclaims its own rows, and skip locked keeps two concurrent claims disjoint.\n  with claimed as (\n    update public.property_media pm\n    set render_job_id = p_job_id\n    where pm.id in (\n      select m.id\n      from public.property_media m\n      where m.property_id = p_property_id\n        and m.staging_path is not null\n        and (\n          m.render_job_id is null\n          or m.render_job_id = p_job_id\n          or not exists (select 1 from public.jobs j where j.id = m.render_job_id and j.status = 'running')\n        )\n      order by m.sort_order\n      limit p_limit\n      for update\n    )\n    returning pm.*\n  )\n  select c.* from claimed c order by c.sort_order, c.id\n$$;\n\nrevoke execute on function public.claim_media_for_render(uuid, uuid, int) from public, anon, authenticated;\ngrant execute on function public.claim_media_for_render(uuid, uuid, int) to service_role;",
+    "run": "bunx vitest run --project db tests/db/render-claim.db.test.ts -t \"returns disjoint sets to two claims on two open transactions\"",
+    "expect": "× .*returns disjoint sets to two claims on two open transactions"
+  },
+  {
+    "id": "b9g6-claim-lapse",
+    "kind": "sql",
+    "test": "tests/db/render-claim.db.test.ts",
+    "sql": "create or replace function public.claim_media_for_render(\n  p_property_id uuid,\n  p_job_id uuid,\n  p_limit int default 40\n)\nreturns setof public.property_media\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-01: each staged row goes to exactly one render_variants job. A claim of a job that is no longer running lapses\n  -- by itself, a retry reclaims its own rows, and skip locked keeps two concurrent claims disjoint.\n  with claimed as (\n    update public.property_media pm\n    set render_job_id = p_job_id\n    where pm.id in (\n      select m.id\n      from public.property_media m\n      where m.property_id = p_property_id\n        and m.staging_path is not null\n        and (\n          m.render_job_id is null\n          or m.render_job_id = p_job_id\n        )\n      order by m.sort_order\n      limit p_limit\n      for update skip locked\n    )\n    returning pm.*\n  )\n  select c.* from claimed c order by c.sort_order, c.id\n$$;\n\nrevoke execute on function public.claim_media_for_render(uuid, uuid, int) from public, anon, authenticated;\ngrant execute on function public.claim_media_for_render(uuid, uuid, int) to service_role;",
+    "run": "bunx vitest run --project db tests/db/render-claim.db.test.ts -t \"claims a row again for a new job and for the failed job\"",
+    "expect": "× .*claims a row again for a new job and for the failed job"
+  },
+  {
+    "id": "b9g6-claim-stored",
+    "kind": "sql",
+    "test": "tests/db/render-claim.db.test.ts",
+    "sql": "create or replace function public.claim_media_for_render(\n  p_property_id uuid,\n  p_job_id uuid,\n  p_limit int default 40\n)\nreturns setof public.property_media\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-01: each staged row goes to exactly one render_variants job. A claim of a job that is no longer running lapses\n  -- by itself, a retry reclaims its own rows, and skip locked keeps two concurrent claims disjoint.\n  with claimed as (\n    update public.property_media pm\n    set render_job_id = p_job_id\n    where pm.id in (\n      select m.id\n      from public.property_media m\n      where m.property_id = p_property_id\n        and (\n          m.render_job_id is null\n          or m.render_job_id = p_job_id\n          or not exists (select 1 from public.jobs j where j.id = m.render_job_id and j.status = 'running')\n        )\n      order by m.sort_order\n      limit p_limit\n      for update skip locked\n    )\n    returning pm.*\n  )\n  select c.* from claimed c order by c.sort_order, c.id\n$$;\n\nrevoke execute on function public.claim_media_for_render(uuid, uuid, int) from public, anon, authenticated;\ngrant execute on function public.claim_media_for_render(uuid, uuid, int) to service_role;",
+    "run": "bunx vitest run --project db tests/db/render-claim.db.test.ts -t \"never claims a row with no staging path\"",
+    "expect": "× .*never claims a row with no staging path"
+  },
+  {
+    "id": "b9g6-claim-limit",
+    "kind": "sql",
+    "test": "tests/db/render-claim.db.test.ts",
+    "sql": "create or replace function public.claim_media_for_render(\n  p_property_id uuid,\n  p_job_id uuid,\n  p_limit int default 40\n)\nreturns setof public.property_media\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-01: each staged row goes to exactly one render_variants job. A claim of a job that is no longer running lapses\n  -- by itself, a retry reclaims its own rows, and skip locked keeps two concurrent claims disjoint.\n  with claimed as (\n    update public.property_media pm\n    set render_job_id = p_job_id\n    where pm.id in (\n      select m.id\n      from public.property_media m\n      where m.property_id = p_property_id\n        and m.staging_path is not null\n        and (\n          m.render_job_id is null\n          or m.render_job_id = p_job_id\n          or not exists (select 1 from public.jobs j where j.id = m.render_job_id and j.status = 'running')\n        )\n      order by m.id desc\n      limit p_limit\n      for update skip locked\n    )\n    returning pm.*\n  )\n  select c.* from claimed c order by c.sort_order, c.id\n$$;\n\nrevoke execute on function public.claim_media_for_render(uuid, uuid, int) from public, anon, authenticated;\ngrant execute on function public.claim_media_for_render(uuid, uuid, int) to service_role;",
+    "run": "bunx vitest run --project db tests/db/render-claim.db.test.ts -t \"returns p_limit rows in sort_order\"",
+    "expect": "× .*returns p_limit rows in sort_order"
+  },
+  {
+    "id": "b9g6-spec-hash",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "return sha256Hex(JSON.stringify(spec));",
+    "replace": "return sha256Hex(JSON.stringify(spec) + String(Math.random()));",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"builds the same spec and the same hash from the same rows\"",
+    "expect": "× .*builds the same spec and the same hash from the same rows"
+  },
+  {
+    "id": "b9g6-spec-facts",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "place: property.place ?? \"\",",
+    "replace": "place: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"carries the facts, the place paragraph and the key prefix\"",
+    "expect": "× .*carries the facts, the place paragraph and the key prefix"
+  },
+  {
+    "id": "b9g6-spec-cover-size",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "  cover: \"og\",",
+    "replace": "  cover: \"carousel\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a cover uses the og size\"",
+    "expect": "× .*a cover uses the og size"
+  },
+  {
+    "id": "b9g6-spec-carousel-size",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "  carousel: \"carousel\",",
+    "replace": "  carousel: \"og\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a carousel uses the carousel size\"",
+    "expect": "× .*a carousel uses the carousel size"
+  },
+  {
+    "id": "b9g6-spec-story-size",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "  story: \"carousel\",",
+    "replace": "  story: \"og\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a story uses the carousel size\"",
+    "expect": "× .*a story uses the carousel size"
+  },
+  {
+    "id": "b9g6-spec-skip",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "if (row.media_key === null || size === undefined) return [];",
+    "replace": "if (row.media_key === null) return [];",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"skips a photograph that is not stored or lacks the size\"",
+    "expect": "× .*skips a photograph that is not stored or lacks the size"
+  },
+  {
+    "id": "b9g6-spec-null-price",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "price === null ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a row with price null throws NonRetryableError publish_incomplete\"",
+    "expect": "× .*a row with price null throws NonRetryableError publish_incomplete"
+  },
+  {
+    "id": "b9g6-spec-null-beds",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "beds === null ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a row with beds null throws NonRetryableError publish_incomplete\"",
+    "expect": "× .*a row with beds null throws NonRetryableError publish_incomplete"
+  },
+  {
+    "id": "b9g6-spec-null-baths",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "baths === null ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a row with baths null throws NonRetryableError publish_incomplete\"",
+    "expect": "× .*a row with baths null throws NonRetryableError publish_incomplete"
+  },
+  {
+    "id": "b9g6-spec-null-interior_sq_ft",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "interiorSqFt === null ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a row with interior_sq_ft null throws NonRetryableError publish_incomplete\"",
+    "expect": "× .*a row with interior_sq_ft null throws NonRetryableError publish_incomplete"
+  },
+  {
+    "id": "b9g6-spec-null-year_built",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "yearBuilt === null\n",
+    "replace": "false\n",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"a row with year_built null throws NonRetryableError publish_incomplete\"",
+    "expect": "× .*a row with year_built null throws NonRetryableError publish_incomplete"
+  },
+  {
+    "id": "b9g6-spec-key",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "if (parts === null) throw new NonRetryableError(\"media_key_unexpected\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"refuses a master key that does not follow the key scheme\"",
+    "expect": "× .*refuses a master key that does not follow the key scheme"
+  },
+  {
+    "id": "b9g6-spec-size-cover",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(40),",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"the cover spec of 40 photographs stays far below the dispatch limit\"",
+    "expect": "× .*the cover spec of 40 photographs stays far below the dispatch limit"
+  },
+  {
+    "id": "b9g6-spec-size-carousel",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(40),",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"the carousel spec of 40 photographs stays far below the dispatch limit\"",
+    "expect": "× .*the carousel spec of 40 photographs stays far below the dispatch limit"
+  },
+  {
+    "id": "b9g6-spec-size-story",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(40),",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"the story spec of 40 photographs stays far below the dispatch limit\"",
+    "expect": "× .*the story spec of 40 photographs stays far below the dispatch limit"
+  },
+  {
+    "id": "b9g6-spec-order",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "return [...data].sort((a, b) => a.sort_order - b.sort_order);",
+    "replace": "return [...data];",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"loadMedia answers the gallery in order\"",
+    "expect": "× .*loadMedia answers the gallery in order"
+  },
+  {
+    "id": "b9g6-ready-yes",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "media.length > 0 &&\n    media.every(",
+    "replace": "false &&\n    media.every(",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"is ready when every photograph has the size\"",
+    "expect": "× .*is ready when every photograph has the size"
+  },
+  {
+    "id": "b9g6-ready-one",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "media.length > 0 &&\n    media.every(",
+    "replace": "media.length > 0 &&\n    media.some(",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"is not ready while one photograph lacks the size\"",
+    "expect": "× .*is not ready while one photograph lacks the size"
+  },
+  {
+    "id": "b9g6-ready-staged",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "media.length > 0 &&\n    media.every(",
+    "replace": "media.length > 0 &&\n    media.some(",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"is not ready for a staged photograph\"",
+    "expect": "× .*is not ready for a staged photograph"
+  },
+  {
+    "id": "b9g6-ready-none",
+    "test": "tests/unit/assets/spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "media.length > 0 &&\n    media.every(",
+    "replace": "media.every(",
+    "run": "bunx vitest run --project unit tests/unit/assets/spec.test.ts -t \"is never ready for a property with no photograph\"",
+    "expect": "× .*is never ready for a property with no photograph"
+  },
+  {
+    "id": "b9g6-registry-render_variants",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  renderVariants,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a heavy module for render_variants\"",
+    "expect": "× .*getStep returns a heavy module for render_variants"
+  },
+  {
+    "id": "b9g6-registry-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  renderCover,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a heavy module for render_cover\"",
+    "expect": "× .*getStep returns a heavy module for render_cover"
+  },
+  {
+    "id": "b9g6-registry-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  renderCarousel,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a heavy module for render_carousel\"",
+    "expect": "× .*getStep returns a heavy module for render_carousel"
+  },
+  {
+    "id": "b9g6-registry-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  renderStory,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a heavy module for render_story\"",
+    "expect": "× .*getStep returns a heavy module for render_story"
+  },
+  {
+    "id": "b9g6-registry-render_og_static",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  renderOgStatic,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a heavy module for render_og_static\"",
+    "expect": "× .*getStep returns a heavy module for render_og_static"
+  },
+  {
+    "id": "b9g6-dispatch-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: \"x\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover dispatches the spec and its hash for the asset stub\"",
+    "expect": "× .*render_cover dispatches the spec and its hash for the asset stub"
+  },
+  {
+    "id": "b9g6-size-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(200),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover keeps its serialized job under the dispatch limit for 40 photographs\"",
+    "expect": "× .*render_cover keeps its serialized job under the dispatch limit for 40 photographs"
+  },
+  {
+    "id": "b9g6-unpublished-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover refuses an unpublished property and dispatches nothing\"",
+    "expect": "× .*render_cover refuses an unpublished property and dispatches nothing"
+  },
+  {
+    "id": "b9g6-wait-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover waits two minutes for a photograph that lacks the size\"",
+    "expect": "× .*render_cover waits two minutes for a photograph that lacks the size"
+  },
+  {
+    "id": "b9g6-base-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (readVar(\"MEDIA_PUBLIC_BASE\") === undefined)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE\"",
+    "expect": "× .*render_cover throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE"
+  },
+  {
+    "id": "b9g6-approved-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (revision === null && (asset.status === \"approved\" || asset.status === \"published\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"approved render_cover untouched by a second publish\"",
+    "expect": "× .*approved render_cover untouched by a second publish"
+  },
+  {
+    "id": "b9g6-result-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "p_asset: assetId,\n    p_files: files,",
+    "replace": "p_asset: \"x\",\n    p_files: files,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover onResult gives the files to the asset with the dispatched asset id and hash\"",
+    "expect": "× .*render_cover onResult gives the files to the asset with the dispatched asset id and hash"
+  },
+  {
+    "id": "b9g6-refuse-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/domain/assets.ts",
+    "find": "role: z.enum(assetFileRoles),",
+    "replace": "role: z.string(),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover onResult refuses a file the asset could not keep\"",
+    "expect": "× .*render_cover onResult refuses a file the asset could not keep"
+  },
+  {
+    "id": "b9g6-twice-render_cover",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: String(Math.random()),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover runs twice without a second outside effect\"",
+    "expect": "× .*render_cover runs twice without a second outside effect"
+  },
+  {
+    "id": "b9g6-dispatch-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: \"x\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel dispatches the spec and its hash for the asset stub\"",
+    "expect": "× .*render_carousel dispatches the spec and its hash for the asset stub"
+  },
+  {
+    "id": "b9g6-size-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(200),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel keeps its serialized job under the dispatch limit for 40 photographs\"",
+    "expect": "× .*render_carousel keeps its serialized job under the dispatch limit for 40 photographs"
+  },
+  {
+    "id": "b9g6-unpublished-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel refuses an unpublished property and dispatches nothing\"",
+    "expect": "× .*render_carousel refuses an unpublished property and dispatches nothing"
+  },
+  {
+    "id": "b9g6-wait-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel waits two minutes for a photograph that lacks the size\"",
+    "expect": "× .*render_carousel waits two minutes for a photograph that lacks the size"
+  },
+  {
+    "id": "b9g6-base-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (readVar(\"MEDIA_PUBLIC_BASE\") === undefined)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE\"",
+    "expect": "× .*render_carousel throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE"
+  },
+  {
+    "id": "b9g6-approved-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (revision === null && (asset.status === \"approved\" || asset.status === \"published\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"approved render_carousel untouched by a second publish\"",
+    "expect": "× .*approved render_carousel untouched by a second publish"
+  },
+  {
+    "id": "b9g6-result-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "p_asset: assetId,\n    p_files: files,",
+    "replace": "p_asset: \"x\",\n    p_files: files,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel onResult gives the files to the asset with the dispatched asset id and hash\"",
+    "expect": "× .*render_carousel onResult gives the files to the asset with the dispatched asset id and hash"
+  },
+  {
+    "id": "b9g6-refuse-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/domain/assets.ts",
+    "find": "role: z.enum(assetFileRoles),",
+    "replace": "role: z.string(),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel onResult refuses a file the asset could not keep\"",
+    "expect": "× .*render_carousel onResult refuses a file the asset could not keep"
+  },
+  {
+    "id": "b9g6-twice-render_carousel",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: String(Math.random()),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel runs twice without a second outside effect\"",
+    "expect": "× .*render_carousel runs twice without a second outside effect"
+  },
+  {
+    "id": "b9g6-dispatch-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: \"x\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story dispatches the spec and its hash for the asset stub\"",
+    "expect": "× .*render_story dispatches the spec and its hash for the asset stub"
+  },
+  {
+    "id": "b9g6-size-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "alt: row.alt ?? \"\",",
+    "replace": "alt: (row.alt ?? \"\").repeat(200),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story keeps its serialized job under the dispatch limit for 40 photographs\"",
+    "expect": "× .*render_story keeps its serialized job under the dispatch limit for 40 photographs"
+  },
+  {
+    "id": "b9g6-unpublished-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story refuses an unpublished property and dispatches nothing\"",
+    "expect": "× .*render_story refuses an unpublished property and dispatches nothing"
+  },
+  {
+    "id": "b9g6-wait-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story waits two minutes for a photograph that lacks the size\"",
+    "expect": "× .*render_story waits two minutes for a photograph that lacks the size"
+  },
+  {
+    "id": "b9g6-base-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (readVar(\"MEDIA_PUBLIC_BASE\") === undefined)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE\"",
+    "expect": "× .*render_story throws media_public_base_missing and dispatches nothing without MEDIA_PUBLIC_BASE"
+  },
+  {
+    "id": "b9g6-approved-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (revision === null && (asset.status === \"approved\" || asset.status === \"published\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"approved render_story untouched by a second publish\"",
+    "expect": "× .*approved render_story untouched by a second publish"
+  },
+  {
+    "id": "b9g6-result-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "p_asset: assetId,\n    p_files: files,",
+    "replace": "p_asset: \"x\",\n    p_files: files,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story onResult gives the files to the asset with the dispatched asset id and hash\"",
+    "expect": "× .*render_story onResult gives the files to the asset with the dispatched asset id and hash"
+  },
+  {
+    "id": "b9g6-refuse-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/domain/assets.ts",
+    "find": "role: z.enum(assetFileRoles),",
+    "replace": "role: z.string(),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story onResult refuses a file the asset could not keep\"",
+    "expect": "× .*render_story onResult refuses a file the asset could not keep"
+  },
+  {
+    "id": "b9g6-twice-render_story",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "spec_hash: await specHash(spec),",
+    "replace": "spec_hash: String(Math.random()),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story runs twice without a second outside effect\"",
+    "expect": "× .*render_story runs twice without a second outside effect"
+  },
+  {
+    "id": "b9g6-price",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "price === null ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover stops on a property row with no price\"",
+    "expect": "× .*render_cover stops on a property row with no price"
+  },
+  {
+    "id": "b9g6-missing-property",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (property === null) throw new NonRetryableError(\"property_not_found\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover names a missing property and a missing property id\"",
+    "expect": "× .*render_cover names a missing property and a missing property id"
+  },
+  {
+    "id": "b9g6-missing-id",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "if (typeof id !== \"string\") throw new NonRetryableError(\"property_id_missing\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover names a missing property and a missing property id\"",
+    "expect": "× .*render_cover names a missing property and a missing property id"
+  },
+  {
+    "id": "b9g6-give-up",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": ">= VARIANTS_GIVE_UP_MS",
+    "replace": ">= VARIANTS_GIVE_UP_MS * 1000",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover ends in variants_missing when its stub is older than 60 minutes\"",
+    "expect": "× .*render_cover ends in variants_missing when its stub is older than 60 minutes"
+  },
+  {
+    "id": "b9g6-revision",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "...(revision === null ? {} : { p_revision: revision }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a re-render job names its revision and is not skipped as approved work\"",
+    "expect": "× .*a re-render job names its revision and is not skipped as approved work"
+  },
+  {
+    "id": "b9g6-slides-six",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "params.max_slides ?? DEFAULT_MAX_SLIDES",
+    "replace": "DEFAULT_MAX_SLIDES",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel with max_slides 6 dispatches 6 slides and stores the slide count\"",
+    "expect": "× .*render_carousel with max_slides 6 dispatches 6 slides and stores the slide count"
+  },
+  {
+    "id": "b9g6-slides-held",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "slideCount.safeParse(data[0]?.meta).data?.max_slides ?? wanted",
+    "replace": "wanted",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel follows the slide count the stub already holds\"",
+    "expect": "× .*render_carousel follows the slide count the stub already holds"
+  },
+  {
+    "id": "b9g6-no-writes",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "ctx.db.rpc(\"set_asset_text\", {",
+    "replace": "ctx.db.rpc(\"set_asset_files\", {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"no render step creates, sends or posts anything\"",
+    "expect": "× .*no render step creates, sends or posts anything"
+  },
+  {
+    "id": "b9g6-twice-variants",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "staged_url: urls[index] ?? \"\",",
+    "replace": "staged_url: (urls[index] ?? \"\") + String(Math.random()),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_variants runs twice without a second outside effect\"",
+    "expect": "× .*render_variants runs twice without a second outside effect"
+  },
+  {
+    "id": "b9g6-v-claim",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "p_job_id: ctx.job.id,",
+    "replace": "p_job_id: propertyId,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"claims the rows once with its own job id\"",
+    "expect": "× .*claims the rows once with its own job id"
+  },
+  {
+    "id": "b9g6-v-batch",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "data[\"target\"] === undefined ? runProperty(ctx, params, data) : runTarget(ctx, params, data)",
+    "replace": "data[\"property_id\"] === \"x\" ? runProperty(ctx, params, data) : runTarget(ctx, params, data)",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a batch job with its own key and data.property_id dispatches the same way\"",
+    "expect": "× .*a batch job with its own key and data.property_id dispatches the same way"
+  },
+  {
+    "id": "b9g6-v-forty",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "owner: property.slug,",
+    "replace": "owner: property.slug.repeat(400),",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"dispatches 40 rows under the dispatch limit\"",
+    "expect": "× .*dispatches 40 rows under the dispatch limit"
+  },
+  {
+    "id": "b9g6-v-nothing",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "stillStaged ? \"claimed_elsewhere\" : \"nothing_staged\"",
+    "replace": "\"claimed_elsewhere\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a property with nothing staged ends done with skipped nothing_staged\"",
+    "expect": "× .*a property with nothing staged ends done with skipped nothing_staged"
+  },
+  {
+    "id": "b9g6-v-elsewhere",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "stillStaged ? \"claimed_elsewhere\" : \"nothing_staged\"",
+    "replace": "\"nothing_staged\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"rows all claimed by a running job end done with skipped claimed_elsewhere\"",
+    "expect": "× .*rows all claimed by a running job end done with skipped claimed_elsewhere"
+  },
+  {
+    "id": "b9g6-v-mime",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "if (mime === undefined) throw new NonRetryableError(\"unsupported_media_type\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"refuses a staged file of a type it cannot make sizes of\"",
+    "expect": "× .*refuses a staged file of a type it cannot make sizes of"
+  },
+  {
+    "id": "b9g6-v-target",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "media_id: `${target}:${slug}`,",
+    "replace": "media_id: slug,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a target job dispatches one item named <target>:<slug>\"",
+    "expect": "× .*a target job dispatches one item named <target>:<slug>"
+  },
+  {
+    "id": "b9g6-v-prefix",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "if (!stagingPath.startsWith(STAGING)) throw new NonRetryableError(\"invalid_staging_path\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a target job whose staging_path does not start with staging/\"",
+    "expect": "× .*a target job whose staging_path does not start with staging/"
+  },
+  {
+    "id": "b9g6-v-notfound",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "if (!(await targetExists(ctx.db, target, slug))) throw new NonRetryableError(\"target_not_found\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a target job for a row that does not exist ends in target_not_found\"",
+    "expect": "× .*a target job for a row that does not exist ends in target_not_found"
+  },
+  {
+    "id": "b9g6-o-three",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "const record = await ctx.db.rpc(\"apply_media_variants\", { p_items: items });",
+    "replace": "let record = await ctx.db.rpc(\"apply_media_variants\", { p_items: items.slice(0, 1) });\n  for (const item of items.slice(1)) record = await ctx.db.rpc(\"apply_media_variants\", { p_items: [item] });",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"makes exactly three calls for 40 photographs\"",
+    "expect": "× .*makes exactly three calls for 40 photographs"
+  },
+  {
+    "id": "b9g6-o-moved",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": ".filter((item) => item.stored)",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"an item that comes back stored false keeps its old object\"",
+    "expect": "× .*an item that comes back stored false keeps its old object"
+  },
+  {
+    "id": "b9g6-o-none",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "if (stored.length > 0) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a result with no stored item makes no clear call\"",
+    "expect": "× .*a result with no stored item makes no clear call"
+  },
+  {
+    "id": "b9g6-o-again",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "if (stored.length > 0) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a second onResult for the same rows stores nothing\"",
+    "expect": "× .*a second onResult for the same rows stores nothing"
+  },
+  {
+    "id": "b9g6-o-remove",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "    .remove(signed.map(({ staging_path }) => staging_path));\n  if (removal.error !== null) throw storageUnavailable();",
+    "replace": "    .remove(signed.map(({ staging_path }) => staging_path));",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a remove error throws and makes no clear call\"",
+    "expect": "× .*a remove error throws and makes no clear call"
+  },
+  {
+    "id": "b9g6-o-missing",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "    const made = produced[item.media_id];\n    if (made === undefined) throw",
+    "replace": "    const made = produced[item.media_id];\n    if (false) throw",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a callback with no result for a signed photograph fails before it writes\"",
+    "expect": "× .*a callback with no result for a signed photograph fails before it writes"
+  },
+  {
+    "id": "b9g6-o-target",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-variants.ts",
+    "find": "p_target: target ?? \"\",",
+    "replace": "p_target: \"story\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a target job records the image and removes its one staged object\"",
+    "expect": "× .*a target job records the image and removes its one staged object"
+  },
+  {
+    "id": "b9g6-og-result",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-og-static.ts",
+    "find": "[key, { media_key, w, h }]",
+    "replace": "[key, { media_key }]",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"dispatches its pages and records the seven cards it gets back\"",
+    "expect": "× .*dispatches its pages and records the seven cards it gets back"
+  },
+  {
+    "id": "b9g6-og-twice",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-og-static.ts",
+    "find": "dispatchHeavy(ctx, { params, data })",
+    "replace": "dispatchHeavy(ctx, { params: { ...params, r: Math.random() }, data })",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_og_static runs twice without a second outside effect\"",
+    "expect": "× .*render_og_static runs twice without a second outside effect"
+  },
+  {
+    "id": "b9g6-og-pages",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-specs.ts",
+    "find": "z.array(z.enum(ogStaticKeys)).optional()",
+    "replace": "z.array(z.string()).optional()",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"refuses a page that has no card\"",
+    "expect": "× .*refuses a page that has no card"
+  },
+  {
+    "id": "b9g6-og-script-pages",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "file": "scripts/render-og-static.mjs",
+    "find": "pages: z.array(z.enum(ogStaticKeys)).optional()",
+    "replace": "pages: z.array(z.string()).optional()",
+    "run": "bunx vitest run --project unit tests/unit/assets/render-scripts.test.ts -t \"render-og-static refuses a page that has no card before a browser starts\"",
+    "expect": "× .*render-og-static refuses a page that has no card before a browser starts"
+  },
+  {
+    "id": "b9g6-og-script-run",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "file": "scripts/render-og-static.mjs",
+    "find": "export async function run(job, options) {",
+    "replace": "async function run(job, options) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/render-scripts.test.ts -t \"each render script exports a function run\"",
+    "expect": "× .*each render script exports a function run"
+  },
+  {
+    "id": "b9g6-og-not-png",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/lib/shoot.mjs --find '...(png ? { type: \"png\" } : { type: \"jpeg\", quality: JPEG_QUALITY }),' --replace '...{ type: \"jpeg\", quality: JPEG_QUALITY },' --run 'bun scripts/render-og-static.mjs --out .tmp/wfog' --expect 'is not a PNG'",
+    "expect": "shoot: home is not a PNG",
+    "what": "by hand: the static card is screenshot as a JPEG, so the PNG signature check refuses it; needs Chrome"
+  },
+  {
+    "id": "b9g6-og-size",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/render-og-static.mjs --find 'const SIZE = { width: 1200, height: 630 };' --replace 'const SIZE = { width: 1200, height: 628 };' --run 'bun scripts/render-og-static.mjs --out .tmp/wfog' --expect 'frame is 1200x630'",
+    "expect": "shoot: home frame is 1200x630, the viewport 1200x628",
+    "what": "by hand: the card size changes to 1200x628 and the size check on the frame refuses it; needs Chrome"
+  },
+  {
+    "id": "b9g6-og-stable-name",
+    "kind": "manual",
+    "test": "tests/unit/assets/render-scripts.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/render-og-static.mjs --find 'await writeFile(join(options.out, `${key}.png`), body);' --replace 'await writeFile(join(options.out, `${key}.${hash8(body)}.png`), body);' --run 'bun scripts/render-og-static.mjs --out .tmp/wfog; ls .tmp/wfog | grep -c \"^home.png$\"' --expect '0'",
+    "expect": "0",
+    "what": "by hand: --out writes a hashed name instead of the stable <key>.png B13 commits; the ls of the output folder shows no home.png; needs Chrome"
   }
 ]
