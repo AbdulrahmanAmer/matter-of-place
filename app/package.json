@@ -44,6 +44,8 @@
     "variants": "bun scripts/variants.ts",
     "fonts": "node scripts/fonts.mjs",
     "captions": "bun scripts/captions-runner.ts",
+    "omnikom:mock": "bun run scripts/omnikom-mock.ts",
+    "omnikom:run-local": "bun run scripts/omnikom-run-local.ts",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
   },
   "trustedDependencies": [

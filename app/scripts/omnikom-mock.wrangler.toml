@@ -1,0 +1,6 @@
+# The throwaway Omnikom receiver (B15 step 5b): its own config, so no wrangler command for the mock reads the app's
+# wrangler.toml (G-002). Deployed and deleted by hand around one proof; never left standing.
+name = "omnikom-mock"
+main = "omnikom-mock.ts"
+compatibility_date = "2026-09-30"
+workers_dev = true
