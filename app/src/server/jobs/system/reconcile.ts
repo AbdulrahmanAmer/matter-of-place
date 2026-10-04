@@ -45,6 +45,7 @@ async function sinceOf(ctx: StepContext, data: JsonObject): Promise<Date> {
 export function reconcileJob(reconcileUploads: ReconcileUploads): SystemJobDefinition {
   return {
     type: "reconcile",
+    sideEffect: "none",
     async run(ctx, _params, data) {
       const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
       return { status: "done", result: { uploads: { ...uploads } } };

@@ -155,6 +155,7 @@ function once<T>(read: () => Promise<T>): () => Promise<T> {
 
 export const health: SystemJobDefinition = {
   type: "health",
+  sideEffect: "none",
   timeoutMs: 40_000,
   async run(ctx, params) {
     // H1's drill: params.force_fail names a check that then fails without running.
