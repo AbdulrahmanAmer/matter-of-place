@@ -935,15 +935,25 @@ describe("health_counts", () => {
     expect(result).toEqual({ before: null, stale: 0, long: 0, age: 8 * 24 * 3600 });
   });
 
-  it("returns backup null while schedule_settings is absent", async () => {
-    const result = await withRollback(async (db) => {
-      const { absent } = await one<{ absent: boolean }>(
-        db,
-        "select to_regclass('public.schedule_settings') is null as absent",
-      );
-      return { absent, backup: (await counts(db)).backup };
+  it("returns backup null while the schedule_settings backup row is absent", async () => {
+    const backup = await withRollback(async (db) => {
+      await db.query("delete from public.schedule_settings where key = 'backup'");
+      return (await counts(db)).backup;
     });
-    expect(result).toEqual({ absent: true, backup: null });
+    expect(backup).toBeNull();
+  });
+
+  it("returns the backup row enabled flag and last run time", async () => {
+    const backup = await withRollback(async (db) => {
+      await db.query(
+        `insert into public.schedule_settings (key, cron, enabled, last_run_at)
+         values ('backup', '0 2 * * *', true, '2026-10-01T03:00:00Z')
+         on conflict (key) do update set enabled = excluded.enabled, last_run_at = excluded.last_run_at`,
+      );
+      return (await counts(db)).backup;
+    });
+    expect(backup?.enabled).toBe(true);
+    expect(new Date(backup?.last_run_at ?? "").toISOString()).toBe("2026-10-01T03:00:00.000Z");
   });
 });
 

@@ -38,6 +38,9 @@ export const errorCodes = {
   external_clock: 422,
   reorder_mismatch: 422,
   nothing_to_restore: 422,
+  // B3b: the illustrative guard and `set_environment` (invariant 1, ruling H35).
+  illustrative_in_production: 409,
+  invalid_environment: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
