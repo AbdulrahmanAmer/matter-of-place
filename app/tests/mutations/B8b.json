@@ -1050,7 +1050,7 @@
   {
     "id": "b8b-g3-seed-twice",
     "test": "tests/db/automation.db.test.ts",
-    "file": "supabase/migrations/20261004163000_automation_seed.sql",
+    "file": "supabase/migrations/20261004190700_automation_seed.sql",
     "find": "on conflict (trigger) do nothing;",
     "replace": "on conflict (trigger) do update set name = automation_recipes.name || '.';",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"run twice in one transaction\"",
@@ -1059,7 +1059,7 @@
   {
     "id": "b8b-g3-schedules-prune",
     "test": "tests/db/automation.db.test.ts",
-    "file": "supabase/migrations/20261004163001_automation_schedules.sql",
+    "file": "supabase/migrations/20261004190701_automation_schedules.sql",
     "find": "select cron.unschedule('prune') where exists (select 1 from cron.job where jobname = 'prune');",
     "replace": "select 1;",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"removes B8's prune pg_cron job\"",
