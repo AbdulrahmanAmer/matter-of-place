@@ -1919,6 +1919,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: .claude/workflows/build-slice.js (the schema merge hook and the H57 rule in the builder brief)
 - added: 2026-10-04
 
+## P-513 · A builder read the sizing's file list as its scope: files the step itself said to write were left out twice (B8 step 5, B3 step 12)
+- symptom: B8 step 5's brief listed six files; the plan's Files line for the runner deploy step of `deploy.yml` was outside the list, so no builder wrote it and the Edge Function was never deployed by CI (found by the orchestrator's `ops-health` probe, 503 `fail: runner`). B3 g9 (step 12) owned `docs/runbooks/api.md` alone; the builder returned blocked: "Group g9 owns only app/docs/runbooks/api.md, but step 12 items (0) to (6) build files that exist nowhere and that no group owns".
+- cause: the brief said "Your files: <list>" with nothing about scope, and `plan-brief.mjs` quoted Files lines only for the listed paths, so the builder never saw the description of `scripts/cache-proof.mjs` or the deploy step. The sizing's list exists for lane conflicts, not as an allow-list.
+- rule: the scope of a group is the step text; the file list is ownership. The brief now says so, and `plan-brief.mjs` quotes the Files line of every path a step names. The orchestrator still sizes a group's files from the step's "(Files)" and "(Change)" marks, and a step that names a file another group owns is a sizing defect to fix before launch, not a builder's problem.
+- proof: `node workspace/05-plans/plan-brief.mjs B3 --steps 12 --files app/docs/runbooks/api.md 2>/dev/null | grep -c "cache-proof.mjs\|bundle-check.mjs"` → `11` (was 0); `grep -c "not its scope: the scope is the step text" .claude/workflows/build-slice.js` → `1`.
+- enforced-by: .claude/workflows/build-slice.js (the files line of the builder brief) and workspace/05-plans/plan-brief.mjs
+- added: 2026-10-04
+
 ## P-907 · B8 step 5's `deno check` is red on main until B3 step 3b lands: `deno.json`, `deno.lock` and `deno-portable.ts` live on slice/b3, and `db.ts` still has extensionless imports
 - symptom: `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` prints `TS2307 Cannot find module .../src/db` and `.../src/server/lib/env` at `src/server/lib/db.ts:2:31` and `:3:21`, then `TS7006 Parameter 'message' implicitly has an 'any' type` at `runner.ts:227` (the any comes from the unresolved `Database`). `supabase/functions/job-runner/deno.json` is not on main; the plan says B3 creates it.
 - cause: the runner's `import type { Db } from "../lib/db.ts"` pulls `db.ts` into Deno's graph, and B3's fix (`../../db/index.ts`, `./env.ts`) is only on `origin/slice/b3`. The sizing marks g4 `blocked: false`; the dependency is B3 step 3b merged, not B2.
