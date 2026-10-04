@@ -6,21 +6,21 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 **Where we are:** the build is running. The website shell, the deploy pipeline, the database (33 tables, policies, functions, seeded with illustrative properties), the public write functions, the job system (runner, cron, health) and the creative render scripts are on `main` and deploy themselves to a dev address on every merge. The public API, the admin portal, email, social posting, the newsletter and the audit robot are being built now, one proven step at a time; every step is reviewed by a fresh agent and merged through a gate. Production shows nothing until the launch switch. The numbers below come from the build board and are rewritten with every update.
 
 <!-- progress:start -->
-**Progress (updated 2026-10-04, from the build board):** 64 of 253 planned steps accepted (25.3%), 1 of 21 slices closed, 18 steps in work.
+**Progress (updated 2026-10-04, from the build board):** 66 of 259 planned steps accepted (25.5%), 1 of 22 slices closed, 16 steps in work.
 
 | Arm | To launch | What it covers |
 |---|---|---|
-| Website | 34% | pages, forms, the public API they call, SEO, legal pages |
-| Admin portal | 30.4% | screens, actions, roles and permissions |
-| Backend logic and automation | 34% | jobs, recipes, cross-wiring, content pipelines, email |
-| Database | 39.3% | tables, functions, triggers, policies, migrations |
-| Deployment and operations | 46% | CI, deploys, backups, monitoring, the launch switch |
+| Website | 35.1% | pages, forms, the public API they call, SEO, legal pages |
+| Admin portal | 30.7% | screens, actions, roles and permissions |
+| Backend logic and automation | 34.4% | jobs, recipes, cross-wiring, content pipelines, email |
+| Database | 39.6% | tables, functions, triggers, policies, migrations |
+| Deployment and operations | 45.5% | CI, deploys, backups, monitoring, the launch switch |
 
 | Slice | What | Accepted | |
 |---|---|---|---|
 | B2 | Database | 15 of 15 | 100% |
 | B1b | Repo and delivery | 14 of 16 | 87.5% |
-| B3 | API | 11 of 18 | 61.1% |
+| B3 | API | 13 of 18 | 72.2% |
 | B4 | Tests | 5 of 10 | 50% |
 | B5 | Email | 1 of 10 | 10% |
 | B8 | Job system | 7 of 14 | 50% |
@@ -28,7 +28,7 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 | B14 | Audit robot | 3 of 9 | 33.3% |
 | B16 | Legal identity | 2 of 8 | 25% |
 
-Not started yet: B3b (Coming-soon mode), B6 (Money box), B7 (Admin workspace), B8b (Automation console), B10 (Social publishing), B11 (Newsletter), B12 (Reel), B13 (SEO, AEO, GEO), B15 (Omnikom handoff), B17 (Website essentials and compliance (the must-haves of any professional site)), H1 (HARDEN checklist), H2 (H2), L1 (LAUNCH).
+Not started yet: B3b (Coming-soon mode), B6 (Money box), B7 (Admin workspace), B8b (Automation console), B10 (Social publishing), B11 (Newsletter), B12 (Reel), B13 (SEO, AEO, GEO), B15 (Omnikom handoff), B17 (Website essentials and compliance (the must-haves of any professional site)), H1 (HARDEN checklist), H2 (Acceptance panel: the whole site walked through by three senior agents), L1 (LAUNCH).
 <!-- progress:end -->
 
 How the build works: 22 plans (`workspace/05-plans/`) broken into steps, each with a proof; lanes build in parallel on this laptop, a reviewer in a fresh context tries to refute each group, a merge gate refuses anything without green checks, and an acceptance panel (plan H2) walks the finished site end to end before launch. Decisions: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [GOTCHAS.md](GOTCHAS.md). Position of the work: [.claude/POSITION.md](.claude/POSITION.md).

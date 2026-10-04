@@ -15321,7 +15321,7 @@
   "hasProof": true
  },
  {
-  "dimension": "ops",
+  "dimension": "delivery-ops",
   "kind": "job",
   "id": "acceptance panel: three charters and probes",
   "plan": "H2",
@@ -15332,7 +15332,7 @@
   "hasProof": true
  },
  {
-  "dimension": "ops",
+  "dimension": "delivery-ops",
   "kind": "job",
   "id": "acceptance ledger and report",
   "plan": "H2",
@@ -15343,7 +15343,7 @@
   "hasProof": true
  },
  {
-  "dimension": "ops",
+  "dimension": "delivery-ops",
   "kind": "job",
   "id": "acceptance team of three agents",
   "plan": "H2",
@@ -15354,7 +15354,7 @@
   "hasProof": true
  },
  {
-  "dimension": "ops",
+  "dimension": "delivery-ops",
   "kind": "action",
   "id": "acceptance fix merged with a CHANGES line",
   "plan": "H2",
