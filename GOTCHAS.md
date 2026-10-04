@@ -1014,6 +1014,7 @@ Entry template
 - added: 2026-10-03
 - Hit again 2026-10-04, B8 g5 review: the review brief's standing rule sourced the whole `.env`, so the first db run printed `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` at `scripts/lib/guard-env.mjs:16`; the db proofs ran only after `eval "$(node scripts/load-env.mjs --profile dev)"` in a fresh shell. The same brief says to run `plan-brief.mjs` from `E:/mop-build/ops` and forbids any command there (the reviewer ran it from the snapshot, the same commit; B8-followups.md, g4 item 6). The loader line of the standing rules in `.claude/workflows/build-slice.js` is still the inline one.
 - Hit again 2026-10-04, B3 g8 review: the review brief's db proofs say "dev loader shell" with no `env -u`, and this harness shell carries `CLOUDFLARE_API_TOKEN`, so both `bunx vitest run --project db tests/api/events.api.test.ts` runs after `eval "$(node scripts/load-env.mjs --profile dev)"` ended `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)` at `scripts/lib/guard-env.mjs:16`, exit 1; with `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN` in front it passed 11/11. A proof line the author claims for a db test carries that prefix (the third hit by a brief, after B2 g11 and B8 g5).
+- Hit again 2026-10-04, B15 g2 review: the review brief's inline loader `set -a; . <(tr -d '\r' < .env | grep ...)` exported `PROD_TURNSTILE_SECRET` and `SUPABASE_ACCESS_TOKEN`, so the first db run ended `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)`; after `eval "$(node scripts/load-env.mjs --profile dev)"` and `env -u CLOUDFLARE_API_TOKEN` the db run passed 5/5. The brief still carries the inline loader (the fifth hit by a brief): the orchestrator changes the standing rules so a db proof names the profile loader.
 - Hit again 2026-10-04, B8 c8db review (a long db command under ruling H52): wrapping the db command whole as `quiet.mjs -- bash -c 'eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bunx vitest ...'` lost the dev profile (`DEV_DB_URL` not set) in the author's run, and in the reviewer's re-run it printed `quiet: ok (0 lines, showing the last 0)` with no test line, a green that ran nothing. The rule above says nothing of quiet.mjs. Working form: load the profile in the calling shell, then put quiet.mjs in front of the `env -u` part, from `app/`: `eval "$(node scripts/load-env.mjs --profile dev)"; node ../workspace/05-plans/quiet.mjs -- env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/migration-headers.test.ts` prints `Tests  3 passed (3)` and `quiet: ok (5 lines, showing the last 5)` (measured 2026-10-04). Never wrap the loader inside `bash -c` under quiet.mjs, and read a `quiet: ok (0 lines` result as no run.
 
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
@@ -2090,6 +2091,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && git grep -n '"p_entity_id"?: string' -- src/db/types.ts` → one hit; from `app/` with the dev profile, inside `begin; \i supabase/migrations/20261004060603_system_jobs.sql`, `select public.emit_event(p_type => 'health.failed', p_entity => 'system', p_payload => '{}') is not null` → `t` (measured 2026-10-04, B8 g7).
 - added: 2026-10-04
 
+## P-916 · A db test that asserts another slice's table is absent goes red for good when that slice's migration reaches mop-dev
+- symptom: B8 step 8's case `returns backup null while schedule_settings is absent` (`app/tests/db/jobs.db.test.ts`, on main) gave `AssertionError: expected { absent: false, backup: null } to deeply equal { absent: true, backup: null }; Tests 1 failed | 41 skipped (42)`. B8b's `20261004115859_automation.sql` created `schedule_settings` on mop-dev, so the author's `Tests 42 passed (42)` no longer reproduces and the case's `B8.json` entry goes red whether or not it is mutated.
+- cause: the case guards its result with `to_regclass('public.schedule_settings') is null`, a fact about another lane's migration, not about the function under test. There is one database (H35) and main pushes every lane's migration to it, so the fact changes without a change to this file.
+- rule: a db test asserts the behaviour of the code under test, never whether a table of another slice exists. For the `backup` read, assert the value taken from the `schedule_settings` backup row when the table exists; a case that must run before a foreign table exists is UNPROVEN in the log, not a permanent assertion.
+- proof: `cd app && git grep -n "to_regclass(.*is null" -- tests/db | cut -c1-120` → lists every such absence check (on 2026-10-04: `jobs.db.test.ts:942` for `schedule_settings` and `retention.db.test.ts:657` for `email_messages`; the second is not run, it is the same shape); `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/jobs.db.test.ts -t 'schedule_settings is absent'` (dev profile loaded) → `Tests 1 failed | 41 skipped (42)` while the table exists.
+- added: 2026-10-04
+
 ## P-513 · A builder read the sizing's file list as its scope: files the step itself said to write were left out twice (B8 step 5, B3 step 12)
 - symptom: B8 step 5's brief listed six files; the plan's Files line for the runner deploy step of `deploy.yml` was outside the list, so no builder wrote it and the Edge Function was never deployed by CI (found by the orchestrator's `ops-health` probe, 503 `fail: runner`). B3 g9 (step 12) owned `docs/runbooks/api.md` alone; the builder returned blocked: "Group g9 owns only app/docs/runbooks/api.md, but step 12 items (0) to (6) build files that exist nowhere and that no group owns".
 - cause: the brief said "Your files: <list>" with nothing about scope, and `plan-brief.mjs` quoted Files lines only for the listed paths, so the builder never saw the description of `scripts/cache-proof.mjs` or the deploy step. The sizing's list exists for lane conflicts, not as an allow-list.
@@ -2403,6 +2411,116 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "mop-build/ops" <tasks>/b1r7u6wve.output` is the wrong check (output was empty); the command text of the task, printed by TaskStop, names the lane.
 - added: 2026-10-04
 
+## G-700 · A `timestamptz` read into a JS `Date` and passed back loses its microseconds, so an equality guard never matches
+- paths: app/tests/db/**
+- severity: warn
+- symptom: B8b g1's first `claim_schedule` case passed the fixture's `last_run_at` (read by `pg` as a `Date`) back as `p_old_last_run_at`; the guarded claim returned `false` (`"first": false, "nextMinutes": 1440`) although nothing else had touched the row.
+- cause: Postgres stores microseconds (`now()` has them), a JS `Date` holds milliseconds, and `last_run_at is not distinct from $1` compares the full value; the round trip truncates it.
+- rule: a test that hands a stored time back to SQL for an exact comparison reads it as text (`returning last_run_at::text`) and passes `$1::timestamptz`, or keeps the comparison in SQL; never a `Date`.
+- proof: `cd app && bun run db:psql -- -Atc "select now() = date_trunc('milliseconds', now())"` prints `f` (unless the clock lands on a whole millisecond); the case `a guarded claim moves both columns` in `tests/db/automation.db.test.ts` passes with the text form (measured 2026-10-04, B8b g1).
+- added: 2026-10-04
+
+## P-1600 · `scripts/stubs.ts` matches only `// STUB(`, so a SQL marker `-- STUB(...)` is invisible to the stubs gate
+- symptom: B8b g1 wrote `-- STUB(B8b step 6): unconditional write_audit` into seven function files as the plan words it (CS-11); `bun run stubs` still printed `stubs: 13 markers, 0 on closed slices` and `bun run stubs | grep -c automation_` printed `0`.
+- cause: the marker regex is `/\/\/ STUB\(([A-Za-z0-9-]+)(?: step [0-9a-z]+)?\): (.+)$/`; it scans `.sql` files but a SQL comment starts with `--`, so the line never matches. When B8b closes with step 6 undone, the gate would stay green.
+- rule: until `scripts/stubs.ts` accepts `-- STUB(`, a SQL stub is tracked by hand: the slice log names each file that carries it, and step 6 greps `git grep -n "STUB(B8b step 6)" -- app/supabase` to confirm none is left. The owner of `scripts/stubs.ts` (B1b) widens the regex to `(?:\/\/|--) STUB\(`.
+- proof: `cd app && git grep -c "STUB(B8b step 6)" -- supabase/sql/functions | wc -l` prints `7` while `bun run stubs | grep -c automation_` prints `0` (measured 2026-10-04, B8b g1).
+- added: 2026-10-04
+
+## P-1601 · A db test that reads a value in the same statement as the function that inserts it cannot see the new row
+- symptom: B8b g1's first run of `tests/db/automation.db.test.ts` was `Tests  2 failed | 20 passed (22)`. One red was G-700. The other was the case `automation_put_reason with a null id inserts the reason last with one revision`: the comparison with `max(sort)` was read in the same statement as the `automation_put_reason(null, ...)` call, which cannot see the row that call inserts.
+- cause: a statement reads the snapshot it started with, so a sibling read in the same `select` does not see what a function in that statement writes. The test, not the function, was wrong; the function inserted the row last.
+- rule: a case that asserts what a function wrote reads it in a separate statement after the call (`one(db, "select code as last ... order by sort desc, code limit 1")`), never as a subquery or expression beside the call. A first red on a write-then-read case is checked for this before the function is changed.
+- proof: `cd app && grep -n "order by sort desc, code limit 1" tests/db/automation.db.test.ts` finds the read as its own `db.query` after the call (line 352); with the migration as prelude (P-312), `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` (22 passed after the last test edit, B8b g1 log).
+- added: 2026-10-04
+- hit again: 2026-10-04, B15 g2: a psql probe of the unpushed `create_inquiry` read `(select attribution ... where id = r.id)` beside the call in `from public.create_inquiry(...) r`, and both rows printed an empty value; the same reads as separate statements printed `test` and `{}`. The rule holds for ad hoc `begin; \i <migration>; ...; rollback` probes as well as tests, and an empty read there is checked for it before the function is doubted.
+
+## P-1602 · A dry pass of an unpushed migration (`begin; \i file; rollback`) can die with `deadlock detected` because another lane holds locks on the same tables
+- symptom: B8b g1 review ran the plan's dry pass of `20261004115859_automation.sql` through `bun run db:psql` and got `psql:supabase/migrations/20261004115859_automation.sql:119: ERROR: deadlock detected`, waiting for `ShareRowExclusiveLock` on `jobs` while another backend held `RowExclusiveLock` on `events`; a second try died at line 892 on `AccessExclusiveLock` on `auth.users`. The vitest prelude form passed at other moments.
+- cause: there is one database (H35) and lanes share it. Another session, most likely a lane running the same unpushed migration as a test prelude, held locks on `jobs`, `events` and `auth.users`; `alter table jobs add constraint` and the foreign key of `event_fanout_failures` to `events` take `ShareRowExclusiveLock`. It is a lock collision between sessions, not a defect in the SQL.
+- rule: when a dry pass reports `deadlock detected` and the other backend is not yours, do not edit the SQL: rerun it later, or prove it through the vitest prelude (P-312), and quote both attempts. Two deadlocks at different lines with another backend named is the signature; the same line failing alone on an idle database is a real defect.
+- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_stat_activity where datname = current_database() and state <> 'idle' and pid <> pg_backend_pid()"` prints the number of other active sessions (non-zero while a lane is mid-test); `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` when the locks are free (measured 2026-10-04, B8b g1 review).
+- added: 2026-10-04
+- hit again: 2026-10-04, B3b g3 review: "the vitest prelude form passed at other moments" reads as a safe fallback and is not one while lanes run side by side: the prelude of `20261004155556_coming_soon.sql` deadlocked or timed out in 5 of 6 runs (see the hit on P-322). A pass of either form is evidence only for the moment it ran; quote every attempt, failures included.
+
+## P-1300 · A runbook that restates a plan sequence from memory contradicts the plan, and the contradiction is a skipped production check
+- symptom: the first `docs/coming-soon.md` said `deploy.yml` runs the coming-soon assertion on every production deploy and listed the launch switch as complete. The plan runs the step only when `vars.MOP_DB_PRODUCTION == 'true'` (set by `gh variable set MOP_DB_PRODUCTION --body true` in L1 step 1g) and adds `--after-launch` when `MOP_LAUNCHED` is true (L1 step 4e). An operator following the doc would never set the variable and the assertion would be skipped silently. The same doc placed `IllustrativeNotice` at the foot of two pages where the plan puts it wherever an illustrative property shows, and described `defaultFlags` as derived where the code holds a literal.
+- cause: the doc was written from a summary of the plan, not from the plan lines it describes; a design step with no code has no test that reads the document.
+- rule: a runbook sentence about a command, a variable, a condition or a placement is copied from the cited plan line (and from the code once it exists), never from memory; name the line in the work log. A launch checklist points at the plan's step letters instead of restating them in part.
+- proof: `grep -c "MOP_DB_PRODUCTION" app/docs/coming-soon.md` → 2 or more; `grep -c "MOP_LAUNCHED" app/docs/coming-soon.md` → 1 or more.
+- added: 2026-10-04
+
+## P-1301 · A focus-ring note written from the design intent, not from the cascade, names an invisible ring
+- symptom: the first `docs/coming-soon.md` said the notice's focus ring is "the site's `:focus-visible` outline in `--foreground`". The site rule is `outline: 1px solid currentColor; outline-offset: 4px` (`src/styles/base.css`), nothing overrides it, and a filled `.button` has `color: var(--background)`, so the ring on the filled `Allow` button would be Ivory on the Ivory footer, 1:1, invisible. A fresh review caught it; a builder following the note would have shipped it.
+- cause: the line described what the design wants, not what the stylesheet does. A docs-only step has no test that renders the control.
+- rule: a focus, colour or contrast note about a control is written from `grep -rn outline src/styles` and the control's own text and background colours, with the rule that fixes it named (file and property). When a note says a ring is visible, a step with code asserts it (computed outline colour differs from the background).
+- proof: `grep -c "outline-color: var(--foreground)" app/docs/coming-soon.md` → 1 or more.
+- added: 2026-10-04
+
+## P-1302 · Two sessions writing the same scratch file name overwrite each other, and the output read afterwards is from another tree
+- symptom: a B3b g2 review wrote `bun run check` output to `scratchpad/check.txt`; another session's check of the lane `E:/mop-build/tests` wrote to the same path. The file held `RUN  v5.0.2 E:/mop-build/tests/app` and `Failed to start forks worker for test files E:/mop-build/tests/app/tests/unit/...` interleaved with the reviewer's own `E:/mop-build/coming-review/app/...` lines and two `quiet: exit 1` trailers. The failed-test summary of the one-piece check was lost and the vitest stage ran again (about 8 minutes).
+- cause: the scratchpad is shared by sessions and a generic file name (`check.txt`) is the same path for all of them; a later write replaces or interleaves with an earlier one.
+- rule: scratch output file names carry the lane and group (`rv-<slice>-<group>-check.txt`), never a bare `check.txt` or `out.txt`. A result is read only after its `RUN ... <path>` line is checked to name your own tree; a path from another tree means the file is not yours, so rerun into a new name.
+- proof: `grep -m1 "RUN " rv-b3b-g2-check.txt` prints a path under your own worktree (the file name you chose, in the scratchpad); `ls $TMP | grep -c "^check.txt$"` prints 0 once you stop using the bare name.
+- added: 2026-10-04
+
+## P-1303 · Git Bash `/tmp` and node's `/tmp` are two different folders, so a path typed in the shell and handed to node writes nothing (ENOENT) or writes elsewhere
+- symptom: a B3b g1 builder wrote a file with a shell redirect to `/tmp/x` and then ran `node` with the same path in a script; node failed with `ENOENT` and nothing was written where the shell had put its file. The cost was a second attempt with a scratchpad path.
+- cause: Git Bash maps `/tmp` to `C:\Users\DELL\AppData\Local\Temp`; node on Windows resolves a leading `/` against the current drive, so `/tmp` is `E:\tmp` when the working tree is on E:. The two paths share a name only.
+- rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
+- proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
+- added: 2026-10-04
+
+## P-516 · The sizing agent returned two of ten plan steps; the run built them, merged, and ended as if the slice were done
+- symptom: B3b's run `wf_215f7901-b3a` sized g1 (step 1) and g2 (step 2) only; after both were accepted the final merge ran (`merge:B3b:all:1,2`, PR 118) and the workflow completed with steps 3 to 10 untouched and no error.
+- cause: the sizing prompt said "split the plan's ordered steps into groups" and nothing checked that every step landed in one; the schema (`groups[]`) accepts any count.
+- rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
+- proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
+- enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
+
+## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
+- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
+- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
+- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
+- added: 2026-10-04
+
+## P-1305 · A registry folder inside the shared session scratchpad already holds other reviewers' files, and `watchfail --registry <dir>` replays all of them
+- symptom: a B3b g3 reviewer made `reg/` in the session scratchpad; it already held `B8b.json` and `R.json` from parallel reviewers, so `watchfail --registry` replayed 71 entries in this worktree (`replayed 71: ok 16, bad 1, stale 54`), foreign file mutations included, and the reviewer's own `g3.json` could be picked up by theirs.
+- cause: the scratchpad belongs to the session, not to one worker, and `watchfail` replays every `*.json` in the folder it is given.
+- rule: a scratch registry lives in a folder only this run created, named by group and time (for example `reg-<group>-<epoch>`), and holds only this run's file; check `ls` of the folder before replaying.
+- proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
+- added: 2026-10-04
+
+## P-1700 · The B15 plan's `@/server/` and `@/domain/` imports do not resolve under vitest: server files import by relative `.ts` path
+- symptom: B15 g1's first `bunx vitest run tests/unit/omnikom/payload.test.ts` failed before any test ran: `Error: Cannot find package '@/domain/omnikom.ts' imported from E:/mop-build/handoff/app/src/server/omnikom/payload.ts`, although the plan's Files line says the `@/` specifiers resolve "through the app's tsconfig `@/*` alias in `bun run check`, vitest and `bun run scripts/...`".
+- cause: `vitest.config.ts` declares no `@` alias (only `vite.config.ts` does, for the site build), and no file under `src/server/jobs` or `src/server/automation` uses `@/` at all; R07 allows a relative `.ts` path as well.
+- rule: a Deno-loaded file (`src/server/{jobs,automation,omnikom,...}/**`, `src/domain/**`) imports by relative path with the `.ts` extension (`../lib/hmac.ts`, `../../domain/omnikom.ts`), whatever a plan line says about `@/`.
+- proof: `cd app && grep -c "alias" vitest.config.ts` → `0`; `git grep -n 'from "@/' -- src/server/jobs src/server/omnikom` → no hits; with `../lib/crypto.ts` put back as `@/server/lib/crypto.ts` in `src/server/omnikom/payload.ts` the test file fails with the error above (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1701 · A plan-named file that is not ordinary code fails the layout gate or knip: run both right after creating it
+- symptom: B15 g1's first `bun run check` stopped at `layout: app/tests/unit/omnikom/vector.json: outside the folder map`, the second at knip's `Unused files (1) docs/verify-example.mjs` and `Unused exports (1) classifyStatus`; each failure cost one full check run.
+- cause: `scripts/check-layout.mjs` lists `tests/unit/**/fixtures/**` but not a JSON beside the tests, knip's `entry` holds no `docs/` file, and an export only the file itself uses is unused for knip even when STANDARDS R34 asks for it to be exported.
+- rule: after creating a file the plan names, run `bun run layout && bun run knip` before the full check; add the smallest entry naming the file (ruling H46) and use an exported table in a test or do not export it.
+- proof: `cd app && bun run layout` exits 0 on slice/b15 at B15 g1; with the line `"tests/unit/omnikom/vector.json",` removed from `scripts/check-layout.mjs` it prints the error above.
+- added: 2026-10-04
+
+## P-1702 · A type error in your own file turns another slice's `tsc` registry entry into `BAD: wrong reason`: typecheck before a replay
+- symptom: B15 g1's review fix replayed `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit`; vitest was green and the new entries OK, but `WATCHED-FAIL BAD: wrong reason (B1b:aj)` printed `expected /TS2554/` with `src/server/omnikom/client.ts(38,35): error TS2345: Argument of type 'TextDecoderStream' is not assignable to parameter of type 'ReadableWritablePair<string, Uint8Array<ArrayBufferLike>>'`, and the whole replay (30 entries, several minutes) had to run again.
+- cause: vitest strips types, so a type error does not fail the tests; an entry whose `run` is `bun run typecheck` reads the first tsc error, which was ours. The error itself: a parameter typed `ReadableStream<Uint8Array>` is `Uint8Array<ArrayBufferLike>`, which `TextDecoderStream`'s `BufferSource` writable refuses; `Response["body"]` (`Uint8Array<ArrayBuffer>`) is accepted.
+- rule: run `bun run typecheck` before any registry replay; type a response stream as `Response["body"]`.
+- proof: `cd app && bun run typecheck` exits 0 on slice/b15; with `detailOf(body: ReadableStream<Uint8Array> | null)` in `src/server/omnikom/client.ts` it prints the TS2345 above (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1703 · `git merge origin/main` is refused while GOTCHAS.md (or any file main also changed) has uncommitted edits: commit the bank entry first, then merge
+- symptom: B15 g2's first merge of `origin/main` printed `error: Your local changes to the following files would be overwritten by merge: GOTCHAS.md` and `Aborting`, exit 1; nothing merged, and the group committed the entry first and merged second.
+- cause: a lane adds its bank entries in the same session it works, so GOTCHAS.md is usually dirty when the start-of-work merge runs, and main changes GOTCHAS.md on almost every merge. P-336 is a different failure (conflicts in `knip.json` and `.prettierignore` after a merge that did start); the GOTCHAS.md merge driver only runs for committed changes.
+- rule: run `git status --short` before `git fetch -q origin && git merge origin/main`; commit (or stash) every dirty file the merge would touch first, then merge, then `node workspace/05-plans/check-gotchas.mjs`.
+- proof: `d=$(mktemp -d) && cd "$d" && git init -q -b main . && git config user.email a@b && git config user.name x && echo a > f && git add f && git commit -qm a && git checkout -qb side && git checkout -q main && echo b > f && git commit -qam b && git checkout -q side && echo c > f && git merge main 2>&1 | grep -c "would be overwritten by merge"` → `1` (measured 2026-10-04); with `git commit -qam c` before the merge the merge starts instead.
+- added: 2026-10-04
+
 ## P-718 · A db test needs no Docker and no pushed migration: a native PostgreSQL 18 cluster restored from mop-dev's schema runs the whole `db` project, and `gen types` reads it
 - symptom: B9 g6 (steps 7 and 8) writes a migration and 15 SQL functions that may not reach `mop-dev` (H1, DB-01) and has no Docker (P-038). The P-312 route (the migration as `MOP_MUTATION_SQL` prelude on mop-dev) cannot run the two-connection claim test (`committed()` never applies the prelude, so the function does not exist in the committed session), hit `canceling statement due to lock timeout` while the live runner held `public.jobs` (one case, green on rerun), and cannot give `src/db/types.ts` the new table.
 - cause: a prelude lives only inside one rolled-back transaction of one connection, and the shared cloud database is busy.
@@ -2460,80 +2578,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -n "em dash character" src/server/assets/captions.ts` → one line; after that line two golden runs in a row passed lint (2026-10-04, B9 g7).
 - added: 2026-10-04
 
-## G-700 · A `timestamptz` read into a JS `Date` and passed back loses its microseconds, so an equality guard never matches
-- paths: app/tests/db/**
-- severity: warn
-- symptom: B8b g1's first `claim_schedule` case passed the fixture's `last_run_at` (read by `pg` as a `Date`) back as `p_old_last_run_at`; the guarded claim returned `false` (`"first": false, "nextMinutes": 1440`) although nothing else had touched the row.
-- cause: Postgres stores microseconds (`now()` has them), a JS `Date` holds milliseconds, and `last_run_at is not distinct from $1` compares the full value; the round trip truncates it.
-- rule: a test that hands a stored time back to SQL for an exact comparison reads it as text (`returning last_run_at::text`) and passes `$1::timestamptz`, or keeps the comparison in SQL; never a `Date`.
-- proof: `cd app && bun run db:psql -- -Atc "select now() = date_trunc('milliseconds', now())"` prints `f` (unless the clock lands on a whole millisecond); the case `a guarded claim moves both columns` in `tests/db/automation.db.test.ts` passes with the text form (measured 2026-10-04, B8b g1).
-- added: 2026-10-04
-
-## P-1600 · `scripts/stubs.ts` matches only `// STUB(`, so a SQL marker `-- STUB(...)` is invisible to the stubs gate
-- symptom: B8b g1 wrote `-- STUB(B8b step 6): unconditional write_audit` into seven function files as the plan words it (CS-11); `bun run stubs` still printed `stubs: 13 markers, 0 on closed slices` and `bun run stubs | grep -c automation_` printed `0`.
-- cause: the marker regex is `/\/\/ STUB\(([A-Za-z0-9-]+)(?: step [0-9a-z]+)?\): (.+)$/`; it scans `.sql` files but a SQL comment starts with `--`, so the line never matches. When B8b closes with step 6 undone, the gate would stay green.
-- rule: until `scripts/stubs.ts` accepts `-- STUB(`, a SQL stub is tracked by hand: the slice log names each file that carries it, and step 6 greps `git grep -n "STUB(B8b step 6)" -- app/supabase` to confirm none is left. The owner of `scripts/stubs.ts` (B1b) widens the regex to `(?:\/\/|--) STUB\(`.
-- proof: `cd app && git grep -c "STUB(B8b step 6)" -- supabase/sql/functions | wc -l` prints `7` while `bun run stubs | grep -c automation_` prints `0` (measured 2026-10-04, B8b g1).
-- added: 2026-10-04
-
-## P-1601 · A db test that reads a value in the same statement as the function that inserts it cannot see the new row
-- symptom: B8b g1's first run of `tests/db/automation.db.test.ts` was `Tests  2 failed | 20 passed (22)`. One red was G-700. The other was the case `automation_put_reason with a null id inserts the reason last with one revision`: the comparison with `max(sort)` was read in the same statement as the `automation_put_reason(null, ...)` call, which cannot see the row that call inserts.
-- cause: a statement reads the snapshot it started with, so a sibling read in the same `select` does not see what a function in that statement writes. The test, not the function, was wrong; the function inserted the row last.
-- rule: a case that asserts what a function wrote reads it in a separate statement after the call (`one(db, "select code as last ... order by sort desc, code limit 1")`), never as a subquery or expression beside the call. A first red on a write-then-read case is checked for this before the function is changed.
-- proof: `cd app && grep -n "order by sort desc, code limit 1" tests/db/automation.db.test.ts` finds the read as its own `db.query` after the call (line 352); with the migration as prelude (P-312), `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` (22 passed after the last test edit, B8b g1 log).
-- added: 2026-10-04
-
-## P-1602 · A dry pass of an unpushed migration (`begin; \i file; rollback`) can die with `deadlock detected` because another lane holds locks on the same tables
-- symptom: B8b g1 review ran the plan's dry pass of `20261004115859_automation.sql` through `bun run db:psql` and got `psql:supabase/migrations/20261004115859_automation.sql:119: ERROR: deadlock detected`, waiting for `ShareRowExclusiveLock` on `jobs` while another backend held `RowExclusiveLock` on `events`; a second try died at line 892 on `AccessExclusiveLock` on `auth.users`. The vitest prelude form passed at other moments.
-- cause: there is one database (H35) and lanes share it. Another session, most likely a lane running the same unpushed migration as a test prelude, held locks on `jobs`, `events` and `auth.users`; `alter table jobs add constraint` and the foreign key of `event_fanout_failures` to `events` take `ShareRowExclusiveLock`. It is a lock collision between sessions, not a defect in the SQL.
-- rule: when a dry pass reports `deadlock detected` and the other backend is not yours, do not edit the SQL: rerun it later, or prove it through the vitest prelude (P-312), and quote both attempts. Two deadlocks at different lines with another backend named is the signature; the same line failing alone on an idle database is a real defect.
-- proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_stat_activity where datname = current_database() and state <> 'idle' and pid <> pg_backend_pid()"` prints the number of other active sessions (non-zero while a lane is mid-test); `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` when the locks are free (measured 2026-10-04, B8b g1 review).
-- added: 2026-10-04
-- hit again: 2026-10-04, B3b g3 review: "the vitest prelude form passed at other moments" reads as a safe fallback and is not one while lanes run side by side: the prelude of `20261004155556_coming_soon.sql` deadlocked or timed out in 5 of 6 runs (see the hit on P-322). A pass of either form is evidence only for the moment it ran; quote every attempt, failures included.
-
-## P-916 · A db test that asserts another slice's table is absent goes red for good when that slice's migration reaches mop-dev
-- symptom: B8 step 8's case `returns backup null while schedule_settings is absent` (`app/tests/db/jobs.db.test.ts`, on main) gave `AssertionError: expected { absent: false, backup: null } to deeply equal { absent: true, backup: null }; Tests 1 failed | 41 skipped (42)`. B8b's `20261004115859_automation.sql` created `schedule_settings` on mop-dev, so the author's `Tests 42 passed (42)` no longer reproduces and the case's `B8.json` entry goes red whether or not it is mutated.
-- cause: the case guards its result with `to_regclass('public.schedule_settings') is null`, a fact about another lane's migration, not about the function under test. There is one database (H35) and main pushes every lane's migration to it, so the fact changes without a change to this file.
-- rule: a db test asserts the behaviour of the code under test, never whether a table of another slice exists. For the `backup` read, assert the value taken from the `schedule_settings` backup row when the table exists; a case that must run before a foreign table exists is UNPROVEN in the log, not a permanent assertion.
-- proof: `cd app && git grep -n "to_regclass(.*is null" -- tests/db | cut -c1-120` → lists every such absence check (on 2026-10-04: `jobs.db.test.ts:942` for `schedule_settings` and `retention.db.test.ts:657` for `email_messages`; the second is not run, it is the same shape); `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/jobs.db.test.ts -t 'schedule_settings is absent'` (dev profile loaded) → `Tests 1 failed | 41 skipped (42)` while the table exists.
-- added: 2026-10-04
-
-## P-1300 · A runbook that restates a plan sequence from memory contradicts the plan, and the contradiction is a skipped production check
-- symptom: the first `docs/coming-soon.md` said `deploy.yml` runs the coming-soon assertion on every production deploy and listed the launch switch as complete. The plan runs the step only when `vars.MOP_DB_PRODUCTION == 'true'` (set by `gh variable set MOP_DB_PRODUCTION --body true` in L1 step 1g) and adds `--after-launch` when `MOP_LAUNCHED` is true (L1 step 4e). An operator following the doc would never set the variable and the assertion would be skipped silently. The same doc placed `IllustrativeNotice` at the foot of two pages where the plan puts it wherever an illustrative property shows, and described `defaultFlags` as derived where the code holds a literal.
-- cause: the doc was written from a summary of the plan, not from the plan lines it describes; a design step with no code has no test that reads the document.
-- rule: a runbook sentence about a command, a variable, a condition or a placement is copied from the cited plan line (and from the code once it exists), never from memory; name the line in the work log. A launch checklist points at the plan's step letters instead of restating them in part.
-- proof: `grep -c "MOP_DB_PRODUCTION" app/docs/coming-soon.md` → 2 or more; `grep -c "MOP_LAUNCHED" app/docs/coming-soon.md` → 1 or more.
-- added: 2026-10-04
-
-## P-1301 · A focus-ring note written from the design intent, not from the cascade, names an invisible ring
-- symptom: the first `docs/coming-soon.md` said the notice's focus ring is "the site's `:focus-visible` outline in `--foreground`". The site rule is `outline: 1px solid currentColor; outline-offset: 4px` (`src/styles/base.css`), nothing overrides it, and a filled `.button` has `color: var(--background)`, so the ring on the filled `Allow` button would be Ivory on the Ivory footer, 1:1, invisible. A fresh review caught it; a builder following the note would have shipped it.
-- cause: the line described what the design wants, not what the stylesheet does. A docs-only step has no test that renders the control.
-- rule: a focus, colour or contrast note about a control is written from `grep -rn outline src/styles` and the control's own text and background colours, with the rule that fixes it named (file and property). When a note says a ring is visible, a step with code asserts it (computed outline colour differs from the background).
-- proof: `grep -c "outline-color: var(--foreground)" app/docs/coming-soon.md` → 1 or more.
-- added: 2026-10-04
-
-## P-1302 · Two sessions writing the same scratch file name overwrite each other, and the output read afterwards is from another tree
-- symptom: a B3b g2 review wrote `bun run check` output to `scratchpad/check.txt`; another session's check of the lane `E:/mop-build/tests` wrote to the same path. The file held `RUN  v5.0.2 E:/mop-build/tests/app` and `Failed to start forks worker for test files E:/mop-build/tests/app/tests/unit/...` interleaved with the reviewer's own `E:/mop-build/coming-review/app/...` lines and two `quiet: exit 1` trailers. The failed-test summary of the one-piece check was lost and the vitest stage ran again (about 8 minutes).
-- cause: the scratchpad is shared by sessions and a generic file name (`check.txt`) is the same path for all of them; a later write replaces or interleaves with an earlier one.
-- rule: scratch output file names carry the lane and group (`rv-<slice>-<group>-check.txt`), never a bare `check.txt` or `out.txt`. A result is read only after its `RUN ... <path>` line is checked to name your own tree; a path from another tree means the file is not yours, so rerun into a new name.
-- proof: `grep -m1 "RUN " rv-b3b-g2-check.txt` prints a path under your own worktree (the file name you chose, in the scratchpad); `ls $TMP | grep -c "^check.txt$"` prints 0 once you stop using the bare name.
-- added: 2026-10-04
-
-## P-1303 · Git Bash `/tmp` and node's `/tmp` are two different folders, so a path typed in the shell and handed to node writes nothing (ENOENT) or writes elsewhere
-- symptom: a B3b g1 builder wrote a file with a shell redirect to `/tmp/x` and then ran `node` with the same path in a script; node failed with `ENOENT` and nothing was written where the shell had put its file. The cost was a second attempt with a scratchpad path.
-- cause: Git Bash maps `/tmp` to `C:\Users\DELL\AppData\Local\Temp`; node on Windows resolves a leading `/` against the current drive, so `/tmp` is `E:\tmp` when the working tree is on E:. The two paths share a name only.
-- rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
-- proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
-- added: 2026-10-04
-
-## P-516 · The sizing agent returned two of ten plan steps; the run built them, merged, and ended as if the slice were done
-- symptom: B3b's run `wf_215f7901-b3a` sized g1 (step 1) and g2 (step 2) only; after both were accepted the final merge ran (`merge:B3b:all:1,2`, PR 118) and the workflow completed with steps 3 to 10 untouched and no error.
-- cause: the sizing prompt said "split the plan's ordered steps into groups" and nothing checked that every step landed in one; the schema (`groups[]`) accepts any count.
-- rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
-- proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
-- enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
-- added: 2026-10-04
-
 ## P-726 · A reviewer cannot find the author's throwaway cluster: P-718's proof names a port, not the data directory, and the port is closed once the author stops the server
 - symptom: the g6 reviewer ran P-718's proof and `pg_isready -h 127.0.0.1 -p 55432` answered `no response` (exit 2). The scratchpad held four PostgreSQL 18 clusters (`pg`, `pgd`, `pgdata`, `pgrace`) and the entry named none, so the reviewer searched for `PG_VERSION` files and read each `postmaster.opts` until one named `-p 55432`.
 - cause: P-718 says how to build the cluster and which port it listens on, not where its data directory is, and a stopped server leaves nothing to ask. A reviewer who connects to the author's running cluster would also share its database, so a proof would no longer be independent.
@@ -2560,20 +2604,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the case builds `Math.floor(Date.now() / 1000) - 299`, the floor loses up to 999 ms, and `render.ts` measures the age in milliseconds against `MAX_AGE_SECONDS = 300`, so a slow call crosses the limit. The file is B8's, not B9's.
 - rule: a time-limit test holds the clock (`vi.useFakeTimers` with a fixed system time) or sits well inside the limit (298 s or less); never one second from it on a laptop that runs several lanes. B9 did not touch the file: B8's owner changes it.
 - proof: `cd app && bunx vitest run --project unit tests/unit/jobs/render-hook.test.ts` passes alone and can fail inside `bun run check` while other lanes load the machine (measured 2026-10-04, B9 g7 review).
-- added: 2026-10-04
-
-## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
-- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
-- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
-- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
-- added: 2026-10-04
-
-## P-1305 · A registry folder inside the shared session scratchpad already holds other reviewers' files, and `watchfail --registry <dir>` replays all of them
-- symptom: a B3b g3 reviewer made `reg/` in the session scratchpad; it already held `B8b.json` and `R.json` from parallel reviewers, so `watchfail --registry` replayed 71 entries in this worktree (`replayed 71: ok 16, bad 1, stale 54`), foreign file mutations included, and the reviewer's own `g3.json` could be picked up by theirs.
-- cause: the scratchpad belongs to the session, not to one worker, and `watchfail` replays every `*.json` in the folder it is given.
-- rule: a scratch registry lives in a folder only this run created, named by group and time (for example `reg-<group>-<epoch>`), and holds only this run's file; check `ls` of the folder before replaying.
-- proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
 - added: 2026-10-04
 
 ## P-730 · A review defect asked for the seed to run against mop-dev, and ruling H57 (1) forbids it: prove the upload mode against a local fake Storage

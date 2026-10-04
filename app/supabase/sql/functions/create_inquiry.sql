@@ -12,10 +12,11 @@ begin
   -- `state` and `received_at` keep their defaults; the payload names only what the visitor and the request gave.
   insert into public.inquiries as i (
     intent, topic, subject_kind, subject_slug, subject_title, name, email, phone, location, message, details,
-    source_path, ip_hash, turnstile_ok
+    source_path, ip_hash, turnstile_ok, attribution
   ) values (
     v.intent, v.topic, v.subject_kind, v.subject_slug, v.subject_title, v.name, v.email, v.phone, v.location,
-    v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false)
+    v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false),
+    coalesce(p->'attribution', '{}'::jsonb)
   )
   returning i.id, i.received_at into v_id, v_received_at;
   -- G49: the event commits or rolls back with the row.
