@@ -2823,3 +2823,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a new Playwright spec adds its own one-line project in `playwright.config.ts` (ruling H46), and a step that changes a file another slice creates is BLOCKED until that slice has merged: check `git ls-tree -r --name-only origin/main | grep <file>` before starting, never create the file.
 - proof: `cd app && grep -n "inquiry-forward" playwright.config.ts` → the project line; `git ls-tree -r --name-only origin/main | grep -cE "admin-inquiries|InquiryDrawer"` → `0` (measured 2026-10-05, B15 g5).
 - added: 2026-10-05
+
+## P-1710 · `bun run script.ts` does not typecheck, and a `( ... ) &` subshell started inside a Bash call dies when the call moves to the background
+- symptom: B15 g6's `scripts/omnikom-send-test.ts` ran every proof green with an unused `deliveryId` import; `bun run check` then failed `error TS6133` after two minutes. The second `check` was started as a background subshell writing to a log inside a call that passed 120 s; the call moved to the background, the subshell went with it, the log stayed empty and two bounded waits (about 20 minutes) read nothing.
+- cause: bun strips types without checking them, so a script's proofs cannot show a type error; and the Bash tool's move to the background ends the whole call, including its own `&` children.
+- rule: run `bunx tsc --noEmit -p tsconfig.scripts.json` before the first proof of a new script, and start a long gate with the Bash tool's own `run_in_background` (then wait on its output file for the `quiet:` line), never with `( ... ) &` inside a foreground call.
+- proof: `cd app && bunx tsc --noEmit -p tsconfig.scripts.json` → exit 0 on a script with no unused import; the same command on a script with one prints `error TS6133` (measured 2026-10-05, B15 g6).
+- added: 2026-10-05
