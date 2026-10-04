@@ -328,3 +328,7 @@ Proof 5, gates in `app/`: `bun run check` exit 0 twice (second run after the `.h
 UNPROVEN: the e2e rows (f), (r) (g6); the production `grep -ci illustrative` of step 7 (P-1313); a published open market with a photograph (no seed row has one under `--images skip`); `Gallery` and `Representation` status wording has no test of its own (the plan lists none).
 
 Bank: P-1311 to P-1314 added; P-066, P-094, P-008 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 282 process entries)`.
+
+## g4 · follow-ups recorded
+
+The review of g4 (steps 4,5) found no blocking defect. One follow-up was a cost with no bank entry and is banked as hit-again lines on P-818 and P-079 (no new number: the lessons were already held). The other 7 follow-ups are in `logs/B3b-followups.md` under "## g4 · steps 4,5" for the orchestrator to fold or assign. No code changed. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 295 process entries)`.
