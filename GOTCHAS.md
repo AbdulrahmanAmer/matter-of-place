@@ -686,6 +686,7 @@ Entry template
 - cause: `bunx` uses the dependency of the folder it runs in; outside `app/` there is none and it fetches the newest release. The runbook was the only place that said which one is pinned.
 - rule: an exact version goes into `devDependencies` and the runbook table names it; every plan command that runs the tool starts in `app/`. A mismatch between the plan's number and what a clean resolve gives is recorded in the runbook and in this bank, and the pin moves only through Dependabot with the proofs re-run.
 - proof: `cd app && bunx wrangler --version` → `4.145.0`; the same command in an empty scratch folder → `4.146.0` (2026-10-02).
+- hit again: 2026-10-04, B8 g4 (P-908): a scratch worktree has no `node_modules`, so `bunx supabase functions deploy` fetched a CLI that rejects `config.toml` (`'db' has invalid keys: orioledb_version`); the installed `app/node_modules/.bin/supabase` of a tree that ran `bun install` has the pinned version.
 - added: 2026-10-02
 
 ## P-078 · A plan line can contradict STANDARDS (a body shape, where a file's logic goes, the clauses a gate asserts): STANDARDS binds, and the plan line gets named
@@ -803,6 +804,7 @@ Entry template
 - hit again: 2026-10-04, B14 g1 fix: a leading `python - <<'EOF'` before a `node -e` hung 120 seconds; the node edit ran only after the python process was killed by its process id, and the Edit calls made meanwhile duplicated an import. After a hung call read `git diff` before editing again.
 - hit again: 2026-10-04, B3 g5 repair round (second hit of the same group): a stray interactive `python -` ran again in the repair commit's session; the first round's hit is above. The repair commit `a2f4cb3` changed this entry not at all, so the review counted the cost as unbanked. The hook that refuses `(^|[;&|] *)python3? +-( |$)` is still the open mechanism (see the B3 c3 line).
 - added: 2026-10-02
+- hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -985,6 +987,7 @@ Entry template
 - rule: a db test, `bun run test:db` or any script that calls `guardEnv()` (`scripts/dev-vars.mjs` too: B3's step 1 proof `node scripts/dev-vars.mjs` refuses in the default shell with `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`, and `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node scripts/dev-vars.mjs` prints `wrote .dev.vars (8 keys)`, measured 2026-10-03, B3 g1 review) runs from `app/` as `eval "$(node scripts/load-env.mjs --profile dev)"`, then `env -u CLOUDFLARE_API_TOKEN <command>`, in that order. The inline loader is for commands that are not db tests. Never weaken the guard or unset the name in a config file; unsetting `.env` values never helps. When vitest prints `No test files found` for a path that exists, read the `Error:` line first. Still open for the orchestrator (checked 2026-10-03): `.claude/workflows/build-slice.js` line 90 and `.claude/agents/mop-builder.md` line 41 still print the inline loader.
 - hit again: 2026-10-04, B3 g5: the task preamble's inline loader (`set -a; . <(tr -d '\r' < .env | grep ...)`) exports `PROD_*` and `SUPABASE_ACCESS_TOKEN`, so the first `bunx vitest run --project db tests/api/parity.api.test.ts` printed `refusing: ops variables in this shell`; `eval "$(node scripts/load-env.mjs --profile dev)"` then `env -u CLOUDFLARE_API_TOKEN` ran it green. The preamble line is for commands that are not db tests; a db proof names the profile loader.
 - added: 2026-10-03
+- Hit again 2026-10-04, B8 g5 review: the review brief's standing rule sourced the whole `.env`, so the first db run printed `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` at `scripts/lib/guard-env.mjs:16`; the db proofs ran only after `eval "$(node scripts/load-env.mjs --profile dev)"` in a fresh shell. The same brief says to run `plan-brief.mjs` from `E:/mop-build/ops` and forbids any command there (the reviewer ran it from the snapshot, the same commit; B8-followups.md, g4 item 6). The loader line of the standing rules in `.claude/workflows/build-slice.js` is still the inline one.
 
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
 - symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
@@ -1235,6 +1238,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - merged: P-824
 - hit again: 2026-10-04, B3 g5: the review brief again named `E:/mop-build/api` for `node workspace/05-plans/plan-brief.mjs B3 ...` and forbade running anything there except snapshot create and remove; the reviewer ran the tool from the snapshot (same commit) instead. The reviewer of that group found the second entry (P-824) a duplicate of this one and the bank map says a repeat is a line here: P-824 was folded in on 2026-10-04. Same fix: the brief names the snapshot folder for `plan-brief.mjs`, `standards-index.mjs` and `check-gotchas.mjs`, and the lane folder only for snapshot create and remove. Extra proof: `grep -n "import.meta.url" workspace/05-plans/plan-brief.mjs` → line 19, the plan is read next to the script, so the snapshot's copy reads the snapshot's plan.
 - added: 2026-10-03
+- hit again: 2026-10-04, B8 g3 review: the brief says to run `node workspace/05-plans/plan-brief.mjs ...` from E:/mop-build/ops and, in the same brief, never to read, run or write anything there while the next builder works; the reviewer ran it in the snapshot E:/mop-build/ops-review (plan at 130e073) and it printed `plan-brief: 102482 characters`, exit 0. The template in `.claude/workflows/build-slice.js` is still not fixed; that is the orchestrator follow-up of P-320 and P-706.
 
 ## P-090 · A code change moves the `find` of older registry entries, and nothing says so until a replay
 - symptom: in the B1b g4 close-out, three older entries of `tests/mutations/B1b.json` (`h`, `u-message`, `sentry-non-string`) stopped matching once `deps.render` took the request id; in the next fix round four more (`u`, `pipe-guard-off`, `pipe-guard-path`, `pipe-guard-html`) stopped once the guard took a boolean. Each was found late and rewritten, a cost listed in the round's report with no bank entry; a reviewer counted that as a defect.
@@ -1430,6 +1434,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-03, B3 g1 review: `bun run check` failed in its vitest stage (`Test Files  39 passed ... Errors  1 error ... Failed to start forks worker for test files .../tests/unit/analytics.test.ts`, exit 1) while other lanes ran; `bun run test` alone then passed 40 of 40, exit 0.
 - added: 2026-10-03
 - hit again: 2026-10-03, B9 g5: `bun run typecheck` plus `eslint` plus three render runs in one call passed the 120 s foreground limit and moved to the background; split them into calls under 100 s.
+- hit again: 2026-10-04, B8 g3 review: `bun run check` failed only in its vitest stage (`Error: [vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts ... Timeout waiting for worker to respond`, exit 1) while other lanes ran; `bun run test` alone then gave `Test Files  65 passed (65)`, exit 0.
 
 ## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
 - paths: app/supabase/sql/functions/**, app/supabase/migrations/**
@@ -1533,6 +1538,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the check reads the path before the `cd` takes effect, so `../x` resolves from the session folder (`E:\Matter Of Place`) to the drive root.
 - rule: give `rm` absolute paths only (`rm /e/mop-build/api/app/src/routes/spike.tsx`), and write scratch output (curl bodies, wrangler logs) into the session scratchpad, never into the lane folder.
 - proof: `rm /e/mop-build/api/spike-page.txt` removed the file that `rm ../spike-page.txt` was refused for (2026-10-03, B3 g1).
+- hit again: 2026-10-04, B8 g5: `cd app && ... > ../../ops-scratch-head.sql; ...; rm ../../ops-scratch-head.sql` was refused as `E:ops-scratch-head.sql` and the whole command did not run; the head went into the session scratchpad with Write instead.
 - added: 2026-10-03
 
 ## P-802 · B3 step 1 says B2's generated types "exist by now", but `src/db/types.ts` is only on `origin/slice/b2` until B2 merges
@@ -1993,6 +1999,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
 - hit again: 2026-10-04, B3 g6: the first `bun run knip` printed unused exported types in `events.ts`, and the group's log listed it as covered by this entry, but this entry carried no hit-again line (found by the g6 reviewer). Every other cost the g6 log names got one; a cost a log cites is banked only when the cited entry names the hit.
 - added: 2026-10-04
+- hit again: 2026-10-04, B8 g3: `runner.ts` exported the interface `JobOutcome`, used only inside the file as a member of the exported `RunSummary`; `bun run check` stopped at knip with `Unused exported types (1)  JobOutcome  interface  src/server/jobs/runner.ts:45:18`. A type that an exported type uses needs no `export` of its own; run `bun run knip` before the full check.
 
 ## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
 - severity: warn
@@ -2065,4 +2072,83 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `email_templates` is created by B8b's `automation.sql` (steps 1 to 5), which the landing order puts before B5 (B5.md, line 5 of the wave 3 landing order); B8 is still at step 1 in review and B8b has not started. The brief of g2 was computed from "what can run beside B3 and B8" and did not check the Depends-on line. Creating the table in B5's file would give two writers one table and a duplicate `create table` when B8b lands (H46, one writer per file).
 - rule: a schema group starts only after every table it alters or seeds is on `origin/main`; check with `git grep -n "create table public.<name>" origin/main -- app/supabase/migrations` before building, and report BLOCKED with the missing slice named instead of creating the table.
 - proof: `git grep -c "email_templates" origin/main -- app/supabase app/src/db/types.ts` → no output (exit 1) until B8b step 1 lands.
+- added: 2026-10-04
+
+## P-902 · B8's TypeScript groups (steps 3 and 4 on) cannot start before B3 merges, and their RPC calls cannot typecheck before B8's own migration is in `src/db/types.ts`
+- symptom: B8 g3 (steps 3 and 4) was dispatched on slice/b8 while B3 was still building. `origin/main` has none of the B3 files the steps import: `src/server/lib/db.ts` (`Db`), `errors.ts` (`AppError`, R09), `media-store.ts` (the shared `storage_unavailable` error), `tests/fixtures/fake-db.ts` (`fakeDb`, R50), and `src/server/lib/events.ts`, whose stub step 3 replaces (not even on `origin/slice/b3` yet). B3's `fakeDb` types its `rpc` option by `keyof Database["public"]["Functions"]`, and `src/db/types.ts` holds none of `claim_job`, `finish_job`, `fail_job`, `requeue_job`, `enqueue_job`, `emit_event`, because B8's migration reaches mop-dev only after B8 merges (H1 (a)). So `claim.ts`, `jobs.ts`, `events.ts`, the runner and their tests cannot pass `bun run check` without a cast the strict lint refuses or a hand edit of a generated file.
+- cause: the plan's "Depends on: B3" line is honoured per slice, not per group: the workflow started B8 because g1 (SQL only) needed B2 alone. And a lane's generated types lag its own migrations (P-327), which for a slice whose TypeScript calls its own new functions is a circle that only the writer rule can break.
+- rule: before a B8 group that writes TypeScript starts, check `git ls-tree --name-only origin/main app/src/server/lib/ app/tests/fixtures/` lists `db.ts`, `errors.ts`, `media-store.ts`, `events.ts` and `fake-db.ts`, and that `git grep -c claim_job -- app/src/db/types.ts` is not 0; if either fails, build only the pure files with no import from them (here `backoff.ts`, `hmac.ts`, `.env.example`) and report BLOCKED naming the missing pieces. The types gap closes when B8 becomes mop-dev's schema writer (after B3 merges) and pushes its migration, or when the orchestrator rules another way; never hand-edit `src/db/types.ts` and never type an RPC client loosely to get past it.
+- proof: `cd app && git ls-tree --name-only origin/main src/server/lib/ | tr '\n' ' '` → `crypto.ts error-page.ts headers.ts log-events.ts log.ts pipeline.ts sentry.ts` and `git grep -c "claim_job\|enqueue_job" -- src/db/types.ts` → no output (0 matches) on slice/b8 at 2026-10-04 00:37 +0300; `git ls-tree --name-only origin/slice/b3 app/tests/fixtures/ | grep -c fake-db` → `1`.
+- added: 2026-10-04
+
+## P-903 · A refuse case checked against a fixed signature cannot catch a signer that drops one input: the mutation changes the fixed signature too
+- symptom: B8 g3's first replay of `hmac.test.ts` gave `WATCHED-FAIL BAD: wrong reason (B8:hmac-timestamp)` and `(B8:hmac-body)`: with the timestamp (or the body) left out of the signed message, "refuses another timestamp" stayed green, because the mutated `verifyBody` computed a signature that differed from the hard-coded vector whatever the timestamp.
+- cause: the refuse cases compared against the contract vector's fixed `sha256=` value, which a signer that ignores an input no longer produces, so every input "fails" for the wrong reason.
+- rule: keep one case that signs and one that accepts the fixed vector (the contract with the other side); write every refuse case on a signature made by the module under test in the same case, changing exactly one input, so a signer that ignores that input accepts it and the case goes red.
+- proof: `cd app && bunx vitest run --project unit tests/unit/jobs/hmac.test.ts` → `Tests  8 passed (8)`; the registry entries `hmac-timestamp` and `hmac-body` of `tests/mutations/B8.json` replay `WATCHED-FAIL OK` (measured 2026-10-04, B8 g3).
+- added: 2026-10-04
+
+## P-904 · After `git merge origin/main` a lane's `node_modules` lacks what main added: `bun run check` fails typecheck on a module that is in `package.json`
+- symptom: B8 g3's first `bun run check` exited 2 in `tsc -p tsconfig.scripts.json` with `scripts/lib/shoot.mjs(8,23): error TS2307: Cannot find module 'puppeteer-core'`; `package.json` on the merged branch lists `"puppeteer-core": "^25.12.0"`.
+- cause: B9 added the dependency on `main`; the merge brought `package.json` and `bun.lock`, not the installed package.
+- rule: after every merge of `origin/main` into a lane, run `bun install --frozen-lockfile` in `app/` before the first `bun run check` whenever `git diff --name-only HEAD@{1} HEAD -- app/package.json app/bun.lock` prints a name.
+- proof: `cd app && bun install --frozen-lockfile` → `+ puppeteer-core@25.12.0 ... 23 packages installed`, then `bun run typecheck` exits 0 (measured 2026-10-04, B8 g3).
+- added: 2026-10-04
+
+## P-905 · B3's `fakeDb` answers `from(name).select()` with every registered row and has no filter method: a service that reads with `.eq`, `.in`, `.or` or `.order` throws `is not a function` in its unit test
+- symptom: B8 g3's runner reads `run_local` for one batch with `db.from("jobs").select("id, run_local").in("id", ids)` (ruling H34 (2): a local job's message is dropped before any claim). `fakeDb`'s `from` returns `{ select: () => Promise }`, so `.in` on that promise is `undefined` and the call throws `TypeError`.
+- cause: `tests/fixtures/fake-db.ts` (B3 step 1) models RPCs fully and tables as one unfiltered `select`; no service on main read a table with a filter before B8. `fake-db.ts` is B3's file, so a lane may not extend it (one writer per file).
+- rule: prefer an RPC for a server read a unit test must fake. When a filtered table read is the right call, the test file wraps its own `fakeDb` with `Object.assign(db, { from })`, records the call in `db.calls`, and answers only the chain the code uses (`tests/unit/jobs/runner.test.ts`, `setup`); no cast is needed because the result is an intersection. B8 step 9's `listJobs` (`.or(entityJobsFilter(...)).order(...).limit(...)`) meets the same wall: a filter chain in `fake-db.ts` itself is B3's or the orchestrator's change.
+- proof: `cd app && grep -c "select: () => Promise.resolve" tests/fixtures/fake-db.ts` → `1`; `bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t "run_local job"` → `1 passed` with the wrapper, and the registry entry `bj` replays `WATCHED-FAIL OK` (2026-10-04, B8 g3).
+- added: 2026-10-04
+
+## P-906 · B8 step 4's proof list carries the `beat` case of step 6a, whose function is not in `src/db/types.ts` yet
+- symptom: the brief of B8 g3 (steps 3 and 4) asks `runner.test.ts` to prove "`beat('runner', { claimed })` is called once per `runOnce` ... and a failing `beat` RPC is logged once" (DO-03). `git grep -c "beat" -- app/src/db/types.ts` finds no `beat` function: the `ops_heartbeat.sql` migration that creates it is step 6a, so `db.rpc("beat", ...)` cannot typecheck (the RPC name is typed by the generated `Functions`, P-902), and `runner_beat_failed` is not in `LogEvent` (B1b's `log-events.ts`, not a g3 file).
+- cause: the plan's step 4 proof line lists every case `runner.test.ts` ends with, while step 6a's own text says it adds "the `beat('runner', ...)` call in the `finally` of `runOnce`".
+- rule: a proof list that names a case whose function, migration or log name another step creates belongs to that step: build the rest, leave the case and its watched-fail (aj) to the owning step, and say so in the log. Before writing a call to a new RPC, `git grep -n '"<name>":' -- app/src/db/types.ts`.
+- proof: `cd app && git grep -c '"beat":' -- src/db/types.ts` → no output (exit 1) on slice/b8 at B8 g3; `grep -n "^6a\." ../workspace/05-plans/B8.md | grep -c "beat('runner'"` → `1` (2026-10-04).
+- added: 2026-10-04
+
+## P-907 · B8 step 5's `deno check` is red on main until B3 step 3b lands: `deno.json`, `deno.lock` and `deno-portable.ts` live on slice/b3, and `db.ts` still has extensionless imports
+- symptom: `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` prints `TS2307 Cannot find module .../src/db` and `.../src/server/lib/env` at `src/server/lib/db.ts:2:31` and `:3:21`, then `TS7006 Parameter 'message' implicitly has an 'any' type` at `runner.ts:227` (the any comes from the unresolved `Database`). `supabase/functions/job-runner/deno.json` is not on main; the plan says B3 creates it.
+- cause: the runner's `import type { Db } from "../lib/db.ts"` pulls `db.ts` into Deno's graph, and B3's fix (`../../db/index.ts`, `./env.ts`) is only on `origin/slice/b3`. The sizing marks g4 `blocked: false`; the dependency is B3 step 3b merged, not B2.
+- rule: a group that points a check at a Deno entry needs B3 step 3b on main first (its `deno.json`, `deno.lock`, the `.ts` fix of `db.ts`). Until then g4 carries a byte-identical copy of B3's `deno.json` and `deno.lock` (an identical add merges clean) and the check is UNPROVEN on main. `src/server/lib/env.ts` is loaded by the graph and is fine: only `db.ts` is the blocker. The deploy itself works, because Deno erases a type-only import at run time.
+- proof: `cd app && git show origin/slice/b3:app/src/server/lib/db.ts > src/server/lib/db.ts && deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts; echo $?; git checkout -- src/server/lib/db.ts` → `0` (and `3 errors` without the first line).
+- added: 2026-10-04
+
+## P-908 · `supabase config push` does not compare `[functions.*]`, an Edge Function's `verify_jwt` travels with the deploy, and `bunx supabase` in a scratch worktree fetches another CLI version
+- symptom: step 5 says `bunx supabase config push` applies `[functions.job-runner] verify_jwt = false`; it printed `Nothing to push: the project already matches the declared properties` (scope api, auth, database, pooler, realtime, storage). From a scratch worktree `bunx supabase functions deploy` failed with `'db' has invalid keys: orioledb_version`.
+- cause: config push has no function scope; `functions deploy` reads the key from `config.toml`. The scratch worktree has no `node_modules`, so `bunx` fetched a different CLI that rejects this `config.toml` (P-077 again).
+- rule: prove `verify_jwt` with the deploy and a bearer-less `curl` (`401 unauthorized` from the function's own check, not Supabase's JWT `401`); run the CLI from a scratch worktree as `app/node_modules/.bin/supabase` of a tree where `bun install` has run (a lane's path is only the example: `/e/mop-build/ops/app/node_modules/.bin/supabase` exists on this laptop while the lane lives). The Supabase Edge deploy with `--use-api` did not reject a `deno.lock` whose zod integrity was altered (measured 2026-10-04), so the exact pins are the guard (ASSUMED E5).
+- proof: `curl -s -o /dev/null -w "%{http_code}" -X POST https://$DEV_SUPABASE_PROJECT_REF.supabase.co/functions/v1/job-runner` → `401` and with `-H "Authorization: Bearer $JOB_RUNNER_SECRET"` the body `{"claimed":0,"jobs":[]}`.
+- added: 2026-10-04
+
+## P-909 · `eslint .` cannot parse a new Deno entry under `supabase/functions/`: the app tsconfig does not include it
+- symptom: `eslint supabase/functions/job-runner/index.ts` prints `Parsing error: ... index.ts was not found by the project service. Consider either including it in the tsconfig.json or including it in allowDefaultProject` and `bun run check` is red on lint (B8 g4, 2026-10-04).
+- cause: lint is type-aware (R01, projectService) and `app/tsconfig.json` includes no `supabase/functions/**`, because Deno code has no Deno globals in the app's type environment. The fix in `eslint.config.js` (a block that extends `tseslint.configs.disableTypeChecked`, declares `Deno` and sets `projectService: false`) also switches off every type-checked rule for these files: `no-floating-promises` no longer runs there, and `deno check` does not catch a floating promise either.
+- rule: a new Deno entry needs that block and its `DENO_FILES` entry (H46) the moment it exists; a dropped `await` in a Deno file is caught only by review until a project block with Deno types replaces the disabled one (open follow-up of B8 g4).
+- proof: `cd app && node_modules/.bin/eslint supabase/functions/job-runner/index.ts; echo $?` → `0`; with `eslint.config.js` taken from the commit before 82600a5 (`git show 82600a5~1:app/eslint.config.js`) the same command prints `was not found by the project service` (watched, 2026-10-04).
+- added: 2026-10-04
+
+## P-910 · A lane's code that calls an RPC of its own unmerged migration cannot typecheck: `gen:types` reads mop-dev, which lacks the function
+- symptom: B8 g5 (step 6a) had to call `db.rpc("beat", ...)` in `runner.ts` and `db.rpc("ops_health", ...)` in the hook, and register both in `fakeDb`; `src/db/types.ts` had neither (`git grep -c '"beat":' -- app/src/db/types.ts` → no output), so the calls and the fakes are type errors. Ruling H57 forbids pushing the migration from the lane, `gen:types -- --db` reads mop-dev (P-508), and `--local` needs CI's stack, which does not exist yet.
+- cause: the generator only reads a live schema; the only live schema is the one `main` pushed. P-906 moved the `beat` case to step 6a, but step 6a meets the same wall.
+- rule: add the new table and function entries to `src/db/types.ts` in the generator's own shape (alphabetical place, its quoting and spacing, `Returns: undefined` for `void`, `Returns: Json` for `jsonb`, an argument with a default as optional), say so in the log, and list the regeneration as UNPROVEN: after `main` pushes the migration, `bun run gen:types -- --db` must print `wrote src/db/types.ts` and `git diff --exit-code src/db/types.ts` must exit 0. A diff there means the hand entries were wrong and the regenerated file wins.
+- proof: `cd app && git grep -c '"ops_heartbeats": {\|"beat":\|"ops_health":\|"jobs_liveness":' -- src/db/types.ts` → `4` on slice/b8 at B8 g5 and `bun run typecheck` exits 0; after main's push, the regenerate-and-diff above (UNPROVEN on 2026-10-04).
+- added: 2026-10-04
+
+## P-911 · pg_cron 1.6.4 replaces a job of the same name, so "unschedule by name first" (F16) has no observable effect and its watched-fail stays green
+- symptom: B8 g5 removed `select cron.unschedule('job-runner') where exists (...)` from `20261004023709_job_cron.sql` and replayed the re-apply case of `tests/db/ops-health.db.test.ts` (the migration run twice in one transaction): `WATCHED-FAIL BAD: stayed green`. The case still found exactly one `job-runner` row.
+- cause: since pg_cron 1.3, `cron.schedule(job_name, schedule, command)` updates the existing job of that name instead of adding a second one; mop-dev runs `pg_cron` 1.6.4 (`select extversion from pg_extension where extname = 'pg_cron'`).
+- rule: keep the unschedule line where a plan requires it (B2's `analytics-partitions` and B8's cron migrations do), but do not register a watched-fail for it and do not claim a test proves it; the re-apply property (one row after two applies) is what the test asserts. A plan that wants a guard against an older pg_cron says so.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --file supabase/migrations/20261004023709_job_cron.sql --find "<the two unschedule lines>" --replace "" --run "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"re-applies to one row\"" --expect "× .*re-applies"` → `WATCHED-FAIL BAD: stayed green` (measured 2026-10-04, B8 g5).
+- added: 2026-10-04
+
+## G-350 · In PL/pgSQL, `text[] || 'literal'` reads the literal as an array and raises `malformed array literal`
+- paths: app/supabase/sql/functions/**
+- severity: warn
+- symptom: B8 g5's first `ops_health` built its list with `v_failing := v_failing || 'runner'` and the probe on mop-dev raised `ERROR:  malformed array literal: "runner"` with `DETAIL:  Array value must start with "{" or dimension information.`
+- cause: `||` has both `anyarray || anyelement` and `anyarray || anyarray`; an untyped string literal resolves to the array form, so Postgres parses `'runner'` as an array literal.
+- rule: append to an array with `array_append(v_list, 'name')` (or cast the literal, `'name'::text`); never `v_list || 'name'`.
+- proof: `cd app && bun run db:psql -- -Atc "select array['a'] || 'b'"` → `ERROR:  malformed array literal: "b"`; `select array_append(array['a'], 'b')` → `{a,b}` (measured 2026-10-04, B8 g5).
 - added: 2026-10-04

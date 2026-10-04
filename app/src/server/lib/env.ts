@@ -17,6 +17,8 @@ const shape = z.object({
   SENTRY_DSN: text.optional(),
   MEDIA_PUBLIC_BASE: z.string().url().optional(),
   RESEND_WEBHOOK_SECRET: text.optional(),
+  // Path token of the ops-health hook; unset, the hook answers 404 (DO-03).
+  OPS_HEALTH_TOKEN: text.optional(),
   CATALOG_VERSION_TTL_MS: z.coerce.number().int().nonnegative().optional(),
 });
 

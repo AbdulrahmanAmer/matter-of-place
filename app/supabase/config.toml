@@ -392,6 +392,10 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# pg_cron calls the runner with its own bearer secret, not a Supabase JWT (JOB_RUNNER_SECRET).
+[functions.job-runner]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

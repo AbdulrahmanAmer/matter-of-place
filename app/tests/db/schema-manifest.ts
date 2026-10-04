@@ -492,6 +492,11 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     data: "jsonb?",
     actor_id: "uuid?",
   },
+  ops_heartbeats: {
+    name: "text",
+    at: "timestamptz",
+    detail: "jsonb?",
+  },
 };
 
 /** Every money column, each `numeric(12,2)` (STANDARDS R24); a table with a currency column checks it is USD. */
@@ -619,4 +624,5 @@ export const notPii = [
   "retention_policies.table_name",
   "decline_reasons.email_paragraph",
   "job_events.message",
+  "ops_heartbeats.name",
 ];

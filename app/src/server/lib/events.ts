@@ -1,43 +1,54 @@
+import type { Json } from "../../db/index.ts";
 import type { Db } from "./db.ts";
-import { logLine } from "./log.ts";
+import { AppError } from "./errors.ts";
 
-// The event catalog of architecture 3.6, the same list as the check on `events.type` (B8's jobs migration).
-// Writes that start an automation emit inside their SQL function (G20); this module is the one import for
-// server code that runs outside such a transaction.
+/** The event catalog of architecture 3.6, the same list as the check constraint on `events.type`. */
+export const catalogEventTypes = [
+  "submission.received",
+  "submission.declined",
+  "submission.accepted",
+  "submission.awaiting_assets",
+  "invoice.issued",
+  "payment.marked",
+  "submission.activated",
+  "property.published",
+  "property.unpublished",
+  "asset.approved",
+  "asset.rejected",
+  "digest.due",
+  "inquiry.received",
+  "subscriber.created",
+  "subscriber.confirmed",
+  "invoice.voided",
+  "health.failed",
+  "subject_request.received",
+] as const;
 
-/** @public */
-export type CatalogEventType =
-  | "submission.received"
-  | "submission.declined"
-  | "submission.accepted"
-  | "submission.awaiting_assets"
-  | "invoice.issued"
-  | "payment.marked"
-  | "submission.activated"
-  | "property.published"
-  | "property.unpublished"
-  | "asset.approved"
-  | "asset.rejected"
-  | "digest.due"
-  | "inquiry.received"
-  | "subscriber.created"
-  | "subscriber.confirmed"
-  | "invoice.voided"
-  | "health.failed"
-  | "subject_request.received";
+export type CatalogEventType = (typeof catalogEventTypes)[number];
 
-/** @public */
-export interface CatalogEvent {
-  type: CatalogEventType;
-  entity: string;
-  entityId: string;
-  payload: Record<string, unknown>;
-  actorId?: string;
-}
-
-/** @public */
-// STUB(B8 step 3): emit_event RPC returning the event id
-export function emitEvent(_db: Db, event: CatalogEvent): Promise<string | null> {
-  logLine("info", "event_pending", { type: event.type, entityId: event.entityId });
-  return Promise.resolve(null);
+/**
+ * One catalog event from server code outside a transaction. A SQL write function emits its own event inside
+ * its transaction, and no TS code emits one that a SQL function already emits (G20). Returns the event id.
+ */
+export async function emitEvent(
+  db: Db,
+  event: {
+    type: CatalogEventType;
+    entity: string;
+    entityId: string;
+    payload: { [key: string]: Json | undefined };
+    actorId?: string;
+  },
+): Promise<string> {
+  const { data, error } = await db.rpc("emit_event", {
+    p_type: event.type,
+    p_entity: event.entity,
+    p_entity_id: event.entityId,
+    p_payload: event.payload,
+    ...(event.actorId === undefined ? {} : { p_actor_id: event.actorId }),
+  });
+  if (error !== null) {
+    throw new AppError("unavailable", undefined, "The job system did not answer (emit_event).");
+  }
+  return data;
 }
