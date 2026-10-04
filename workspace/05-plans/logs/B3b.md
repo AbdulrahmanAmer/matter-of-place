@@ -332,3 +332,23 @@ Bank: P-1311 to P-1314 added; P-066, P-094, P-008 hit again. `node workspace/05-
 ## g4 · follow-ups recorded
 
 The review of g4 (steps 4,5) found no blocking defect. One follow-up was a cost with no bank entry and is banked as hit-again lines on P-818 and P-079 (no new number: the lessons were already held). The other 7 follow-ups are in `logs/B3b-followups.md` under "## g4 · steps 4,5" for the orchestrator to fold or assign. No code changed. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 295 process entries)`.
+
+## g6 · steps 8
+Started 2026-10-04 22:36 +0300. Main merged first: Already up to date. Files: `app/tests/e2e/coming-soon.spec.ts`, `app/tests/e2e/consent.spec.ts`, `app/tests/mutations/B3b.json` (20 manual entries, ids ending `-e2e`, the registry wiring of P-079; B4's e2e entries are manual too). Live build: `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`, `grep -rl "Program Files/Git" .output/server .output/public | wc -l` printed 0. Lane port 8878 (`E2E_PORT=8878`); `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` unset for every run (P-331).
+
+Plan defect, built as the plan's intent (P-1315): step 8 says no `img` inside `main` on `/california`; the market page lists story cards and rule 5 keeps their photographs, so the spec asserts `main img:not(.story-card img)`. Two other differences from the step text: the overlap case is skipped in `desktop` by design (the plan says the `phone` project), and `consentGranted()` is not reachable from the page, so the Global Privacy Control case observes it through `data.utm` of the `consent_set` envelope, with a control case (`an allowed choice sends the campaign attribution`).
+
+Proof 1: E2E_TARGET=built E2E_MODE=live E2E_PORT=8878 bun run test:e2e:coming-soon (run twice in a row, same output)
+  28 passed (45.1s)
+  coming_soon_global restored to false
+Proof 2: bun run db:psql -- -c "select value from settings where key = 'coming_soon_global'"
+   false
+Proof 3: select count(*) from subscribers where email like 'test+%@fixtures.invalid' -> 0
+Proof 4: E2E_TARGET=built E2E_MODE=live E2E_PORT=8878 bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone (twice)
+  1 skipped
+  15 passed (34.7s)
+Proof 5: bun run check exits 0 (48 lines, ok), bun run build exits 0.
+
+Watched-fail (a build per batch, all restored, git status clean afterwards; scratch runner outside the repository). Batch A, 15 source edits at once, red for the named reason: market card badge removed (home: Expected substring "Opening soon"), `properties.length === -1` (filter-bar count 1), market, guide and region images rendered whatever comingSoon says (<img src= printed), stories branch (story-card count 0, expected 6), `markets` dropped from interest-form (row markets differ), source changed (row source differs, batch B), property route throws (Expected 404, Received 500), Google img in Footer (www.google-analytics.com), consent.css fixed bottom 0 (notice sits in the footer: Expected value not "fixed"; phone overlap: bar 788 to 844 against notice 571 to 804), `writeConsent` always true (analytics false case), `decided` against version + 1 (reload case), `setUtmConsent` line deleted (utm Received undefined), outline-color rule deleted (Expected not rgb(245, 242, 235)). The Global Privacy Control case stayed green in batch A because the same batch had deleted the utm line (a confound); alone in batch B it went red (Received + 13). Batch C: ComingSoon branch off the market page (california case red on the h2), `min-width: 2000px` (document scroll width 2000 against 1440 and 1560). Batch D: aria-label and placeholder off the email input (axe: new violations on /, /properties, /california/bay-area). A colour mutation (`.coming-soon { color: var(--background) }`) stayed green and was dropped.
+Not replayed by the tool: every entry is kind manual (a replay needs a rebuild), as B4's e2e entries are.
+Costs banked: P-1315, P-1316, P-1317; hit again P-1311, P-331, P-071, P-042.

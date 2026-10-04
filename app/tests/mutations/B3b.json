@@ -998,5 +998,205 @@
     "replace": "",
     "run": "bunx vitest run --project component tests/unit/illustrative-labels.test.tsx",
     "expect": "FAIL .*IllustrativeNotice > renders nothing"
+  },
+  {
+    "id": "b3b-badge-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/components/site/market-card.tsx",
+    "find": "open ? \"EDITORIAL DESK\" : t.comingSoon.badge",
+    "replace": "\"EDITORIAL DESK\"",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "home shows three market cards[\\s\\S]*Expected substring: \"Opening soon\""
+  },
+  {
+    "id": "b3b-filter-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "if (properties.length === 0) {",
+    "replace": "if (properties.length === -1) {",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "properties shows its title and no filter bar[\\s\\S]*locator\\('.filter-bar'\\)"
+  },
+  {
+    "id": "b3b-r-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.$market.index.tsx",
+    "find": "market.comingSoon || market.image === undefined ?",
+    "replace": "market.image === undefined ?",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "california shows its empty state with the form and no image[\\s\\S]*<img src="
+  },
+  {
+    "id": "b3b-r-guide-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.$market.guide.tsx",
+    "find": "market.comingSoon || market.image === undefined ?",
+    "replace": "market.image === undefined ?",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "the market guide has no image and one h1 reading California[\\s\\S]*<img src="
+  },
+  {
+    "id": "b3b-region-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.$market.$region.tsx",
+    "find": "market.comingSoon || region.image === undefined ?",
+    "replace": "region.image === undefined ?",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "a region shows its empty state with the form and no image[\\s\\S]*<img src="
+  },
+  {
+    "id": "b3b-stories-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.stories.index.tsx",
+    "find": "stories.length === 0 ?",
+    "replace": "stories.length >= 0 ?",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "stories lists the seeded stories under the global flag[\\s\\S]*locator\\('.story-card'\\)"
+  },
+  {
+    "id": "b3b-markets-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "markets: input.markets })",
+    "replace": "})",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "an interest signup creates one subscriber row for its market[\\s\\S]*\"markets\": Array"
+  },
+  {
+    "id": "b3b-source-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "if (scope === \"market\" && market !== undefined) return `interest:${market.slug}`;",
+    "replace": "if (scope === \"market\" && market !== undefined) return \"interest:market\";",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "an interest signup creates one subscriber row for its market[\\s\\S]*\"source\": \"interest:california\""
+  },
+  {
+    "id": "b3b-404-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.property.$slug.tsx",
+    "find": "if (!property) throw notFound();",
+    "replace": "if (!property) throw new Error(\"gone\");",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "an unknown property is the 404 page[\\s\\S]*Expected: 404"
+  },
+  {
+    "id": "b3b-f-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/routes/_site.$market.index.tsx",
+    "find": "{pool.length === 0 ? (",
+    "replace": "{pool.length < 0 ? (",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "california shows its empty state with the form and no image[\\s\\S]*No property is listed in California yet"
+  },
+  {
+    "id": "b3b-overflow-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/styles/components/coming-soon.css",
+    "find": ".coming-soon {\n  padding-block: clamp(83px, 9vw, 130px);",
+    "replace": ".coming-soon {\n  min-width: 2000px;\n  padding-block: clamp(83px, 9vw, 130px);",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "has no serious axe violation and no horizontal overflow[\\s\\S]*document scroll width against the viewport"
+  },
+  {
+    "id": "b3b-axe-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/coming-soon.spec.ts",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "        placeholder={t.common.emailAddress}\n        aria-label={t.common.emailAddress}\n",
+    "replace": "",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
+    "expect": "has no serious axe violation and no horizontal overflow[\\s\\S]*axe: new violations on /"
+  },
+  {
+    "id": "b3b-n-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<ConsentNotice />",
+    "replace": "<ConsentNotice />\n        <img src=\"https://www.google-analytics.com/x.gif\" alt=\"\" />",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "a first visit makes no request to a Google host[\\s\\S]*www.google-analytics.com"
+  },
+  {
+    "id": "b3b-j-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": ".consent-notice {\n  padding-block: 24px;",
+    "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "the notice sits in the footer and is not fixed[\\s\\S]*Expected value: not \"fixed\""
+  },
+  {
+    "id": "b3b-v-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": ".consent-notice {\n  padding-block: 24px;",
+    "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "on a property page the notice and the sticky action bar do not overlap[\\s\\S]*Expected: true"
+  },
+  {
+    "id": "b3b-reload-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "const decided = () => readConsent()?.version === CONSENT_VERSION;",
+    "replace": "const decided = () => readConsent()?.version === CONSENT_VERSION + 1;",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "Allow stores the choice and a reload keeps it[\\s\\S]*Expected: 0"
+  },
+  {
+    "id": "b3b-k-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "      analytics,\n      decided_at",
+    "replace": "      analytics: true,\n      decided_at",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "No thank you stores analytics false[\\s\\S]*\"analytics\": false"
+  },
+  {
+    "id": "b3b-z-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "setUtmConsent(consentGranted);",
+    "replace": "",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "an allowed choice sends the campaign attribution[\\s\\S]*Received: undefined"
+  },
+  {
+    "id": "b3b-i-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n    !globalPrivacyControl()",
+    "replace": "    record.analytics",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "with Global Privacy Control on, Allow is stored and consent is still not granted[\\s\\S]*Received  \\+ 13"
+  },
+  {
+    "id": "b3b-outline-e2e",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": ".consent-allow:focus-visible {\n  outline-color: var(--foreground);\n}",
+    "replace": "",
+    "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
+    "expect": "the focused Allow has a visible outline[\\s\\S]*Expected: not \"rgb\\(245, 242, 235\\)\""
   }
 ]
