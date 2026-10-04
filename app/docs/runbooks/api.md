@@ -155,12 +155,15 @@ Measured here, 2026-10-04, on the live build under `wrangler dev` (port 8828) ag
 | `/properties` (page)               | 40,123         | miss then hit | 41 to 57 on a miss, 10 to 16 on a hit  |
 | `/sitemap.xml`                     | 4,279          | not cached    | 20 to 23                               |
 
-`node scripts/api-smoke.mjs http://127.0.0.1:8828 --cleanup` ran three times against it: `api-smoke: 20 ok, 0 failed` each time. The seed catalog is small, so the byte counts grow with the published set. Egress follows from them: a catalog list is about 10 KB, so even a few hundred cache misses an hour stay far under the 5 GB a month of Supabase free (P-009), and a warm read costs the database nothing.
+`node scripts/api-smoke.mjs http://127.0.0.1:8828 --cleanup` ran three times against it: `api-smoke: 20 ok, 0 failed` each time. The seed catalog is small, so the byte counts grow with the published set.
+
+Supabase egress is what the Worker reads from Supabase, not what it sends to a visitor (Cloudflare serves those bytes). The Worker reads two RPCs (`src/server/public/state.ts`): `public_state` at most every 15 seconds per isolate, and `public_catalog_snapshot` once per catalog version per isolate. Measured 2026-10-04 on `mop-dev` with the 16 seeded properties (service role, read only): `public_state` 420 bytes (244 gzip); `public_catalog_snapshot` 70,380 bytes (20,258 gzip). STANDARDS R60 allows the snapshot up to 1.5 MB at 100 properties. So the cost of a miss is the snapshot, not the 10 KB list a visitor receives, and it multiplies by the isolates that load it each time the version moves: a deploy or a catalog edit makes every live isolate fetch it again. At 70 KB (raw, the larger figure) the 5 GB a month of Supabase free (P-009) is about 71,000 snapshot loads a month, and at 1.5 MB it is about 3,300. Count the loads for a month before the catalog nears 100 properties; the count of isolates is not measurable here (UNPROVEN, H1 reads it from Supabase usage). A warm read costs the database nothing.
 
 To prove API CPU on a preview (the owner's shell, not CI; the deploy token has no Workers Tail Read, so the local admin token comes from `.env.ops`, which does not exist on this laptop yet):
 
 ```
 eval "$(node scripts/load-env.mjs --profile ops)"
+mkdir -p ../.tmp
 bunx wrangler tail pr-<n> --format json > ../.tmp/tail.jsonl
 ```
 
@@ -170,15 +173,23 @@ In a second shell prepared by the dev loader, run three times (each run uses a f
 node scripts/api-smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev --cleanup
 ```
 
-Then take the maximum `cpuTime` per route from the tail file and note it here. Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The redirect map lookup (`resolveRedirect`, which runs on every page request) is in the same numbers: read it from the page rows.
+The smoke requests only `/api/public/*`. Page requests are not in it, and `resolveRedirect` (GD-02) runs only for pages, so in the same window, from the same shell, request the pages too, twice each (the first answers a miss, which runs the render, the second a hit):
 
-| Route             | Max `cpuTime` on a preview                                |
-| ----------------- | --------------------------------------------------------- |
-| every route above | UNPROVEN until `pr-<n>` is deployed and `.env.ops` exists |
+```
+for p in / /properties /sitemap.xml; do curl -s -o /dev/null https://pr-<n>.holy-meadow-4327.workers.dev$p; curl -s -o /dev/null https://pr-<n>.holy-meadow-4327.workers.dev$p; done
+```
+
+Then take the maximum `cpuTime` per route from the tail file and note it here. Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The redirect map lookup is inside the page rows: a page at 8 ms or more is not explained by it until the lookup is measured on its own.
+
+| Route                                                                                                       | Max `cpuTime` on a preview                                |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| the six GET reads, `/`, `/properties` and `/sitemap.xml` of the table above                                 | UNPROVEN until `pr-<n>` is deployed and `.env.ops` exists |
+| `POST /submissions` (Zod, Turnstile, up to 20 signed upload URLs), `POST /submissions/:id/uploads`          | UNPROVEN, the likeliest to pass 8 ms: same condition      |
+| `POST /inquiries`, `/subscribers`, `/subjects/request`, `/search`, `/concierge`, `/events`, `/client-error` | UNPROVEN: same condition                                  |
 
 ## Not yet proved
 
-- The maximum `cpuTime` per API route on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
+- The maximum `cpuTime` per API route, write routes included, and the cost of `resolveRedirect` on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
 - The preview lines (`data-services="live"` on a pull request, `api-smoke.mjs` against it, `x-mop-cache: miss` on workers.dev) wait for the repository variable `VITE_API_BASE_URL`, which the orchestrator sets after this slice is accepted. UNPROVEN until then.
 - The production Worker's secrets are put by the owner (`docs/runbooks/delivery.md`). UNPROVEN while the repository variable `PRODUCTION_DEPLOY` is off.
 - The edge layer on the custom domain and the 95 percent ratio are L1's and H1's.
