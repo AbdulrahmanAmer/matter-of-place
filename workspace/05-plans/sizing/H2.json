@@ -1,0 +1,106 @@
+{
+  "slice": "H2",
+  "written": "2026-10-04 by the orchestrator (H53)",
+  "unmetDependencies": [],
+  "groups": [
+    {
+      "id": "g1",
+      "steps": "1",
+      "title": "Charters, probe.mjs with its six commands, the ledger schema in run.mjs and its unit test",
+      "files": [
+        "workspace/05-plans/acceptance/charters",
+        "workspace/05-plans/acceptance/probe.mjs",
+        "workspace/05-plans/acceptance/run.mjs",
+        "workspace/05-plans/acceptance/ledger.json",
+        "app/tests/unit/acceptance-ledger.test.ts"
+      ],
+      "proof": "Step 1 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "Every B slice closed on main and H1 steps 1 to 5 (H58 (5)).",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g2",
+      "steps": "2",
+      "title": "The scripted journeys and their replay",
+      "files": [
+        "workspace/05-plans/acceptance/journeys",
+        "workspace/05-plans/acceptance/probe.mjs"
+      ],
+      "proof": "Step 2 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g1.",
+      "critical": false,
+      "needsOrchestrator": "",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g3",
+      "steps": "3",
+      "title": "team.mjs: the three panelists on Fable with their charters, the shared ledger, the message loop relayed to the H2 log, the stop rule",
+      "files": [
+        "workspace/05-plans/acceptance/team.mjs",
+        "workspace/05-plans/logs/H2.md"
+      ],
+      "proof": "Step 3 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g2.",
+      "critical": true,
+      "needsOrchestrator": "The orchestrator builds and runs this group itself (S66: Fable panelists).",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g4",
+      "steps": "4",
+      "title": "Pass one over the whole site, repository, database and logs",
+      "files": [
+        "workspace/05-plans/acceptance/ledger.json",
+        "workspace/audits"
+      ],
+      "proof": "Step 4 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g3.",
+      "critical": false,
+      "needsOrchestrator": "The orchestrator runs the panel.",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g5",
+      "steps": "5",
+      "title": "Fixes: each open finding at or above medium as a close-out group of its owning slice, re-verified by the panel, with its CHANGES.md line",
+      "files": [
+        "CHANGES.md",
+        ".claude/workflows/build-slice.js"
+      ],
+      "proof": "Step 5 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g4.",
+      "critical": false,
+      "needsOrchestrator": "The orchestrator launches each fix with run.mjs --fix <id>.",
+      "designer": false,
+      "needsPullRequest": false
+    },
+    {
+      "id": "g6",
+      "steps": "6",
+      "title": "Pass two and the sign-off report for the operator and his partner",
+      "files": [
+        "workspace/audits",
+        "workspace/05-plans/logs/H2.md"
+      ],
+      "proof": "Step 6 as the plan writes it.",
+      "blocked": true,
+      "blockedOn": "g5.",
+      "critical": false,
+      "needsOrchestrator": "The orchestrator runs the panel and sends the report with SendUserFile.",
+      "designer": false,
+      "needsPullRequest": false
+    }
+  ]
+}

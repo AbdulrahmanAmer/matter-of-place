@@ -3,11 +3,35 @@
 A selective real-estate media platform for exceptional residential property in California, New York and Florida.
 We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: matterofplace.com (not live yet).
 
-**Where we are (1 Oct 2026):** the website exists and looks right (visual pass merged). Every decision is made and the
-whole build is planned to the file level (21 slices). Company email is live (admin@matterofplace.com on Zoho Mail) and
-the domain runs on Cloudflare with the zone hardened (Full strict TLS, HTTPS forced, bot protection, speed settings).
-The dev database project exists and is empty. Nothing behind the site is built yet: no tables, no admin, no invoices,
-no social posting, no newsletter. Lovable is disconnected. Production starts with slice B1b (repo and delivery). This page is the map; the folders hold the detail.
+**Where we are:** the build is running. The website shell, the deploy pipeline, the database (33 tables, policies, functions, seeded with illustrative properties), the public write functions, the job system (runner, cron, health) and the creative render scripts are on `main` and deploy themselves to a dev address on every merge. The public API, the admin portal, email, social posting, the newsletter and the audit robot are being built now, one proven step at a time; every step is reviewed by a fresh agent and merged through a gate. Production shows nothing until the launch switch. The numbers below come from the build board and are rewritten with every update.
+
+<!-- progress:start -->
+**Progress (updated 2026-10-04, from the build board):** 66 of 259 planned steps accepted (25.5%), 1 of 22 slices closed, 16 steps in work.
+
+| Arm | To launch | What it covers |
+|---|---|---|
+| Website | 35.1% | pages, forms, the public API they call, SEO, legal pages |
+| Admin portal | 30.7% | screens, actions, roles and permissions |
+| Backend logic and automation | 34.4% | jobs, recipes, cross-wiring, content pipelines, email |
+| Database | 39.6% | tables, functions, triggers, policies, migrations |
+| Deployment and operations | 45.5% | CI, deploys, backups, monitoring, the launch switch |
+
+| Slice | What | Accepted | |
+|---|---|---|---|
+| B2 | Database | 15 of 15 | 100% |
+| B1b | Repo and delivery | 14 of 16 | 87.5% |
+| B3 | API | 13 of 18 | 72.2% |
+| B4 | Tests | 5 of 10 | 50% |
+| B5 | Email | 1 of 10 | 10% |
+| B8 | Job system | 7 of 14 | 50% |
+| B9 | Creative system | 6 of 11 | 54.5% |
+| B14 | Audit robot | 3 of 9 | 33.3% |
+| B16 | Legal identity | 2 of 8 | 25% |
+
+Not started yet: B3b (Coming-soon mode), B6 (Money box), B7 (Admin workspace), B8b (Automation console), B10 (Social publishing), B11 (Newsletter), B12 (Reel), B13 (SEO, AEO, GEO), B15 (Omnikom handoff), B17 (Website essentials and compliance (the must-haves of any professional site)), H1 (HARDEN checklist), H2 (Acceptance panel: the whole site walked through by three senior agents), L1 (LAUNCH).
+<!-- progress:end -->
+
+How the build works: 22 plans (`workspace/05-plans/`) broken into steps, each with a proof; lanes build in parallel on this laptop, a reviewer in a fresh context tries to refute each group, a merge gate refuses anything without green checks, and an acceptance panel (plan H2) walks the finished site end to end before launch. Decisions: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [GOTCHAS.md](GOTCHAS.md). Position of the work: [.claude/POSITION.md](.claude/POSITION.md).
 
 ## The whole system in one picture
 Solid boxes exist today; dashed boxes are what we build.
@@ -62,8 +86,8 @@ What every professional site must serve, and how consent and headers work here (
 ![Consent flow](workspace/03-diagrams/img/essentials-2.png)
 ![The files every site serves](workspace/03-diagrams/img/essentials-3.png)
 
-## The database (designed, not yet created)
-Every table, column, permission and trigger is specified in [workspace/06-architecture/architecture.md](workspace/06-architecture/architecture.md) §3,
+## The database
+Built and seeded on `mop-dev` (slice B2 closed 2026-10-03). Every table, column, permission and trigger is specified in [workspace/06-architecture/architecture.md](workspace/06-architecture/architecture.md) §3,
 and the migration files are listed in order in [workspace/05-plans/B2.md](workspace/05-plans/B2.md). Groups: catalog
 (markets, regions, properties, media, stories) · people and audit (roles, agent keys, audit log) · intake (submissions,
 inquiries, subscribers with market interest, analytics) · commercial (payments, campaigns, reports) · automation as data
@@ -77,17 +101,17 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 |---|---|---|
 | matterofplace.com | done: registered at Namecheap, DNS on Cloudflare nameservers | everything |
 | Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened, deploy token and owner token issued. Previews use holy-meadow-4327.workers.dev | wave 1 |
-| R2 (photo storage) | off until Dave enables it in the dashboard; no bucket exists. Photos, backups and renders wait on it | waves 2, 5, 7 |
+| Storage (photos, uploads, documents) | done: Supabase Storage buckets, no R2 (decision S57) | waves 2, 5, 7 |
 | GitHub | done: private repository, Actions enabled and secrets set. No branch protection and no Environments on this plan, so merge review is the gate | wave 1 |
 | Turnstile | done: widget "matterofplace.com forms" | wave 2 |
 | Company email | done: Zoho Mail free plan, admin@matterofplace.com sends and receives; SPF, DKIM, DMARC set | everything |
-| Supabase (database) | done: organisation "Matter Of Place" (Free) under admin@matterofplace.com, dev project `mop-dev` running in East US, sign-ups closed. Production project `mop-prod` is created at launch. No Docker: all database work runs against `mop-dev` | wave 2 |
-| Resend (email) | not yet; sign up with admin@matterofplace.com when wave 3 starts | wave 3 |
+| Supabase (database) | done: one project `mop-dev`, the build database now and production after the launch switch (decision S60); 33 tables, policies, functions, cron and the job runner deployed | everything |
+| Resend (email) | done: team, three verified sending domains, dev key and webhook; real sends come with slice B5 | wave 3 |
 | Sentry (errors) | done: organisation and project created, errors only | wave 1 |
-| Google: GA4, Search Console | not yet; sign up with admin@matterofplace.com when wave 6 starts | wave 6 |
-| X developer app, LinkedIn page and app | not yet; created when wave 5 starts | wave 5 |
-| Anthropic API key, Omnikom endpoint | not yet; the endpoint needs a URL and secret from Omnikom | waves 5, 6 |
-| Meta Business + Instagram Business | through the partner; access when we reach wave 5 | wave 5 |
+| Google: GA4, Search Console | accounts exist (decision S64); wired in slices B13 and B14 | wave 6 |
+| X developer app, LinkedIn page and app | after launch (decision S64): the channels ship as switched-off blocks | after launch |
+| Anthropic API key | none, by decision S58: captions are written through the operator's Claude account by a runner on the laptop | wave 5 |
+| Meta Business + Instagram Business | after launch, through the partner (decision S64) | after launch |
 | Legal entity name and address | deferred until the lawyer confirms; invoices are blocked until set | wave 4 |
 | Instagram handle | when Dave creates it | wave 5 |
 | Payment methods for invoices | set later in admin Settings | wave 4 |
@@ -107,7 +131,7 @@ Full ledger: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [
 | `workspace/02-tech-stack/` | the approved stack and the rule for adding anything |
 | `workspace/03-diagrams/img/` | every diagram as a picture |
 | `workspace/04-completion-map/` | the road, in words |
-| `workspace/05-plans/` | 21 build slices to file level, PLAN.md order, ASSUMED.md decisions, check-plans.mjs consistency check |
+| `workspace/05-plans/` | 22 plans to file level, PLAN.md order, ASSUMED.md rulings, the build board (`board.mjs`), the sizing per slice, check-plans.mjs consistency check |
 | `workspace/06-architecture/` | the engineering architecture |
 | `workspace/07-admin-platform/` | the 25 admin screens |
 | `workspace/08-visual-pass/` | the site visual audit and fixes (merged) |

@@ -36,7 +36,7 @@ and 4 plans.
 |---|---|
 | 0 Spine, two lanes while they do not depend on each other (ruling H45 (4), 2026-10-02) | Delivery: the rest of B1b (steps 6 to 11) · Database: B2, which depends only on B1b steps 1 to 3 · then one lane: B3, then B4 steps 1 to 8 and the live-forms and caching parts of step 9 (ASSUMED H, T-02: the CI gates exist before the phase 1 lanes open) |
 | 1 Three lanes, opened when a PR shows the `db` and e2e jobs running | Public: B3b, the rest of B4, B17, B16, B13, B15 · Operations: B8 steps 1 to 8, B8b steps 1 to 5, B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10, B8b steps 6 to 10 · Content: B9 (designer first, its wiring after B8 step 8), then B10, B11, B12, then B14 after B13 |
-| 2 One lane | H1 on everything, then L1: the launch switch of the one database (ASSUMED H35), production secrets, deploy, matterofplace.com routed to the Worker |
+| 2 One lane | H1 on everything, then H2 (the acceptance panel: three senior agents walk the finished site, fixes through the ordinary workflow, two clean passes), then L1: the launch switch of the one database (ASSUMED H35), production secrets, deploy, matterofplace.com routed to the Worker |
 
 The orchestrator (this session) dispatches, re-runs each slice's proof itself, merges, and keeps the table at the end of
 this file. A lane that fails the same step twice is recorded BLOCKED with what would unblock it and the lane moves to
@@ -94,6 +94,7 @@ names what they wait on; every other step runs. The plans were audited in both d
 | B17 | 4 of 12 | custom domain (L1), Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | H1 | 3 of 11 | see the plan |
 | L1 | 2 of 11 | Google accounts |
+| H2 | none of 6 | none (the panelists run on Fable by decision S66) |
 
 What the operator can do at any time to shorten that list: sign up for the uptime monitor, supply the legal entity and
 payment facts, and at the end create the X and LinkedIn apps and ask the partner for Meta access (S59). The custom
@@ -124,19 +125,20 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B3 | in progress | | started 2026-10-03 in the lane `E:/mop-build/api` (branch `slice/b3`, port 8828, bank numbers from P-800 and G-300); steps 1 and 1b accepted on the branch; steps 2 to 13 running. |
 | B3b | not started | | |
 | B4 | in progress | | started 2026-10-02 in the lane `E:/mop-build/tests` (branch `slice/b4`, port 8808, bank numbers from P-400 and G-150); steps 1 to 5 accepted and on `main` (PRs #67, #68, #84, `adc74c7`); steps 6 to 10 wait on B3 and B3b. |
-| B5 | not started | | |
+| B5 | in progress | | started 2026-10-04 in the lane `E:/mop-build/email` (branch `slice/b5`, port 8868, bank numbers from P-1200 and G-500); step 1 on `main` (PR #108); parked until B8b. |
 | B6 | not started | | |
 | B7 | not started | | |
-| B8 | in progress | | started 2026-10-03 in the lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); migrations proven in rolled-back transactions until merge (H1 (a)). |
+| B8 | in progress | | lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); steps 1 to 6a accepted and on `main` (PRs #101, #109); the runner is deployed on mop-dev; 7 to 8a next. |
 | B8b | not started | | |
-| B9 | in progress | | lane `E:/mop-build/design` (branch `slice/b9`, port 8818, bank numbers from P-700 and G-250); steps 1 to 5 accepted and on `main` (PR #92); direction S65; step 6 running; 7 to 11 wait on B8 and B7. |
+| B9 | in progress | | lane `E:/mop-build/design`; steps 1 to 6 on `main` (PRs #92, #99); direction S65; 7 to 11 wait on B8 and B7. |
 | B10 | not started | | |
 | B11 | not started | | |
 | B12 | not started | | |
 | B13 | not started | | |
-| B14 | not started | | |
+| B14 | in progress | | started 2026-10-04 in the lane `E:/mop-build/audit` (branch `slice/b14`, port 8858, bank numbers from P-1100 and G-450); steps 2, 3 and 6 on `main` (PR #103). |
 | B15 | not started | | |
-| B16 | not started | | |
+| B16 | in progress | | started 2026-10-04 in the lane `E:/mop-build/legal` (branch `slice/b16`, port 8848, bank numbers from P-1000 and G-400); steps 1 and 2 (part) on `main` (PR #98). |
 | B17 | not started | | |
 | H1 | not started | | |
+| H2 | not started | | added 2026-10-04 (S66): the acceptance panel, after every B slice and H1 steps 1 to 5, before L1. |
 | L1 | not started | | |

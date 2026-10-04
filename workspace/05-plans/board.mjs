@@ -742,6 +742,38 @@ function main() {
     console.log(data.errors.length ? `board: ${data.errors.length} error(s)` : "board: OK");
     process.exit(data.errors.length ? 1 : 0);
   }
+  // --readme <file>: rewrite the progress section of the README between its markers from the same data as the board,
+  // so the public page and the board never disagree (operator, 2026-10-04).
+  const readmeAt = args.indexOf("--readme");
+  if (readmeAt >= 0) {
+    const file = args[readmeAt + 1];
+    const data = collect();
+    const o = data.overall;
+    const closed = data.slices.filter((s) => s.state === "closed" && s.total > 0);
+    const open = data.slices.filter((s) => s.state === "in progress");
+    const row = (s) => `| ${s.id} | ${s.title} | ${s.accepted} of ${s.total} | ${s.percent}% |`;
+    const lines = [
+      `**Progress (updated ${new Date().toISOString().slice(0, 10)}, from the build board):** ${o.accepted} of ${o.total} planned steps accepted (${o.percent}%), ${o.slicesClosed} of ${o.slices} slices closed, ${o.inReview} steps in work.`,
+      "",
+      "| Arm | To launch | What it covers |",
+      "|---|---|---|",
+      ...data.arms.map((a) => `| ${a.label} | ${a.percent}% | ${a.what} |`),
+      "",
+      "| Slice | What | Accepted | |",
+      "|---|---|---|---|",
+      ...closed.map(row),
+      ...open.map(row),
+      "",
+      `Not started yet: ${data.slices.filter((s) => s.state === "not started").map((s) => `${s.id} (${s.title})`).join(", ")}.`,
+    ];
+    const text = readFileSync(file, "utf8");
+    const start = text.indexOf("<!-- progress:start -->");
+    const end = text.indexOf("<!-- progress:end -->");
+    if (start < 0 || end < 0) throw new Error(`${file} has no progress markers`);
+    writeFileSync(file, text.slice(0, start) + "<!-- progress:start -->\n" + lines.join("\n") + "\n" + text.slice(end));
+    console.log(`board: README progress section written (${o.percent}%)`);
+    return;
+  }
   const exportAt = args.indexOf("--export");
   if (exportAt >= 0) {
     const data = collect();
