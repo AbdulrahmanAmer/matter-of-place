@@ -2361,3 +2361,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: the fifth fix still shipped two false sentences. Line 86 listed the key's two parts after "only" and was still false, because the key is not the only reason for a miss: a stored 404 expires after 60 seconds (`pipeline.ts` line 171), the Cache API is per data center, and `/media` has its own key (origin and path). Line 202 said the `/media/none.webp` 404 stopped before Storage, but `none.webp` passes the key pattern, so `mediaCached` ran and Storage was read (`x-mop-cache: bypass`; `/media/_bad` has no such header). A cache or cost claim is proved by a `curl -sI` sequence on the deploy, never by a term grep or a reading of the key. The same review hit P-712 (a vitest worker-start timeout under load, green alone), and this fix hit P-094 (a stray `python -` in a command spun for two minutes; after it was killed the chain's `node` edit ran anyway and wrote these hit-again lines twice, and the first copy was removed by hand).
 - proof 2: `B=https://pr-100.holy-meadow-4327.workers.dev; curl -sI $B/media/none.webp | grep -ic x-mop-cache; curl -sI $B/media/_bad | grep -ic x-mop-cache` → `1` then `0`.
 - added: 2026-10-04
+
+## P-514 · `gh variable set X --body /api/public` from Git Bash stored `C:/Program Files/Git/api/public`
+- symptom: `gh variable list` showed `VITE_API_BASE_URL=C:/Program Files/Git/api/public` after the set; a preview built with it would call a Windows path.
+- cause: MSYS path conversion rewrites an argument that begins with a slash into a Windows path before `gh` sees it (the same class as P-008).
+- rule: set a value that starts with a slash from PowerShell (`gh variable set X --body "/api/public"`), or prefix the Bash call with `MSYS_NO_PATHCONV=1`; read the value back with `gh variable list` in the same turn.
+- proof: `gh variable list --json name,value --jq '.[] | select(.name=="VITE_API_BASE_URL") | .value'` → `/api/public`.
+- added: 2026-10-04
+
+## P-515 · A workflow builder's background shells appear in the orchestrator's task list without an owner; the orchestrator stopped two of them as stale
+- symptom: the goal check-in listed two shells (`b1r7u6wve`, `b6suf32si`) with empty output; the orchestrator stopped them. The TaskStop result showed they were the B8 builder's own `vitest --project db` batch and its waiter in `E:/mop-build/ops/app`, mid-run.
+- cause: subagents' `run_in_background` shells are attributed to the session, not to the agent, and the list shows the first 100 characters of the command only.
+- rule: never stop a background shell whose command you did not start in this context without reading its full command first (the TaskStop result prints it, so the check costs one call: read before stopping, or leave it). A shell running inside a lane folder (`E:/mop-build/<lane>`) belongs to that lane's builder.
+- proof: `grep -c "mop-build/ops" <tasks>/b1r7u6wve.output` is the wrong check (output was empty); the command text of the task, printed by TaskStop, names the lane.
+- added: 2026-10-04

@@ -989,3 +989,18 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - B5 step 1 merged (PR 108); the email lane is parked until B8b. B3 on steps 8b to 13.
 - NEXT: launch B8 with closeOut c5 (deploy.yml runner step, hygiene test) and startAt g6; at B3 close set
   `VITE_API_BASE_URL` back (H48 (1)) and open B3b, B4 g5+, B13, B17, B7 by dependency; after B8 g7 open B8b, then B5.
+
+## 2026-10-04 14:40 · B3 closed and live on the dev Worker; B8 at 8a; lanes reopen
+- B3 merged (PR 100, `2ab9d52`) after step 12 was relaunched with its full scope (P-513) and step 13 went through
+  five reviews of the runbook's cache and cost sentences (P-844). The variable `VITE_API_BASE_URL=/api/public` is set
+  (H48 (1)); the dev Worker answers `data-services="live"`, `/api/public/properties` 200 with `x-mop-cache: hit`;
+  api-smoke on pr-100: 20 ok. Preview proofs run by the orchestrator with the dev names exported (P-331: the Windows
+  user environment holds a stale `SUPABASE_URL`).
+- B8 steps 7 to 8a merged (PR 113, `61acd22`) after a hand merge of main into the lane (route tree regenerated,
+  `invalid_token_state` kept). The merge prompt now renames a migration older than main's newest before pushing (P-511).
+- Lanes: coming (B3b, run wf_215f7901-b3a), tests (B4 steps 6 to 10, wf_03267cc6-3aa). Bank: P-513, P-514 (gh variable
+  from Git Bash), P-515 (never stop an unknown background shell: it was the B8 builder's test batch).
+- Orchestrator items open: GITHUB_DISPATCH_TOKEN as a function secret after 61acd22 deploys (P-912); the live render
+  round trip; B3 step 12 item 8 and the production Worker secrets at L1; README regenerated with this commit.
+- NEXT: open B8b (new lane), B9 steps 7 to 11 (design lane); B13 and B17 after B3b lands (shared files); B7 after B8b
+  steps 1 to 5; B5 after B8b step 2; B16 rest after B3b and B5.
