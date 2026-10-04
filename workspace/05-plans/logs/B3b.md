@@ -450,3 +450,6 @@ Handed-in commit: 7c26d75 (the work); this line is the commit after it.
 
 ## g5 · follow-ups recorded
 The g5 review (steps 6,7) found no blocking defect. Gotcha entries added: P-1321 (`with-coming-soon.ts` spawns with `shell: true`, so a `bash -c` proof is split). Other follow-ups: 4, listed in `workspace/05-plans/logs/B3b-followups.md` under "g5 · steps 6,7". No code changed.
+
+## g6 · follow-ups recorded
+The g6 review (step 8) found no blocking defect. Gotcha entries added: P-1322 (batched watched-fail builds confound mutations on one observable), P-1323 (the implicit region role: the plan selector matches nothing). Other follow-ups: 5, listed in `workspace/05-plans/logs/B3b-followups.md` under "g6 · steps 8". The last one is for the operator: delete `E:/tmp-wr.log` by hand. No code changed.

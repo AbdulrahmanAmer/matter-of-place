@@ -2715,3 +2715,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a command passed after `--` to `with-coming-soon.ts` is one word: put the curls and greps in a script file and pass `bash <file>`; never pass `-c`, quotes, pipes or `;` through it. Open P-708 too: the two tools share the defect.
 - proof: `grep -n "shell: true" app/scripts/with-coming-soon.ts` → `57:      shell: true,`; `bun scripts/with-coming-soon.ts --value true -- bash -c 'echo a; echo b'` mangles the command in the same way (the reviewer measured exit 1 and a curl usage error on the step 6 greps, 2026-10-04); it toggles the shared `coming_soon_global` flag (P-1318), so run it only when no other lane is proving.
 - added: 2026-10-04
+
+## P-1322 · A batched watched-fail build confounds two mutations that touch the same observable, so one red result is credited to the wrong change
+- symptom: B3b g6 built several mutations into one snapshot to save builds. The Global Privacy Control mutation went red, but the same batch also deleted the utm line, so the red could have come from either; the cost item named P-1316, which covers `sendBeacon` bodies and flushing and says nothing about batching.
+- cause: a batched build gives one red or green per test, not per mutation; when two mutations change the same observable (here the attribution a consent event carries), the failing assertion cannot say which one broke it.
+- rule: in a batched watched-fail build, one mutation per observable: mutations that touch the same assertion go in separate builds, and a red is credited only to a mutation that is the sole change to what that test reads. Replay the doubtful one alone before it is logged as watched-fail.
+- proof: `grep -n "b3b-i-e2e" -A4 app/tests/mutations/B3b.json` prints the manual entry whose find is the one `globalPrivacyControl()` line; its run line, executed alone on a build that holds only that mutation, is expected red on its `expect` text (replay it that way, never inside a batch).
+- added: 2026-10-04
+
+## P-1323 · The plan's notice selector `[role="region"][aria-label="Cookie notice"]` matches nothing: the region role is implicit
+- symptom: B3b g6 review's first probe printed no `notice` key: `document.querySelector('[role="region"][aria-label="Cookie notice"]')` returned null. A second run with `.consent-notice` printed `<section class="consent-notice" aria-label="Cookie notice">...`.
+- cause: the notice is a `<section>` with an accessible name, whose region role is implicit; an attribute selector for `role` matches only an explicit attribute. Step 8 of the B3b plan wrote the selector as if the attribute existed.
+- rule: select an element by its implicit role with `getByRole("region", { name: "Cookie notice" })` (Playwright) or by its class (`.consent-notice`), never by `[role=...]` unless the markup carries the attribute; a plan line that names a selector is checked against the DOM before it is written. The same plan carries P-1315's stale 'no img inside main on /california' line, still to be folded by the orchestrator.
+- proof: `grep -n "getByRole(\"region\"" app/tests/e2e/consent.spec.ts` prints line 14, and `grep -c "role=\"region\"" app/src/components/layout/consent-notice.tsx` prints 0 (the markup has no explicit role).
+- added: 2026-10-04
