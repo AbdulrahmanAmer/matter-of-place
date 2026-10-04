@@ -94,3 +94,7 @@ Proof 5: `bun run build` -> `quiet: ok (248 lines, showing the last 12)`.
 ## g2 · follow-ups recorded
 
 The g2 review found no blocking defect and five follow-ups; no code changed. One is a cost with no bank entry and is now P-1302 (scratch output file names collide across sessions). The other four are in `workspace/05-plans/logs/B3b-followups.md` under "## g2 · steps 2" for the orchestrator to fold or assign: `quiet.mjs` drops the quotes of an argument with a space, a stale case title in `analytics-batch.test.ts`, the event count in `pages-and-wording.md` section 6, and the `analytics.test.ts` edit outside the named list (H46).
+
+## g1 · follow-ups recorded
+
+The g1 review found no blocking defect and five follow-ups; no code changed. One is a cost with no bank entry and is now P-1303 (Git Bash `/tmp` and node's `/tmp` are different folders). The other four are in `workspace/05-plans/logs/B3b-followups.md` under "## g1 · steps 1" for the orchestrator to fold or assign: the unowned consent outline and focus assertions (step 5 or 8 in the plan and the doc), the launch switch section of `database.md`, the missing `coming-soon.md` row in the docs index, and the invisible focus ring on filled `.button` in `base.css`.

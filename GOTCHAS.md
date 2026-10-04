@@ -2437,3 +2437,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: scratch output file names carry the lane and group (`rv-<slice>-<group>-check.txt`), never a bare `check.txt` or `out.txt`. A result is read only after its `RUN ... <path>` line is checked to name your own tree; a path from another tree means the file is not yours, so rerun into a new name.
 - proof: `grep -m1 "RUN " rv-b3b-g2-check.txt` prints a path under your own worktree (the file name you chose, in the scratchpad); `ls $TMP | grep -c "^check.txt$"` prints 0 once you stop using the bare name.
 - added: 2026-10-04
+
+## P-1303 · Git Bash `/tmp` and node's `/tmp` are two different folders, so a path typed in the shell and handed to node writes nothing (ENOENT) or writes elsewhere
+- symptom: a B3b g1 builder wrote a file with a shell redirect to `/tmp/x` and then ran `node` with the same path in a script; node failed with `ENOENT` and nothing was written where the shell had put its file. The cost was a second attempt with a scratchpad path.
+- cause: Git Bash maps `/tmp` to `C:\Users\DELL\AppData\Local\Temp`; node on Windows resolves a leading `/` against the current drive, so `/tmp` is `E:\tmp` when the working tree is on E:. The two paths share a name only.
+- rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
+- proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
+- added: 2026-10-04
