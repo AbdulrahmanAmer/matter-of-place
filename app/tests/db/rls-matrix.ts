@@ -67,6 +67,7 @@ export const rlsMatrix: Record<string, Access> = {
   job_events: staffRead,
   // B8 step 6a: written by beat() and read by ops_health(), both service role only.
   ops_heartbeats: {},
+  analytics_daily: staffRead,
 };
 
 /**

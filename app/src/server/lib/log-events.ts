@@ -6,6 +6,7 @@ export const LogEvent = [
   "media_public_base_unset",
   "runner_beat_failed",
   "ops_health_failed",
+  "meta_token_refresh_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

@@ -81,6 +81,48 @@ Within 5 minutes the hook answers 503 with a body naming `runner`. Put the right
 - `OPS_HEALTH_TOKEN`: `openssl rand -hex 32` into `.env`; the orchestrator updates `PREVIEW_WORKER_SECRETS_JSON`; set the production Worker with the `wrangler secret put` line above; change the monitor's URL; the old token then answers 404.
 - `JOB_RUNNER_SECRET`: a new value in `.env`, then the function secret (`supabase secrets set`) and the Vault row (`vault.update_secret` through stdin, as above) one right after the other. Between the two, ticks answer 401 and the `runner` beat goes stale, which is expected for a minute.
 - `GITHUB_DISPATCH_TOKEN`: fine-grained, this repository only, Actions read and write plus Metadata read, no Contents, no expiration (ASSUMED E22). The orchestrator makes it and rotates it by hand once a year (decision S59); it is a function secret, not a Worker secret (JOB-01, SEC-02).
+- The service-role key and the Resend key: by hand in their dashboards, then into `.env` and every secret store that holds them.
+
+Every rotation by hand ends with its one audit row, written from `app/` with the dev profile loaded:
+
+```
+bun run scripts/audit-note.ts --secret <NAME> --note "<why>" --i-mean-it
+```
+
+`<NAME>` is the name as tech-stack section 4 writes it (G33). Without `--i-mean-it` or `--secret` the script exits 1 and writes nothing.
+
+## The daily jobs
+
+pg_cron enqueues four system jobs, each keyed `<type>:<UTC date>`, so a second tick the same day adds nothing: `prune` at 03:30 UTC, `retention` at 03:45, `meta_token_refresh` at 04:15 and `health` at 13:00. The runner takes them on its next tick.
+
+- `prune` deletes done and cancelled jobs after the `jobs_done` period, with their timeline, and the rate-limit hits and webhook receipts after theirs. `jobs.result` holds the three counts.
+- `health` runs every check and stores what each said in `jobs.result.checks`. A failed check sends one Sentry event and one `health.failed` event, which B8b's `notify_admin_health` recipe mails to the admins. `params.force_fail` names a check to fail on purpose, for H1's drill.
+
+## The retention job
+
+`retention` is the only code that deletes rows for good, and files it removes from Storage cannot come back. Each policy row of `retention_policies` gives its period (`keep_for`); a disabled row or one with no period is skipped. In order: the photographs of declined requests and of withdrawn ones 90 days after their last change, with their thumbnails; the originals of an accepted request once every photograph of its property has its variants; inquiries and people anonymised after 24 months; yesterday and the day before rolled up into `analytics_daily`, then the monthly `analytics_events` partitions past their period dropped after their own roll-up; old aggregates, closed privacy requests, dead jobs, processed events no job points at, sent-email addresses, unconfirmed subscribers, pg_cron history and the wait rows of long-waiting jobs. `audit_log` and `automation_revisions` are never touched.
+
+Each run writes one `retention.run` audit row with `{ <policy>: { affected, remaining } }` and stamps `last_run_at` and `last_count` on each policy row it ran. The health check `retention_stalled` fails when an enabled policy has not run for 2 days or its last run left rows behind.
+
+Before the first production run, and whenever a period changes, run it as a dry run: it counts and changes nothing.
+
+```
+bun run db:psql -- -Atc "select enqueue_job('retention', '{\"params\": {\"dry_run\": true}, \"data\": {}}', 'retention-dry:' || now())"
+bun run db:psql -- -Atc "select status, result from jobs where idempotency_key like 'retention-dry:%' order by created_at desc limit 1"
+bun run db:psql -- -Atc "select key, last_run_at, last_count from retention_policies order by key"
+```
+
+A Storage error leaves the rows of the files it could not remove, and the job waits an hour and runs again.
+
+## The Meta token alert
+
+`meta_token_refresh` does nothing until the account ids are stored on the channels screen. Then each day it asks Meta about the token (Vault's `meta_page_token` first, the `META_PAGE_TOKEN` function secret second) and stores what it learned in `settings.meta`: `token_expires_at` (null means never), `token_state` (`ok`, `dead` or `scopes_missing`, with `missing_scopes`) and `data_access_expires_at`.
+
+- "Instagram token is no longer valid": reconnect the account on `/admin/channels`; publishing waits until then.
+- "Meta token expires in n days": the job could not renew it (a page token has no renewal route). Make a new long-lived token and store it from the channels screen; it goes to Vault with its `secret.rotated` audit row.
+- `scopes_missing`: grant the named permissions to the Meta app and reconnect.
+
+A token that a renewal route can extend is renewed in place within 7 days of its expiry, with no alert.
 
 ## Sentry for the runner
 

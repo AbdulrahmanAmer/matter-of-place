@@ -35,7 +35,8 @@ export async function emitEvent(
   event: {
     type: CatalogEventType;
     entity: string;
-    entityId: string;
+    /** Null for an event about the system, such as `health.failed`. */
+    entityId: string | null;
     payload: { [key: string]: Json | undefined };
     actorId?: string;
   },
@@ -43,7 +44,7 @@ export async function emitEvent(
   const { data, error } = await db.rpc("emit_event", {
     p_type: event.type,
     p_entity: event.entity,
-    p_entity_id: event.entityId,
+    ...(event.entityId === null ? {} : { p_entity_id: event.entityId }),
     p_payload: event.payload,
     ...(event.actorId === undefined ? {} : { p_actor_id: event.actorId }),
   });

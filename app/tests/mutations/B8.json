@@ -1401,5 +1401,834 @@
     "replace": "uses: actions/cache@v4",
     "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"every uses: is pinned\"",
     "expect": "× .*every uses: is pinned to a 40-character commit SHA"
+  },
+  {
+    "id": "j",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "    if (failed.length > 0) {\n      await emitEvent(",
+    "replace": "    if (failed.length < 0) {\n      await emitEvent(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"a forced failing check emits exactly one\"",
+    "expect": "× .*a forced failing check emits exactly one"
+  },
+  {
+    "id": "health-emit-none",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "    if (failed.length > 0) {\n      await emitEvent(",
+    "replace": "    if (failed.length >= 0) {\n      await emitEvent(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"emits nothing when every check is ok\"",
+    "expect": "× .*emits nothing when every check is ok"
+  },
+  {
+    "id": "health-force-fail",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "check.name === forced ? fail(\"forced by params.force_fail\")",
+    "replace": "check.name === \"\" ? fail(\"forced by params.force_fail\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"params.force_fail fails the named check\"",
+    "expect": "× .*params\\.force_fail fails the named check"
+  },
+  {
+    "id": "am",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "      await ctx.report(new Error(`HealthCheckFailed: ${check.name}`), {",
+    "replace": "      void (new Error(`HealthCheckFailed: ${check.name}`), {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"reports each failed check once to Sentry\"",
+    "expect": "× .*reports each failed check once to Sentry"
+  },
+  {
+    "id": "am-envelope",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "        fingerprint: [\"health\", check.name],",
+    "replace": "        fingerprint: [\"health\"],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"a failed check still sends exactly one Sentry envelope\"",
+    "expect": "× .*a failed check still sends exactly one Sentry envelope"
+  },
+  {
+    "id": "health-stalled-fail",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "      return stalled.length > 0\n",
+    "replace": "      return stalled.length > 9\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"maps dead jobs, a stale queue, cron failures and a stalled policy to fail\"",
+    "expect": "× .*maps dead jobs, a stale queue, cron failures and a stalled policy to fail"
+  },
+  {
+    "id": "health-cron-fail",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "return failWhenAny(data, \"pg_cron runs failed in the last 24 hours\");",
+    "replace": "return failWhenAny(0, \"pg_cron runs failed in the last 24 hours\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"health_cron_failures above 0 is fail\"",
+    "expect": "× .*health_cron_failures above 0 is fail"
+  },
+  {
+    "id": "health-long-waits",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "      return waits > 0\n",
+    "replace": "      return waits > 9\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"long_waits above 0 is warn\"",
+    "expect": "× .*long_waits above 0 is warn"
+  },
+  {
+    "id": "at",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const BACKUP_FAIL_MS = 36 * HOUR_S * 1000;",
+    "replace": "const BACKUP_FAIL_MS = 48 * HOUR_S * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is fail with the row enabled and the last run 37 hours old\"",
+    "expect": "× .*is fail with the row enabled and the last run 37 hours old"
+  },
+  {
+    "id": "backup-35",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const BACKUP_FAIL_MS = 36 * HOUR_S * 1000;",
+    "replace": "const BACKUP_FAIL_MS = 34 * HOUR_S * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is ok at 35 hours\"",
+    "expect": "× .*is ok at 35 hours"
+  },
+  {
+    "id": "backup-never",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (last === null || ctx.now.getTime() - last > BACKUP_FAIL_MS) {",
+    "replace": "if (last !== null && ctx.now.getTime() - last > BACKUP_FAIL_MS) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is fail with the row enabled and no run yet\"",
+    "expect": "× .*is fail with the row enabled and no run yet"
+  },
+  {
+    "id": "backup-null",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (backup === null) return ok(\"no backup schedule yet\");",
+    "replace": "if (backup === null) return fail(\"no backup schedule yet\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is ok while backup is null\"",
+    "expect": "× .*is ok while backup is null"
+  },
+  {
+    "id": "backup-production",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "return ctx.env[\"MOP_ENV\"] === \"production\"",
+    "replace": "return ctx.env[\"MOP_ENV\"] !== \"production\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is warn with the row disabled while MOP_ENV is production\"",
+    "expect": "× .*is warn with the row disabled while MOP_ENV is production"
+  },
+  {
+    "id": "bi",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (age === null || age < DAY_S)",
+    "replace": "if (age === null || age < 2 * DAY_S)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is fail at 25 hours, with one health.failed naming it\"",
+    "expect": "× .*is fail at 25 hours, with one health\\.failed naming it"
+  },
+  {
+    "id": "captions-23",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (age === null || age < DAY_S)",
+    "replace": "if (age === null || age < HOUR_S)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is ok at 23 hours and while no caption job waits\"",
+    "expect": "× .*is ok at 23 hours and while no caption job waits"
+  },
+  {
+    "id": "bn",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "export const providerChecks: readonly HealthCheck[] = [\n",
+    "replace": "export const providerChecks: readonly HealthCheck[] = [\n  { name: \"model_key\", run: () => Promise.resolve({ status: \"skip\", message: \"\" }) },\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is exactly github_dispatch, resend_domain and linkedin_version\"",
+    "expect": "× .*is exactly github_dispatch, resend_domain and linkedin_version"
+  },
+  {
+    "id": "au",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "if (!token || !repo) return skip(\"GITHUB_DISPATCH_TOKEN or GITHUB_REPO is not set\");",
+    "replace": "if (repo === \"\") return skip(\"GITHUB_DISPATCH_TOKEN or GITHUB_REPO is not set\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"each check skips while its credential is absent\"",
+    "expect": "× .*each check skips while its credential is absent"
+  },
+  {
+    "id": "gh-signal",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "          \"User-Agent\": \"matter-of-place-health\",\n        },\n        signal: ctx.signal,\n",
+    "replace": "          \"User-Agent\": \"matter-of-place-health\",\n        },\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is ok with no expiry header, and sends the token\"",
+    "expect": "× .*is ok with no expiry header, and sends the token"
+  },
+  {
+    "id": "gh-14",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "const GITHUB_WARN_DAYS = 14;",
+    "replace": "const GITHUB_WARN_DAYS = 7;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is warn under 14 days, ok at 20 days\"",
+    "expect": "× .*is warn under 14 days, ok at 20 days"
+  },
+  {
+    "id": "gh-401",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "if (response.status === 401)",
+    "replace": "if (response.status === 402)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is fail on 401\"",
+    "expect": "× .*is fail on 401"
+  },
+  {
+    "id": "gh-unreachable",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "return unreachable(\"GitHub\", error);",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is warn when GitHub cannot be reached\"",
+    "expect": "× .*is warn when GitHub cannot be reached"
+  },
+  {
+    "id": "resend-verified",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "if (domain?.status === \"verified\")",
+    "replace": "if (domain?.status === \"valid\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is ok when matterofplace.com is verified\"",
+    "expect": "× .*is ok when matterofplace\\.com is verified"
+  },
+  {
+    "id": "resend-error",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "    if (!response.ok)\n      return { status: \"fail\", message: `Resend answered",
+    "replace": "    if (!response.ok)\n      return { status: \"warn\", message: `Resend answered",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is fail when the domain is pending, missing, or Resend answers an error\"",
+    "expect": "× .*is fail when the domain is pending, missing, or Resend answers an error"
+  },
+  {
+    "id": "linkedin-10",
+    "test": "tests/unit/jobs/health-providers.test.ts",
+    "file": "src/server/jobs/system/health/providers.ts",
+    "find": "const LINKEDIN_WARN_MONTHS = 10;",
+    "replace": "const LINKEDIN_WARN_MONTHS = 11;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health-providers.test.ts -t \"is warn once the version is 10 months old\"",
+    "expect": "× .*is warn once the version is 10 months old"
+  },
+  {
+    "id": "rc-since-data",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "  if (given !== undefined) {",
+    "replace": "  if (given === \"never\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"passes data.since when the job carries it\"",
+    "expect": "× .*passes data\\.since when the job carries it"
+  },
+  {
+    "id": "rc-since-last",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "const OVERLAP_MS = 15 * 60 * 1000;",
+    "replace": "const OVERLAP_MS = 5 * 60 * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"else passes the last done run\"",
+    "expect": "× .*else passes the last done run"
+  },
+  {
+    "id": "rc-since-first",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "const FIRST_RUN_MS = 24 * 60 * 60 * 1000;",
+    "replace": "const FIRST_RUN_MS = 12 * 60 * 60 * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"else passes 24 hours before now\"",
+    "expect": "× .*else passes 24 hours before now"
+  },
+  {
+    "id": "rc-result",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "result: { uploads: { ...uploads } }",
+    "replace": "result: { counts: { ...uploads } }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"stores the counts under result.uploads\"",
+    "expect": "× .*stores the counts under result\\.uploads"
+  },
+  {
+    "id": "rc-throws",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));",
+    "replace": "const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data)).catch(() => ({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"throws when reconcileUploads throws\"",
+    "expect": "× .*throws when reconcileUploads throws"
+  },
+  {
+    "id": "rc-invalid-since",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "throw new NonRetryableError(\"invalid_since\");",
+    "replace": "throw new Error(\"invalid_since\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"refuses an unreadable data.since\"",
+    "expect": "× .*refuses an unreadable data\\.since"
+  },
+  {
+    "id": "o",
+    "test": "tests/unit/jobs/prune.test.ts",
+    "file": "src/server/jobs/system/prune.ts",
+    "find": "const rateLimits = await deleteRows(ctx.db, \"rate_limits\", dryRun);",
+    "replace": "const rateLimits = 7;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/prune.test.ts -t \"prunes jobs with the jobs_done period\"",
+    "expect": "× .*prunes jobs with the jobs_done period"
+  },
+  {
+    "id": "prune-dry-run",
+    "test": "tests/unit/jobs/prune.test.ts",
+    "file": "src/server/jobs/system/prune.ts",
+    "find": "        p_dry_run: dryRun,\n",
+    "replace": "        p_dry_run: false,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/prune.test.ts -t \"params.dry_run passes p_dry_run to every call\"",
+    "expect": "× .*params\\.dry_run passes p_dry_run to every call"
+  },
+  {
+    "id": "prune-disabled",
+    "test": "tests/unit/jobs/prune.test.ts",
+    "file": "src/server/jobs/system/policies.ts",
+    "find": "if (row.enabled && row.keep_for !== null)",
+    "replace": "if (row.keep_for !== null)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/prune.test.ts -t \"leaves jobs alone while the jobs_done row is absent or disabled\"",
+    "expect": "× .*leaves jobs alone while the jobs_done row is absent or disabled"
+  },
+  {
+    "id": "bp",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/job-selftest.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts -t \"every listed file exists, imports the guard\"",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\("
+  },
+  {
+    "id": "prune-31",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.prune_jobs(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_count int;\nbegin\n  -- Architecture 13 rule 8: done and cancelled jobs go after p_keep, the keep_for of the jobs_done row, and their\n  -- job_events go with them by the foreign key's cascade.\n  if p_dry_run then\n    select count(*)::int into v_count\n    from public.jobs\n    where status in ('done', 'cancelled') and finished_at < now() - p_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.jobs\n    where status in ('done', 'cancelled') and finished_at < now() - p_keep + interval '2 days'\n    returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = 'jobs_done';\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.prune_jobs(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.prune_jobs(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"prune_jobs deletes a done job 31 days old\"",
+    "expect": "× .*prune_jobs deletes a done job 31 days old"
+  },
+  {
+    "id": "prune-dead",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.prune_jobs(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_count int;\nbegin\n  -- Architecture 13 rule 8: done and cancelled jobs go after p_keep, the keep_for of the jobs_done row, and their\n  -- job_events go with them by the foreign key's cascade.\n  if p_dry_run then\n    select count(*)::int into v_count\n    from public.jobs\n    where status in ('done', 'cancelled') and finished_at < now() - p_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.jobs\n    where status in ('done', 'cancelled', 'dead') and finished_at < now() - p_keep\n    returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = 'jobs_done';\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.prune_jobs(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.prune_jobs(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"prune_jobs keeps a dead job 31 days old\"",
+    "expect": "× .*prune_jobs keeps a dead job 31 days old"
+  },
+  {
+    "id": "prune-records",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.prune_jobs(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_count int;\nbegin\n  -- Architecture 13 rule 8: done and cancelled jobs go after p_keep, the keep_for of the jobs_done row, and their\n  -- job_events go with them by the foreign key's cascade.\n  if p_dry_run then\n    select count(*)::int into v_count\n    from public.jobs\n    where status in ('done', 'cancelled') and finished_at < now() - p_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.jobs\n    where status in ('done', 'cancelled') and finished_at < now() - p_keep\n    returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.prune_jobs(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.prune_jobs(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"prune_jobs keeps a dead job 31 days old\"",
+    "expect": "× .*prune_jobs keeps a dead job 31 days old"
+  },
+  {
+    "id": "rl-26",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() or $1 is null'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes a rate_limits row 26 hours old\"",
+    "expect": "× .*deletes a rate_limits row 26 hours old"
+  },
+  {
+    "id": "wr-31",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() or $1 is null'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes a webhook_receipts row 31 days old\"",
+    "expect": "× .*deletes a webhook_receipts row 31 days old"
+  },
+  {
+    "id": "audit-refused",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'audit_log' then 'public.audit_log where false and $1 is null'\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"raises and deletes nothing\"",
+    "expect": "× .*retention_delete_rows\\('audit_log'\\) raises"
+  },
+  {
+    "id": "rows-dry-run",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"a dry run counts and changes nothing\"",
+    "expect": "× .*a dry run counts and changes nothing"
+  },
+  {
+    "id": "w",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '48 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"counts a dead job finished 23 hours earlier\"",
+    "expect": "× .*counts a dead job finished 23 hours earlier"
+  },
+  {
+    "id": "hc-stale",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '10 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"counts a queued job 16 minutes overdue\"",
+    "expect": "× .*counts a queued job 16 minutes overdue"
+  },
+  {
+    "id": "hc-stalled",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '12 hours'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"lists an enabled delete policy last run 3 days ago\"",
+    "expect": "× .*lists an enabled delete policy last run 3 days ago"
+  },
+  {
+    "id": "hc-remaining",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"lists a policy whose last retention.run left rows behind\"",
+    "expect": "× .*lists a policy whose last retention\\.run left rows behind"
+  },
+  {
+    "id": "hc-long",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '5 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"counts a queued job created 8 days earlier\"",
+    "expect": "× .*counts a queued job created 8 days earlier"
+  },
+  {
+    "id": "bh",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', v_backup\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"leaves a run_local job out of stale_queue\"",
+    "expect": "× .*leaves a run_local job out of stale_queue"
+  },
+  {
+    "id": "hc-backup",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.health_counts(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_backup jsonb;\n  v_last_run jsonb;\nbegin\n  -- B8b's schedule_settings: the backup row is read once the table exists, and is null before (PERF-09, SEC-11).\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select jsonb_build_object('enabled', enabled, 'last_run_at', last_run_at)\n      from public.schedule_settings\n      where key = 'backup'\n    $q$ into v_backup;\n  end if;\n  select a.after into v_last_run\n  from public.audit_log a\n  where a.action = 'retention.run' and a.entity = 'retention'\n  order by a.at desc, a.id desc\n  limit 1;\n  -- A local job waits for the laptop by design (ruling H34 (2)): it is kept out of stale_queue and long_waits and\n  -- reported as local_oldest_age_s instead.\n  return jsonb_build_object(\n    'dead_jobs_24h', (\n      select count(*) from public.jobs where status = 'dead' and finished_at > p_now - interval '24 hours'\n    ),\n    'stale_queue', (\n      select count(*) from public.jobs\n      where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n    ),\n    'retention_stalled', coalesce((\n      select jsonb_agg(p.key order by p.key)\n      from public.retention_policies p\n      where p.enabled and p.action <> 'keep'\n        and (\n          p.last_run_at is null\n          or p.last_run_at < p_now - interval '2 days'\n          or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0\n        )\n    ), '[]'::jsonb),\n    'long_waits', (\n      select count(*) from public.jobs\n      where status in ('queued', 'failed') and not run_local and created_at < p_now - interval '7 days'\n    ),\n    'local_oldest_age_s', (\n      select floor(extract(epoch from p_now - min(created_at)))::bigint\n      from public.jobs\n      where run_local and status in ('queued', 'failed')\n    ),\n    'backup', coalesce(v_backup, '{}'::jsonb)\n  );\nend;\n$$;\n\nrevoke execute on function public.health_counts(timestamptz) from public, anon, authenticated;\ngrant execute on function public.health_counts(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"returns backup null while schedule_settings is absent\"",
+    "expect": "× .*returns backup null while schedule_settings is absent"
+  },
+  {
+    "id": "rt-batch",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "const REMOVE_BATCH = 100;",
+    "replace": "const REMOVE_BATCH = 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"removes each original with its thumbnail in batches of 100\"",
+    "expect": "× .*removes each original with its thumbnail in batches of 100"
+  },
+  {
+    "id": "rt-thumbnail",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": ".remove(batch.flatMap((row) => [row.storage_path, thumbnailOf(row)]));",
+    "replace": ".remove(batch.flatMap((row) => [row.storage_path]));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"removes each original with its thumbnail in batches of 100\"",
+    "expect": "× .*removes each original with its thumbnail in batches of 100"
+  },
+  {
+    "id": "rt-storage-fails",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "    if (error !== null) {\n      throw new AppError(\n        \"storage_unavailable\",",
+    "replace": "    if (error === \"never\") {\n      throw new AppError(\n        \"storage_unavailable\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"with the Storage client failing, the rows survive\"",
+    "expect": "× .*with the Storage client failing, the rows survive"
+  },
+  {
+    "id": "rt-order",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "  \"jobs_dead\",\n  \"events_processed\",\n];",
+    "replace": "  \"events_processed\",\n  \"jobs_dead\",\n];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"runs the policies in order after the rollup\"",
+    "expect": "× .*runs the policies in order after the rollup"
+  },
+  {
+    "id": "rt-remaining",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "return { affected, remaining: dryRun ? affected : await run(true) };",
+    "replace": "return { affected, remaining: affected };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"runs the policies in order after the rollup\"",
+    "expect": "× .*runs the policies in order after the rollup"
+  },
+  {
+    "id": "rt-dry-log",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "    if (!dryRun) {\n",
+    "replace": "    if (dryRun || !dryRun) {\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"a dry run passes p_dry_run everywhere\"",
+    "expect": "× .*a dry run passes p_dry_run everywhere"
+  },
+  {
+    "id": "rt-enabled",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "if (policy !== undefined) after[key] = await step(policy);",
+    "replace": "after[key] = await step(policy ?? { keepFor: \"1 day\", action: \"delete\" });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"runs only the policies whose row is enabled\"",
+    "expect": "× .*runs only the policies whose row is enabled"
+  },
+  {
+    "id": "rt-rollup-days",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "    p_from: day(2),",
+    "replace": "    p_from: day(3),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"rolls up the day before yesterday through yesterday\"",
+    "expect": "× .*rolls up the day before yesterday through yesterday"
+  },
+  {
+    "id": "audit-note-row",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "scripts/audit-note.ts",
+    "find": "    note: note ?? null,",
+    "replace": "    note: null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/retention.test.ts -t \"is the secret.rotated row of the named secret\"",
+    "expect": "× .*is the secret\\.rotated row of the named secret"
+  },
+  {
+    "id": "mt-not-configured",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "    if (meta === null) return { status: \"done\", result: { skipped: \"not_configured\" } };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"returns skipped not_configured while settings.meta has no ids\"",
+    "expect": "× .*returns skipped not_configured while settings\\.meta has no ids"
+  },
+  {
+    "id": "mt-vault-first",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "return data || ctx.env[\"META_PAGE_TOKEN\"] || undefined;",
+    "replace": "return ctx.env[\"META_PAGE_TOKEN\"] || data || undefined;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"reads the Vault token first\"",
+    "expect": "× .*reads the Vault token first"
+  },
+  {
+    "id": "i",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "if (daysLeft === null || daysLeft >= EXPIRY_ALERT_DAYS) {",
+    "replace": "if (daysLeft === null || daysLeft >= 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"with the token 6 days from expiry and no refresh route\"",
+    "expect": "× .*with the token 6 days from expiry and no refresh route"
+  },
+  {
+    "id": "mt-8-days",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "const EXPIRY_ALERT_DAYS = 7;",
+    "replace": "const EXPIRY_ALERT_DAYS = 9;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"does nothing more than record a token 8 days from expiry\"",
+    "expect": "× .*does nothing more than record a token 8 days from expiry"
+  },
+  {
+    "id": "mt-refresh",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  if (type !== \"USER\") return null;",
+    "replace": "  if (type !== \"SYSTEM_USER\") return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"with a refresh route, records the renewed token\"",
+    "expect": "× .*with a refresh route, records the renewed token"
+  },
+  {
+    "id": "mt-locked",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "=== \"locked\") {",
+    "replace": "=== \"locked-out\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"returns skipped locked when another run holds the token\"",
+    "expect": "× .*returns skipped locked when another run holds the token"
+  },
+  {
+    "id": "mt-500",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  if (!response.ok)\n    throw new AppError(\"unavailable\", undefined, `Graph answered",
+    "replace": "  if (response.status === 404)\n    throw new AppError(\"unavailable\", undefined, `Graph answered",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"throws on a Graph 500\"",
+    "expect": "× .*throws on a Graph 500"
+  },
+  {
+    "id": "an",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  if (!token.is_valid) return { state: \"dead\", missing: [] };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"records dead, not never, for is_valid false\"",
+    "expect": "× .*records dead, not never, for is_valid false"
+  },
+  {
+    "id": "mt-scopes",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "return { state: missing.length > 0 ? \"scopes_missing\" : \"ok\", missing };",
+    "replace": "return { state: \"ok\", missing };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"records scopes_missing naming a permission\"",
+    "expect": "× .*records scopes_missing naming a permission"
+  },
+  {
+    "id": "mt-scope-list",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  \"instagram_manage_insights\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"names the five permissions\"",
+    "expect": "× .*names the five permissions"
+  },
+  {
+    "id": "g",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_declined_media(p_keep interval)\nreturns table (media_id uuid, storage_path text)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- GD-03, DL-04: the uploads of a declined request after p_keep from its review, and of a withdrawn one after p_keep\n  -- from its last change (a terminal row is not edited again). It lists only; retention.ts removes the files and then\n  -- the rows whose files are gone.\n  select m.id, m.storage_path\n  from public.submission_media m\n  join public.submissions s on s.id = m.submission_id\n  where (s.workflow_state = 'Declined' and s.reviewed_at < now() - p_keep + interval '60 days')\n    or (s.workflow_state = 'Withdrawn' and s.updated_at < now() - p_keep)\n  order by m.id;\n$$;\n\nrevoke execute on function public.retention_declined_media(interval) from public, anon, authenticated;\ngrant execute on function public.retention_declined_media(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"lists a declined request's media at 91 days\"",
+    "expect": "× .*lists a declined request's media at 91 days"
+  },
+  {
+    "id": "ar",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_declined_media(p_keep interval)\nreturns table (media_id uuid, storage_path text)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- GD-03, DL-04: the uploads of a declined request after p_keep from its review, and of a withdrawn one after p_keep\n  -- from its last change (a terminal row is not edited again). It lists only; retention.ts removes the files and then\n  -- the rows whose files are gone.\n  select m.id, m.storage_path\n  from public.submission_media m\n  join public.submissions s on s.id = m.submission_id\n  where (s.workflow_state = 'Declined' and s.reviewed_at < now() - p_keep)\n  order by m.id;\n$$;\n\nrevoke execute on function public.retention_declined_media(interval) from public, anon, authenticated;\ngrant execute on function public.retention_declined_media(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"lists a withdrawn request's media 91 days after\"",
+    "expect": "× .*lists a withdrawn request's media 91 days after"
+  },
+  {
+    "id": "as",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_accepted_media(p_keep interval)\nreturns table (media_id uuid, storage_path text)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-08 (c), ruling H33 (8): a request's originals never leave the submissions bucket, so they go once its\n  -- property has photographs and every one has its variants in the media bucket (media_key set, nothing staged), and\n  -- no copy of the request's photographs is still to finish. It lists only, like retention_declined_media.\n  select m.id, m.storage_path\n  from public.submission_media m\n  join public.submissions s on s.id = m.submission_id\n  join public.properties p on p.submission_id = s.id\n  where s.reviewed_at < now() - p_keep\n    and exists (select 1 from public.property_media pm where pm.property_id = p.id)\n    and not exists (\n      select 1 from public.property_media pm\n      where pm.property_id = p.id and pm.media_key is null\n    )\n    and not exists (\n      select 1 from public.jobs j\n      where j.type = 'copy_submission_media'\n        and j.payload -> 'data' ->> 'property_id' = p.id::text\n        and j.status not in ('done', 'cancelled')\n    )\n  order by m.id;\n$$;\n\nrevoke execute on function public.retention_accepted_media(interval) from public, anon, authenticated;\ngrant execute on function public.retention_accepted_media(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"lists an accepted request's originals reviewed 1 day ago\"",
+    "expect": "× .*lists an accepted request's originals reviewed 1 day ago"
+  },
+  {
+    "id": "bq",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_accepted_media(p_keep interval)\nreturns table (media_id uuid, storage_path text)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-08 (c), ruling H33 (8): a request's originals never leave the submissions bucket, so they go once its\n  -- property has photographs and every one has its variants in the media bucket (media_key set, nothing staged), and\n  -- no copy of the request's photographs is still to finish. It lists only, like retention_declined_media.\n  select m.id, m.storage_path\n  from public.submission_media m\n  join public.submissions s on s.id = m.submission_id\n  join public.properties p on p.submission_id = s.id\n  where s.reviewed_at < now() - p_keep - interval '30 days'\n    and exists (select 1 from public.property_media pm where pm.property_id = p.id)\n    and not exists (\n      select 1 from public.property_media pm\n      where pm.property_id = p.id and (pm.media_key is null or pm.staging_path is not null)\n    )\n    and not exists (\n      select 1 from public.jobs j\n      where j.type = 'copy_submission_media'\n        and j.payload -> 'data' ->> 'property_id' = p.id::text\n        and j.status not in ('done', 'cancelled')\n    )\n  order by m.id;\n$$;\n\nrevoke execute on function public.retention_accepted_media(interval) from public, anon, authenticated;\ngrant execute on function public.retention_accepted_media(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"lists an accepted request's originals reviewed 1 day ago\"",
+    "expect": "× .*lists an accepted request's originals reviewed 1 day ago"
+  },
+  {
+    "id": "accepted-empty",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_accepted_media(p_keep interval)\nreturns table (media_id uuid, storage_path text)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- PERF-08 (c), ruling H33 (8): a request's originals never leave the submissions bucket, so they go once its\n  -- property has photographs and every one has its variants in the media bucket (media_key set, nothing staged), and\n  -- no copy of the request's photographs is still to finish. It lists only, like retention_declined_media.\n  select m.id, m.storage_path\n  from public.submission_media m\n  join public.submissions s on s.id = m.submission_id\n  join public.properties p on p.submission_id = s.id\n  where s.reviewed_at < now() - p_keep\n    and not exists (\n      select 1 from public.property_media pm\n      where pm.property_id = p.id and (pm.media_key is null or pm.staging_path is not null)\n    )\n    and not exists (\n      select 1 from public.jobs j\n      where j.type = 'copy_submission_media'\n        and j.payload -> 'data' ->> 'property_id' = p.id::text\n        and j.status not in ('done', 'cancelled')\n    )\n  order by m.id;\n$$;\n\nrevoke execute on function public.retention_accepted_media(interval) from public, anon, authenticated;\ngrant execute on function public.retention_accepted_media(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"lists an accepted request's originals reviewed 1 day ago\"",
+    "expect": "× .*lists an accepted request's originals reviewed 1 day ago"
+  },
+  {
+    "id": "delete-media-exact",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_media(p_ids uuid[])\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_count int;\nbegin\n  -- GD-03: retention.ts passes only the ids whose Storage objects are already removed.\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.submission_media where submission_id in (select submission_id from public.submission_media where id = any(p_ids)) returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_media(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_media(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"retention_delete_media deletes exactly the rows\"",
+    "expect": "× .*retention_delete_media deletes exactly the rows"
+  },
+  {
+    "id": "aq",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "update public.retention_policies set keep_for = interval '0 days' where key = 'cron_history';",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes a cron.job_run_details row whose end_time is 8 days old\"",
+    "expect": "× .*deletes a cron\\.job_run_details row whose end_time is 8 days old"
+  },
+  {
+    "id": "wait-newest",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"leaves a waiting job created 15 days ago only its newest\"",
+    "expect": "× .*leaves a waiting job created 15 days ago only its newest"
+  },
+  {
+    "id": "u",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes a dead job finished 91 days ago\"",
+    "expect": "× .*deletes a dead job finished 91 days ago"
+  },
+  {
+    "id": "events-referenced",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes an event processed 181 days ago\"",
+    "expect": "× .*deletes an event processed 181 days ago"
+  },
+  {
+    "id": "subject-closed",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes a closed subject request 25 months old\"",
+    "expect": "× .*deletes a closed subject request 25 months old"
+  },
+  {
+    "id": "x",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes an unconfirmed subscriber created 31 days ago\"",
+    "expect": "× .*deletes an unconfirmed subscriber created 31 days ago"
+  },
+  {
+    "id": "h",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_inquiries(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- G23: an inquiry older than p_keep keeps its row for the counts and loses what names a person. name and message are\n  -- not null, so they become ''; the address becomes a hash no one can write to.\n  select coalesce(array_agg(id), '{}') into v_ids\n  from public.inquiries\n  where received_at < now() - p_keep and anonymised_at is null;\n  if p_dry_run then\n    return cardinality(v_ids);\n  end if;\n  update public.inquiries\n  set name = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where id = any(v_ids);\n  -- B15 adds attribution; until then the column does not exist.\n  if exists (\n    select 1 from information_schema.columns\n    where table_schema = 'public' and table_name = 'inquiries' and column_name = 'attribution'\n  ) then\n    execute 'update public.inquiries set attribution = ''{}''::jsonb where id = any($1)' using v_ids;\n  end if;\n  -- G16: a webhook job of the inquiry keeps no copy of its body.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any(v_ids::text[])\n    and result ? 'body';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_inquiries(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_inquiries(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"anonymises an inquiry 25 months old\"",
+    "expect": "× .*anonymises an inquiry 25 months old"
+  },
+  {
+    "id": "p",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_inquiries(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- G23: an inquiry older than p_keep keeps its row for the counts and loses what names a person. name and message are\n  -- not null, so they become ''; the address becomes a hash no one can write to.\n  select coalesce(array_agg(id), '{}') into v_ids\n  from public.inquiries\n  where received_at < now() - p_keep and anonymised_at is null;\n  if p_dry_run then\n    return cardinality(v_ids);\n  end if;\n  update public.inquiries\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where id = any(v_ids);\n  -- B15 adds attribution; until then the column does not exist.\n  if exists (\n    select 1 from information_schema.columns\n    where table_schema = 'public' and table_name = 'inquiries' and column_name = 'attribution'\n  ) then\n    execute 'update public.inquiries set attribution = ''{}''::jsonb where id = any($1)' using v_ids;\n  end if;\n  -- G16: a webhook job of the inquiry keeps no copy of its body.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any(v_ids::text[])\n    and result ? 'body';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_inquiries(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_inquiries(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"anonymises an inquiry 25 months old\"",
+    "expect": "× .*anonymises an inquiry 25 months old"
+  },
+  {
+    "id": "t",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_inquiries(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- G23: an inquiry older than p_keep keeps its row for the counts and loses what names a person. name and message are\n  -- not null, so they become ''; the address becomes a hash no one can write to.\n  select coalesce(array_agg(id), '{}') into v_ids\n  from public.inquiries\n  where received_at < now() - p_keep and anonymised_at is null;\n  if p_dry_run then\n    return cardinality(v_ids);\n  end if;\n  update public.inquiries\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where id = any(v_ids);\n  -- B15 adds attribution; until then the column does not exist.\n  if exists (\n    select 1 from information_schema.columns\n    where table_schema = 'public' and table_name = 'inquiries' and column_name = 'attribution'\n  ) then\n    execute 'update public.inquiries set attribution = ''{}''::jsonb where id = any($1)' using v_ids;\n  end if;\n  -- G16: a webhook job of the inquiry keeps no copy of its body.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'never'\n    and payload -> 'data' ->> 'inquiry_id' = any(v_ids::text[])\n    and result ? 'body';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_inquiries(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_inquiries(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"anonymises an inquiry 25 months old\"",
+    "expect": "× .*anonymises an inquiry 25 months old"
+  },
+  {
+    "id": "inquiries-dry",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_inquiries(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- G23: an inquiry older than p_keep keeps its row for the counts and loses what names a person. name and message are\n  -- not null, so they become ''; the address becomes a hash no one can write to.\n  select coalesce(array_agg(id), '{}') into v_ids\n  from public.inquiries\n  where received_at < now() - p_keep and anonymised_at is null;\n  update public.inquiries\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where id = any(v_ids);\n  -- B15 adds attribution; until then the column does not exist.\n  if exists (\n    select 1 from information_schema.columns\n    where table_schema = 'public' and table_name = 'inquiries' and column_name = 'attribution'\n  ) then\n    execute 'update public.inquiries set attribution = ''{}''::jsonb where id = any($1)' using v_ids;\n  end if;\n  -- G16: a webhook job of the inquiry keeps no copy of its body.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any(v_ids::text[])\n    and result ? 'body';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_inquiries(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_inquiries(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"a dry run of the anonymise functions counts and changes nothing\"",
+    "expect": "× .*a dry run of the anonymise functions counts and changes nothing"
+  },
+  {
+    "id": "be",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_contacts(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- S55: a person with no open request and no published property, whose last request (or the contact itself, with\n  -- none) is older than p_keep, loses what names them; the same columns as B7's delete_subject.\n  select coalesce(array_agg(c.id), '{}') into v_ids\n  from public.contacts c\n  where c.archived_at is null\n    and coalesce(\n      (select max(s.updated_at) from public.submissions s where s.contact_id = c.id), c.updated_at\n    ) < now() - p_keep\n    and not exists (\n      select 1 from public.submissions s\n      join public.properties p on p.submission_id = s.id\n      where s.contact_id = c.id and p.editorial_state = 'published'\n    );\n  if p_dry_run then\n    return cardinality(v_ids);\n  end if;\n  update public.submissions s\n  set submitter_name = '',\n    submitter_email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    submitter_phone = null,\n    listing_agent_name = null\n  from public.contacts c\n  where c.id = s.contact_id and c.id = any(v_ids);\n  update public.contacts\n  set name = '',\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    phone = null,\n    brokerage = null,\n    notes = null,\n    archived_at = now()\n  where id = any(v_ids);\n  update public.retention_policies\n  set last_run_at = now(), last_count = cardinality(v_ids)\n  where key = 'contacts_anonymise';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_contacts(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_contacts(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"anonymises a contact whose only request was declined 25 months ago\"",
+    "expect": "× .*anonymises a contact whose only request was declined 25 months ago"
+  },
+  {
+    "id": "contacts-submission",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_contacts(p_keep interval, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_ids uuid[];\nbegin\n  -- S55: a person with no open request and no published property, whose last request (or the contact itself, with\n  -- none) is older than p_keep, loses what names them; the same columns as B7's delete_subject.\n  select coalesce(array_agg(c.id), '{}') into v_ids\n  from public.contacts c\n  where c.archived_at is null\n    and coalesce(\n      (select max(s.updated_at) from public.submissions s where s.contact_id = c.id), c.updated_at\n    ) < now() - p_keep\n    and not exists (\n      select 1 from public.submissions s\n      where s.contact_id = c.id and s.workflow_state not in ('Declined', 'Withdrawn', 'Completed')\n    )\n    and not exists (\n      select 1 from public.submissions s\n      join public.properties p on p.submission_id = s.id\n      where s.contact_id = c.id and p.editorial_state = 'published'\n    );\n  if p_dry_run then\n    return cardinality(v_ids);\n  end if;\n  update public.submissions s\n  set     submitter_email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    submitter_phone = null,\n    listing_agent_name = null\n  from public.contacts c\n  where c.id = s.contact_id and c.id = any(v_ids);\n  update public.contacts\n  set name = '',\n    email = encode(sha256(convert_to(email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    phone = null,\n    brokerage = null,\n    notes = null,\n    archived_at = now()\n  where id = any(v_ids);\n  update public.retention_policies\n  set last_run_at = now(), last_count = cardinality(v_ids)\n  where key = 'contacts_anonymise';\n  return cardinality(v_ids);\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_contacts(interval, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_contacts(interval, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"anonymises a contact whose only request was declined 25 months ago\"",
+    "expect": "× .*anonymises a contact whose only request was declined 25 months ago"
+  },
+  {
+    "id": "email-absent",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_anonymise_email(p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_keep interval;\n  v_count int;\nbegin\n  -- G16, G43: the recipient address of a sent email goes after the email_pii period. B5 creates the two tables and the\n  -- row, so this answers 0 until both exist; execute lets the function compile before them.\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'email_pii' and enabled and keep_for is not null;\n  if not found or to_regclass('public.email_messages') is null then\n    return 1;\n  end if;\n  if p_dry_run then\n    execute $q$\n      select (select count(*) from public.email_messages where to_email is not null and created_at < now() - $1)\n        + (select count(*) from public.email_events where to_email is not null and at < now() - $1)\n    $q$ into v_count using v_keep;\n    return v_count;\n  end if;\n  execute $q$\n    with messages as (\n      update public.email_messages set to_email = null\n      where to_email is not null and created_at < now() - $1\n      returning 1\n    ),\n    events as (\n      update public.email_events set to_email = null\n      where to_email is not null and at < now() - $1\n      returning 1\n    )\n    select (select count(*) from messages) + (select count(*) from events)\n  $q$ into v_count using v_keep;\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = 'email_pii';\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_anonymise_email(boolean) from public, anon, authenticated;\ngrant execute on function public.retention_anonymise_email(boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"retention_anonymise_email answers 0 while B5\"",
+    "expect": "× .*retention_anonymise_email answers 0 while B5"
+  },
+  {
+    "id": "bb",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_drop_analytics(p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_keep interval;\n  v_months int;\n  v_cutoff timestamptz;\n  v_part record;\n  v_count int := 0;\nbegin\n  -- Ruling H16, PERF-02: whole monthly partitions go once older than the analytics_events period, each rolled up into\n  -- analytics_daily first. 90 days gives 3 months, so a raw row lives at least 90 days and at most about 120.\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'analytics_events' and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  v_months := ceil(extract(epoch from v_keep) / 2592000)::int;\n  v_cutoff := (date_trunc('month', now() at time zone 'UTC') - make_interval(months => v_months)) at time zone 'UTC';\n  for v_part in\n    select substring(pg_get_expr(c.relpartbound, c.oid) from 'FROM \\(''([^'']+)''\\)')::timestamptz as lower_bound,\n      substring(pg_get_expr(c.relpartbound, c.oid) from 'TO \\(''([^'']+)''\\)')::timestamptz as upper_bound\n    from pg_inherits i\n    join pg_class c on c.oid = i.inhrelid\n    where i.inhparent = 'public.analytics_events'::regclass\n      and c.relname ~ '^analytics_events_y[0-9]{4}m[0-9]{2}$'\n  loop\n    if v_part.upper_bound <= v_cutoff then\n      v_count := v_count + 1;\n      if not p_dry_run then\n        null;\n      end if;\n    end if;\n  end loop;\n  if p_dry_run then\n    return v_count;\n  end if;\n  return public.drop_old_analytics_partitions(v_months);\nend;\n$$;\n\nrevoke execute on function public.retention_drop_analytics(boolean) from public, anon, authenticated;\ngrant execute on function public.retention_drop_analytics(boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"rolls up and drops a 4-month-old partition\"",
+    "expect": "× .*rolls up and drops a 4-month-old partition"
+  },
+  {
+    "id": "bd",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_drop_analytics(p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_keep interval;\n  v_months int;\n  v_cutoff timestamptz;\n  v_part record;\n  v_count int := 0;\nbegin\n  -- Ruling H16, PERF-02: whole monthly partitions go once older than the analytics_events period, each rolled up into\n  -- analytics_daily first. 90 days gives 3 months, so a raw row lives at least 90 days and at most about 120.\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'analytics_events' and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  v_months := (extract(year from v_keep) * 12 + extract(month from v_keep))::int;\n  v_cutoff := (date_trunc('month', now() at time zone 'UTC') - make_interval(months => v_months)) at time zone 'UTC';\n  for v_part in\n    select substring(pg_get_expr(c.relpartbound, c.oid) from 'FROM \\(''([^'']+)''\\)')::timestamptz as lower_bound,\n      substring(pg_get_expr(c.relpartbound, c.oid) from 'TO \\(''([^'']+)''\\)')::timestamptz as upper_bound\n    from pg_inherits i\n    join pg_class c on c.oid = i.inhrelid\n    where i.inhparent = 'public.analytics_events'::regclass\n      and c.relname ~ '^analytics_events_y[0-9]{4}m[0-9]{2}$'\n  loop\n    if v_part.upper_bound <= v_cutoff then\n      v_count := v_count + 1;\n      if not p_dry_run then\n        perform public.rollup_analytics_daily(\n          (v_part.lower_bound at time zone 'UTC')::date, (v_part.upper_bound at time zone 'UTC')::date - 1\n        );\n      end if;\n    end if;\n  end loop;\n  if p_dry_run then\n    return v_count;\n  end if;\n  return public.drop_old_analytics_partitions(v_months);\nend;\n$$;\n\nrevoke execute on function public.retention_drop_analytics(boolean) from public, anon, authenticated;\ngrant execute on function public.retention_drop_analytics(boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"rolls up and drops a 4-month-old partition\"",
+    "expect": "× .*rolls up and drops a 4-month-old partition"
+  },
+  {
+    "id": "bc",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.rollup_analytics_daily(p_from date, p_to date)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- Ruling H16: the daily aggregates of the raw events from p_from to p_to, UTC days. A rerun recomputes the same\n  -- numbers from the raw rows and never counts them twice; a day whose raw rows are gone writes nothing and keeps its\n  -- aggregate. p75 is the 75th percentile of a web vital's value, null for every other event.\n  with written as (\n    insert into public.analytics_daily (day, event, path, dim, events, p75)\n    select (occurred_at at time zone 'utc')::date,\n      event,\n      path,\n      case event\n        when 'web_vitals' then coalesce(data ->> 'name', '')\n        when 'csp_report' then coalesce(data ->> 'directive', '')\n        else ''\n      end,\n      count(*),\n      (percentile_cont(0.75) within group (\n        order by case when data ->> 'value' ~ '^-?[0-9]+(\\.[0-9]+)?$' then (data ->> 'value')::numeric end\n      ) filter (where event = 'web_vitals'))::numeric\n    from public.analytics_events\n    where occurred_at >= p_from::timestamp at time zone 'utc'\n      and occurred_at < (p_to + 1)::timestamp at time zone 'utc'\n    group by 1, 2, 3, 4\n    returning 1\n  )\n  select count(*)::int from written;\n$$;\n\nrevoke execute on function public.rollup_analytics_daily(date, date) from public, anon, authenticated;\ngrant execute on function public.rollup_analytics_daily(date, date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"rollup_analytics_daily run twice over a day\"",
+    "expect": "× .*rollup_analytics_daily run twice over a day"
+  },
+  {
+    "id": "analytics-daily-13",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < (now() at time zone 'utc')::date or $1 is null$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"deletes an analytics_daily row 14 months back\"",
+    "expect": "× .*deletes an analytics_daily row 14 months back"
+  },
+  {
+    "id": "log-run-policies",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.retention_log_run(p_after jsonb)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id bigint;\nbegin\n  -- G43: the one audit row of a retention run, written by the system (no actor), with { <policy key>: { affected,\n  -- remaining } }; each named policy row records the run, which the health check's retention_stalled reads.\n  insert into public.audit_log (action, entity, entity_id, actor_id, actor_kind, after)\n  values ('retention.run', 'retention', null, null, null, p_after)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.retention_log_run(jsonb) from public, anon, authenticated;\ngrant execute on function public.retention_log_run(jsonb) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"retention_log_run writes exactly one retention.run row\"",
+    "expect": "× .*retention_log_run writes exactly one retention\\.run row"
+  },
+  {
+    "id": "retention-cron-key",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "select cron.alter_job(jobid, command := replace(command, '''retention:'' ||', '''retention:'' || gen_random_uuid() ||')) from cron.job where jobname = 'retention';",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"a second run of the retention cron command the same day\"",
+    "expect": "× .*a second run of the retention cron command the same day"
+  },
+  {
+    "id": "vault-allow-list",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.get_vault_secret(p_name text)\nreturns text\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GS-01: the tokens a job refreshes live in Vault; only these names can be read, any other raises.\n  if p_name not in ('meta_page_token', 'x_oauth_token', 'linkedin_oauth_token', 'job_runner_secret') then\n    raise exception 'forbidden';\n  end if;\n  return (select decrypted_secret from vault.decrypted_secrets where name = p_name);\nend;\n$$;\n\nrevoke execute on function public.get_vault_secret(text) from public, anon, authenticated;\ngrant execute on function public.get_vault_secret(text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"get_vault_secret returns what set_vault_secret stored\"",
+    "expect": "× .*get_vault_secret returns what set_vault_secret stored"
+  },
+  {
+    "id": "vault-update",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.set_vault_secret(p_name text, p_value text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- GS-01: the writer of get_vault_secret's names; any other name raises.\n  if p_name not in ('meta_page_token', 'x_oauth_token', 'linkedin_oauth_token') then\n    raise exception 'forbidden';\n  end if;\n  select id into v_id from vault.secrets where name = p_name;\n  if v_id is null then\n    perform vault.create_secret(p_value, p_name);\n  else\n    perform vault.update_secret(v_id, 'other');\n  end if;\nend;\n$$;\n\nrevoke execute on function public.set_vault_secret(text, text) from public, anon, authenticated;\ngrant execute on function public.set_vault_secret(text, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"get_vault_secret returns what set_vault_secret stored\"",
+    "expect": "× .*get_vault_secret returns what set_vault_secret stored"
+  },
+  {
+    "id": "meta-merge",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.meta_token_record(\n  p_checked_at timestamptz,\n  p_token_state text,\n  p_missing_scopes text[],\n  p_expires_at timestamptz default null,\n  p_data_access_expires_at timestamptz default null,\n  p_new_token text default null\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-06: what the daily check read about the Meta token, merged into settings.meta (an admin key, so no catalog\n  -- bump, G21). A null expiry means never; the two dates come last with defaults, so a caller leaves a null one out.\n  -- A refreshed token goes to Vault with its one secret.rotated row in the same transaction. Two runs never write at\n  -- once: the second answers locked (G21).\n  if p_token_state not in ('ok', 'dead', 'scopes_missing') then\n    raise exception 'invalid_token_state';\n  end if;\n  if not pg_try_advisory_xact_lock(hashtext('meta_page_token')) then\n    return 'locked';\n  end if;\n  update public.settings\n  set value = jsonb_build_object(\n    'token_expires_at', p_expires_at,\n    'token_checked_at', p_checked_at,\n    'token_state', p_token_state,\n    'missing_scopes', to_jsonb(p_missing_scopes),\n    'data_access_expires_at', p_data_access_expires_at\n  )\n  where key = 'meta';\n  if p_new_token is not null then\n    perform public.set_vault_secret('meta_page_token', p_new_token);\n    insert into public.audit_log (action, entity, actor_id, actor_kind)\n    values ('secret.rotated', 'META_PAGE_TOKEN', null, null);\n  end if;\n  return 'ok';\nend;\n$$;\n\nrevoke execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  from public, anon, authenticated;\ngrant execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"meta_token_record merges its fields into settings.meta\"",
+    "expect": "× .*meta_token_record merges its fields into settings\\.meta"
+  },
+  {
+    "id": "meta-rotated",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.meta_token_record(\n  p_checked_at timestamptz,\n  p_token_state text,\n  p_missing_scopes text[],\n  p_expires_at timestamptz default null,\n  p_data_access_expires_at timestamptz default null,\n  p_new_token text default null\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-06: what the daily check read about the Meta token, merged into settings.meta (an admin key, so no catalog\n  -- bump, G21). A null expiry means never; the two dates come last with defaults, so a caller leaves a null one out.\n  -- A refreshed token goes to Vault with its one secret.rotated row in the same transaction. Two runs never write at\n  -- once: the second answers locked (G21).\n  if p_token_state not in ('ok', 'dead', 'scopes_missing') then\n    raise exception 'invalid_token_state';\n  end if;\n  if not pg_try_advisory_xact_lock(hashtext('meta_page_token')) then\n    return 'locked';\n  end if;\n  update public.settings\n  set value = value || jsonb_build_object(\n    'token_expires_at', p_expires_at,\n    'token_checked_at', p_checked_at,\n    'token_state', p_token_state,\n    'missing_scopes', to_jsonb(p_missing_scopes),\n    'data_access_expires_at', p_data_access_expires_at\n  )\n  where key = 'meta';\n  if p_new_token is not null then\n    perform public.set_vault_secret('meta_page_token', p_new_token);\n  end if;\n  return 'ok';\nend;\n$$;\n\nrevoke execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  from public, anon, authenticated;\ngrant execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"meta_token_record with a new token writes Vault\"",
+    "expect": "× .*meta_token_record with a new token writes Vault"
+  },
+  {
+    "id": "meta-state",
+    "kind": "sql",
+    "test": "tests/db/retention.db.test.ts",
+    "sql": "create or replace function public.meta_token_record(\n  p_checked_at timestamptz,\n  p_token_state text,\n  p_missing_scopes text[],\n  p_expires_at timestamptz default null,\n  p_data_access_expires_at timestamptz default null,\n  p_new_token text default null\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-06: what the daily check read about the Meta token, merged into settings.meta (an admin key, so no catalog\n  -- bump, G21). A null expiry means never; the two dates come last with defaults, so a caller leaves a null one out.\n  -- A refreshed token goes to Vault with its one secret.rotated row in the same transaction. Two runs never write at\n  -- once: the second answers locked (G21).\n  if not pg_try_advisory_xact_lock(hashtext('meta_page_token')) then\n    return 'locked';\n  end if;\n  update public.settings\n  set value = value || jsonb_build_object(\n    'token_expires_at', p_expires_at,\n    'token_checked_at', p_checked_at,\n    'token_state', p_token_state,\n    'missing_scopes', to_jsonb(p_missing_scopes),\n    'data_access_expires_at', p_data_access_expires_at\n  )\n  where key = 'meta';\n  if p_new_token is not null then\n    perform public.set_vault_secret('meta_page_token', p_new_token);\n    insert into public.audit_log (action, entity, actor_id, actor_kind)\n    values ('secret.rotated', 'META_PAGE_TOKEN', null, null);\n  end if;\n  return 'ok';\nend;\n$$;\n\nrevoke execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  from public, anon, authenticated;\ngrant execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"meta_token_record refuses a token state\"",
+    "expect": "× .*meta_token_record refuses a token state"
   }
 ]

@@ -27,6 +27,7 @@ export const errorCodes = {
   append_only: 409,
   upload_limit: 422,
   invalid_kind: 422,
+  invalid_token_state: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
