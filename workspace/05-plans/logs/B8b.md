@@ -303,3 +303,15 @@ Main merged first (`git merge origin/main`, 4 commits of B8), check-gotchas OK.
 UNPROVEN until after the merge and the `dev` job: the post-merge selects (18 recipes, eight schedule rows, no `prune` in
 cron.job, a `tz` per channel), the `job-runner` deploy and its 200 with `"claimed"`, and the scheduler's `reconcile` job
 row. The `settings.flags` select waits on B3b.
+
+### g3 rework · second merge of main (PR #124 showed CONFLICTING)
+`git merge origin/main` at 416cb75: GOTCHAS.md P-094 compared by hand (main's two B9 g7 hit-again lines folded in),
+check-gotchas OK. After the merge:
+- `bunx vitest run` of the three g3 files → Tests  34 passed (34); `deno check --frozen ...` exit 0; `bun run build` ok
+- `bun run check` → RED, one test outside g3's files:
+  FAIL |unit| tests/unit/automation/step-specs.test.ts > step specs > finds a run-twice test for every implemented type with an outside effect
+  AssertionError: expected [ 'render_variants', …(3) ] to deeply equal []   (render_variants, render_cover, render_carousel, render_story)
+  Tests  1 failed | 1649 passed (1650)
+  Cause: B9 (merged to main, PR #117) registered the four render steps without R28 run-twice cases; g2's gate first
+  meets them here. Owner: B9's `tests/unit/assets/steps.test.ts` (one `<type> runs twice without a second outside
+  effect` case each). Not fixed by g3 (not its files). Banked as P-1612.

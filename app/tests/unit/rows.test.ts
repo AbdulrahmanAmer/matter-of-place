@@ -242,10 +242,80 @@ describe("runSeed", () => {
     expect(calls.at(-1)?.table).toBe("markets");
   });
 
-  it("refuses the upload mode until the media store exists", async () => {
-    const { db } = recordingDb();
-    await expect(runSeed({ ...full, images: "upload" }, { db, sha8 })).rejects.toThrow(
-      "--images upload",
-    );
+  describe("--images upload", () => {
+    const upload = { target: "dev", mode: "full", images: "upload" } as const;
+    const sizes = {
+      thumb: { w: 320, h: 213 },
+      card: { w: 720, h: 480 },
+      hero: { w: 1600, h: 1067 },
+      og: { w: 1200, h: 630 },
+      carousel: { w: 1080, h: 1350 },
+    };
+
+    /** An uploader that records the key of each call. */
+    function recordingUpload() {
+      const keys: string[] = [];
+      return {
+        keys,
+        upload: ({ owner, n }: { owner: string; n: number }) => {
+          const key = variantKeys(owner, n, SHA8).master;
+          keys.push(key);
+          return Promise.resolve({ media_key: key, variants: sizes });
+        },
+      };
+    }
+
+    function posterOf(video: unknown): unknown {
+      return typeof video === "object" && video !== null && "poster" in video ? video.poster : null;
+    }
+
+    it("uploads every key the rows name once and stores its sizes beside it", async () => {
+      const { db, calls } = recordingDb();
+      const uploader = recordingUpload();
+      await runSeed(upload, { db, sha8, upload: uploader.upload, guard: () => Promise.resolve() });
+      const named = new Set(
+        calls
+          .filter((call) => call.op === "upsert")
+          .flatMap((call) => call.rows ?? [])
+          .flatMap((row) => [row["media_key"], row["image"], row["photo"], posterOf(row["video"])])
+          .filter((key): key is string => typeof key === "string"),
+      );
+      expect(named.size).toBeGreaterThan(50);
+      expect(new Set(uploader.keys)).toEqual(named);
+      expect(uploader.keys).toHaveLength(named.size);
+      const media = calls.find((call) => call.table === "property_media")?.rows ?? [];
+      expect(media.length).toBeGreaterThan(0);
+      expect(media.every((row) => JSON.stringify(row["variants"]) === JSON.stringify(sizes))).toBe(
+        true,
+      );
+      const withImage = calls
+        .filter(
+          (call) =>
+            call.table === "markets" || call.table === "regions" || call.table === "stories",
+        )
+        .flatMap((call) => call.rows ?? [])
+        .filter((row) => row["image"] !== null);
+      expect(
+        withImage.every((row) => JSON.stringify(row["image_variants"]) === JSON.stringify(sizes)),
+      ).toBe(true);
+    });
+
+    it("stops before any write when the stored key is not the key the rows name", async () => {
+      const { db, calls } = recordingDb();
+      const wrong = () => Promise.resolve({ media_key: "o/x/0-00000000.webp", variants: sizes });
+      await expect(
+        runSeed(upload, { db, sha8, upload: wrong, guard: () => Promise.resolve() }),
+      ).rejects.toThrow("was stored as o/x/0-00000000.webp");
+      expect(calls).toEqual([]);
+    });
+
+    it("never uploads with --images skip and leaves every variants column empty", async () => {
+      const { db, calls } = recordingDb();
+      const uploader = vi.fn(() => Promise.reject(new Error("uploaded")));
+      await runSeed(full, { db, sha8, upload: uploader, guard: () => Promise.resolve() });
+      expect(uploader).not.toHaveBeenCalled();
+      const media = calls.find((call) => call.table === "property_media")?.rows ?? [];
+      expect(media.every((row) => JSON.stringify(row["variants"]) === "{}")).toBe(true);
+    });
   });
 });

@@ -69,6 +69,8 @@ export const rlsMatrix: Record<string, Access> = {
   // B8 step 6a: written by beat() and read by ops_health(), both service role only.
   ops_heartbeats: {},
   analytics_daily: staffRead,
+  // B9: written only through the asset functions under the service role; media_ops and chief_editor may update.
+  assets: { select: staffRoles, update: ["media_ops", "chief_editor"] },
   // B8b step 1: recipes are never inserted or deleted (invariant 8), revisions come from a trigger, and only the
   // service role reaches the fan-out retry rows (JOB-07). decline_reasons keeps B2's row above.
   automation_recipes: { select: staffRoles, update: automation },
