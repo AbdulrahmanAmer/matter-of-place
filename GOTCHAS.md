@@ -1865,3 +1865,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after any merge of origin/main, if `git diff --name-only HEAD~1 HEAD -- app/package.json app/bun.lock` names a file, run `cd app && bun install` before `bun run check`; a typecheck error that names an import of a package present in `package.json` is a stale `node_modules`, not a code defect. The other half of that cost, a registry entry going STALE after an edit to a mutated file, is banked in the registry rule (P-066).
 - proof: `cd app && grep -c '"puppeteer-core"' package.json` → `1` on slice/b16 at bec47c2 (line 98, merged from main with 500d04b); `cd app && bun install --frozen-lockfile 2>&1 | tail -1` then `bunx tsc --noEmit` exits 0 (the red output of the missed install was not kept: UNPROVEN as text, reported by the g1 cost line and the reviewer).
 - added: 2026-10-04
+
+## P-512 · An accepted migration sat on a lane branch while another slice's migration merged first; the lane's own push and main's push then disagreed
+- symptom: see P-511 for the two refusals; the deeper cause was the order: B3's migration reached mop-dev from the branch on 2026-10-03 18:46 and reached main only on 2026-10-04 00:20, after B8's.
+- cause: the single-writer exception let a lane push before merging, and the slice merged only at its end (H50), so main lagged the database by hours.
+- rule: ruling H57: no lane pushes; `build-slice.js` merges an accepted schema group at once (`mergeNow`), then main pushes. Rename a migration only while unpushed.
+- proof: `node <scratchpad>/trace/simulate-workflow.mjs` → the schema scenario's agents end `review:B2:g2:2* | merge:B2:g2:2` (the merge follows the schema group's review); `simulation: 6 scenarios passed`.
+- enforced-by: .claude/workflows/build-slice.js (the schema merge hook and the H57 rule in the builder brief)
+- added: 2026-10-04
