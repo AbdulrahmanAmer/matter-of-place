@@ -183,6 +183,7 @@ async function refresh(
 
 export const metaTokenRefresh: SystemJobDefinition = {
   type: "meta_token_refresh",
+  sideEffect: "idempotency_key",
   maxAttempts: 12,
   async run(ctx) {
     const meta = await readSettings(ctx.db);

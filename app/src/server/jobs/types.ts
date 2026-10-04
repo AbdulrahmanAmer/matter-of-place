@@ -46,6 +46,9 @@ export type StepResult =
   | { status: "retry_at"; at: Date; reason: string; result?: Json | undefined }
   | { status: "dispatched"; result?: Json | undefined };
 
+/** The mechanism that keeps a rerun from repeating an outside effect (R28); `none` means no outside effect. */
+export type SideEffect = "none" | "idempotency_key" | "begin_row" | "remote_lookup" | "sql_guard";
+
 export interface StepDefinition<P = unknown> {
   type: string;
   heavy: boolean;
@@ -61,6 +64,7 @@ export interface StepDefinition<P = unknown> {
 
 export interface SystemJobDefinition {
   type: string;
+  sideEffect: SideEffect;
   maxAttempts?: number;
   timeoutMs?: number;
   run(ctx: StepContext, params: Json, data: JsonObject): Promise<StepResult>;

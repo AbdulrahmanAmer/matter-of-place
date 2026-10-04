@@ -19,6 +19,7 @@ const guardedScripts = [
   "scripts/job-selftest.ts",
   "scripts/set-environment.ts",
   "scripts/with-coming-soon.ts",
+  "scripts/omnikom-run-local.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {
