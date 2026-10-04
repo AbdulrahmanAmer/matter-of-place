@@ -780,8 +780,8 @@
     "kind": "file",
     "test": "tests/unit/state.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "  const catalog = applyVisibility(mapped, {\n    state,\n    env: { MOP_ENV: readVar(\"MOP_ENV\") ?? \"production\" },\n  });",
-    "replace": "  const catalog = mapped;",
+    "find": "  const visible = applyVisibility(mapped, {\n    state,\n    env: { MOP_ENV: readVar(\"MOP_ENV\") ?? \"production\" },\n  });",
+    "replace": "  const visible = mapped;",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*runs applyVisibility once per version with the state and MOP_ENV"
   },
@@ -1060,8 +1060,8 @@
     "kind": "file",
     "test": "tests/unit/readpath.test.ts",
     "file": "src/server/catalog/service.ts",
-    "find": "export async function listProperties(db: Db): Promise<Property[]> {\n",
-    "replace": "export async function listProperties(db: Db): Promise<Property[]> {\n  void db.from(\"properties\");\n",
+    "find": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n",
+    "replace": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n  void db.from(\"properties\");\n",
     "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
     "expect": "× .*calls .*nowhere but state.ts"
   },
@@ -1070,8 +1070,8 @@
     "kind": "file",
     "test": "tests/unit/readpath.test.ts",
     "file": "src/server/catalog/service.ts",
-    "find": "export async function listProperties(db: Db): Promise<Property[]> {\n",
-    "replace": "export async function listProperties(db: Db): Promise<Property[]> {\n  void db.from(\"analytics_events\").insert([]);\n",
+    "find": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n",
+    "replace": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n  void db.from(\"analytics_events\").insert([]);\n",
     "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
     "expect": "× .*never go through"
   },
@@ -2434,5 +2434,15 @@
     "replace": "      resolve(null);",
     "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
     "expect": "× .*answers null when the script is blocked, and tries again"
+  },
+  {
+    "id": "b3-c3-state-memo-back",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "if (!(state.catalogVersion < catalogFor)) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*does not give a request for a newer version the load that is still reading an older one"
   }
 ]

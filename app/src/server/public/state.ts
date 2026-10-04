@@ -152,8 +152,11 @@ async function loadCatalog(db: Db, state: PublicState): Promise<ServedCatalog> {
     env: { MOP_ENV: readVar("MOP_ENV") ?? "production" },
   });
   const catalog = { ...visible, cards: visible.properties.map(toPropertyCard) };
-  catalogMemo = catalog;
-  catalogFor = state.catalogVersion;
+  // A load that started under an older state can finish after a newer one: the memo never goes back.
+  if (!(state.catalogVersion < catalogFor)) {
+    catalogMemo = catalog;
+    catalogFor = state.catalogVersion;
+  }
   return catalog;
 }
 

@@ -334,6 +334,8 @@ describe("getCatalog", () => {
     slow.resolve(snapshotJson(5));
     expect((await second).version).toBe(6);
     expect((await first).version).toBe(5);
+    expect((await state.getCatalog(db)).version).toBe(6);
+    expect(rpcCalls(db, "public_catalog_snapshot")).toBe(2);
   });
 
   it("makes one snapshot call for requests that arrive together", async () => {
