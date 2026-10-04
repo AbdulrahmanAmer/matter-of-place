@@ -9,89 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as MarketRouteImport } from './routes/$market'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as EditorialStandardRouteImport } from './routes/editorial-standard'
-import { Route as ExposureRouteImport } from './routes/exposure'
-import { Route as FaqRouteImport } from './routes/faq'
-import { Route as LegalRouteImport } from './routes/legal'
-import { Route as MarketsRouteImport } from './routes/markets'
-import { Route as PlaceNotesRouteImport } from './routes/place-notes'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as PropertiesRouteImport } from './routes/properties'
+import { Route as SiteRouteImport } from './routes/_site'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as StoriesRouteImport } from './routes/stories'
-import { Route as SubmitRouteImport } from './routes/submit'
-import { Route as MarketIndexRouteImport } from './routes/$market.index'
-import { Route as MarketRegionRouteImport } from './routes/$market.$region'
-import { Route as MarketGuideRouteImport } from './routes/$market.guide'
-import { Route as MarketsIndexRouteImport } from './routes/markets.index'
-import { Route as MarketsSplatRouteImport } from './routes/markets.$'
-import { Route as PropertySlugRouteImport } from './routes/property.$slug'
-import { Route as StoriesIndexRouteImport } from './routes/stories.index'
-import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
+import { Route as SiteIndexRouteImport } from './routes/_site.index'
+import { Route as SiteMarketRouteImport } from './routes/_site.$market'
+import { Route as SiteAboutRouteImport } from './routes/_site.about'
+import { Route as SiteContactRouteImport } from './routes/_site.contact'
+import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
+import { Route as SiteExposureRouteImport } from './routes/_site.exposure'
+import { Route as SiteFaqRouteImport } from './routes/_site.faq'
+import { Route as SiteLegalRouteImport } from './routes/_site.legal'
+import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
+import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
+import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
+import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
+import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
+import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
+import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
+import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
+import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
+import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
+import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
+import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
+import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketRoute = MarketRouteImport.update({
-  id: '/$market',
-  path: '/$market',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditorialStandardRoute = EditorialStandardRouteImport.update({
-  id: '/editorial-standard',
-  path: '/editorial-standard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExposureRoute = ExposureRouteImport.update({
-  id: '/exposure',
-  path: '/exposure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FaqRoute = FaqRouteImport.update({
-  id: '/faq',
-  path: '/faq',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalRoute = LegalRouteImport.update({
-  id: '/legal',
-  path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketsRoute = MarketsRouteImport.update({
-  id: '/markets',
-  path: '/markets',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlaceNotesRoute = PlaceNotesRouteImport.update({
-  id: '/place-notes',
-  path: '/place-notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PropertiesRoute = PropertiesRouteImport.update({
-  id: '/properties',
-  path: '/properties',
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -99,55 +44,115 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StoriesRoute = StoriesRouteImport.update({
+const SiteIndexRoute = SiteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteMarketRoute = SiteMarketRouteImport.update({
+  id: '/$market',
+  path: '/$market',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAboutRoute = SiteAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteContactRoute = SiteContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteEditorialStandardRoute = SiteEditorialStandardRouteImport.update({
+  id: '/editorial-standard',
+  path: '/editorial-standard',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteExposureRoute = SiteExposureRouteImport.update({
+  id: '/exposure',
+  path: '/exposure',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteFaqRoute = SiteFaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteLegalRoute = SiteLegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteMarketsRoute = SiteMarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePlaceNotesRoute = SitePlaceNotesRouteImport.update({
+  id: '/place-notes',
+  path: '/place-notes',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePricingRoute = SitePricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePropertiesRoute = SitePropertiesRouteImport.update({
+  id: '/properties',
+  path: '/properties',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteStoriesRoute = SiteStoriesRouteImport.update({
   id: '/stories',
   path: '/stories',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const SubmitRoute = SubmitRouteImport.update({
+const SiteSubmitRoute = SiteSubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const MarketIndexRoute = MarketIndexRouteImport.update({
+const SiteMarketIndexRoute = SiteMarketIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => MarketRoute,
+  getParentRoute: () => SiteMarketRoute,
 } as any)
-const MarketRegionRoute = MarketRegionRouteImport.update({
+const SiteMarketRegionRoute = SiteMarketRegionRouteImport.update({
   id: '/$region',
   path: '/$region',
-  getParentRoute: () => MarketRoute,
+  getParentRoute: () => SiteMarketRoute,
 } as any)
-const MarketGuideRoute = MarketGuideRouteImport.update({
+const SiteMarketGuideRoute = SiteMarketGuideRouteImport.update({
   id: '/guide',
   path: '/guide',
-  getParentRoute: () => MarketRoute,
+  getParentRoute: () => SiteMarketRoute,
 } as any)
-const MarketsIndexRoute = MarketsIndexRouteImport.update({
+const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => MarketsRoute,
+  getParentRoute: () => SiteMarketsRoute,
 } as any)
-const MarketsSplatRoute = MarketsSplatRouteImport.update({
+const SiteMarketsSplatRoute = SiteMarketsSplatRouteImport.update({
   id: '/$',
   path: '/$',
-  getParentRoute: () => MarketsRoute,
+  getParentRoute: () => SiteMarketsRoute,
 } as any)
-const PropertySlugRoute = PropertySlugRouteImport.update({
+const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
   id: '/property/$slug',
   path: '/property/$slug',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const StoriesIndexRoute = StoriesIndexRouteImport.update({
+const SiteStoriesIndexRoute = SiteStoriesIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => StoriesRoute,
+  getParentRoute: () => SiteStoriesRoute,
 } as any)
-const StoriesSlugRoute = StoriesSlugRouteImport.update({
+const SiteStoriesSlugRoute = SiteStoriesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
-  getParentRoute: () => StoriesRoute,
+  getParentRoute: () => SiteStoriesRoute,
 } as any)
 const ApiHooksSentryTestRoute = ApiHooksSentryTestRouteImport.update({
   id: '/api/hooks/sentry-test',
@@ -156,85 +161,87 @@ const ApiHooksSentryTestRoute = ApiHooksSentryTestRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$market': typeof MarketRouteWithChildren
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/editorial-standard': typeof EditorialStandardRoute
-  '/exposure': typeof ExposureRoute
-  '/faq': typeof FaqRoute
-  '/legal': typeof LegalRoute
-  '/markets': typeof MarketsRouteWithChildren
-  '/place-notes': typeof PlaceNotesRoute
-  '/pricing': typeof PricingRoute
-  '/properties': typeof PropertiesRoute
+  '/': typeof SiteIndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stories': typeof StoriesRouteWithChildren
-  '/submit': typeof SubmitRoute
-  '/$market/$region': typeof MarketRegionRoute
-  '/$market/guide': typeof MarketGuideRoute
-  '/markets/$': typeof MarketsSplatRoute
-  '/property/$slug': typeof PropertySlugRoute
-  '/stories/$slug': typeof StoriesSlugRoute
-  '/$market/': typeof MarketIndexRoute
-  '/markets/': typeof MarketsIndexRoute
-  '/stories/': typeof StoriesIndexRoute
+  '/$market': typeof SiteMarketRouteWithChildren
+  '/about': typeof SiteAboutRoute
+  '/contact': typeof SiteContactRoute
+  '/editorial-standard': typeof SiteEditorialStandardRoute
+  '/exposure': typeof SiteExposureRoute
+  '/faq': typeof SiteFaqRoute
+  '/legal': typeof SiteLegalRoute
+  '/markets': typeof SiteMarketsRouteWithChildren
+  '/place-notes': typeof SitePlaceNotesRoute
+  '/pricing': typeof SitePricingRoute
+  '/properties': typeof SitePropertiesRoute
+  '/stories': typeof SiteStoriesRouteWithChildren
+  '/submit': typeof SiteSubmitRoute
+  '/$market/$region': typeof SiteMarketRegionRoute
+  '/$market/guide': typeof SiteMarketGuideRoute
+  '/markets/$': typeof SiteMarketsSplatRoute
+  '/property/$slug': typeof SitePropertySlugRoute
+  '/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/$market/': typeof SiteMarketIndexRoute
+  '/markets/': typeof SiteMarketsIndexRoute
+  '/stories/': typeof SiteStoriesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/editorial-standard': typeof EditorialStandardRoute
-  '/exposure': typeof ExposureRoute
-  '/faq': typeof FaqRoute
-  '/legal': typeof LegalRoute
-  '/place-notes': typeof PlaceNotesRoute
-  '/pricing': typeof PricingRoute
-  '/properties': typeof PropertiesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/submit': typeof SubmitRoute
-  '/$market/$region': typeof MarketRegionRoute
-  '/$market/guide': typeof MarketGuideRoute
-  '/markets/$': typeof MarketsSplatRoute
-  '/property/$slug': typeof PropertySlugRoute
-  '/stories/$slug': typeof StoriesSlugRoute
-  '/$market': typeof MarketIndexRoute
-  '/markets': typeof MarketsIndexRoute
-  '/stories': typeof StoriesIndexRoute
+  '/about': typeof SiteAboutRoute
+  '/contact': typeof SiteContactRoute
+  '/editorial-standard': typeof SiteEditorialStandardRoute
+  '/exposure': typeof SiteExposureRoute
+  '/faq': typeof SiteFaqRoute
+  '/legal': typeof SiteLegalRoute
+  '/place-notes': typeof SitePlaceNotesRoute
+  '/pricing': typeof SitePricingRoute
+  '/properties': typeof SitePropertiesRoute
+  '/submit': typeof SiteSubmitRoute
+  '/': typeof SiteIndexRoute
+  '/$market/$region': typeof SiteMarketRegionRoute
+  '/$market/guide': typeof SiteMarketGuideRoute
+  '/markets/$': typeof SiteMarketsSplatRoute
+  '/property/$slug': typeof SitePropertySlugRoute
+  '/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/$market': typeof SiteMarketIndexRoute
+  '/markets': typeof SiteMarketsIndexRoute
+  '/stories': typeof SiteStoriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$market': typeof MarketRouteWithChildren
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/editorial-standard': typeof EditorialStandardRoute
-  '/exposure': typeof ExposureRoute
-  '/faq': typeof FaqRoute
-  '/legal': typeof LegalRoute
-  '/markets': typeof MarketsRouteWithChildren
-  '/place-notes': typeof PlaceNotesRoute
-  '/pricing': typeof PricingRoute
-  '/properties': typeof PropertiesRoute
+  '/_site': typeof SiteRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stories': typeof StoriesRouteWithChildren
-  '/submit': typeof SubmitRoute
-  '/$market/$region': typeof MarketRegionRoute
-  '/$market/guide': typeof MarketGuideRoute
-  '/markets/$': typeof MarketsSplatRoute
-  '/property/$slug': typeof PropertySlugRoute
-  '/stories/$slug': typeof StoriesSlugRoute
-  '/$market/': typeof MarketIndexRoute
-  '/markets/': typeof MarketsIndexRoute
-  '/stories/': typeof StoriesIndexRoute
+  '/_site/$market': typeof SiteMarketRouteWithChildren
+  '/_site/about': typeof SiteAboutRoute
+  '/_site/contact': typeof SiteContactRoute
+  '/_site/editorial-standard': typeof SiteEditorialStandardRoute
+  '/_site/exposure': typeof SiteExposureRoute
+  '/_site/faq': typeof SiteFaqRoute
+  '/_site/legal': typeof SiteLegalRoute
+  '/_site/markets': typeof SiteMarketsRouteWithChildren
+  '/_site/place-notes': typeof SitePlaceNotesRoute
+  '/_site/pricing': typeof SitePricingRoute
+  '/_site/properties': typeof SitePropertiesRoute
+  '/_site/stories': typeof SiteStoriesRouteWithChildren
+  '/_site/submit': typeof SiteSubmitRoute
+  '/_site/': typeof SiteIndexRoute
+  '/_site/$market/$region': typeof SiteMarketRegionRoute
+  '/_site/$market/guide': typeof SiteMarketGuideRoute
+  '/_site/markets/$': typeof SiteMarketsSplatRoute
+  '/_site/property/$slug': typeof SitePropertySlugRoute
+  '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/_site/$market/': typeof SiteMarketIndexRoute
+  '/_site/markets/': typeof SiteMarketsIndexRoute
+  '/_site/stories/': typeof SiteStoriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sitemap.xml'
     | '/$market'
     | '/about'
     | '/contact'
@@ -246,7 +253,6 @@ export interface FileRouteTypes {
     | '/place-notes'
     | '/pricing'
     | '/properties'
-    | '/sitemap.xml'
     | '/stories'
     | '/submit'
     | '/$market/$region'
@@ -254,13 +260,13 @@ export interface FileRouteTypes {
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
+    | '/api/hooks/sentry-test'
     | '/$market/'
     | '/markets/'
     | '/stories/'
-    | '/api/hooks/sentry-test'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/sitemap.xml'
     | '/about'
     | '/contact'
     | '/editorial-standard'
@@ -270,149 +276,59 @@ export interface FileRouteTypes {
     | '/place-notes'
     | '/pricing'
     | '/properties'
-    | '/sitemap.xml'
     | '/submit'
+    | '/'
     | '/$market/$region'
     | '/$market/guide'
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
+    | '/api/hooks/sentry-test'
     | '/$market'
     | '/markets'
     | '/stories'
-    | '/api/hooks/sentry-test'
   id:
     | '__root__'
-    | '/'
-    | '/$market'
-    | '/about'
-    | '/contact'
-    | '/editorial-standard'
-    | '/exposure'
-    | '/faq'
-    | '/legal'
-    | '/markets'
-    | '/place-notes'
-    | '/pricing'
-    | '/properties'
+    | '/_site'
     | '/sitemap.xml'
-    | '/stories'
-    | '/submit'
-    | '/$market/$region'
-    | '/$market/guide'
-    | '/markets/$'
-    | '/property/$slug'
-    | '/stories/$slug'
-    | '/$market/'
-    | '/markets/'
-    | '/stories/'
+    | '/_site/$market'
+    | '/_site/about'
+    | '/_site/contact'
+    | '/_site/editorial-standard'
+    | '/_site/exposure'
+    | '/_site/faq'
+    | '/_site/legal'
+    | '/_site/markets'
+    | '/_site/place-notes'
+    | '/_site/pricing'
+    | '/_site/properties'
+    | '/_site/stories'
+    | '/_site/submit'
+    | '/_site/'
+    | '/_site/$market/$region'
+    | '/_site/$market/guide'
+    | '/_site/markets/$'
+    | '/_site/property/$slug'
+    | '/_site/stories/$slug'
     | '/api/hooks/sentry-test'
+    | '/_site/$market/'
+    | '/_site/markets/'
+    | '/_site/stories/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  MarketRoute: typeof MarketRouteWithChildren
-  AboutRoute: typeof AboutRoute
-  ContactRoute: typeof ContactRoute
-  EditorialStandardRoute: typeof EditorialStandardRoute
-  ExposureRoute: typeof ExposureRoute
-  FaqRoute: typeof FaqRoute
-  LegalRoute: typeof LegalRoute
-  MarketsRoute: typeof MarketsRouteWithChildren
-  PlaceNotesRoute: typeof PlaceNotesRoute
-  PricingRoute: typeof PricingRoute
-  PropertiesRoute: typeof PropertiesRoute
+  SiteRoute: typeof SiteRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  StoriesRoute: typeof StoriesRouteWithChildren
-  SubmitRoute: typeof SubmitRoute
-  PropertySlugRoute: typeof PropertySlugRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_site': {
+      id: '/_site'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$market': {
-      id: '/$market'
-      path: '/$market'
-      fullPath: '/$market'
-      preLoaderRoute: typeof MarketRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/editorial-standard': {
-      id: '/editorial-standard'
-      path: '/editorial-standard'
-      fullPath: '/editorial-standard'
-      preLoaderRoute: typeof EditorialStandardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exposure': {
-      id: '/exposure'
-      path: '/exposure'
-      fullPath: '/exposure'
-      preLoaderRoute: typeof ExposureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/faq': {
-      id: '/faq'
-      path: '/faq'
-      fullPath: '/faq'
-      preLoaderRoute: typeof FaqRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal': {
-      id: '/legal'
-      path: '/legal'
-      fullPath: '/legal'
-      preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/markets': {
-      id: '/markets'
-      path: '/markets'
-      fullPath: '/markets'
-      preLoaderRoute: typeof MarketsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/place-notes': {
-      id: '/place-notes'
-      path: '/place-notes'
-      fullPath: '/place-notes'
-      preLoaderRoute: typeof PlaceNotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/properties': {
-      id: '/properties'
-      path: '/properties'
-      fullPath: '/properties'
-      preLoaderRoute: typeof PropertiesRouteImport
+      preLoaderRoute: typeof SiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -422,75 +338,159 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stories': {
-      id: '/stories'
+    '/_site/': {
+      id: '/_site/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof SiteIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/$market': {
+      id: '/_site/$market'
+      path: '/$market'
+      fullPath: '/$market'
+      preLoaderRoute: typeof SiteMarketRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/about': {
+      id: '/_site/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof SiteAboutRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/contact': {
+      id: '/_site/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof SiteContactRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/editorial-standard': {
+      id: '/_site/editorial-standard'
+      path: '/editorial-standard'
+      fullPath: '/editorial-standard'
+      preLoaderRoute: typeof SiteEditorialStandardRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/exposure': {
+      id: '/_site/exposure'
+      path: '/exposure'
+      fullPath: '/exposure'
+      preLoaderRoute: typeof SiteExposureRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/faq': {
+      id: '/_site/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof SiteFaqRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/legal': {
+      id: '/_site/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof SiteLegalRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/markets': {
+      id: '/_site/markets'
+      path: '/markets'
+      fullPath: '/markets'
+      preLoaderRoute: typeof SiteMarketsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/place-notes': {
+      id: '/_site/place-notes'
+      path: '/place-notes'
+      fullPath: '/place-notes'
+      preLoaderRoute: typeof SitePlaceNotesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/pricing': {
+      id: '/_site/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof SitePricingRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/properties': {
+      id: '/_site/properties'
+      path: '/properties'
+      fullPath: '/properties'
+      preLoaderRoute: typeof SitePropertiesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/stories': {
+      id: '/_site/stories'
       path: '/stories'
       fullPath: '/stories'
-      preLoaderRoute: typeof StoriesRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteStoriesRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/submit': {
-      id: '/submit'
+    '/_site/submit': {
+      id: '/_site/submit'
       path: '/submit'
       fullPath: '/submit'
-      preLoaderRoute: typeof SubmitRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteSubmitRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/$market/': {
-      id: '/$market/'
+    '/_site/$market/': {
+      id: '/_site/$market/'
       path: '/'
       fullPath: '/$market/'
-      preLoaderRoute: typeof MarketIndexRouteImport
-      parentRoute: typeof MarketRoute
+      preLoaderRoute: typeof SiteMarketIndexRouteImport
+      parentRoute: typeof SiteMarketRoute
     }
-    '/$market/$region': {
-      id: '/$market/$region'
+    '/_site/$market/$region': {
+      id: '/_site/$market/$region'
       path: '/$region'
       fullPath: '/$market/$region'
-      preLoaderRoute: typeof MarketRegionRouteImport
-      parentRoute: typeof MarketRoute
+      preLoaderRoute: typeof SiteMarketRegionRouteImport
+      parentRoute: typeof SiteMarketRoute
     }
-    '/$market/guide': {
-      id: '/$market/guide'
+    '/_site/$market/guide': {
+      id: '/_site/$market/guide'
       path: '/guide'
       fullPath: '/$market/guide'
-      preLoaderRoute: typeof MarketGuideRouteImport
-      parentRoute: typeof MarketRoute
+      preLoaderRoute: typeof SiteMarketGuideRouteImport
+      parentRoute: typeof SiteMarketRoute
     }
-    '/markets/': {
-      id: '/markets/'
+    '/_site/markets/': {
+      id: '/_site/markets/'
       path: '/'
       fullPath: '/markets/'
-      preLoaderRoute: typeof MarketsIndexRouteImport
-      parentRoute: typeof MarketsRoute
+      preLoaderRoute: typeof SiteMarketsIndexRouteImport
+      parentRoute: typeof SiteMarketsRoute
     }
-    '/markets/$': {
-      id: '/markets/$'
+    '/_site/markets/$': {
+      id: '/_site/markets/$'
       path: '/$'
       fullPath: '/markets/$'
-      preLoaderRoute: typeof MarketsSplatRouteImport
-      parentRoute: typeof MarketsRoute
+      preLoaderRoute: typeof SiteMarketsSplatRouteImport
+      parentRoute: typeof SiteMarketsRoute
     }
-    '/property/$slug': {
-      id: '/property/$slug'
+    '/_site/property/$slug': {
+      id: '/_site/property/$slug'
       path: '/property/$slug'
       fullPath: '/property/$slug'
-      preLoaderRoute: typeof PropertySlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SitePropertySlugRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/stories/': {
-      id: '/stories/'
+    '/_site/stories/': {
+      id: '/_site/stories/'
       path: '/'
       fullPath: '/stories/'
-      preLoaderRoute: typeof StoriesIndexRouteImport
-      parentRoute: typeof StoriesRoute
+      preLoaderRoute: typeof SiteStoriesIndexRouteImport
+      parentRoute: typeof SiteStoriesRoute
     }
-    '/stories/$slug': {
-      id: '/stories/$slug'
+    '/_site/stories/$slug': {
+      id: '/_site/stories/$slug'
       path: '/$slug'
       fullPath: '/stories/$slug'
-      preLoaderRoute: typeof StoriesSlugRouteImport
-      parentRoute: typeof StoriesRoute
+      preLoaderRoute: typeof SiteStoriesSlugRouteImport
+      parentRoute: typeof SiteStoriesRoute
     }
     '/api/hooks/sentry-test': {
       id: '/api/hooks/sentry-test'
@@ -502,64 +502,91 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface MarketRouteChildren {
-  MarketRegionRoute: typeof MarketRegionRoute
-  MarketGuideRoute: typeof MarketGuideRoute
-  MarketIndexRoute: typeof MarketIndexRoute
+interface SiteMarketRouteChildren {
+  SiteMarketRegionRoute: typeof SiteMarketRegionRoute
+  SiteMarketGuideRoute: typeof SiteMarketGuideRoute
+  SiteMarketIndexRoute: typeof SiteMarketIndexRoute
 }
 
-const MarketRouteChildren: MarketRouteChildren = {
-  MarketRegionRoute: MarketRegionRoute,
-  MarketGuideRoute: MarketGuideRoute,
-  MarketIndexRoute: MarketIndexRoute,
+const SiteMarketRouteChildren: SiteMarketRouteChildren = {
+  SiteMarketRegionRoute: SiteMarketRegionRoute,
+  SiteMarketGuideRoute: SiteMarketGuideRoute,
+  SiteMarketIndexRoute: SiteMarketIndexRoute,
 }
 
-const MarketRouteWithChildren =
-  MarketRoute._addFileChildren(MarketRouteChildren)
+const SiteMarketRouteWithChildren = SiteMarketRoute._addFileChildren(
+  SiteMarketRouteChildren,
+)
 
-interface MarketsRouteChildren {
-  MarketsSplatRoute: typeof MarketsSplatRoute
-  MarketsIndexRoute: typeof MarketsIndexRoute
+interface SiteMarketsRouteChildren {
+  SiteMarketsSplatRoute: typeof SiteMarketsSplatRoute
+  SiteMarketsIndexRoute: typeof SiteMarketsIndexRoute
 }
 
-const MarketsRouteChildren: MarketsRouteChildren = {
-  MarketsSplatRoute: MarketsSplatRoute,
-  MarketsIndexRoute: MarketsIndexRoute,
+const SiteMarketsRouteChildren: SiteMarketsRouteChildren = {
+  SiteMarketsSplatRoute: SiteMarketsSplatRoute,
+  SiteMarketsIndexRoute: SiteMarketsIndexRoute,
 }
 
-const MarketsRouteWithChildren =
-  MarketsRoute._addFileChildren(MarketsRouteChildren)
+const SiteMarketsRouteWithChildren = SiteMarketsRoute._addFileChildren(
+  SiteMarketsRouteChildren,
+)
 
-interface StoriesRouteChildren {
-  StoriesSlugRoute: typeof StoriesSlugRoute
-  StoriesIndexRoute: typeof StoriesIndexRoute
+interface SiteStoriesRouteChildren {
+  SiteStoriesSlugRoute: typeof SiteStoriesSlugRoute
+  SiteStoriesIndexRoute: typeof SiteStoriesIndexRoute
 }
 
-const StoriesRouteChildren: StoriesRouteChildren = {
-  StoriesSlugRoute: StoriesSlugRoute,
-  StoriesIndexRoute: StoriesIndexRoute,
+const SiteStoriesRouteChildren: SiteStoriesRouteChildren = {
+  SiteStoriesSlugRoute: SiteStoriesSlugRoute,
+  SiteStoriesIndexRoute: SiteStoriesIndexRoute,
 }
 
-const StoriesRouteWithChildren =
-  StoriesRoute._addFileChildren(StoriesRouteChildren)
+const SiteStoriesRouteWithChildren = SiteStoriesRoute._addFileChildren(
+  SiteStoriesRouteChildren,
+)
+
+interface SiteRouteChildren {
+  SiteMarketRoute: typeof SiteMarketRouteWithChildren
+  SiteAboutRoute: typeof SiteAboutRoute
+  SiteContactRoute: typeof SiteContactRoute
+  SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
+  SiteExposureRoute: typeof SiteExposureRoute
+  SiteFaqRoute: typeof SiteFaqRoute
+  SiteLegalRoute: typeof SiteLegalRoute
+  SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
+  SitePlaceNotesRoute: typeof SitePlaceNotesRoute
+  SitePricingRoute: typeof SitePricingRoute
+  SitePropertiesRoute: typeof SitePropertiesRoute
+  SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
+  SiteSubmitRoute: typeof SiteSubmitRoute
+  SiteIndexRoute: typeof SiteIndexRoute
+  SitePropertySlugRoute: typeof SitePropertySlugRoute
+}
+
+const SiteRouteChildren: SiteRouteChildren = {
+  SiteMarketRoute: SiteMarketRouteWithChildren,
+  SiteAboutRoute: SiteAboutRoute,
+  SiteContactRoute: SiteContactRoute,
+  SiteEditorialStandardRoute: SiteEditorialStandardRoute,
+  SiteExposureRoute: SiteExposureRoute,
+  SiteFaqRoute: SiteFaqRoute,
+  SiteLegalRoute: SiteLegalRoute,
+  SiteMarketsRoute: SiteMarketsRouteWithChildren,
+  SitePlaceNotesRoute: SitePlaceNotesRoute,
+  SitePricingRoute: SitePricingRoute,
+  SitePropertiesRoute: SitePropertiesRoute,
+  SiteStoriesRoute: SiteStoriesRouteWithChildren,
+  SiteSubmitRoute: SiteSubmitRoute,
+  SiteIndexRoute: SiteIndexRoute,
+  SitePropertySlugRoute: SitePropertySlugRoute,
+}
+
+const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  MarketRoute: MarketRouteWithChildren,
-  AboutRoute: AboutRoute,
-  ContactRoute: ContactRoute,
-  EditorialStandardRoute: EditorialStandardRoute,
-  ExposureRoute: ExposureRoute,
-  FaqRoute: FaqRoute,
-  LegalRoute: LegalRoute,
-  MarketsRoute: MarketsRouteWithChildren,
-  PlaceNotesRoute: PlaceNotesRoute,
-  PricingRoute: PricingRoute,
-  PropertiesRoute: PropertiesRoute,
+  SiteRoute: SiteRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  StoriesRoute: StoriesRouteWithChildren,
-  SubmitRoute: SubmitRoute,
-  PropertySlugRoute: PropertySlugRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
 }
 export const routeTree = rootRouteImport
