@@ -129,3 +129,33 @@ Follow-ups whose file is GOTCHAS.md are banked, not listed here: the g5 log cite
    - Evidence: E2E_DATASET=1 bun -e "(await import('./tests/e2e/global-setup.ts')).default()" printed 'lock mop-dev-tests held' / 'fixtures: submissions 11'
 
 Follow-ups whose file is GOTCHAS.md are banked, not listed here: hit-again lines in P-154 (the reviewer's scratch registry folder `g6reg` still held `B4.json` and `B8.json`, so a 24-entry replay ran 61) and in P-015 (with `MSYS_NO_PATHCONV=1` set, `"$(pwd)/.dev.vars"` reaches Windows node as `/e/...` and wrangler fails; use `"$(pwd -W)/.dev.vars"`).
+
+## g7 · steps 9,10
+
+1. `app/tests/README.md` (not blocking)
+   - What: The measured minutes count ci.yml jobs only, but the doc presents them as the cost of a push. It also says 'Drafts run `check` and `build` only', which is false: deploy.yml's preview-db job runs on every pull request event, drafts included. So a draft push bills 5 minutes, not 4 (400 a month, not 500). A ready push also bills preview-db (1) plus the preview job (2 measured before step 10's overflow and Lighthouse steps; the plan estimates about 4 more), and none of that is in the 23. The plan's own method (`gh run list --workflow ci.yml`) and its Risks line ('A draft push runs only check and build') carry the same omission, which is why this is not marked blocking. The README still needs a deploy.yml row, or a sentence saying the deploy.yml jobs are not counted.
+   - Evidence: gh run view 37231990076 --json jobs: 'preview-db success 2026-10-04T20:24:51Z 2026-10-04T20:25:05Z' on draft PR 119; deploy run for ready head 556099d: 'preview-db success 15:52:44-15:52:55', 'preview success 15:52:59-15:54:05'; deploy.yml:39 preview-db `if:` has no draft condition.
+
+2. `.github/workflows/ci.yml` (not blocking)
+   - What: The e2e change test (lines 221-230) fails open. If `git diff base...head` errors (for example the checkout loses `fetch-depth: 0`, so neither SHA is present), grep sees nothing, the step writes changed=false, and every later step skips. The required `e2e` check then goes green with no spec run. No hygiene case asserts `fetch-depth: 0` on the e2e checkout. This step has also never run on GitHub: PR 119 is a draft and the test/b4 runs predate it, so it is UNPROVEN.
+   - Evidence: By reading: `if git diff --name-only <base>...<head> -- ... | grep -q .; then ... else echo changed=false` with no exit-status check on git. hygiene.test.ts's new case checks only that later steps carry the `steps.fe` if (`first: 1`). PR 119 checks: e2e SKIPPED.
+
+3. `.github/workflows/ci.yml` (not blocking)
+   - What: The T-04 filter `src/** supabase/** package.json bun.lock` skips e2e on a PR that changes only `tests/e2e/**`, `playwright.config.ts`, `wrangler.toml` or ci.yml itself. A PR that edits only a spec never runs that spec before merge. The plan sanctions this filter ('nothing narrower'), so it is a note for the orchestrator, not this group's defect. It combines with the author's listed UNPROVEN that the cut is needed at all, since both measured ready runs were inflated by red retries.
+   - Evidence: By reading ci.yml change test pathspecs; plan B4 step 10 and Files line for ci.yml.
+
+4. `app/tests/fixtures/catalog-fixture.ts` (not blocking)
+   - What: C04/C05: `syntheticCatalogSnapshot` is exported but used only inside its own file. The `version = 7` default parameter of both exports is never passed by any caller. knip cannot see either because `tests/**` are knip entry files.
+   - Evidence: grep -rn syntheticCatalog --include=*.ts app: the only external use is `syntheticCatalogDb(COUNT)` in tests/api/payload-budget.api.test.ts; knip.json entry includes `tests/**/*.{ts,tsx}`.
+
+5. `app/tests/fixtures/catalog-version.ts` (not blocking)
+   - What: The P-434 guard is enforced by a hand-kept list. A new test helper that commits over DEV_DB_URL and is not added to `guardedScripts` passes every gate. The text check (`assertNotProduction(` present) would also stay green if `await checked;` were removed: the bump would then run before the refusal arrives. `bumpCatalogVersion` also takes no G34 `holdDevLock()`, unlike the other committed writers of invariant 4 (invariant 4 does not list it).
+   - Evidence: tests/unit/assert-not-production.test.ts:75-81 checks only the listed paths for the import and the call text; catalog-version.ts calls no holdDevLock.
+
+6. `.github/workflows/deploy.yml` (not blocking)
+   - What: The Lighthouse step is likely red on the first ready front-end PR. The only measurement is LCP 3,720 ms for `/` on the laptop against a 2,500 limit, and the plan expects the workers.dev preview to be pessimistic (no Cache API). `preview` is in REQUIRED_PR_CHECKS. The plan names this risk and its handling (a PROJECT-STATE decision), so it is a note, not a defect of this group. The per-page preview numbers and the 300 KB drill are NOT DONE, as the README says.
+   - Evidence: tests/README.md 'Gates on a preview' line; log g7 step 10: 'largest-contentful-paint ... expected: <=2500 found: 3719.86', exit 1.
+
+7. `app/tests/WATCHED-FAIL.md` (not blocking)
+   - What: The new entry u-catalog-version and the six rewritten entries (e, rc-gone, rc-redirect, rc-pattern, B1b hy-checkout, B1b as) have no ledger row. Registry replays do not append to the ledger, and the plan's step 10 proof asks for a row for every test added. The test file itself (assert-not-production.test.ts) already has rows, so this is bookkeeping only.
+   - Evidence: grep -n catalog-version app/tests/WATCHED-FAIL.md prints nothing; commit 4ee2560 does not touch WATCHED-FAIL.md.
