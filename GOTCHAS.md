@@ -2708,3 +2708,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "the reviewer's own pass (ruling H60" .claude/workflows/build-slice.js` → 1; the measure is the fix-round count per accepted group in the journals of the next day against today's 11 of 24.
 - enforced-by: .claude/workflows/build-slice.js (the builder brief)
 - added: 2026-10-04
+
+## P-1321 · `with-coming-soon.ts` spawns its command with `shell: true` and no quoting, so a plan proof of the form `-- bash -c '<curl | grep>; <curl | grep>'` is split by the shell
+- symptom: B3b g5 review ran `bun scripts/with-coming-soon.ts --value true -- bash -c 'curl -s http://127.0.0.1:8879/california | grep -c "No property is listed in California yet."; ...'` and got `0`, `curl: try 'curl --help'`, `coming_soon_global restored to false`, exit 1. The same greps run from a file (`bash step6.sh`) printed 1, 1. The g3 author suspected it (follow-up 4), the g5 author worked around it with a script file and banked nothing.
+- cause: `with-coming-soon.ts` calls `spawn(file, rest, { stdio: "inherit", shell: true, ... })` (line 57); Node joins the arguments with spaces and no quotes, so the shell sees `bash -c curl -s ... | grep ...` and splits at the first pipe or semicolon. The same cause as P-708 for `quiet.mjs`.
+- rule: a command passed after `--` to `with-coming-soon.ts` is one word: put the curls and greps in a script file and pass `bash <file>`; never pass `-c`, quotes, pipes or `;` through it. Open P-708 too: the two tools share the defect.
+- proof: `grep -n "shell: true" app/scripts/with-coming-soon.ts` → `57:      shell: true,`; `bun scripts/with-coming-soon.ts --value true -- bash -c 'echo a; echo b'` mangles the command in the same way (the reviewer measured exit 1 and a curl usage error on the step 6 greps, 2026-10-04); it toggles the shared `coming_soon_global` flag (P-1318), so run it only when no other lane is proving.
+- added: 2026-10-04

@@ -447,3 +447,6 @@ UNPROVEN: the deploy step itself runs only on a production deploy after L1's lau
 Bank: P-1319 (two proofs that cannot pass as written), P-1320 (deploy step vs B1b pins); P-1102, P-042, P-1312, P-1318 followed.
 
 Handed-in commit: 7c26d75 (the work); this line is the commit after it.
+
+## g5 · follow-ups recorded
+The g5 review (steps 6,7) found no blocking defect. Gotcha entries added: P-1321 (`with-coming-soon.ts` spawns with `shell: true`, so a `bash -c` proof is split). Other follow-ups: 4, listed in `workspace/05-plans/logs/B3b-followups.md` under "g5 · steps 6,7". No code changed.
