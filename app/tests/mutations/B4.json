@@ -737,5 +737,82 @@
     "replace": "const fullTitle = `${title}${suffix}`;",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > does not add the suffix to the home title"
+  },
+  {
+    "id": "i",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": "<textarea required rows={5} name=\"message\" />",
+    "replace": "<textarea required rows={5} name=\"note\" />",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"contact:\"",
+    "expect": "toBeVisible\\(\\) failed[\\s\\S]*A person will reply within one working day",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "j",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/components/forms/newsletter-form.tsx",
+    "find": "      if (receipt) track(\"newsletter_signup\", { source });\n",
+    "replace": "",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"newsletter:\"",
+    "expect": "toContain[\\s\\S]*newsletter_signup",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "cc",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    const file = files[entry.index];",
+    "replace": "    const file = files[0];",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"image.jpg\"",
+    "expect": "Expected[\\s\\S]*221",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "hh",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/components/layout/header.tsx",
+    "find": "  useModal(menuOpen || searchOpen, closeAll);",
+    "replace": "  useModal(menuOpen, closeAll);",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"search overlay: Escape closes it\"",
+    "expect": "locator\\('\\.search-overlay'\\)[\\s\\S]*Expected: 0[\\s\\S]*Received: 1",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "hh-focus",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "      if (opener.current instanceof HTMLElement) opener.current.focus();\n",
+    "replace": "",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"focus moves in\"",
+    "expect": "toBeFocused\\(\\) failed",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "cc-post",
+    "test": "tests/e2e/forms.spec.ts",
+    "file": "src/services/http/index.ts",
+    "find": "        onProgress,\n      });\n      return { id: receipt.id, receivedAt: receipt.receivedAt };",
+    "replace": "        onProgress: (next) => {\n          onProgress?.({\n            ...next,\n            retry: async () => {\n              await api.post(\"/submissions\", body, submissionReceiptSchema, init);\n              await next.retry();\n            },\n          });\n        },\n      });\n      return { id: receipt.id, receivedAt: receipt.receivedAt };",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"PUT answered 500\"",
+    "expect": "Expected length: 1[\\s\\S]*Received length: 2",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "rd",
+    "test": "tests/e2e/redirects.spec.ts",
+    "file": "src/routes/_site.pricing.tsx",
+    "find": "redirect({ to: \"/exposure\", statusCode: 301 })",
+    "replace": "redirect({ to: \"/about\", statusCode: 301 })",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test redirects.spec.ts --project=desktop --grep \"/pricing\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
+    "expect": "Expected: \"/exposure\"[\\s\\S]*Received: \"/about\"",
+    "kind": "manual"
   }
 ]
