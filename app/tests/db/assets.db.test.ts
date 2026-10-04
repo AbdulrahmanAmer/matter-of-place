@@ -817,8 +817,14 @@ describe("set_asset_files and set_asset_text", () => {
   });
 });
 
-const VARIANTS = `{"thumb":{"w":320,"h":427},"card":{"w":720,"h":960},"hero":{"w":1200,"h":1600},"og":{"w":1200,"h":630},"carousel":{"w":1080,"h":1350}}`;
-const SIZES: unknown = JSON.parse(VARIANTS);
+const SIZES = {
+  thumb: { w: 320, h: 427 },
+  card: { w: 720, h: 960 },
+  hero: { w: 1200, h: 1600 },
+  og: { w: 1200, h: 630 },
+  carousel: { w: 1080, h: 1350 },
+};
+const VARIANTS = JSON.stringify(SIZES);
 
 /** `count` staged rows of one property, in sort order; each id is returned with its staging path. */
 async function staged(
