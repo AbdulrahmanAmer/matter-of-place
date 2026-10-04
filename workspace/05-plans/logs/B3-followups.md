@@ -81,3 +81,17 @@
 8. `workspace/05-plans/logs/B3.md` (not blocking)
    - what: Small inconsistency. The log says 'the last full pass printed WATCHED-FAIL OK for 32', but the author's report says '32 ... on the first full pass' and then two were fixed. The final state reproduces 34 of 34 OK, so the count claim is harmless, but the log sentence is muddled.
    - evidence: My replay: 34 of 34 WATCHED-FAIL OK.
+
+## c3 · steps 3,3b
+
+1. `workspace/05-plans/logs/B3.md` (not blocking)
+   - what: The g5 block (line 371) still says '`--only zz-none` reports `stale 0` over 1158 entries'. That is the same false proof P-819 withdraws, and it was also false when it was written: g5's edits had made b3-g3-state-visibility, b3-u and b3-g3-readpath-write stale, which this round repaired. Round 2 withdrew only its own c3 line (337). A reader of the log still finds an unwithdrawn 'stale 0' claim. This is g5's block, not c3's, so it is a follow-up for the g5 review or the orchestrator.
+   - evidence: grep -n 'stale 0' workspace/05-plans/logs/B3.md -> 371: '... `--only zz-none` reports `stale 0` over 1158 entries.'; `watchfail --only zz-none` exits 64 having counted no find
+
+2. `app/tests/mutations/B1b.json, app/tests/mutations/B2.json, workspace/05-plans/logs/B3-followups.md` (not blocking)
+   - what: Edits made by this slice left three entries in other slices' registries guarding nothing. B1b aa-nonpage (find x0) and x-redirect (find x2) broke when step 3 edited src/server/lib/pipeline.ts. B2 g11-rows-editorial-state (x0) broke when g4 edited scripts/lib/rows.ts. B3's own b3-g3-redirect-final-header mutates the line aa-nonpage used to mutate, but it checks the redirect case. B1b's 'leaves the Cache-Control of /sitemap.xml alone' guarantee now has no replayable watched-fail. The author named these in the log but says they are 'not yet in B3-followups.md'. They belong to other writers, so this is a follow-up: record them in B3-followups.md and have the owning registries re-point them.
+   - evidence: My find-count: 909 file entries, 9 stale, including B1b.json:aa-nonpage x0, B1b.json:x-redirect x2, B2.json:g11-rows-editorial-state x0. `grep -n 'return response;' src/server/lib/pipeline.ts` -> lines 142 and 237
+
+3. `app/src/server/public/state.ts` (not blocking)
+   - what: Suspected by reading, not run. The new guard (line 156) stores a load only when its version is not lower than catalogFor. If settings.catalog_version ever drops (a manual reset or restore of the settings row on mop-dev), a warm isolate never memoises the lower version. Every request whose state names it then pays a public_catalog_snapshot call until the isolate is recycled. Normal operation is safe: bump_catalog_version only adds 1. A follow-up note, not a defect of the step.
+   - evidence: state.ts:156 `if (!(state.catalogVersion < catalogFor))` together with readCatalog:166 `catalogFor === state.catalogVersion`; supabase/sql/functions/bump_catalog_version.sql only increments
