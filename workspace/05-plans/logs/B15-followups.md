@@ -103,3 +103,23 @@ Six follow-ups, all non-blocking. Two name GOTCHAS.md and became bank entries (t
 4. File: `app/scripts/omnikom-mock.ts`
    - Follow-up: Part (b) of step 5 is UNPROVEN and BLOCKED: no deployed Worker on workers.dev, no cloud job-runner run, no 'forwarded | t | done | 200 | t | f' query, and no delete or unset afterwards. The Worker path is proven only on local workerd. The author reports this honestly. It must run after merge, once job-runner is deployed, B8b has seeded the recipe and .env.ops is available, and it must end with the delete and the unset, so no mock URL survives the launch switch.
    - Evidence: the author's part (b) proof says NOT RUN; I did not run it either
+
+## g5 · steps 6
+
+Five follow-ups, all non-blocking. One names GOTCHAS.md and became bank entries (a hit-again line in P-712 and a correction plus a proof line in P-1706). The four others are below word for word.
+
+1. File: `workspace/05-plans/B15.md (step 6, admin half)`
+   - Follow-up: NOT DONE and UNPROVEN, declared honestly by the author, recorded here so it is not dropped. Not written: DeliveryBadge.tsx, DeliveryBadge.test.tsx, inquiryDeliverySchema and InquiryDelivery in src/domain/admin-inquiries.ts, the delivery field of getInquiry in service.ts, the inquiries-api.ts type and the InquiryDrawer.tsx mount line. Not run: the mop-dev proof (forward twice as managing_editor, keys ending :1 and :2, audit_log count 2). The plan makes this BLOCKED until B7 steps 2 and 11 merge. Step 6 must run again after that.
+   - Evidence: git ls-tree -r --name-only origin/main | grep -cE "admin-inquiries|InquiryDrawer|seed-admin" -> 0; grep -rln forward_inquiry app/supabase -> nothing
+
+2. File: `app/tests/e2e/inquiry-forward.spec.ts`
+   - Follow-up: The 'no receiver' proof catches a call that throws, not a call that waits. Mutation b15-g5-blocking adds an awaited fetch to a dead port, which throws, so the API answers 500. A call wrapped in try/catch, or a fire-and-forget call, to a receiver that is down would still answer 201 and pass. Invariant 5 is really held by the import grep and C06 (no swallowed errors). The plan asks this spec only for the 201, so this is a known limit, not a step defect. (Suspected by reading; the mutation itself was confirmed red.)
+   - Evidence: b15-g5-blocking replay -> Expected: 201 Received: 500, because fetch to 127.0.0.1:8787 rejects with nothing listening
+
+3. File: `workspace/05-plans/logs/B15.md`
+   - Follow-up: The log says cleanup removed 'the row, its events and jobs, and its rate-limit hits', but its only evidence is the inquiries count. I checked the jobs part (0 orphan webhook jobs). The events and rate_limits parts are still unshown. The cleanup also deletes every rate_limits row for the localhost ip_hash, not only this test's hits. tests/api/inquiries.api.test.ts uses the same pattern, so this is not new.
+   - Evidence: bun run db:psql -- -c "select count(*) as orphan_jobs from jobs j where j.payload->'data'->>'inquiry_id' is not null and not exists (select 1 from inquiries i where i.id::text = j.payload->'data'->>'inquiry_id')" -> 0
+
+4. File: `app/tests/mutations/B15.json`
+   - Follow-up: The run field of the three manual entries (E2E_PORT=8918 bunx playwright test ...) does not work alone. The run needs the dev-loader shell plus RATE_LIMIT_SALT, MOP_ENV, TURNSTILE_SECRET, VITE_TURNSTILE_SITE_KEY, VITE_API_BASE_URL and MSYS_NO_PATHCONV. A replayer has to rebuild that from P-1706 and B3. Also, 8918 is not the 8919 preview port the brief names for this lane.
+   - Evidence: node scripts/load-env.mjs --profile dev | sed -E 's/=.*//' -> exports PREVIEW_RATE_LIMIT_SALT, not RATE_LIMIT_SALT; the spec's remove() throws 'RATE_LIMIT_SALT is not set' without the extra export
