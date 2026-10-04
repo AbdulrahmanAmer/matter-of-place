@@ -176,3 +176,27 @@
    - Evidence: bun run scripts/job-selftest.ts --reconcile gave 'reconcile done in 54 s', 'reconcile uploads: {"checked":0,"deleted":0,"missing":0,"uploaded":0}', exit 0
 
 (A fifth follow-up, the reviewer's own two costs in a bare vitest run and a loaded `bun run check`, is banked as hit-again lines on GOTCHAS G-031 and P-712.)
+
+## g2 · steps 2a
+
+1. `app/tests/db/jobs.db.test.ts` (not blocking)
+   - What: Step 8's case 'returns backup null while schedule_settings is absent' (line 938, already on origin/main, not written by g2) is now permanently red on mop-dev. B8b's 20261004115859_automation.sql created schedule_settings there. Because of this the author's 'jobs: Tests 42 passed (42)' no longer reproduces; it was plausibly true before main's deploy at 15:54Z. Its B8.json entry now goes red whether or not it is mutated, so it measures nothing. g2 did not cause this and every step 2a case is green. The fix is to rewrite the case so it does not depend on whether another slice's table exists, for example by asserting backup from schedule_settings' backup row.
+   - Evidence: Without the prelude: node node_modules/vitest/vitest.mjs run --project db tests/db/jobs.db.test.ts -t 'schedule_settings is absent' -> AssertionError: expected { absent: false, backup: null } to deeply equal { absent: true, backup: null }; Tests 1 failed | 41 skipped (42). git grep shows the case at origin/main:app/tests/db/jobs.db.test.ts:938. (Banked as P-916; recording pass: `git grep -n "to_regclass(.*is null" -- tests/db` also finds `retention.db.test.ts:657` for `email_messages`, the same shape, not run.)
+
+2. `app/tests/api/subscribers.api.test.ts` (not blocking)
+   - What: Step 2a's proof says a filled honeypot writes no row and no event. inquiries, submissions and subjects each gained an 'emitted toEqual([])' honeypot assertion. subscribers.api.test.ts has no honeypot case at all, even though POST /subscribers goes through the same pipeline.ts honeypot branch. Follow-up: add the case, or record that the shared pipeline branch is covered elsewhere.
+   - Evidence: grep -n 'website\|honeypot' app/tests/api/subscribers.api.test.ts prints nothing. pipeline.ts:251-258 strips the honeypot for every JSON public route.
+
+3. `app/src/server/inquiries/service.ts` (not blocking)
+   - What: A stale comment outside g2's files. Line 8 says 'the function emits nothing until B8 step 2a (G20)', and create_inquiry now emits inquiry.received. The orchestrator should fold this, or the next writer of that file.
+   - Evidence: grep -n '2a' app/src/server/inquiries/service.ts -> 8: /** `POST /inquiries`: one row through `create_inquiry` (G49); the function emits nothing until B8 step 2a (G20). */
+
+4. `app/tests/api/inquiries.api.test.ts (and submissions, subjects, subscribers)` (not blocking)
+   - What: Suspected from reading, not run. After main pushes the migration, these API tests commit real catalog events on the one database. Once B8b seeds recipes and fan-out runs on mop-dev, fanout_insert_jobs will turn the test events into real jobs (for example admin notifications). jobs.event_id is 'references public.events (id) on delete restrict' (20261003185349_jobs.sql:63), so the new cleanup 'delete from public.events where entity_id in (...)' would then fail with an FK violation and leave rows behind. Separately, the honeypot 'no event' checks filter only on type and a time window, so another lane writing at the same moment can flake them (the author noted this). Follow-up for B8b, which owns the fan-out.
+   - Evidence: grep -n 'references public.events' app/supabase/migrations/*.sql -> jobs.sql:63 'on delete restrict'. automation.sql:674 fanout_insert_jobs(p_event_id ...) inserts jobs carrying the event id.
+
+5. `app/tests/db/jobs.db.test.ts` (not blocking)
+   - What: UNPROVEN, as the author already says: the plan's 'CI db job is green' proof cannot run because ci.yml has no db job until B4 adds it. The four API tests and function-source.db.test.ts without the prelude stay red on mop-dev until main pushes 20261004135327_public_write_events.sql. After the push, rerun the four API files and jobs/function-source/public-write without the prelude.
+   - Evidence: My API run printed Tests 4 failed | 36 passed (40), each 'expected [] to deeply equal [...]'. The author's log records grep -c '^  db:' .github/workflows/ci.yml as 0.
+
+(A sixth follow-up, the reviewer's three costs in a scratch registry folder, a foreign-table absence assertion and the review brief's plan-brief folder, has GOTCHAS.md as its file and is banked as P-916 and as hit-again lines on P-154 and P-706.)
