@@ -1,0 +1,155 @@
+[
+  {
+    "id": "b5-theme-token-drift",
+    "test": "tests/unit/theme.test.ts",
+    "file": "src/styles/tokens.css",
+    "find": "--accent: #c9c0b2;",
+    "replace": "--accent: #c9c0b3;",
+    "run": "bunx vitest run --project unit tests/unit/theme.test.ts",
+    "expect": "accent equals the --accent token"
+  },
+  {
+    "id": "b5-theme-file-drift",
+    "test": "tests/unit/theme.test.ts",
+    "file": "src/templates/theme.gen.ts",
+    "find": "accent: \"#c9c0b2\",",
+    "replace": "accent: \"#c9c0b3\",",
+    "run": "bunx vitest run --project unit tests/unit/theme.test.ts",
+    "expect": "is exactly what gen-theme writes from tokens.css"
+  },
+  {
+    "id": "b5-theme-rgb",
+    "test": "tests/unit/theme.test.ts",
+    "file": "src/templates/theme.gen.ts",
+    "find": "accent: [0.7882, 0.7529, 0.698],",
+    "replace": "accent: [0.7882, 0.7529, 0.7],",
+    "run": "bunx vitest run --project unit tests/unit/theme.test.ts",
+    "expect": "holds each colour as a 0 to 1 triple of the same bytes"
+  },
+  {
+    "id": "b5-theme-missing-token",
+    "test": "tests/unit/theme.test.ts",
+    "file": "scripts/gen-theme.ts",
+    "find": "if (match?.[1] === undefined) throw new Error(`tokens.css has no six-digit hex for ${token}`);",
+    "replace": "if (match?.[1] === undefined) return \"#000000\";",
+    "run": "bunx vitest run --project unit tests/unit/theme.test.ts",
+    "expect": "refuses a tokens file that lacks a colour"
+  },
+  {
+    "id": "b5-block-signature",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "text: text(200).optional()",
+    "replace": "text: text(200)",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "accepts each block type"
+  },
+  {
+    "id": "b5-block-link",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "(https:\\/\\/|mailto:)",
+    "replace": "(https?:\\/\\/|mailto:)",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "refuses an unknown type, empty text and an unsafe link"
+  },
+  {
+    "id": "b5-template-class",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "class: z.enum(emailClasses),",
+    "replace": "class: z.enum(emailClasses).optional(),",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "takes a row and requires its class"
+  },
+  {
+    "id": "b5-classes",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "\"alert\", \"bulk\"",
+    "replace": "\"alert\"",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "names the three send classes"
+  },
+  {
+    "id": "b5-settings-daily",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "daily_cap: z.number().int().min(1),",
+    "replace": "daily_cap: z.number().int().min(1).max(50),",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "takes both shares of invariant 5"
+  },
+  {
+    "id": "b5-settings-bulk",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "value.bulk_cap < value.daily_cap",
+    "replace": "value.bulk_cap <= value.daily_cap",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "keeps the bulk ceiling under the daily one"
+  },
+  {
+    "id": "b5-settings-pattern",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "/^[a-z0-9._+*-]+@",
+    "replace": "/^[A-Za-z0-9._+*-]+@",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "keeps the bulk ceiling under the daily one"
+  },
+  {
+    "id": "b5-used-facts",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "[row.label, row.value]",
+    "replace": "[row.label]",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "lists each variable once, in order of first use"
+  },
+  {
+    "id": "b5-used-once",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "return [...found];",
+    "replace": "return [...found, ...found];",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "lists each variable once, in order of first use"
+  },
+  {
+    "id": "b5-used-plain",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "const VARIABLE = \"[A-Za-z0-9_]+\";",
+    "replace": "const VARIABLE = \"[A-Za-z0-9_. ]+\";",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "ignores braces that are not a plain variable"
+  },
+  {
+    "id": "b5-sample-keys",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "names.map((name) => [name, samples[name]])",
+    "replace": "names.slice(1).map((name) => [name, samples[name]])",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "has a sample for exactly its variables"
+  },
+  {
+    "id": "b5-sample-site",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "link_url: `${siteUrl}/admin/requests/sample-request`,",
+    "replace": "link_url: `https://matterofplace.com/admin/requests/sample-request`,",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "builds every sample URL on the site given"
+  },
+  {
+    "id": "b5-sample-clean",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "We would be glad to look again if the details change.",
+    "replace": "We would be glad {{note}} to look again if the details change.",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "holds no em dash and no unreplaced variable"
+  }
+]
