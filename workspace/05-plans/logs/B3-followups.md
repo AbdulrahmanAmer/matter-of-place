@@ -165,3 +165,27 @@ Two further g6 follow-ups concerned `GOTCHAS.md` and are banked there, not here:
    - evidence: log g7: '(local Worker) a delivery signed with the .dev.vars secret, its replay, and a forged one (scratch probe, receipt removed)'
 
 A sixth g7 follow-up concerned `GOTCHAS.md` and is banked there, not here: the worker-start timeout of `bun run check` under a parallel db suite (hit-again line in P-712, with P-329 and the G-031 hit-again line folded into it).
+
+## g8 · steps 10,11,11b
+
+1. `app/tests/mutations/B3.json` (not blocking)
+   - what: The second half of plan mutation (xx) is not registered in the form the plan names. The plan says to move the memory limit after captureException for the client-error row, and the 31st-request case must go red. b3-g8-ce-limit instead raises the row's limit from 30 to 3000. That proves the 429 but does not prove the ordering (no report for the 31st) through the registry.
+   - evidence: I replayed the plan's own form from a scratch registry: write() in src/server/public/pipeline.ts with memoryCheck moved after route.service. It printed 'WATCHED-FAIL OK R:rv-ce-order', so the test does catch it. Only the registry entry is missing.
+
+2. `app/src/server/search/service.ts` (not blocking)
+   - what: getSearchIndex (line 16) is exported but nothing outside the file imports it (R04/C04: no unused export). knip does not see it because tests/unit/catalog.test.ts loads the module through a dynamic import, which knip treats as using every export.
+   - evidence: git grep -w getSearchIndex finds only src/server/search/service.ts and tests/mutations/B3.json; bun run knip exits 0.
+
+3. `app/src/lib/analytics.ts` (not blocking)
+   - what: Suspected by reading, not run. analyticsBatchSchema checks the whole array, so one envelope whose data is over 1 KB gets the whole beacon a 422. That drops up to 19 other queued events with no trace. track('search', { term }) in search-overlay.tsx:16 and track('home_finder', { q }) pass visitor text, which can reach 1 KB with utm added (pasted text, multi-byte characters). The plan only says 'data over 1 KB rejected'; it does not say whether that means per envelope or per batch.
+   - evidence: contracts.ts analyticsEnvelopeSchema .refine(<= 1024 bytes) inside z.array(...).max(20); src/lib/analytics.ts enqueue/send forwards the envelope with no size guard; git grep 'track(' lists the free-text call sites
+
+4. `workspace/05-plans/STANDARDS.md` (not blocking)
+   - what: R13 says every anonymous route declares at least one memory limit and one database limit. The four new rows (events, search, concierge, client-error) declare memory only, as the B3 route table and the Contract require ('beacons ... and the POST reads take only the limit of their own row'). The plan wins, so this is not a defect in this group, but R13's text contradicts the plan and should be folded by the orchestrator. g6 logged the same mismatch for the uploads route.
+   - evidence: src/server/public/routes.ts rows /api/public/events, /search, /concierge, /client-error: limits [{ store: 'memory' }] only; B3.md lines 34-36 and the rate-limit paragraph
+
+5. `workspace/05-plans/logs/B3.md` (not blocking)
+   - what: C22: the g8 log block does not state the unit cost of the four new public routes or beacons (Worker requests per page view from the 10-second flush and the client-error beacon, Supabase calls: one record_analytics_events per beacon, zero for search, concierge and client-error after warm-up), nor the P-009 line each draws on.
+   - evidence: git diff 48580ee..bc4bf84 -- workspace/05-plans/logs/B3.md has no cost statement
+
+Two further g8 follow-ups concerned `GOTCHAS.md` and are banked there, not here: the db proofs of the review brief lacking the `env -u` prefix (hit-again line in P-310) and the `taskkill //IM python.exe` that stops every lane's python (new entry P-830).
