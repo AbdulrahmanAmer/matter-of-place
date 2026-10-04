@@ -298,13 +298,13 @@ isOneToOne: true
                   ]
                 },"inquiries": {
                   Row: {
-                    "anonymised_at": string | null,"assigned_to": string | null,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
+                    "anonymised_at": string | null,"assigned_to": string | null,"attribution": NonNullable<Json>,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
                   }
                   Insert: {
-                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"details"?: NonNullable<Json>,"email": string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message": string,"name": string,"phone"?: string | null,"received_at"?: string,"source_path": string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
+                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"attribution"?: NonNullable<Json>,"details"?: NonNullable<Json>,"email": string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message": string,"name": string,"phone"?: string | null,"received_at"?: string,"source_path": string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
                   }
                   Update: {
-                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"details"?: NonNullable<Json>,"email"?: string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent"?: Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message"?: string,"name"?: string,"phone"?: string | null,"received_at"?: string,"source_path"?: string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
+                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"attribution"?: NonNullable<Json>,"details"?: NonNullable<Json>,"email"?: string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent"?: Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message"?: string,"name"?: string,"phone"?: string | null,"received_at"?: string,"source_path"?: string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
                   }
                   Relationships: [
                     
@@ -1002,6 +1002,9 @@ isOneToOne: false
                            },
 "jobs_liveness":
 { Args: { "p_now"?: string }; Returns: Json
+                           },
+"mark_inquiry_forwarded":
+{ Args: { "p_inquiry_id": string,"p_payload": Json }; Returns: boolean
                            },
 "mark_media_uploaded":
 { Args: { "p_media_id": string,"p_mime": string,"p_sha256": string }; Returns: boolean

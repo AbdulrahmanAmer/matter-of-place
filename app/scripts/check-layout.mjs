@@ -116,6 +116,7 @@ export const APP_ROWS = [
       "tests/unit/*.test.{ts,tsx}",
       `tests/unit/${UNIT_AREAS}/**/*.test.{ts,tsx}`,
       "tests/unit/**/fixtures/**",
+      "tests/unit/omnikom/vector.json",
       "tests/db/*.ts",
       "tests/api/*.ts",
       "tests/e2e/**",

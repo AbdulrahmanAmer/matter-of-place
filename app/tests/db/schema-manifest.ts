@@ -345,6 +345,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     forwarded_payload: "jsonb?",
     turnstile_ok: "boolean",
     anonymised_at: "timestamptz?",
+    attribution: "jsonb",
   },
   subscribers: {
     id: "uuid",
