@@ -99,3 +99,26 @@ describe("handleSentryTest", () => {
     expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("the sentry-test route", () => {
+  it("reads SENTRY_TEST_TOKEN through env.ts and refuses a wrong bearer with the R09 404", async () => {
+    vi.stubEnv("MOP_ENV", "local");
+    vi.stubEnv("RATE_LIMIT_SALT", "salt");
+    vi.stubEnv("SENTRY_TEST_TOKEN", TOKEN);
+    vi.resetModules();
+    const { Route } = await import("../../src/routes/api/hooks/sentry-test");
+    vi.unstubAllEnvs();
+    const handlers = Route.options.server?.handlers;
+    const post = handlers !== undefined && "POST" in handlers ? handlers.POST : undefined;
+    const answer = async (authorization: string): Promise<Response> => {
+      const context = { requestId: ID };
+      const request = new Request(URL_, { method: "POST", headers: { authorization } });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the handler reads only request and context
+      const response: unknown = await post?.({ request, context } as never);
+      if (!(response instanceof Response)) throw new Error("the route answered nothing");
+      return response;
+    };
+    expect(await answerOf(await answer("Bearer test-token-0123456780"))).toEqual(notFound(ID));
+    await expect(answer(`Bearer ${TOKEN}`)).rejects.toMatchObject({ name: "SentryTestError" });
+  });
+});

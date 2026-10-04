@@ -54,6 +54,10 @@ async function run<T>(ips: string[], emails: string[], fn: (pg: Pg) => Promise<T
   return committed(fn, async (pg) => {
     await pg.query("begin");
     await pg.query("select set_config('mop.retention', 'on', true)");
+    await pg.query(
+      "delete from public.events where entity_id in (select id from public.subscribers where email = any ($1))",
+      [emails],
+    );
     await pg.query("delete from public.subscribers where email = any ($1)", [emails]);
     await pg.query("delete from public.rate_limits where key_hash = any ($1)", [keys]);
     await pg.query("commit");
@@ -61,6 +65,7 @@ async function run<T>(ips: string[], emails: string[], fn: (pg: Pg) => Promise<T
 }
 
 const rowSchema = z.object({
+  id: z.string(),
   source: z.string(),
   pending_source: z.string().nullable(),
   markets: z.array(z.string()),
@@ -82,6 +87,18 @@ async function rowFor(pg: Pg, email: string) {
   const [row, ...rest] = await rowsFor(pg, email);
   if (row === undefined || rest.length > 0) throw new Error(`expected one row for ${email}`);
   return row;
+}
+
+const eventSchema = z.object({ type: z.string(), entity_id: z.string(), payload: z.unknown() });
+
+/** The events of the address's row; `upsert_subscriber` and `confirm_subscriber` emit them in their transaction. */
+async function eventsFor(pg: Pg, email: string) {
+  const result = await pg.query(
+    `select e.type, e.entity_id, e.payload from public.events e
+     join public.subscribers s on s.id = e.entity_id where s.email = $1`,
+    [email],
+  );
+  return z.array(eventSchema).parse(result.rows);
 }
 
 /** Every confirm token the requests make: `newToken` is 32 bytes of `crypto.getRandomValues`. */
@@ -146,15 +163,24 @@ describe("POST /api/public/subscribers", () => {
     const email = nextEmail();
     const ip = nextIp();
     const tokens = captureTokens();
-    const { answers, row } = await run([ip], [email], async (pg) => {
+    const { answers, row, events } = await run([ip], [email], async (pg) => {
       await handlePublic(post({ email, source: "stories" }, ip), REQUEST_ID);
       const token = tokenAt(tokens, 0);
       const valid = await click(token, ip);
       const reused = await click(token, ip);
       const wrong = await click(`${token.slice(0, -1)}${token.endsWith("A") ? "B" : "A"}`, ip);
       const malformed = await click("not-a-token", ip);
-      return { answers: [valid, reused, wrong, malformed], row: await rowFor(pg, email) };
+      return {
+        answers: [valid, reused, wrong, malformed],
+        row: await rowFor(pg, email),
+        events: await eventsFor(pg, email),
+      };
     });
+    // One `subscriber.confirmed` for the valid click, and no `subscriber.created` while `requestConfirmation` seals
+    // nothing (B5's tests cover the sealed case).
+    expect(events).toEqual([
+      { type: "subscriber.confirmed", entity_id: row.id, payload: { subscriber_id: row.id } },
+    ]);
     expect(answers.map((answer) => answer.status)).toEqual([303, 303, 303, 303]);
     expect(answers.map(landing)).toEqual([
       "/stories?confirmed=1",
