@@ -325,3 +325,12 @@ timestamp after 20261004172322` (and the same for `..._automation_schedules.sql`
 - dev profile, `bunx vitest run --project db tests/db/automation.db.test.ts` → Test Files 1 passed (1) / Tests 28 passed (28)
 - `watchfail.mjs --only` b8b-g3-seed-twice, b8b-g3-schedules-prune, b8b-g3-schedules-no-reconcile-uploads → WATCHED-FAIL OK each
 - `grep -rn "—" supabase/migrations/*automation_seed.sql` → nothing, exit 1
+
+### g3 rework · CI on 2070a9e
+- ci run 37227263805: `build` success, `check` failure, only the integration red above:
+  FAIL unit tests/unit/automation/step-specs.test.ts > step specs > finds a run-twice test for every implemented type
+  AssertionError: expected [ 'render_variants', …(3) ] to deeply equal []   (B9's render steps, P-1612; not g3's files)
+  `migration-order` passes now (it was the job that failed on d9f2d2d).
+- deploy run 37227263854: `preview-db` success; `dev`, `preview`, `production` skipped.
+- CI `db` job: does not exist (`ci.yml` jobs are check, build, merge-gate), so that proof is UNPROVEN; the database
+  proof of record is the local dev-profile run above (28 passed) inside rolled-back transactions (P-312 hit again).
