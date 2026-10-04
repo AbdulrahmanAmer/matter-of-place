@@ -886,8 +886,8 @@
     "id": "b8b-g3-sch-runner-keys",
     "test": "tests/unit/automation/scheduler.test.ts",
     "file": "src/server/jobs/scheduler.ts",
-    "find": "if (isRunnerKey(row.key) && isDue(row, now)",
-    "replace": "if (isDue(row, now)",
+    "find": "    if (!isRunnerKey(row.key)) continue;\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
     "expect": "× .*keepwarm, audit and backup are never claimed"
   },
@@ -915,7 +915,7 @@
     "test": "tests/unit/automation/fanout.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
     "expect": "× .*a recipe edit after fan-out leaves",
-    "procedure": "Structural (invariant 5): fanout.ts builds the RPC arguments before the edit, and both the recipe parse (stepSchema) and the planner's paramsSchema copy the params, so no one-file mutation can alias them. The case stays as the named test of invariant 5; its fake records the arguments by reference, so an implementation that sent the live recipe objects would show the edit."
+    "procedure": "Two files (invariant 5): the case edits the stored params object in place after fan-out. The recipe parse (stepSchema's z.record) and the planner's spec paramsSchema each copy the params, so a one-file mutation stays green (measured: `steps: row.steps` in fanout.ts alone, `params: step.params` in plan.ts alone). Replay: in src/server/automation/fanout.ts replace `steps: steps.data };` with `steps: row.steps };`, then in src/server/automation/plan.ts replace `payload: { params: params.data, data: event.payload },` with `payload: { params: step.params, data: event.payload },`; the case goes red; restore both (measured 2026-10-04, WATCHED-FAIL OK)."
   },
   {
     "id": "b8b-g3-ah",
@@ -948,8 +948,8 @@
     "id": "b8b-g3-y",
     "test": "tests/unit/automation/fanout.test.ts",
     "file": "src/server/automation/fanout.ts",
-    "find": "    try {\n      inserted += await fanout(db, event);\n    } catch (failure) {\n      await recordFailure(db, event, failure);\n    }\n",
-    "replace": "    inserted += await fanout(db, event);\n",
+    "find": "    } catch (failure) {\n",
+    "replace": "    } catch (failure) {\n      throw failure;\n",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
     "expect": "× .*a first event whose RPC throws"
   },
@@ -970,6 +970,24 @@
     "replace": "if (Date.now() - Date.parse(event.at) <= 3 * HOUR_MS) return;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
     "expect": "× .*an event failing an hour after its at"
+  },
+  {
+    "id": "b8b-g3-fan-unrecorded",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "await recordFailure(db, event, failure).catch(",
+    "replace": "await recordFailure(db, event, failure).finally(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*a failure record_fanout_failure cannot store"
+  },
+  {
+    "id": "b8b-g3-sch-cron-invalid",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "  } catch {\n    logLine(\"error\", \"schedule_cron_invalid\", { key: row.key });\n",
+    "replace": "  } catch (invalid) {\n    throw invalid;\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a row with an invalid cron"
   },
   {
     "id": "b8b-g3-aj",

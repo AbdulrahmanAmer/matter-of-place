@@ -253,6 +253,20 @@ describe("runDueSchedules (invariant 11)", () => {
     ]);
   });
 
+  it("a row with an invalid cron logs schedule_cron_invalid and the other rows still fire", async () => {
+    const { db, jobs } = setup([
+      schedule("digest", { cron: "not a cron" }),
+      schedule("kpi_weekly", { cron: "bad", next_run_at: "2026-10-05T03:00:00.000Z" }),
+      schedule("prune", { next_run_at: "2026-10-05T03:30:00.000Z" }),
+    ]);
+    expect(await runDueSchedules(db, new Date("2026-10-05T03:30:20.000Z"))).toBe(1);
+    expect(jobs.map((job) => job.key)).toEqual(["prune:2026-10-05"]);
+    expect(logged("schedule_cron_invalid")).toEqual([
+      { level: "error", event: "schedule_cron_invalid", key: "digest" },
+      { level: "error", event: "schedule_cron_invalid", key: "kpi_weekly" },
+    ]);
+  });
+
   it("keepwarm, audit and backup are never claimed by the runner, and a row not yet due is left alone", async () => {
     const due = { next_run_at: "2026-10-04T10:00:00.000Z" };
     const { db } = setup([

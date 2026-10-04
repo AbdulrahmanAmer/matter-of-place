@@ -24,6 +24,9 @@ function unavailable(fn: string): AppError {
   return new AppError("unavailable", undefined, `The job system did not answer (${fn}).`);
 }
 
+const errorCode = (failure: unknown): string =>
+  failure instanceof AppError ? failure.code : "server";
+
 const isObject = (value: Json): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -80,7 +83,7 @@ export async function fanoutEvent(db: Db, eventId: string): Promise<number> {
  * still failing an hour after it happened alerts the admins once: the key makes it one job per event.
  */
 async function recordFailure(db: Db, event: EventRow, failure: unknown): Promise<void> {
-  const code = failure instanceof AppError ? failure.code : "server";
+  const code = errorCode(failure);
   logLine("warn", "fanout_failed", { eventId: event.id, code });
   const message = failure instanceof Error ? failure.message : code;
   const { error } = await db.rpc("record_fanout_failure", {
@@ -107,7 +110,13 @@ export async function fanoutPendingEvents(db: Db, limit: number): Promise<number
     try {
       inserted += await fanout(db, event);
     } catch (failure) {
-      await recordFailure(db, event, failure);
+      // A failure that cannot be recorded is logged and the sweep goes on, so it never ends the runner's tick.
+      await recordFailure(db, event, failure).catch((unrecorded: unknown) => {
+        logLine("error", "fanout_failure_unrecorded", {
+          eventId: event.id,
+          code: errorCode(unrecorded),
+        });
+      });
     }
   }
   return inserted;

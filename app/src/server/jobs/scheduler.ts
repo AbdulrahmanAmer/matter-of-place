@@ -75,9 +75,25 @@ async function claim(
   return data ? "claimed" : "taken";
 }
 
-async function runSchedule(db: Db, key: RunnerKey, row: ScheduleRow, now: Date): Promise<boolean> {
+/** The next run to claim for a due row, null when it is not due. A cron made invalid by a hand edit is logged and
+ * skipped, so one row never ends the runner's tick. */
+function dueNext(row: ScheduleRow, now: Date): string | null {
+  try {
+    return isDue(row, now) ? scheduleNext(row, now).toISOString() : null;
+  } catch {
+    logLine("error", "schedule_cron_invalid", { key: row.key });
+    return null;
+  }
+}
+
+async function runSchedule(
+  db: Db,
+  key: RunnerKey,
+  row: ScheduleRow,
+  now: Date,
+  next: string,
+): Promise<boolean> {
   const { last_run_at: old, next_run_at: oldNext } = row;
-  const next = scheduleNext(row, now).toISOString();
   if ((key === "kpi_weekly" || key === "newsletter_hygiene") && getSystemJob(key) === undefined) {
     // Only next_run_at moves, so screen 20 never shows a run that did not happen.
     // STUB(B11): kpi_weekly and newsletter_hygiene registered
@@ -116,9 +132,9 @@ export async function runDueSchedules(db: Db, now: Date): Promise<number> {
   }
   let fired = 0;
   for (const row of data) {
-    if (isRunnerKey(row.key) && isDue(row, now) && (await runSchedule(db, row.key, row, now))) {
-      fired += 1;
-    }
+    if (!isRunnerKey(row.key)) continue;
+    const next = dueNext(row, now);
+    if (next !== null && (await runSchedule(db, row.key, row, now, next))) fired += 1;
   }
   return fired;
 }

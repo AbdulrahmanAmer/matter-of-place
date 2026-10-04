@@ -126,7 +126,7 @@ function setup(
   events: EventRow[],
   recipes: RecipeRow[],
   failing: ReadonlySet<string> = new Set(),
-  { nextAtPassed = false } = {},
+  { nextAtPassed = false, recordFails = false } = {},
 ): Setup {
   const inserts: InsertArgs[] = [];
   const jobs = new Map<string, Json>();
@@ -145,6 +145,7 @@ function setup(
         return Array.isArray(args.p_jobs) ? args.p_jobs.length : 0;
       },
       record_fanout_failure: (args) => {
+        if (recordFails) return new Error("interval out of range");
         recorded.add(args.p_event_id);
         return undefined;
       },
@@ -167,9 +168,11 @@ let lines: string[] = [];
 
 beforeEach(() => {
   lines = [];
-  vi.spyOn(console, "warn").mockImplementation((line: string) => {
+  const capture = (line: string) => {
     lines.push(line);
-  });
+  };
+  vi.spyOn(console, "warn").mockImplementation(capture);
+  vi.spyOn(console, "error").mockImplementation(capture);
 });
 
 afterEach(() => {
@@ -221,12 +224,11 @@ describe("fanoutEvent (invariants 3 to 5)", () => {
 
   it("a recipe edit after fan-out leaves the RPC's params as planned", async () => {
     const row = receivedEvent();
-    const edited = recipe("submission.received", [
-      step("send_received", "send_email", { params: { template: "received" } }),
-    ]);
-    const { db, inserts } = setup([row], [edited]);
+    const stored = step("send_received", "send_email", { params: { template: "received" } });
+    const { db, inserts } = setup([row], [recipe("submission.received", [stored])]);
     await fanoutEvent(db, row.id);
-    edited.steps = [step("send_received", "send_email", { params: { template: "changed" } })];
+    // In place: an implementation that handed out the stored params object would show this edit.
+    stored.params["template"] = "changed";
     expect(plannedJobs(inserts[0])[0]?.job["payload"]).toEqual({
       params: { template: "received" },
       data: { submission_id: SUBMISSION },
@@ -282,6 +284,25 @@ describe("fanoutPendingEvents (invariant 4, JOB-07)", () => {
       { level: "warn", event: "fanout_failed", eventId: first.id, code: "unavailable" },
     ]);
     expect(rpcCount(db, "record_fanout_failure")).toBe(1);
+  });
+
+  it("a failure record_fanout_failure cannot store is logged and the sweep goes on", async () => {
+    const first = receivedEvent(2 * HOUR);
+    const second = receivedEvent();
+    const { db, inserts, jobs } = setup([first, second], [received], new Set([first.id]), {
+      recordFails: true,
+    });
+    expect(await fanoutPendingEvents(db, 50)).toBe(1);
+    expect(inserts.map((args) => args.p_event_id)).toEqual([first.id, second.id]);
+    expect(logged("fanout_failure_unrecorded")).toEqual([
+      {
+        level: "error",
+        event: "fanout_failure_unrecorded",
+        eventId: first.id,
+        code: "unavailable",
+      },
+    ]);
+    expect([...jobs.keys()]).toEqual([]);
   });
 
   it("with limit 2 and two always-failing events the next tick plans a third", async () => {

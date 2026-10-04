@@ -270,3 +270,36 @@ Bank: P-1606, P-1607, P-1608, P-1609 added, P-094 hit again.
 ### g3 · merge of main after the first push
 `git merge origin/main` (B3b PR 122: coming-soon migration `20261004155556`, earlier than this group's two) merged with no conflict; `check-gotchas` OK, `bun install` no changes, `migration-order: OK (25 on main, 2 added)`. After the merge `bun run check` → `quiet: ok (47 lines, showing the last 12)`, `exit=0`; `bun run build` → `quiet: ok (235 lines, showing the last 12)`, `build exit=0`.
 B3b's flags row is on mop-dev now: `bun run db:psql -- -Atc "select value from public.settings where key = 'flags';"` → `{"new_channels": false, "archive_pages": false}`.
+
+## g3 · steps 4 (first half) · rework after review (2026-10-04)
+Blocking defect fixed: `fanoutPendingEvents` caught each event's error but awaited `recordFailure` inside the catch, so a
+failing `record_fanout_failure` (deterministic `interval out of range` from about the 37th failure of one event) left
+the sweep and cost the runner's whole tick. The catch now catches the recorder too and logs
+`fanout_failure_unrecorded` with `{ eventId, code }` (new LogEvent name), and the loop goes on. Follow-ups inside g3's
+files also done: `scheduler.ts` logs `schedule_cron_invalid` for a hand-edited invalid cron and skips the row
+(`dueNext`), and the recipe-edit case of `fanout.test.ts` now edits the stored params object in place (registry entry
+stays `manual`: two defensive copies, one-file mutations stay green, the two-file replay was run red, P-1611).
+Not g3's files, left for the orchestrator: g1's `record_fanout_failure.sql` exponent overflow (cap the exponent, and fold
+the B8b plan formula), and `app/docs/runbooks/jobs.md` line 96 still naming pg_cron `prune` (STANDARDS C23).
+Bank: P-1610, P-1611 added; hit-again lines on P-027 (output hidden by a pipe) and P-310 (registry replay of db entries).
+Main merged first (`git merge origin/main`, 4 commits of B8), check-gotchas OK.
+
+- `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
+  Test Files  3 passed (3) / Tests  34 passed (34)
+- `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+  Test Files  1 passed (1) / Tests  2 passed | 3 skipped (5)
+- dev profile + `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
+  Test Files  1 passed (1) / Tests  28 passed (28)  (local run against mop-dev; the CI `db` job is the proof of record)
+- `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → `Check supabase/functions/job-runner/index.ts`, exit 0
+- `bun run scripts/stubs.ts` → no `STUB(B8b step 4)` marker (count 0); `stubs: 10 markers, 0 on closed slices`
+- `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → nothing, exit 1
+- `grep -rn "—" supabase/migrations/*automation_seed.sql` → nothing, exit 1
+- watched-fail, new and changed entries: `b8b-g3-fan-unrecorded` (`.catch(` to `.finally(`), `b8b-g3-sch-cron-invalid`
+  (catch rethrows), `b8b-g3-y` (catch rethrows), `b8b-g3-sch-runner-keys` (guard line removed): each `WATCHED-FAIL OK`.
+  Full replay in the dev shell, `watchfail.mjs --registry tests/mutations --changed origin/main`:
+  `watchfail: replayed 207: ok 207, bad 0, stale 0; manual 2 not replayed; 1669 not selected`
+- `bun run check` → layout, typecheck, lint, knip, jscpd, stubs, format, unit and component tests all passed (quiet: ok)
+- `bun run build` → quiet: ok
+UNPROVEN until after the merge and the `dev` job: the post-merge selects (18 recipes, eight schedule rows, no `prune` in
+cron.job, a `tz` per channel), the `job-runner` deploy and its 200 with `"claimed"`, and the scheduler's `reconcile` job
+row. The `settings.flags` select waits on B3b.
