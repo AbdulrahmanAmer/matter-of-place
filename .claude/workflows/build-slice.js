@@ -127,7 +127,7 @@ const sized = a.sizing ? a.sizing : await callAgent(`${RULES}
 You are sizing slice ${slice} for the builders. Read-only: change nothing.${closing.length ? `\nLeave out plan step${closing.length > 1 ? 's' : ''} ${closing.map((c) => c.steps).join(' and ')}: another builder is closing ${closing.length > 1 ? 'them' : 'it'} before your groups run, so treat ${closing.length > 1 ? 'them' : 'it'} as done.` : ''}
 Read ${planPath} in full, then ${ROOT}/workspace/05-plans/PLAN.md and ${ROOT}/workspace/05-plans/ASSUMED.md section E, and the tail of ${logPath} if it exists (earlier groups may already be done: leave those out).
 1. Check the slice's "Depends on" line against the status table at the end of PLAN.md and the facts in ASSUMED section E. unmetDependencies holds ONLY what stops the whole slice from starting: another slice it depends on that the table does not show as closed, or an input without which not one step can run. A step or a part of a step that waits (on a later slice, an operator input, the custom domain) is NOT an unmet dependency: it goes into that group's blockedOn. A fact you think is stale in a document is not a dependency either: say it in the group title of the step it touches.
-2. Split the plan's ordered steps into groups, in order. One group is what one builder session finishes and proves: two or three consecutive plan steps when together they touch at most about ten files, one step alone when it is large or critical. Every group costs a fresh review, so do not split what one session can finish. Keep steps that share files in the same group. Copy each group's proof commands from the plan verbatim. Set designer to true when the plan's "Owner agent" line gives the group's steps to mop-designer (design direction, layout decisions, copy); otherwise false.
+2. Split the plan's ordered steps into groups, in order, EVERY step of the plan in exactly one group (a step that cannot run today goes in a group marked blocked, never left out: a sizing that omits a step is refused, P-516). One group is what one builder session finishes and proves: two or three consecutive plan steps when together they touch at most about ten files, one step alone when it is large or critical. Every group costs a fresh review, so do not split what one session can finish. Keep steps that share files in the same group. Copy each group's proof commands from the plan verbatim. Set designer to true when the plan's "Owner agent" line gives the group's steps to mop-designer (design direction, layout decisions, copy); otherwise false.
 6. Write each group's brief (ruling H52): the text of its steps verbatim, then every Contract and Invariants line that names one of its files or one of the things its steps build, then the Files-list lines of those files, each verbatim under its section name. The builder and the reviewer read the brief instead of the plan, so a line they would need that is missing from it costs a fix round; a line they do not need costs every turn. Measured: the plan was read 91 times in one day and every read sat in the context of every later call.
 3. Mark a group blocked ONLY when nothing in it can run today (every step in it is marked BLOCKED in the plan or needs something section E says does not exist); say on what. When only a part is blocked, keep blocked false, put the waiting part in blockedOn, and say in the title which part runs: the builder builds and proves the part that runs and records the rest as BLOCKED.
 4. Set needsOrchestrator when the plan step deploys production, sets a production secret by hand, or needs a decision. A merge to main is not a reason: the workflow merges the slice through the merge gate itself.
@@ -142,6 +142,21 @@ if (!sized.groups.some((g) => !g.blocked) && !closing.length) return { slice, st
 if (a.strictDependencies && sized.unmetDependencies.length) return { slice, stopped: 'unmet dependencies (strict)', ...sized }
 
 let groups = sized.groups
+// P-516: a sizer once returned two of ten plan steps and the run merged those two and ended as if the slice were
+// done. When the orchestrator passes `steps` (the plan's step ids), every one must sit in a group or a close-out;
+// a sizing that omits one is refused before any build.
+if (Array.isArray(a.steps)) {
+  const expand = (s) => String(s).split(/\s*,\s*/).flatMap((part) => {
+    const m = part.match(/^(\d+)\s*(?:-|to)\s*(\d+)$/)
+    if (!m) return [part.trim()]
+    const out = []
+    for (let i = Number(m[1]); i <= Number(m[2]); i++) out.push(String(i))
+    return out
+  })
+  const covered = new Set([...groups, ...closing].flatMap((g) => expand(g.steps)))
+  const missing = a.steps.filter((s) => !covered.has(String(s)))
+  if (missing.length) throw new Error(`sizing of ${slice} omits plan step${missing.length > 1 ? 's' : ''} ${missing.join(', ')} (P-516): every step belongs to a group, blocked ones included`)
+}
 // Give each close-out an id the sizing cannot produce (c6, c7) so `only` can name it.
 // startAt skips sized groups only: a close-out always runs first (P-506).
 if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id === a.startAt)))

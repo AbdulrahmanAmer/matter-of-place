@@ -9,6 +9,7 @@ declare
   v_source text := p ->> 'source';
   v_markets text[] := array(select jsonb_array_elements_text(coalesce(p -> 'markets', '[]'::jsonb)));
   v_hash text := p ->> 'confirm_token_hash';
+  v_sealed text := p ->> 'sealed_token';
   v_row public.subscribers;
   v_id uuid;
   v_lapsed boolean;
@@ -19,7 +20,14 @@ begin
   values (v_email, v_source, v_markets, v_hash)
   on conflict ((lower(email))) do nothing
   returning id into v_id;
+  -- G12, G20: every call that stores a fresh hash emits the sealed token for the confirmation email, in this transaction.
   if v_id is not null then
+    if v_sealed is not null then
+      perform public.emit_event(
+        'subscriber.created', 'subscriber', v_id,
+        jsonb_build_object('subscriber_id', v_id, 'sealed_token', v_sealed), null
+      );
+    end if;
     return v_id;
   end if;
 
@@ -45,6 +53,12 @@ begin
       else s.confirm_token_hash
     end
   where s.id = v_row.id;
+  if (v_unconfirmed or v_newsletter_for_interest) and v_sealed is not null then
+    perform public.emit_event(
+      'subscriber.created', 'subscriber', v_row.id,
+      jsonb_build_object('subscriber_id', v_row.id, 'sealed_token', v_sealed), null
+    );
+  end if;
   return v_row.id;
 end;
 $$;

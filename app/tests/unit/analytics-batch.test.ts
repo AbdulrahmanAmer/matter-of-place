@@ -202,6 +202,37 @@ describe("track() campaign attribution (G45)", () => {
     expect(browser.stored.has("mop_utm")).toBe(false);
   });
 
+  it("utm consent follows the stored record and Global Privacy Control", async () => {
+    const browser = stubBrowser(LANDING);
+    const consent = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => consent.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        consent.set(key, value);
+      },
+    });
+    const first = await load();
+    const { writeConsent } = await import("../../src/lib/consent");
+    // The wiring in analytics.ts is what runs: this case never calls setUtmConsent.
+    first.track(event);
+    browser.hide();
+    expect(browser.sent[0]?.events[0]?.data).toEqual({});
+    expect(browser.stored.has("mop_utm")).toBe(false);
+    writeConsent(true);
+    first.track("share");
+    browser.hide();
+    expect(browser.sent[1]?.events[0]?.data).toEqual({ utm });
+    // The same granting record, from a browser that sends Global Privacy Control.
+    browser.stored.clear();
+    Object.defineProperty(navigator, "globalPrivacyControl", { value: true });
+    const second = await load();
+    second.track(event);
+    browser.hide();
+    expect(browser.sent).toHaveLength(3);
+    expect(browser.sent[2]?.events[0]?.data).toEqual({});
+    expect(browser.stored.has("mop_utm")).toBe(false);
+  });
+
   it("adds no utm and never throws when the storage fails", async () => {
     const browser = stubBrowser(LANDING, true);
     const { track, setUtmConsent } = await load();
