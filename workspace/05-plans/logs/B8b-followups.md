@@ -89,3 +89,49 @@ Recorded from the c2s review (no blocking defect). None is blocking. A fourth fo
 - what: P-1613 records that vitest 5's json reporter writes .vitest/json/output.json into the app when no --outputFile is given, and that the folder is not ignored. Its rule leaves a person to remove it by hand before committing. The gate itself always passes --outputFile, so it is safe today. A one-line .vitest/ ignore would make the rule mechanical (H46-size change).
 - evidence: grep -n vitest app/.gitignore .gitignore printed no ignore line. P-1613 cause text: 'that folder is not in .gitignore'.
 - blocking: false
+
+## c3r · steps 4
+
+Recorded from the c3r review (no blocking defect). None is blocking. The GOTCHAS.md follow-up went to the bank (P-712 hit again), not here.
+
+### 1. app/docs/runbooks/jobs.md
+
+- what: Follow-up (STANDARDS C23; outside this group's files; the author recorded it). Line 96 still says pg_cron enqueues prune at 03:30 UTC. The schedules migration unschedules that job, and the runner drives prune from schedule_settings. Once main pushes the migration, the runbook is false.
+- evidence: grep -rn prune docs/runbooks/*.md prints docs/runbooks/jobs.md:96 'pg_cron enqueues four system jobs ... `prune` at 03:30 UTC'. supabase/migrations/20261005000101_automation_schedules.sql: select cron.unschedule('prune').
+- blocking: false
+
+### 2. app/src/server/jobs/README.md
+
+- what: Follow-up (not this group's file). The author named line 18 ('scheduler.ts ... a stub until B8b step 4'). Line 26 is stale in the same way: it still calls fanoutPendingEvents 'a stub until B8b step 4'.
+- evidence: grep -n 'stub until B8b step 4' src/server/jobs/README.md matches lines 18 and 26.
+- blocking: false
+
+### 3. app/src/server/jobs/scheduler.ts
+
+- what: Follow-up (plan risk; the author recorded it). If a row has neither last_run_at nor next_run_at, dueAt is nextRun(cron, now - 1 min), so the row is due only in the minute after its slot. A runner tick missed at 03:30 on the first day skips that day's prune, and a missed kpi_weekly tick skips the whole week. The code follows the plan's formula exactly. The fix belongs in the plan or the seed, for example by seeding next_run_at.
+- evidence: Read src/server/automation/cron.ts:35-39. The author's probe in logs/B8b.md:466 shows 03:30:20 true and 03:31:05 false.
+- blocking: false
+
+### 4. app/src/server/jobs/scheduler.ts
+
+- what: Follow-up (plan and code disagree; the author recorded it). Invariant 11 says the scheduler asks getStep(<key>). The code asks getSystemJob(key) at line 97, because steps/index.ts getStep does not merge the system types. The plan line needs folding.
+- evidence: scheduler.ts:97 `getSystemJob(key) === undefined`; plan-brief invariant 11 'asks getStep(<key>) (B8's registry, which merges the system types)'.
+- blocking: false
+
+### 5. app/src/server/automation/fanout.ts
+
+- what: Follow-up (STANDARDS C04, convention). fanoutEvent is a new export with no caller in src; per the plan, its callers are B6, B7 and B9. It carries neither the @public tag nor a STUB marker, which C04 asks of a later-slice export. knip passes only because the unit test imports it. The plan does name the function in this step.
+- evidence: grep -rn 'fanoutEvent\b' src --include=*.ts finds nothing outside automation/fanout.ts; git show origin/main:app/src/server/automation/fanout.ts had only fanoutPendingEvents.
+- blocking: false
+
+### 6. app/supabase/migrations/20261005000100_automation_seed.sql
+
+- what: Follow-up (a comment that is not true yet). The comment above the schedule_settings insert says keepwarm equals the wrangler.toml trigger and backup equals the schedule line of backup.yml. Neither exists yet: wrangler.toml has only the marker '# B8b adds the [triggers] crons line here.' (second half of step 4), and backup.yml has no schedule: cron line (B1b step 8). Both rows are harmless now (backup is disabled, and nothing fires keepwarm until the trigger lands).
+- evidence: grep -n 'crons\|triggers' app/wrangler.toml prints only line 11, the marker; grep -n 'cron' .github/workflows/backup.yml finds no schedule cron.
+- blocking: false
+
+### 7. slice/b8b (branch)
+
+- what: Follow-up. origin/main has moved to 3e7ddeb (B15 merged, including the webhook_omnikom step in steps/index.ts). The snapshot commit 7c7c42e is no longer up to date with main, so the merge gate will want main merged first. git merge-tree reports a clean merge and migrations:check still shows 28 on main. After the merge, re-run the step-specs and plan tests, because webhook_omnikom becomes an implemented step.
+- evidence: git merge-base --is-ancestor origin/main HEAD → exit 1; git log HEAD..origin/main lists 3e7ddeb Merge pull request #132 (slice/b15); git merge-tree --write-tree → 0.
+- blocking: false
