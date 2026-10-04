@@ -200,3 +200,23 @@
    - Evidence: My API run printed Tests 4 failed | 36 passed (40), each 'expected [] to deeply equal [...]'. The author's log records grep -c '^  db:' .github/workflows/ci.yml as 0.
 
 (A sixth follow-up, the reviewer's three costs in a scratch registry folder, a foreign-table absence assertion and the review brief's plan-brief folder, has GOTCHAS.md as its file and is banked as P-916 and as hit-again lines on P-154 and P-706.)
+
+## c8db · steps 8
+
+1. `app/tests/db/jobs.db.test.ts` (not blocking)
+   - What: Follow-up. The new case 'returns the backup row enabled flag and last run time' only ever sets enabled = true. A health_counts that hard-codes 'enabled', true (or reads the wrong boolean) would stay green. Only the null mutation (hc-backup-row) was watched failing. This case does not cover enabled = false; backup_fresh's warn branch depends on it.
+   - Evidence: Read, not run: the upsert at the new case sets enabled = excluded.enabled with the literal true, and the only assertion on it is expect(backup?.enabled).toBe(true). The registry has no mutation that keeps the row but changes the enabled value.
+
+2. `app/tests/db/retention.db.test.ts` (not blocking)
+   - What: Follow-up, not this group's file. retention.db.test.ts:653-666 is the same kind of test that turned jobs.db red. It asserts to_regclass('public.email_messages') is null and expects { absent: true, count: 0 }. It will go red on every database once B5's migration creating email_messages reaches main. Today it is green because no migration in the snapshot creates email_messages. P-916 already names it.
+   - Evidence: cd app && git grep -n "to_regclass(.*is null" -- tests/db prints only tests/db/retention.db.test.ts:657 after this change. grep -ln 'create table.*email_messages' supabase/migrations/*.sql finds nothing.
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Follow-up for the orchestrator. Step 8 still says the health cases 'return backup null while schedule_settings is absent'. On every database built from main that state can no longer happen. The case is now 'backup row is absent' plus the new populated-row case. B8-followups.md:183 (the permanently red case) is now resolved and should be closed. P-916's proof line still cites jobs.db.test.ts:942 as a live hit, and that hit is gone.
+   - Evidence: grep -rn 'schedule_settings is absent' finds B8.md step 8 (plan-brief output), logs/B8-followups.md:183-184 and GOTCHAS.md:2087-2090
+
+4. `app/supabase/migrations/20261004060603_system_jobs.sql` (not blocking)
+   - What: Follow-up, a note for a later slice (this group was told not to change the schema). health_counts (and ops_health in 20261004023712_ops_heartbeat.sql) still has the to_regclass('public.schedule_settings') is null branch. Since 20261004115859_automation.sql, no database built from main can reach that branch, and no test covers it now. It can be removed in a later migration that makes the read static.
+   - Evidence: Read: system_jobs.sql around line 150 and ops_heartbeat.sql:51 both guard with to_regclass. automation.sql:74 creates the table unconditionally.
+
+(A fifth follow-up, the reviewer's costTime entry that the author assigned to P-310 without a line for quiet.mjs, has GOTCHAS.md as its file and is banked as a hit-again line on P-310.)

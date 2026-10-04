@@ -53,24 +53,12 @@ async function queued(db: Db, minutes: number, local = false): Promise<string> {
   return id;
 }
 
-/** Turns on or off the keepwarm and backup rows, making B8b's table in the transaction when it does not exist yet. */
+/** Turns on or off the keepwarm and backup rows of B8b's schedule_settings, making a row the database lacks. */
 async function schedules(db: Db, keepwarm: boolean, backup: boolean): Promise<void> {
-  const { exists } = await one<{ exists: boolean }>(
-    db,
-    "select to_regclass('public.schedule_settings') is not null as exists",
-  );
-  if (!exists) {
-    await db.query(
-      "create table public.schedule_settings (key text primary key, enabled boolean not null)",
-    );
-    await db.query(
-      "insert into public.schedule_settings values ('keepwarm', false), ('backup', false)",
-    );
-  }
   await db.query(
-    `update public.schedule_settings
-     set enabled = case key when 'keepwarm' then $1::boolean else $2::boolean end
-     where key in ('keepwarm', 'backup')`,
+    `insert into public.schedule_settings (key, cron, enabled)
+     values ('keepwarm', '*/15 * * * *', $1), ('backup', '0 2 * * *', $2)
+     on conflict (key) do update set enabled = excluded.enabled`,
     [keepwarm, backup],
   );
 }
