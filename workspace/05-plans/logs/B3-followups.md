@@ -95,3 +95,17 @@
 3. `app/src/server/public/state.ts` (not blocking)
    - what: Suspected by reading, not run. The new guard (line 156) stores a load only when its version is not lower than catalogFor. If settings.catalog_version ever drops (a manual reset or restore of the settings row on mop-dev), a warm isolate never memoises the lower version. Every request whose state names it then pays a public_catalog_snapshot call until the isolate is recycled. Normal operation is safe: bump_catalog_version only adds 1. A follow-up note, not a defect of the step.
    - evidence: state.ts:156 `if (!(state.catalogVersion < catalogFor))` together with readCatalog:166 `catalogFor === state.catalogVersion`; supabase/sql/functions/bump_catalog_version.sql only increments
+
+## g5 · steps 5b,6
+
+1. `app/src/styles/components/turnstile.css` (not blocking)
+   - what: STANDARDS R42 (and C18) says spacing and z-index come from var(--token), and the plan says 'the container, tokens only'. The file uses the literals `inset-block-end: 20px; inset-inline-end: 20px; z-index: 110;`. app/src/styles/tokens.css defines no spacing or z-index token, and every other component stylesheet uses literal z-index values (dialogs.css 100, header.css 50, overlays.css 90). So the group cannot meet the rule as written, and the gap is between R42 and tokens.css. The orchestrator should either add layer and spacing tokens or narrow R42 to colour. No product input breaks because of it.
+   - evidence: In the snapshot: `grep -n 'z-\|--space' src/styles/tokens.css` prints nothing. `grep -rn 'z-index' src/styles` shows literals in base.css, cards.css, dialogs.css, hero.css, header.css, overlays.css and turnstile.css.
+
+2. `workspace/05-plans/logs/B3-followups.md` (not blocking)
+   - what: The card byte budget is still open and is not yet in B3-followups.md, which has no g5 section. The real bundled cards measure 527 to 638 bytes and 7 of 16 are over the 600 that PERF-06 sets. The mappers.test.ts card case passes because its fixture (rich()) is under 600, so the plan's '-t card' proof is green while real data breaks the budget. B4's tests/api/payload-budget.api.test.ts does not exist yet and will hit this when it lands. The author logged it as a plan ruling for the orchestrator (log line 508, P-818). It needs to reach the follow-ups file so it is not lost.
+   - evidence: In the snapshot, the bun -e P-818 proof extended with a count prints `527 638 7`. ls app/tests/api shows no payload-budget.api.test.ts. grep -n '^## ' workspace/05-plans/logs/B3-followups.md lists g1, g2, g4 and c3 only.
+
+3. `app/src/server/lib/headers.ts` (not blocking)
+   - what: UNPROVEN on a deployed Worker (suspected fine, judged by reading only). supabaseOrigin() reads SUPABASE_URL through readVar, which reads globalThis.process.env. This relies on nodejs_compat filling process.env (compatibility_date 2026-09-30), the same mechanism env.ts relies on. headers.test.ts proves connect-src only in-process. No curl of a built or previewed Worker shows connect-src holding the Supabase origin. If it is missing, browser uploads to signed Storage URLs are blocked by CSP. The real Turnstile widget has also never run in a browser, as the log admits.
+   - evidence: The test is unit-only (tests/unit/headers.test.ts). `grep -n compat .output/server/wrangler.json` gives nodejs_compat with compatibility_date 2026-09-30. No preview curl appears in the g5 log blocks.
