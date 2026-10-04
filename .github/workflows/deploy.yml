@@ -263,7 +263,14 @@ jobs:
         run: |
           bunx supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF" --password "$DEV_SUPABASE_DB_PASSWORD"
           bun run db:push
-      # B8 appends its Edge Function deploy here: the one job runner follows main only (H35 (8)).
+      # The one job runner follows main only, here and in no other job (H35 (1), (8)). Its function
+      # secrets are set once by hand and a deploy keeps them.
+      - name: functions-deploy
+        if: steps.guard.outputs.superseded != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}
+        run: bunx supabase functions deploy job-runner --use-api --project-ref "$DEV_SUPABASE_PROJECT_REF"
       # The version serving now is the rollback target. The secrets step below makes a deployment
       # of the new code, so a rollback without an id can reinstall it (H49 (2)). Cloudflare answers
       # code 10007 for a Worker that does not exist yet: then there is no target.

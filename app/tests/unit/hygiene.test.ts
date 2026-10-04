@@ -703,6 +703,34 @@ describe("deploy.yml production and dev jobs (step 7)", () => {
     });
   });
 
+  it("only dev deploys the job runner, after db:push, before the Worker (H35 (1))", () => {
+    const steps = stepsOf("dev");
+    const at = (test: (step: (typeof steps)[number]) => boolean) => steps.findIndex(test);
+    const runner = at((step) => step.run?.includes("functions deploy") === true);
+    const push = at((step) => step.run?.includes("bun run db:push") === true);
+    const elsewhere = Object.entries(deploy?.data.jobs ?? {})
+      .filter(([job]) => job !== "dev")
+      .filter(([, job]) =>
+        job.steps.some((step) => step.run?.includes("functions deploy") === true),
+      )
+      .map(([job]) => job);
+    expect({
+      once: (deploy?.text ?? "").split("functions deploy").length - 1,
+      when: steps[runner]?.if,
+      run: steps[runner]?.run,
+      token: steps[runner]?.env?.["SUPABASE_ACCESS_TOKEN"],
+      ordered: push >= 0 && push < runner && runner < at((step) => step.id === "deploy"),
+      elsewhere,
+    }).toEqual({
+      once: 1,
+      when: GUARDED,
+      run: 'bunx supabase functions deploy job-runner --use-api --project-ref "$DEV_SUPABASE_PROJECT_REF"',
+      token: "${{ secrets.SUPABASE_ACCESS_TOKEN }}",
+      ordered: true,
+      elsewhere: [],
+    });
+  });
+
   it("dev deploys matter-of-place-dev and switches on HAS_DB (G19, 13a)", () => {
     expect([
       has("dev", "--name matter-of-place-dev"),

@@ -15,6 +15,7 @@ export const LogEvent = [
   "webhook_forget_failed",
   "runner_beat_failed",
   "ops_health_failed",
+  "meta_token_refresh_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

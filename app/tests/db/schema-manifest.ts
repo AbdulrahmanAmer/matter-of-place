@@ -233,6 +233,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     note: "text?",
     updated_by: "uuid?",
     updated_at: "timestamptz",
+    last_run_at: "timestamptz?",
+    last_count: "integer?",
   },
   decline_reasons: {
     id: "uuid",
@@ -306,6 +308,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     rights_confirmed_at: "timestamptz",
     rights_ip_hash: "text",
     duplicate_of: "uuid?",
+    updated_at: "timestamptz",
   },
   submission_media: {
     id: "uuid",
@@ -339,6 +342,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     assigned_to: "uuid?",
     forwarded_payload: "jsonb?",
     turnstile_ok: "boolean",
+    anonymised_at: "timestamptz?",
   },
   subscribers: {
     id: "uuid",
@@ -496,6 +500,14 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     name: "text",
     at: "timestamptz",
     detail: "jsonb?",
+  },
+  analytics_daily: {
+    day: "date",
+    event: "text",
+    path: "text",
+    dim: "text",
+    events: "integer",
+    p75: "numeric(,)?",
   },
 };
 
