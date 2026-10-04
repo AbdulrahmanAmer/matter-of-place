@@ -32,12 +32,24 @@ function retryAfterOf(value: string | null, now: Date): Date | undefined {
   return Number.isNaN(at) ? undefined : new Date(at);
 }
 
+/** The first DETAIL_CHARS characters of the answer; the rest of a large error page is never read. */
+async function detailOf(body: Response["body"]): Promise<string> {
+  if (body === null) return "";
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+  let text = "";
+  while (text.length < DETAIL_CHARS) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    text += chunk.value;
+  }
+  await reader.cancel();
+  return text.slice(0, DETAIL_CHARS);
+}
+
 async function outcomeOf(response: Response, now: Date): Promise<DeliveryOutcome> {
   const { status } = response;
   const kind = classifyStatus(status);
-  if (kind === "refused") {
-    return { kind, status, detail: (await response.text()).slice(0, DETAIL_CHARS) };
-  }
+  if (kind === "refused") return { kind, status, detail: await detailOf(response.body) };
   await response.body?.cancel();
   if (kind === "delivered") return { kind, status };
   const retryAfter = retryAfterOf(response.headers.get("retry-after"), now);

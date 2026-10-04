@@ -2505,6 +2505,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run layout` exits 0 on slice/b15 at B15 g1; with the line `"tests/unit/omnikom/vector.json",` removed from `scripts/check-layout.mjs` it prints the error above.
 - added: 2026-10-04
 
+## P-1702 · A type error in your own file turns another slice's `tsc` registry entry into `BAD: wrong reason`: typecheck before a replay
+- symptom: B15 g1's review fix replayed `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit`; vitest was green and the new entries OK, but `WATCHED-FAIL BAD: wrong reason (B1b:aj)` printed `expected /TS2554/` with `src/server/omnikom/client.ts(38,35): error TS2345: Argument of type 'TextDecoderStream' is not assignable to parameter of type 'ReadableWritablePair<string, Uint8Array<ArrayBufferLike>>'`, and the whole replay (30 entries, several minutes) had to run again.
+- cause: vitest strips types, so a type error does not fail the tests; an entry whose `run` is `bun run typecheck` reads the first tsc error, which was ours. The error itself: a parameter typed `ReadableStream<Uint8Array>` is `Uint8Array<ArrayBufferLike>`, which `TextDecoderStream`'s `BufferSource` writable refuses; `Response["body"]` (`Uint8Array<ArrayBuffer>`) is accepted.
+- rule: run `bun run typecheck` before any registry replay; type a response stream as `Response["body"]`.
+- proof: `cd app && bun run typecheck` exits 0 on slice/b15; with `detailOf(body: ReadableStream<Uint8Array> | null)` in `src/server/omnikom/client.ts` it prints the TS2345 above (measured 2026-10-04).
+- added: 2026-10-04
+
 ## P-718 · A db test needs no Docker and no pushed migration: a native PostgreSQL 18 cluster restored from mop-dev's schema runs the whole `db` project, and `gen types` reads it
 - symptom: B9 g6 (steps 7 and 8) writes a migration and 15 SQL functions that may not reach `mop-dev` (H1, DB-01) and has no Docker (P-038). The P-312 route (the migration as `MOP_MUTATION_SQL` prelude on mop-dev) cannot run the two-connection claim test (`committed()` never applies the prelude, so the function does not exist in the committed session), hit `canceling statement due to lock timeout` while the live runner held `public.jobs` (one case, green on rerun), and cannot give `src/db/types.ts` the new table.
 - cause: a prelude lives only inside one rolled-back transaction of one connection, and the shared cloud database is busy.

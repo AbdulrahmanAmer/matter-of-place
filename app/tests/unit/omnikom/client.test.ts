@@ -30,6 +30,7 @@ const headerOf = (sent: Sent | undefined, name: string) =>
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("deliver", () => {
@@ -42,11 +43,13 @@ describe("deliver", () => {
   });
 
   it("sends the contract headers to the endpoint with a timeout signal", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
     const sent = fakeOmnikom(() => new Response(null, { status: 200 }));
     await send();
     expect(sent[0]?.url).toBe(URL_OMNIKOM);
     expect(sent[0]?.init.method).toBe("POST");
-    expect(sent[0]?.init.signal).toBeInstanceOf(AbortSignal);
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    expect(sent[0]?.init.signal).toBe(timeout.mock.results[0]?.value);
     expect({
       type: headerOf(sent[0], "content-type"),
       agent: headerOf(sent[0], "user-agent"),
@@ -86,6 +89,16 @@ describe("deliver", () => {
   it("invariant 3b: refuses a 422 and keeps the first 500 characters of the answer", async () => {
     fakeOmnikom(() => new Response("x".repeat(800), { status: 422 }));
     expect(await send()).toEqual({ kind: "refused", status: 422, detail: "x".repeat(500) });
+  });
+
+  it("invariant 3b: stops reading a refused answer after 500 characters", async () => {
+    const endless = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("y".repeat(600)));
+      },
+    });
+    fakeOmnikom(() => new Response(endless, { status: 400 }));
+    expect(await send()).toEqual({ kind: "refused", status: 400, detail: "y".repeat(500) });
   });
 
   it("invariant 3: a 429 with Retry-After: 120 schedules the next attempt at least 120 seconds later", async () => {
