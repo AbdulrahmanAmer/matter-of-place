@@ -1950,10 +1950,37 @@
     "id": "mt-locked",
     "test": "tests/unit/jobs/meta-token-refresh.test.ts",
     "file": "src/server/jobs/system/meta-token-refresh.ts",
-    "find": "=== \"locked\") {",
-    "replace": "=== \"locked-out\") {",
+    "find": ")) === \"locked\") {",
+    "replace": ")) === \"locked-out\") {",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"returns skipped locked when another run holds the token\"",
     "expect": "× .*returns skipped locked when another run holds the token"
+  },
+  {
+    "id": "mt-network",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  } catch {\n    throw new AppError(\"unavailable\", undefined, \"Graph did not answer.\");",
+    "replace": "  } catch (error) {\n    throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"throws on a network rejection without the token\"",
+    "expect": "× .*throws on a network rejection without the token"
+  },
+  {
+    "id": "mt-network-log",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "  } catch {\n    throw new AppError(\"unavailable\", undefined, \"Graph did not answer.\");",
+    "replace": "  } catch (error) {\n    throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"logs a refresh that did not reach Graph\"",
+    "expect": "× .*logs a refresh that did not reach Graph"
+  },
+  {
+    "id": "mt-store-locked",
+    "test": "tests/unit/jobs/meta-token-refresh.test.ts",
+    "file": "src/server/jobs/system/meta-token-refresh.ts",
+    "find": "if (stored === \"locked\") {",
+    "replace": "if (stored === \"locked-out\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/meta-token-refresh.test.ts -t \"throws when the renewed token could not be stored\"",
+    "expect": "× .*throws when the renewed token could not be stored"
   },
   {
     "id": "mt-500",

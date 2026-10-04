@@ -74,11 +74,24 @@ async function readToken(ctx: StepContext): Promise<string | undefined> {
   return data || ctx.env["META_PAGE_TOKEN"] || undefined;
 }
 
+/**
+ * The URL carries the token and the app secret, and a runtime's network error quotes the URL, so a rejection is
+ * replaced by a message without it: the job's error is stored and shown to staff.
+ */
 async function graphGet(ctx: StepContext, url: string): Promise<unknown> {
-  const response = await fetch(url, { signal: ctx.signal });
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: ctx.signal });
+  } catch {
+    throw new AppError("unavailable", undefined, "Graph did not answer.");
+  }
   if (!response.ok)
     throw new AppError("unavailable", undefined, `Graph answered ${String(response.status)}.`);
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    throw new AppError("unavailable", undefined, "Graph answered a body that could not be read.");
+  }
 }
 
 function stateOf(token: DebugToken): { state: TokenState; missing: string[] } {
@@ -216,11 +229,19 @@ export const metaTokenRefresh: SystemJobDefinition = {
     }
     const renewed = await refresh(ctx, meta, token, debug.type);
     if (renewed !== null) {
-      await record(
+      const stored = await record(
         ctx,
         { state: "ok", missing: [], expiresAt: renewed.expiresAt, dataAccess },
         renewed.token,
       );
+      // The old token stays valid, so a retry renews again and stores what this run could not.
+      if (stored === "locked") {
+        throw new AppError(
+          "unavailable",
+          undefined,
+          "The renewed Meta token was not stored: another run holds it.",
+        );
+      }
       return { status: "done", result: { token_state: "ok", refreshed: true } };
     }
     await notifyAdmin(

@@ -21,14 +21,16 @@ const fetchSpy = vi.fn<(input: string, init: RequestInit) => Promise<Response>>(
 interface Setup {
   meta?: Json | null;
   vaultToken?: string | null;
-  recordAnswer?: string;
+  /** One answer for every call, or one per call in order. */
+  recordAnswer?: string | string[];
 }
 
 function setup({ meta = META, vaultToken = "EAAtoken", recordAnswer = "ok" }: Setup = {}): FakeDb {
+  const answers = [recordAnswer].flat();
   const db = fakeDb({
     rpc: {
       get_vault_secret: () => vaultToken ?? "",
-      meta_token_record: () => recordAnswer,
+      meta_token_record: () => (answers.length > 1 ? answers.shift() : answers[0]) ?? "ok",
       enqueue_job: () => "5b0c7c4e-0000-4000-8000-000000000009",
     },
   });
@@ -47,11 +49,11 @@ function setup({ meta = META, vaultToken = "EAAtoken", recordAnswer = "ok" }: Se
   });
 }
 
-function context(db: FakeDb, env: RunnerEnv = ENV): StepContext {
+function context(db: FakeDb, env: RunnerEnv = ENV, log = logLine): StepContext {
   return {
     db,
     env,
-    log: logLine,
+    log,
     now: NOW,
     signal: new AbortController().signal,
     report: () => Promise.resolve(),
@@ -189,6 +191,40 @@ describe("meta_token_refresh", () => {
   it("throws on a Graph 500, so the job retries", async () => {
     fetchSpy.mockResolvedValue(new Response("{}", { status: 500 }));
     await expect(run(setup())).rejects.toThrow("Graph answered 500.");
+  });
+
+  it("throws on a network rejection without the token or the app secret the URL carries", async () => {
+    fetchSpy.mockImplementation((url) =>
+      Promise.reject(new TypeError(`error sending request for url (${url}): dns error`)),
+    );
+    const error: unknown = await run(setup()).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(Error);
+    expect(error instanceof Error ? error.message : "").toBe("Graph did not answer.");
+  });
+
+  it("logs a refresh that did not reach Graph without the token or the app secret, and alerts", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(debugToken({ days: 6, type: "USER" }))
+      .mockImplementationOnce((url) =>
+        Promise.reject(new TypeError(`error sending request for url (${url}): dns error`)),
+      );
+    const log = vi.fn<typeof logLine>();
+    const db = setup();
+    await metaTokenRefresh.run(context(db, ENV, log), {}, {});
+    expect(log).toHaveBeenCalledWith("warn", "meta_token_refresh_failed", {
+      message: "Graph did not answer.",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/EAAtoken|secret/);
+    expect(rpcCalls(db, "enqueue_job")).toHaveLength(1);
+  });
+
+  it("throws when the renewed token could not be stored, so the job retries", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(debugToken({ days: 6, type: "USER" }))
+      .mockResolvedValueOnce(Response.json({ access_token: "EAArenewed", expires_in: 60 * DAY_S }));
+    await expect(run(setup({ recordAnswer: ["ok", "locked"] }))).rejects.toThrow(
+      "The renewed Meta token was not stored: another run holds it.",
+    );
   });
 
   it("records dead, not never, for is_valid false with expires_at 0, and alerts once (INT-06)", async () => {
