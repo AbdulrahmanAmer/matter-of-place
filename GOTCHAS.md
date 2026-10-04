@@ -1213,6 +1213,7 @@ Entry template
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
 - added: 2026-10-03
 - hit again: 2026-10-04, B3b g3 review: the vitest prelude form (`MOP_MUTATION_SQL` holding the whole migration) hit `40P01` or `55P03` at `tests/fixtures/db.ts:35` in 5 of 6 runs while another lane was testing; each run failed a different case and `schema.db.test.ts` never gave 51/51 in four tries (`6 failed`, `1 failed | 50 passed`, `1 failed | 50 passed`, `8 failed | 43 passed`). Under concurrent lanes the prelude form is not a safe rerun: read the union of cases that passed across runs, and name the other sessions from `pg_stat_activity`.
+- hit again: 2026-10-05, B8b c3r second fix round: `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` gave `replayed 208: ok 207, bad 1`, the bad one `b8b-g1-decline-policies` with `wrong reason`: its red run showed `× keeps exactly B2's policies 30008ms` and `Test timed out in 30000ms` instead of the expected `decline_reasons_delete_test`. Replayed alone with `--only b8b-g1-decline-policies` it gave `ok 1, bad 0`. A watched-fail `wrong reason` whose red output is a 30 s timeout is this entry, not a stale registry entry: replay it with `--only <id>` before touching the registry.
 
 ## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
 - symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
@@ -1427,6 +1428,13 @@ Entry template
 - rule: a proof of `bun run check` runs in the foreground (raise the Bash timeout, up to 600000 ms), or its backgrounded output is read only after the completion notice and only for the run you started; never take an exit code from a file you read while the run could still be writing.
 - proof: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run check; echo "check exit=$?"` → `check exit=0` as the last line (foreground, measured by the B8b c2s reviewer, 2026-10-04).
 - added: 2026-10-04
+
+## P-1615 · A log block pasted a test count from an earlier block, not from its own run, twice, and then called the difference an UNPROVEN change
+- symptom: `workspace/05-plans/logs/B8b.md` wrote `Tests  2 passed | 3 skipped (5)` for `bunx vitest run tests/unit/readpath.test.ts -t "table writes"` in the g3 rework block; the second rework block corrected it to 1 | 4; the c3r fix round block wrote 2 | 3 again and logged the "change" as UNPROVEN. The file has one test under `describe("table writes")` and no B8b commit touches it, so every run prints 1 | 4. Two review rounds were spent on it.
+- cause: the result line was typed from an earlier block of the log instead of copied from the output of the command just run.
+- rule: copy the `Test Files` and `Tests` lines of a log block from the terminal output of the run that block reports, never from an earlier block; when a count differs from an earlier block, re-run once and look at what changed in the file (`git log -- <test file>`) before writing it down. Same lesson as P-822 for bank entries.
+- proof: `cd app && bunx vitest run tests/unit/readpath.test.ts -t "table writes"` → `Tests  1 passed | 4 skipped (5)`; `grep -c "2 passed | 3 skipped" workspace/05-plans/logs/B8b.md` → `2` (the g3 rework line, and the second rework block's correction that quotes it).
+- added: 2026-10-05
 
 ## Retired, enforced
 

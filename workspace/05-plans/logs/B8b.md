@@ -423,7 +423,7 @@ Defect fixed: `20261004190700_automation_seed.sql` → `20261005000100_automatio
 - `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
    Test Files  3 passed (3) /      Tests  34 passed (34)
 - `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
-   Test Files  1 passed (1) /      Tests  2 passed | 3 skipped (5)   (the block above read 1 passed | 4 skipped; the cause of the change is not checked: UNPROVEN)
+   Test Files  1 passed (1) /      Tests  1 passed | 4 skipped (5)   (corrected in the c3r second fix round: this line first read 2 | 3, copied from an earlier block, not from this run; P-1615)
 - `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → deno exit=0
 - dev profile (`eval "$(node scripts/load-env.mjs --profile dev)"`), `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
    Test Files  1 passed (1) /      Tests  28 passed (28)
@@ -440,3 +440,29 @@ Not run, NOT DONE in this group: `bump-catalog-version.test.ts`, `purge-cache.te
 Follow-ups left as the review marked them (not this group's files): `docs/runbooks/jobs.md:96` still names a pg_cron `prune` at 03:30 UTC; `src/server/jobs/README.md:18` still calls `scheduler.ts` a stub.
 UNPROVEN until after the merge and the `dev` job: the post-merge selects on mop-dev, the `job-runner` deploy as the runtime import proof of `npm:cron-parser`, its 200 with `"claimed"`, and the scheduler's `reconcile:<UTC date>T<HH:MM>` job `done`.
 Bank: P-318 hit again (stale `origin/main`, the fetch-first rule added).
+
+## c3r · steps 4 · second fix round after review (2026-10-05)
+Started from main at 48837ed (git merge-base origin/main HEAD after `git fetch -q origin`; origin/main still 48837ed, no merge); proofs run on the tree at e11a8c0 (no code change), handed in with the commit that adds this block. 2026-10-05 01:05 +0300.
+Defect fixed (blocking): the readpath line of the fix round block above pasted 2 | 3 copied from an earlier block; it now carries this run's output, 1 passed | 4 skipped (5), and its UNPROVEN note is gone. Banked as P-1615.
+- `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts` (from `app/`)
+   Test Files  3 passed (3) /      Tests  34 passed (34)
+- `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+   Test Files  1 passed (1) /      Tests  1 passed | 4 skipped (5)
+- `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → deno exit=0
+- dev profile, `node ../workspace/05-plans/quiet.mjs -- env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
+   Test Files  1 passed (1) /      Tests  28 passed (28) / quiet: ok (5 lines, showing the last 5)
+  (local run against mop-dev inside rolled-back transactions; `ci.yml` has no `db` job, so the CI `db` line of the plan is UNPROVEN)
+- `bun run scripts/stubs.ts` → `stubs: 8 markers, 0 on closed slices`; `grep -rc "STUB(B8b step 4)" src supabase | grep -v ":0"` → nothing, exit 1
+- `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → nothing, exit 1
+- `grep -rn "—" supabase/migrations/*automation_seed.sql supabase/migrations/*automation_schedules.sql` → nothing, exit 1
+- `bun run migrations:check` → `migration-order: OK (28 on main, 2 added)`; `git ls-tree --name-only origin/main supabase/migrations/ | grep -c '\.sql$'` → `28`
+- dev profile, `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node scripts/watchfail.mjs --registry tests/mutations --changed origin/main`
+   watchfail: replayed 208: ok 207, bad 1, stale 0; manual 2 not replayed; 2014 not selected
+   WATCHED-FAIL BAD: wrong reason (B8b:b8b-g1-decline-policies): × keeps exactly B2's policies 30008ms / Error: Test timed out in 30000ms.
+  then `node scripts/watchfail.mjs --registry tests/mutations --only b8b-g1-decline-policies` → `WATCHED-FAIL OK B8b:b8b-g1-decline-policies` / `replayed 1: ok 1, bad 0, stale 0` (the 30 s timeout is the shared database, P-322 hit again); `git status` afterwards shows only GOTCHAS.md and this log
+- `node ../workspace/05-plans/quiet.mjs -- bun run check` (foreground) → `quiet: ok (47 lines, showing the last 12)`, check exit=0
+- `node ../workspace/05-plans/quiet.mjs -- bun run build` → `quiet: ok (251 lines, showing the last 12)`, build exit=0
+Not run, NOT DONE in this group: `bump-catalog-version.test.ts`, `purge-cache.test.ts`, `tests/unit/scheduled.test.ts` and `tests/db/bump-catalog-version.db.test.ts` do not exist yet (second half of step 4).
+Follow-ups the review marked non-blocking, outside this group's files, left for the orchestrator: `docs/runbooks/jobs.md:96` names a pg_cron `prune` at 03:30 UTC (the schedules migration unschedules it; STANDARDS C23); `src/server/jobs/README.md:18` calls `scheduler.ts` a stub; plan invariant 11 says the scheduler asks `getStep(<key>)`, the code asks `getSystemJob(key)` (`steps/index.ts` `getStep` searches only the catalog and self-test steps); a seeded row with both clocks null is due only in the minute after its cron slot: a probe of `isDue` for `{ cron: "30 3 * * *" }` printed 03:30:20 true, 03:31:05 false, 09:00:00 false, so a runner down past 03:31 on the first day skips that day's `prune` (a plan risk, or B11 seeds `next_run_at`).
+UNPROVEN until after the merge and the `dev` job: the post-merge selects on mop-dev, the `job-runner` deploy as the runtime import proof of `npm:cron-parser`, its 200 with `"claimed"`, and the scheduler's `reconcile:<UTC date>T<HH:MM>` job `done`.
+Bank: P-1615 added (log count copied from an earlier block); P-322 hit again (watched-fail timeout on the shared database).
