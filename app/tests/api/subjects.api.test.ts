@@ -8,7 +8,7 @@ import { z } from "zod";
 import { receiptSchema } from "../../src/domain/contracts";
 import { hashKey } from "../../src/server/lib/ids";
 import { handlePublic } from "../../src/server/public/pipeline";
-import { committed, type Db as Pg } from "../fixtures/db";
+import { committed, dbNow, type Db as Pg } from "../fixtures/db";
 
 const REQUEST_ID = "req-api-subjects-0001";
 
@@ -41,6 +41,10 @@ async function run<T>(ips: string[], emails: string[], fn: (pg: Pg) => Promise<T
   return committed(fn, async (pg) => {
     await pg.query("begin");
     await pg.query("select set_config('mop.retention', 'on', true)");
+    await pg.query(
+      "delete from public.events where entity_id in (select id from public.subject_requests where email = any ($1))",
+      [emails],
+    );
     await pg.query("delete from public.subject_requests where email = any ($1)", [emails]);
     await pg.query("delete from public.subscribers where email = any ($1)", [emails]);
     await pg.query("delete from public.rate_limits where key_hash = any ($1)", [keys]);
@@ -58,6 +62,23 @@ async function rowsFor(pg: Pg, email: string) {
   return z.array(rowSchema).parse(result.rows);
 }
 
+const eventSchema = z.object({ entity_id: z.string(), payload: z.unknown() });
+
+/** The `subject_request.received` events written since `since`; the write function emits them (G29). */
+async function eventsSince(pg: Pg, since: Date) {
+  const result = await pg.query(
+    "select entity_id, payload from public.events where type = 'subject_request.received' and at >= $1",
+    [since],
+  );
+  return z.array(eventSchema).parse(result.rows);
+}
+
+/** The id of the address's one request. */
+async function requestId(pg: Pg, email: string): Promise<string> {
+  const result = await pg.query("select id from public.subject_requests where email = $1", [email]);
+  return z.tuple([z.object({ id: z.string() })]).parse(result.rows)[0].id;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -66,17 +87,26 @@ describe("POST /api/public/subjects/request", () => {
   it("answers 201 with a Receipt and stores one received request due in 45 days", async () => {
     const ip = nextIp();
     const email = nextEmail();
-    const { response, rows } = await run([ip], [email], async (pg) => {
+    const { response, rows, id, emitted } = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const answer = await handlePublic(
         post({ email, kind: "access", note: "My data" }, ip),
         REQUEST_ID,
       );
-      return { response: answer, rows: await rowsFor(pg, email) };
+      return {
+        response: answer,
+        rows: await rowsFor(pg, email),
+        id: await requestId(pg, email),
+        emitted: await eventsSince(pg, since),
+      };
     });
     expect(response.status).toBe(201);
     expect(response.headers.get("cache-control")).toBe("no-store");
     receiptSchema.parse(await response.json());
     expect(rows).toEqual([{ kind: "access", status: "received", gap: "45 days" }]);
+    expect(emitted.filter((event) => event.entity_id === id)).toEqual([
+      { entity_id: id, payload: { request_id: id, kind: "access" } },
+    ]);
   });
 
   it("answers the same Receipt shape whether or not any data is on file", async () => {
@@ -184,14 +214,20 @@ describe("POST /api/public/subjects/request", () => {
   it("answers a filled website field with 201 and writes no row", async () => {
     const ip = nextIp();
     const email = nextEmail();
-    const { status, rows } = await run([ip], [email], async (pg) => {
+    const { status, rows, emitted } = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const answer = await handlePublic(
         post({ email, kind: "access", website: "https://spam.example" }, ip),
         REQUEST_ID,
       );
-      return { status: answer.status, rows: await rowsFor(pg, email) };
+      return {
+        status: answer.status,
+        rows: await rowsFor(pg, email),
+        emitted: await eventsSince(pg, since),
+      };
     });
     expect(status).toBe(201);
     expect(rows).toEqual([]);
+    expect(emitted).toEqual([]);
   });
 });

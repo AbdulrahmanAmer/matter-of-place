@@ -8,7 +8,7 @@ import { z } from "zod";
 import { receiptSchema } from "../../src/domain/contracts";
 import { hashKey } from "../../src/server/lib/ids";
 import { handlePublic } from "../../src/server/public/pipeline";
-import { committed, type Db as Pg } from "../fixtures/db";
+import { committed, dbNow, type Db as Pg } from "../fixtures/db";
 import { fakeDb } from "../fixtures/fake-db";
 
 const REQUEST_ID = "req-api-inquiries-0001";
@@ -53,6 +53,10 @@ async function run<T>(ips: string[], emails: string[], fn: (pg: Pg) => Promise<T
   return committed(fn, async (pg) => {
     await pg.query("begin");
     await pg.query("select set_config('mop.retention', 'on', true)");
+    await pg.query(
+      "delete from public.events where entity_id in (select id from public.inquiries where source_path = $1)",
+      [SOURCE],
+    );
     await pg.query("delete from public.inquiries where source_path = $1", [SOURCE]);
     await pg.query("delete from public.rate_limits where key_hash = any ($1)", [keys]);
     await pg.query("commit");
@@ -73,6 +77,17 @@ async function rowsFor(pg: Pg, email: string) {
     [email],
   );
   return z.array(rowSchema).parse(result.rows);
+}
+
+const eventSchema = z.object({ entity_id: z.string(), payload: z.unknown() });
+
+/** The `inquiry.received` events written since `since`; the write function emits them in its own transaction (G49). */
+async function eventsSince(pg: Pg, since: Date) {
+  const result = await pg.query(
+    "select entity_id, payload from public.events where type = 'inquiry.received' and at >= $1",
+    [since],
+  );
+  return z.array(eventSchema).parse(result.rows);
 }
 
 /** Every JSON line the server logs while `fn` runs, from all three console levels. */
@@ -100,11 +115,17 @@ describe("POST /api/public/inquiries", () => {
   it("answers 201 with a Receipt and stores one row with a hashed address and no raw IP", async () => {
     const ip = nextIp();
     const email = nextEmail();
-    const { response, rows, events } = await run([ip], [email], async (pg) => {
+    const { response, rows, events, emitted } = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const { value, events } = await logged(() =>
         handlePublic(post(inquiry(email, { intent: "showing" }), ip), REQUEST_ID),
       );
-      return { response: value, rows: await rowsFor(pg, email), events };
+      return {
+        response: value,
+        rows: await rowsFor(pg, email),
+        events,
+        emitted: await eventsSince(pg, since),
+      };
     });
     expect(response.status).toBe(201);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -118,6 +139,9 @@ describe("POST /api/public/inquiries", () => {
     expect(row?.whole).not.toContain(ip);
     expect(row?.whole).toContain(receipt.id);
     expect(events).not.toContain("event_pending");
+    expect(emitted.filter((event) => event.entity_id === receipt.id)).toEqual([
+      { entity_id: receipt.id, payload: { inquiry_id: receipt.id } },
+    ]);
   });
 
   it("refuses a request without a Turnstile token with 403 and writes nothing", async () => {
@@ -155,15 +179,22 @@ describe("POST /api/public/inquiries", () => {
   it("answers a filled website field with 201, writes no row and emits no event", async () => {
     const ip = nextIp();
     const email = nextEmail();
-    const { response, rows, events } = await run([ip], [email], async (pg) => {
+    const { response, rows, events, emitted } = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const { value, events } = await logged(() =>
         handlePublic(post({ ...inquiry(email), website: "https://spam.example" }, ip), REQUEST_ID),
       );
-      return { response: value, rows: await rowsFor(pg, email), events };
+      return {
+        response: value,
+        rows: await rowsFor(pg, email),
+        events,
+        emitted: await eventsSince(pg, since),
+      };
     });
     expect(response.status).toBe(201);
     receiptSchema.parse(await response.json());
     expect(rows).toEqual([]);
+    expect(emitted).toEqual([]);
     expect(events).toContain("honeypot");
     expect(events).not.toContain("event_pending");
   });
