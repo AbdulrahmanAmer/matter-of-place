@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-03 22:10 (UTC+3)",
-  "now": "Build running on three lanes: api (B3 steps 2 to 13), ops (B8 steps 1 to 8a), design (B9 step 6). B1b closed except step 11; B2 closed; B4 and the rest of B9 wait on B3, B7 and B8.",
+  "updated": "2026-10-04 07:20 (UTC+3)",
+  "now": "Build running: api lane on B3 steps 8b to 13; ops lane on B8 steps 7 to 8a after its close-out c5 (the runner deploy step of deploy.yml). B1b and B2 closed or nearly; B4, B5, B9, B14, B16 parked by dependency. The runner, cron and health route are live on mop-dev.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -72,25 +72,70 @@
         "2",
         "3",
         "4",
-        "5"
+        "5",
+        "6"
       ],
       "inReview": [],
-      "note": "Steps 1 to 5 merged (PR 92); step 6 running; 7 to 11 wait on B8 and B7."
+      "note": "Steps 1 to 6 merged (PRs 92, 99); 7 to 11 wait on B8 and B7."
     },
     "B3": {
       "accepted": [
         "1",
-        "1b"
+        "1b",
+        "2",
+        "3",
+        "3b",
+        "4",
+        "5",
+        "5b",
+        "6",
+        "7",
+        "8"
       ],
       "inReview": [],
-      "note": "Steps 1 and 1b accepted on slice/b3; steps 2 to 13 running on the api lane after B2 closed."
+      "note": "Steps 1 to 2 on main (PR 102); 3 to 8 accepted on slice/b3; 8b to 13 building."
     },
     "B8": {
-      "accepted": [],
-      "inReview": [
+      "accepted": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6a"
+      ],
+      "inReview": [],
+      "note": "Steps 1 to 6a merged (PRs 101, 109); the runner is deployed on mop-dev and the cron ticks; 7 to 8a next; 2a waits on B3, 9 to 10a on B7 and B8b."
+    },
+    "B14": {
+      "accepted": [
+        "2",
+        "3",
+        "6"
+      ],
+      "inReview": [],
+      "note": "Steps 2, 3 and 6 merged (PR 103); 1 (credentials) and 4 to 9 wait on B7, the Google side and L1."
+    },
+    "B16": {
+      "accepted": [
+        "1",
+        "2"
+      ],
+      "inReview": [],
+      "note": "Steps 1 and 2 merged in part (PR 98: domain and migration); the service part of step 2 and steps 3 to 8 wait on B3, B3b, B5 and B17."
+    },
+    "B5": {
+      "accepted": [
         "1"
       ],
-      "note": "Started 2026-10-03 on the ops lane (E:/mop-build/ops, slice/b8, port 8838, P-900/G-350); migrations proven in rolled-back transactions until merge (H1 (a)). Step 1 shown in work while the lane builds it."
+      "inReview": [],
+      "note": "Step 1 merged (PR 108); step 2 waits on B8b (email_templates), 4 onward on B8."
+    },
+    "H2": {
+      "accepted": [],
+      "inReview": [],
+      "note": "Acceptance panel, added 2026-10-04 (S66): runs after the B slices close."
     }
   },
   "lanes": [

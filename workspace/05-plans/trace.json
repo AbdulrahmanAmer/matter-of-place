@@ -15319,5 +15319,49 @@
    "supabase/sql/functions/settings_email_share.sql"
   ],
   "hasProof": true
+ },
+ {
+  "dimension": "ops",
+  "kind": "job",
+  "id": "acceptance panel: three charters and probes",
+  "plan": "H2",
+  "files": [
+   "workspace/05-plans/acceptance/probe.mjs",
+   "workspace/05-plans/acceptance/charters/senior-engineer.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "ops",
+  "kind": "job",
+  "id": "acceptance ledger and report",
+  "plan": "H2",
+  "files": [
+   "workspace/05-plans/acceptance/run.mjs",
+   "workspace/05-plans/acceptance/ledger.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "ops",
+  "kind": "job",
+  "id": "acceptance team of three agents",
+  "plan": "H2",
+  "files": [
+   "workspace/05-plans/acceptance/team.mjs",
+   "workspace/05-plans/logs/H2.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "ops",
+  "kind": "action",
+  "id": "acceptance fix merged with a CHANGES line",
+  "plan": "H2",
+  "files": [
+   "CHANGES.md",
+   ".claude/workflows/build-slice.js"
+  ],
+  "hasProof": true
  }
 ]
