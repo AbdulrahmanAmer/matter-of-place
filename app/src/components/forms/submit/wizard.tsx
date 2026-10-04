@@ -1,11 +1,13 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAsyncAction } from "../../../hooks/use-async-action";
 import { track } from "../../../lib/analytics";
 import { cx } from "../../../lib/cx";
+import { withHoneypot } from "../../../lib/form-data";
 import { padIndex } from "../../../lib/format";
 import { t } from "../../../lib/strings";
 import { services } from "../../../services";
 import { DeliveryNotice, FormError, SentNotice } from "../form-notice";
+import { Honeypot } from "../honeypot";
 import { sentText } from "../../../lib/form-copy";
 import {
   canContinue,
@@ -31,8 +33,12 @@ export function SubmitWizard() {
     [],
   );
 
+  const trap = useRef<HTMLInputElement>(null);
   const { state, run, reset, pending } = useAsyncAction((current: SubmitDraft) =>
-    services.submissions.send(toSubmission(current, window.location.pathname), current.files),
+    services.submissions.send(
+      withHoneypot(toSubmission(current, window.location.pathname), trap.current?.value ?? ""),
+      current.files,
+    ),
   );
 
   const startAgain = () => {
@@ -72,6 +78,7 @@ export function SubmitWizard() {
       {step === 2 && <AboutYouStep draft={draft} update={update} />}
       {step === 3 && <ExposureStep draft={draft} update={update} />}
       {step === 4 && <ReviewStep draft={draft} />}
+      <Honeypot ref={trap} />
 
       <div className="form-actions">
         {step > 0 && (

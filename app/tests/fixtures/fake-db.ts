@@ -24,6 +24,12 @@ export interface FakeCall {
 
 export type FakeDb = Db & { calls: FakeCall[] };
 
+interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
+  is: () => FakeQuery;
+  gt: () => FakeQuery;
+  eq: () => FakeQuery;
+}
+
 const registered = (table: object | undefined, name: string): unknown =>
   table === undefined ? undefined : Reflect.get(table, name);
 
@@ -49,7 +55,14 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
     calls.push({ kind: "from", name, args: [] });
     const rows = registered(options.tables, name);
     if (!Array.isArray(rows)) throw new Error(`unexpected table ${name}`);
-    return { select: () => Promise.resolve({ data: rows, error: null }) };
+    // Filters are the database's work: a registered table answers the rows the query is meant to return.
+    const query = (): FakeQuery =>
+      Object.assign(Promise.resolve({ data: rows, error: null }), {
+        is: query,
+        gt: query,
+        eq: query,
+      });
+    return { select: query };
   };
 
   const storage = {

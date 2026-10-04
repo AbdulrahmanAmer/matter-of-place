@@ -24,6 +24,9 @@ export const contactTopics = [
 const contactTopicSchema = z.enum(contactTopics);
 export type ContactTopic = z.infer<typeof contactTopicSchema>;
 
+/** The hidden field every public form carries (GD-05): a person leaves it empty, the pipeline drops it before Zod. */
+export const honeypotFieldName = "website";
+
 const email = z.string().trim().email().max(254);
 const shortText = z.string().trim().max(200);
 const longText = z.string().trim().max(5000);

@@ -6,8 +6,6 @@ const encoder = new TextEncoder();
 const bytesOf = (input: string | Uint8Array): Uint8Array<ArrayBuffer> =>
   typeof input === "string" ? encoder.encode(input) : new Uint8Array(input);
 
-/** @public */
-// STUB(B3): first used by src/server/hooks/resend.ts (Svix signature) and the upload grant
 export async function hmacSha256(
   key: string | Uint8Array,
   message: string | Uint8Array,
@@ -57,8 +55,6 @@ export function fromBase64(text: string): Uint8Array {
   return Uint8Array.from(atob(text), (char) => char.charCodeAt(0));
 }
 
-/** @public */
-// STUB(B3): first used by src/server/lib/ids.ts (newToken) and the upload grant
 export function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);

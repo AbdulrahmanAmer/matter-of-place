@@ -1,21 +1,25 @@
 import type { SyntheticEvent } from "react";
-import { subscriberSchema } from "../../domain/contracts";
+import { honeypotFieldName, subscriberSchema } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
-import { formText } from "../../lib/form-data";
+import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { isLive, services } from "../../services";
 import { FormError } from "./form-notice";
+import { Honeypot } from "./honeypot";
 
 export function NewsletterForm({ source }: { source: string }) {
-  const { state, run, pending } = useAsyncAction((input: { email: string }) =>
-    services.newsletter.subscribe(subscriberSchema.parse({ ...input, source })),
+  const { state, run, pending } = useAsyncAction((input: { email: string; trap: string }) =>
+    services.newsletter.subscribe(
+      withHoneypot(subscriberSchema.parse({ email: input.email, source }), input.trap),
+    ),
   );
 
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const email = formText(new FormData(event.currentTarget), "email");
-    void run({ email }).then((receipt) => {
+    const data = new FormData(event.currentTarget);
+    const email = formText(data, "email");
+    void run({ email, trap: formText(data, honeypotFieldName) }).then((receipt) => {
       if (receipt) track("newsletter_signup", { source });
     });
   };
@@ -38,6 +42,7 @@ export function NewsletterForm({ source }: { source: string }) {
         placeholder={t.common.emailAddress}
         aria-label={t.common.emailAddress}
       />
+      <Honeypot />
       <button type="submit" disabled={pending}>
         {pending ? t.common.sending : t.common.subscribe}
       </button>

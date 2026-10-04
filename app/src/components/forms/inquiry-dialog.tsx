@@ -1,14 +1,20 @@
 import { useEffect, useId, type SyntheticEvent } from "react";
 import { X } from "lucide-react";
-import { inquirySchema, type InquiryIntent, type InquirySubject } from "../../domain/contracts";
+import {
+  honeypotFieldName,
+  inquirySchema,
+  type InquiryIntent,
+  type InquirySubject,
+} from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { focusOnMount, useModal } from "../../hooks/use-modal";
 import { track, type AnalyticsEvent } from "../../lib/analytics";
-import { formText } from "../../lib/form-data";
+import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
 import { Field } from "./field";
 import { DeliveryNotice, FormError, SentNotice } from "./form-notice";
+import { Honeypot } from "./honeypot";
 import { sentText } from "../../lib/form-copy";
 
 export type Intent = InquiryIntent;
@@ -151,12 +157,15 @@ export function InquiryDialog({
   const titleId = useId();
   const { state, run, reset, pending } = useAsyncAction((form: HTMLFormElement) =>
     services.inquiries.send(
-      inquirySchema.parse({
-        intent,
-        subject,
-        ...readForm(form, copy?.extra),
-        sourcePath: window.location.pathname,
-      }),
+      withHoneypot(
+        inquirySchema.parse({
+          intent,
+          subject,
+          ...readForm(form, copy?.extra),
+          sourcePath: window.location.pathname,
+        }),
+        formText(new FormData(form), honeypotFieldName),
+      ),
     ),
   );
 
@@ -227,6 +236,7 @@ export function InquiryDialog({
               <Field label="Message">
                 <textarea name="message" rows={4} required defaultValue={copy.message} />
               </Field>
+              <Honeypot />
               <div className="form-actions">
                 <button type="submit" className="button" disabled={pending}>
                   {pending ? t.common.sending : t.common.send}

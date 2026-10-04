@@ -1,4 +1,5 @@
 import { z, ZodError } from "zod";
+import { honeypotFieldName } from "../../domain/contracts";
 import { getDb, type Db } from "../lib/db";
 import { env, sentryOptions } from "../lib/env";
 import { AppError, fromZod, toErrorResponse } from "../lib/errors";
@@ -58,6 +59,8 @@ function routeName(path: string): string {
     .join("-");
 }
 
+const objectSchema = z.record(z.string(), z.unknown());
+
 const emailSchema = z.union([
   z.object({ email: z.string() }),
   z.object({ submitterEmail: z.string() }),
@@ -116,6 +119,31 @@ async function readJson(request: Request): Promise<unknown> {
 
 const tooLarge = (request: Request): boolean =>
   Number(request.headers.get("content-length") ?? "0") > MAX_BODY_BYTES;
+
+/**
+ * Takes the honeypot field off a JSON object body (invariant 11). `filled` is true when it held anything: such a
+ * request gets a receipt that looks like any other and nothing is written.
+ */
+function stripHoneypot(body: unknown): { body: unknown; filled: boolean } {
+  const fields = objectSchema.safeParse(body);
+  if (!fields.success) return { body, filled: false };
+  const { [honeypotFieldName]: trap, ...rest } = fields.data;
+  return { body: rest, filled: trap !== undefined && trap !== null && trap !== "" };
+}
+
+/** A write with `:name` segments parses them with its body, under their own names, which the body cannot override. */
+function withParams(body: unknown, path: string, params: readonly string[]): unknown {
+  const names = path
+    .split("/")
+    .filter((part) => part.startsWith(":"))
+    .map((part) => part.slice(1));
+  if (names.length === 0) return body;
+  const fields = objectSchema.safeParse(body);
+  return {
+    ...(fields.success ? fields.data : {}),
+    ...Object.fromEntries(names.map((name, index) => [name, params[index]])),
+  };
+}
 
 function fromService(route: PublicRoute, value: unknown): Response {
   if (value instanceof Response) return value;
@@ -220,12 +248,22 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
     throw new AppError("payload_too_large", undefined, "That is more than we can take in one go.");
   }
   if (route.raw === true) return route.service(request, db, env);
-  const body = await readJson(request);
+  const { body, filled } = stripHoneypot(await readJson(request));
   const name = routeName(route.path);
+  if (filled) {
+    logLine("info", "honeypot", { route: name });
+    return Response.json(
+      { id: crypto.randomUUID(), receivedAt: new Date().toISOString() },
+      { status: 201, headers: { "cache-control": "no-store" } },
+    );
+  }
   const memory = memoryCheck(route, name, ctx.ipHash);
   if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);
   await checkTurnstile(route, name, request, ctx);
-  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);
+  const parsed =
+    route.schema === undefined
+      ? undefined
+      : route.schema.safeParse(withParams(body, route.path, match.params));
   if (parsed?.success === false) throw fromZod(parsed.error);
   const input: unknown = parsed?.data;
   const checks = await dbChecks(route, name, ctx.ipHash, input);

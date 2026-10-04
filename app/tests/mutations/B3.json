@@ -1160,7 +1160,7 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);",
+    "find": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));",
     "replace": "  const parsed = undefined as { success: boolean; data?: unknown; error?: never } | undefined;",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*rejects a schema failure with 422"
@@ -2180,8 +2180,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n",
-    "replace": "  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n  await checkTurnstile(route, name, request, ctx);\n",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n  await checkTurnstile(route, name, request, ctx);\n",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*refuses a failed check before the schema and before every database call"
   },
@@ -2444,5 +2444,369 @@
     "replace": "if (true) {",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*does not give a request for a newer version the load that is still reading an older one"
+  },
+  {
+    "id": "b3-f",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/request-log.ts",
+    "find": "  return hashKey(env.RATE_LIMIT_SALT, clientIp(request));",
+    "replace": "  return Promise.resolve(clientIp(request));",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row with a hashed address and no raw IP"
+  },
+  {
+    "id": "b3-g6-inq-source",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "      source_path: input.sourcePath,",
+    "replace": "      source_path: \"/elsewhere\",",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row"
+  },
+  {
+    "id": "b3-g6-inq-no-event",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  return fromService(route, await route.service(db, input, ctx));",
+    "replace": "  logLine(\"info\", \"event_pending\", { route: name });\n  return fromService(route, await route.service(db, input, ctx));",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row"
+  },
+  {
+    "id": "b3-g6-inq-token",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";",
+    "replace": "  if (token === null || token === undefined || token === \"\") return \"unreachable\";",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses a request without a Turnstile token with 403"
+  },
+  {
+    "id": "b3-d-unreachable",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*accepts the write flagged when Turnstile is unreachable"
+  },
+  {
+    "id": "b3-j",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (filled && name === \"\") {",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers a filled website field with 201, writes no row and emits no event"
+  },
+  {
+    "id": "b3-g6-inq-422",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    schema: inquirySchema,\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*rejects a schema failure with 422"
+  },
+  {
+    "id": "b3-g6-inq-ip-limit",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"ip\", store: \"db\", limit: 10, windowSeconds: HOUR },",
+    "replace": "      { scope: \"ip\", store: \"db\", limit: 20, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses the 11th inquiry from one IP"
+  },
+  {
+    "id": "b3-g6-inq-email-limit",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 5, windowSeconds: HOUR },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 6, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses the 6th inquiry from one email"
+  },
+  {
+    "id": "b3-g6-inq-503",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "    throw new AppError(\"unavailable\", undefined, UNAVAILABLE);",
+    "replace": "    throw new Error(\"database\");",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 503 unavailable when the database refuses the write"
+  },
+  {
+    "id": "b3-g6-hp-tab",
+    "kind": "file",
+    "test": "tests/unit/honeypot.test.ts",
+    "file": "src/components/forms/honeypot.tsx",
+    "find": "          tabIndex={-1}",
+    "replace": "          tabIndex={0}",
+    "run": "bunx vitest run --project unit tests/unit/honeypot.test.ts",
+    "expect": "× .*renders one input named website"
+  },
+  {
+    "id": "b3-g6-hp-aria",
+    "kind": "file",
+    "test": "tests/unit/honeypot.test.ts",
+    "file": "src/components/forms/honeypot.tsx",
+    "find": "          aria-hidden=\"true\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/honeypot.test.ts",
+    "expect": "× .*renders one input named website"
+  },
+  {
+    "id": "b3-g6-sub-order",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    uploads: media.map((entry, position) => ({",
+    "replace": "    uploads: [...media].reverse().map((entry, position) => ({",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*stores the submission and one media row per entry, indexed in posted order"
+  },
+  {
+    "id": "b3-g6-sub-first10",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const SIGNED_PER_REQUEST = 10;",
+    "replace": "const SIGNED_PER_REQUEST = 11;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs the first 10 of 40 photographs"
+  },
+  {
+    "id": "b3-g6-sub-thumb",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  `${submissionId}/${mediaId}.thumb.jpg`;",
+    "replace": "  `${submissionId}/${mediaId}.thumb.png`;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs the first 10 of 40 photographs"
+  },
+  {
+    "id": "b3-ddd",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/upload-token.ts",
+    "find": "  if (exp * 1000 < now) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-sub-sig",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/upload-token.ts",
+    "find": "  return timingSafeEqual(encoder.encode(expected), encoder.encode(given));",
+    "replace": "  return given.length > 0;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-params",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    ...Object.fromEntries(names.map((name, index) => [name, params[index]])),\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-sub-uploads-limit",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"db\", limit: 12, windowSeconds: HOUR }],",
+    "replace": "    limits: [{ scope: \"ip\", store: \"db\", limit: 13, windowSeconds: HOUR }],",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses the 13th /uploads call from one IP"
+  },
+  {
+    "id": "b3-g6-sub-sign-503",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  if (error !== null) throw unavailable();\n  return data.signedUrl;",
+    "replace": "  return data?.signedUrl ?? \"\";",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers 503 unavailable when a signing call fails"
+  },
+  {
+    "id": "b3-l",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),",
+    "replace": "    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles + 1).default([]),",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses an entry over 25 MB, a GIF and 41 entries with 422"
+  },
+  {
+    "id": "b3-g6-sub-kind",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      submitter_kind: input.submitterKind,",
+    "replace": "      submitter_kind: \"agent\",",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*links one contact per email"
+  },
+  {
+    "id": "b3-g6-sub-brokerage",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  if (value.submitterKind === \"agent\" && !isSet(value.brokerage)) {",
+    "replace": "  if (value.submitterKind === \"agent\" && isSet(value.brokerage) && !isSet(value.brokerage)) {",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses an agent without a brokerage with 422"
+  },
+  {
+    "id": "b3-g6-sub-listing",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      listing_agent_name: input.listingAgentName,",
+    "replace": "      listing_agent_name: undefined,",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*stores an owner's listing agent"
+  },
+  {
+    "id": "b3-g6-sub-rights",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      rights_version: currentRightsVersion,",
+    "replace": "      rights_version: \"2026-01-01\",",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*records the rights version, time and a hashed address"
+  },
+  {
+    "id": "b3-j-sub",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (filled && name === \"\") {",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers a filled website field with 201 and writes no row"
+  },
+  {
+    "id": "b3-g6-sub-double",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers a second post within 10 minutes",
+    "procedure": "The 10-minute rule lives in create_submission only; its mutation is b3-g2-double, replayed in the rolled-back public-write.db.test.ts. Here the rule is reached through supabase-js, which cannot see a rolled-back function (P-901), and only main may change mop-dev (R18)."
+  },
+  {
+    "id": "b3-g6-sub-duplicate",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*points a request for the same address and email 11 days later",
+    "procedure": "Duplicate flagging lives in create_submission only; its mutation is b3-k, replayed in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-hhh",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*links one contact per email",
+    "procedure": "(hhh) and (iii) mutate the contacts upsert of create_submission; b3-g2-contact-kind replays them in the rolled-back public-write.db.test.ts (P-901, R18). b3-g6-sub-kind covers the service side of this case."
+  },
+  {
+    "id": "b3-g6-rec-png",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  if (at(0) === 0x89 && at(1) === 0x50",
+    "replace": "  if (at(0) === 0x88 && at(1) === 0x50",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*names each of the four types by its signature"
+  },
+  {
+    "id": "b3-g6-rec-brand",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "\"heim\", \"msf1\"]",
+    "replace": "\"heim\"]",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*reads every HEIC brand of GQ-07 as image/heic"
+  },
+  {
+    "id": "b3-g6-rec-webp",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  if (ascii(bytes, 0, 4) === \"RIFF\" && ascii(bytes, 8, 12) === \"WEBP\") return \"image/webp\";",
+    "replace": "  if (ascii(bytes, 0, 4) === \"RIFF\") return \"image/webp\";",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*answers null for any other bytes"
+  },
+  {
+    "id": "b3-i",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      const removed = await store.remove([row.storage_path]);\n      if (removed.error !== null) throw storageUnavailable();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*marks a good JPEG, removes PNG bytes under a .jpg name"
+  },
+  {
+    "id": "b3-g6-rec-missing",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      if (now - Date.parse(row.submissions.received_at) > UPLOAD_WINDOW_MS) counts.missing += 1;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*marks a good JPEG, removes PNG bytes under a .jpg name"
+  },
+  {
+    "id": "b3-g6-rec-throw",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  return parsed.success && parsed.data.code === \"NoSuchKey\";",
+    "replace": "  return parsed.success;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*throws on a download error other than not-found"
+  },
+  {
+    "id": "b3-vv",
+    "kind": "file",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      .slice(0, SIGNED_PER_REQUEST)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
+    "expect": "× .*keeps POST /submissions with 40 photographs at 35 calls or fewer"
+  },
+  {
+    "id": "b3-g6-budget-more",
+    "kind": "file",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      data.map(async (row) => ({",
+    "replace": "      [...data, ...data].map(async (row) => ({",
+    "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
+    "expect": "× .*keeps one POST /submissions/:id/uploads call of 10 photographs at 35 calls or fewer"
   }
 ]

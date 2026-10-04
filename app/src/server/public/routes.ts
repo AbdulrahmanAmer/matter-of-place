@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { slugSchema } from "../../domain/contracts";
+import { inquirySchema, slugSchema, submissionSchema } from "../../domain/contracts";
 import {
   getMarket,
   getProperty,
@@ -8,8 +8,10 @@ import {
   listProperties,
   listStories,
 } from "../catalog/service";
+import * as inquiries from "../inquiries/service";
 import type { Db } from "../lib/db";
 import type { env } from "../lib/env";
+import * as submissions from "../submissions/service";
 
 // The public route table as data (architecture 4.1): the one source for the handlers, the in-process
 // dispatcher and the tests. `handlePublic` reads it; a route file only calls `handlePublic`.
@@ -65,6 +67,8 @@ export type PublicRoute =
   | (BaseRoute & { raw: true; service: RawService });
 
 const EDGE_LIFETIME = 31_536_000;
+const HOUR = 3600;
+const DAY = 86_400;
 
 const catalogRead = (
   path: string,
@@ -91,4 +95,39 @@ export const routes: PublicRoute[] = [
   catalogRead("/api/public/markets/:slug", getMarket, { tag: "market" }),
   catalogRead("/api/public/stories", listStories),
   catalogRead("/api/public/stories/:slug", getStory, { tag: "story" }),
+  {
+    path: "/api/public/inquiries",
+    method: "POST",
+    schema: inquirySchema,
+    limits: [
+      { scope: "ip", store: "db", limit: 10, windowSeconds: HOUR },
+      { scope: "email", store: "db", limit: 5, windowSeconds: HOUR },
+    ],
+    turnstile: true,
+    form: true,
+    status: 201,
+    service: inquiries.create,
+  },
+  {
+    path: "/api/public/submissions",
+    method: "POST",
+    schema: submissionSchema,
+    limits: [
+      { scope: "ip", store: "db", limit: 3, windowSeconds: HOUR },
+      { scope: "email", store: "db", limit: 5, windowSeconds: DAY },
+    ],
+    turnstile: true,
+    form: true,
+    status: 201,
+    service: submissions.create,
+  },
+  {
+    path: "/api/public/submissions/:id/uploads",
+    method: "POST",
+    schema: submissions.signMoreSchema,
+    limits: [{ scope: "ip", store: "db", limit: 12, windowSeconds: HOUR }],
+    turnstile: false,
+    status: 200,
+    service: submissions.signMore,
+  },
 ];
