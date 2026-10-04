@@ -207,8 +207,8 @@ Entry template
 - hit again: 2026-10-04, B8b g1: `sed -i 's/to be 0"/to be \\\\+0"/'` on the scratch registry generator wrote `\+0` (one backslash), so the JSON `expect` became `to be +0`, a regex that cannot match the literal `+0` vitest prints, and the replay said BAD for a mutation that was red for the right reason; the Edit tool fixed it in one step.
 - hit again: 2026-10-04, B3b g1: a `node -e` edit of the runbook with backticks in its text was run by Git Bash, which executed the backticks and mangled the text; redone with the Edit tool. Proof: `grep -c "hit again: 2026-10-04, B3b g1: a" GOTCHAS.md` prints 1.
 - hit again: 2026-10-04, B3b g2: `node workspace/05-plans/quiet.mjs -- bunx vitest run <file> -t "utm consent"` ran four cases instead of one (`Tests  4 passed | 20 skipped (24)`): the runner passes its arguments on without the quotes, so the filter became `-t utm` plus a file filter `consent`. A filter with a space is run directly, not through `quiet.mjs`; a stray `cat > file` typed before a heredoc waited on stdin for two minutes.
-
 - hit again: 2026-10-04, B3b g3: a 90-line `cat >> logs/B3b.md <<'EOF'` holding `\"` and backticks ended in `unexpected EOF while looking for matching` and wrote nothing; the block went into the scratchpad with Write and was appended with `cat <file> >> logs/B3b.md`. A log block longer than a few lines always goes that way.
+
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
 - cause: agent definitions are read at session start; the context-inheriting `fork` type is not in this Claude Code build.
@@ -1190,6 +1190,7 @@ Entry template
 - rule: read a burst of 30 s timeouts as the shared database, not the code: look at `pg_stat_activity` for other sessions, rerun once, and report the rerun with the first output. A case that fails the same way twice is a real failure. Never raise `testTimeout` to hide it.
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/psql-dev.mjs -Atc "select pid, application_name, state, wait_event_type, pg_blocking_pids(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'"` while a db run is going shows the test's own `Supavisor` session; the timed-out outputs are pasted in `workspace/05-plans/logs/B2.md` under `## g8 · steps 8` (measured 2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-04, B3b g3 review: the vitest prelude form (`MOP_MUTATION_SQL` holding the whole migration) hit `40P01` or `55P03` at `tests/fixtures/db.ts:35` in 5 of 6 runs while another lane was testing; each run failed a different case and `schema.db.test.ts` never gave 51/51 in four tries (`6 failed`, `1 failed | 50 passed`, `1 failed | 50 passed`, `8 failed | 43 passed`). Under concurrent lanes the prelude form is not a safe rerun: read the union of cases that passed across runs, and name the other sessions from `pg_stat_activity`.
 
 ## P-323 · Two small traps writing db test fixtures: a parameter used as two types, and jsonb's own key order
 - symptom: B2 g8's story fixture failed with `error: inconsistent types deduced for parameter $3` (`$3` was both the `editorial_state` value and compared with a text literal), and an equality of `JSON.stringify` of a jsonb value with the literal written in the test failed although the objects were equal.
@@ -1341,6 +1342,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a pull request shows no run a minute after a push, read `mergeable_state` before anything else; `dirty` means bring main into the lane with a merge commit (P-072; the orchestrator does it when the builder's brief forbids merges). A probe branch that must run now is cut from `origin/main` with only the files under test checked out from the lane.
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/pulls/47 --jq '[.mergeable, .mergeable_state] | @tsv'` → `false	dirty`; `git merge-tree --write-tree origin/main slice/b1b >/dev/null; echo $?` → `0` (both 2026-10-02); probe PR #50, cut from `origin/main`, answered `true` and ran.
 - added: 2026-10-02
+- hit again: 2026-10-04, B3b g3: after the push PR 122 showed `CONFLICTING`; `git merge origin/main` ran, and the bank's merge driver kept ours for P-008 and reordered entries ("compare by hand"). `GOTCHAS.md` was rebuilt as main's text plus the lane's lines and checked entry by entry against main (`missing [], added [P-1304], changed [P-008, P-320, P-327], lostLines []`). After any merge that touches the bank, compare it with `origin/main` entry by entry before the commit.
 
 ## P-137 · A Worker name deployed for the first time answers Cloudflare's own 404 now and then for about 20 seconds
 - symptom: probe PR #44's preview smoked `pr-44` two seconds after its first deploy: every URL answered 404 with `cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0` and no header of ours. With a wait for one answer of ours (PR #50), the next twelve requests still mixed that 404 with our answers.
@@ -1487,6 +1489,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after editing markdown under `app/`, run `bunx prettier --config .prettierrc --write <file>` on it before `bun run check`.
 - proof: `cd app && bunx prettier --config .prettierrc --check docs/runbooks/delivery.md` → `All matched files use Prettier code style!`.
 - added: 2026-10-03
+- hit again: 2026-10-04, B3b g3: the same failure on a TypeScript file, not markdown: the first `bun run check` ended with prettier refusing `tests/db/flags.db.test.ts`, fixed with `prettier --write`. The rule is wider than runbooks: run `bunx prettier --config .prettierrc --write <file>` on every file written by hand, test files included, before `bun run check`.
 
 ## P-157 · A proof that shows only the passing state does not show the rule: P-156 had no control that a hand-padded markdown table goes red
 - symptom: the reviewer of B1b g8 ran P-156's proof, `prettier --check docs/runbooks/delivery.md`, and got `All matched files use Prettier code style!`, exit 0. That output is the same whether or not prettier would refuse a misaligned table, so the entry's failure mode was told, never shown.
@@ -2435,6 +2438,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a dry pass reports `deadlock detected` and the other backend is not yours, do not edit the SQL: rerun it later, or prove it through the vitest prelude (P-312), and quote both attempts. Two deadlocks at different lines with another backend named is the signature; the same line failing alone on an idle database is a real defect.
 - proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_stat_activity where datname = current_database() and state <> 'idle' and pid <> pg_backend_pid()"` prints the number of other active sessions (non-zero while a lane is mid-test); `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` when the locks are free (measured 2026-10-04, B8b g1 review).
 - added: 2026-10-04
+- hit again: 2026-10-04, B3b g3 review: "the vitest prelude form passed at other moments" reads as a safe fallback and is not one while lanes run side by side: the prelude of `20261004155556_coming_soon.sql` deadlocked or timed out in 5 of 6 runs (see the hit on P-322). A pass of either form is evidence only for the moment it ran; quote every attempt, failures included.
 
 ## P-1300 · A runbook that restates a plan sequence from memory contradicts the plan, and the contradiction is a skipped production check
 - symptom: the first `docs/coming-soon.md` said `deploy.yml` runs the coming-soon assertion on every production deploy and listed the launch switch as complete. The plan runs the step only when `vars.MOP_DB_PRODUCTION == 'true'` (set by `gh variable set MOP_DB_PRODUCTION --body true` in L1 step 1g) and adds `--after-launch` when `MOP_LAUNCHED` is true (L1 step 4e). An operator following the doc would never set the variable and the assertion would be skipped silently. The same doc placed `IllustrativeNotice` at the foot of two pages where the plan puts it wherever an illustrative property shows, and described `defaultFlags` as derived where the code holds a literal.
@@ -2478,4 +2482,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
 - proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
 - enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
+
+## P-1305 · A registry folder inside the shared session scratchpad already holds other reviewers' files, and `watchfail --registry <dir>` replays all of them
+- symptom: a B3b g3 reviewer made `reg/` in the session scratchpad; it already held `B8b.json` and `R.json` from parallel reviewers, so `watchfail --registry` replayed 71 entries in this worktree (`replayed 71: ok 16, bad 1, stale 54`), foreign file mutations included, and the reviewer's own `g3.json` could be picked up by theirs.
+- cause: the scratchpad belongs to the session, not to one worker, and `watchfail` replays every `*.json` in the folder it is given.
+- rule: a scratch registry lives in a folder only this run created, named by group and time (for example `reg-<group>-<epoch>`), and holds only this run's file; check `ls` of the folder before replaying.
+- proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
 - added: 2026-10-04

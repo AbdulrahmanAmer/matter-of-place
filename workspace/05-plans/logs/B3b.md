@@ -188,3 +188,7 @@ Proof 4, gates in `app/`: first `bun run check` red in lint (prettier on `flags.
 Bank: P-1304 added; P-320, P-327 and P-008 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 270 process entries)`.
 
 Merge after the push: PR 122 showed `CONFLICTING` (P-136), so `git merge origin/main` ran again; the bank driver kept ours for P-008 ("compare by hand"). `GOTCHAS.md` was rebuilt as main's text plus this group's P-008, P-320 and P-327 lines and P-1304 (an entry-by-entry compare with main: `missing [], added [P-1304], changed [P-008, P-320, P-327], lostLines []`; `git diff --stat origin/main -- GOTCHAS.md` -> `11 insertions(+)`). After the merge: `migration-order: OK (24 on main, 1 added)`; `error-codes`, `assert-not-production` and `mutation-registry` unit tests `15 passed (15)`.
+
+## g3 · follow-ups recorded
+
+The reviewer of g3 found no blocking defect and eight follow-ups; no code changed. Five follow-ups are listed word for word in `workspace/05-plans/logs/B3b-followups.md` under "## g3 · steps 3" (types.ts regeneration, the re-encoded em dash in B3b.md mutations, the untested lock race, with-coming-soon.ts signal and quoting paths, the stale plan lines). The three whose file is `GOTCHAS.md` went into the bank: P-1305 added (scratch registry folders are shared in the session scratchpad); hit-again lines on P-136, P-156, P-322 and P-1602; the P-008 hit-again line separated from P-010 by a blank line.
