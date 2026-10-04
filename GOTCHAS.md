@@ -187,6 +187,10 @@ Entry template
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
 - hit again: 2026-10-03, B2 g11 (second attempt cost): a heredoc whose text held an apostrophe ended in `unexpected EOF` and wrote nothing, and a patch script that ran a `rm` of a path it had just made was refused by the safety check; the file went in with the Write tool instead.
 - merged: P-070, P-111, P-115, P-309, P-406
+- hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
+` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
+- hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
+- hit again: 2026-10-04, B16 g1: a registry generator written through a Bash heredoc lost the backslash of `/\d/`, so the entry replayed `STALE: find occurs 0 times`; fixed with the Edit tool.
 - hit again: 2026-10-04, B14 g1: a `node -` patch fed from a heredoc wrote a code line whose escaped newline became a real line break, so `cache.mjs` stopped parsing and vitest printed `Failed to parse source for import analysis`; a second patch of the same kind failed on a `rep` anchor that held a `\n`. Edit code with the Edit tool or a Write-made script file. Proof: `grep -n 'join("' workspace/audits/tools/cache.mjs` shows the newline escape inside its string literal.
 - added: 2026-09-30
 
@@ -776,6 +780,9 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
+- hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
+- hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
+- hit again: 2026-10-04, B16 g1 retry: a stray `python3 - <<EOF` with an empty body hung 120 seconds and moved to the background; nothing it was meant to do needed python.
 - hit again: 2026-10-04, B14 g1 fix: a leading `python - <<'EOF'` before a `node -e` hung 120 seconds; the node edit ran only after the python process was killed by its process id, and the Edit calls made meanwhile duplicated an import. After a hung call read `git diff` before editing again.
 - added: 2026-10-02
 
@@ -1825,4 +1832,36 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `db-push.mjs` compares main's files with the remote history; a lane's unmerged push creates a remote-only version, and a later-merged older file is out of order against it. R16 (new file after main's newest) only protects the branch, not the remote.
 - rule: while one lane pushes migrations, no other lane's migration merges to main before that lane's; if it must, apply the older file from main by hand in one transaction (`psql -1 -f`), record its version in `supabase_migrations.schema_migrations` and `public.migration_checksums`, and run `bun run db:push` from main until it prints `Remote database is up to date`. Merge a schema writer's accepted migration early (its own small PR) rather than letting it sit on the branch.
 - proof: `bun run db:push` from main at b3e90d1 → `refusing: remote-only migrations 20261003184651`; after the rename and the manual apply → `{"upToDate":true,...,"message":"Remote database is up to date."}`.
+- added: 2026-10-04
+
+## P-1000 · B16 steps 1 and 2 are not buildable "any time after B2": `service.ts`, `readiness.ts` and `set-site.ts` import B3 files that are not on main
+- severity: warn
+- symptom: B16 g1 found `src/server/public/state.ts` (`getPublicState`), `src/server/lib/db.ts` (the client type) and `src/server/lib/errors.ts` (`AppError`) absent from main; `git log --all -- app/src/server/public/state.ts` prints nothing, and `slice/b3` holds the lib files but not `public/`.
+- cause: the plan's landing order says "B16 steps 1 and 2 any time after B2", while its Depends line and the Files list make `getSiteSettings` read `getPublicState(db).site` (B3) and throw `AppError` (R09); step 2's list was sized as if only the migration were needed.
+- rule: before a group that imports another slice's file, `git ls-tree -r --name-only origin/main | grep <file>`; if it is missing, build the parts that do not import it (domain, migration) and report the rest BLOCKED on the named B3 group, never stub the import.
+- proof: `git ls-tree -r --name-only origin/main app/src/server | grep -c "public/state.ts"` → `0` at 4a05fdb (measured 2026-10-04, B16 g1).
+- added: 2026-10-04
+
+## P-1001 · A plan Files line that names an export before its first importer lands fails knip; a zod 3 `.default(x)` mutation on a preprocessed leaf stays green
+- severity: warn
+- symptom: `settings.ts` exported `PublicSite` and `SiteFieldKey` as the Files list says, and `bun run knip` printed `Unused exported types (2)` and exited 1 (the configuration hint alone exits 0 on main). Separately the registry entry that changed `.default(null)` to `.default("")` on a leaf stayed `BAD: stayed green`.
+- cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
+- rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
+- proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
+- severity: warn
+- symptom: B16 g1's `retentionPeriods` copied the Files-list literal (`analytics_events: { months: 13 }`, no `contacts_anonymise`) and the fresh reviewer rejected it: B2 seeds `analytics_events` at 90 days (ruling H16) and `contacts_anonymise` at 24 months; the 13 months belong to the separate key `analytics_daily` (B8 step 8a). The only unit test checked units, not values, so it passed.
+- cause: the Files line predates H16 and H32; Contract 8 and STANDARDS R25 state the later numbers. The same constant is read by the privacy page and by a db test, so a wrong number would have printed a false retention period.
+- rule: a constant that mirrors seeded rows is written from the seed migration, and a unit test reads that migration and compares key by key (`retentionPeriods > equal the periods B2 seeds`); when a plan literal and a ruling disagree, the ruling and the rows win. A migration that is on no main yet is changed by deleting it and re-running `bun run db:fn <name>` (a new timestamp); `check-migrations.mjs` throws ENOENT on the deleted file until the deletion is committed.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only retention-seed` → `WATCHED-FAIL OK B16:retention-seed` (measured 2026-10-04, B16 g1 retry).
+- added: 2026-10-04
+
+## P-1003 · A merge of origin/main that brings a new dependency leaves `node_modules` behind: run `bun install` before the first typecheck
+- severity: warn
+- symptom: after `git merge origin/main` into slice/b16 (the B9 g5 merge, 9fcf7f5), `tsc` failed on `puppeteer-core` in B16 g1 and the group's cost line named P-1002, which says nothing about it; the fresh reviewer found the cost unbanked.
+- cause: the merge brought `"puppeteer-core"` into `app/package.json` and `bun.lock`, but a lane's `node_modules` is installed once and a merge never runs the install, so the typecheck saw a package that was declared and absent.
+- rule: after any merge of origin/main, if `git diff --name-only HEAD~1 HEAD -- app/package.json app/bun.lock` names a file, run `cd app && bun install` before `bun run check`; a typecheck error that names an import of a package present in `package.json` is a stale `node_modules`, not a code defect. The other half of that cost, a registry entry going STALE after an edit to a mutated file, is banked in the registry rule (P-066).
+- proof: `cd app && grep -c '"puppeteer-core"' package.json` → `1` on slice/b16 at bec47c2 (line 98, merged from main with 500d04b); `cd app && bun install --frozen-lockfile 2>&1 | tail -1` then `bunx tsc --noEmit` exits 0 (the red output of the missed install was not kept: UNPROVEN as text, reported by the g1 cost line and the reviewer).
 - added: 2026-10-04
