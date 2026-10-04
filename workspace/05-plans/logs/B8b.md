@@ -372,3 +372,18 @@ fold of `fanout_failure_unrecorded` and `schedule_cron_invalid`, and invariant 1
 row with both clocks null (cron.ts follows the plan as written).
 UNPROVEN until after the merge and the `dev` job: the post-merge selects, the `job-runner` deploy and its 200 with
 `"claimed"`, and the scheduler's `reconcile` row.
+
+## c2s · steps 2
+Started from main at 416cb75 (git merge-base origin/main HEAD); code commit 0cd72a8, handed in with the log commit that follows it. Defect fixed: the R28 gate read only literal `it("...")` titles and missed B9's `it.each` table.
+Change: `testTitles()` in `tests/unit/automation/step-specs.test.ts` now runs `vitest run --project=unit --project=component --testNamePattern="runs twice" --reporter=json --outputFile=<tmp>` on the files under `tests/unit` and `src` that contain the words (not itself) and reads the `title` of every passed or failed result. The db project is not asked (UNPROVEN for a run-twice test that lives under `tests/db`: there is none today). The stale registry entry `b8b-g2-specs-run-twice-real` (its `find` no longer occurs in `src/server/jobs/steps/index.ts` since B9 landed) is replaced by `b8b-c2s-run-twice-each-row`; `b8b-c2s-run-twice-reporter` covers the reporter filter.
+- `bunx vitest run tests/unit/automation/catalog.test.ts tests/unit/automation/approval.test.ts tests/unit/automation/step-specs.test.ts`
+   Test Files  3 passed (3) /      Tests  37 passed (37)
+- watched-fail by hand: deleted the `render_story` row of `renderTypes` in `tests/unit/assets/steps.test.ts`, then `bunx vitest run --project unit tests/unit/automation/step-specs.test.ts`
+   × finds a run-twice test for every implemented type with an outside effect
+   AssertionError: expected [ 'render_story' ] to deeply equal []     (file restored from a copy; `git status` shows only my three files)
+- `node scripts/watchfail.mjs --registry tests/mutations --only <id>` for the 8 entries that name step-specs.test.ts (after prettier):
+   WATCHED-FAIL OK B8b:b8b-g2-specs-attempts, -light-default, -local, -heavy, -side-effect, -run-twice-helper, b8b-c2s-run-twice-each-row, b8b-c2s-run-twice-reporter
+- `bun run check` → exit 0 (layout, typecheck, lint, knip, jscpd, stubs, format:check, then `vitest run --project unit --project component`: green)
+- `bun run build` → quiet: ok
+- The `--changed origin/main` replay of the whole branch was started once and not used as proof: it replays every entry of every changed file (over 1100 lines of output); the entries above were replayed one by one.
+Bank: P-1613 added, P-1612 and P-094 and P-713 extended.
