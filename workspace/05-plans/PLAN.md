@@ -122,13 +122,13 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B1a | closed | 2026-10-01 | PR #1 and PR #3 merged: Lovable removed, plain Vite, first test, brand favicon; the repository is not connected to Lovable (ASSUMED E13) |
 | B1b | in progress | | lane `E:/mop-build/spine`; steps 1 to 10 accepted and on `main` (PRs #22, #43, `e6f05e9`); step 7b (rollback rehearsal) running; step 9 BLOCKED on GitHub Pro (H5), the merge gate stands in; step 11 waits on L1. |
 | B2 | closed | 2026-10-03 | lane `E:/mop-build/db`; steps 1 to 14 accepted and on `main` (PRs #49, #67, #93, `afe750c`); close-out c9 for advisor lint 0029; the upload half of step 13 waits on B9 step 6. |
-| B3 | in progress | | started 2026-10-03 in the lane `E:/mop-build/api` (branch `slice/b3`, port 8828, bank numbers from P-800 and G-300); steps 1 and 1b accepted on the branch; steps 2 to 13 running. |
-| B3b | not started | | |
-| B4 | in progress | | started 2026-10-02 in the lane `E:/mop-build/tests` (branch `slice/b4`, port 8808, bank numbers from P-400 and G-150); steps 1 to 5 accepted and on `main` (PRs #67, #68, #84, `adc74c7`); steps 6 to 10 wait on B3 and B3b. |
+| B3 | closed | 2026-10-04 | lane `E:/mop-build/api` (branch `slice/b3`); 18 steps accepted, merged in PRs #102 and #100 (2ab9d52); the dev Worker runs live. Item 8 of step 12 is L1's (production Worker secrets); step 13's render CPU is UNPROVEN in the runbook. |
+| B3b | in progress | | started 2026-10-04 14:05 in the lane `E:/mop-build/coming` (branch `slice/b3b`, port 8878, bank numbers from P-1300 and G-550). |
+| B4 | in progress | | lane `E:/mop-build/tests` (branch `slice/b4`, port 8808, bank numbers from P-400 and G-150); steps 1 to 5 on `main`; 6 to 10 building since 2026-10-04 14:10. |
 | B5 | in progress | | started 2026-10-04 in the lane `E:/mop-build/email` (branch `slice/b5`, port 8868, bank numbers from P-1200 and G-500); step 1 on `main` (PR #108); parked until B8b. |
 | B6 | not started | | |
 | B7 | not started | | |
-| B8 | in progress | | lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); steps 1 to 6a accepted and on `main` (PRs #101, #109); the runner is deployed on mop-dev; 7 to 8a next. |
+| B8 | in progress | | lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); steps 1 to 8a on `main` (PRs #101, #109, #113); 2a open, 9 to 10a wait on B7 and B8b. |
 | B8b | not started | | |
 | B9 | in progress | | lane `E:/mop-build/design`; steps 1 to 6 on `main` (PRs #92, #99); direction S65; 7 to 11 wait on B8 and B7. |
 | B10 | not started | | |

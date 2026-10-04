@@ -796,3 +796,153 @@ describe("append-only", () => {
     });
   });
 });
+
+// B8 step 8: one health_counts read serves six checks of the daily health job, with a fixed p_now (the transaction's
+// now()). Each case first quiets the shared database (every waiting, failed or dead job cancelled), so a count comes
+// from the case's own rows.
+interface Counts {
+  dead_jobs_24h: number;
+  stale_queue: number;
+  retention_stalled: string[];
+  long_waits: number;
+  local_oldest_age_s: number | null;
+  backup: { enabled: boolean; last_run_at: string | null } | null;
+}
+
+async function quietJobs(db: Db): Promise<void> {
+  await db.query(
+    `update public.jobs set status = 'cancelled', finished_at = now() - interval '30 days'
+     where status in ('queued', 'failed', 'dead')`,
+  );
+}
+
+async function counts(db: Db): Promise<Counts> {
+  const { result } = await one<{ result: Counts }>(
+    db,
+    "select public.health_counts(now()) as result",
+  );
+  return result;
+}
+
+/** A job inserted directly, with the columns the counts read set relative to now(). */
+async function jobAt(
+  db: Db,
+  {
+    status,
+    finishedHours = null,
+    runAfterMinutes = 0,
+    createdDays = 0,
+    local = false,
+  }: {
+    status: string;
+    finishedHours?: number | null;
+    runAfterMinutes?: number;
+    createdDays?: number;
+    local?: boolean;
+  },
+): Promise<void> {
+  await db.query(
+    `insert into public.jobs (type, idempotency_key, status, run_local, finished_at, run_after, created_at)
+     values ('test.job', $1, $2::public.job_status, $3,
+       now() - make_interval(hours => $4::int), now() - make_interval(mins => $5),
+       now() - make_interval(days => $6))`,
+    [testKey(), status, local, finishedHours, runAfterMinutes, createdDays],
+  );
+}
+
+async function policy(db: Db, key: string, lastRunDays: number): Promise<void> {
+  await db.query(
+    `insert into public.retention_policies (key, table_name, keep_for, action, last_run_at)
+     values ($1, 'jobs', interval '1 day', 'delete', now() - make_interval(days => $2))`,
+    [key, lastRunDays],
+  );
+}
+
+describe("health_counts", () => {
+  it("counts a dead job finished 23 hours earlier in dead_jobs_24h and not one finished 25 hours earlier", async () => {
+    const result = await withRollback(async (db) => {
+      await quietJobs(db);
+      await jobAt(db, { status: "dead", finishedHours: 23 });
+      await jobAt(db, { status: "dead", finishedHours: 25 });
+      return (await counts(db)).dead_jobs_24h;
+    });
+    expect(result).toBe(1);
+  });
+
+  it("counts a queued job 16 minutes overdue in stale_queue and not one 14 minutes overdue", async () => {
+    const result = await withRollback(async (db) => {
+      await quietJobs(db);
+      await jobAt(db, { status: "queued", runAfterMinutes: 16 });
+      await jobAt(db, { status: "queued", runAfterMinutes: 14 });
+      return (await counts(db)).stale_queue;
+    });
+    expect(result).toBe(1);
+  });
+
+  it("lists an enabled delete policy last run 3 days ago in retention_stalled and not one run 1 day ago", async () => {
+    const result = await withRollback(async (db) => {
+      await policy(db, "test_stalled", 3);
+      await policy(db, "test_fresh", 1);
+      return (await counts(db)).retention_stalled;
+    });
+    expect(result).toContain("test_stalled");
+    expect(result).not.toContain("test_fresh");
+  });
+
+  it("lists a policy whose last retention.run left rows behind", async () => {
+    const result = await withRollback(async (db) => {
+      await policy(db, "test_remaining", 0);
+      await policy(db, "test_cleared", 0);
+      await db.query(
+        `insert into public.audit_log (action, entity, after)
+         values ('retention.run', 'retention',
+           '{"test_remaining": {"affected": 1, "remaining": 2}, "test_cleared": {"affected": 1, "remaining": 0}}')`,
+      );
+      return (await counts(db)).retention_stalled;
+    });
+    expect(result).toContain("test_remaining");
+    expect(result).not.toContain("test_cleared");
+  });
+
+  it("counts a queued job created 8 days earlier in long_waits and not one created 6 days earlier", async () => {
+    const result = await withRollback(async (db) => {
+      await quietJobs(db);
+      await jobAt(db, { status: "queued", createdDays: 8 });
+      await jobAt(db, { status: "queued", createdDays: 6 });
+      return (await counts(db)).long_waits;
+    });
+    expect(result).toBe(1);
+  });
+
+  it("leaves a run_local job out of stale_queue and long_waits and reports its age, null with none", async () => {
+    const result = await withRollback(async (db) => {
+      await quietJobs(db);
+      const before = (await counts(db)).local_oldest_age_s;
+      await jobAt(db, {
+        status: "queued",
+        local: true,
+        runAfterMinutes: 60 * 24 * 8,
+        createdDays: 8,
+      });
+      const after = await counts(db);
+      return {
+        before,
+        stale: after.stale_queue,
+        long: after.long_waits,
+        age: after.local_oldest_age_s,
+      };
+    });
+    expect(result).toEqual({ before: null, stale: 0, long: 0, age: 8 * 24 * 3600 });
+  });
+
+  it("returns backup null while schedule_settings is absent", async () => {
+    const result = await withRollback(async (db) => {
+      const { absent } = await one<{ absent: boolean }>(
+        db,
+        "select to_regclass('public.schedule_settings') is null as absent",
+      );
+      return { absent, backup: (await counts(db)).backup };
+    });
+    expect(result).toEqual({ absent: true, backup: null });
+  });
+});

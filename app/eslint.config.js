@@ -139,6 +139,7 @@ const ADAPTER_FILES = [
   "src/server/omnikom/client.ts",
   "src/server/jobs/dispatch.ts",
   "src/server/jobs/system/health/providers.ts",
+  "src/server/jobs/system/meta-token-refresh.ts",
 ];
 
 const typeAwareRules = {

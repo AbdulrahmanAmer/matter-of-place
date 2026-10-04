@@ -97,3 +97,61 @@
    - Evidence: Headers of the 503 from wrangler dev on port 8839: Content-Type, Cache-Control, X-Content-Type-Options, x-request-id; no Retry-After
 
 (A seventh follow-up, the reviewer's own cost with the secrets loader and the self-contradicting review brief, is banked as a "Hit again" line in GOTCHAS P-310.)
+
+## c5 · steps 5
+
+1. `app/docs/runbooks/delivery.md` (not blocking)
+   - What: Follow-up (not this group's file). The '## Deploys from main' paragraph (lines 270-275) lists every step of the dev job and still leaves out the new functions-deploy step. It also does not say that a failed function deploy, for example after an expired SUPABASE_ACCESS_TOKEN or a Supabase API error, now ends dev before the Worker deploy and so skips production (needs: dev). It does not say that the Worker rollback on a red smoke rolls back only the Worker: the runner stays at the new SHA, and scripts/rollback-runner.sh is the manual path. STANDARDS C23 asks a deploy-path change to update the rollback or incident runbook.
+   - Evidence: From my reading of delivery.md:270-275: 'When main holds a migration it first links the one project and runs bun run db:push ... a failed push ends the job before the Worker deploy. It builds like a preview ...' with no mention of the function deploy. deploy.yml:268-273 now adds functions-deploy between db-push and the Worker deploy, and deploy.yml:342-343 runs the rollback step only for the Worker.
+
+2. `.github/workflows/deploy.yml` (not blocking)
+   - What: Follow-up (C22). The cost comment in the header (lines 10-14, 'about 1 minute each ... (UNPROVEN)') was not updated for the new step. The dev job now also runs a supabase functions deploy --use-api (a bundle and upload) on every code push to main. The estimate is already marked UNPROVEN, so measure it on the first post-merge dev run, together with the UNPROVEN 'Deployed Functions' log check.
+   - Evidence: From my reading of deploy.yml:10-14: the cost lines describe dev as the Worker deploy only. The diff touches only lines 266-273.
+
+(A third follow-up, the reviewer's own cost with the actionlint binary missing from a review snapshot, is banked as GOTCHAS P-913.)
+
+## g6 · steps 7
+
+1. `.github/workflows/render.yml` (not blocking)
+   - What: No test covers three security- or behaviour-relevant lines: `if: always()` on the callback step, RENDER_CALLBACK_SECRET scoped to that one step's env, and the setup-node step that post-callback.mjs's import.meta.main depends on. If `if: always()` is dropped, every failed render sends no callback, and the job waits 30 minutes for the reaper on every failure, with no test going red. If the secret moves to job level, B9's render scripts can read it. The plan's test list does not ask for these, so this is a follow-up.
+   - Evidence: Read by me: render-job.test.ts asserts only the if: expression, MOP_ENV, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and the absence of R2_/vars./repository_dispatch. hygiene.test.ts covers permissions {} and persist-credentials globally, not these. grep -n "always()" app/tests/unit/hygiene.test.ts app/tests/unit/jobs/render-job.test.ts prints nothing.
+
+2. `workspace/05-plans/B8.md` (step 7) (not blocking)
+   - What: Two parts of step 7 are NOT DONE: (1) GITHUB_DISPATCH_TOKEN as a mop-dev function secret, held back on purpose (P-912: set before render.yml is on main, it would turn every heavy job dead with dispatch_404); (2) RENDER_CALLBACK_SECRET and JOB_RUNNER_SECRET on the production Worker, which does not exist yet. The orchestrator must set (1) right after B8 merges and then run the SEC-02 probes (403 Contents PUT, 204 dispatch, largest client_payload against 65,535). (2) is caught by L1 preflight check (2). The plan line saying the production Worker 'holds the keys of the one database' (also in L1 step 1a, 'since B3 step 8') is stale against reality.
+   - Evidence: Confirmed by running: bunx wrangler secret list --name matter-of-place gives 'Worker "matter-of-place" not found'. supabase secrets list shows no GITHUB_DISPATCH_TOKEN. The log and P-912 state both honestly.
+
+3. `app/scripts/render-job.mjs` (not blocking)
+   - What: Nothing proves the live round trip yet (UNPROVEN until merge): enqueueJob of test.selftest_heavy, gh workflow run render.yml, the callback reaching the dev Worker, and the job reaching done. Only the B9-script import path was exercised by me against real B9 files, and no test does it. A mutation of the import base (`../${script}`) would leave every unit test green, because the only 'missing script' case uses a type with no file.
+   - Evidence: Confirmed by running: MOP_JOB with type render_cover reaches B9's render-cover.mjs (zod error 'payload.data.spec Required'). Read: the render-job.test.ts runJob cases use only social_post, render_nothing_here and the self-test.
+
+4. `app/scripts/post-callback.mjs` (not blocking)
+   - What: `process.exit(1)` right after a fetch aborts on Windows with a libuv assertion (UV_HANDLE_CLOSING) and exit 127 instead of 1. CI runs ubuntu, so production is unaffected, but anyone running the script on this laptop for a manual proof sees a crash, not a clean refusal. `process.exitCode = 1` would avoid it.
+   - Evidence: Confirmed by running: node scripts/post-callback.mjs against the dev Worker printed 'post-callback: 404 ...' then 'Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76', exit 127.
+
+(Three further follow-ups have GOTCHAS.md as their file and are banked as "hit again" lines: P-076 (JSON.parse JSDoc casts, `no-unsafe-assignment`), P-152 (bare `bunx vitest run` of hygiene.test.ts times out at 20 s), P-913 (actionlint binary missing from a review snapshot).)
+
+## g7 · steps 8,8a
+
+1. `app/src/server/jobs/system/retention.ts` (not blocking)
+   - What: Files are removed with supabase-js db.storage.from('submissions').remove(...), which is what step 8a's text says. The plan's Risks section (ruling H33 (2)) says every step reaches Storage through B3's media-store.ts, so the plan contradicts itself and the orchestrator should fold it. One effect to know about, found by reading: every Storage error, a permanent 4xx included, becomes AppError('storage_unavailable'). The runner then retries an hour later without using an attempt, so a permanent Storage refusal never sends the job dead and surfaces only through retention_stalled after 2 days.
+   - Evidence: retention.ts lines 74-84: any non-null error from .remove() throws AppError('storage_unavailable'). runner.ts:185 maps that code to retry_at now+1h with no attempt used. Brief, Risks: 'Every step and script reaches them through B3's src/server/lib/media-store.ts'. Step 8a: 'retention.ts removes the files with db.storage.from("submissions").remove(paths)'.
+
+2. `app/src/server/jobs/system/health/providers.ts` (not blocking)
+   - What: Found by reading, not run: resend_domain calls `await response.json()` outside any try. A 200 answer whose body is not JSON throws out of the whole health job, so it retries and eventually goes dead, instead of returning a typed 'fail' for that one check. It is the same kind of gap that graphGet in meta-token-refresh.ts already guards.
+   - Evidence: providers.ts, resendDomain.run: `const parsed = resendDomainsSchema.safeParse(await response.json());` has no try/catch. Compare meta-token-refresh.ts graphGet, which wraps response.json().
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Plan lines the code now differs from, for the orchestrator to fold: (1) meta_token_record takes its nullable dates last, (p_checked_at, p_token_state, p_missing_scopes, p_expires_at, p_data_access_expires_at, p_new_token), per P-915. (2) retention_declined_media and retention_accepted_media take only p_keep, with no p_dry_run. (3) healthChecks is module-local, not exported (R04/knip). B16 step 8's health-site.test.ts calls the site_identity entry of healthChecks, so B16 has to add the export back in that step, which R04 allows. (4) retention_accepted_media also waits for an unfinished copy_submission_media job and needs at least one photograph. (5) STANDARDS R32's adapter list does not name meta-token-refresh.ts, but eslint's ADAPTER_FILES does.
+   - Evidence: supabase/sql/functions/meta_token_record.sql signature; retention_declined_media.sql and retention_accepted_media.sql signatures; health.ts line 'const healthChecks: readonly HealthCheck[]'; B16.md line 146; STANDARDS.md R32 list
+
+4. `app/supabase/migrations/20261004065712_retention.sql` (not blocking)
+   - What: GD-03 asks for the first production run to be a dry run. The 'retention' cron row is live as soon as main pushes this migration, and mop-dev becomes production at the launch switch, so the first real run happens on the first 03:45 UTC tick after the merge, with no dry run before it. Separately, health's retention_stalled fails on day one for any policy that has never run (last_run_at is null). The author lists both as follow-ups. They belong on L1's checklist.
+   - Evidence: retention.sql lines 563-569 cron.schedule('retention','45 3 * * *',...); health_counts.sql: 'p.last_run_at is null' counts as stalled
+
+5. `app/src/server/jobs/system/meta-token-refresh.ts` (not blocking)
+   - What: UNPROVEN against reality. Graph debug_token, fb_exchange_token and ig_refresh_token answers, and the Resend /domains shape, are tested only against fixtures the author wrote (R33 wants recorded fixtures with source and recorded_at). The Instagram-login refresh route is chosen with a token.startsWith('IG') guess, which no real token has tested. Writing to Vault as the Edge Function's service role (GS-01) is proven only as postgres inside a rolled-back transaction. This needs the Meta app (S59) and a Resend key.
+   - Evidence: refreshUrl(): `if (token.startsWith("IG"))`; tests/unit/jobs/meta-token-refresh.test.ts and health-providers.test.ts use inline fixtures; no tests/fixtures/meta or tests/fixtures/resend recorded files
+
+6. `app/scripts/job-selftest.ts` (not blocking)
+   - What: Still UNPROVEN after the merge (ruling H57): the full self-test printing 'heavy done' with the created, claimed, dispatched, callback, done timeline (needs GITHUB_DISPATCH_TOKEN as a function secret, P-912); --reconcile printing 'reconcile done' (the deployed runner does not have the reconcile type yet, and reconcile.ts passes a STUB(B3 step 8) stand-in, so it proves the job path only); the pushed-database retention_policies selects; the CI db job; and gen:types matching the hand-written types.ts entries (P-910). Separately, the 3 deno check errors in g5/B3 files (db.ts:2,3, runner.ts:227) remain for the CI deno step.
+   - Evidence: Author's unproven list and log lines 675 and 732. deno check output above. reconcile.ts: '// STUB(B3 step 8)'

@@ -1,8 +1,8 @@
 create or replace function public.emit_event(
   p_type text,
   p_entity text,
-  p_entity_id uuid,
-  p_payload jsonb,
+  p_entity_id uuid default null,
+  p_payload jsonb default '{}',
   p_actor_id uuid default null
 )
 returns uuid

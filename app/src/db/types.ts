@@ -20,6 +20,19 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"analytics_daily": {
+                  Row: {
+                    "day": string,"dim": string,"event": string,"events": number,"p75": number | null,"path": string
+                  }
+                  Insert: {
+                    "day": string,"dim"?: string,"event": string,"events": number,"p75"?: number | null,"path": string
+                  }
+                  Update: {
+                    "day"?: string,"dim"?: string,"event"?: string,"events"?: number,"p75"?: number | null,"path"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"analytics_events": {
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
@@ -189,13 +202,13 @@ isOneToOne: false
                   ]
                 },"inquiries": {
                   Row: {
-                    "assigned_to": string | null,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
+                    "anonymised_at": string | null,"assigned_to": string | null,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
                   }
                   Insert: {
-                    "assigned_to"?: string | null,"details"?: NonNullable<Json>,"email": string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message": string,"name": string,"phone"?: string | null,"received_at"?: string,"source_path": string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
+                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"details"?: NonNullable<Json>,"email": string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message": string,"name": string,"phone"?: string | null,"received_at"?: string,"source_path": string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
                   }
                   Update: {
-                    "assigned_to"?: string | null,"details"?: NonNullable<Json>,"email"?: string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent"?: Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message"?: string,"name"?: string,"phone"?: string | null,"received_at"?: string,"source_path"?: string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
+                    "anonymised_at"?: string | null,"assigned_to"?: string | null,"details"?: NonNullable<Json>,"email"?: string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent"?: Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message"?: string,"name"?: string,"phone"?: string | null,"received_at"?: string,"source_path"?: string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
                   }
                   Relationships: [
                     
@@ -513,13 +526,13 @@ isOneToOne: false
                   ]
                 },"retention_policies": {
                   Row: {
-                    "action": string,"enabled": boolean,"keep_for": string | null,"key": string,"note": string | null,"table_name": string,"updated_at": string,"updated_by": string | null
+                    "action": string,"enabled": boolean,"keep_for": string | null,"key": string,"last_count": number | null,"last_run_at": string | null,"note": string | null,"table_name": string,"updated_at": string,"updated_by": string | null
                   }
                   Insert: {
-                    "action": string,"enabled"?: boolean,"keep_for"?: string | null,"key": string,"note"?: string | null,"table_name": string,"updated_at"?: string,"updated_by"?: string | null
+                    "action": string,"enabled"?: boolean,"keep_for"?: string | null,"key": string,"last_count"?: number | null,"last_run_at"?: string | null,"note"?: string | null,"table_name": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "action"?: string,"enabled"?: boolean,"keep_for"?: string | null,"key"?: string,"note"?: string | null,"table_name"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "action"?: string,"enabled"?: boolean,"keep_for"?: string | null,"key"?: string,"last_count"?: number | null,"last_run_at"?: string | null,"note"?: string | null,"table_name"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     
@@ -609,13 +622,13 @@ isOneToOne: false
                   ]
                 },"submissions": {
                   Row: {
-                    "accepted_at": string | null,"accepted_by": string | null,"activated_at": string | null,"activated_by": string | null,"address": string,"architect": string | null,"baths": number | null,"beds": number | null,"brokerage": string | null,"city": string,"contact_id": string | null,"currency": string,"decline_note": string | null,"decline_reason_id": string | null,"designer": string | null,"duplicate_of": string | null,"id": string,"interior_sq_ft": number | null,"ip_hash": string | null,"listed_with_agent": boolean | null,"listing_agent_brokerage": string | null,"listing_agent_name": string | null,"listing_url": string | null,"media_budget": number | null,"notes": (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url": string | null,"price": number | null,"property_id": string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at": string,"reviewed_at": string | null,"reviewed_by": string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url": string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone": string | null,"turnstile_ok": boolean,"video_url": string | null,"workflow_state": Database["public"]['Enums']["submission_state"],"year_built": number | null,"year_renovated": number | null,"zip": string
+                    "accepted_at": string | null,"accepted_by": string | null,"activated_at": string | null,"activated_by": string | null,"address": string,"architect": string | null,"baths": number | null,"beds": number | null,"brokerage": string | null,"city": string,"contact_id": string | null,"currency": string,"decline_note": string | null,"decline_reason_id": string | null,"designer": string | null,"duplicate_of": string | null,"id": string,"interior_sq_ft": number | null,"ip_hash": string | null,"listed_with_agent": boolean | null,"listing_agent_brokerage": string | null,"listing_agent_name": string | null,"listing_url": string | null,"media_budget": number | null,"notes": (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url": string | null,"price": number | null,"property_id": string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at": string,"reviewed_at": string | null,"reviewed_by": string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url": string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone": string | null,"turnstile_ok": boolean,"updated_at": string,"video_url": string | null,"workflow_state": Database["public"]['Enums']["submission_state"],"year_built": number | null,"year_renovated": number | null,"zip": string
                   }
                   Insert: {
-                    "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address": string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city": string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url"?: string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip": string
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address": string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city": string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url"?: string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"updated_at"?: string,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip": string
                   }
                   Update: {
-                    "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address"?: string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city"?: string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package"?: Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type"?: Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at"?: string,"rights_ip_hash"?: string,"rights_version"?: string,"significance"?: string,"source_path"?: string,"source_url"?: string | null,"state"?: Database["public"]['Enums']["accepted_state"],"story"?: string,"submitter_email"?: string,"submitter_kind"?: Database["public"]['Enums']["submitter_kind"],"submitter_name"?: string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip"?: string
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address"?: string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city"?: string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package"?: Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type"?: Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at"?: string,"rights_ip_hash"?: string,"rights_version"?: string,"significance"?: string,"source_path"?: string,"source_url"?: string | null,"state"?: Database["public"]['Enums']["accepted_state"],"story"?: string,"submitter_email"?: string,"submitter_kind"?: Database["public"]['Enums']["submitter_kind"],"submitter_name"?: string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"updated_at"?: string,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip"?: string
                   }
                   Relationships: [
                     {
@@ -756,7 +769,7 @@ isOneToOne: false
 { Args: { "p_from": Database["public"]['Enums']["editorial_state"],"p_to": Database["public"]['Enums']["editorial_state"] }; Returns: boolean
                            },
 "emit_event":
-{ Args: { "p_actor_id"?: string,"p_entity": string,"p_entity_id": string,"p_payload": Json,"p_type": string }; Returns: string
+{ Args: { "p_actor_id"?: string,"p_entity": string,"p_entity_id"?: string,"p_payload"?: Json,"p_type": string }; Returns: string
                            },
 "enqueue_job":
 { Args: { "p_event_id"?: string,"p_heavy"?: boolean,"p_idempotency_key": string,"p_local"?: boolean,"p_max_attempts"?: number,"p_payload": Json,"p_recipe_id"?: string,"p_run_after"?: string,"p_status"?: Database["public"]['Enums']["job_status"],"p_step_id"?: string,"p_type": string }; Returns: string
@@ -775,6 +788,15 @@ isOneToOne: false
                            },
 "forget_webhook_receipt":
 { Args: { "p_id": string,"p_provider": string }; Returns: undefined
+                           },
+"get_vault_secret":
+{ Args: { "p_name": string }; Returns: string
+                           },
+"health_counts":
+{ Args: { "p_now": string }; Returns: Json
+                           },
+"health_cron_failures":
+{ Args: { "p_since": string }; Returns: number
                            },
 "job_event_entity_id":
 { Args: { "j": Database["public"]['Tables']["jobs"]['Row'] }; Returns: string
@@ -796,8 +818,14 @@ isOneToOne: false
 "mark_media_uploaded":
 { Args: { "p_media_id": string,"p_mime": string,"p_sha256": string }; Returns: boolean
                            },
+"meta_token_record":
+{ Args: { "p_checked_at": string,"p_data_access_expires_at"?: string,"p_expires_at"?: string,"p_missing_scopes": (string)[],"p_new_token"?: string,"p_token_state": string }; Returns: string
+                           },
 "ops_health":
 { Args: { "p_now": string }; Returns: Json
+                           },
+"prune_jobs":
+{ Args: { "p_dry_run"?: boolean,"p_keep": string }; Returns: number
                            },
 "public_catalog_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -821,6 +849,40 @@ isOneToOne: false
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean
+                           },
+"retention_accepted_media":
+{ Args: { "p_keep": string }; Returns: {
+              "media_id": string,"storage_path": string
+            }[]
+                           },
+"retention_anonymise_contacts":
+{ Args: { "p_dry_run"?: boolean,"p_keep": string }; Returns: number
+                           },
+"retention_anonymise_email":
+{ Args: { "p_dry_run"?: boolean }; Returns: number
+                           },
+"retention_anonymise_inquiries":
+{ Args: { "p_dry_run"?: boolean,"p_keep": string }; Returns: number
+                           },
+"retention_declined_media":
+{ Args: { "p_keep": string }; Returns: {
+              "media_id": string,"storage_path": string
+            }[]
+                           },
+"retention_delete_media":
+{ Args: { "p_ids": (string)[] }; Returns: number
+                           },
+"retention_delete_rows":
+{ Args: { "p_dry_run"?: boolean,"p_key": string }; Returns: number
+                           },
+"retention_drop_analytics":
+{ Args: { "p_dry_run"?: boolean }; Returns: number
+                           },
+"retention_log_run":
+{ Args: { "p_after": Json }; Returns: number
+                           },
+"rollup_analytics_daily":
+{ Args: { "p_from": string,"p_to": string }; Returns: number
                            },
 "save_property":
 { Args: { "p_expected_version": number,"p_id": string,"p_patch": Json }; Returns: {
@@ -881,6 +943,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"set_vault_secret":
+{ Args: { "p_name": string,"p_value": string }; Returns: undefined
+                           },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean
                            },
