@@ -1,5 +1,7 @@
 import { readVar } from "../../lib/runtime-env.ts";
 import type { StepDefinition } from "../types.ts";
+import { bumpCatalogVersion } from "./bump-catalog-version.ts";
+import { purgeCache } from "./purge-cache.ts";
 import { renderCarousel } from "./render-carousel.ts";
 import { buildNewsletterBlock } from "./build-newsletter-block.ts";
 import { renderCover } from "./render-cover.ts";
@@ -20,6 +22,8 @@ const catalog: readonly StepDefinition[] = [
   writeCaptionsStep,
   buildNewsletterBlock,
   webhookOmnikom,
+  bumpCatalogVersion,
+  purgeCache,
 ];
 
 // Fails closed: only an explicit development or preview runner knows the self-test steps.

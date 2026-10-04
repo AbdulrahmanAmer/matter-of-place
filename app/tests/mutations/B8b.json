@@ -1081,5 +1081,368 @@
     "sql": "select cron.schedule('reconcile_uploads', '*/15 * * * *', 'select 1')",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"removes B8's prune pg_cron job\"",
     "expect": "× .*removes B8's prune pg_cron job"
+  },
+  {
+    "id": "b8b-g4-bump-registry",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  bumpCatalogVersion,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*bump_catalog_version step > is in the registry"
+  },
+  {
+    "id": "b8b-g4-bump-flip-ignored",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "spec.paramsSchema.parse(params)[\"flip_coming_soon\"] === true ? await openMarket(ctx, data) : []",
+    "replace": "[]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*with flip_coming_soon opens the market, then bumps"
+  },
+  {
+    "id": "b8b-g4-bump-flip-always",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "spec.paramsSchema.parse(params)[\"flip_coming_soon\"] === true ? await openMarket(ctx, data) : []",
+    "replace": "await openMarket(ctx, data)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*with flip_coming_soon false only bumps"
+  },
+  {
+    "id": "b8b-g4-bump-notify-always",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "p_notify: notify,",
+    "replace": "p_notify: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*asks for the notice only when market_open_notice is registered"
+  },
+  {
+    "id": "b8b-g4-bump-direct-settings",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "await ctx.db.rpc(\"bump_catalog_version\")",
+    "replace": "await ctx.db.from(\"settings\").select(\"key\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*with flip_coming_soon opens the market, then bumps"
+  },
+  {
+    "id": "b8b-g4-bump-slug-dropped",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "return [slug];",
+    "replace": "return [];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*answers the slug the function returned"
+  },
+  {
+    "id": "b8b-g4-bump-rpc-error-swallowed",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "  if (error !== null) throw new Error(`open_market_on_publish_failed:${error.code}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*throws an rpc error so the runner's backoff retries"
+  },
+  {
+    "id": "b8b-g4-bump-property-id-unchecked",
+    "test": "tests/unit/automation/bump-catalog-version.test.ts",
+    "file": "src/server/jobs/steps/bump-catalog-version.ts",
+    "find": "  if (typeof propertyId !== \"string\") throw new NonRetryableError(\"property_id_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
+    "expect": "× .*refuses a flip with no property_id as a dead job"
+  },
+  {
+    "id": "b8b-g4-purge-registry",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  purgeCache,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*purge_cache step > is in the registry"
+  },
+  {
+    "id": "b8b-g4-purge-tag",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "{ purge_everything: true } : { tags: [\"catalog\"] }",
+    "replace": "{ purge_everything: true } : { tags: [\"catalogue\"] }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*purges the catalog tag with the exact URL, header and body"
+  },
+  {
+    "id": "b8b-g4-purge-all",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "scope === \"all\"",
+    "replace": "scope === \"none\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*purges the same tag for property and everything for all"
+  },
+  {
+    "id": "b8b-g4-purge-zone-unchecked",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "if (!token || !zone) return",
+    "replace": "if (!token) return",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*is done and skipped, with no call, while a secret is unset"
+  },
+  {
+    "id": "b8b-g4-purge-retry-after",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "const wait = seconds > 0 ? seconds : DEFAULT_RETRY_AFTER_S;",
+    "replace": "const wait = DEFAULT_RETRY_AFTER_S;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*waits Retry-After seconds from the job's clock on a 429"
+  },
+  {
+    "id": "b8b-g4-purge-503-final",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "if (response.status >= 500) throw",
+    "replace": "if (response.status >= 600) throw",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*throws a retryable error on a 503"
+  },
+  {
+    "id": "b8b-g4-purge-403-retryable",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "  if (!response.ok) throw new NonRetryableError(`cloudflare_purge_${String(response.status)}`);",
+    "replace": "  if (!response.ok) throw new Error(`cloudflare_purge_${String(response.status)}`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*throws a dead-job error on a 403 and on an answer that is not a success"
+  },
+  {
+    "id": "b8b-g4-purge-success-unchecked",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "if (!answer.success || !answer.data.success)",
+    "replace": "if (!answer.success)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*throws a dead-job error on a 403 and on an answer that is not a success"
+  },
+  {
+    "id": "b8b-g4-purge-urls-31",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "const MAX_URLS_PER_CALL = 30;",
+    "replace": "const MAX_URLS_PER_CALL = 31;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*sends the files in one call of at most 30, and 31 in two calls of 30 and 1"
+  },
+  {
+    "id": "b8b-g4-purge-urls-skip",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "return { purged: 0, skipped: \"not_configured\" };",
+    "replace": "return { purged: 0 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*purges nothing and says so while a secret is unset"
+  },
+  {
+    "id": "b8b-g4-purge-urls-429",
+    "test": "tests/unit/automation/purge-cache.test.ts",
+    "file": "src/server/jobs/steps/purge-cache.ts",
+    "find": "    if (outcome.kind === \"retry\") throw new Error(\"cloudflare_purge_rate_limited\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
+    "expect": "× .*throws on a rate limit so the job's backoff retries"
+  },
+  {
+    "id": "b8b-g4-kw-page",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "const { status, cache } = await pageStatus(input);",
+    "replace": "const { status, cache } = { status: 200, cache: \"hit\" };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+  },
+  {
+    "id": "b8b-g4-kw-state",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "data: await getPublicState(db),",
+    "replace": "data: null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+  },
+  {
+    "id": "b8b-g4-kw-beat",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "db.rpc(\"beat\", { p_name: \"keepwarm\", p_detail: { cron } })",
+    "replace": "Promise.resolve({ data: null, error: null })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+  },
+  {
+    "id": "b8b-g4-kw-claim-guard",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "p_guard: false,",
+    "replace": "p_guard: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+  },
+  {
+    "id": "b8b-g4-kw-next",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "p_next_run_at: nextRun(cron, now).toISOString(),",
+    "replace": "p_next_run_at: now.toISOString(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+  },
+  {
+    "id": "b8b-g4-kw-liveness-always",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "input.mopEnv === \"production\"",
+    "replace": "true",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*outside production makes the same calls without jobs_liveness"
+  },
+  {
+    "id": "b8b-g4-kw-disabled",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "if (claimed?.data === false) {",
+    "replace": "if (claimed?.data === \"never\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*a disabled row ends the tick after the one claim"
+  },
+  {
+    "id": "b8b-g4-kw-no-report",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "if (answer.error === null && stalled(answer.data, now)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*reports the stalled runner for a beat 6 minutes old"
+  },
+  {
+    "id": "b8b-g4-kw-beat-threshold",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "const STALE_BEAT_MS = 300_000;",
+    "replace": "const STALE_BEAT_MS = 3_000_000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*reports the stalled runner for a beat 6 minutes old"
+  },
+  {
+    "id": "b8b-g4-kw-null-beat",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "beat === null ? Number.POSITIVE_INFINITY :",
+    "replace": "beat === null ? 0 :",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*reports the stalled runner for no beat at all"
+  },
+  {
+    "id": "b8b-g4-kw-due-any",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "age > STALE_DUE_AGE_S",
+    "replace": "age > 0",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*reports the stalled runner for a beat 2 minutes old and a job due 60 s"
+  },
+  {
+    "id": "b8b-g4-kw-due-threshold",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "const STALE_DUE_AGE_S = 900;",
+    "replace": "const STALE_DUE_AGE_S = 9000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*reports the stalled runner for a beat 2 minutes old and a job due 901 s"
+  },
+  {
+    "id": "b8b-g4-kw-rethrow",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "    logLine(\"warn\", event, { reason: error instanceof Error ? error.message : \"unknown\" });",
+    "replace": "    logLine(\"warn\", event, { reason: error instanceof Error ? error.message : \"unknown\" });\n    throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*a failing the state RPC is logged once and the tick still finishes"
+  },
+  {
+    "id": "b8b-g4-kw-claim-event",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "attempt(\"keepwarm_last_run_update_failed\"",
+    "replace": "attempt(\"keepwarm_beat_failed\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*a failing the claim is logged once and the tick still finishes"
+  },
+  {
+    "id": "b8b-g4-kw-beat-event",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "attempt(\"keepwarm_beat_failed\"",
+    "replace": "attempt(\"keepwarm_state_rpc_failed\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*a failing the beat is logged once and the tick still finishes"
+  },
+  {
+    "id": "b8b-g4-kw-liveness-event",
+    "test": "tests/unit/scheduled.test.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "attempt(\"keepwarm_liveness_rpc_failed\"",
+    "replace": "attempt(\"keepwarm_beat_failed\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
+    "expect": "× .*a failing the liveness RPC is logged once and the tick still finishes"
+  },
+  {
+    "id": "b8b-g4-db-no-enqueue",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "create or replace function public.open_market_on_publish(p_property_id uuid, p_notify boolean default false)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_slug text;\nbegin\n  -- B2's trigger on markets bumps catalog_version; this function never touches settings.\n  update public.markets\n  set coming_soon = false\n  where slug = (\n      select p.market_slug from public.properties p where p.id = p_property_id and p.editorial_state = 'published'\n    )\n    and coming_soon\n  returning slug into v_slug;\n  if v_slug is null then\n    return null;\n  end if;\n  -- G43, B3b invariant 4: a system change, so no actor.\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'market.opened', 'markets', 'system');\n  -- G15, G58: the same type, payload and key as B7's set_market_coming_soon, in the transaction that opens it.\n  return v_slug;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"opens the market, audits it with no actor and enqueues one notice with one created event\"",
+    "expect": "× .*opens the market, audits it with no actor and enqueues one notice with one created event"
+  },
+  {
+    "id": "b8b-g4-db-reopen",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "create or replace function public.open_market_on_publish(p_property_id uuid, p_notify boolean default false)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_slug text;\nbegin\n  -- B2's trigger on markets bumps catalog_version; this function never touches settings.\n  update public.markets\n  set coming_soon = false\n  where slug = (\n      select p.market_slug from public.properties p where p.id = p_property_id and p.editorial_state = 'published'\n    )\n  returning slug into v_slug;\n  if v_slug is null then\n    return null;\n  end if;\n  -- G43, B3b invariant 4: a system change, so no actor.\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'market.opened', 'markets', 'system');\n  -- G15, G58: the same type, payload and key as B7's set_market_coming_soon, in the transaction that opens it.\n  if p_notify then\n    perform public.enqueue_job(\n      'market_open_notice',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('market', v_slug)),\n      'market_open:' || v_slug\n    );\n  end if;\n  return v_slug;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"a second call returns null and adds no job\"",
+    "expect": "× .*a second call returns null and adds no job"
+  },
+  {
+    "id": "b8b-g4-db-notify-always",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "create or replace function public.open_market_on_publish(p_property_id uuid, p_notify boolean default false)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_slug text;\nbegin\n  -- B2's trigger on markets bumps catalog_version; this function never touches settings.\n  update public.markets\n  set coming_soon = false\n  where slug = (\n      select p.market_slug from public.properties p where p.id = p_property_id and p.editorial_state = 'published'\n    )\n    and coming_soon\n  returning slug into v_slug;\n  if v_slug is null then\n    return null;\n  end if;\n  -- G43, B3b invariant 4: a system change, so no actor.\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'market.opened', 'markets', 'system');\n  -- G15, G58: the same type, payload and key as B7's set_market_coming_soon, in the transaction that opens it.\n  if true then\n    perform public.enqueue_job(\n      'market_open_notice',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('market', v_slug)),\n      'market_open:' || v_slug\n    );\n  end if;\n  return v_slug;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"with p_notify false the market opens and no job is created\"",
+    "expect": "× .*with p_notify false the market opens and no job is created"
+  },
+  {
+    "id": "b8b-g4-db-draft-opens",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "create or replace function public.open_market_on_publish(p_property_id uuid, p_notify boolean default false)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_slug text;\nbegin\n  -- B2's trigger on markets bumps catalog_version; this function never touches settings.\n  update public.markets\n  set coming_soon = false\n  where slug = (\n      select p.market_slug from public.properties p where p.id = p_property_id\n    )\n    and coming_soon\n  returning slug into v_slug;\n  if v_slug is null then\n    return null;\n  end if;\n  -- G43, B3b invariant 4: a system change, so no actor.\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'market.opened', 'markets', 'system');\n  -- G15, G58: the same type, payload and key as B7's set_market_coming_soon, in the transaction that opens it.\n  if p_notify then\n    perform public.enqueue_job(\n      'market_open_notice',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('market', v_slug)),\n      'market_open:' || v_slug\n    );\n  end if;\n  return v_slug;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"a draft property returns null and leaves the market closed\"",
+    "expect": "× .*a draft property returns null and leaves the market closed"
+  },
+  {
+    "id": "b8b-g4-db-bump-noop",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "create or replace function public.bump_catalog_version()\nreturns bigint\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  select (value #>> '{}')::bigint from public.settings where key = 'catalog_version';\n$$;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"bump_catalog_version\\(\\) raises it by exactly one\"",
+    "expect": "× .*bump_catalog_version\\(\\) raises it by exactly one"
+  },
+  {
+    "id": "b8b-g4-db-flags-trigger",
+    "kind": "sql",
+    "test": "tests/db/bump-catalog-version.db.test.ts",
+    "sql": "drop trigger settings_bump_catalog_version on public.settings;",
+    "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"an update of the flags row raises it\"",
+    "expect": "× .*an update of the flags row raises it"
   }
 ]
