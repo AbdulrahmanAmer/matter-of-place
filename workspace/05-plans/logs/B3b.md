@@ -72,3 +72,21 @@ Proof 2: `bun run check` (quiet, background) -> `exit=0`, stages layout, typeche
 Proof 3: `bun run build` -> `quiet: ok (242 lines, showing the last 12)`.
 
 Proof 4: `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (38 path entries, 263 process entries)`.
+
+## g1 · steps 1 (second repair)
+
+Fixed in `app/docs/coming-soon.md`, from the review: the focus note (blocking) now reads the cascade, `outline: 1px solid currentColor` in `src/styles/base.css`, and says the filled `Allow` button sets `outline-color: var(--foreground)` in `consent.css` (step 5 asserts it; the same invisible ring on other filled `.button` styles is named and left to the owner of `base.css`); card tag is `ILLUSTRATIVE` (default `ContentTag`), hero tag `ILLUSTRATIVE PROPERTY` (B3b.md:122, 128); permission is `markets.coming_soon` (B3b.md:47); launch checklist adds the `/california` sentence check (B3b.md:109) and L1 step 6's move of the URL to `https://matterofplace.com`; the section is named by its own `h2`, never an `h1` (step 5 proof). Not mine, left: `app/docs/runbooks/database.md` still lacks `MOP_DB_PRODUCTION` (orchestrator folds). Bank: P-1301 added, P-712 hit again.
+
+Proof 1 (in `app/`):
+
+```
+31 rows, 0 bad
+```
+
+Proof 2: `bunx prettier --check docs/coming-soon.md` -> `All matched files use Prettier code style!`
+
+Proof 3: `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (38 path entries, 264 process entries)`
+
+Proof 4: `bun run check` (background, `echo exit=$?` into the same log) -> `exit=0`; `Test Files  111 passed (111)`, `Tests  1396 passed (1396)`.
+
+Proof 5: `bun run build` -> `quiet: ok (248 lines, showing the last 12)`.

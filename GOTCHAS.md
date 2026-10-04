@@ -1464,6 +1464,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-04, B3 g7 review: the reviewer ran the db API suite at the same time as `bun run check`; check's vitest stage exited 1 on `Failed to start forks worker ... Timeout waiting for worker to respond` (three worker-start errors, no failing test) and `bun run test` alone then gave `Test Files  83 passed (83)`, exit 0. Proof: `grep -c "hit again: 2026-10-04, B3 g7 review" GOTCHAS.md` prints 1.
 - hit again: 2026-10-03, B3 g1 review: `bun run check` failed in its vitest stage (`Test Files  39 passed ... Errors  1 error ... Failed to start forks worker for test files .../tests/unit/analytics.test.ts`, exit 1) while other lanes ran; `bun run test` alone then passed 40 of 40, exit 0.
 - added: 2026-10-03
+- hit again: 2026-10-04, B3b g1 repair and its review (about 18 minutes, then one extra 10-minute run): (1) `bun run check` ran in the background and its exit code went to the task output, not the log, so a poll loop on the log waited 18 minutes for a line that never came; write `echo exit=$?` into the same log, or wait on the task's own completion. (2) A red `check` through `quiet.mjs` showed only the last 30 lines, and vitest's unhandled-error block pushed the `Test Files` summary out of them, so the run could not show whether an assertion failed and a second `bun run test` (about 10 minutes) proved 111 of 111. When `check` goes red through `quiet.mjs`, grep the full log for `Test Files` and `FAIL` before deciding it is load.
 - hit again: 2026-10-03, B9 g5: `bun run typecheck` plus `eslint` plus three render runs in one call passed the 120 s foreground limit and moved to the background; split them into calls under 100 s.
 - hit again: 2026-10-04, B8 g3 review: `bun run check` failed only in its vitest stage (`Error: [vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts ... Timeout waiting for worker to respond`, exit 1) while other lanes ran; `bun run test` alone then gave `Test Files  65 passed (65)`, exit 0.
 
@@ -2388,4 +2389,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the doc was written from a summary of the plan, not from the plan lines it describes; a design step with no code has no test that reads the document.
 - rule: a runbook sentence about a command, a variable, a condition or a placement is copied from the cited plan line (and from the code once it exists), never from memory; name the line in the work log. A launch checklist points at the plan's step letters instead of restating them in part.
 - proof: `grep -c "MOP_DB_PRODUCTION" app/docs/coming-soon.md` → 2 or more; `grep -c "MOP_LAUNCHED" app/docs/coming-soon.md` → 1 or more.
+- added: 2026-10-04
+
+## P-1301 · A focus-ring note written from the design intent, not from the cascade, names an invisible ring
+- symptom: the first `docs/coming-soon.md` said the notice's focus ring is "the site's `:focus-visible` outline in `--foreground`". The site rule is `outline: 1px solid currentColor; outline-offset: 4px` (`src/styles/base.css`), nothing overrides it, and a filled `.button` has `color: var(--background)`, so the ring on the filled `Allow` button would be Ivory on the Ivory footer, 1:1, invisible. A fresh review caught it; a builder following the note would have shipped it.
+- cause: the line described what the design wants, not what the stylesheet does. A docs-only step has no test that renders the control.
+- rule: a focus, colour or contrast note about a control is written from `grep -rn outline src/styles` and the control's own text and background colours, with the rule that fixes it named (file and property). When a note says a ring is visible, a step with code asserts it (computed outline colour differs from the background).
+- proof: `grep -c "outline-color: var(--foreground)" app/docs/coming-soon.md` → 1 or more.
 - added: 2026-10-04

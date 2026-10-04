@@ -35,7 +35,7 @@ Google Analytics (gtag.js only) loads only when the stored record allows it. The
 
 ## Who flips what
 
-- `markets.coming_soon`: the chief editor or the managing editor (permission `markets.edit`, B7) in `/admin/markets` (screen 15), or the publish recipe when a market's first property goes out.
+- `markets.coming_soon`: the chief editor or the managing editor (permission `markets.coming_soon`, B7's `setComingSoon`) in `/admin/markets` (screen 15), or the publish recipe when a market's first property goes out.
 - `settings.coming_soon_global`: an admin only, with a recent sign-in, in `/admin/settings` (screen 24).
 - Feature flags: an admin only, in the flags editor on `/admin/settings` (screen 24).
 - `settings.environment`: nobody by hand. `bun run set-env -- --target dev --value production` is the last act of the launch switch and cannot be undone by the same script.
@@ -56,8 +56,8 @@ The launch switch is L1 step 1, letters 1b to 1g, run once from `main` in letter
 2. 1e: B2's production seed, `bun run seed -- --target dev --mode reference --images upload` (markets, regions, notes and guide, all editorial, none illustrative). The `upload` mode needs B9's media store and refuses until B9 has landed.
 3. 1f: the first admin user.
 4. 1g: `bun run set-env -- --target dev --value production`, then `gh variable set MOP_DB_PRODUCTION --body true`. Without the variable the deploy-time assertion below is skipped, silently.
-5. `deploy.yml` then runs `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` after every production deploy, only while `vars.MOP_DB_PRODUCTION` is `true`. It exits 0 only when the properties list is empty, all three markets are coming soon, and no page carries `ILLUSTRATIVE` or a property card. A failure fails the job after the deploy; the remedy is `bunx wrangler rollback`, not a retry. Run it by hand the same way for a first proof.
-6. L1 step 4e attaches the domain and sets `gh variable set MOP_LAUNCHED --body true`. From then on `deploy.yml` adds `--after-launch`, which runs one check, that neither `/` nor `/properties` carries `ILLUSTRATIVE`, because a published property and an open market are then expected (L1 step 7).
+5. `deploy.yml` then runs `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` after every production deploy, only while `vars.MOP_DB_PRODUCTION` is `true`. It exits 0 only when the properties list is empty, all three markets are coming soon, neither `/` nor `/properties` carries `ILLUSTRATIVE` or a property card, and `/california` carries the California `market.title` sentence. A failure fails the job after the deploy; the remedy is `bunx wrangler rollback`, not a retry. Run it by hand the same way for a first proof.
+6. L1 step 6 changes that URL in `deploy.yml` to `https://matterofplace.com`, and from then on the assertion and any by-hand run use the custom domain. L1 step 4e attaches the domain and sets `gh variable set MOP_LAUNCHED --body true`. From then on `deploy.yml` adds `--after-launch`, which runs one check, that neither `/` nor `/properties` carries `ILLUSTRATIVE`, because a published property and an open market are then expected (L1 step 7).
 
 ## Design decisions
 
@@ -89,7 +89,7 @@ One component in three scopes: home, collection pages (properties, stories) and 
 
 ### Illustrative wording
 
-`illustrative.*` renders only when the catalog says illustrative content is allowed (development and preview). `IllustrativeNotice` is one block (`label`, `title`, `text`, `link`). It renders wherever the page holds a property whose status is `Illustrative`, and nothing otherwise: under the hero on home, and on the properties, market, region and property pages. Cards and heroes carry a separate, smaller tag, `ILLUSTRATIVE PROPERTY`, only on an `Illustrative` property; it is not part of the copy table. Production never renders any of it. Stories carry no illustrative wording at all (G70), and the stories page drops its intro line "Sample stories, shown to set the format."
+`illustrative.*` renders only when the catalog says illustrative content is allowed (development and preview). `IllustrativeNotice` is one block (`label`, `title`, `text`, `link`). It renders wherever the page holds a property whose status is `Illustrative`, and nothing otherwise: under the hero on home, and on the properties, market, region and property pages. An `Illustrative` property also carries a small tag: property cards show the default `ContentTag`, `ILLUSTRATIVE`, and the home hero and the property page hero show `ILLUSTRATIVE PROPERTY`. The tags are not part of the copy table. Production never renders any of it. Stories carry no illustrative wording at all (G70), and the stories page drops its intro line "Sample stories, shown to set the format."
 
 ### Consent notice
 
@@ -144,7 +144,7 @@ Where each string appears: `eyebrow`, `*.title`, `*.text` and the `form.*` strin
 
 ### ComingSoon and its form
 
-- The section is named by its heading. On home the heading is the `h1` and `home.title` is the `h2`; elsewhere `title` is the `h2` and the page already holds its own `h1`. One `h1` per page.
+- The section is always named by its own `h2` (`title`; `home.title` on home). `ComingSoon` never renders an `h1`: on home the text hero above it holds the page's `h1`, elsewhere the page already holds its own. One `h1` per page.
 - The email field has a visible label from `t.common.emailAddress`, never a placeholder alone, and `autocomplete="email"`.
 - The chooser is a `fieldset` whose `legend` is `form.legend`. Each market is a checkbox with its market name as the label. Choosing none is allowed and sends the interest for any market (`form.sentAny`).
 - The honeypot field is hidden from assistive technology and skipped by Tab.
@@ -162,7 +162,7 @@ Where each string appears: `eyebrow`, `*.title`, `*.text` and the `form.*` strin
 - DOM order is the sentence, `Allow`, `No, thank you`, then the link, which is the phone order. On desktop the link is set under the sentence on the left, so Tab runs Allow, No thank you, then back to the link. A one-line bend, taken to keep a single DOM for both widths.
 - Closing by keyboard moves focus to the footer's `Cookie settings` button (`id="consent-change"`). Closing by pointer removes the clicked button with the row, so the browser returns focus to the page; nothing is announced and no ring shows. Step 5's consent spec records where focus lands, and this line changes if it does not hold.
 - Pressing `Cookie settings` reopens the row and moves focus to the region (`tabindex="-1"`), so a keyboard user hears its name and reaches `Allow` with the next Tab. This is user initiated, not on load.
-- The focus ring is the site's `:focus-visible` outline in `--foreground`.
+- The site's focus ring is `:focus-visible { outline: 1px solid currentColor; outline-offset: 4px }` (`src/styles/base.css`). On a filled `.button` the text colour is Ivory (`color: var(--background)`), so `currentColor` is Ivory and the ring would be Ivory on the Ivory footer, invisible. The notice's filled `Allow` button therefore sets `outline-color: var(--foreground)` on its own `:focus-visible` rule in `consent.css` (step 5), and the unfilled `No, thank you` and the privacy link keep the site ring. Step 5's consent spec asserts that the focused `Allow` has a non-transparent outline whose colour differs from the footer background. The same invisible ring exists on every other filled `.button` on the site; that is a base style, outside this slice, and is left for the owner of `base.css`.
 
 ## Review notes
 
