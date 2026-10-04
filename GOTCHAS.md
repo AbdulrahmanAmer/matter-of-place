@@ -2816,3 +2816,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a proof that runs the step on a row names it with `--id <uuid>` and the uuid of the row it just inserted, never `--latest`; a lane takes its port from its brief and says in its log which it used, until the orchestrator settles one value in ASSUMED section E.
 - proof: `cd app && bun run db:psql -- -c "select name, state from inquiries order by received_at desc limit 1"` → the newest row of any lane or reviewer (`B15 g4 review | new` when measured 2026-10-05, B15 g4 review); `grep -n "latest" app/scripts/omnikom-run-local.ts` shows `--latest` taking the newest inquiry with no filter on name.
 - added: 2026-10-05
+
+## P-1709 · B15 step 6, the Playwright spec the plan names matched no project, and the admin half names files of a slice that has not merged
+- symptom: `bunx playwright test tests/e2e/inquiry-forward.spec.ts` as step 6 writes it would answer "No tests found": `playwright.config.ts` lists every spec by name in a project's `testMatch`. Step 6 also names `src/domain/admin-inquiries.ts`, `InquiryDrawer.tsx` and `inquiries-api.ts`, which B7 creates; none exists on `main`.
+- cause: the plan says "B4 supplies `playwright.config.ts`" and never says the spec needs a project there; B7 step 11 has not landed, so the admin half has nothing to attach to.
+- rule: a new Playwright spec adds its own one-line project in `playwright.config.ts` (ruling H46), and a step that changes a file another slice creates is BLOCKED until that slice has merged: check `git ls-tree -r --name-only origin/main | grep <file>` before starting, never create the file.
+- proof: `cd app && grep -n "inquiry-forward" playwright.config.ts` → the project line; `git ls-tree -r --name-only origin/main | grep -cE "admin-inquiries|InquiryDrawer"` → `0` (measured 2026-10-05, B15 g5).
+- added: 2026-10-05
