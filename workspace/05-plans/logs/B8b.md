@@ -334,3 +334,41 @@ timestamp after 20261004172322` (and the same for `..._automation_schedules.sql`
 - deploy run 37227263854: `preview-db` success; `dev`, `preview`, `production` skipped.
 - CI `db` job: does not exist (`ci.yml` jobs are check, build, merge-gate), so that proof is UNPROVEN; the database
   proof of record is the local dev-profile run above (28 passed) inside rolled-back transactions (P-312 hit again).
+
+## g3 · steps 4 (first half) · second rework after review (2026-10-04)
+Blocking defect (step-specs.test.ts R28 gate red after merging main): NOT FIXED by g3, BLOCKED on a file outside g3.
+The review's premise, and P-1612 as first written, were wrong: B9 does carry the four run-twice cases, as one
+`it.each([...renderTypes, { type: "render_variants", kind: "variants" }])("$type runs twice without a second outside
+effect", ...)` at `tests/unit/assets/steps.test.ts:323`. The gate's `testTitles()` matches only literal `it("...")` and
+`test("...")` titles, so it cannot see an `it.each` template. The fix belongs in g2's
+`tests/unit/automation/step-specs.test.ts` (expand `.each` templates, or read the titles vitest runs), not in B9's file
+and not by weakening the gate. P-1612 corrected in the bank.
+- `bunx vitest run tests/unit/assets/steps.test.ts -t "runs twice" --reporter=verbose | grep -v "↓" | grep "runs twice"`
+   ✓ |unit| tests/unit/assets/steps.test.ts > the render steps > render_cover runs twice without a second outside effect 41ms
+   ✓ |unit| tests/unit/assets/steps.test.ts > the render steps > render_carousel runs twice without a second outside effect 7ms
+   ✓ |unit| tests/unit/assets/steps.test.ts > the render steps > render_story runs twice without a second outside effect 3ms
+   ✓ |unit| tests/unit/assets/steps.test.ts > the render steps > render_variants runs twice without a second outside effect 2ms
+   ✓ |unit| tests/unit/assets/steps.test.ts > render_og_static > render_og_static runs twice without a second outside effect 1ms
+Re-run of every proof on 0d8358e (no code change in this round):
+- `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
+   Test Files  3 passed (3) /      Tests  34 passed (34)
+- `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+   Test Files  1 passed (1) /      Tests  1 passed | 4 skipped (5)
+  (correction: the first rework block above pasted "2 passed | 3 skipped (5)"; this run, like the first g3 block, prints 1 | 4)
+- dev profile, `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
+   Test Files  1 passed (1) /      Tests  28 passed (28)   (local, mop-dev, rolled back; there is no CI `db` job: UNPROVEN as the plan words it)
+- `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → deno exit 0
+- `bun run scripts/stubs.ts` → 0 lines with `STUB(B8b step 4)`; `stubs: 10 markers, 0 on closed slices`
+- `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → nothing, exit 1
+- `grep -rn "—" supabase/migrations/*automation_seed.sql` → nothing, exit 1
+- `bun run check` → RED, exit 1, only the gate:
+   FAIL  |unit| tests/unit/automation/step-specs.test.ts > step specs > finds a run-twice test for every implemented type with an outside effect
+  AssertionError: expected [ 'render_variants', …(3) ] to deeply equal []
+   ❯ tests/unit/automation/step-specs.test.ts:118:57
+- `bun run build` → quiet: ok
+Follow-ups not in g3's files, left as the review marked them: g1's `record_fanout_failure.sql` exponent overflow,
+`docs/runbooks/jobs.md:96` (pg_cron prune), `src/server/jobs/README.md:18,26` (stale "stub until B8b step 4"), plan
+fold of `fanout_failure_unrecorded` and `schedule_cron_invalid`, and invariant 12's one-minute first-slot window for a
+row with both clocks null (cron.ts follows the plan as written).
+UNPROVEN until after the merge and the `dev` job: the post-merge selects, the `job-runner` deploy and its 200 with
+`"claimed"`, and the scheduler's `reconcile` row.
