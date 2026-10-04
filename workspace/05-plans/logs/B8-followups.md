@@ -43,3 +43,29 @@
 5. `app/src/server/lib/events.ts` (not blocking)
    - What: Note for step 8, which the author already flagged. emitEvent takes `entityId: string` because the generated emit_event Args type p_entity_id is non-null. The plan's health.ts call passes `entityId: null`, so it will not typecheck as the plan writes it. The step 8 plan line, or the emitEvent signature, needs to change there.
    - Evidence: Reading events.ts lines 33-49, and the author's unproven list.
+
+## g4 · steps 5
+
+1. `workspace/05-plans/sizing/B8.json` (not blocking)
+   - What: Several step-5 deliverables belong to no B8 group. g4 covers only app/supabase/functions/job-runner and config.toml, and no other group lists: the ci.yml deno step aimed at the runner, plus the deno test of tests/deno/*.smoke.ts; the deploy.yml dev-job 'functions deploy job-runner'; scripts/rollback-runner.sh; tests/deno/steps.smoke.ts; the job-runner case of tests/unit/sentry.test.ts; and the guardedScripts entry in assert-not-production.test.ts. Until someone owns them, the committed deno.lock is checked by nothing in CI (G15 does not cover the runner), and after merge the runner is never deployed from main. The author reported these as NOT DONE honestly; the orchestrator must assign them, or B8 cannot close.
+   - Evidence: node over sizing/B8.json lists the files of g1..g10; grep for rollback-runner|ci.yml|deploy.yml|steps.smoke|sentry.test|assert-not-production in sizing/B8.json finds nothing.
+
+2. `app/supabase/functions/job-runner/index.ts` (not blocking)
+   - What: Every report sets requestId to one crypto.randomUUID() per tick, not to the job id the plan's Files list asks for ('requestId = the job id when there is one'). So a dead-job Sentry event cannot be joined to its jobs row except by job type and time, and all jobs in one tick share one id. The real cause is that the plan's own Contract defines Reporter as (error, { fingerprint, level? }) with no job id, in g3's types.ts. The log calls this 'a choice the plan left open', which is inaccurate. The plan needs one ruling: either Reporter carries jobId, or the Files line changes.
+   - Evidence: line 23 'const requestId = crypto.randomUUID();'; types.ts:12-15 Reporter has no id; runner.ts:134 'opts.report(error, { fingerprint: ["job_dead", job.type] })'
+
+3. `app/eslint.config.js` (not blocking)
+   - What: The new supabase/functions/**/*.ts block turns off every type-checked rule (disableTypeChecked). R01 (lint is type-aware, strictTypeChecked) no longer holds for the runner entry. deno check does not catch floating promises, so a dropped await on captureException in the 500 path would pass both gates and could lose the Sentry event when the isolate ends. Nothing in the code triggers this today. A project block with Deno types, as G-016 did for scripts, would keep R01.
+   - Evidence: printf 'const p = Promise.resolve(1);\np.then(() => 1);\nexport {};\n' | eslint --stdin --stdin-filename supabase/functions/job-runner/index.ts -> exit 0 (no no-floating-promises)
+
+4. `app/supabase/functions/job-runner/deno.json` (not blocking)
+   - What: deno.json and deno.lock are add/add copies of B3's files at fb15894. They merge clean only while B3 keeps them byte-identical. If B3 changes either file in another review round before merging, B8 gets an add/add conflict. P-907's proof also depends on origin/slice/b3 existing.
+   - Evidence: git diff origin/slice/b3 8600cc0 -- the two files: empty today
+
+5. `workspace/05-plans/ASSUMED.md` (not blocking)
+   - What: Three records are still owed by the orchestrator. ASSUMED E5 must record that --use-api did not honour a stale deno.lock (not re-run by the reviewer). JOB_RUNNER_SECRET must be copied into the main .env and PREVIEW_WORKER_SECRETS_JSON before the lane .env goes away. And SENTRY_RELEASE is not a function secret, so every runner event is tagged release 'dev', even after the launch switch.
+   - Evidence: supabase secrets list: no SENTRY_RELEASE; index.ts line 33 'release: Deno.env.get("SENTRY_RELEASE") ?? "dev"'
+
+6. `.claude/workflows/build-slice.js` (not blocking)
+   - What: The review brief contradicts itself. It says to run plan-brief.mjs 'from E:/mop-build/ops' and also 'never read, run or write anything there'. I ran plan-brief from the snapshot, which gives the same output because the snapshot is the same commit.
+   - Evidence: Brief text: '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs B8 ...` from E:/mop-build/ops'
