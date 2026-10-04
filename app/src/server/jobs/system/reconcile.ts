@@ -1,5 +1,6 @@
 import type { Db } from "../../lib/db.ts";
 import { AppError } from "../../lib/errors.ts";
+import { reconcileUploads as settleUploads } from "../../submissions/reconcile.ts";
 import type { JsonObject, StepContext, SystemJobDefinition } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
@@ -52,8 +53,4 @@ export function reconcileJob(reconcileUploads: ReconcileUploads): SystemJobDefin
   };
 }
 
-// STUB(B8 step 2a): `reconcileUploads` of src/server/submissions/reconcile.ts (B3, on main) replaces this stand-in, which reads nothing.
-const uploadsNotBuilt: ReconcileUploads = () =>
-  Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 });
-
-export const reconcile = reconcileJob(uploadsNotBuilt);
+export const reconcile = reconcileJob(settleUploads);

@@ -1,5 +1,5 @@
-// B8 steps 1 and 2: the jobs migration and the SQL lifecycle functions (invariants 1, 2, 4 and 5, JOB-02, DB-09,
-// DL-10, ruling H34 (2)). Every case runs in a rolled-back transaction except the parallel claim, which needs two
+// B8 steps 1, 2 and 2a: the jobs migration, the SQL lifecycle functions (invariants 1, 2, 4 and 5, JOB-02, DB-09,
+// DL-10, ruling H34 (2)) and the events B3's public writes emit in their own transaction (G20). Every case runs in a rolled-back transaction except the parallel claim, which needs two
 // connections and so commits rows keyed `test:<uuid>` that its cleanup removes (F22).
 import { randomUUID } from "node:crypto";
 import pg from "pg";
@@ -944,5 +944,170 @@ describe("health_counts", () => {
       return { absent, backup: (await counts(db)).backup };
     });
     expect(result).toEqual({ absent: true, backup: null });
+  });
+});
+
+interface Emitted {
+  entity_id: string;
+  payload: unknown;
+}
+
+/** Every `type` event of this transaction: `at` defaults to `now()`, the transaction's start, so no other row matches. */
+async function emitted(db: Db, type: string): Promise<Emitted[]> {
+  const result = await db.query<Emitted>(
+    "select entity_id, payload from public.events where type = $1 and at = now()",
+    [type],
+  );
+  return result.rows;
+}
+
+const testEmail = () => `test+${randomUUID()}@example.invalid`;
+
+async function upsertSubscriber(
+  db: Db,
+  email: string,
+  source: string,
+  sealedToken: string | null,
+): Promise<string> {
+  const { id } = await one<{ id: string }>(db, "select public.upsert_subscriber($1) as id", [
+    {
+      email,
+      source,
+      markets: [],
+      confirm_token_hash: `test-${randomUUID()}`,
+      sealed_token: sealedToken,
+    },
+  ]);
+  return id;
+}
+
+describe("public write events (step 2a)", () => {
+  it("create_submission emits one submission.received, and its 10-minute repeat returns the same id with still one row", async () => {
+    const result = await withRollback(async (db) => {
+      const payload = {
+        address: "1 Test Way",
+        city: "Berkeley",
+        state: "California",
+        zip: "94702",
+        property_type: "Residence",
+        submitter_kind: "agent",
+        submitter_name: "Test Agent",
+        submitter_email: testEmail(),
+        brokerage: "Test Brokerage",
+        story: "x",
+        significance: "x",
+        package: "The Feature",
+        source_path: "/__test",
+        rights_version: "test-v1",
+        rights_confirmed_at: "2026-10-01T00:00:00Z",
+        rights_ip_hash: "test-hash",
+        media: [],
+      };
+      const sql = "select id from public.create_submission($1)";
+      const first = await one<{ id: string }>(db, sql, [payload]);
+      const repeat = await one<{ id: string }>(db, sql, [payload]);
+      return { first, repeat, rows: await emitted(db, "submission.received") };
+    });
+    expect(result.repeat.id).toBe(result.first.id);
+    expect(result.rows).toEqual([
+      { entity_id: result.first.id, payload: { submission_id: result.first.id } },
+    ]);
+  });
+
+  it("confirm_subscriber emits one subscriber.confirmed for a valid hash and none for a wrong one", async () => {
+    const result = await withRollback(async (db) => {
+      const hash = `test-${randomUUID()}`;
+      const { id } = await one<{ id: string }>(db, "select public.upsert_subscriber($1) as id", [
+        {
+          email: testEmail(),
+          source: "stories",
+          markets: [],
+          confirm_token_hash: hash,
+          sealed_token: null,
+        },
+      ]);
+      const wrong = await one<{ id: string | null }>(
+        db,
+        "select public.confirm_subscriber($1) as id",
+        [`test-${randomUUID()}`],
+      );
+      const afterWrong = await emitted(db, "subscriber.confirmed");
+      const valid = await one<{ id: string | null }>(
+        db,
+        "select public.confirm_subscriber($1) as id",
+        [hash],
+      );
+      return { id, wrong, afterWrong, valid, rows: await emitted(db, "subscriber.confirmed") };
+    });
+    expect(result.wrong.id).toBeNull();
+    expect(result.afterWrong).toEqual([]);
+    expect(result.valid.id).toBe(result.id);
+    expect(result.rows).toEqual([{ entity_id: result.id, payload: { subscriber_id: result.id } }]);
+  });
+
+  it("create_inquiry emits one inquiry.received with the inquiry id", async () => {
+    const result = await withRollback(async (db) => {
+      const { id } = await one<{ id: string }>(db, "select id from public.create_inquiry($1)", [
+        {
+          intent: "ask",
+          name: "Test Visitor",
+          email: testEmail(),
+          message: "x",
+          source_path: "/__test",
+        },
+      ]);
+      return { id, rows: await emitted(db, "inquiry.received") };
+    });
+    expect(result.rows).toEqual([{ entity_id: result.id, payload: { inquiry_id: result.id } }]);
+  });
+
+  it("create_subject_request emits one subject_request.received with the request id and kind", async () => {
+    const result = await withRollback(async (db) => {
+      const { id } = await one<{ id: string }>(
+        db,
+        "select id from public.create_subject_request($1)",
+        [{ email: testEmail(), kind: "correction", ip_hash: "test-hash", turnstile_ok: true }],
+      );
+      return { id, rows: await emitted(db, "subject_request.received") };
+    });
+    expect(result.rows).toEqual([
+      { entity_id: result.id, payload: { request_id: result.id, kind: "correction" } },
+    ]);
+  });
+
+  it("upsert_subscriber emits subscriber.created with the sealed token for a new address, and none once it is confirmed", async () => {
+    const result = await withRollback(async (db) => {
+      const email = testEmail();
+      const id = await upsertSubscriber(db, email, "stories", "sealed-one");
+      await db.query("update public.subscribers set confirmed_at = now() where id = $1", [id]);
+      await upsertSubscriber(db, email, "stories", "sealed-two");
+      return { id, rows: await emitted(db, "subscriber.created") };
+    });
+    expect(result.rows).toEqual([
+      { entity_id: result.id, payload: { subscriber_id: result.id, sealed_token: "sealed-one" } },
+    ]);
+  });
+
+  it("upsert_subscriber emits one subscriber.created for a confirmed interest address given a Place Notes source (DL-06)", async () => {
+    const result = await withRollback(async (db) => {
+      const email = testEmail();
+      const id = await upsertSubscriber(db, email, "interest:california", null);
+      await db.query("update public.subscribers set confirmed_at = now() where id = $1", [id]);
+      await upsertSubscriber(db, email, "stories", "sealed-notes");
+      return { id, rows: await emitted(db, "subscriber.created") };
+    });
+    expect(result.rows).toEqual([
+      { entity_id: result.id, payload: { subscriber_id: result.id, sealed_token: "sealed-notes" } },
+    ]);
+  });
+
+  it("upsert_subscriber without a sealed_token emits nothing", async () => {
+    const rows = await withRollback(async (db) => {
+      const email = testEmail();
+      await upsertSubscriber(db, email, "stories", null);
+      await upsertSubscriber(db, email, "stories", null);
+      return emitted(db, "subscriber.created");
+    });
+    expect(rows).toEqual([]);
   });
 });

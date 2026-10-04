@@ -10,7 +10,7 @@ import { currentRightsVersion } from "../../src/domain/contracts";
 import { hashKey } from "../../src/server/lib/ids";
 import { handlePublic } from "../../src/server/public/pipeline";
 import { uploadToken } from "../../src/server/submissions/upload-token";
-import { committed, type Db as Pg } from "../fixtures/db";
+import { committed, dbNow, type Db as Pg } from "../fixtures/db";
 import { fakeDb } from "../fixtures/fake-db";
 import { serviceClient } from "../fixtures/service";
 
@@ -106,6 +106,10 @@ async function run<T>(ips: string[], emails: string[], fn: (pg: Pg) => Promise<T
   return committed(fn, async (pg) => {
     await pg.query("begin");
     await pg.query("select set_config('mop.retention', 'on', true)");
+    await pg.query(
+      "delete from public.events where entity_id in (select id from public.submissions where source_path = $1)",
+      [SOURCE],
+    );
     await pg.query("delete from public.submissions where source_path = $1", [SOURCE]);
     await pg.query("delete from public.contacts where lower(email) = any ($1)", [
       emails.map((email) => email.toLowerCase()),
@@ -151,6 +155,17 @@ async function submissionsOf(pg: Pg, email: string) {
   return z.array(submissionRowSchema).parse(result.rows);
 }
 
+const eventSchema = z.object({ entity_id: z.string(), payload: z.unknown() });
+
+/** The `submission.received` events written since `since`; `create_submission` emits them in its transaction (G20). */
+async function eventsSince(pg: Pg, since: Date) {
+  const result = await pg.query(
+    "select entity_id, payload from public.events where type = 'submission.received' and at >= $1",
+    [since],
+  );
+  return z.array(eventSchema).parse(result.rows);
+}
+
 const contactSchema = z.object({
   id: z.string(),
   kind: z.string(),
@@ -178,12 +193,20 @@ describe("POST /api/public/submissions", () => {
       { name: "c.heic", size: 30, type: "image/heic" },
       { name: "d.webp", size: 40, type: "image/webp" },
     ];
-    const { receipt, rows } = await run([ip], [email], async (pg) => {
+    const { receipt, rows, emitted } = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const response = await send(submission(email, { media }), ip);
       expect(response.status).toBe(201);
       const body = receiptSchema.parse(await response.json());
-      return { receipt: body, rows: await mediaRows(pg, body.id) };
+      return {
+        receipt: body,
+        rows: await mediaRows(pg, body.id),
+        emitted: await eventsSince(pg, since),
+      };
     });
+    expect(emitted.filter((event) => event.entity_id === receipt.id)).toEqual([
+      { entity_id: receipt.id, payload: { submission_id: receipt.id } },
+    ]);
     expect(receipt.uploads).toHaveLength(media.length);
     expect(receipt.uploads.map((entry) => entry.index)).toEqual([0, 1, 2, 3]);
     expect(rows.map((row) => row.id)).toEqual(receipt.uploads.map((entry) => entry.media_id));
@@ -476,10 +499,16 @@ describe("POST /api/public/submissions", () => {
     const ip = nextIp();
     const email = nextEmail();
     const outcome = await run([ip], [email], async (pg) => {
+      const since = await dbNow(pg);
       const response = await send({ ...submission(email), website: "spam" }, ip);
-      return { status: response.status, rows: await submissionsOf(pg, email) };
+      return {
+        status: response.status,
+        rows: await submissionsOf(pg, email),
+        emitted: await eventsSince(pg, since),
+      };
     });
     expect(outcome.status).toBe(201);
     expect(outcome.rows).toEqual([]);
+    expect(outcome.emitted).toEqual([]);
   });
 });

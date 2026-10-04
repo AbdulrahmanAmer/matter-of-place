@@ -6,9 +6,10 @@ set search_path = ''
 as $$
 declare
   v public.inquiries := jsonb_populate_record(null::public.inquiries, p);
+  v_id uuid;
+  v_received_at timestamptz;
 begin
   -- `state` and `received_at` keep their defaults; the payload names only what the visitor and the request gave.
-  return query
   insert into public.inquiries as i (
     intent, topic, subject_kind, subject_slug, subject_title, name, email, phone, location, message, details,
     source_path, ip_hash, turnstile_ok
@@ -16,7 +17,10 @@ begin
     v.intent, v.topic, v.subject_kind, v.subject_slug, v.subject_title, v.name, v.email, v.phone, v.location,
     v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false)
   )
-  returning i.id, i.received_at;
+  returning i.id, i.received_at into v_id, v_received_at;
+  -- G49: the event commits or rolls back with the row.
+  perform public.emit_event('inquiry.received', 'inquiry', v_id, jsonb_build_object('inquiry_id', v_id), null);
+  return query select v_id, v_received_at;
 end;
 $$;
 
