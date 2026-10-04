@@ -532,6 +532,8 @@ const ADDRESS: Record<string, string> = {
   dev: "https://matter-of-place-dev.holy-meadow-4327.workers.dev",
   production: "https://matter-of-place.holy-meadow-4327.workers.dev",
 };
+// Steps from the smoke to the end: the smoke, production's coming-soon assertion (B3b), the rollback.
+const SMOKE_FROM_END: Record<string, number> = { dev: 2, production: 3 };
 const PRODUCTION_ON = "vars.PRODUCTION_DEPLOY == 'on'";
 const GUARDED = "steps.guard.outputs.superseded != 'true'";
 const ROLLBACK_IF = "failure() && steps.deploy.outcome == 'success'";
@@ -621,7 +623,10 @@ describe("deploy.yml production and dev jobs (step 7)", () => {
       return {
         address: has(job, `URL: ${ADDRESS[job] ?? ""}\n`),
         ordered:
-          deployAt >= 0 && deployAt < waitAt && waitAt < smokeAt && smokeAt === steps.length - 2,
+          deployAt >= 0 &&
+          deployAt < waitAt &&
+          waitAt < smokeAt &&
+          smokeAt === steps.length - (SMOKE_FROM_END[job] ?? 0),
         waitsForTen:
           wait.includes(`curl -s -o /dev/null -D - "$URL/" | grep -qi '^x-request-id:'`) &&
           /else\s+ok=0\s+fi/.test(wait) &&

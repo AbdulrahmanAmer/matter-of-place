@@ -7,6 +7,7 @@ import {
 } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
+import { readAttribution } from "../../lib/attribution";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
@@ -32,6 +33,7 @@ export function ContactForm() {
           location: text("location"),
           message: text("message"),
           sourcePath: window.location.pathname,
+          attribution: readAttribution(),
         }),
         text(honeypotFieldName),
       ),

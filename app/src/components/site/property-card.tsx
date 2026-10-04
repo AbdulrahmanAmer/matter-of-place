@@ -3,7 +3,8 @@ import type { PropertyCard as PropertyCardData } from "../../domain/property";
 import { formatPrice } from "../../lib/catalog";
 import { ContentTag } from "./content-tag";
 
-function PropertyCard({ property }: { property: PropertyCardData }) {
+export function PropertyCard({ property }: { property: PropertyCardData }) {
+  const illustrative = property.status === "Illustrative";
   return (
     <Link to="/property/$slug" params={{ slug: property.slug }} className="property-card">
       <div className="property-card-image">
@@ -12,9 +13,9 @@ function PropertyCard({ property }: { property: PropertyCardData }) {
           loading="lazy"
           width={1408}
           height={1008}
-          alt={`Illustrative architecture in ${property.city}`}
+          alt={`${illustrative ? "Illustrative architecture" : "Architecture"} in ${property.city}`}
         />
-        <ContentTag />
+        {illustrative && <ContentTag />}
       </div>
       <div className="property-card-info">
         <div className="property-card-meta">

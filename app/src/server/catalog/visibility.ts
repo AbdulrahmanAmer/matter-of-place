@@ -8,9 +8,19 @@ export interface VisibilityContext {
 
 /**
  * The one place a row is hidden from the public (invariant 5). `getCatalog` calls it once per catalog
- * version on the mapped rows, never per request.
+ * version on the mapped rows, never per request. It only filters rows: `Market.comingSoon` is set by the mapper.
  */
-// STUB(B3b step 4): coming-soon and illustrative filtering
-export function applyVisibility<T extends CatalogRows>(rows: T, _ctx: VisibilityContext): T {
-  return rows;
+export function applyVisibility<T extends CatalogRows>(rows: T, ctx: VisibilityContext): T {
+  const { state, env } = ctx;
+  // A missing or unknown environment already reads as false in `public_state()`; production is forced here too.
+  const showIllustrative = state.illustrativeContent && env.MOP_ENV !== "production";
+  const isOpen = (market: string) =>
+    !state.comingSoonGlobal && state.comingSoonMarkets[market] !== true;
+  return {
+    ...rows,
+    properties: rows.properties.filter(
+      (property) =>
+        isOpen(property.market) && (showIllustrative || property.status !== "Illustrative"),
+    ),
+  };
 }

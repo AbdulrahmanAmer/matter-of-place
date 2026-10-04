@@ -40,6 +40,27 @@ const inquirySubjectSchema = z.object({
 });
 export type InquirySubject = z.infer<typeof inquirySubjectSchema>;
 
+// The session's first-party attribution (B15 invariant 4). Its names are the `inquiries.attribution` column's and the
+// Omnikom body's (src/domain/omnikom.ts, G-004); unknown keys are dropped.
+const touchText = z.string().min(1).max(200).optional();
+const attributionTouchSchema = z.object({
+  landing_path: touchText,
+  referrer_host: touchText,
+  utm_source: touchText,
+  utm_medium: touchText,
+  utm_campaign: touchText,
+  utm_content: touchText,
+  at: z.string().datetime({ offset: true }).optional(),
+});
+export type AttributionTouch = z.infer<typeof attributionTouchSchema>;
+
+export const attributionSchema = z.object({
+  first_touch: attributionTouchSchema.optional(),
+  last_touch: attributionTouchSchema.optional(),
+  pages_viewed: z.number().int().min(0).optional(),
+});
+export type Attribution = z.infer<typeof attributionSchema>;
+
 export const inquirySchema = z.object({
   intent: inquiryIntentSchema,
   topic: contactTopicSchema.optional(),
@@ -53,6 +74,8 @@ export const inquirySchema = z.object({
   details: z.record(z.string().max(60), z.string().trim().max(500)).default({}),
   /** Path the visitor was on when they wrote, for attribution. */
   sourcePath: z.string().max(300),
+  /** Read from `sessionStorage` inside the submit handler, never sent by any other request. */
+  attribution: attributionSchema.optional(),
 });
 export type Inquiry = z.infer<typeof inquirySchema>;
 

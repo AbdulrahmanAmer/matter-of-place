@@ -189,3 +189,24 @@
     top: 90px;
   }
 }
+
+/* Home without a published property: type on Obsidian, so the see-through header keeps its light text. */
+.hero-text {
+  padding-top: calc(var(--header-h) + clamp(56px, 8vw, 110px));
+  padding-bottom: clamp(64px, 8vw, 110px);
+  color: var(--primary-foreground);
+  background: var(--foreground);
+}
+
+.hero-text h1 {
+  font-size: clamp(48px, 6vw, 94px);
+  line-height: 0.98;
+  margin: 18px 0 24px;
+}
+
+.hero-text p:not(.eyebrow) {
+  max-width: 560px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: color-mix(in oklab, var(--primary-foreground) 75%, transparent);
+}
