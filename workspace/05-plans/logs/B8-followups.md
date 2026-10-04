@@ -129,3 +129,29 @@
    - Evidence: Confirmed by running: node scripts/post-callback.mjs against the dev Worker printed 'post-callback: 404 ...' then 'Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76', exit 127.
 
 (Three further follow-ups have GOTCHAS.md as their file and are banked as "hit again" lines: P-076 (JSON.parse JSDoc casts, `no-unsafe-assignment`), P-152 (bare `bunx vitest run` of hygiene.test.ts times out at 20 s), P-913 (actionlint binary missing from a review snapshot).)
+
+## g7 · steps 8,8a
+
+1. `app/src/server/jobs/system/retention.ts` (not blocking)
+   - What: Files are removed with supabase-js db.storage.from('submissions').remove(...), which is what step 8a's text says. The plan's Risks section (ruling H33 (2)) says every step reaches Storage through B3's media-store.ts, so the plan contradicts itself and the orchestrator should fold it. One effect to know about, found by reading: every Storage error, a permanent 4xx included, becomes AppError('storage_unavailable'). The runner then retries an hour later without using an attempt, so a permanent Storage refusal never sends the job dead and surfaces only through retention_stalled after 2 days.
+   - Evidence: retention.ts lines 74-84: any non-null error from .remove() throws AppError('storage_unavailable'). runner.ts:185 maps that code to retry_at now+1h with no attempt used. Brief, Risks: 'Every step and script reaches them through B3's src/server/lib/media-store.ts'. Step 8a: 'retention.ts removes the files with db.storage.from("submissions").remove(paths)'.
+
+2. `app/src/server/jobs/system/health/providers.ts` (not blocking)
+   - What: Found by reading, not run: resend_domain calls `await response.json()` outside any try. A 200 answer whose body is not JSON throws out of the whole health job, so it retries and eventually goes dead, instead of returning a typed 'fail' for that one check. It is the same kind of gap that graphGet in meta-token-refresh.ts already guards.
+   - Evidence: providers.ts, resendDomain.run: `const parsed = resendDomainsSchema.safeParse(await response.json());` has no try/catch. Compare meta-token-refresh.ts graphGet, which wraps response.json().
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Plan lines the code now differs from, for the orchestrator to fold: (1) meta_token_record takes its nullable dates last, (p_checked_at, p_token_state, p_missing_scopes, p_expires_at, p_data_access_expires_at, p_new_token), per P-915. (2) retention_declined_media and retention_accepted_media take only p_keep, with no p_dry_run. (3) healthChecks is module-local, not exported (R04/knip). B16 step 8's health-site.test.ts calls the site_identity entry of healthChecks, so B16 has to add the export back in that step, which R04 allows. (4) retention_accepted_media also waits for an unfinished copy_submission_media job and needs at least one photograph. (5) STANDARDS R32's adapter list does not name meta-token-refresh.ts, but eslint's ADAPTER_FILES does.
+   - Evidence: supabase/sql/functions/meta_token_record.sql signature; retention_declined_media.sql and retention_accepted_media.sql signatures; health.ts line 'const healthChecks: readonly HealthCheck[]'; B16.md line 146; STANDARDS.md R32 list
+
+4. `app/supabase/migrations/20261004065712_retention.sql` (not blocking)
+   - What: GD-03 asks for the first production run to be a dry run. The 'retention' cron row is live as soon as main pushes this migration, and mop-dev becomes production at the launch switch, so the first real run happens on the first 03:45 UTC tick after the merge, with no dry run before it. Separately, health's retention_stalled fails on day one for any policy that has never run (last_run_at is null). The author lists both as follow-ups. They belong on L1's checklist.
+   - Evidence: retention.sql lines 563-569 cron.schedule('retention','45 3 * * *',...); health_counts.sql: 'p.last_run_at is null' counts as stalled
+
+5. `app/src/server/jobs/system/meta-token-refresh.ts` (not blocking)
+   - What: UNPROVEN against reality. Graph debug_token, fb_exchange_token and ig_refresh_token answers, and the Resend /domains shape, are tested only against fixtures the author wrote (R33 wants recorded fixtures with source and recorded_at). The Instagram-login refresh route is chosen with a token.startsWith('IG') guess, which no real token has tested. Writing to Vault as the Edge Function's service role (GS-01) is proven only as postgres inside a rolled-back transaction. This needs the Meta app (S59) and a Resend key.
+   - Evidence: refreshUrl(): `if (token.startsWith("IG"))`; tests/unit/jobs/meta-token-refresh.test.ts and health-providers.test.ts use inline fixtures; no tests/fixtures/meta or tests/fixtures/resend recorded files
+
+6. `app/scripts/job-selftest.ts` (not blocking)
+   - What: Still UNPROVEN after the merge (ruling H57): the full self-test printing 'heavy done' with the created, claimed, dispatched, callback, done timeline (needs GITHUB_DISPATCH_TOKEN as a function secret, P-912); --reconcile printing 'reconcile done' (the deployed runner does not have the reconcile type yet, and reconcile.ts passes a STUB(B3 step 8) stand-in, so it proves the job path only); the pushed-database retention_policies selects; the CI db job; and gen:types matching the hand-written types.ts entries (P-910). Separately, the 3 deno check errors in g5/B3 files (db.ts:2,3, runner.ts:227) remain for the CI deno step.
+   - Evidence: Author's unproven list and log lines 675 and 732. deno check output above. reconcile.ts: '// STUB(B3 step 8)'
