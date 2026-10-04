@@ -111,6 +111,32 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"automation_recipes": {
+                  Row: {
+                    "created_at": string,"enabled": boolean,"id": string,"name": string,"steps": NonNullable<Json>,"trigger": string,"updated_at": string,"version": number
+                  }
+                  Insert: {
+                    "created_at"?: string,"enabled"?: boolean,"id"?: string,"name": string,"steps"?: NonNullable<Json>,"trigger": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"enabled"?: boolean,"id"?: string,"name"?: string,"steps"?: NonNullable<Json>,"trigger"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"automation_revisions": {
+                  Row: {
+                    "actor_id": string | null,"actor_kind": Database["public"]['Enums']["actor_kind"] | null,"after": Json | null,"at": string,"before": Json | null,"id": string,"note": string | null,"row_id": string,"table_name": string
+                  }
+                  Insert: {
+                    "actor_id"?: string | null,"actor_kind"?: Database["public"]['Enums']["actor_kind"] | null,"after"?: Json | null,"at"?: string,"before"?: Json | null,"id"?: string,"note"?: string | null,"row_id": string,"table_name": string
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"actor_kind"?: Database["public"]['Enums']["actor_kind"] | null,"after"?: Json | null,"at"?: string,"before"?: Json | null,"id"?: string,"note"?: string | null,"row_id"?: string,"table_name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"campaign_reports": {
                   Row: {
                     "campaign_id": string,"channel_mix": NonNullable<Json>,"clicks": number,"created_at": string,"ctr": number | null,"geography": NonNullable<Json>,"id": string,"impressions": number,"media_spend": number,"owned_distribution": NonNullable<Json>,"period_end": string,"period_start": string,"reach": number,"top_creative": string | null,"updated_at": string,"video_views": number | null
@@ -161,6 +187,19 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"channel_settings": {
+                  Row: {
+                    "approval_mode": NonNullable<Json>,"auto_after": string | null,"channel": string,"created_at": string,"credentials_ref": string | null,"enabled": boolean,"id": string,"posting_window": NonNullable<Json>,"updated_at": string
+                  }
+                  Insert: {
+                    "approval_mode"?: NonNullable<Json>,"auto_after"?: string | null,"channel": string,"created_at"?: string,"credentials_ref"?: string | null,"enabled"?: boolean,"id"?: string,"posting_window": NonNullable<Json>,"updated_at"?: string
+                  }
+                  Update: {
+                    "approval_mode"?: NonNullable<Json>,"auto_after"?: string | null,"channel"?: string,"created_at"?: string,"credentials_ref"?: string | null,"enabled"?: boolean,"id"?: string,"posting_window"?: NonNullable<Json>,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"contacts": {
                   Row: {
                     "archived_at": string | null,"brokerage": string | null,"created_at": string,"email": string,"id": string,"kind": Database["public"]['Enums']["submitter_kind"],"name": string,"notes": string | null,"phone": string | null,"updated_at": string
@@ -176,16 +215,48 @@ isOneToOne: false
                   ]
                 },"decline_reasons": {
                   Row: {
-                    "code": string,"email_paragraph": string,"enabled": boolean,"id": string,"label": string,"sort": number
+                    "code": string,"created_at": string,"email_paragraph": string,"enabled": boolean,"id": string,"label": string,"sort": number,"updated_at": string
                   }
                   Insert: {
-                    "code": string,"email_paragraph": string,"enabled"?: boolean,"id"?: string,"label": string,"sort"?: number
+                    "code": string,"created_at"?: string,"email_paragraph": string,"enabled"?: boolean,"id"?: string,"label": string,"sort"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "code"?: string,"email_paragraph"?: string,"enabled"?: boolean,"id"?: string,"label"?: string,"sort"?: number
+                    "code"?: string,"created_at"?: string,"email_paragraph"?: string,"enabled"?: boolean,"id"?: string,"label"?: string,"sort"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     
+                  ]
+                },"email_templates": {
+                  Row: {
+                    "body": NonNullable<Json>,"created_at": string,"enabled": boolean,"id": string,"key": string,"preheader": string,"subject": string,"updated_at": string,"variables": (string)[],"version": number
+                  }
+                  Insert: {
+                    "body": NonNullable<Json>,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key": string,"preheader"?: string,"subject": string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
+                  }
+                  Update: {
+                    "body"?: NonNullable<Json>,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key"?: string,"preheader"?: string,"subject"?: string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"event_fanout_failures": {
+                  Row: {
+                    "attempts": number,"event_id": string,"last_error": string | null,"next_at": string
+                  }
+                  Insert: {
+                    "attempts": number,"event_id": string,"last_error"?: string | null,"next_at": string
+                  }
+                  Update: {
+                    "attempts"?: number,"event_id"?: string,"last_error"?: string | null,"next_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_fanout_failures_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: true
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"events": {
                   Row: {
@@ -248,6 +319,12 @@ isOneToOne: false
       columns: ["event_id"]
 isOneToOne: false
       referencedRelation: "events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jobs_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "automation_recipes"
       referencedColumns: ["id"]
     }
                   ]
@@ -537,6 +614,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"schedule_settings": {
+                  Row: {
+                    "created_at": string,"cron": string,"enabled": boolean,"id": string,"interval_days": number | null,"key": string,"last_run_at": string | null,"next_run_at": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"cron": string,"enabled"?: boolean,"id"?: string,"interval_days"?: number | null,"key": string,"last_run_at"?: string | null,"next_run_at"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"cron"?: string,"enabled"?: boolean,"id"?: string,"interval_days"?: number | null,"key"?: string,"last_run_at"?: string | null,"next_run_at"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"settings": {
                   Row: {
                     "key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>
@@ -705,6 +795,27 @@ isOneToOne: false
             "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
                            },
+"automation_put_channel":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_channel": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+                           },
+"automation_put_reason":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+                           },
+"automation_put_recipe":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_patch": Json,"p_request_id": string,"p_trigger": string }; Returns: Json
+                           },
+"automation_put_schedule":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_key": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+                           },
+"automation_put_template":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_key": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+                           },
+"automation_reorder_reasons":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_ids": (string)[],"p_note"?: string,"p_request_id": string }; Returns: undefined
+                           },
+"automation_restore_revision":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_revision_id": string }; Returns: Json
+                           },
 "beat":
 { Args: { "p_detail": Json,"p_name": string }; Returns: undefined
                            },
@@ -744,6 +855,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"claim_schedule":
+{ Args: { "p_guard": boolean,"p_key": string,"p_last_run_at"?: string,"p_next_run_at"?: string,"p_old_last_run_at"?: string }; Returns: boolean
+                           },
 "confirm_subscriber":
 { Args: { "p_token_hash": string }; Returns: string
                            },
@@ -783,6 +897,26 @@ isOneToOne: false
 "fail_job":
 { Args: { "p_claim": string,"p_dead"?: boolean,"p_error": string,"p_job_id": string,"p_run_url"?: string }; Returns: boolean
                            },
+"fanout_insert_jobs":
+{ Args: { "p_event_id": string,"p_jobs": Json }; Returns: number
+                           },
+"fanout_pending_events":
+{ Args: { "p_limit": number }; Returns: {
+              "actor_id": string | null,
+"at": string,
+"entity": string | null,
+"entity_id": string | null,
+"id": string,
+"payload": NonNullable<Json>,
+"processed_at": string | null,
+"type": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "events"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "finish_job":
 { Args: { "p_claim": string,"p_dispatched"?: boolean,"p_job_id": string,"p_result"?: Json,"p_run_url"?: string }; Returns: boolean
                            },
@@ -821,6 +955,9 @@ isOneToOne: false
 "meta_token_record":
 { Args: { "p_checked_at": string,"p_data_access_expires_at"?: string,"p_expires_at"?: string,"p_missing_scopes": (string)[],"p_new_token"?: string,"p_token_state": string }; Returns: string
                            },
+"open_market_on_publish":
+{ Args: { "p_notify"?: boolean,"p_property_id": string }; Returns: string
+                           },
 "ops_health":
 { Args: { "p_now": string }; Returns: Json
                            },
@@ -843,6 +980,9 @@ isOneToOne: false
                            },
 "record_analytics_events":
 { Args: { "p_rows": Json }; Returns: number
+                           },
+"record_fanout_failure":
+{ Args: { "p_error": string,"p_event_id": string }; Returns: undefined
                            },
 "record_webhook_receipt":
 { Args: { "p_id": string,"p_provider": string }; Returns: boolean

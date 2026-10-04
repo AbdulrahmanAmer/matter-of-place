@@ -29,6 +29,15 @@ export const errorCodes = {
   append_only: 409,
   upload_limit: 422,
   invalid_token_state: 422,
+  // B8b: the automation console (invariants 7, 8, 11 and 12, SEC-11).
+  human_only: 403,
+  unknown_trigger: 404,
+  unknown_template: 404,
+  trigger_locked: 422,
+  unknown_field: 422,
+  external_clock: 422,
+  reorder_mismatch: 422,
+  nothing_to_restore: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

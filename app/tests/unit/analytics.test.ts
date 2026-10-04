@@ -26,6 +26,9 @@ const everyEvent: Record<AnalyticsEvent, true> = {
   filter_use: true,
   search: true,
   home_finder: true,
+  interest_signup: true,
+  coming_soon_view: true,
+  consent_set: true,
 };
 const names = Object.keys(everyEvent).filter((name): name is AnalyticsEvent => name in everyEvent);
 
