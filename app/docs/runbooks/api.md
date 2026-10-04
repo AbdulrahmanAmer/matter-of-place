@@ -157,7 +157,13 @@ Measured here, 2026-10-04, on the live build under `wrangler dev` (port 8828) ag
 
 `node scripts/api-smoke.mjs http://127.0.0.1:8828 --cleanup` ran three times against it: `api-smoke: 20 ok, 0 failed` each time. The seed catalog is small, so the byte counts grow with the published set.
 
-Supabase egress is what the Worker reads from Supabase, not what it sends to a visitor (Cloudflare serves those bytes). The Worker reads two RPCs (`src/server/public/state.ts`): `public_state` at most every 15 seconds per isolate, and `public_catalog_snapshot` once per catalog version per isolate. Measured 2026-10-04 on `mop-dev` with the 16 seeded properties (service role, read only): `public_state` 420 bytes (244 gzip); `public_catalog_snapshot` 70,380 bytes (20,258 gzip). STANDARDS R60 allows the snapshot up to 1.5 MB at 100 properties. So the cost of a miss is the snapshot, not the 10 KB list a visitor receives, and it multiplies by the isolates that load it each time the version moves: a deploy or a catalog edit makes every live isolate fetch it again. At 70 KB (raw, the larger figure) the 5 GB a month of Supabase free (P-009) is about 71,000 snapshot loads a month, and at 1.5 MB it is about 3,300. Count the loads for a month before the catalog nears 100 properties; the count of isolates is not measurable here (UNPROVEN, H1 reads it from Supabase usage). A warm read costs the database nothing.
+Supabase egress is what the Worker reads from Supabase, not what it sends to a visitor (Cloudflare serves those bytes). The free 5 GB a month (P-009) is drawn by three consumers, and only the first is measured here.
+
+1. Catalog reads. The Worker reads two RPCs (`src/server/public/state.ts`): `public_state` at most every 15 seconds per isolate, and `public_catalog_snapshot` once per catalog version per isolate. Measured 2026-10-04 on `mop-dev` with the 16 seeded properties (service role, read only): `public_state` 420 bytes (244 gzip); `public_catalog_snapshot` 70,380 bytes (20,258 gzip). STANDARDS R60 allows the snapshot up to 1.5 MB at 100 properties. A miss costs the snapshot, not the 10 KB list a visitor receives, and it multiplies by the isolates that load it each time the version moves: a deploy or a catalog edit makes every live isolate fetch it again. A warm read costs the database nothing.
+2. Storage reads on `/media/<key>` (H33 (3), tech-stack section on files). Every edge cache miss of a media address reads the public `media` bucket, and ASSUMED H33 names 5 GB of Storage egress a month as the wall (only cache misses reach Storage). The Cache API is per data center, so each data center misses once per variant (thumb, card, hero, og, carousel, up to 2560 px WebP) before it serves from cache; published photographs at launch are the first real load. UNPROVEN: the bytes per variant and the count of data centers are not measurable here (no photograph is stored yet), and `limits.json` of B14 measures the wall at 70 and 90 percent.
+3. Write paths. The Worker makes 24 more `.rpc()` calls across the write routes, the hooks, the reconcile and the job runner, and signs upload URLs through the Storage API. Their bytes are UNPROVEN: they are not measured here, and they draw on the same 5 GB.
+
+The 5 GB is shared by the three. At 70 KB (raw) the snapshot alone would use it up in about 71,000 loads and at 1.5 MB in about 3,300, so those figures describe the catalog share only: every photograph miss and every write comes out of the same budget. The count of isolate loads is not measurable here (UNPROVEN, H1 reads it from Supabase usage).
 
 To prove API CPU on a preview (the owner's shell, not CI; the deploy token has no Workers Tail Read, so the local admin token comes from `.env.ops`, which does not exist on this laptop yet):
 
@@ -167,7 +173,7 @@ mkdir -p ../.tmp
 bunx wrangler tail pr-<n> --format json > ../.tmp/tail.jsonl
 ```
 
-In a second shell prepared by the dev loader, run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
+In a second shell prepared by the dev loader (run `unset CLOUDFLARE_API_TOKEN` first: a shell that inherits that name makes the smoke refuse with `refusing: ops variables`, P-837), run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
 
 ```
 node scripts/api-smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev --cleanup
@@ -186,10 +192,13 @@ Then take the maximum `cpuTime` per route from the tail file and note it here. A
 | the six GET reads, `/`, `/properties` and `/sitemap.xml` of the table above                                 | UNPROVEN until `pr-<n>` is deployed and `.env.ops` exists |
 | `POST /submissions` (Zod, Turnstile, up to 20 signed upload URLs), `POST /submissions/:id/uploads`          | UNPROVEN, the likeliest to pass 8 ms: same condition      |
 | `POST /inquiries`, `/subscribers`, `/subjects/request`, `/search`, `/concierge`, `/events`, `/client-error` | UNPROVEN: same condition                                  |
+| `GET /subscribers/confirm` (the smoke calls it with an unknown token; it writes state on a real one)        | UNPROVEN: same condition                                  |
+| `GET /media/<key>` (the smoke does not request it: fetch one published key by hand after the smoke)         | UNPROVEN: same condition                                  |
+| `POST /api/hooks/resend` (the smoke does not request it: it needs a signed body)                            | UNPROVEN: same condition, and a Svix signature to send    |
 
 ## Not yet proved
 
-- The maximum `cpuTime` per API route, write routes included, and the cost of `resolveRedirect` on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
+- The maximum `cpuTime` per API route, write routes, `GET /subscribers/confirm`, `/media/<key>` and `/api/hooks/resend` included, the Storage egress of `/media` misses, and the cost of `resolveRedirect` on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
 - The preview lines (`data-services="live"` on a pull request, `api-smoke.mjs` against it, `x-mop-cache: miss` on workers.dev) wait for the repository variable `VITE_API_BASE_URL`, which the orchestrator sets after this slice is accepted. UNPROVEN until then.
 - The production Worker's secrets are put by the owner (`docs/runbooks/delivery.md`). UNPROVEN while the repository variable `PRODUCTION_DEPLOY` is off.
 - The edge layer on the custom domain and the 95 percent ratio are L1's and H1's.
