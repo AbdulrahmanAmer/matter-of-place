@@ -6,7 +6,8 @@
     "supabase/functions/*/index.ts",
     "tests/**/*.{ts,tsx}",
     "src/domain/index.ts",
-    "src/db/index.ts"
+    "src/db/index.ts",
+    "docs/verify-example.mjs"
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql"],

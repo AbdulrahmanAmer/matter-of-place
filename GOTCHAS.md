@@ -2490,3 +2490,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a scratch registry lives in a folder only this run created, named by group and time (for example `reg-<group>-<epoch>`), and holds only this run's file; check `ls` of the folder before replaying.
 - proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
 - added: 2026-10-04
+
+## P-1700 · The B15 plan's `@/server/` and `@/domain/` imports do not resolve under vitest: server files import by relative `.ts` path
+- symptom: B15 g1's first `bunx vitest run tests/unit/omnikom/payload.test.ts` failed before any test ran: `Error: Cannot find package '@/domain/omnikom.ts' imported from E:/mop-build/handoff/app/src/server/omnikom/payload.ts`, although the plan's Files line says the `@/` specifiers resolve "through the app's tsconfig `@/*` alias in `bun run check`, vitest and `bun run scripts/...`".
+- cause: `vitest.config.ts` declares no `@` alias (only `vite.config.ts` does, for the site build), and no file under `src/server/jobs` or `src/server/automation` uses `@/` at all; R07 allows a relative `.ts` path as well.
+- rule: a Deno-loaded file (`src/server/{jobs,automation,omnikom,...}/**`, `src/domain/**`) imports by relative path with the `.ts` extension (`../lib/hmac.ts`, `../../domain/omnikom.ts`), whatever a plan line says about `@/`.
+- proof: `cd app && grep -c "alias" vitest.config.ts` → `0`; `git grep -n 'from "@/' -- src/server/jobs src/server/omnikom` → no hits; with `../lib/crypto.ts` put back as `@/server/lib/crypto.ts` in `src/server/omnikom/payload.ts` the test file fails with the error above (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1701 · A plan-named file that is not ordinary code fails the layout gate or knip: run both right after creating it
+- symptom: B15 g1's first `bun run check` stopped at `layout: app/tests/unit/omnikom/vector.json: outside the folder map`, the second at knip's `Unused files (1) docs/verify-example.mjs` and `Unused exports (1) classifyStatus`; each failure cost one full check run.
+- cause: `scripts/check-layout.mjs` lists `tests/unit/**/fixtures/**` but not a JSON beside the tests, knip's `entry` holds no `docs/` file, and an export only the file itself uses is unused for knip even when STANDARDS R34 asks for it to be exported.
+- rule: after creating a file the plan names, run `bun run layout && bun run knip` before the full check; add the smallest entry naming the file (ruling H46) and use an exported table in a test or do not export it.
+- proof: `cd app && bun run layout` exits 0 on slice/b15 at B15 g1; with the line `"tests/unit/omnikom/vector.json",` removed from `scripts/check-layout.mjs` it prints the error above.
+- added: 2026-10-04
