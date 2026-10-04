@@ -306,7 +306,20 @@ isOneToOne: false
                     "pushed_at"?: string,"sha256"?: string,"version"?: string
                   }
                   Relationships: [
-                    
+
+                  ]
+                },"ops_heartbeats": {
+                  Row: {
+                    "at": string,"detail": Json | null,"name": string
+                  }
+                  Insert: {
+                    "at": string,"detail"?: Json | null,"name": string
+                  }
+                  Update: {
+                    "at"?: string,"detail"?: Json | null,"name"?: string
+                  }
+                  Relationships: [
+
                   ]
                 },"payments": {
                   Row: {
@@ -679,6 +692,9 @@ isOneToOne: false
             "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
                            },
+"beat":
+{ Args: { "p_detail": Json,"p_name": string }; Returns: undefined
+                           },
 "bump_catalog_version":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -774,8 +790,14 @@ isOneToOne: false
 "job_queue_send":
 { Args: { "p_heavy": boolean,"p_job_id": string,"p_run_after": string }; Returns: number
                            },
+"jobs_liveness":
+{ Args: { "p_now"?: string }; Returns: Json
+                           },
 "mark_media_uploaded":
 { Args: { "p_media_id": string,"p_mime": string,"p_sha256": string }; Returns: boolean
+                           },
+"ops_health":
+{ Args: { "p_now": string }; Returns: Json
                            },
 "public_catalog_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json

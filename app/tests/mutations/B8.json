@@ -294,5 +294,725 @@
     "sql": "alter table public.jobs add column zz_probe int",
     "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t \"jobs columns match\"",
     "expect": "× .*jobs columns match the manifest[\\s\\S]*zz_probe"
+  },
+  {
+    "id": "backoff-base",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "const BASE_MS = 30_000;",
+    "replace": "const BASE_MS = 60_000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*doubles from 30 seconds"
+  },
+  {
+    "id": "backoff-cap",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "Math.min(BASE_MS * 2 ** (attempts - 1), CAP_MS)",
+    "replace": "BASE_MS * 2 ** (attempts - 1)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*caps the delay at one hour"
+  },
+  {
+    "id": "backoff-jitter",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "(0.8 + 0.4 * rand)",
+    "replace": "(0.9 + 0.2 * rand)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts",
+    "expect": "× .*jitters by plus or minus 20 percent"
+  },
+  {
+    "id": "av-outage",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "tests/unit/jobs/backoff.test.ts",
+    "find": "const PROVIDER_MAX_ATTEMPTS = 12;",
+    "replace": "const PROVIDER_MAX_ATTEMPTS = 5;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts -t outage",
+    "expect": "× .*a job with max_attempts 12 survives a 60 minute outage"
+  },
+  {
+    "id": "outage-dead",
+    "test": "tests/unit/jobs/backoff.test.ts",
+    "file": "src/server/jobs/backoff.ts",
+    "find": "2 ** (attempts - 1)",
+    "replace": "2 ** 7",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/backoff.test.ts -t outage",
+    "expect": "× .*a job with max_attempts 5 is dead after its fifth failure"
+  },
+  {
+    "id": "b",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "hmacSha256(secret, ",
+    "replace": "hmacSha256(`${secret}x`, ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*signs the contract vector"
+  },
+  {
+    "id": "hmac-key-ignored",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "hmacSha256(secret, ",
+    "replace": "hmacSha256(\"render-callback-contract-secret\", ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses another secret"
+  },
+  {
+    "id": "hmac-timestamp",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "`${timestamp}.${rawBody}`",
+    "replace": "`.${rawBody}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses another timestamp"
+  },
+  {
+    "id": "hmac-body",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "`${timestamp}.${rawBody}`",
+    "replace": "`${timestamp}.`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses a changed body"
+  },
+  {
+    "id": "hmac-prefix",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "encoder.encode(signature)",
+    "replace": "encoder.encode(signature.startsWith(\"sha256=\") ? signature : `sha256=${signature}`)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses a signature without its prefix"
+  },
+  {
+    "id": "hmac-accept-all",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "return timingSafeEqual(encoder.encode(expected), encoder.encode(signature));",
+    "replace": "return expected !== \"\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*refuses an empty signature"
+  },
+  {
+    "id": "hmac-refuse-all",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "src/server/lib/hmac.ts",
+    "find": "return timingSafeEqual(encoder.encode(expected), encoder.encode(signature));",
+    "replace": "return expected === \"\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*accepts the contract vector"
+  },
+  {
+    "id": "ad",
+    "test": "tests/unit/jobs/entity-filter.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "    `job_event_entity_id.eq.${entityId}`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/entity-filter.test.ts",
+    "expect": "× .*names the event path first"
+  },
+  {
+    "id": "ef-uuid",
+    "test": "tests/unit/jobs/entity-filter.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "if (!UUID.test(entityId)) {",
+    "replace": "if (entityId === \"\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/entity-filter.test.ts",
+    "expect": "× .*throws on a value that is not a uuid"
+  },
+  {
+    "id": "ef-keys",
+    "test": "tests/unit/jobs/entity-filter.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "  \"request_id\",\n] as const;",
+    "replace": "] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/entity-filter.test.ts",
+    "expect": "× .*lists the seven entity keys"
+  },
+  {
+    "id": "en-params",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "params: input.params ?? {},",
+    "replace": "params: input.params,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*writes the envelope with empty params"
+  },
+  {
+    "id": "en-max",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "    p_heavy: input.heavy ?? false,\n    ...(input.runAfter === undefined ? {} : { p_run_after: input.runAfter.toISOString() }),\n    ...(input.maxAttempts === undefined ? {} : { p_max_attempts: input.maxAttempts }),",
+    "replace": "    p_heavy: input.heavy ?? false,\n    ...(input.runAfter === undefined ? {} : { p_run_after: input.runAfter.toISOString() }),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*passes maxAttempts as p_max_attempts"
+  },
+  {
+    "id": "en-error",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "  if (error !== null) throw unavailable(\"enqueue_job\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*throws unavailable when the RPC fails"
+  },
+  {
+    "id": "en-manual",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/jobs.ts",
+    "find": "p_entity_id: input.entityId,",
+    "replace": "p_entity_id: input.type,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*calls enqueue_job_manual with the envelope"
+  },
+  {
+    "id": "en-emit",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/events.ts",
+    "find": "p_entity_id: event.entityId,",
+    "replace": "p_entity_id: event.entity,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*calls emit_event and returns the event id"
+  },
+  {
+    "id": "en-catalog",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/events.ts",
+    "find": "  \"subject_request.received\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*holds the 18 types of the events check"
+  },
+  {
+    "id": "ap-dispatch",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "/actions/workflows/render.yml/dispatches`",
+    "replace": "/dispatches`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*posts one workflow_dispatch of render.yml"
+  },
+  {
+    "id": "di-signal",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "      signal: ctx.signal,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*passes the step's signal to fetch"
+  },
+  {
+    "id": "di-repo",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "if (!token || !repo) {",
+    "replace": "if (!token) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*waits an hour with dispatch_not_configured"
+  },
+  {
+    "id": "di-404",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "  404: \"dispatch_404\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*refuses 404 with NonRetryableError"
+  },
+  {
+    "id": "di-502",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "throw new Error(`dispatch_${String(response.status)}`);",
+    "replace": "throw new NonRetryableError(`dispatch_${String(response.status)}`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*throws a retryable error on a 502"
+  },
+  {
+    "id": "di-table",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "  422: \"dispatch_422\",\n",
+    "replace": "  422: \"dispatch_422\",\n  429: \"dispatch_429\",\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*classifies exactly 401, 403, 404 and 422"
+  },
+  {
+    "id": "di-merge",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "data: { ...job.data, ...extra }",
+    "replace": "data: { ...extra, ...job.data }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*sends claim, env and callback_url with the envelope"
+  },
+  {
+    "id": "di-fixture",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "const MAX_CLIENT_PAYLOAD_CHARS = 65_535;",
+    "replace": "const MAX_CLIENT_PAYLOAD_CHARS = 10_000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*serialises the largest fixture payload"
+  },
+  {
+    "id": "di-too-large",
+    "test": "tests/unit/jobs/dispatch.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "length > MAX_CLIENT_PAYLOAD_CHARS)",
+    "replace": "length > MAX_CLIENT_PAYLOAD_CHARS * 2)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/dispatch.test.ts",
+    "expect": "× .*refuses a client_payload over 65,535"
+  },
+  {
+    "id": "ru-done",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "finishJob(db, { ...ids, result: result.result }))",
+    "replace": "finishJob(db, { ...ids }))",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*finishes a job whose step is done"
+  },
+  {
+    "id": "ru-throw",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const dead = error instanceof NonRetryableError;",
+    "replace": "const dead = true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*fails a job whose step throws, using one attempt"
+  },
+  {
+    "id": "ru-report",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "  await opts.report(error, { fingerprint: [\"job_dead\", job.type] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends a throw at the last attempt to dead"
+  },
+  {
+    "id": "ru-nonretryable",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const dead = error instanceof NonRetryableError;",
+    "replace": "const dead = false;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends NonRetryableError to dead after one attempt"
+  },
+  {
+    "id": "ai",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": ">= UNKNOWN_DEAD_AFTER_MS) {",
+    "replace": ">= 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*requeues an unknown type 23 hours old"
+  },
+  {
+    "id": "ru-unknown-dead",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const UNKNOWN_DEAD_AFTER_MS = 24 * 60 * 60 * 1000;",
+    "replace": "const UNKNOWN_DEAD_AFTER_MS = 48 * 60 * 60 * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends an unknown type 25 hours old to dead"
+  },
+  {
+    "id": "f",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    case \"retry_at\":\n",
+    "replace": "    case \"retry_at_removed\":\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*retry_at keeps attempts"
+  },
+  {
+    "id": "ru-retry-result",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "        kind: \"requeued\",\n        result: result.result,\n",
+    "replace": "        kind: \"requeued\",\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*retry_at with a result persists it"
+  },
+  {
+    "id": "ru-job-result",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "      result: job.result,\n",
+    "replace": "      result: null,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*gives the step what the last attempt stored"
+  },
+  {
+    "id": "ru-now",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const now = opts.now ?? new Date();",
+    "replace": "const now = new Date();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*passes opts.now to the step as the Date ctx.now"
+  },
+  {
+    "id": "ru-params",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "throw new NonRetryableError(\"invalid_params\");",
+    "replace": "throw new Error(\"invalid_params\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends a job whose params fail the step's schema"
+  },
+  {
+    "id": "ru-storage",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "error.code === \"storage_unavailable\"",
+    "replace": "error.code === \"unavailable\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*requeues a step that throws storage_unavailable"
+  },
+  {
+    "id": "ru-claim",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "    claim: ctx.job.claim,\n",
+    "replace": "    claim: ctx.job.id,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*marks the job running and sends claim, env"
+  },
+  {
+    "id": "ru-extra",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "{ status: \"dispatched\", result: extra }",
+    "replace": "{ status: \"dispatched\" }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends payload.data merged with extra"
+  },
+  {
+    "id": "ru-too-large",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/heavy.ts",
+    "find": "length > MAX_CLIENT_PAYLOAD_CHARS)",
+    "replace": "length > MAX_CLIENT_PAYLOAD_CHARS * 2)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends a client_payload over 65,535 characters"
+  },
+  {
+    "id": "v",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "    return {\n      status: \"retry_at\",\n      at: new Date(ctx.now.getTime() + NOT_CONFIGURED_WAIT_MS),\n      reason: \"dispatch_not_configured\",\n    };\n",
+    "replace": "    throw new Error(\"dispatch_not_configured\");\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*requeues an hour ahead with no attempt and no call"
+  },
+  {
+    "id": "ru-502",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "throw new Error(`dispatch_${String(response.status)}`);",
+    "replace": "throw new NonRetryableError(`dispatch_${String(response.status)}`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*uses one attempt on a 502"
+  },
+  {
+    "id": "ru-403",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/dispatch.ts",
+    "find": "  403: \"dispatch_403\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*sends a 403 answer to dead"
+  },
+  {
+    "id": "ru-heavy-cap",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const HEAVY_PER_TICK = 3;",
+    "replace": "const HEAVY_PER_TICK = 10;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*starts at most HEAVY_PER_TICK"
+  },
+  {
+    "id": "bj",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "if (!localIds.has(message.job_id)) {",
+    "replace": "if (localIds.size >= 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*deletes the message of a run_local job"
+  },
+  {
+    "id": "ru-delete",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "await db.rpc(\"job_queue_delete\", {",
+    "replace": "await db.rpc(\"job_queue_archive\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*deletes a duplicate message of a done job"
+  },
+  {
+    "id": "ru-fanout",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const FANOUT_LIMIT = 50;",
+    "replace": "const FANOUT_LIMIT = 100;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*calls the two stubs once per tick"
+  },
+  {
+    "id": "ah",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "  return untilAborted(ctx.signal, () => def.run(ctx, params.data, data));",
+    "replace": "  return def.run(ctx, params.data, data);",
+    "run": "bunx vitest run --project unit --testTimeout=5000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*aborts a step that never resolves"
+  },
+  {
+    "id": "ru-cap",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "Math.min(timeout, LIGHT_TIMEOUT_CAP_MS)",
+    "replace": "timeout",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*runs a light step under 20 s by default"
+  },
+  {
+    "id": "ru-cutoff",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "const START_CUTOFF_MS = 40_000;",
+    "replace": "const START_CUTOFF_MS = 400_000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*starts no new job after 40 seconds"
+  },
+  {
+    "id": "ru-budget",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    if (pastCutoff(tick)) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*time budget stops the loop"
+  },
+  {
+    "id": "q",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "return env === \"development\" || env === \"preview\";",
+    "replace": "return env !== \"production\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*are not registered when MOP_ENV is undefined"
+  },
+  {
+    "id": "ru-preview",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "return env === \"development\" || env === \"preview\";",
+    "replace": "return env === \"development\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*are registered when MOP_ENV is preview"
+  },
+  {
+    "id": "q-runner",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "return env === \"development\" || env === \"preview\";",
+    "replace": "return env !== \"production\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*leave a self-test job waiting as unknown_step"
+  },
+  {
+    "id": "ru-selftest",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/steps/selftest.ts",
+    "find": "throw new NonRetryableError(\"selftest_nonretryable\");",
+    "replace": "throw new Error(\"selftest_nonretryable\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
+    "expect": "× .*runs test.selftest_light to done"
+  },
+  {
+    "id": "ops-hook-no-store",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "\"cache-control\": \"no-store\"",
+    "replace": "\"cache-control\": \"max-age=60\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 200 ok as no-store plain text"
+  },
+  {
+    "id": "ops-hook-names",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "failing.join(\",\")",
+    "replace": "failing.join(\" \")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 naming every failing check"
+  },
+  {
+    "id": "al",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "!timingSafeEqual(bytes(token), bytes(secret))",
+    "replace": "false",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when the token differs"
+  },
+  {
+    "id": "ops-hook-prefix",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when the token is a prefix of the secret"
+  },
+  {
+    "id": "ops-hook-unset",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "secret === undefined || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when OPS_HEALTH_TOKEN is unset"
+  },
+  {
+    "id": "ops-hook-log",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "  logLine(\"error\", \"ops_health_failed\", { message });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc and logs once"
+  },
+  {
+    "id": "ops-hook-no-key",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "    message = error instanceof Error ? error.message : String(error);",
+    "replace": "    throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc when the Worker holds no database key"
+  },
+  {
+    "id": "ops-hook-shape",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "ok: z.boolean()",
+    "replace": "ok: z.unknown()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc to an answer of the wrong shape"
+  },
+  {
+    "id": "aj",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    await beat(db, tick.summary.claimed);\n  }",
+    "replace": "  }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*beats once per runOnce as runner"
+  },
+  {
+    "id": "beat-finally",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    await reapStaleJobs(db);\n    return tick.summary;\n  } finally {\n    await beat(db, tick.summary.claimed);\n  }",
+    "replace": "    await reapStaleJobs(db);\n    await beat(db, tick.summary.claimed);\n    return tick.summary;\n  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*beats once also when the tick throws"
+  },
+  {
+    "id": "beat-log",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "if (error !== null) logLine(\"error\", \"runner_beat_failed\", { message: error.message });",
+    "replace": "if (error !== null) return;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*logs a failing beat RPC once"
+  },
+  {
+    "id": "ops-health-ok",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', false, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"answers ok with no failing name\"",
+    "expect": "× .*answers ok with no failing name"
+  },
+  {
+    "id": "ak",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '30 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names runner when its beat is 4 minutes old\"",
+    "expect": "× .*names runner when its beat is 4 minutes old"
+  },
+  {
+    "id": "ops-health-no-row",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at < p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"never beaten\"",
+    "expect": "× .*names runner when the runner has never beaten"
+  },
+  {
+    "id": "bg",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names stale_queue\"",
+    "expect": "× .*never for a run_local job"
+  },
+  {
+    "id": "ops-health-dead",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names dead_jobs\"",
+    "expect": "× .*names dead_jobs for a job dead 23 hours ago"
+  },
+  {
+    "id": "ops-health-schedules",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"watches keepwarm and backup\"",
+    "expect": "× .*watches keepwarm and backup only while"
+  },
+  {
+    "id": "bg-liveness",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.jobs_liveness(p_now timestamptz default now())\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8b's keep-warm tick reports job_runner_stalled from these two values (JOB-04). A local job waits for the laptop\n  -- by design, so it never reads as a stalled runner (ruling H34 (2)).\n  select jsonb_build_object(\n    'runner_beat_at', (select h.at from public.ops_heartbeats h where h.name = 'runner'),\n    'oldest_due_age_s', (\n      select floor(extract(epoch from p_now - min(j.run_after)))::bigint\n      from public.jobs j\n      where j.status in ('queued', 'failed') and j.run_after <= p_now\n    )\n  );\n$$;\n\nrevoke execute on function public.jobs_liveness(timestamptz) from public, anon, authenticated;\ngrant execute on function public.jobs_liveness(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"leaving run_local jobs out\"",
+    "expect": "× .*leaving run_local jobs out"
+  },
+  {
+    "id": "beat-upsert",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.beat(p_name text, p_detail jsonb)\nreturns void\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- DO-03: the one writer of ops_heartbeats; ops_health reads how old each row is.\n  insert into public.ops_heartbeats (name, at, detail)\n  values (p_name, now(), p_detail)\n  on conflict (name) do nothing;\n$$;\n\nrevoke execute on function public.beat(text, jsonb) from public, anon, authenticated;\ngrant execute on function public.beat(text, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"keeps one row per name\"",
+    "expect": "× .*keeps one row per name and replaces its detail"
+  },
+  {
+    "id": "ops-health-grants",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "grant execute on function public.ops_health(timestamptz) to anon;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"only service_role may execute\"",
+    "expect": "× .*only service_role may execute beat"
+  },
+  {
+    "id": "job-cron-timeout",
+    "test": "tests/db/ops-health.db.test.ts",
+    "file": "supabase/migrations/20261004023709_job_cron.sql",
+    "find": "timeout_milliseconds := 55000",
+    "replace": "timeout_milliseconds := 5000",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"re-applies to one row\"",
+    "expect": "× .*re-applies to one row every minute"
   }
 ]
