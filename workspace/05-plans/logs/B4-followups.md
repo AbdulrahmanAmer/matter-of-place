@@ -65,3 +65,31 @@
    - Evidence: Author's unproven list. No PR run exists to check.
 
 Follow-ups whose file is GOTCHAS.md are banked, not listed here: P-416 (a recurrence went into a new entry), P-417 (P-414 claims B3 updates `analytics.test.ts`, which B3.md never names), P-418 (`watchfail.mjs --only d` replays three registries). For P-417 the orchestrator decides: add the file to B3's Files list or drop the claim from P-414. For P-418 the orchestrator decides whether the runner accepts a slice-qualified id.
+
+## g5 · steps 6
+
+1. `app/src/hooks/use-modal.ts` (not blocking)
+   - What: This file is outside the group's file list, which breaks the one-writer rule. The change was needed: without it the H38 (7) focus cases cannot pass. It is logged and banked as P-420. The plan has not caught up: the B4.md Files list does not name use-modal.ts, and watched-fail (hh) still says to drop a key handler in search-overlay.tsx, which has none (Escape is the useModal call in header.tsx:36). The orchestrator should fold both lines into the plan. Suspected by reading: the hook reads and writes opener.current during render (lines 16-18). React allows that only for initialization. If a render is thrown away after open turns true, opener.current keeps a stale element and no later open replaces it. Nothing in this app opens an overlay in a transition today, so no concrete input triggers this now.
+   - Evidence: git diff origin/main...HEAD --stat lists app/src/hooks/use-modal.ts, and the brief's --files list does not. The watched-fail hh-focus replay went red as it should (WATCHED-FAIL OK R:hh-focus), so the fix works in the built artifact.
+
+2. `app/tests/mutations/B4.json` (not blocking)
+   - What: The seven new entries (i, j, cc, hh, hh-focus, cc-post, rd) are all kind manual. scripts/watchfail.mjs:297 counts manual entries but never replays them, so `node scripts/watchfail.mjs --registry tests/mutations --only i` replays nothing. Plan Verification says the entry exists so that this exact command replays it. The run strings also carry machine-specific values (E2E_PORT=8808, MSYS_NO_PATHCONV=1). The author disclosed this as UNPROVEN. Today these watched-fails can only be replayed by hand.
+   - Evidence: watchfail.mjs lines 295-299: `else if (kindOf(entry) === "manual") { counts.manual += 1; }`. My replay only worked after I copied the entries to a scratch registry with kind removed.
+
+3. `app/tests/e2e/forms.spec.ts` (not blocking)
+   - What: Not every new test was watched failing, as STANDARDS R49 and checklist C08 require. No mutation was run for these six cases: the inquiry dialog form case (property_inquiry), the inquiry dialog Escape case, both backdrop-click cases, the wizard happy path, and the PERF-08 6000x4000 case. Reading them, each looks able to fail: a 6000 px edge fails the 2560 check, a removed track() fails toContain, and a dropped backdrop handler leaves the overlay at count 1. That is UNPROVEN, because none was watched red.
+   - Evidence: tests/mutations/B4.json has entries only for i, j, cc, cc-post, hh, hh-focus and rd. app/tests/WATCHED-FAIL.md has seven g5 rows and none for backdrop, the inquiry dialog or PERF-08.
+
+4. `app/tests/e2e/forms.spec.ts` (not blocking)
+   - What: The FE-04 case (line 277) does not check the 'answered 500 three times' contract. failPuts.on makes every PUT fail, both the original and the thumbnail, and the test never counts PUT attempts. A queue that gave up after one attempt, or retried without limit until the 45 s timeout, would still pass.
+   - Evidence: forms.spec.ts:282-287 sets failPuts.on = true, then asserts only uploadFailed(1) visible and posts length 1. There is no assertion on stubbed.puts.length while failing.
+
+5. `app/tests/e2e/forms.spec.ts` (not blocking)
+   - What: This breaks once H1 enforces the CSP. The stubbed signed upload host is https://storage.fixtures.invalid (line 19). connect-src allows only 'self', challenges.cloudflare.com and the SUPABASE_URL origin (src/server/lib/headers.ts:24-27 and :38-41). Today the policy is Content-Security-Policy-Report-Only (headers.ts:72), so the PUTs go through. Once enforced, Chromium blocks them before page.route sees them, and all four wizard cases go red. Fix: build the stub URLs on the SUPABASE_URL origin from .dev.vars. This is a note for H1/B17.
+   - Evidence: headers.ts:72 has "Content-Security-Policy-Report-Only": cspFor(env, flags), and the connect-src list holds no fixtures.invalid host. (Suspected by reading; I did not run an enforced-CSP build.)
+
+6. `app/tests/e2e/forms.spec.ts` (not blocking)
+   - What: Stale comment (C07). Line 180 says the Put type holds 'the URL, the bytes and the answer the route gave', but the type at line 181 is `{ url: string; body: Buffer }`. It has no answer field.
+   - Evidence: forms.spec.ts:180-181
+
+Follow-ups whose file is GOTCHAS.md are banked, not listed here: the g5 log cited P-419 for the `heic-convert` install and P-421 for a strict-mode locator and a wrong `expect` text, and none covered them. Now: hit-again lines in P-904 (the install), P-066 (the `expect` of `cc-post` and `rd`) and P-154 (the shared scratchpad: a registry folder holding other agents' B14, B8 and B8b entries, a shared check.log), and the new entry P-429 (two header search buttons break strict mode).
