@@ -1910,8 +1910,8 @@
     "kind": "file",
     "test": "tests/unit/headers.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "            ? supabaseOrigin()",
-    "replace": "            ? []",
+    "find": "    \"connect-src\": supabaseOrigin(),",
+    "replace": "    \"connect-src\": [],",
     "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
     "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
   },
@@ -3394,8 +3394,8 @@
     "kind": "file",
     "test": "tests/api/events.api.test.ts",
     "file": "src/server/events/service.ts",
-    "find": "path: maskEmails(path),",
-    "replace": "path,",
+    "find": "path: maskEmails(path),\n      data: scrub(data),",
+    "replace": "path,\n      data: scrub(data),",
     "run": "bunx vitest run --project db tests/api/events.api.test.ts",
     "expect": "× .*scrubs an email-shaped value from data and path"
   },
@@ -3624,8 +3624,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/routes.ts",
-    "find": "limit: 60, windowSeconds: 60",
-    "replace": "limit: 600, windowSeconds: 60",
+    "find": "limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,\n    service: search.match,",
+    "replace": "limit: 600, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,\n    service: search.match,",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
   },
