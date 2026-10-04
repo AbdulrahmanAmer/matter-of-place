@@ -1985,3 +1985,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: append to an array with `array_append(v_list, 'name')` (or cast the literal, `'name'::text`); never `v_list || 'name'`.
 - proof: `cd app && bun run db:psql -- -Atc "select array['a'] || 'b'"` → `ERROR:  malformed array literal: "b"`; `select array_append(array['a'], 'b')` → `{a,b}` (measured 2026-10-04, B8 g5).
 - added: 2026-10-04
+
+## P-513 · A builder read the sizing's file list as its scope: files the step itself said to write were left out twice (B8 step 5, B3 step 12)
+- symptom: B8 step 5's brief listed six files; the plan's Files line for the runner deploy step of `deploy.yml` was outside the list, so no builder wrote it and the Edge Function was never deployed by CI (found by the orchestrator's `ops-health` probe, 503 `fail: runner`). B3 g9 (step 12) owned `docs/runbooks/api.md` alone; the builder returned blocked: "Group g9 owns only app/docs/runbooks/api.md, but step 12 items (0) to (6) build files that exist nowhere and that no group owns".
+- cause: the brief said "Your files: <list>" with nothing about scope, and `plan-brief.mjs` quoted Files lines only for the listed paths, so the builder never saw the description of `scripts/cache-proof.mjs` or the deploy step. The sizing's list exists for lane conflicts, not as an allow-list.
+- rule: the scope of a group is the step text; the file list is ownership. The brief now says so, and `plan-brief.mjs` quotes the Files line of every path a step names. The orchestrator still sizes a group's files from the step's "(Files)" and "(Change)" marks, and a step that names a file another group owns is a sizing defect to fix before launch, not a builder's problem.
+- proof: `node workspace/05-plans/plan-brief.mjs B3 --steps 12 --files app/docs/runbooks/api.md 2>/dev/null | grep -c "cache-proof.mjs\|bundle-check.mjs"` → `11` (was 0); `grep -c "not its scope: the scope is the step text" .claude/workflows/build-slice.js` → `1`.
+- enforced-by: .claude/workflows/build-slice.js (the files line of the builder brief) and workspace/05-plans/plan-brief.mjs
+- added: 2026-10-04

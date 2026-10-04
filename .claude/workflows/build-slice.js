@@ -156,7 +156,7 @@ Your brief, quoted from the plan ${planPath} (open the plan itself only for a se
 ${g.brief || '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs ' + slice + ' --steps "' + g.steps.replace(/\s*(-|to)\s*/g, ',') + '" --files "' + g.files.join(',') + '"` from ' + ROOT + ' and read its output first)'}
 
 Then read the rule index \`node workspace/05-plans/standards-index.mjs\` (one line per rule of STANDARDS.md; open the full rule in STANDARDS.md only when its line concerns your files) and ${APP}/AGENTS.md, then only the spec sections the brief cites and the files you will touch.
-Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}
+Your files: ${g.files.join(', ') || '(as the plan lists for these steps)'}. That list is the group's ownership for lane conflicts, not its scope: the scope is the step text, and every file the steps say to write or change is yours even when the list omits it (P-513; the brief quotes the Files line of each). Only when a step names a file another group of this slice owns do you stop and return "blocked".
 Proof you must run and paste: ${g.proof}
 Working style (ruling H52, measured on 69 agents: the context re-sent per call averaged 238k tokens and a builder made 97 calls): batch independent commands in one call; do not grep around when the brief names the files; run long commands through \`node workspace/05-plans/quiet.mjs -- <command>\`, which prints the summary when green and the failing part in full when red; replay watched-fails through the registry tool in one call when it exists, and never one entry per call by hand.
 
