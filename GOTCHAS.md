@@ -645,6 +645,7 @@ Entry template
 - proof: `git check-attr merge GOTCHAS.md` prints `GOTCHAS.md: merge: gotchas` in every worktree and `git config merge.gotchas.driver` prints the driver line; after the B1b merge `check-gotchas.mjs` printed `ERROR P-064: no added`, and after restoring the line `check-gotchas: OK (16 path entries, 69 process entries)`; on `chore/bank-garden`, `git show 5bd5291:GOTCHAS.md | grep -c "^## P-070 "` → `1` (the merge commit that brought main in, before the clean-up; the branch tip prints `0`).
 - merged: P-302, P-303, P-501
 - hit again: 2026-10-04, B3 g6: `git merge origin/main` printed `merge-gotchas: both sides changed P-008, P-094, P-320; ours kept, compare by hand` and left GOTCHAS.md conflicted with no markers; the main side's `hit again` lines were copied in by a script and each entry's `- added:` moved back to the last line, then `check-gotchas.mjs` printed OK.
+- hit again: 2026-10-04, B4 g6: three merges of origin/main in one group stopped on `both sides changed P-008` (and `G-031` twice) with no markers; a scratch script took the main side's entry and inserted each line only the lane held after its preceding line, then `sort | uniq -d` over each entry printed nothing and `check-gotchas.mjs` printed OK.
 - added: 2026-10-02
 - hit again: 2026-10-04, B3 g8: `git merge origin/main` printed `merge-gotchas: both sides changed P-094, P-310, P-706, P-1001; ours kept, compare by hand`; the four theirs-only `hit again` lines were copied in by a script that diffed each entry against the base, and `check-gotchas.mjs` printed OK.
 
