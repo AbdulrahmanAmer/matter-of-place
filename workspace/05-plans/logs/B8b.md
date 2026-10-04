@@ -183,3 +183,86 @@ UNPROVEN: the `isImplemented` real-registry case for `bump_catalog_version` (g4)
 ## g2 · follow-ups recorded
 
 The g2 review found no blocking defect. Seven follow-ups: one is a cost mapped to the wrong gotcha entry and is banked as a "hit again" line in P-076 (no new entry; P-1604 covers only knip). The other six are recorded in `workspace/05-plans/logs/B8b-followups.md` under "## g2 · steps 2-3" for the orchestrator to fold or assign. No code changed.
+
+## g3 · steps 4 (first half)
+
+Branch `slice/b8b`, brought up to `origin/main` at the start (already up to date). Local commit `edaac8d` before the replays.
+
+What was built
+- `src/server/automation/cron.ts`: `nextRun` (cron-parser, UTC), `startOfUtcDay`, `scheduleNext`, `dueAt`, `isDue`, exactly as invariant 12.
+- `src/server/jobs/scheduler.ts`: `runDueSchedules(db, now)` for `digest`, `prune`, `reconcile`, `kpi_weekly`, `newsletter_hygiene`: one guarded `claim_schedule`, then emit or enqueue, a rollback claim on a throw, the advance-only branch with `// STUB(B11): kpi_weekly and newsletter_hygiene registered`. `keepwarm`, `audit` and `backup` are never claimed here.
+- `src/server/automation/fanout.ts`: `fanoutEvent(db, eventId)` and `fanoutPendingEvents(db, limit)`; one `fanout_insert_jobs` per event, the sweep reads `fanout_pending_events`, a failure logs `fanout_failed` `{ eventId, code }`, calls `record_fanout_failure`, and after one hour enqueues `notify_admin` keyed `fanout_failed:<event_id>`. An invalid payload is planned raw and logged `fanout_payload_invalid`.
+- `src/server/lib/log-events.ts`: the six `fanout_*` and `schedule_*` names (g4 appends the rest).
+- `cron-parser` 5.10.1 in `package.json` and `bun.lock`, `"cron-parser": "npm:cron-parser@5.10.1"` in `supabase/functions/job-runner/deno.json`, `deno.lock` regenerated with B8's `deno cache --lock=...` command.
+- `supabase/migrations/20261004163000_automation_seed.sql` (18 recipes, 6 decline reasons, 6 channel rows with `tz`, 8 schedule rows; every insert `on conflict do nothing`) and `20261004163001_automation_schedules.sql` (`cron.unschedule('prune')` guarded by `where exists`). No schema change, so `src/db/types.ts` is unchanged (no `gen:types` needed).
+- Tests: `tests/unit/automation/{cron,scheduler,fanout}.test.ts`, six cases appended to `tests/db/automation.db.test.ts` (they run the migration file text inside the rolled-back transaction, so they hold before and after `main` pushes it), 41 entries `b8b-g3-*` in `tests/mutations/B8b.json`.
+- Outside the group list (P-513): `tests/unit/jobs/runner.test.ts` (B8) mocked fanout and scheduler with `{ spy: true }`, which runs the real code; with the real bodies 33 of 39 cases failed on `unexpected rpc fanout_pending_events`. The two mocks are now bare `vi.mock(import(...))` (P-1607). Its 33 registry entries replay OK.
+
+Decisions and findings for the orchestrator
+- Plan line (invariant 11): "`getStep(<key>)` (B8's registry, which merges the system types)". `getStep` does not merge them; the runner uses `getStep(type) ?? getSystemJob(type)`. The scheduler asks `getSystemJob(key)`, where B11 registers both types (P-1608).
+- Plan command `bun add --exact cron-parser@5` stored `"5"`; pinned by hand to `5.10.1` (P-1606).
+- `fanoutEvent` reads the event and the recipe with `.eq(...)` table reads; `fakeDb` ignores filters, so each fanout test registers only the matching rows.
+- A `record_fanout_failure` error throws `unavailable` and ends the sweep (no log name exists for it; a database that cannot record is down for the rest of the tick too).
+- A bad `cron` text in a `schedule_settings` row would throw from `isDue` and end the tick; g5's put validates `cron` through `nextRun`, so only a direct SQL edit can store one. Not handled here (not in the Contract).
+- The dry-run equality case compares `planEvent` with the RPC's `p_jobs` until g5 re-points it at `dryRun`.
+- Seed copy (decline paragraphs, recipe names) is ASSUMED, for the CEO's review before launch.
+- Watched-fail `b8b-g3-fan-recipe-edit` is `manual`: invariant 5 is structural (the RPC arguments are built before the edit and both zod parses copy params), so no one-file mutation can alias them.
+
+### Proof: `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
+```
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+```
+### Proof: `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+```
+ Test Files  1 passed (1)
+      Tests  1 passed | 4 skipped (5)
+```
+### Proof: `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` (from `app/`)
+```
+Check supabase/functions/job-runner/index.ts
+deno exit=0
+```
+### Proof: `bun run scripts/stubs.ts`
+```
+src/server/jobs/scheduler.ts:83 STUB(B11): kpi_weekly and newsletter_hygiene registered
+stubs: 10 markers, 0 on closed slices
+```
+(no `STUB(B8b step 4)` marker left; the other nine markers belong to B3b, B8, B15, B5 and B9.)
+### Proof: `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → no output, exit 1. The em dash grep of the brief (U+2014) over `supabase/migrations/*automation_seed.sql` → no output, exit 1.
+### Proof: db tests on mop-dev inside rolled-back transactions (P-312); the CI `db` job does not exist on main (`ci.yml` has `run`, `check`, `build`, `merge-gate`), so it is UNPROVEN
+`env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` (dev profile):
+```
+      Tests  28 passed (28)
+```
+Whole db project with `MOP_MUTATION_SQL` = the two new migrations:
+```
+ FAIL  |db| tests/db/gate.db.test.ts > publish gate > publish_incomplete without country
+error: deadlock detected
+ FAIL  |db| tests/db/jobs.db.test.ts > health_counts > returns backup null while schedule_settings is absent
+AssertionError: expected { absent: false, backup: { …(2) } } to deeply equal { absent: true, backup: null }
+ Test Files  2 failed | 28 passed (30)
+      Tests  2 failed | 442 passed (444)
+```
+The gate case is another lane's lock (P-1602, P-322): `tests/db/gate.db.test.ts` alone with the same prelude → `Tests  30 passed (30)`. The jobs case is B8's, red on mop-dev since g1's `schedule_settings` table was pushed, whatever this group does (P-916, B8 follow-up). `tests/db/integrity.db.test.ts`, slow in a first loaded run, alone → `Tests  51 passed (51)`.
+### Proof: watched-fail replays (one id per call, P-066)
+```
+WATCHED-FAIL OK B8b:b8b-g3-<id>   for all 40 replayable entries (32 unit, lint and deno, 8 db)
+```
+Brief items: (g) `b8b-g3-g`, (t) `b8b-g3-t`, (y) `b8b-g3-y`, (ac) `b8b-g3-ac`, (a) `b8b-g3-a` (fan-out against `planEvent` until g5), (ah) `b8b-g3-ah`, (an) `b8b-g3-an`, (aj) `b8b-g3-aj` (eslint: `Deno-loaded file: import with the .ts extension`) and `b8b-g3-aj-deno` (`Type checking failed`), seed idempotency `b8b-g3-seed-twice`. B8's 33 runner-test entries from a fresh folder: `watchfail: replayed 33: ok 33, bad 0, stale 0`.
+### Proof: `bun run check` (from `app/`)
+```
+quiet: ok (47 lines, showing the last 12)
+exit=0
+```
+### Proof: `bun run build`
+```
+quiet: ok (235 lines, showing the last 12)
+```
+### Proof: `node scripts/check-migrations.mjs` after the commit
+```
+migration-order: OK (25 on main, 2 added)
+```
+
+UNPROVEN until after the merge and the `dev` job: the five `select`s on mop-dev (18 recipes, eight schedules, no `prune` in `cron.job`, a `tz` per channel, a scheduler `reconcile:<date>T<HH:MM>` job `done`), the `job-runner` deploy as the runtime import proof of `npm:cron-parser@5.10.1`, and the `curl` of the runner answering 200 with `"claimed"`. The `settings.flags` select waits on B3b. The CI `db` job: none exists.
+Bank: P-1606, P-1607, P-1608, P-1609 added, P-094 hit again.
