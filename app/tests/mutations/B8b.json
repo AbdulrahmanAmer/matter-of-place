@@ -692,5 +692,367 @@
     "replace": "return true;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
     "expect": "× .*skips a step the registry does not implement"
+  },
+  {
+    "id": "b8b-g3-cron-utc",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "{ currentDate: from, tz: \"UTC\" }",
+    "replace": "{ currentDate: from, tz: \"America/New_York\" }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*nextRun gives the first UTC slot"
+  },
+  {
+    "id": "b8b-g3-cron-start-of-day",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "date.getUTCMonth(), date.getUTCDate()))",
+    "replace": "date.getUTCMonth(), date.getUTCDate() + 1))",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*startOfUtcDay drops the time of day"
+  },
+  {
+    "id": "b8b-g3-cron-due-equal",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": ".getTime() <= now.getTime()",
+    "replace": ".getTime() < now.getTime()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*reconcile with last_run_at 10:00 is due"
+  },
+  {
+    "id": "b8b-g3-g",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "if (row.interval_days === null) return nextRun(row.cron, from);",
+    "replace": "if (row.interval_days !== -1) return nextRun(row.cron, from);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*digest every 14 days is due"
+  },
+  {
+    "id": "b8b-g3-cron-fresh",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "return nextRun(row.cron, new Date(now.getTime() - MINUTE_MS));",
+    "replace": "return nextRun(row.cron, new Date(now.getTime() - 60 * MINUTE_MS));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*a row that never ran is due"
+  },
+  {
+    "id": "b8b-g3-cron-late-once",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "if (row.interval_days === null) return nextRun(row.cron, from);",
+    "replace": "if (row.interval_days === null) return nextRun(row.cron, new Date(from.getTime() - 15 * MINUTE_MS));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*a tick 3 minutes late still finds"
+  },
+  {
+    "id": "b8b-g3-cron-enabled",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "return row.enabled && dueAt",
+    "replace": "return true && dueAt",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*a stored next_run_at decides"
+  },
+  {
+    "id": "b8b-g3-cron-no-slip",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "const earliest = startOfUtcDay(from).getTime()",
+    "replace": "const earliest = from.getTime() + MINUTE_MS",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*a digest claim at 2026-10-27"
+  },
+  {
+    "id": "b8b-g3-cron-plain-next",
+    "test": "tests/unit/automation/cron.test.ts",
+    "file": "src/server/automation/cron.ts",
+    "find": "if (row.interval_days === null) return nextRun(row.cron, from);",
+    "replace": "if (row.interval_days === null) return nextRun(row.cron, new Date(from.getTime() - DAY_MS));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/cron.test.ts",
+    "expect": "× .*without interval_days the next run"
+  },
+  {
+    "id": "b8b-g3-t",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "const claimed = await claim(db, key, old, claimedAt, next);",
+    "replace": "const claimed: Claim = \"claimed\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a due digest emits digest.due once"
+  },
+  {
+    "id": "b8b-g3-sch-entity",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "entityId: null,",
+    "replace": "entityId: \"system\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*emit_event gets no p_entity_id"
+  },
+  {
+    "id": "b8b-g3-sch-prune-key",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "idempotencyKey: `prune:${utcDate(now)}`",
+    "replace": "idempotencyKey: `prune:${now.toISOString()}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*prune enqueues the key"
+  },
+  {
+    "id": "b8b-g3-sch-since",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "data: since === null ? {} : { since },",
+    "replace": "data: {},",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a due reconcile at 10:15 enqueues"
+  },
+  {
+    "id": "b8b-g3-sch-quarter",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "const minute = now.getUTCMinutes() - (now.getUTCMinutes() % 15);",
+    "replace": "const minute = now.getUTCMinutes();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a reconcile that never ran and a late tick"
+  },
+  {
+    "id": "b8b-g3-sch-registered",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "getSystemJob(key) === undefined",
+    "replace": "getSystemJob(key) !== null",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a due kpi_weekly enqueues"
+  },
+  {
+    "id": "b8b-g3-sch-advance-only",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "const advanced = await claim(db, key, old, old, next);",
+    "replace": "const advanced = await claim(db, key, old, now.toISOString(), next);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*an unregistered kpi_weekly only moves"
+  },
+  {
+    "id": "b8b-g3-sch-not-impl-log",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "if (advanced === \"claimed\") logLine(",
+    "replace": "if (advanced === \"error\") logLine(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*an unregistered newsletter_hygiene only moves"
+  },
+  {
+    "id": "b8b-g3-sch-rollback",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "const restored = await claim(db, key, claimedAt, old, oldNext);",
+    "replace": "const restored: Claim = \"taken\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a throwing emit puts last_run_at back"
+  },
+  {
+    "id": "b8b-g3-sch-rollback-last",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "const restored = await claim(db, key, claimedAt, old, oldNext);",
+    "replace": "const restored = await claim(db, key, claimedAt, claimedAt, oldNext);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a throwing enqueue is retried"
+  },
+  {
+    "id": "b8b-g3-sch-rollback-missed",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "if (restored !== \"claimed\") logLine(",
+    "replace": "if (restored === \"error\") logLine(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a rollback that finds the row switched off"
+  },
+  {
+    "id": "b8b-g3-sch-claim-failed",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "  if (claimed === \"error\") logLine(\"warn\", \"schedule_claim_failed\", { key });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a claim RPC error logs"
+  },
+  {
+    "id": "b8b-g3-sch-runner-keys",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "if (isRunnerKey(row.key) && isDue(row, now)",
+    "replace": "if (isDue(row, now)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*keepwarm, audit and backup are never claimed"
+  },
+  {
+    "id": "b8b-g3-a",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "const plan = planEvent(recipe, { id: event.id, payload }, { registry: getStep });",
+    "replace": "const plan = planEvent({ ...recipe, steps: recipe.steps.map((s) => ({ ...s, enabled: true })) }, { id: event.id, payload }, { registry: getStep });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*sends exactly the planned list"
+  },
+  {
+    "id": "b8b-g3-fan-one-rpc",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "  return fanout(db, event);\n",
+    "replace": "  await fanout(db, event);\n  return fanout(db, event);\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*makes exactly one fanout_insert_jobs RPC"
+  },
+  {
+    "id": "b8b-g3-fan-recipe-edit",
+    "kind": "manual",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*a recipe edit after fan-out leaves",
+    "procedure": "Structural (invariant 5): fanout.ts builds the RPC arguments before the edit, and both the recipe parse (stepSchema) and the planner's paramsSchema copy the params, so no one-file mutation can alias them. The case stays as the named test of invariant 5; its fake records the arguments by reference, so an implementation that sent the live recipe objects would show the edit."
+  },
+  {
+    "id": "b8b-g3-ah",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "      max_attempts: spec.maxAttempts ?? defaultMaxAttempts,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*carries max_attempts 12 for send_email"
+  },
+  {
+    "id": "b8b-g3-an",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "      run_local: spec.local ?? false,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*sets run_local true for the write_captions"
+  },
+  {
+    "id": "b8b-g3-fan-payload-invalid",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "logLine(\"warn\", \"fanout_payload_invalid\", { eventId: event.id });",
+    "replace": "logLine(\"warn\", \"fanout_failed\", { eventId: event.id });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*an invalid payload is still planned"
+  },
+  {
+    "id": "b8b-g3-y",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "    try {\n      inserted += await fanout(db, event);\n    } catch (failure) {\n      await recordFailure(db, event, failure);\n    }\n",
+    "replace": "    inserted += await fanout(db, event);\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*a first event whose RPC throws"
+  },
+  {
+    "id": "b8b-g3-ac",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "  const { error } = await db.rpc(\"record_fanout_failure\", {\n    p_event_id: event.id,\n    p_error: message,\n  });\n  if (error !== null) throw unavailable(\"record_fanout_failure\");\n",
+    "replace": "  void message;\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*with limit 2 and two always-failing"
+  },
+  {
+    "id": "b8b-g3-fan-notify",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "if (Date.now() - Date.parse(event.at) <= HOUR_MS) return;",
+    "replace": "if (Date.now() - Date.parse(event.at) <= 3 * HOUR_MS) return;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*an event failing an hour after its at"
+  },
+  {
+    "id": "b8b-g3-aj",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "import { planEvent, type PlanRecipe } from \"./plan.ts\";",
+    "replace": "import { planEvent, type PlanRecipe } from \"./plan\";",
+    "run": "bunx eslint --max-warnings 0 src/server/automation/fanout.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "b8b-g3-aj-deno",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/fanout.ts",
+    "find": "import { planEvent, type PlanRecipe } from \"./plan.ts\";",
+    "replace": "import { planEvent, type PlanRecipe } from \"./plan\";",
+    "run": "deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "expect": "Type checking failed"
+  },
+  {
+    "id": "b8b-g3-seed-counts",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "insert into public.automation_recipes (trigger, name, steps) values ('payment.marked', 'Payment', '[]') on conflict (trigger) do update set steps = '[]'",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"holds one recipe per event type\"",
+    "expect": "× .*holds one recipe per event type"
+  },
+  {
+    "id": "b8b-g3-seed-schedules",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "insert into public.schedule_settings (key, cron) values ('reconcile', '*/20 * * * *') on conflict (key) do update set cron = excluded.cron",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"seeds the eight schedule rows\"",
+    "expect": "× .*seeds the eight schedule rows"
+  },
+  {
+    "id": "b8b-g3-seed-tz-check",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "alter table public.channel_settings drop constraint channel_settings_posting_window_check",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"gives every channel a zone\"",
+    "expect": "× .*gives every channel a zone"
+  },
+  {
+    "id": "b8b-g3-seed-tz-empty",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "insert into public.channel_settings (channel, posting_window) values ('x', '{\"tz\": \"\"}') on conflict (channel) do update set posting_window = excluded.posting_window",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"gives every channel a zone\"",
+    "expect": "× .*gives every channel a zone"
+  },
+  {
+    "id": "b8b-g3-seed-other-empty",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "insert into public.decline_reasons (code, label, email_paragraph, sort) values ('other', 'Other, see note', 'See the note.', 6) on conflict (code) do update set email_paragraph = excluded.email_paragraph",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"seeds six decline reasons\"",
+    "expect": "× .*seeds six decline reasons"
+  },
+  {
+    "id": "b8b-g3-seed-twice",
+    "test": "tests/db/automation.db.test.ts",
+    "file": "supabase/migrations/20261004163000_automation_seed.sql",
+    "find": "on conflict (trigger) do nothing;",
+    "replace": "on conflict (trigger) do update set name = automation_recipes.name || '.';",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"run twice in one transaction\"",
+    "expect": "× .*run twice in one transaction"
+  },
+  {
+    "id": "b8b-g3-schedules-prune",
+    "test": "tests/db/automation.db.test.ts",
+    "file": "supabase/migrations/20261004163001_automation_schedules.sql",
+    "find": "select cron.unschedule('prune') where exists (select 1 from cron.job where jobname = 'prune');",
+    "replace": "select 1;",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"removes B8's prune pg_cron job\"",
+    "expect": "× .*removes B8's prune pg_cron job"
+  },
+  {
+    "id": "b8b-g3-schedules-no-reconcile-uploads",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "select cron.schedule('reconcile_uploads', '*/15 * * * *', 'select 1')",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"removes B8's prune pg_cron job\"",
+    "expect": "× .*removes B8's prune pg_cron job"
   }
 ]

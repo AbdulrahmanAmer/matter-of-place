@@ -816,6 +816,7 @@ Entry template
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
 - hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
+- hit again: 2026-10-04, B8b g3: a `cat > /dev/null; python - 2>/dev/null; node -e "..."` line (two stdin readers pasted ahead of a node patch of `tests/unit/automation/fanout.test.ts`) moved to the background at 120 s; the bash and python processes were stopped by their own ids (`ps -ef`, `kill <pid>`), `grep -c JsonStep` showed the node half had not run, and the five edits were made with the Edit tool. Never start a command with a stdin reader.
 - hit again: 2026-10-04, B3 c13 (fifth fix of `docs/runbooks/api.md`): a stray `python -` in a chain spun for two minutes and was killed; the chain's `node` edit then ran anyway and wrote the P-844 hit-again lines twice, and the first copy was removed by hand. The reusable half: killing a spinning step in an `&&` or `;` chain does not stop the steps after it, they run once the killed step ends. Reviewer follow-up: the P-844 line first said the chain "ran nothing", which contradicted this; it now says what happened. Proof: `grep -c "chain ran noth[i]ng" GOTCHAS.md` → `0`.
 - hit again: 2026-10-04, B8 c8w: a `python - <<EOF || echo nopy` guard ahead of a `node` patch hung 120 seconds in the background once more (typed from habit, the rule was in the bank map); `Get-CimInstance Win32_Process` creation times told my process id from another lane's, `taskkill //PID <id> //F` ended it and the chained node edit then ran. Write a patch as a `node` file or with the Edit tool, no python guard in front.
 - hit again: 2026-10-04, B3 g3: `python3 - <<EOF` for a four-line edit hung the shell for 120 seconds before anything ran; the edit was redone with `node` and the Edit tool.
@@ -1332,6 +1333,34 @@ Entry template
 - cause: R27 was written before ruling H34 (2) added the `local` class; no gate reads it (`grep -rn R27 app/scripts app/tests` finds nothing).
 - rule: `step-specs.ts` follows the Contract (both fields optional, `defaultMaxAttempts` 5 applied by the planner so a dry-run shows the number); R27's "every entry" is read as "every effective value is defined", and `tests/unit/automation/step-specs.test.ts` asserts the provider types at 10 or more and the light ones at the default. An orchestrator who wants explicit values edits R27 and the Contract together.
 - proof: `cd app && bunx vitest run tests/unit/automation/step-specs.test.ts` passes 7 cases; `grep -n "R27" ../workspace/05-plans/STANDARDS.md` shows the rule text.
+- added: 2026-10-04
+
+## P-1606 · `bun add --exact cron-parser@5` writes `"cron-parser": "5"`, not an exact version
+- symptom: B8b g3 ran the plan's command and `package.json` held `"5"` while `bun.lock` resolved `5.10.1`; SEC-13 wants the same exact version in `deno.json`.
+- cause: `--exact` only drops the caret bun would add to a resolved version; a range given on the command line (`@5`) is stored as typed.
+- rule: install a dependency the plans pin with `bun add --exact <name>@<full version>`, or read the resolved version from `bun.lock` and write it into `package.json` before copying it to `deno.json`; then `grep -n "<name>" package.json supabase/functions/job-runner/deno.json` shows the same three-part version.
+- proof: `cd app && grep -n '"cron-parser"' package.json bun.lock` → `package.json:58:    "cron-parser": "5.10.1",` and `bun.lock:11:        "cron-parser": "5.10.1",` (after the fix; before it `package.json` printed `"5"`, measured 2026-10-04, B8b g3).
+- added: 2026-10-04
+
+## P-1607 · `vi.mock(path, { spy: true })` keeps the real implementation: replacing a stub breaks every test that only meant to count its calls
+- symptom: B8b g3 replaced the bodies of `fanoutPendingEvents` and `runDueSchedules`, and 33 of 39 cases of `tests/unit/jobs/runner.test.ts` (B8) failed: `runOnce` now reached `fanout_pending_events` on a `fakeDb` that registers no such RPC (`unexpected rpc fanout_pending_events`).
+- cause: the runner test mocked both modules with `{ spy: true }`, which wraps the original functions; while they were stubs returning 0 the difference was invisible.
+- rule: a test that only counts or rejects calls of another module mocks it with a bare `vi.mock(import(path))` (every export a `vi.fn()` returning undefined), never `{ spy: true }`, unless it means to run the real code. A group that replaces a stub greps the tests for `vi.mock(import("<its file>")` and runs them before the commit.
+- proof: `cd app && bunx vitest run tests/unit/jobs/runner.test.ts` → `Tests  39 passed (39)` with the bare mocks; with `{ spy: true }` put back on the two lines → `Tests  33 failed | 6 passed (39)` (measured 2026-10-04, B8b g3).
+- added: 2026-10-04
+
+## P-1608 · B8b invariant 11 says the scheduler asks `getStep(<key>)` "which merges the system types"; `getStep` does not, `getSystemJob` holds them
+- symptom: building the `kpi_weekly` and `newsletter_hygiene` branch of `src/server/jobs/scheduler.ts`: `src/server/jobs/steps/index.ts` `getStep` searches only the step catalog and the self-test steps, and the runner looks up a job as `getStep(type) ?? getSystemJob(type)` (`src/server/jobs/runner.ts`).
+- cause: the plan line assumed a merged registry that B8 never built; B11 registers both types as system jobs (`src/server/jobs/system/kpi-weekly.ts`), so `getStep` would answer undefined for them forever and the schedule would never fire.
+- rule: the scheduler asks `getSystemJob(<key>)` from `src/server/jobs/system/index.ts`; a test stubs that module's `getSystemJob`. A plan line that names a registry function is checked against the file before it is coded.
+- proof: `cd app && grep -n "getSystemJob\|getStep" src/server/jobs/runner.ts src/server/jobs/scheduler.ts` → the runner's `getStep(job.type) ?? getSystemJob(job.type)` and the scheduler's `getSystemJob(key) === undefined` (measured 2026-10-04, B8b g3).
+- added: 2026-10-04
+
+## P-1609 · `fakeDb` hands out its registered row objects by reference, so a stateful fake RPC changes a row the code still holds
+- symptom: two `scheduler.test.ts` cases (`a throwing emit puts last_run_at back`, `a throwing enqueue is retried`) failed: the rollback restored `next_run_at` to the value the claim had just written, because the code read `row.next_run_at` after the fake `claim_schedule` had updated that same object.
+- cause: `from(name).select()` in `tests/fixtures/fake-db.ts` resolves to the registered array itself, and a fake RPC that models SQL by mutating those rows aliases what the code read; a real client gets a copy.
+- rule: code reads every value it will need later (old clock values, ids) into locals before the first write RPC, which is also right against a real database; a test that models SQL state in a fake mutates the registered rows on purpose and asserts on them.
+- proof: `cd app && bunx vitest run tests/unit/automation/scheduler.test.ts` → `Tests  14 passed (14)` with `const { last_run_at: old, next_run_at: oldNext } = row;` at the top of `runSchedule`; reading `row.next_run_at` in the rollback instead gives the two failures above (measured 2026-10-04, B8b g3).
 - added: 2026-10-04
 
 ## Retired, enforced
