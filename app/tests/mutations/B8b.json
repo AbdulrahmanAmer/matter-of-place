@@ -206,5 +206,491 @@
     "sql": "alter table public.automation_revisions alter column note set not null;",
     "run": "bunx vitest run --project db tests/db/schema.db.test.ts -t \"automation_revisions columns match\"",
     "expect": "× .*automation_revisions columns match the manifest[\\s\\S]*\"note\": \"text"
+  },
+  {
+    "id": "b8b-g2-catalog-17-types",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "  \"queue_digest\",\n  \"webhook_omnikom\",\n] as const;",
+    "replace": "  \"queue_digest\",\n] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*lists the 17 step types"
+  },
+  {
+    "id": "b8b-g2-catalog-fields-entry",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "paramsSchema: z.object({ flip_coming_soon: z.boolean().default(true) }).strict(),",
+    "replace": "paramsSchema: z.object({ flip_coming_soon: z.boolean().default(true), extra: z.string().optional() }).strict(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*gives every schema key a fields entry"
+  },
+  {
+    "id": "b8b-g2-catalog-defaults-parse",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": ".max(8).default(8)",
+    "replace": ".max(8).default(10)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*parses every spec's defaults"
+  },
+  {
+    "id": "b8b-g2-catalog-queue-mode",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "z.enum([\"add\", \"assemble\"])",
+    "replace": "z.enum([\"add\", \"assemble\", \"send\"])",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*limits queue_digest mode"
+  },
+  {
+    "id": "b8b-g2-catalog-og-pages",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": ".array(z.enum(ogStaticPages))",
+    "replace": ".array(z.string())",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*limits render_og_static pages"
+  },
+  {
+    "id": "b8b-g2-catalog-requester",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "const emailRecipients = [\"submitter\", \"inquirer\", \"subscriber\", \"requester\", \"admins\"] as const;",
+    "replace": "const emailRecipients = [\"submitter\", \"inquirer\", \"subscriber\", \"admins\"] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*accepts requester"
+  },
+  {
+    "id": "b8b-g2-catalog-params-strict",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": ".min(6).max(8)",
+    "replace": ".min(6).max(9)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*refuses a params key"
+  },
+  {
+    "id": "b8b-g2-catalog-event-count",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "  \"health.failed\",\n  \"subject_request.received\",\n] as const;",
+    "replace": "  \"health.failed\",\n] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*keeps the 18 event types"
+  },
+  {
+    "id": "b8b-g2-catalog-example-parse",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "scheduled_for: z.string().datetime()",
+    "replace": "scheduled_for: z.number()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*parses the example payload"
+  },
+  {
+    "id": "b8b-g2-catalog-awaiting-note",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "note: z.string().min(1), tier: payloadTier, market",
+    "replace": "note: z.string().optional(), tier: payloadTier, market",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*refuses an awaiting_assets payload"
+  },
+  {
+    "id": "b8b-g2-catalog-passthrough",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "\"inquiry.received\": z.object({ inquiry_id: id }).passthrough(),",
+    "replace": "\"inquiry.received\": z.object({ inquiry_id: id }).strip(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*keeps fields a producer adds"
+  },
+  {
+    "id": "b8b-g2-catalog-isimplemented",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/catalog.ts",
+    "find": "return registry(type) !== undefined;",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*says no module for a step"
+  },
+  {
+    "id": "b8b-g2-catalog-youtube",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/server/automation/catalog.ts",
+    "find": "youtube: null,",
+    "replace": "youtube: \"post_meta\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*maps each channel"
+  },
+  {
+    "id": "b8b-g2-catalog-step-defaults",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "requires_approval: z.boolean().default(false),",
+    "replace": "requires_approval: z.boolean().default(true),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*fills a step's defaults"
+  },
+  {
+    "id": "b8b-g2-catalog-condition-enum",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "tiers: z.array(z.enum(tiers)).min(1).optional(),",
+    "replace": "tiers: z.array(z.string()).min(1).optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*refuses a condition outside"
+  },
+  {
+    "id": "b8b-g2-catalog-repeated-id",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "if (seen.has(step.id)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*refuses a repeated step id"
+  },
+  {
+    "id": "b8b-g2-catalog-max-steps",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": ".max(maxSteps)",
+    "replace": ".max(maxSteps + 5)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
+    "expect": "× .*refuses a 21st step"
+  },
+  {
+    "id": "b8b-g2-approval-null-after",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "settings.auto_after === null || today < settings.auto_after",
+    "replace": "today < (settings.auto_after ?? \"\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*is manual when auto_after is null"
+  },
+  {
+    "id": "b8b-g2-approval-on-the-day",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "today < settings.auto_after) return",
+    "replace": "today <= settings.auto_after) return",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*is manual before auto_after"
+  },
+  {
+    "id": "b8b-g2-approval-manual-tier",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "if (settings.approval_mode[tier] !== \"auto\") return \"manual\";",
+    "replace": "if (false) return \"manual\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*is always manual for a tier"
+  },
+  {
+    "id": "b8b-g2-approval-cap-default",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "daily_cap: z.number().int().min(1).max(25).default(2),",
+    "replace": "daily_cap: z.number().int().min(1).max(25).default(3),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*fills a daily cap of 2"
+  },
+  {
+    "id": "b8b-g2-approval-tz-required",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "tz: z.string().refine(isTimeZone,",
+    "replace": "tz: z.string().optional().refine(() => true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*refuses a window without tz"
+  },
+  {
+    "id": "b8b-g2-approval-unknown-zone",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "return true;\n  } catch {\n    return false;",
+    "replace": "return true;\n  } catch {\n    return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*refuses an unknown zone"
+  },
+  {
+    "id": "b8b-g2-approval-from-before-to",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "window.from < window.to",
+    "replace": "window.from !== window.to",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*does not start before it ends"
+  },
+  {
+    "id": "b8b-g2-approval-cap-zero",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": ".min(1).max(25).default(2)",
+    "replace": ".min(0).max(25).default(2)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*refuses a daily_cap of 0"
+  },
+  {
+    "id": "b8b-g2-approval-put-keys",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "interval_days: intervalDays.nullable().optional(),",
+    "replace": "interval_days: z.string().optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*accepts the four keys"
+  },
+  {
+    "id": "b8b-g2-approval-put-strict",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "last_run_at: z.string().datetime({ offset: true }).nullable().optional(),\n  })\n  .strict();",
+    "replace": "last_run_at: z.string().datetime({ offset: true }).nullable().optional(),\n  })\n  .passthrough();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*refuses next_run_at"
+  },
+  {
+    "id": "b8b-g2-approval-schedule-row",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "const cron = z.string().regex(/^\\S+(\\s+\\S+){4}$/, \"Use five cron fields\");",
+    "replace": "const cron = z.string();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*parses a seeded schedule row"
+  },
+  {
+    "id": "b8b-g2-approval-decline-code",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "  code: idSlug,\n  label: z.string().min(1).max(120),",
+    "replace": "  code: z.string(),\n  label: z.string().min(1).max(120),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*accepts a decline reason"
+  },
+  {
+    "id": "b8b-g2-approval-label",
+    "test": "tests/unit/automation/approval.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "condition: \"The event does not match the step's conditions\",",
+    "replace": "condition: \"\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/approval.test.ts",
+    "expect": "× .*has a label with no em dash"
+  },
+  {
+    "id": "b8b-g2-specs-attempts",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "    maxAttempts: providerMaxAttempts,\n    sideEffect: \"idempotency_key\",\n  },\n  notify_admin: {",
+    "replace": "    sideEffect: \"idempotency_key\",\n  },\n  notify_admin: {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*gives every outside provider type"
+  },
+  {
+    "id": "b8b-g2-specs-light-default",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "    sideEffect: \"none\",\n  },\n  render_variants: {",
+    "replace": "    maxAttempts: 9,\n    sideEffect: \"none\",\n  },\n  render_variants: {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*leaves the four light steps"
+  },
+  {
+    "id": "b8b-g2-specs-local",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "    heavy: false,\n    local: true,",
+    "replace": "    heavy: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*sets local on write_captions only"
+  },
+  {
+    "id": "b8b-g2-specs-heavy",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "description: \"Renders the cover image of the property.\",\n    heavy: true,",
+    "replace": "description: \"Renders the cover image of the property.\",\n    heavy: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*marks the six render steps heavy"
+  },
+  {
+    "id": "b8b-g2-specs-side-effect",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/jobs/system/prune.ts",
+    "find": "  type: \"prune\",\n  sideEffect: \"none\",",
+    "replace": "  type: \"prune\",\n  sideEffect: \"bogus\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*declares a sideEffect on every spec"
+  },
+  {
+    "id": "b8b-g2-specs-run-twice-real",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "const catalog: readonly StepDefinition[] = [];",
+    "replace": "const catalog: readonly StepDefinition[] = [{ type: \"send_email\", heavy: false, paramsSchema: undefined as never, run: () => Promise.resolve({ status: \"done\" }) }];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*finds a run-twice test for every implemented type"
+  },
+  {
+    "id": "b8b-g2-specs-run-twice-helper",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "tests/unit/automation/step-specs.test.ts",
+    "find": "!titles.includes(",
+    "replace": "titles.includes(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*names a type whose run-twice test is missing"
+  },
+  {
+    "id": "b8b-g2-plan-key-order",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "idempotency_key: `${event.id}:${step.id}`,",
+    "replace": "idempotency_key: `${step.id}:${event.id}`,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*keeps the recipe order"
+  },
+  {
+    "id": "b8b-g2-plan-condition-filter",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "if (!matchesConditions(step.conditions, event.payload)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans the reel and the standalone email for Campaign only"
+  },
+  {
+    "id": "b8b-g2-plan-markets",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "[...strings(payload[\"market\"]), ...strings(payload[\"markets\"])]",
+    "replace": "[...strings(payload[\"market\"])]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*matches a market condition"
+  },
+  {
+    "id": "b8b-g2-plan-absent-field",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "accepted === undefined || found.some(",
+    "replace": "accepted === undefined || found.length === 0 || found.some(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*matches a tier condition"
+  },
+  {
+    "id": "b8b-g2-plan-kinds-newsletter",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "strings(payload[\"kind\"])",
+    "replace": "[\"cover\"]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans only queue_digest"
+  },
+  {
+    "id": "b8b-g2-plan-kinds-cover",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "strings(payload[\"kind\"])",
+    "replace": "[\"newsletter_block\"]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans only the three post steps"
+  },
+  {
+    "id": "b8b-g2-plan-one-confirm",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "tests/unit/automation/plan.test.ts",
+    "find": "step(\"send_confirm\", \"send_email\", { params: { template: \"interest_confirm\" } }),",
+    "replace": "step(\"send_confirm\", \"send_email\", { params: { template: \"interest_confirm\" } }),\n  step(\"send_welcome\", \"send_email\", { params: { template: \"welcome\" } }),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans exactly one confirm job"
+  },
+  {
+    "id": "b8b-g2-plan-approval",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "status: step.requires_approval ? \"waiting_approval\" : \"queued\",",
+    "replace": "status: \"queued\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*waits for approval"
+  },
+  {
+    "id": "b8b-g2-plan-disabled",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "if (!recipe.enabled) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*skips a disabled step"
+  },
+  {
+    "id": "b8b-g2-plan-not-implemented",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "spec === undefined || !isImplemented(step.step_type, ctx.registry)",
+    "replace": "spec === undefined",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*skips a step the registry does not implement"
+  },
+  {
+    "id": "b8b-g2-plan-invalid-params",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "if (!params.success) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*skips a step whose params do not parse"
+  },
+  {
+    "id": "b8b-g2-plan-skip-order",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "if (!step.enabled) {",
+    "replace": "if (!step.enabled && isImplemented(step.step_type, ctx.registry)) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*reports the first skip reason"
+  },
+  {
+    "id": "b8b-g2-plan-envelope",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "payload: { params: params.data, data: event.payload },",
+    "replace": "payload: { params: step.params, data: event.payload },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*snapshots parsed params"
+  },
+  {
+    "id": "b8b-g2-plan-max-attempts",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "max_attempts: spec.maxAttempts ?? defaultMaxAttempts,",
+    "replace": "max_attempts: defaultMaxAttempts,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*takes max_attempts from the spec"
+  },
+  {
+    "id": "b8b-g2-plan-run-local",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "run_local: spec.local ?? false,",
+    "replace": "run_local: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans write_captions for the laptop runner"
+  },
+  {
+    "id": "b8b-g2-plan-spec-local",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "    heavy: false,\n    local: true,",
+    "replace": "    heavy: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*plans write_captions for the laptop runner"
+  },
+  {
+    "id": "b8b-g2-plan-is-implemented",
+    "test": "tests/unit/automation/plan.test.ts",
+    "file": "src/server/automation/catalog.ts",
+    "find": "return registry(type) !== undefined;",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/plan.test.ts",
+    "expect": "× .*skips a step the registry does not implement"
   }
 ]

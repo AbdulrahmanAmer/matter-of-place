@@ -1303,6 +1303,27 @@ Entry template
 - proof: `cd app && bun run db:psql -- -Atc "select count(*) from pg_stat_activity where datname = current_database() and state <> 'idle' and pid <> pg_backend_pid()"` prints the number of other active sessions (non-zero while a lane is mid-test); `MOP_MUTATION_SQL="$(cat supabase/migrations/20261004115859_automation.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  22 passed (22)` when the locks are free (measured 2026-10-04, B8b g1 review).
 - added: 2026-10-04
 
+## P-1603 · B8b invariant 13 prescribes `Intl.DateTimeFormat` in `src/domain/automation.ts`, and lint R43 bans it there
+- symptom: B8b g2's first `bun run lint` failed on `src/domain/automation.ts`: `R43: format through src/lib/format.ts or src/domain/market-time.ts  no-restricted-syntax` at the `new Intl.DateTimeFormat(undefined, { timeZone })` the plan names for the IANA `tz` check.
+- cause: the LOCALE_FORMAT block of `eslint.config.js` exempts only `src/lib/format.ts`, `src/domain/market-time.ts` (B7, not on main yet) and `src/server/**`; the check validates a zone name and formats nothing, but the selector cannot tell.
+- rule: keep the plan's check and mark it with `// eslint-disable-next-line no-restricted-syntax -- checks that a zone name exists, formats nothing (invariant 13)`; when B7 lands `market-time.ts`, move `isTimeZone` there and import it. A plan line that names an API under a lint scope states the exemption with it.
+- proof: `cd app && bunx eslint src/domain/automation.ts` exits 0; with the disable line removed it prints the R43 error.
+- added: 2026-10-04
+
+## P-1604 · `knip` fails every export a plan names for a later group, so a group exports only what its own tests or code use
+- symptom: B8b g2's `bun run knip` listed twelve unused exports (`declineReasonSchema`, `scheduleSettingsSchema`, `PlannedJob`, `SkipReason`, `postingWindowSchema`, `approvalModes`, `scheduleKeys`, `AssetKind`, `SkippedStep`, `FieldKind`, `StepField`, `approvalModeLabels`) after typecheck, lint and the unit tests were green.
+- cause: `knip.json` counts `tests/**` as entry points, but a symbol no test and no file imports is unused even when a plan line says a later group will use it.
+- rule: for a symbol a plan line names, write the test that uses it (a case that parses a seeded row, a type annotation in a planner test); for one the plan does not name, do not export it. Run `bun run knip` after the first test file is written, not at the end.
+- proof: `cd app && bun run knip` prints nothing on slice/b8b at B8b g2; exporting `scheduleKeys` again prints `Unused exports (1)`.
+- added: 2026-10-04
+
+## P-1605 · STANDARDS R27 says every spec declares `timeoutMs` and `maxAttempts`; the B8b Contract leaves both absent for most steps and `timeoutMs` for `write_captions`
+- symptom: reading R27 against the Contract's retry section for B8b g2: the standard demands an explicit `timeoutMs` on every `step-specs.ts` entry, the Contract says absent means the runner's 20000 ms and a `local` step has none because the job runner never runs it.
+- cause: R27 was written before ruling H34 (2) added the `local` class; no gate reads it (`grep -rn R27 app/scripts app/tests` finds nothing).
+- rule: `step-specs.ts` follows the Contract (both fields optional, `defaultMaxAttempts` 5 applied by the planner so a dry-run shows the number); R27's "every entry" is read as "every effective value is defined", and `tests/unit/automation/step-specs.test.ts` asserts the provider types at 10 or more and the light ones at the default. An orchestrator who wants explicit values edits R27 and the Contract together.
+- proof: `cd app && bunx vitest run tests/unit/automation/step-specs.test.ts` passes 7 cases; `grep -n "R27" ../workspace/05-plans/STANDARDS.md` shows the rule text.
+- added: 2026-10-04
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.

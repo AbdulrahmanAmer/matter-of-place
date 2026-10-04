@@ -127,3 +127,55 @@ CI's `check` job runs the whole `bun run check` (tests included) green, which th
 ## g1 · follow-ups recorded
 
 Review of g1 found no blocking defect and seven follow-ups; no code changed. Gotcha entries: P-1601 (a read in the same statement as the inserting function), P-1602 (dry pass deadlock from another lane's locks), plus hit-again lines on P-312 (bun crash on the prelude replay) and P-713 (reused scratch registry folder, force-killed watchfail). The other four follow-ups (approval_mode CHECK shape, em dash in this log's title, put_reason and claim_schedule signatures, SQL stub markers and the missing db job) are in `workspace/05-plans/logs/B8b-followups.md` under "## g1 · steps 1".
+
+## g2 · steps 2-3
+
+Branch `slice/b8b`, brought up to `origin/main` at the start (fast-forward, no conflict).
+
+What was built
+- `src/domain/events.ts`: `eventTypes` (18), `EventType`, `tiers`, `marketSlugs` (from `marketSlugSchema`), `assetKinds`, `eventPayloadSchemas` (one passthrough object per type, ids as uuid).
+- `src/domain/automation.ts`: `conditionsSchema` (strict, non-empty lists), `stepSchema`, `recipeSchema` (at most 20 steps, unique ids with the path of the second), `declineReasonSchema`, `channelSettingsSchema` with the posting window (ISO weekdays 1 to 7, `HH:MM`, validated `tz`, `daily_cap` 1 to 25 default 2), `scheduleSettingsSchema`, `scheduleSettingsPutSchema` (strict, four keys), `effectiveApprovalMode(settings, tier, today)` with `today` a `YYYY-MM-DD` string (no clock, R29), `skipReasons` and the three label maps.
+- `src/server/automation/step-specs.ts`: the 17 specs as `Record<StepType, StepSpec>`, `fields` descriptors, `local: true` on `write_captions` only, `maxAttempts` 12 for provider and heavy steps and absent for the four light ones (`defaultMaxAttempts` 5 is applied by the planner), `timeoutMs` absent everywhere, `sideEffect` on all.
+- `src/server/automation/catalog.ts`: `listStepSpecs`, `getSpec`, `isImplemented(type, registry = getStep)`, `stepForChannel`.
+- `src/server/automation/plan.ts`: pure `planEvent(recipe, event, { registry })`, `matchesConditions`, `PlannedJob` (the keys `fanout_insert_jobs` reads), `SkipReason`. The registry is a required argument of the context, so the planner has no default and no clock; g4's fan-out passes `getStep`.
+- Files outside the group list that step 2 needs (P-513): `src/server/jobs/types.ts` (`SideEffect`, required `sideEffect` on `SystemJobDefinition`), the five system jobs (`health`, `prune`, `reconcile`, `retention`, `meta_token_refresh`: one line each) and `src/server/jobs/system/index.ts` (`listSystemJobs`), because the step says every system type declares `sideEffect` and the test iterates B8's system registry. A later slice that registers a system job now fails typecheck until it declares `sideEffect`; that is the gate HO-7 wants.
+- `tests/mutations/B8b.json`: 54 `b8b-g2-*` entries, one or more for each of the 52 test titles.
+
+Decisions and findings for the orchestrator
+- R27 against the Contract (P-1605): R27 says every spec declares `timeoutMs` and `maxAttempts`; the Contract leaves both absent for most steps and `write_captions` has no `timeoutMs`. Built to the Contract; the planner reports the effective `max_attempts`.
+- `isImplemented("bump_catalog_version")` against the real registry is not asserted yet (the registry is empty on main); the stub-registry case is. Tighten it in g4.
+- The R28 case against the real registry is vacuous until an implemented step has an outside effect. The helper case proves the logic, and the watched-fail `specs-run-twice-real` puts a `send_email` module in the real registry and goes red naming it.
+- `post_meta.channels` is a union of `"from_settings"` and a list, so its descriptor is `multiselect` with default `"from_settings"` and the hint "Empty uses the enabled channels in settings"; g5's form maps an empty selection to `from_settings`.
+- `eslint-disable` on `Intl.DateTimeFormat` for the zone check (P-1603); knip needed tests for plan-named exports (P-1604).
+- Posting-window `days` are ISO weekdays 1 to 7; B10 reads them that way (the seed's `[1,2,3,4,5]` is Monday to Friday either way).
+
+### Proof: `bunx vitest run tests/unit/automation/catalog.test.ts tests/unit/automation/approval.test.ts tests/unit/automation/step-specs.test.ts`
+```
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+```
+### Proof: `bunx vitest run tests/unit/automation/plan.test.ts`
+```
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+```
+### Proof: watched-fail replay of the 54 new entries (fresh folder holding only them, P-713)
+`node scripts/watchfail.mjs --registry <fresh folder>`:
+```
+watchfail: replayed 54: ok 54, bad 0, stale 0; manual 0 not replayed; 0 not selected
+```
+Brief items: (b) `plan-condition-filter`, (f) `catalog-fields-entry`, (h) `catalog-isimplemented` and `plan-is-implemented`, (i) `approval-tz-required`, (u) `plan-one-confirm`, (v) `plan-skip-order`, (ah) `specs-attempts`, (al) `specs-run-twice-real` and `specs-run-twice-helper`, (am) `specs-local` and `plan-spec-local`, each red for its title.
+
+### Proof: `bun run check` (from `app/`)
+```
+quiet: ok (50 lines, showing the last 12)
+exit=0
+```
+It ran layout, typecheck, lint, knip, jscpd, stubs, format and the unit and component tests (111 files). Before the registry entries existed it was red only on `mutation-registry.test.ts` (`name every test file as the test of at least one entry`), which is the gate for this group's four new test files.
+### Proof: `bun run build`
+```
+quiet: ok (241 lines, showing the last 12)
+exit=0
+```
+
+UNPROVEN: the `isImplemented` real-registry case for `bump_catalog_version` (g4); the R28 real-registry case for a real external step (it needs one implemented).
