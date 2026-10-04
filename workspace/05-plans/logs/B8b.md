@@ -414,3 +414,29 @@ Scope: the first half of step 4 (fan-out, scheduler, cron, seed and schedules mi
 - `node ../workspace/05-plans/quiet.mjs -- bun run build` → `quiet: ok (235 lines, showing the last 12)`, build exit=0
 UNPROVEN until after the merge and the `dev` job: the post-merge selects on mop-dev (18 recipes, eight schedule rows, no `prune` or `reconcile_uploads` in cron.job, a `tz` per channel), the `job-runner` deploy as the runtime import proof of `npm:cron-parser@5.10.1`, its 200 with `"claimed"`, and the scheduler's `reconcile:<UTC date>T<HH:MM>` job `done`.
 Bank: nothing cost a second attempt in this group; no entry added.
+
+## c3r · steps 4 · fix round after review (2026-10-05)
+Started from main at 48837ed (git merge-base origin/main HEAD, after `git fetch -q origin`; three merges of main in this round: 9529d0a, 1edb558, 48837ed); rename commit 195de10, proofs run on the tree at 4ec8525 plus the GOTCHAS.md line, handed in with the log commit that follows. 2026-10-05 00:25 +0300.
+Correction to the c3r block above: its "origin/main is an ancestor, no merge needed" and `OK (27 on main, 2 added)` were read from a stale local ref (fbfd3dd, never fetched); GitHub's main was already c4fc709, whose `20261004193550_inquiry_attribution.sql` sorts after both lane migrations. Both statements were false.
+Defect fixed: `20261004190700_automation_seed.sql` → `20261005000100_automation_seed.sql`, `20261004190701_automation_schedules.sql` → `20261005000101_automation_schedules.sql` (git mv, content unchanged); `tests/mutations/B8b.json` `file` paths of `b8b-g3-seed-twice` and `b8b-g3-schedules-prune` follow. The db tests find both files by suffix (`migration("_automation_seed.sql")`).
+- `git fetch -q origin && bun run migrations:check` (from `app/`) → `migration-order: OK (28 on main, 2 added)`; `git ls-tree --name-only origin/main supabase/migrations/ | grep -c '\.sql$'` → `28`; main's newest is `20261004193550_inquiry_attribution.sql`
+- `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
+   Test Files  3 passed (3) /      Tests  34 passed (34)
+- `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+   Test Files  1 passed (1) /      Tests  2 passed | 3 skipped (5)   (the block above read 1 passed | 4 skipped; the cause of the change is not checked: UNPROVEN)
+- `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → deno exit=0
+- dev profile (`eval "$(node scripts/load-env.mjs --profile dev)"`), `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
+   Test Files  1 passed (1) /      Tests  28 passed (28)
+  (local run against mop-dev inside rolled-back transactions, the renamed migration text run by the test; `ci.yml` has jobs run, check, build, merge-gate and no `db` job, so the CI `db` line of the plan is UNPROVEN)
+- `bun run scripts/stubs.ts` → `stubs: 8 markers, 0 on closed slices`; lines with `STUB(B8b step 4)`: 0
+- `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → nothing, exit 1
+- `grep -rn "—" supabase/migrations/*automation_seed.sql supabase/migrations/*automation_schedules.sql` → nothing, exit 1
+- dev profile, `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` (at 73a3193, origin/main 1edb558)
+   WATCHED-FAIL OK B8b:b8b-g3-schedules-prune   (mutated supabase/migrations/20261005000101_automation_schedules.sql:7)
+   watchfail: replayed 208: ok 208, bad 0, stale 0; manual 2 not replayed; 2014 not selected
+- `node ../workspace/05-plans/quiet.mjs -- bun run check` (foreground) → `quiet: ok (47 lines, showing the last 12)`, check exit=0 (at 73a3193; re-run after the last merge below)
+- `node ../workspace/05-plans/quiet.mjs -- bun run build` → `quiet: ok (251 lines, showing the last 12)`, build exit=0
+Not run, NOT DONE in this group: `bump-catalog-version.test.ts`, `purge-cache.test.ts`, `tests/unit/scheduled.test.ts` and `tests/db/bump-catalog-version.db.test.ts` do not exist yet (second half of step 4).
+Follow-ups left as the review marked them (not this group's files): `docs/runbooks/jobs.md:96` still names a pg_cron `prune` at 03:30 UTC; `src/server/jobs/README.md:18` still calls `scheduler.ts` a stub.
+UNPROVEN until after the merge and the `dev` job: the post-merge selects on mop-dev, the `job-runner` deploy as the runtime import proof of `npm:cron-parser`, its 200 with `"claimed"`, and the scheduler's `reconcile:<UTC date>T<HH:MM>` job `done`.
+Bank: P-318 hit again (stale `origin/main`, the fetch-first rule added).
