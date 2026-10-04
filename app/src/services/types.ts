@@ -35,12 +35,24 @@ export interface InquiryService {
   send(input: Inquiry): Promise<Receipt>;
 }
 
+/** Where the photographs of a received submission stand; `retry` sends the failed ones again (FE-04). */
+export type UploadProgress = {
+  done: number;
+  total: number;
+  failed: number;
+  retry: () => Promise<void>;
+};
+
 export interface SubmissionService {
   /**
-   * Sends the submission, then uploads any selected photographs. The API
-   * answers with signed upload targets; the adapter streams each file to them.
+   * Sends the submission and resolves with its receipt once the API has it; the photographs then upload in the
+   * background and report to `onProgress`, which the local adapter ignores.
    */
-  send(input: Submission, files: File[]): Promise<Receipt>;
+  send(
+    input: Submission,
+    files: File[],
+    onProgress?: (progress: UploadProgress) => void,
+  ): Promise<Receipt>;
 }
 
 export interface NewsletterService {

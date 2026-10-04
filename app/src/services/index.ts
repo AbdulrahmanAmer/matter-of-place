@@ -6,7 +6,7 @@ import { localInquiries, localNewsletter, localSubmissions } from "./local/outbo
 import { localSearch } from "./local/search";
 import type { Services } from "./types";
 
-export type { ConciergeAnswer, SearchMatch, Services } from "./types";
+export type { ConciergeAnswer, SearchMatch, Services, UploadProgress } from "./types";
 export { ServiceError } from "./types";
 
 const localServices: Services = {

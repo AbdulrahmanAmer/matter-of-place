@@ -1,5 +1,11 @@
 import type { z } from "zod";
-import { inquirySchema, slugSchema, submissionSchema } from "../../domain/contracts";
+import {
+  inquirySchema,
+  slugSchema,
+  subjectRequestSchema,
+  submissionSchema,
+  subscriberSchema,
+} from "../../domain/contracts";
 import {
   getMarket,
   getProperty,
@@ -8,10 +14,13 @@ import {
   listProperties,
   listStories,
 } from "../catalog/service";
+import * as hooks from "../hooks/resend";
 import * as inquiries from "../inquiries/service";
 import type { Db } from "../lib/db";
 import type { env } from "../lib/env";
+import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
+import * as subscribers from "../subscribers/service";
 
 // The public route table as data (architecture 4.1): the one source for the handlers, the in-process
 // dispatcher and the tests. `handlePublic` reads it; a route file only calls `handlePublic`.
@@ -129,5 +138,49 @@ export const routes: PublicRoute[] = [
     turnstile: false,
     status: 200,
     service: submissions.signMore,
+  },
+  {
+    path: "/api/public/subscribers",
+    method: "POST",
+    schema: subscriberSchema,
+    limits: [
+      { scope: "ip", store: "db", limit: 5, windowSeconds: HOUR },
+      { scope: "email", store: "db", limit: 3, windowSeconds: HOUR },
+    ],
+    turnstile: true,
+    form: true,
+    status: 201,
+    service: subscribers.subscribe,
+  },
+  {
+    // No schema and no cache: the service parses the query itself, so a bad token lands on ?confirmed=0.
+    path: "/api/public/subscribers/confirm",
+    method: "GET",
+    limits: [{ scope: "ip", store: "db", limit: 20, windowSeconds: HOUR }],
+    turnstile: false,
+    status: 303,
+    service: subscribers.confirm,
+  },
+  {
+    path: "/api/public/subjects/request",
+    method: "POST",
+    schema: subjectRequestSchema,
+    limits: [
+      { scope: "ip", store: "db", limit: 3, windowSeconds: DAY },
+      { scope: "email", store: "db", limit: 2, windowSeconds: DAY },
+    ],
+    turnstile: true,
+    form: true,
+    status: 201,
+    service: subjects.request,
+  },
+  {
+    path: "/api/hooks/resend",
+    method: "POST",
+    raw: true,
+    limits: [],
+    turnstile: false,
+    status: 200,
+    service: hooks.handleResend,
   },
 ];

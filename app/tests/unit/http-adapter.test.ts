@@ -35,7 +35,7 @@ function sent(index = 0) {
 }
 
 beforeEach(() => {
-  reply = () => Response.json({ ...RECEIPT, uploads: [] });
+  reply = () => Response.json({ ...RECEIPT, upload_token: "1.sig", uploads: [] });
   fetchImpl.mockClear();
   vi.mocked(getTurnstileToken).mockReset();
   vi.mocked(getTurnstileToken).mockResolvedValue("tok");

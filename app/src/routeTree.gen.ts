@@ -34,15 +34,19 @@ import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
+import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inquiries'
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
+import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
 import { Route as ApiPublicMarketsSlugRouteImport } from './routes/api/public/markets.$slug'
 import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public/properties.$slug'
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
+import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
+import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 
 const SiteRoute = SiteRouteImport.update({
@@ -169,6 +173,11 @@ const SiteStoriesSlugRoute = SiteStoriesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => SiteStoriesRoute,
 } as any)
+const ApiHooksResendRoute = ApiHooksResendRouteImport.update({
+  id: '/api/hooks/resend',
+  path: '/api/hooks/resend',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHooksSentryTestRoute = ApiHooksSentryTestRouteImport.update({
   id: '/api/hooks/sentry-test',
   path: '/api/hooks/sentry-test',
@@ -199,6 +208,11 @@ const ApiPublicSubmissionsRoute = ApiPublicSubmissionsRouteImport.update({
   path: '/api/public/submissions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSubscribersRoute = ApiPublicSubscribersRouteImport.update({
+  id: '/api/public/subscribers',
+  path: '/api/public/subscribers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketsSlugRoute = ApiPublicMarketsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -214,6 +228,18 @@ const ApiPublicStoriesSlugRoute = ApiPublicStoriesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ApiPublicStoriesRoute,
 } as any)
+const ApiPublicSubjectsRequestRoute =
+  ApiPublicSubjectsRequestRouteImport.update({
+    id: '/api/public/subjects/request',
+    path: '/api/public/subjects/request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSubscribersConfirmRoute =
+  ApiPublicSubscribersConfirmRouteImport.update({
+    id: '/confirm',
+    path: '/confirm',
+    getParentRoute: () => ApiPublicSubscribersRoute,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
@@ -243,18 +269,22 @@ export interface FileRoutesByFullPath {
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
+  '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
+  '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
+  '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
+  '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesByTo {
@@ -276,18 +306,22 @@ export interface FileRoutesByTo {
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
+  '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
+  '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
+  '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
+  '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesById {
@@ -314,18 +348,22 @@ export interface FileRoutesById {
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
+  '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
+  '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
+  '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
+  '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRouteTypes {
@@ -352,18 +390,22 @@ export interface FileRouteTypes {
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
+    | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/stories'
     | '/api/public/submissions'
+    | '/api/public/subscribers'
     | '/$market/'
     | '/markets/'
     | '/stories/'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
+    | '/api/public/subjects/request'
+    | '/api/public/subscribers/confirm'
     | '/api/public/submissions/$id/uploads'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -385,18 +427,22 @@ export interface FileRouteTypes {
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
+    | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/stories'
     | '/api/public/submissions'
+    | '/api/public/subscribers'
     | '/$market'
     | '/markets'
     | '/stories'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
+    | '/api/public/subjects/request'
+    | '/api/public/subscribers/confirm'
     | '/api/public/submissions/$id/uploads'
   id:
     | '__root__'
@@ -422,18 +468,22 @@ export interface FileRouteTypes {
     | '/_site/markets/$'
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
+    | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/stories'
     | '/api/public/submissions'
+    | '/api/public/subscribers'
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
+    | '/api/public/subjects/request'
+    | '/api/public/subscribers/confirm'
     | '/api/public/submissions/$id/uploads'
   fileRoutesById: FileRoutesById
 }
@@ -441,12 +491,15 @@ export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   MediaSplatRoute: typeof MediaSplatRoute
+  ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiPublicInquiriesRoute: typeof ApiPublicInquiriesRoute
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRouteWithChildren
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
+  ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
+  ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -626,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteStoriesSlugRouteImport
       parentRoute: typeof SiteStoriesRoute
     }
+    '/api/hooks/resend': {
+      id: '/api/hooks/resend'
+      path: '/api/hooks/resend'
+      fullPath: '/api/hooks/resend'
+      preLoaderRoute: typeof ApiHooksResendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hooks/sentry-test': {
       id: '/api/hooks/sentry-test'
       path: '/api/hooks/sentry-test'
@@ -668,6 +728,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubmissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/subscribers': {
+      id: '/api/public/subscribers'
+      path: '/api/public/subscribers'
+      fullPath: '/api/public/subscribers'
+      preLoaderRoute: typeof ApiPublicSubscribersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/markets/$slug': {
       id: '/api/public/markets/$slug'
       path: '/$slug'
@@ -688,6 +755,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/stories/$slug'
       preLoaderRoute: typeof ApiPublicStoriesSlugRouteImport
       parentRoute: typeof ApiPublicStoriesRoute
+    }
+    '/api/public/subjects/request': {
+      id: '/api/public/subjects/request'
+      path: '/api/public/subjects/request'
+      fullPath: '/api/public/subjects/request'
+      preLoaderRoute: typeof ApiPublicSubjectsRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/subscribers/confirm': {
+      id: '/api/public/subscribers/confirm'
+      path: '/confirm'
+      fullPath: '/api/public/subscribers/confirm'
+      preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
+      parentRoute: typeof ApiPublicSubscribersRoute
     }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
@@ -825,16 +906,30 @@ const ApiPublicSubmissionsRouteChildren: ApiPublicSubmissionsRouteChildren = {
 const ApiPublicSubmissionsRouteWithChildren =
   ApiPublicSubmissionsRoute._addFileChildren(ApiPublicSubmissionsRouteChildren)
 
+interface ApiPublicSubscribersRouteChildren {
+  ApiPublicSubscribersConfirmRoute: typeof ApiPublicSubscribersConfirmRoute
+}
+
+const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
+  ApiPublicSubscribersConfirmRoute: ApiPublicSubscribersConfirmRoute,
+}
+
+const ApiPublicSubscribersRouteWithChildren =
+  ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   MediaSplatRoute: MediaSplatRoute,
+  ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiPublicInquiriesRoute: ApiPublicInquiriesRoute,
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRouteWithChildren,
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
+  ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,
+  ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

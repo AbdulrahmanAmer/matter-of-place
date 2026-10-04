@@ -6,6 +6,7 @@
 export const errorCodes = {
   bad_request: 400,
   validation: 422,
+  unauthorized: 401,
   forbidden: 403,
   not_found: 404,
   method_not_allowed: 405,

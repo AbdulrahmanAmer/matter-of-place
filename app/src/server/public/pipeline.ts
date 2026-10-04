@@ -266,12 +266,44 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
       : route.schema.safeParse(withParams(body, route.path, match.params));
   if (parsed?.success === false) throw fromZod(parsed.error);
   const input: unknown = parsed?.data;
-  const checks = await dbChecks(route, name, ctx.ipHash, input);
-  if (checks.length > 0) {
-    const limited = await checkDb(db, checks);
-    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);
-  }
+  const limited = await dbLimited(db, route, name, ctx, input);
+  if (limited !== null) return limited;
   return fromService(route, await route.service(db, input, ctx));
+}
+
+/** The 429 of the row's database limits, or null when every check passed and its hit is counted. */
+async function dbLimited(
+  db: Db,
+  route: PublicRoute,
+  name: string,
+  ctx: PublicCtx,
+  input: unknown,
+): Promise<Response | null> {
+  const checks = await dbChecks(route, name, ctx.ipHash, input);
+  if (checks.length === 0) return null;
+  const limited = await checkDb(db, checks);
+  return limited.ok ? null : refused(ctx.requestId, limited.retryAfter);
+}
+
+/**
+ * A GET that is never cached (the confirm link): limited like a write, and its service takes the query string
+ * unparsed, so it can answer a bad value with its own redirect instead of a 422.
+ */
+async function uncachedRead(
+  match: Match,
+  request: Request,
+  db: Db,
+  ctx: PublicCtx,
+): Promise<Response> {
+  const { route } = match;
+  if (route.raw === true) throw new AppError("server", undefined, "A raw row is a POST.");
+  const name = routeName(route.path);
+  const memory = memoryCheck(route, name, ctx.ipHash);
+  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);
+  const limited = await dbLimited(db, route, name, ctx, undefined);
+  if (limited !== null) return limited;
+  const query = Object.fromEntries(new URL(request.url).searchParams);
+  return fromService(route, await route.service(db, query, ctx));
 }
 
 async function dispatch(
@@ -292,10 +324,10 @@ async function dispatch(
   if (match === undefined) {
     return { response: methodNotAllowed(ctx.requestId, candidates), label: pathname };
   }
-  const response =
-    match.route.method === "GET"
-      ? await read(match, request, db, ctx)
-      : await write(match, request, db, ctx);
+  let response: Response;
+  if (match.route.method === "POST") response = await write(match, request, db, ctx);
+  else if (match.route.cache === undefined) response = await uncachedRead(match, request, db, ctx);
+  else response = await read(match, request, db, ctx);
   return { response, label: match.route.path };
 }
 

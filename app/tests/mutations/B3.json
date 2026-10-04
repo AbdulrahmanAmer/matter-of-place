@@ -1170,8 +1170,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);",
-    "replace": "    if (limited.ok === 42) return refused(ctx.requestId, 1);",
+    "find": "  return limited.ok ? null : refused(ctx.requestId, limited.retryAfter);",
+    "replace": "  return limited.ok || checks.length > 0 ? null : refused(ctx.requestId, limited.retryAfter);",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*sends the database limits in one call with hashed keys"
   },
@@ -1210,8 +1210,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n",
-    "replace": "",
+    "find": "  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n  await checkTurnstile(",
+    "replace": "  await checkTurnstile(",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*checks the first memory limit of a form before the schema"
   },
@@ -2190,8 +2190,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n",
-    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n  await checkTurnstile(route, name, request, ctx);\n",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*refuses a failed check before the schema and before every database call"
   },
@@ -2818,5 +2818,455 @@
     "replace": "      [...data, ...data].map(async (row) => ({",
     "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
     "expect": "× .*keeps one POST /submissions/:id/uploads call of 10 photographs at 35 calls or fewer"
+  },
+  {
+    "id": "b3-eee",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "  if (longEdge <= maxEdge) return { width, height };",
+    "replace": "  if (longEdge > 0) return { width, height };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*brings 6000x4000 to 480x320"
+  },
+  {
+    "id": "b3-g7-fit-small",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "  if (longEdge <= maxEdge) return { width, height };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*keeps 2400x1600 unchanged"
+  },
+  {
+    "id": "b3-g7-prep-large",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    if (Math.max(bitmap.width, bitmap.height) <= MAX_UPLOAD_EDGE) return { ...unchanged, thumb };",
+    "replace": "    if (Math.max(bitmap.width, bitmap.height) <= 100000) return { ...unchanged, thumb };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*re-encodes a 6000 px original"
+  },
+  {
+    "id": "b3-g7-prep-small",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    if (Math.max(bitmap.width, bitmap.height) <= MAX_UPLOAD_EDGE) return { ...unchanged, thumb };",
+    "replace": "    if (Math.max(bitmap.width, bitmap.height) < 0) return { ...unchanged, thumb };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*sends a 2400 px original unchanged"
+  },
+  {
+    "id": "b3-g7-prep-heic",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    bitmap = await createImageBitmap(file);\n  } catch {\n    return unchanged;",
+    "replace": "    bitmap = await createImageBitmap(file);\n  } catch {\n    return { ...unchanged, type: \"image/jpeg\" };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*sends a file the browser cannot decode"
+  },
+  {
+    "id": "b3-ww-concurrency",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const CONCURRENCY = 3;",
+    "replace": "const CONCURRENCY = 40;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*never has more than 3 PUTs in flight"
+  },
+  {
+    "id": "b3-ww-index",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    const file = files[entry.index];",
+    "replace": "    const file = files[0];",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*uploads two files both named image.jpg"
+  },
+  {
+    "id": "b3-g7-queue-thumb",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    return file.thumb === null || put(signed.thumb_url, file.thumb, \"image/jpeg\");",
+    "replace": "    return true;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*sends each file's thumbnail right after"
+  },
+  {
+    "id": "b3-g7-queue-retry",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "  for (const wait of BACKOFF_MS) {",
+    "replace": "  for (const wait of []) {",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*retries one 500 on the same URL"
+  },
+  {
+    "id": "b3-g7-queue-only-failed",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    const again = entries.filter((entry) => failed.has(entry.index));",
+    "replace": "    const again = entries;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*gives up after three retries"
+  },
+  {
+    "id": "b3-g7-queue-backoff",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const BACKOFF_MS = [1000, 3000, 9000];",
+    "replace": "const BACKOFF_MS = [1000, 3000];",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*gives up after three retries"
+  },
+  {
+    "id": "b3-g7-queue-batch",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const SIGN_BATCH = 10;",
+    "replace": "const SIGN_BATCH = 1;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*asks fetchMore three times"
+  },
+  {
+    "id": "b3-g7-send-progress",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "        onProgress,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*keeps the receipt when a PUT fails for good"
+  },
+  {
+    "id": "b3-g7-send-await",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "      void runUploadQueue({",
+    "replace": "      await runUploadQueue({",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*keeps the receipt when a PUT fails for good"
+  },
+  {
+    "id": "b3-g7-svix-vector",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "`${headers.id}.${headers.timestamp}.${body}`",
+    "replace": "`${headers.id}.${body}`",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*accepts Svix's documented vector"
+  },
+  {
+    "id": "b3-g7-svix-several",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  return headers.signature.split(\" \").some((entry) => {",
+    "replace": "  return headers.signature.split(\" \").slice(0, 1).some((entry) => {",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*accepts the vector among several"
+  },
+  {
+    "id": "b3-g7-svix-compare",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    return given !== null && timingSafeEqual(given, expected);",
+    "replace": "    return given !== null;",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*refuses a changed body, id or timestamp"
+  },
+  {
+    "id": "b3-g7-svix-version",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    if (version !== \"v1\" || value === undefined) return false;",
+    "replace": "    if (value === undefined) return false;",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*refuses another secret, another version"
+  },
+  {
+    "id": "b3-g7-parity-confirm",
+    "kind": "file",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    status: 303,\n",
+    "replace": "    status: 303,\n    cache: { sMaxAge: 1, tags: [\"catalog\"] },\n",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "× .*never stores the confirm link"
+  },
+  {
+    "id": "b3-g7-receipt-index",
+    "kind": "file",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "      index: z.number().int().nonnegative(),\n",
+    "replace": "      index: z.number().int().nonnegative().optional(),\n",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "× .*submissionReceiptSchema carries one entry per photograph"
+  },
+  {
+    "id": "b3-g7-subs-hash",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "      confirm_token_hash: await sha256Hex(token),",
+    "replace": "      confirm_token_hash: token,",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*merges two posts into one row"
+  },
+  {
+    "id": "b3-g7-subs-confirm",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "  return landing(confirmedSchema.parse(data) !== null);",
+    "replace": "  return landing(true);",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*confirms on a valid token"
+  },
+  {
+    "id": "b3-g7-subs-unconfirmed",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*lets a Place Notes source replace",
+    "procedure": "The source rule lives in upsert_subscriber only; its mutation is b3-aa, replayed in the rolled-back public-write.db.test.ts. Through supabase-js a rolled-back function is invisible (P-901) and only main changes mop-dev (R18)."
+  },
+  {
+    "id": "b3-g7-subs-pending",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*holds a Place Notes source for a confirmed",
+    "procedure": "DL-06 (a) lives in upsert_subscriber and confirm_subscriber; b3-yy and b3-g2-pending replay it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-lapsed",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*makes an unsubscribed address confirm again",
+    "procedure": "DL-06 (b) lives in upsert_subscriber and confirm_subscriber; b3-g2-lapsed and b3-zz replay it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-repermission",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*accepts a hash set on an already confirmed row",
+    "procedure": "The hash-only match lives in confirm_subscriber; b3-bb replays it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-same-kind",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*gives a confirmed address no new link",
+    "procedure": "The no-new-link rule lives in upsert_subscriber; b3-g2-confirmed-other replays it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-log",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "  const token = newToken();\n",
+    "replace": "  const token = newToken();\n  console.log(JSON.stringify({ event: \"event_pending\", email: input.email }));\n",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*writes no event_pending line"
+  },
+  {
+    "id": "b3-g7-subs-market",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  markets: z.array(marketSlugSchema).max(3).default([]),",
+    "replace": "  markets: z.array(z.string()).max(3).default([]),",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*refuses a market outside the three"
+  },
+  {
+    "id": "b3-g7-subs-email-limit",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 3, windowSeconds: HOUR },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 4, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*refuses the 4th signup for one email"
+  },
+  {
+    "id": "b3-g7-hook-complaint",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (event.type !== \"email.complained\") return;",
+    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*unsubscribes the recipient of a complaint"
+  },
+  {
+    "id": "b3-g7-hook-dl06c",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (event.type !== \"email.complained\") return;",
+    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*makes a confirm link sent before a complaint"
+  },
+  {
+    "id": "b3-g7-hook-replay",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!receipt.data) return ok();\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*applies a replayed svix-id once"
+  },
+  {
+    "id": "b3-g7-hook-signature",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!(await verifySvix(secret, { id, timestamp, signature }, body))) throw refused();",
+    "replace": "  await verifySvix(secret, { id, timestamp, signature }, body);",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*refuses a bad signature"
+  },
+  {
+    "id": "b3-e",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!Number.isInteger(sentAt) || Math.abs(Date.now() / 1000 - sentAt) > TOLERANCE_SECONDS) {",
+    "replace": "  if (!Number.isInteger(sentAt)) {",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*refuses a svix-timestamp 301 seconds old"
+  },
+  {
+    "id": "b3-g7-hook-forget",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    const forgot = await db.rpc(\"forget_webhook_receipt\", { p_provider: PROVIDER, p_id: id });",
+    "replace": "    const forgot = { error: null };",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*answers 500 when the effect fails"
+  },
+  {
+    "id": "b3-g7-hook-secret",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (secret === undefined) {",
+    "replace": "  if (secret === \"\") {",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*answers 503 unavailable while the signing secret"
+  },
+  {
+    "id": "b3-g7-subj-kind",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "      kind: input.kind,",
+    "replace": "      kind: \"deletion\",",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one received"
+  },
+  {
+    "id": "b3-n",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "  const { data, error } = await db.rpc(\"create_subject_request\", {",
+    "replace": "  const known = await db.from(\"subscribers\").select(\"id\").eq(\"email\", input.email);\n  if ((known.data ?? []).length === 0) throw new AppError(\"not_found\");\n  const { data, error } = await db.rpc(\"create_subject_request\", {",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers the same Receipt shape"
+  },
+  {
+    "id": "b3-g7-subj-correction",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "export const subjectRequestKinds = [\"access\", \"deletion\", \"opt_out\", \"correction\"] as const;",
+    "replace": "export const subjectRequestKinds = [\"access\", \"deletion\", \"opt_out\"] as const;",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*takes a correction request as its own kind"
+  },
+  {
+    "id": "b3-g7-subj-sell",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  kind: z.enum(subjectRequestKinds),",
+    "replace": "  kind: z.string(),",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses kind sell with 422"
+  },
+  {
+    "id": "b3-g7-subj-ip",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"ip\", store: \"db\", limit: 3, windowSeconds: DAY },",
+    "replace": "      { scope: \"ip\", store: \"db\", limit: 4, windowSeconds: DAY },",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses the 4th request in a day from one IP"
+  },
+  {
+    "id": "b3-g7-subj-email",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 2, windowSeconds: DAY },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 3, windowSeconds: DAY },",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses the 3rd request in a day for one email"
+  },
+  {
+    "id": "b3-g7-subj-token",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    turnstile: true,\n    form: true,\n    status: 201,\n    service: subjects.request,",
+    "replace": "    turnstile: false,\n    form: true,\n    status: 201,\n    service: subjects.request,",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses a request without a Turnstile token"
+  },
+  {
+    "id": "b3-g7-subj-log",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "): Promise<Receipt> {\n",
+    "replace": "): Promise<Receipt> {\n  console.log(JSON.stringify({ event: \"request\", email: input.email }));\n",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*writes the address into no log line"
+  },
+  {
+    "id": "b3-j-subj",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers a filled website field with 201 and writes no row"
   }
 ]

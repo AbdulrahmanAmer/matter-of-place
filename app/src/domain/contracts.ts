@@ -324,10 +324,38 @@ export const receiptSchema = z.object({
 });
 export type Receipt = z.infer<typeof receiptSchema>;
 
+/**
+ * `POST /submissions`: one entry per photograph in `media`, matched by its `index` in that array, never by name
+ * (FE-04). The first ten carry their signed PUT targets; `upload_token` asks `POST /submissions/:id/uploads` for
+ * the rest (E2E-02).
+ */
 export const submissionReceiptSchema = receiptSchema.extend({
-  /** One signed PUT target per photograph named in `media`, valid for a short window. */
-  uploads: z.array(z.object({ name: z.string(), url: z.string() })),
+  upload_token: z.string(),
+  uploads: z.array(
+    z.object({
+      media_id: z.string(),
+      index: z.number().int().nonnegative(),
+      url: z.string().optional(),
+      thumb_url: z.string().optional(),
+    }),
+  ),
 });
+
+/** `POST /submissions/:id/uploads`: the signed targets of the photographs still without their file. */
+export const signedUploadsSchema = z.object({
+  uploads: z.array(z.object({ media_id: z.string(), url: z.string(), thumb_url: z.string() })),
+});
+
+/** `GET /subscribers/confirm?token=`: the 32 random bytes of `newToken`, base64url. */
+export const confirmQuerySchema = z.object({ token: z.string().regex(/^[\w-]{43}$/) });
+
+/** `POST /subjects/request` (GP-01): what a visitor asks of the personal data we hold. */
+export const subjectRequestSchema = z.object({
+  email,
+  kind: z.enum(subjectRequestKinds),
+  note: z.string().trim().max(500).optional(),
+});
+export type SubjectRequest = z.infer<typeof subjectRequestSchema>;
 
 export const searchMatchSchema = z.object({
   property: propertySchema,

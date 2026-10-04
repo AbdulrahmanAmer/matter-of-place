@@ -165,16 +165,23 @@ describe("the response schemas", () => {
     expect(issuePaths(receiptSchema.safeParse({ id: "r1" }))).toEqual(["receivedAt"]);
   });
 
-  it("submissionReceiptSchema carries one upload target per photograph", () => {
+  it("submissionReceiptSchema carries one entry per photograph, by index, and the upload token", () => {
     const receipt = {
       id: "r1",
       receivedAt: "2026-10-01T12:00:00Z",
-      uploads: [{ name: "p.jpg", url: "u" }],
+      upload_token: "1.sig",
+      uploads: [
+        { media_id: "m0", index: 0, url: "u", thumb_url: "t" },
+        { media_id: "m1", index: 1 },
+      ],
     };
     expect(submissionReceiptSchema.safeParse(receipt).success).toBe(true);
     expect(issuePaths(submissionReceiptSchema.safeParse({ id: "r1", receivedAt: "t" }))).toEqual([
+      "upload_token",
       "uploads",
     ]);
+    const unindexed = { ...receipt, uploads: [{ media_id: "m0", url: "u" }] };
+    expect(issuePaths(submissionReceiptSchema.safeParse(unindexed))).toEqual(["uploads.0.index"]);
   });
 
   it("conciergeAnswerSchema allows only the showing action", () => {

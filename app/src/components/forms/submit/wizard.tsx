@@ -5,7 +5,7 @@ import { cx } from "../../../lib/cx";
 import { withHoneypot } from "../../../lib/form-data";
 import { padIndex } from "../../../lib/format";
 import { t } from "../../../lib/strings";
-import { services } from "../../../services";
+import { services, type UploadProgress } from "../../../services";
 import { DeliveryNotice, FormError, SentNotice } from "../form-notice";
 import { Honeypot } from "../honeypot";
 import { sentText } from "../../../lib/form-copy";
@@ -22,6 +22,21 @@ import {
 } from "./state";
 import { AboutYouStep, ExposureStep, PropertyStep, ReviewStep, StoryStep } from "./steps";
 
+/** Where the photographs of a received submission stand, with a retry for the ones that failed (FE-04). */
+function UploadStatus({ progress }: { progress: UploadProgress }) {
+  const { done, total, failed, retry } = progress;
+  if (done + failed < total) return <p>{t.forms.uploading(done, total)}</p>;
+  if (failed === 0) return <p>{t.forms.uploadDone}</p>;
+  return (
+    <>
+      <p>{t.forms.uploadFailed(failed)}</p>
+      <button type="button" className="button ghost" onClick={() => void retry()}>
+        {t.forms.uploadRetry}
+      </button>
+    </>
+  );
+}
+
 /** Five-step property submission. Validation lives in `state.ts`; delivery in the submission service. */
 export function SubmitWizard() {
   const [step, setStep] = useState<StepIndex>(0);
@@ -34,15 +49,24 @@ export function SubmitWizard() {
   );
 
   const trap = useRef<HTMLInputElement>(null);
-  const { state, run, reset, pending } = useAsyncAction((current: SubmitDraft) =>
-    services.submissions.send(
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  // Photographs of an earlier submission keep uploading after "Start again"; only the latest one reports here.
+  const sending = useRef(0);
+  const { state, run, reset, pending } = useAsyncAction((current: SubmitDraft) => {
+    const mine = (sending.current += 1);
+    return services.submissions.send(
       withHoneypot(toSubmission(current, window.location.pathname), trap.current?.value ?? ""),
       current.files,
-    ),
-  );
+      (next) => {
+        if (sending.current === mine) setProgress(next);
+      },
+    );
+  });
 
   const startAgain = () => {
     reset();
+    sending.current += 1;
+    setProgress(null);
     setDraft(initialDraft);
     setStep(0);
   };
@@ -53,9 +77,11 @@ export function SubmitWizard() {
     });
   };
 
+  // Received: the submission exists, so this state never posts again; only its photographs can be sent again.
   if (state.status === "success") {
     return (
       <SentNotice title="Received. Editorial review comes next." text={sentText()}>
+        {progress !== null && <UploadStatus progress={progress} />}
         <button type="button" className="button" onClick={startAgain}>
           Start again
         </button>

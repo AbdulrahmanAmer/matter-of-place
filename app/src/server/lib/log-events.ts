@@ -12,6 +12,7 @@ export const LogEvent = [
   "event_pending",
   "analytics_store_failed",
   "client_error_report_failed",
+  "webhook_forget_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

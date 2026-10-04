@@ -4,13 +4,16 @@ import {
   propertyCardSchema,
   receiptSchema,
   searchMatchSchema,
+  signedUploadsSchema,
   submissionReceiptSchema,
 } from "../../domain/contracts";
 import { marketSchema } from "../../domain/market";
 import { propertySchema } from "../../domain/property";
+import { prepareImage, type PreparedImage } from "../../lib/image-prep";
 import { getTurnstileToken } from "../../lib/turnstile";
 import { storySchema } from "../../domain/story";
 import { createApiClient, type FetchImpl } from "./client";
+import { runUploadQueue } from "./upload-queue";
 import {
   ServiceError,
   type CatalogService,
@@ -70,23 +73,35 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
   };
 
   const submissions: SubmissionService = {
-    async send(input, files) {
-      const { body, init } = await guarded("submissions", input);
+    /**
+     * Prepares the photographs one at a time (decoding forty at once would exhaust a phone's memory), posts once
+     * and resolves as soon as the API has the submission; the files follow through the upload queue, so a failed
+     * PUT never turns a received submission into a failed one (FE-04).
+     */
+    async send(input, files, onProgress) {
+      const prepared: PreparedImage[] = [];
+      const media: { name: string; size: number; type: string }[] = [];
+      for (const file of files) {
+        const image = await prepareImage(file);
+        prepared.push(image);
+        media.push({ name: file.name, size: image.original.size, type: image.type });
+      }
+      const { body, init } = await guarded("submissions", { ...input, media });
       const receipt = await api.post("/submissions", body, submissionReceiptSchema, init);
-      await Promise.all(
-        receipt.uploads.map(async (upload) => {
-          const file = files.find((candidate) => candidate.name === upload.name);
-          if (!file) return;
-          const response = await fetch(upload.url, {
-            method: "PUT",
-            headers: { "content-type": file.type || "application/octet-stream" },
-            body: file,
-          });
-          if (!response.ok) {
-            throw new ServiceError("server", `Upload failed for ${file.name}`, response.status);
-          }
-        }),
-      );
+      const more = `/submissions/${encodeURIComponent(receipt.id)}/uploads`;
+      void runUploadQueue({
+        entries: receipt.uploads,
+        files: prepared,
+        fetchMore: async (mediaIds) => {
+          const answer = await api.post(
+            more,
+            { media_ids: mediaIds, upload_token: receipt.upload_token },
+            signedUploadsSchema,
+          );
+          return answer.uploads;
+        },
+        onProgress,
+      });
       return { id: receipt.id, receivedAt: receipt.receivedAt };
     },
   };

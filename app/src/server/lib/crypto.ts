@@ -49,8 +49,6 @@ export async function sha1Bytes(input: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-1", bytesOf(input)));
 }
 
-/** @public */
-// STUB(B3): first used by src/server/hooks/resend.ts (the whsec_ secret and v1 signatures)
 export function fromBase64(text: string): Uint8Array {
   return Uint8Array.from(atob(text), (char) => char.charCodeAt(0));
 }

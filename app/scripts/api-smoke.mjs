@@ -33,7 +33,7 @@ const CLEANUP = [
 
 /**
  * @typedef {{ name: string, ok: boolean, detail: string }} Check
- * @typedef {{ status: number, body: unknown, requestId: string | null }} Answer
+ * @typedef {{ status: number, body: unknown, requestId: string | null, location: string | null }} Answer
  */
 
 /** @param {unknown} value @returns {Record<string, unknown>} */
@@ -65,12 +65,18 @@ async function call(url, { method = "GET", body } = {}) {
   const response = await fetch(url, {
     method,
     headers,
+    redirect: "manual",
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const text = await response.text();
   /** @type {unknown} */
   const parsed = text === "" ? null : JSON.parse(text);
-  return { status: response.status, body: parsed, requestId: response.headers.get("x-request-id") };
+  return {
+    status: response.status,
+    body: parsed,
+    requestId: response.headers.get("x-request-id"),
+    location: response.headers.get("location"),
+  };
 }
 
 /**
@@ -179,6 +185,26 @@ async function callRoutes(api, checks, expectLimits) {
       expectLimits,
     );
   }
+  const subscriber = await call(`${api}/subscribers`, {
+    method: "POST",
+    body: { email, source: "stories", markets: ["california"] },
+  });
+  expectAnswer(checks, "POST /subscribers", subscriber, 201, isReceipt, expectLimits);
+  // The raw token never leaves the Worker, so the smoke clicks an unknown one: the landing must say confirmed=0.
+  const confirm = await call(`${api}/subscribers/confirm?token=${"A".repeat(43)}`);
+  expectAnswer(
+    checks,
+    "GET /subscribers/confirm",
+    { ...confirm, body: confirm.location },
+    303,
+    (body) => body === "/stories?confirmed=0",
+    expectLimits,
+  );
+  const subject = await call(`${api}/subjects/request`, {
+    method: "POST",
+    body: { email, kind: "access", note: "__smoke" },
+  });
+  expectAnswer(checks, "POST /subjects/request", subject, 201, isReceipt, expectLimits);
   return email;
 }
 
@@ -190,17 +216,16 @@ async function readRows(email, checks) {
   const client = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  /** @type {[table: string, column: string][]} */
+  /** @type {[table: string, column: string, marker: [string, string] | null][]} */
   const written = [
-    ["inquiries", "email"],
-    ["submissions", "submitter_email"],
+    ["inquiries", "email", ["source_path", SOURCE]],
+    ["submissions", "submitter_email", ["source_path", SOURCE]],
+    ["subscribers", "email", null],
+    ["subject_requests", "email", ["note", "__smoke"]],
   ];
-  for (const [table, column] of written) {
-    const { count, error } = await client
-      .from(table)
-      .select("id", { count: "exact", head: true })
-      .eq("source_path", SOURCE)
-      .eq(column, email);
+  for (const [table, column, marker] of written) {
+    const rows = client.from(table).select("id", { count: "exact", head: true }).eq(column, email);
+    const { count, error } = await (marker === null ? rows : rows.eq(marker[0], marker[1]));
     checks.push({
       name: `row in ${table}`,
       ok: error === null && count === 1,
