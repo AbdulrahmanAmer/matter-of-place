@@ -2,9 +2,13 @@
 // stub takes the one render.yml dispatch (R50). Invariants 1, 10, 11 and 12 of the plan, G62, JOB-03, SEC-02.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { ogStaticKeys } from "../../../src/domain/assets";
+import type { Tables } from "../../../src/db";
+import { ogStaticKeys, type AssetKind } from "../../../src/domain/assets";
+import { propertyLink } from "../../../src/server/assets/links";
+import { mediaUrl } from "../../../src/server/lib/media-store";
+import { runWriteCaptions } from "../../../src/server/jobs/steps/write-captions";
 import { getStep } from "../../../src/server/jobs/steps/index";
-import type { StepDefinition } from "../../../src/server/jobs/types";
+import type { JsonObject, StepDefinition } from "../../../src/server/jobs/types";
 import { NonRetryableError } from "../../../src/server/jobs/types";
 import {
   ASSET_ID,
@@ -734,5 +738,458 @@ describe("render_og_static", () => {
   it("refuses a page that has no card", () => {
     const parsed = step("render_og_static").paramsSchema.safeParse({ pages: ["nowhere"] });
     expect(parsed.success).toBe(false);
+  });
+});
+
+// B9 step 9: write_captions (class local, ASSUMED H34) and build_newsletter_block.
+const EVENT_ID = "3f2a9c1d-0000-4000-8000-0000000000ee";
+const MODEL = "claude-haiku-4-5-20251001";
+const GOOD_CAPTIONS = {
+  instagram: "A quiet house in the hills. Five bedrooms, built in 2021. $8,950,000.",
+  x: `A quiet house in the hills. ${propertyLink("oak-hill", "x")}`,
+  linkedin: "A house selected for its setting. The dossier is ready for an agent to share.",
+  alt_text: "A stone house under an oak.",
+  slide_alts: ["one", "two", "three", "four", "five", "six", "seven", "eight"],
+};
+
+interface Answer {
+  text: string;
+  usage: { input_tokens: number; output_tokens: number };
+}
+const answered = (body: unknown, input = 900, output = 300): Answer => ({
+  text: JSON.stringify(body),
+  usage: { input_tokens: input, output_tokens: output },
+});
+
+function stubComplete(...answers: Answer[]) {
+  const complete = vi.fn<(prompt: string, model: string, signal: AbortSignal) => Promise<Answer>>();
+  for (const next of answers) complete.mockResolvedValueOnce(next);
+  return complete;
+}
+
+function jobRow(payload: Tables<"jobs">["payload"]): Tables<"jobs"> {
+  return {
+    attempts: 0,
+    created_at: NOW.toISOString(),
+    error: null,
+    event_id: EVENT_ID,
+    finished_at: null,
+    heavy: true,
+    id: "3f2a9c1d-0000-4000-8000-0000000000ff",
+    idempotency_key: `${EVENT_ID}:render_carousel`,
+    job_event_entity_id: null,
+    locked_at: null,
+    locked_by: null,
+    max_attempts: 12,
+    msg_id: null,
+    payload,
+    recipe_id: null,
+    result: null,
+    run_after: NOW.toISOString(),
+    run_local: false,
+    status: "queued",
+    step_id: null,
+    type: "render_carousel",
+    updated_at: NOW.toISOString(),
+  };
+}
+
+interface TextRows {
+  property?: ReturnType<typeof propertyRow>;
+  media?: ReturnType<typeof mediaRow>[];
+  stubs?: Partial<Record<AssetKind, Partial<Tables<"assets">>>>;
+  jobs?: Tables<"jobs">[];
+}
+
+const captionModel = {
+  key: "caption_model",
+  value: MODEL,
+  updated_at: NOW.toISOString(),
+  updated_by: null,
+};
+
+function textDb(rows: TextRows = {}): FakeDb {
+  return fakeDb({
+    rpc: {
+      upsert_asset_stub: ({ p_kind, p_revision }) =>
+        assetRow({
+          id: `asset-${p_kind}`,
+          kind: p_kind,
+          revision: p_revision ?? 1,
+          ...rows.stubs?.[p_kind],
+        }),
+      set_asset_text: () => undefined,
+    },
+    tables: {
+      properties: [rows.property ?? propertyRow()],
+      property_media: rows.media ?? [mediaRow(0), mediaRow(1), mediaRow(2)],
+      assets: [assetRow({ kind: "carousel" })],
+      jobs: rows.jobs ?? [],
+      settings: [captionModel],
+    },
+  });
+}
+
+const stubKinds = (db: FakeDb) => rpcCall(db, "upsert_asset_stub").map((c) => argsOf(c)["p_kind"]);
+const textCalls = (db: FakeDb) => rpcCall(db, "set_asset_text").map((call) => argsOf(call));
+const textFor = (db: FakeDb, kind: AssetKind) =>
+  textCalls(db).filter((args) => args["p_asset"] === `asset-${kind}`);
+const campaign = propertyRow({ campaign_tier: "Campaign" });
+
+async function runCaptions(
+  db: FakeDb,
+  complete = stubComplete(answered(GOOD_CAPTIONS)),
+  params: { alt_text?: boolean } = {},
+) {
+  const ctx = context(db, "write_captions", { eventId: EVENT_ID });
+  const result = await runWriteCaptions(ctx, params, DATA, complete);
+  return { result, complete };
+}
+
+describe("write_captions", () => {
+  it("write_captions is the only registered step of the local class and none is local and heavy", () => {
+    const types = [
+      "render_variants",
+      "render_cover",
+      "render_carousel",
+      "render_story",
+      "render_og_static",
+      "write_captions",
+      "build_newsletter_block",
+    ];
+    const local = types.filter((type) => step(type).local === true);
+    expect(local).toEqual(["write_captions"]);
+    expect(types.filter((type) => step(type).local === true && step(type).heavy)).toEqual([]);
+  });
+
+  it("getStep returns a local module whose run throws local_step", async () => {
+    const found = step("write_captions");
+    expect(found).toMatchObject({ type: "write_captions", heavy: false, local: true });
+    await expect(found.run(context(textDb(), "write_captions"), {}, DATA)).rejects.toThrow(
+      new NonRetryableError("local_step"),
+    );
+  });
+
+  it("runWriteCaptions creates the stubs of the Editorial tier, with no job id, and fills the captions", async () => {
+    const db = textDb();
+    const { result } = await runCaptions(db);
+    expect(stubKinds(db)).toEqual(["cover", "carousel", "story", "newsletter_block"]);
+    expect(rpcCall(db, "upsert_asset_stub").every((c) => !("p_job_id" in argsOf(c)))).toBe(true);
+    expect(textFor(db, "cover")).toEqual([
+      {
+        p_asset: "asset-cover",
+        p_caption: GOOD_CAPTIONS.instagram,
+        p_alt_text: GOOD_CAPTIONS.alt_text,
+        p_meta: {
+          captions: {
+            instagram: GOOD_CAPTIONS.instagram,
+            x: GOOD_CAPTIONS.x,
+            linkedin: GOOD_CAPTIONS.linkedin,
+          },
+          caption_lint: "passed",
+        },
+      },
+    ]);
+    expect(textFor(db, "newsletter_block")).toEqual([
+      { p_asset: "asset-newsletter_block", p_alt_text: GOOD_CAPTIONS.alt_text },
+    ]);
+    expect(result).toMatchObject({ status: "done" });
+  });
+
+  it("the Campaign tier adds the reel and the standalone email stubs, and the reel gets captions", async () => {
+    const db = textDb({ property: campaign });
+    await runCaptions(db);
+    expect(stubKinds(db)).toEqual([
+      "cover",
+      "carousel",
+      "story",
+      "newsletter_block",
+      "reel",
+      "standalone_email",
+    ]);
+    expect(textFor(db, "reel")).toHaveLength(1);
+    expect(textFor(db, "standalone_email")).toEqual([]);
+  });
+
+  it("re-checks the tier on the row, so a recipe that names Campaign still makes no reel", async () => {
+    const db = textDb();
+    const ctx = context(db, "write_captions");
+    const complete = stubComplete(answered(GOOD_CAPTIONS));
+    await runWriteCaptions(ctx, {}, { ...DATA, tier: "Campaign" }, complete);
+    expect(stubKinds(db)).not.toContain("reel");
+    expect(stubKinds(db)).not.toContain("standalone_email");
+  });
+
+  it("the stub complete's usage reaches the result summed over the first answer and the lint retry", async () => {
+    const bad = { ...GOOD_CAPTIONS, instagram: "A stunning house." };
+    const { result, complete } = await runCaptions(
+      textDb(),
+      stubComplete(answered(bad, 900, 300), answered(GOOD_CAPTIONS, 1100, 250)),
+    );
+    expect(complete).toHaveBeenCalledTimes(2);
+    expect(complete.mock.calls[0]?.[1]).toBe(MODEL);
+    expect(result).toEqual({
+      status: "done",
+      result: { usage: { model: MODEL, input_tokens: 2000, output_tokens: 550 } },
+    });
+  });
+
+  it("a caption that fails twice is stored flagged on every kind it writes", async () => {
+    const bad = { ...GOOD_CAPTIONS, instagram: "A stunning house." };
+    const db = textDb();
+    await runCaptions(db, stubComplete(answered(bad), answered(bad)));
+    expect(textFor(db, "cover")[0]).toMatchObject({ p_meta: { caption_lint: "failed" } });
+  });
+
+  it("with the event's render_carousel job holding max_slides 6, meta.slide_alts has 6 entries", async () => {
+    const db = textDb({
+      media: Array.from({ length: 12 }, (_, n) => mediaRow(n)),
+      jobs: [jobRow({ params: { max_slides: 6 }, data: {} })],
+    });
+    await runCaptions(db);
+    expect(textFor(db, "carousel").at(-1)).toMatchObject({
+      p_meta: { slide_alts: ["one", "two", "three", "four", "five", "six"] },
+    });
+    expect(textFor(db, "carousel")[0]).toEqual({
+      p_asset: "asset-carousel",
+      p_meta: { max_slides: 6 },
+    });
+  });
+
+  it("a kind whose caption_lint is edited keeps its caption (human caption kept)", async () => {
+    const db = textDb({ stubs: { carousel: { meta: { caption_lint: "edited" } } } });
+    await runCaptions(db);
+    expect(textFor(db, "cover")).toHaveLength(1);
+    expect(textFor(db, "story")).toHaveLength(1);
+    expect(textFor(db, "carousel").every((args) => !("p_caption" in args))).toBe(true);
+  });
+
+  it("approved work is untouched by a second publish and the model is not asked", async () => {
+    const approved = { status: "approved" } as const;
+    const db = textDb({
+      stubs: { cover: approved, carousel: approved, story: approved, newsletter_block: approved },
+    });
+    const { result, complete } = await runCaptions(db);
+    expect(result).toEqual({ status: "done", result: { skipped: "already_approved" } });
+    expect(complete).not.toHaveBeenCalled();
+    expect(textCalls(db)).toEqual([]);
+  });
+
+  it("when every caption was typed by hand the step ends done and asks nothing", async () => {
+    const edited = { meta: { caption_lint: "edited" } };
+    const db = textDb({
+      stubs: { cover: edited, carousel: edited, story: edited, newsletter_block: edited },
+    });
+    const { result, complete } = await runCaptions(db);
+    expect(result).toEqual({ status: "done", result: { skipped: "caption_edited" } });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("waits two minutes for the carousel size, and after 60 minutes since its stub ends in variants_missing", async () => {
+    const media = [mediaRow(0), mediaRow(1, { variants: { hero: VARIANTS.hero } })];
+    const { result, complete } = await runCaptions(textDb({ media }));
+    expect(result).toEqual({
+      status: "retry_at",
+      at: new Date(NOW.getTime() + 2 * 60 * 1000),
+      reason: "variants_pending",
+    });
+    expect(complete).not.toHaveBeenCalled();
+    const created_at = new Date(NOW.getTime() - 61 * 60 * 1000).toISOString();
+    const old = { cover: { created_at }, carousel: { created_at }, story: { created_at } };
+    await expect(runCaptions(textDb({ media, stubs: old }))).rejects.toThrow(
+      new NonRetryableError("variants_missing"),
+    );
+  });
+
+  it("params.alt_text false writes captions only and leaves every alt text untouched", async () => {
+    const db = textDb();
+    await runCaptions(db, stubComplete(answered(GOOD_CAPTIONS)), { alt_text: false });
+    expect(textFor(db, "cover")[0]).not.toHaveProperty("p_alt_text");
+    expect(textFor(db, "newsletter_block")).toEqual([]);
+    expect(textFor(db, "carousel").at(-1)?.["p_meta"]).not.toHaveProperty("slide_alts");
+  });
+
+  it("a property that is not published is skipped and a missing property id throws", async () => {
+    const draft = textDb({ property: propertyRow({ editorial_state: "archived" }) });
+    const { result } = await runCaptions(draft);
+    expect(result).toEqual({ status: "done", result: { skipped: "not_published" } });
+    expect(rpcCall(draft, "upsert_asset_stub")).toEqual([]);
+    const ctx = context(textDb(), "write_captions");
+    await expect(runWriteCaptions(ctx, {}, {}, stubComplete())).rejects.toThrow(
+      new NonRetryableError("property_id_missing"),
+    );
+  });
+
+  it("creates, sends and posts nothing: only stubs and text", async () => {
+    const db = textDb({ property: campaign });
+    await runCaptions(db);
+    const names = new Set(db.calls.map((call) => `${call.kind}:${call.name}`));
+    expect([...names].filter((name) => name.startsWith("rpc:")).sort()).toEqual([
+      "rpc:set_asset_text",
+      "rpc:upsert_asset_stub",
+    ]);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("a render onResult before or after it leaves the captions and the files intact", async () => {
+    const store = new Map<string, Tables<"assets">>();
+    const kindOf = (asset: string) => asset.replace("asset-", "");
+    const db = fakeDb({
+      rpc: {
+        upsert_asset_stub: ({ p_kind }) => {
+          const row = store.get(p_kind) ?? assetRow({ id: `asset-${p_kind}`, kind: p_kind });
+          store.set(p_kind, row);
+          return row;
+        },
+        set_asset_text: ({ p_asset, p_caption }) => {
+          const row = store.get(kindOf(p_asset));
+          if (row !== undefined && p_caption !== undefined) {
+            store.set(kindOf(p_asset), { ...row, caption: p_caption });
+          }
+          return undefined;
+        },
+        set_asset_files: ({ p_asset, p_files }) => {
+          const row = store.get(kindOf(p_asset));
+          if (row !== undefined) store.set(kindOf(p_asset), { ...row, files: p_files ?? [] });
+          return undefined;
+        },
+      },
+      tables: {
+        properties: [propertyRow()],
+        property_media: [mediaRow(0), mediaRow(1), mediaRow(2)],
+        assets: [assetRow({ kind: "carousel" })],
+        jobs: [],
+        settings: [captionModel],
+      },
+    });
+    const file = { media_key: "assets/cover.jpg", w: 1200, h: 630, bytes: 9, role: "main" };
+    store.set("cover", assetRow({ id: "asset-cover", kind: "cover" }));
+    const ctx = context(db, "render_cover");
+    const job = { ...ctx.job, result: { spec_hash: "h", revision: 1, asset_id: "asset-cover" } };
+    await step("render_cover").onResult?.(ctx, job, { files: [file] });
+    const complete = stubComplete(answered(GOOD_CAPTIONS));
+    await runWriteCaptions(context(db, "write_captions"), {}, DATA, complete);
+    expect(store.get("cover")).toMatchObject({ caption: GOOD_CAPTIONS.instagram, files: [file] });
+    await step("render_cover").onResult?.(ctx, job, { files: [file] });
+    expect(store.get("cover")).toMatchObject({ caption: GOOD_CAPTIONS.instagram, files: [file] });
+  });
+});
+
+describe("build_newsletter_block", () => {
+  const run = (db: FakeDb, data: JsonObject = DATA) =>
+    step("build_newsletter_block").run(context(db, "build_newsletter_block"), {}, data);
+
+  it("getStep returns a light module", () => {
+    expect(step("build_newsletter_block")).toMatchObject({
+      type: "build_newsletter_block",
+      heavy: false,
+    });
+  });
+
+  it("Feature tier gets no standalone", async () => {
+    const db = textDb({ property: propertyRow({ campaign_tier: "Feature" }) });
+    await run(db);
+    expect(stubKinds(db)).toEqual(["newsletter_block"]);
+    expect(textCalls(db)).toHaveLength(1);
+    expect(rpcCall(db, "upsert_asset_stub")[0]?.args).toEqual([
+      { p_property: PROPERTY_ID, p_kind: "newsletter_block", p_job_id: JOB_ID },
+    ]);
+  });
+
+  it("Campaign creates both, the standalone pending, with the same block", async () => {
+    const db = textDb({ property: campaign });
+    await run(db);
+    expect(stubKinds(db)).toEqual(["newsletter_block", "standalone_email"]);
+    const meta = z.object({ block: z.unknown() });
+    const block = meta.parse(textFor(db, "newsletter_block")[0]?.["p_meta"]).block;
+    expect(textFor(db, "standalone_email")[0]?.["p_meta"]).toEqual({
+      block,
+      subject: "A residence",
+      preheader: "A quiet street under old oaks.",
+    });
+    expect(assetRow({ kind: "standalone_email" }).status).toBe("pending");
+  });
+
+  it("a job with data.kind standalone_email and revision 2 upserts no newsletter_block row", async () => {
+    const db = textDb({ property: campaign });
+    await run(db, { ...DATA, kind: "standalone_email", revision: 2 });
+    expect(rpcCall(db, "upsert_asset_stub").map((call) => call.args[0])).toEqual([
+      { p_property: PROPERTY_ID, p_kind: "standalone_email", p_job_id: JOB_ID, p_revision: 2 },
+    ]);
+    expect(textFor(db, "newsletter_block")).toEqual([]);
+  });
+
+  it("a standalone re-render on a Feature property builds nothing", async () => {
+    const db = textDb({ property: propertyRow({ campaign_tier: "Feature" }) });
+    const result = await run(db, { ...DATA, kind: "standalone_email", revision: 2 });
+    expect(result).toEqual({ status: "done", result: { skipped: "kind_not_built" } });
+    expect(stubKinds(db)).toEqual([]);
+  });
+
+  it("a missing og variant returns retry_at and, after 60 minutes since the stub, variants_missing", async () => {
+    const media = [mediaRow(0, { variants: { hero: VARIANTS.hero } })];
+    expect(await run(textDb({ media }))).toEqual({
+      status: "retry_at",
+      at: new Date(NOW.getTime() + 2 * 60 * 1000),
+      reason: "variants_pending",
+    });
+    const created_at = new Date(NOW.getTime() - 61 * 60 * 1000).toISOString();
+    await expect(
+      run(textDb({ media, stubs: { newsletter_block: { created_at } } })),
+    ).rejects.toThrow(new NonRetryableError("variants_missing"));
+  });
+
+  it("the block holds the og JPEG as an absolute address, its own link and the first sentence of the place", async () => {
+    const db = textDb();
+    await run(db);
+    const meta = z
+      .object({
+        block: z.object({
+          title: z.string(),
+          deck: z.string(),
+          image_key: z.string(),
+          image_url: z.string(),
+          link: z.string(),
+        }),
+      })
+      .parse(textFor(db, "newsletter_block")[0]?.["p_meta"]);
+    expect(meta.block.image_key).toBe("v/oak-hill/0-aaaaaaaa/og.jpg");
+    expect(meta.block.image_url).toBe(mediaUrl(meta.block.image_key, { absolute: true }));
+    expect(meta.block.image_url.startsWith(MEDIA_BASE)).toBe(true);
+    expect(meta.block.image_url.endsWith(".jpg")).toBe(true);
+    expect(meta.block.link).toBe(propertyLink("oak-hill", "newsletter"));
+    expect(meta.block.title).toBe("A residence");
+    expect(meta.block.deck).toBe("A quiet street under old oaks.");
+  });
+
+  it("a property with no place paragraph gets its city and state as the deck", async () => {
+    const db = textDb({ property: propertyRow({ place: null }) });
+    await run(db);
+    expect(textFor(db, "newsletter_block")[0]).toMatchObject({
+      p_meta: { block: { deck: "Los Altos Hills, California" } },
+    });
+  });
+
+  it("throws media_public_base_missing and writes no block without MEDIA_PUBLIC_BASE", async () => {
+    vi.stubEnv("MEDIA_PUBLIC_BASE", undefined);
+    const db = textDb();
+    await expect(run(db)).rejects.toThrow(new NonRetryableError("media_public_base_missing"));
+    expect(textCalls(db)).toEqual([]);
+  });
+
+  it("approved work is untouched by a second publish and a re-render is not skipped", async () => {
+    const approved = { status: "approved" } as const;
+    const db = textDb({ stubs: { newsletter_block: approved } });
+    expect(await run(db)).toEqual({ status: "done", result: { skipped: "already_approved" } });
+    expect(textCalls(db)).toEqual([]);
+    const again = textDb({ stubs: { newsletter_block: approved } });
+    await run(again, { ...DATA, kind: "newsletter_block", revision: 2 });
+    expect(textFor(again, "newsletter_block")).toHaveLength(1);
+  });
+
+  it("a property that is not published is skipped", async () => {
+    const db = textDb({ property: propertyRow({ editorial_state: "archived" }) });
+    expect(await run(db)).toEqual({ status: "done", result: { skipped: "not_published" } });
+    expect(stubKinds(db)).toEqual([]);
   });
 });

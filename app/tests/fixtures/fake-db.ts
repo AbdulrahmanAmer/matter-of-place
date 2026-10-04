@@ -28,6 +28,10 @@ interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
   is: () => FakeQuery;
   gt: () => FakeQuery;
   eq: () => FakeQuery;
+  in: () => FakeQuery;
+  lte: () => FakeQuery;
+  order: () => FakeQuery;
+  limit: () => FakeQuery;
 }
 
 const registered = (table: object | undefined, name: string): unknown =>
@@ -61,6 +65,10 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
         is: query,
         gt: query,
         eq: query,
+        in: query,
+        lte: query,
+        order: query,
+        limit: query,
       });
     return { select: query };
   };

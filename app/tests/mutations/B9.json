@@ -1776,5 +1776,599 @@
     "run": "node scripts/watchfail.mjs --file scripts/render-og-static.mjs --find 'await writeFile(join(options.out, `${key}.png`), body);' --replace 'await writeFile(join(options.out, `${key}.${hash8(body)}.png`), body);' --run 'bun scripts/render-og-static.mjs --out .tmp/wfog; ls .tmp/wfog | grep -c \"^home.png$\"' --expect '0'",
     "expect": "0",
     "what": "by hand: --out writes a hashed name instead of the stable <key>.png B13 commits; the ls of the output folder shows no home.png; needs Chrome"
+  },
+  {
+    "id": "b9g7-links-source",
+    "test": "tests/unit/assets/links.test.ts",
+    "file": "src/server/assets/links.ts",
+    "find": "utm_source=${channel}",
+    "replace": "utm_source=site",
+    "run": "bunx vitest run --project unit tests/unit/assets/links.test.ts -t \"carries its own source\"",
+    "expect": "× .*carries its own source"
+  },
+  {
+    "id": "b9g7-links-email",
+    "test": "tests/unit/assets/links.test.ts",
+    "file": "src/server/assets/links.ts",
+    "find": "newsletter: \"email\",",
+    "replace": "newsletter: \"social\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/links.test.ts -t \"carries the email medium\"",
+    "expect": "× .*carries the email medium"
+  },
+  {
+    "id": "b9g7-links-23",
+    "test": "tests/unit/assets/links.test.ts",
+    "file": "src/server/assets/links.ts",
+    "find": "X_LINK_LENGTH = 23",
+    "replace": "X_LINK_LENGTH = 22",
+    "run": "bunx vitest run --project unit tests/unit/assets/links.test.ts -t \"counts a link at 23\"",
+    "expect": "× .*counts a link at 23"
+  },
+  {
+    "id": "b9g7-voice-calm",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "if (text.includes(\"!\")) add(",
+    "replace": "if (text.includes(\".\")) add(",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"passes a calm caption\"",
+    "expect": "× .*passes a calm caption"
+  },
+  {
+    "id": "b9g7-voice-emdash",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "if (text.includes(EM_DASH)) add(\"em_dash\", \"Use no em dashes.\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"an em dash fails\"",
+    "expect": "× .*an em dash fails"
+  },
+  {
+    "id": "b9g7-voice-banned",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "  \"luxury living\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"the banned phrase in\"",
+    "expect": "× .*the banned phrase in"
+  },
+  {
+    "id": "b9g7-voice-contains",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "parts.join(\"|\")})\\\\b",
+    "replace": "parts.join(\"|\")})",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"only contains a banned one\"",
+    "expect": "× .*only contains a banned one"
+  },
+  {
+    "id": "b9g7-voice-exclamation",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "if (text.includes(\"!\")) add(",
+    "replace": "if (text.includes(\"?!\")) add(",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"an exclamation mark fails\"",
+    "expect": "× .*an exclamation mark fails"
+  },
+  {
+    "id": "b9g7-voice-hashtag",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": ".test(withoutLinks(text))",
+    "replace": ".test(\"\")",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"a hashtag fails\"",
+    "expect": "× .*a hashtag fails"
+  },
+  {
+    "id": "b9g7-voice-guarantee",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "const GUARANTEE = wordPattern(GUARANTEE_WORDS);",
+    "replace": "const GUARANTEE = wordPattern([\"zzz\"]);",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"the guarantee in\"",
+    "expect": "× .*the guarantee in"
+  },
+  {
+    "id": "b9g7-voice-leads",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "  \"guarantee\",\n  \"guarantees\",",
+    "replace": "  \"leads\",\n  \"guarantee\",\n  \"guarantees\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"a stair that leads\"",
+    "expect": "× .*a stair that leads"
+  },
+  {
+    "id": "b9g7-voice-merit",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "if (merit !== null && mentionsPrice(sentence, property)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"fails the merit rule\"",
+    "expect": "× .*fails the merit rule"
+  },
+  {
+    "id": "b9g7-voice-sentence",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "text.split(/(?<=[.!?])\\s+|\\n+/)",
+    "replace": "[text]",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"a price in its own sentence\"",
+    "expect": "× .*a price in its own sentence"
+  },
+  {
+    "id": "b9g7-voice-numbers",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": ".filter((token) => !known.has(token))",
+    "replace": ".filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"a number that is not in the property row\"",
+    "expect": "× .*a number that is not in the property row"
+  },
+  {
+    "id": "b9g7-voice-xlink",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "(channel === \"x\" && !links.includes(link))",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"the x variant must carry its own link\"",
+    "expect": "× .*the x variant must carry its own link"
+  },
+  {
+    "id": "b9g7-voice-otherlink",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "links.some((found) => found !== link)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"carries no link of another channel\"",
+    "expect": "× .*carries no link of another channel"
+  },
+  {
+    "id": "b9g7-voice-instagram",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "instagram: 2200,",
+    "replace": "instagram: 2300,",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"instagram holds 2200\"",
+    "expect": "× .*instagram holds 2200"
+  },
+  {
+    "id": "b9g7-voice-xcount",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "text.replace(URL_PATTERN, \" \".repeat(X_LINK_LENGTH))",
+    "replace": "text",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"the x variant counts its link\"",
+    "expect": "× .*the x variant counts its link"
+  },
+  {
+    "id": "b9g7-voice-linkedin",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "linkedin: 3000,",
+    "replace": "linkedin: 3100,",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"linkedin holds 3000\"",
+    "expect": "× .*linkedin holds 3000"
+  },
+  {
+    "id": "b9g7-captions-prompt",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "`- Never use: ${BANNED_WORDS.join(\", \")}.`,",
+    "replace": "\"- Never use the banned words.\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"holds the voice rules\"",
+    "expect": "× .*holds the voice rules"
+  },
+  {
+    "id": "b9g7-captions-feedback",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "...problems.map((problem) => `- ${problem}`),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"a lint failure asks again once\"",
+    "expect": "× .*a lint failure asks again once"
+  },
+  {
+    "id": "b9g7-captions-notjson",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "[\"The answer was not one JSON object with the five keys.\"]",
+    "replace": "[]",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"counts as a lint failure\"",
+    "expect": "× .*counts as a lint failure"
+  },
+  {
+    "id": "b9g7-captions-fence",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "text.indexOf(\"{\")",
+    "replace": "0",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"wrapped in a code fence\"",
+    "expect": "× .*wrapped in a code fence"
+  },
+  {
+    "id": "b9g7-captions-flagged",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": ".length === 0 ? \"passed\" : \"failed\"",
+    "replace": ".length === 0 ? \"passed\" : \"passed\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"fails twice comes back flagged\"",
+    "expect": "× .*fails twice comes back flagged"
+  },
+  {
+    "id": "b9g7-captions-invalid",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "if (second === null) throw",
+    "replace": "if (second === undefined) throw",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"throws caption_answer_invalid\"",
+    "expect": "× .*throws caption_answer_invalid"
+  },
+  {
+    "id": "b9g7-captions-usage",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "usage.output_tokens += answered.usage.output_tokens;",
+    "replace": "usage.output_tokens = answered.usage.output_tokens;",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"usage is summed\"",
+    "expect": "× .*usage is summed"
+  },
+  {
+    "id": "b9g7-captions-slides",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "answer.slide_alts[at] ??",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"one alt text comes back per slide\"",
+    "expect": "× .*one alt text comes back per slide"
+  },
+  {
+    "id": "b9g7-captions-model",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "safeParse(data[0]?.value)",
+    "replace": "safeParse(data[1]?.value)",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"reads the model\"",
+    "expect": "× .*reads the model"
+  },
+  {
+    "id": "b9g7-captions-model-missing",
+    "test": "tests/unit/assets/captions.test.ts",
+    "file": "src/server/assets/captions.ts",
+    "find": "new NonRetryableError(\"caption_model_missing\")",
+    "replace": "new NonRetryableError(\"caption_model_unset\")",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions.test.ts -t \"a missing settings.caption_model\"",
+    "expect": "× .*a missing settings\\.caption_model"
+  },
+  {
+    "id": "b9g7-runner-stdin",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "[\"-p\", \"--model\", model, \"--output-format\", \"json\"],\n    prompt,",
+    "replace": "[\"-p\", \"--model\", model, \"--output-format\", \"json\", prompt],\n    \"\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"passes the model and the output format\"",
+    "expect": "× .*passes the model and the output format"
+  },
+  {
+    "id": "b9g7-runner-error",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "  if (run.code !== 0) throw new Error(`caption CLI exited with code ${String(run.code)}`);\n  let raw: unknown;\n  try {\n    raw = JSON.parse(run.stdout);\n  } catch {\n    throw new Error(\"caption CLI answer is not JSON\");\n  }\n  const answer = cliAnswer.safeParse(raw);\n  if (!answer.success) throw new Error(\"caption CLI answer is not the result object\");\n  if (answer.data.is_error === true) throw new Error(\"caption CLI answered an error\");",
+    "replace": "  let raw: unknown;\n  try {\n    raw = JSON.parse(run.stdout);\n  } catch {\n    throw new Error(\"caption CLI answer is not JSON\");\n  }\n  const answer = cliAnswer.safeParse(raw);\n  if (!answer.success) throw new Error(\"caption CLI answer is not the result object\");",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"an error answer throws\"",
+    "expect": "× .*an error answer throws"
+  },
+  {
+    "id": "b9g7-runner-usage",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "finishJob(db, { ...ids, result: result.result })",
+    "replace": "finishJob(db, { ...ids })",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"finishes it once with the usage\"",
+    "expect": "× .*finishes it once with the usage"
+  },
+  {
+    "id": "b9g7-runner-lost",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "if (job === null) continue;",
+    "replace": "if (job === null) return 0;",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"claim is lost is skipped\"",
+    "expect": "× .*claim is lost is skipped"
+  },
+  {
+    "id": "b9g7-runner-25",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "(await dueJobIds(db)).slice(0, MAX_JOBS_PER_RUN)",
+    "replace": "await dueJobIds(db)",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"exactly 25 claims\"",
+    "expect": "× .*exactly 25 claims"
+  },
+  {
+    "id": "b9g7-runner-missing-cli",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "return probe.code === 0 ? null : cliCommand().name;",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"does not exist exits 2\"",
+    "expect": "× .*does not exist exits 2"
+  },
+  {
+    "id": "b9g7-runner-retry",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "const dead = error instanceof NonRetryableError;",
+    "replace": "const dead = true;",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"fails the job for a retry\"",
+    "expect": "× .*fails the job for a retry"
+  },
+  {
+    "id": "b9g7-runner-dead",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "const dead = error instanceof NonRetryableError;",
+    "replace": "const dead = false;",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"no retry can fix ends dead\"",
+    "expect": "× .*no retry can fix ends dead"
+  },
+  {
+    "id": "b9g7-runner-requeue",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "if (result.status === \"retry_at\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"requeued without the CLI\"",
+    "expect": "× .*requeued without the CLI"
+  },
+  {
+    "id": "b9g7-wc-local-step",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "new NonRetryableError(\"local_step\")",
+    "replace": "new NonRetryableError(\"other_step\")",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a local module whose run throws local_step\"",
+    "expect": "× .*a local module whose run throws local_step"
+  },
+  {
+    "id": "b9g7-wc-local-spec",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-specs.ts",
+    "find": "local: true,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a local module whose run throws local_step\"",
+    "expect": "× .*a local module whose run throws local_step"
+  },
+  {
+    "id": "b9g7-wc-no-job-id",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "{ p_property: propertyId, p_kind: kind }",
+    "replace": "{ p_property: propertyId, p_kind: kind, p_job_id: ctx.job.id }",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"creates the stubs of the Editorial tier\"",
+    "expect": "× .*creates the stubs of the Editorial tier"
+  },
+  {
+    "id": "b9g7-wc-campaign",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "property.campaign_tier === \"Campaign\" ? [...TIER_KINDS, ...CAMPAIGN_KINDS] : TIER_KINDS",
+    "replace": "TIER_KINDS",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"adds the reel and the standalone email stubs\"",
+    "expect": "× .*adds the reel and the standalone email stubs"
+  },
+  {
+    "id": "b9g7-wc-tier-recheck",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "property.campaign_tier === \"Campaign\"",
+    "replace": "payload[\"tier\"] === \"Campaign\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"re-checks the tier on the row\"",
+    "expect": "× .*re-checks the tier on the row"
+  },
+  {
+    "id": "b9g7-wc-usage",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "result: { usage: written.usage }",
+    "replace": "result: {}",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"summed over the first answer\"",
+    "expect": "× .*summed over the first answer"
+  },
+  {
+    "id": "b9g7-wc-flagged",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "caption_lint: written.caption_lint,",
+    "replace": "caption_lint: \"passed\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"fails twice is stored flagged\"",
+    "expect": "× .*fails twice is stored flagged"
+  },
+  {
+    "id": "b9g7-wc-max-slides",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "carouselJob.safeParse(data[0]?.payload).data?.params.max_slides ??",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"slide_alts has 6 entries\"",
+    "expect": "× .*slide_alts has 6 entries"
+  },
+  {
+    "id": "b9g7-wc-human-kept",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "lintState.safeParse(stub.meta).data?.caption_lint !== \"edited\"",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"keeps its caption\"",
+    "expect": "× .*keeps its caption"
+  },
+  {
+    "id": "b9g7-wc-approved",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "stub.status !== \"approved\" && stub.status !== \"published\"",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"approved work is untouched by a second publish and the model is not asked\"",
+    "expect": "× .*approved work is untouched by a second publish and the model is not asked"
+  },
+  {
+    "id": "b9g7-wc-all-edited",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "if (writing.length === 0) return { status: \"done\", result: { skipped: \"caption_edited\" } };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"typed by hand the step ends done\"",
+    "expect": "× .*typed by hand the step ends done"
+  },
+  {
+    "id": "b9g7-wc-wait",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "if (wait !== null) return wait;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"waits two minutes for the carousel size\"",
+    "expect": "× .*waits two minutes for the carousel size"
+  },
+  {
+    "id": "b9g7-wc-alt-false",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "const withAlt = params.alt_text !== false;",
+    "replace": "const withAlt = true;",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"params.alt_text false\"",
+    "expect": "× .*params\\.alt_text false"
+  },
+  {
+    "id": "b9g7-wc-unpublished",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "if (property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a property that is not published is skipped and a missing property id\"",
+    "expect": "× .*a property that is not published is skipped and a missing property id"
+  },
+  {
+    "id": "b9g7-wc-outside",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "return { status: \"done\", result: { usage: written.usage } };",
+    "replace": "await fetch(\"https://example.invalid/\");\n  return { status: \"done\", result: { usage: written.usage } };",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"creates, sends and posts nothing\"",
+    "expect": "× .*creates, sends and posts nothing"
+  },
+  {
+    "id": "b9g7-wc-intact",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "p_caption: instagram,",
+    "replace": "p_caption: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"leaves the captions and the files intact\"",
+    "expect": "× .*leaves the captions and the files intact"
+  },
+  {
+    "id": "b9g7-nb-light",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-specs.ts",
+    "find": "build_newsletter_block: { heavy: false,",
+    "replace": "build_newsletter_block: { heavy: true,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"getStep returns a light module\"",
+    "expect": "× .*getStep returns a light module"
+  },
+  {
+    "id": "b9g7-nb-feature",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "tier === \"Campaign\"",
+    "replace": "tier !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"Feature tier gets no standalone\"",
+    "expect": "× .*Feature tier gets no standalone"
+  },
+  {
+    "id": "b9g7-nb-standalone",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "? { block, subject: block.title, preheader: block.deck }",
+    "replace": "? { block }",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"Campaign creates both\"",
+    "expect": "× .*Campaign creates both"
+  },
+  {
+    "id": "b9g7-nb-kind",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "tierKinds.filter((kind) => kind === requested)",
+    "replace": "tierKinds",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"upserts no newsletter_block row\"",
+    "expect": "× .*upserts no newsletter_block row"
+  },
+  {
+    "id": "b9g7-nb-not-built",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "if (kinds.length === 0) return",
+    "replace": "if (false) return",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"builds nothing\"",
+    "expect": "× .*builds nothing"
+  },
+  {
+    "id": "b9g7-nb-wait",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "waitForVariants(ctx, propertyId, \"og\",",
+    "replace": "waitForVariants(ctx, propertyId, \"hero\",",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a missing og variant returns retry_at\"",
+    "expect": "× .*a missing og variant returns retry_at"
+  },
+  {
+    "id": "b9g7-nb-og-key",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "variantKey(hero.media_key, \"og\")",
+    "replace": "variantKey(hero.media_key, \"card\")",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"the block holds the og JPEG\"",
+    "expect": "× .*the block holds the og JPEG"
+  },
+  {
+    "id": "b9g7-nb-deck",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "`${property.city}, ${property.state}`",
+    "replace": "\"\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"gets its city and state as the deck\"",
+    "expect": "× .*gets its city and state as the deck"
+  },
+  {
+    "id": "b9g7-nb-base",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "if (readVar(\"MEDIA_PUBLIC_BASE\") === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"writes no block without MEDIA_PUBLIC_BASE\"",
+    "expect": "× .*writes no block without MEDIA_PUBLIC_BASE"
+  },
+  {
+    "id": "b9g7-nb-approved",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "revision !== null ||",
+    "replace": "true ||",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a re-render is not skipped\"",
+    "expect": "× .*a re-render is not skipped"
+  },
+  {
+    "id": "b9g7-nb-unpublished",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/build-newsletter-block.ts",
+    "find": "if (property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"a property that is not published is skipped\"",
+    "expect": "× .*a property that is not published is skipped"
+  },
+  {
+    "id": "b9g7-local-only",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/render-specs.ts",
+    "find": "build_newsletter_block: { heavy: false,",
+    "replace": "build_newsletter_block: { heavy: false, local: true,",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"the only registered step of the local class\"",
+    "expect": "× .*the only registered step of the local class"
   }
 ]

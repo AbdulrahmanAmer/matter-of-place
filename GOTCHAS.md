@@ -189,6 +189,7 @@ Entry template
 - hit again: 2026-10-04, B5 g1: a heredoc turned a backslash-s in a regex template literal into a plain s, so `tokenOf` returned undefined and four theme cases went red for the wrong reason; fixed with the Edit tool. The same call style failed again on the P-1200 rewrite (`eval: syntax error near unexpected token`).
 - hit again: 2026-10-04, B5 g1 review: quoting the heredoc delimiter (`<<'EOF'`) does not protect backslashes in this harness. A scratch watchfail registry written that way lost the backslashes on some lines (a find holding two backslashes before a brace arrived with one) while another line of the same heredoc kept its doubles, and watchfail died with `Bad escaped character in JSON at position 463`. Choose find and replace strings with no backslash, or write the registry with the Write tool. Proof: the entry's own proof reproduces it, a quoted heredoc writing a run of backslashes into a file, then `od -c` on that file shows fewer backslashes than were typed.
 - merged: P-070, P-111, P-115, P-309, P-406
+- hit again: 2026-10-04, B9 g7: three times in one group: a `node -e` with template literals and `${}` in its finds ended in `command substitution: syntax error`, a quoted heredoc of 400 test lines ended in `unexpected EOF` and wrote nothing, and a `sed` replacing text with `\n` put a real newline inside a string literal; each file went in with the Write tool (the test code through the scratchpad and `cat >>`).
 - hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
@@ -812,6 +813,7 @@ Entry template
 - hit again: 2026-10-04, B3 c13 (fifth fix of `docs/runbooks/api.md`): a stray `python -` in a chain spun for two minutes and was killed; the chain's `node` edit then ran anyway and wrote the P-844 hit-again lines twice, and the first copy was removed by hand. The reusable half: killing a spinning step in an `&&` or `;` chain does not stop the steps after it, they run once the killed step ends. Reviewer follow-up: the P-844 line first said the chain "ran nothing", which contradicted this; it now says what happened. Proof: `grep -c "chain ran noth[i]ng" GOTCHAS.md` → `0`.
 - hit again: 2026-10-04, B3 g3: `python3 - <<EOF` for a four-line edit hung the shell for 120 seconds before anything ran; the edit was redone with `node` and the Edit tool.
 - hit again: 2026-10-04, B3 g5: `python - 2>/dev/null; sed ...` in a chain spun in the background; two `python.exe` processes were ended with `taskkill //IM python.exe`, which ends every python of every lane. Find the id with `tasklist` and end that one with `taskkill //PID <id>`, never by image name (lane rule: stop only what you started).
+- hit again: 2026-10-04, B9 g7: a `python - <<EOF` ahead of a `node` patch hung 120 seconds in the background; the stray `python.exe -` was found with `Get-CimInstance Win32_Process`, matched by its start time and stopped by id, and the `node` half had not run.
 - hit again: 2026-10-04, B3 c3: `python - 2>/dev/null; node -e ...` typed from habit hung for 200 seconds in the background; the process (`python.exe -`, found with Get-CimInstance Win32_Process) was stopped by its id and the `node` half had already run. The tenth hit: prose has not stopped it, so a PreToolUse hook on Bash that refuses a command matching `(^|[;&|] *)python3? +-( |$)` is the mechanism (the orchestrator owns `.claude/hooks`).
 - hit again: 2026-10-04, B16 g1 retry: a stray `python3 - <<EOF` with an empty body hung 120 seconds and moved to the background; nothing it was meant to do needed python.
 - hit again: 2026-10-04, B14 g1 fix: a leading `python - <<'EOF'` before a `node -e` hung 120 seconds; the node edit ran only after the python process was killed by its process id, and the Edit calls made meanwhile duplicated an import. After a hung call read `git diff` before editing again.
@@ -2415,6 +2417,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: vitest exits 0 when `-t` selects nothing, and `-t` is a regular expression.
 - rule: name an `it.each` over objects with `$field` (`"approved $type untouched ..."`), escape regex characters in the `-t` of an entry (`select \* from`), and after writing a registry replay one entry of each shape and run its `run` line by hand with the `expect` removed: `Tests  1 passed | N skipped` with N the other titles proves the pattern selects something.
 - proof: `cd app && node node_modules/vitest/vitest.mjs run --project unit tests/unit/assets/steps.test.ts -t "approved render_cover untouched by a second publish" 2>&1 | grep -a "Tests "` → `Tests  1 passed` (2026-10-04, B9 g6).
+- added: 2026-10-04
+
+## P-723 · A live proof that reads a row only a lane's migration seeds fails before that migration is on main
+- symptom: B9 g7's `bun run scripts/caption-golden.ts` printed `caption_model_missing` and exited 1 against mop-dev, although the CLI answered: `settings.caption_model` is seeded by B9 g6's migration, which no lane pushes (DB-01, H57), so the row did not exist.
+- cause: the plan's live proof of step 9 reads the model from `settings`, and the plan orders it before the merge that carries the seed.
+- rule: say UNPROVEN for the real script until main has pushed the migration. Prove the rest by running a copy of the script kept outside `scripts/` (the scratchpad, never committed) with the literal model id, then rerun the real script after the merge and log both. Never insert the row by hand into the shared database.
+- proof: `cd app && bun run db:psql -- -Atc "select value from settings where key = 'caption_model'"` → no row before the merge and `"claude-haiku-4-5-20251001"` after it; `bun run scripts/caption-golden.ts` → `caption_model_missing` before, three variants and exit 0 after (measured 2026-10-04, B9 g7).
+- added: 2026-10-04
+
+## P-725 · The Write tool turns a typed `—` into the real em dash, and the R46 test then fails on the lint file itself
+- symptom: B9 g7's first `bun run check` failed only `tests/unit/boundaries.test.ts > holds no em dash anywhere under src (R46)` with `src/server/assets/voice.ts:88`; the source said `const EM_DASH = "—";` as typed, but the file held the bytes `342 200 224`.
+- cause: the Write tool decodes the escape inside the content before it reaches the disk, so the file is not what the author read back.
+- rule: a source file that must name a forbidden character builds it in code (`String.fromCharCode(0x2014)`); a test file under `tests/` may hold the escape because R46 covers `src/` only. After writing such a file, `grep -c` for the real character.
+- proof: `cd app && od -c src/server/assets/voice.ts | grep -c "342 200 224"` → `0`; `bunx vitest run --project unit tests/unit/boundaries.test.ts -t "no em dash"` → `Tests  1 passed` (2026-10-04, B9 g7).
+- added: 2026-10-04
+
+## P-724 · Haiku through the CLI wrote an em dash after being told "No em dashes"
+- symptom: the first live `caption-golden` run failed lint on the LinkedIn variant (`lint: fail, Use no em dashes.`) after the lint retry as well; the prompt line was `No em dashes, no exclamation marks, no hashtags.`
+- cause: a rule stated as a bare prohibition inside a list is not an action the model can follow; it kept a dash it had used in a sentence about "the quality of light at each level".
+- rule: write every lint rule in `captions.ts` as an instruction with its substitute (`Never write the em dash character; use a full stop or a comma where you would.`), and after any change to the prompt run `bun run scripts/caption-golden.ts` twice; both runs must exit 0. The lint, not the prompt, is what guarantees the rule (invariant 5).
+- proof: `cd app && grep -n "em dash character" src/server/assets/captions.ts` → one line; after that line two golden runs in a row passed lint (2026-10-04, B9 g7).
 - added: 2026-10-04
 
 ## G-700 · A `timestamptz` read into a JS `Date` and passed back loses its microseconds, so an equality guard never matches

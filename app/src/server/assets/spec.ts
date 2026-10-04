@@ -58,6 +58,7 @@ export type SpecPropertyRow = Pick<
   | "year_built"
   | "type"
   | "place"
+  | "campaign_tier"
   | "editorial_state"
 >;
 
@@ -97,7 +98,7 @@ function unavailable(table: string): AppError {
   return new AppError("unavailable", undefined, `The ${table} read did not answer.`);
 }
 
-function variantKey(master: string, variant: Variant): string {
+export function variantKey(master: string, variant: Variant): string {
   const parts = MASTER_KEY.exec(master);
   if (parts === null) throw new NonRetryableError("media_key_unexpected");
   return `v/${parts[1] ?? ""}/${parts[2] ?? ""}/${variant}.${EXTENSION[variant]}`;
@@ -108,7 +109,7 @@ export async function loadProperty(db: Db, propertyId: string): Promise<SpecProp
   const { data, error } = await db
     .from("properties")
     .select(
-      "id, slug, title, city, state, market_slug, price, currency, beds, baths, interior_sq_ft, year_built, type, place, editorial_state",
+      "id, slug, title, city, state, market_slug, price, currency, beds, baths, interior_sq_ft, year_built, type, place, campaign_tier, editorial_state",
     )
     .eq("id", propertyId);
   if (error !== null) throw unavailable("properties");

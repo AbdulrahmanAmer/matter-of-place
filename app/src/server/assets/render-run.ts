@@ -20,7 +20,7 @@ import {
 
 const VARIANTS_WAIT_MS = 2 * 60 * 1000;
 const VARIANTS_GIVE_UP_MS = 60 * 60 * 1000;
-const DEFAULT_MAX_SLIDES = 8;
+export const DEFAULT_MAX_SLIDES = 8;
 
 const dispatched = z.object({
   asset_id: z.string(),
@@ -29,29 +29,54 @@ const dispatched = z.object({
 const rendered = z.object({ files: z.array(assetFileSchema) });
 const slideCount = z.object({ max_slides: z.number().int().optional() });
 
-function unavailable(fn: string): AppError {
+export function unavailable(fn: string): AppError {
   return new AppError("unavailable", undefined, `The asset system did not answer (${fn}).`);
 }
 
 /** The revision a manual re-render names in `payload.data`, or null for a recipe job (invariant 3). */
-function revisionOf(data: JsonObject): number | null {
+export function revisionOf(data: JsonObject): number | null {
   const revision = data["revision"];
   return typeof revision === "number" && Number.isInteger(revision) && revision >= 1
     ? revision
     : null;
 }
 
-function propertyIdOf(data: JsonObject): string {
+export function propertyIdOf(data: JsonObject): string {
   const id = data["property_id"];
   if (typeof id !== "string") throw new NonRetryableError("property_id_missing");
   return id;
 }
 
 /**
+ * Invariant 10: null once every photograph has `variant` rendered, else the two minute wait; an hour after the step's
+ * first stub (`since`, its `created_at`) the job is dead.
+ */
+export async function waitForVariants(
+  ctx: StepContext,
+  propertyId: string,
+  variant: Variant,
+  since: string,
+): Promise<StepResult | null> {
+  if (await variantsReady(ctx.db, propertyId, variant)) return null;
+  if (ctx.now.getTime() - new Date(since).getTime() >= VARIANTS_GIVE_UP_MS) {
+    throw new NonRetryableError("variants_missing");
+  }
+  return {
+    status: "retry_at",
+    at: new Date(ctx.now.getTime() + VARIANTS_WAIT_MS),
+    reason: "variants_pending",
+  };
+}
+
+/**
  * The slide count the stub holds. `render_carousel` writes its parameter only while the stub has none, so whichever of
  * it and `write_captions` comes first decides, and both plan the same slides.
  */
-async function maxSlides(ctx: StepContext, assetId: string, wanted: number): Promise<number> {
+export async function maxSlides(
+  ctx: StepContext,
+  assetId: string,
+  wanted: number,
+): Promise<number> {
   const set = await ctx.db.rpc("set_asset_text", {
     p_asset: assetId,
     p_meta: { max_slides: wanted },
@@ -98,16 +123,8 @@ export async function runRender(
     return { status: "done", result: { skipped: "already_approved" } };
   }
 
-  if (!(await variantsReady(ctx.db, propertyId, variant))) {
-    if (ctx.now.getTime() - new Date(asset.created_at).getTime() >= VARIANTS_GIVE_UP_MS) {
-      throw new NonRetryableError("variants_missing");
-    }
-    return {
-      status: "retry_at",
-      at: new Date(ctx.now.getTime() + VARIANTS_WAIT_MS),
-      reason: "variants_pending",
-    };
-  }
+  const wait = await waitForVariants(ctx, propertyId, variant, asset.created_at);
+  if (wait !== null) return wait;
   // A deploy defect, not an outage: no spec ever carries a bare key.
   if (readVar("MEDIA_PUBLIC_BASE") === undefined)
     throw new NonRetryableError("media_public_base_missing");
