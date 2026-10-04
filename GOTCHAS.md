@@ -1910,3 +1910,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node <scratchpad>/trace/simulate-workflow.mjs` → the schema scenario's agents end `review:B2:g2:2* | merge:B2:g2:2` (the merge follows the schema group's review); `simulation: 6 scenarios passed`.
 - enforced-by: .claude/workflows/build-slice.js (the schema merge hook and the H57 rule in the builder brief)
 - added: 2026-10-04
+
+## P-907 · B8 step 5's `deno check` is red on main until B3 step 3b lands: `deno.json`, `deno.lock` and `deno-portable.ts` live on slice/b3, and `db.ts` still has extensionless imports
+- symptom: `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` prints `TS2307 Cannot find module .../src/db` and `.../src/server/lib/env` at `src/server/lib/db.ts:2:31` and `:3:21`, then `TS7006 Parameter 'message' implicitly has an 'any' type` at `runner.ts:227` (the any comes from the unresolved `Database`). `supabase/functions/job-runner/deno.json` is not on main; the plan says B3 creates it.
+- cause: the runner's `import type { Db } from "../lib/db.ts"` pulls `db.ts` into Deno's graph, and B3's fix (`../../db/index.ts`, `./env.ts`) is only on `origin/slice/b3`. The sizing marks g4 `blocked: false`; the dependency is B3 step 3b merged, not B2.
+- rule: a group that points a check at a Deno entry needs B3 step 3b on main first (its `deno.json`, `deno.lock`, the `.ts` fix of `db.ts`). Until then g4 carries a byte-identical copy of B3's `deno.json` and `deno.lock` (an identical add merges clean) and the check is UNPROVEN on main. `src/server/lib/env.ts` is loaded by the graph and is fine: only `db.ts` is the blocker. The deploy itself works, because Deno erases a type-only import at run time.
+- proof: `cd app && git show origin/slice/b3:app/src/server/lib/db.ts > src/server/lib/db.ts && deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts; echo $?; git checkout -- src/server/lib/db.ts` → `0` (and `3 errors` without the first line).
+- added: 2026-10-04
+
+## P-908 · `supabase config push` does not compare `[functions.*]`, an Edge Function's `verify_jwt` travels with the deploy, and `bunx supabase` in a scratch worktree fetches another CLI version
+- symptom: step 5 says `bunx supabase config push` applies `[functions.job-runner] verify_jwt = false`; it printed `Nothing to push: the project already matches the declared properties` (scope api, auth, database, pooler, realtime, storage). From a scratch worktree `bunx supabase functions deploy` failed with `'db' has invalid keys: orioledb_version`.
+- cause: config push has no function scope; `functions deploy` reads the key from `config.toml`. The scratch worktree has no `node_modules`, so `bunx` fetched a different CLI that rejects this `config.toml` (P-077 again).
+- rule: prove `verify_jwt` with the deploy and a bearer-less `curl` (`401 unauthorized` from the function's own check, not Supabase's JWT `401`); run the CLI from a scratch worktree as `/e/mop-build/ops/app/node_modules/.bin/supabase`. The Supabase Edge deploy with `--use-api` did not reject a `deno.lock` whose zod integrity was altered (measured 2026-10-04), so the exact pins are the guard (ASSUMED E5).
+- proof: `curl -s -o /dev/null -w "%{http_code}" -X POST https://$DEV_SUPABASE_PROJECT_REF.supabase.co/functions/v1/job-runner` → `401` and with `-H "Authorization: Bearer $JOB_RUNNER_SECRET"` the body `{"claimed":0,"jobs":[]}`.
+- added: 2026-10-04
