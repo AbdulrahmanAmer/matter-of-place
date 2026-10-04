@@ -315,3 +315,13 @@ check-gotchas OK. After the merge:
   Cause: B9 (merged to main, PR #117) registered the four render steps without R28 run-twice cases; g2's gate first
   meets them here. Owner: B9's `tests/unit/assets/steps.test.ts` (one `<type> runs twice without a second outside
   effect` case each). Not fixed by g3 (not its files). Banked as P-1612.
+
+### g3 rework · migrations renamed (CI migration-order red on the merge head)
+CI run 37226895685, job `migration-order`: `rename supabase/migrations/20261004163000_automation_seed.sql to a
+timestamp after 20261004172322` (and the same for `..._automation_schedules.sql`). Renamed with `git mv` to
+`20261004190700_automation_seed.sql` and `20261004190701_automation_schedules.sql`, content unchanged; the two registry
+`file` paths follow. P-318 hit again (the staged rename crashed the local check with ENOENT; committed first).
+- `bun run migrations:check` → migration-order: OK (27 on main, 2 added)
+- dev profile, `bunx vitest run --project db tests/db/automation.db.test.ts` → Test Files 1 passed (1) / Tests 28 passed (28)
+- `watchfail.mjs --only` b8b-g3-seed-twice, b8b-g3-schedules-prune, b8b-g3-schedules-no-reconcile-uploads → WATCHED-FAIL OK each
+- `grep -rn "—" supabase/migrations/*automation_seed.sql` → nothing, exit 1
