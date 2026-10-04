@@ -2520,3 +2520,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
 - enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
 - added: 2026-10-04
+
+## P-726 · A reviewer cannot find the author's throwaway cluster: P-718's proof names a port, not the data directory, and the port is closed once the author stops the server
+- symptom: the g6 reviewer ran P-718's proof and `pg_isready -h 127.0.0.1 -p 55432` answered `no response` (exit 2). The scratchpad held four PostgreSQL 18 clusters (`pg`, `pgd`, `pgdata`, `pgrace`) and the entry named none, so the reviewer searched for `PG_VERSION` files and read each `postmaster.opts` until one named `-p 55432`.
+- cause: P-718 says how to build the cluster and which port it listens on, not where its data directory is, and a stopped server leaves nothing to ask. A reviewer who connects to the author's running cluster would also share its database, so a proof would no longer be independent.
+- rule: the author's log names the cluster's data directory (absolute path) next to its port, and says it is stopped. A reviewer stops nothing of the author's: copy the stopped data directory (`cp -r <dir> <copy>`), start the copy on its own port (`pg_ctl -D <copy> -o "-p <port> -c listen_addresses=127.0.0.1" -w start` as a background job, P-718), re-apply the branch's migrations with `psql -v ON_ERROR_STOP=1 -f`, and run the db project against `DEV_DB_URL` on that port. When no data directory survives, rebuild by the P-718 recipe.
+- proof: `cp -r <data dir named in the log> <copy> && pg_ctl -D <copy> -o "-p 55442 -c listen_addresses=127.0.0.1" -w start; psql -h 127.0.0.1 -p 55442 -U postgres -d mop -Atc "select to_regclass('public.assets')"` → `assets` (copy of the g6 author's `pgdata` on port 55442, 2026-10-04).
+- added: 2026-10-04

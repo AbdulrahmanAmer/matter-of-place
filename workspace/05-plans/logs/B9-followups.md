@@ -101,3 +101,43 @@ Three follow-ups on GOTCHAS.md are banked as P-711 (the dead planner clamp), P-7
    - Evidence: Viewed .tmp/rv1/linkedin-set-0.1b4b06f9.jpg: photograph, then wordmark, '01 / 04' and location only.
 
 The sixth follow-up of the review is on GOTCHAS.md and is banked as P-717 (reading a redirected watchfail replay with `grep -a`), not listed here.
+
+## g6 · steps 7,8
+
+1. `app/src/domain/assets.ts` (not blocking)
+   - What: R04/C04: seven exports are used nowhere in src, tests or scripts: assetKindLabels, assetStatusLabels, assetListFilters, AssetListFilters, AssetFile, AssetKind, AssetStatus. knip passes only because the new 'export * from "./assets.ts"' line in src/domain/index.ts (a knip entry) re-exports them. R04 says an export kept for a later slice carries /** @public */ and a STUB marker, and none of these do, so the stubs gate will never flag them if service.ts and the admin screens never arrive. The content itself is what plan step 7 asks for.
+   - Evidence: for n in assetKindLabels ... AssetStatus; grep -rlw $n src tests scripts | grep -v src/domain/assets.ts → empty for all seven; git diff origin/main...HEAD -- app/src/domain/index.ts adds the barrel line; the author's log says the line 'is what keeps knip from calling its exports unused'
+
+2. `app/supabase/sql/functions/approve_asset.sql (also reject_asset.sql, rerender_asset.sql, set_asset_caption.sql)` (not blocking)
+   - What: R21/R05: these functions insert into audit_log directly because B7's write_audit does not exist yet. That gap is admitted, but no '-- STUB(B7 ...)' line marks the place, unlike B8b's '-- STUB(B8b step 6)' precedent. Also, scripts/stubs.ts cannot see SQL markers at all (P-1600). So when B7 lands nothing tracks moving these four functions onto write_audit and its actor, disabled and role checks.
+   - Evidence: grep -rn STUB supabase/sql/functions/*.sql lists only the seven automation_* B8b lines; grep -rln 'insert into public.audit_log' supabase/sql/functions includes approve_asset, reject_asset, rerender_asset, set_asset_caption
+
+3. `app/src/server/jobs/steps/render-variants.ts` (not blocking)
+   - What: R09 (follow-up): lines 163 and 196 throw a plain Error ('render_variants: no result for <id>') in server code, not an AppError or NonRetryableError. A callback whose result lacks a signed media id therefore fails as retryable and re-dispatches the whole batch until max_attempts. It writes nothing before throwing (tested), so no data is at risk. B8's dispatch.ts has the same pattern.
+   - Evidence: grep -rn 'throw new Error' src/server → render-variants.ts:163, :196 (plus B8's dispatch.ts:52, selftest.ts:17)
+
+4. `app/src/server/jobs/steps/render-specs.ts` (not blocking)
+   - What: This stand-in for B8b step 2 (marked STUB) sits in jobs/steps/, where the folder-map row allows one file per step type, and render-specs is not a step type. Its specs declare maxAttempts but no timeoutMs, which R27 requires once they move to step-specs.ts. When B8b step 2 lands, the file should be deleted and timeoutMs added.
+   - Evidence: cat src/server/jobs/steps/render-specs.ts: heavy, maxAttempts 12, paramsSchema; no timeoutMs; marker '// STUB(B8b step 2)'
+
+5. `app/tests/unit/assets/steps.test.ts` (not blocking)
+   - What: The test titled '$type runs twice without a second outside effect' (line 319) checks that the second run makes a second render.yml dispatch identical to the first. So the outside effect (an Actions run) does happen twice. No second upload happens only because downstream keys are content-hashed and putIfMissing skips existing keys, and this test does not exercise that. The title overstates what is proven (R28/HO-7).
+   - Evidence: steps.test.ts:333-336: run twice, then expect(second).toEqual(first) on dispatchedJob(spy, 0) and dispatchedJob(spy, 1)
+
+6. `app/src/server/jobs/steps/render-variants.ts` (not blocking)
+   - What: NOT DONE, as the author recorded: the request_property_render call when a claim returns 40 rows, and its unit case, are missing. Until B7 lands, a property with more than 40 staged photographs gets only the first 40 rendered; the rest wait for another attach to queue a job. Marked '// STUB(B7 step 8)'. I confirmed request_property_render is not on origin/main (00f1d80).
+   - Evidence: git grep -l request_property_render origin/main -- app/supabase app/src/db/types.ts → nothing; render-variants.ts:139 STUB line
+
+7. `workspace/05-plans/B9.md (orchestrator to fold)` (not blocking)
+   - What: Plan text and code differ, as the log records. upsert_asset_stub moves job_id to the new job only on a pending row (plan: coalesce(p_job_id, job_id) always), and when every revision is rejected it starts revision n+1 (plan: 'else 1'). approve_asset keeps the old og_image_key when a cover has no main file. All three are reasonable and documented, but the plan line is now stale.
+   - Evidence: supabase/sql/functions/upsert_asset_stub.sql lines with 'filter (where a.status <> 'rejected'), max(a.revision) + 1' and 'v_row.status = 'pending''; log block 'Decisions and plan gaps'
+
+8. `(B2) property_media_bump_catalog_version` (not blocking)
+   - What: P-719 is open for B2: every claim_media_for_render, apply_media_variants and clear_media_staging bumps catalog_version, which invalidates the public cache. A claim alone changes no public column, so one render_variants run causes three cache-key bumps.
+   - Evidence: GOTCHAS P-719 symptom and cause, reproduced by the two-connection claim test passing only with the Lock-wait poll
+
+9. `UNPROVEN (no file)` (not blocking)
+   - What: Still UNPROVEN: the plan's CI db job (ci.yml has none until B4) and the type-drift check of src/db/types.ts on an ephemeral stack. Also unproven: a render in Actions with real Chrome and fonts, render_variants and render_og_static running to done, and the settings row og_static (waiting on B8 step 7's dispatch token).
+   - Evidence: gh pr checks 117: no db job; the og-static jobs I enqueued stayed queued and were cancelled
+
+The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, not the data directory) and is banked as P-726, not listed here.
