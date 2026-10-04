@@ -30,11 +30,18 @@ describe("matchProperties", () => {
   });
 
   it("keeps the best matches first and honours the limit", () => {
-    const matches = matchProperties(cards, "waterfront estate in Florida", 3);
-    expect(matches).toHaveLength(3);
-    expect(matches.map((match) => match.score)).toEqual(
-      matches.map((match) => match.score).sort((a, b) => b - a),
-    );
+    const [base] = cards.filter((card) => card.features.some((feature) => /pool/i.test(feature)));
+    if (base === undefined) throw new Error("no bundled property with a pool");
+    const weak = { ...base, slug: "weak", features: [] };
+    const list = [weak, base];
+    const query = `a house with a pool in ${base.city}`;
+    expect(matchProperties(list, query, 6).map((match) => match.property.slug)).toEqual([
+      base.slug,
+      "weak",
+    ]);
+    expect(matchProperties(list, query, 1).map((match) => match.property.slug)).toEqual([
+      base.slug,
+    ]);
   });
 
   it("leaves out a property that scores nothing", () => {

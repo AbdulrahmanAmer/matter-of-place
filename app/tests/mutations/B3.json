@@ -1986,11 +1986,11 @@
     "expect": "× .*keeps the card fields and the card rendition"
   },
   {
-    "id": "b3-g5-parity-pick",
+    "id": "b3-g5-parity-features",
     "kind": "file",
     "test": "tests/api/parity.api.test.ts",
-    "file": "src/lib/property-card.ts",
-    "find": "    features: property.features,\n",
+    "file": "src/server/public/mappers.ts",
+    "find": "    features: row.features,\n",
     "replace": "    features: [],\n",
     "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
     "expect": "× .*answers /properties with the bundled cards and no difference"
