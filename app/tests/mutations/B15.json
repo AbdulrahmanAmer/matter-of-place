@@ -404,5 +404,225 @@
     "sql": "create or replace function public.create_inquiry(p jsonb)\nreturns table (id uuid, received_at timestamptz)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.inquiries := jsonb_populate_record(null::public.inquiries, p);\n  v_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- `state` and `received_at` keep their defaults; the payload names only what the visitor and the request gave.\n  insert into public.inquiries as i (\n    intent, topic, subject_kind, subject_slug, subject_title, name, email, phone, location, message, details,\n    source_path, ip_hash, turnstile_ok, attribution\n  ) values (\n    v.intent, v.topic, v.subject_kind, v.subject_slug, v.subject_title, v.name, v.email, v.phone, v.location,\n    v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false),\n    coalesce(p->'attribution', '{}'::jsonb)\n  )\n  returning i.id, i.received_at into v_id, v_received_at;\n  -- G49: the event commits or rolls back with the row.\n  return query select v_id, v_received_at;\nend;\n$$;\n\nrevoke execute on function public.create_inquiry(jsonb) from public, anon, authenticated;\ngrant execute on function public.create_inquiry(jsonb) to service_role;",
     "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
     "expect": "× .*every function file's body equals pg_proc.prosrc[\\s\\S]*create_inquiry"
+  },
+  {
+    "id": "b15-c",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "    if (at === null) throw new NonRetryableError(\"omnikom_unreachable\");\n",
+    "replace": "    if (at === null) throw new NonRetryableError(\"omnikom_unreachable\");\n    await markForwarded(ctx, inquiryId, body);\n",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: a 503 returns retry_at one minute on"
+  },
+  {
+    "id": "b15-d",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  const id = await deliveryId(inquiryId);",
+    "replace": "  const id = stored === null ? await deliveryId(inquiryId) : crypto.randomUUID();",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 2: two retry_at runs send one delivery id"
+  },
+  {
+    "id": "b15-g",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "        next_at: at.toISOString(),\n",
+    "replace": "        next_at: at.toISOString(),\n        headers: { \"x-mop-signature\": secret },\n",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 7: no secret and no signature header"
+  },
+  {
+    "id": "b15-h",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  const body = stored?.body ?? (await bodyOf(ctx, inquiry));",
+    "replace": "  const body = await bodyOf(ctx, inquiry);",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 2: two retry_at runs send one delivery id"
+  },
+  {
+    "id": "b15-j",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  if (outcome.kind === \"refused\") {\n",
+    "replace": "  if (outcome.kind === \"refused\") {\n    await markForwarded(ctx, inquiryId, body);\n",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3b: a 422 throws omnikom_refused:422"
+  },
+  {
+    "id": "b15-k",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/omnikom/client.ts",
+    "find": "    return { kind: \"retry\" };",
+    "replace": "    return { kind: \"refused\", status: 0, detail: \"\" };",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: a network error retries"
+  },
+  {
+    "id": "b15-l",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "nextRetryAt(attempts, ctx.now, outcome.retryAfter)",
+    "replace": "nextRetryAt(Math.min(attempts, 6), ctx.now, outcome.retryAfter)",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: the seventh failure throws omnikom_unreachable"
+  },
+  {
+    "id": "b15-p",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  if (!data) throw new NonRetryableError(\"inquiry_gone\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× mark_inquiry_forwarded answering false throws inquiry_gone"
+  },
+  {
+    "id": "b15-r-lint",
+    "kind": "file",
+    "test": "bun run lint",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "import { deliver } from \"../../omnikom/client.ts\";",
+    "replace": "import { deliver } from \"../../omnikom/client\";",
+    "run": "bun run lint",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "b15-r-deno",
+    "kind": "file",
+    "test": "deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "import { deliver } from \"../../omnikom/client.ts\";",
+    "replace": "import { deliver } from \"../../omnikom/client\";",
+    "run": "deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "expect": "TS2307 \\[ERROR\\]: Cannot find module '[^']*omnikom/client'\\. Maybe add a '\\.ts' extension"
+  },
+  {
+    "id": "b15-g3-payload",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "    p_payload: jsonSchema.parse(JSON.parse(body)),",
+    "replace": "    p_payload: {},",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× a 2xx marks the inquiry forwarded once"
+  },
+  {
+    "id": "b15-g3-409",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/omnikom/client.ts",
+    "find": "|| status === 409) return \"delivered\";",
+    "replace": ") return \"delivered\";",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× a 409 counts as delivered"
+  },
+  {
+    "id": "b15-g3-subject",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  return { ...property, representative: reps.data[0] ?? null };",
+    "replace": "  return { ...property, representative: null };",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× the body carries the subject property"
+  },
+  {
+    "id": "b15-g3-rpc-error",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  if (error !== null) throw dbFailure(\"mark_inquiry_forwarded\", error);",
+    "replace": "  if (error !== null) throw new NonRetryableError(\"mark_failed\");",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× an RPC error throws a plain Error"
+  },
+  {
+    "id": "b15-g3-manual-id",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  const id = await deliveryId(inquiryId);",
+    "replace": "  const id = await deliveryId(ctx.job.id);",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× a manual job for the same inquiry sends the same delivery id"
+  },
+  {
+    "id": "b15-g3-twice",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  const id = await deliveryId(inquiryId);",
+    "replace": "  const id = await deliveryId(`${inquiryId}:${ctx.job.id}`);",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× webhook_omnikom runs twice without a second outside effect"
+  },
+  {
+    "id": "b15-g3-gone",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "row === undefined || row.anonymised_at !== null ? null : row",
+    "replace": "row === undefined ? null : row",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3b: an anonymised or missing row throws inquiry_gone"
+  },
+  {
+    "id": "b15-g3-unconfigured",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  if (!url) return { status: \"done\", result: { skipped: \"not_configured\" } };",
+    "replace": "  if (url === \"\") return { status: \"done\", result: { skipped: \"not_configured\" } };",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× with no OMNIKOM_WEBHOOK_URL the step skips"
+  },
+  {
+    "id": "b15-g3-config",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "  if (!URL.canParse(url)) throw new NonRetryableError(\"omnikom_url_invalid\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× a URL without a secret, a malformed URL or a job without an inquiry"
+  },
+  {
+    "id": "b15-g3-abort",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/omnikom/client.ts",
+    "find": "const TIMEOUT_MS = 10_000;",
+    "replace": "const TIMEOUT_MS = 20_000;",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: a fetch that never answers[\\s\\S]*Test timed out"
+  },
+  {
+    "id": "b15-g3-retry-statuses",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/omnikom/client.ts",
+    "find": "new Set([408, 425, 429])",
+    "replace": "new Set([408, 429])",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: 408, 425 and 429 each return retry_at"
+  },
+  {
+    "id": "b15-g3-retry-after",
+    "kind": "file",
+    "test": "tests/unit/omnikom/webhook-step.test.ts",
+    "file": "src/server/jobs/steps/webhook-omnikom.ts",
+    "find": "nextRetryAt(attempts, ctx.now, outcome.retryAfter)",
+    "replace": "nextRetryAt(attempts, ctx.now)",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
+    "expect": "× invariant 3: a Retry-After later than the ladder wins"
   }
 ]

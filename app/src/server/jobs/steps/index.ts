@@ -7,6 +7,7 @@ import { renderOgStatic } from "./render-og-static.ts";
 import { renderStory } from "./render-story.ts";
 import { renderVariants } from "./render-variants.ts";
 import { selftestSteps } from "./selftest.ts";
+import { webhookOmnikom } from "./webhook-omnikom.ts";
 import { writeCaptionsStep } from "./write-captions.ts";
 
 // The step catalog: each slice that implements a step type appends one import and one entry here.
@@ -18,6 +19,7 @@ const catalog: readonly StepDefinition[] = [
   renderOgStatic,
   writeCaptionsStep,
   buildNewsletterBlock,
+  webhookOmnikom,
 ];
 
 // Fails closed: only an explicit development or preview runner knows the self-test steps.

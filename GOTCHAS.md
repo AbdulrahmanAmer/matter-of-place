@@ -2521,6 +2521,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `d=$(mktemp -d) && cd "$d" && git init -q -b main . && git config user.email a@b && git config user.name x && echo a > f && git add f && git commit -qm a && git checkout -qb side && git checkout -q main && echo b > f && git commit -qam b && git checkout -q side && echo c > f && git merge main 2>&1 | grep -c "would be overwritten by merge"` → `1` (measured 2026-10-04); with `git commit -qam c` before the merge the merge starts instead.
 - added: 2026-10-04
 
+## P-1704 · `quiet.mjs -- bun run check` hides the vitest summary: stderr is printed after stdout, and the last 12 lines are bun's `$` echoes
+- symptom: B15 g3's green `node workspace/05-plans/quiet.mjs -- bun run check` showed `Start at`, `Duration`, then ten `$ bun run ...` lines and `Using config from .jscpd.json`; neither `Test Files` nor `Tests` was among the 12 lines, so the log had no test count and `bun run test` ran a second time (80 s) only to read it.
+- cause: `quiet.mjs` joins all of stdout, then all of stderr, before it takes the last 12 lines; bun writes each script echo (`$ ...`) and jscpd its config line to stderr, eleven lines that land after vitest's stdout summary. Its header says the summaries of check live in the last 12; for `check` they do not.
+- rule: read a green `check`'s test count with `bun run check 2>&1 | grep -E "Test Files|Tests "` (exit through `${PIPESTATUS[0]}`), or keep quiet for the gates and take the count from a `bun run test 2>&1 | grep` you were going to run anyway; never run the suite twice for a number.
+- proof: `node workspace/05-plans/quiet.mjs -- bash -c '"echo Tests 1 passed; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do echo step\$i >&2; done"' | grep -c "Tests "` → `0`; with three stderr lines instead of twelve → `1` (measured 2026-10-04).
+- added: 2026-10-04
+
 ## P-718 · A db test needs no Docker and no pushed migration: a native PostgreSQL 18 cluster restored from mop-dev's schema runs the whole `db` project, and `gen types` reads it
 - symptom: B9 g6 (steps 7 and 8) writes a migration and 15 SQL functions that may not reach `mop-dev` (H1, DB-01) and has no Docker (P-038). The P-312 route (the migration as `MOP_MUTATION_SQL` prelude on mop-dev) cannot run the two-connection claim test (`committed()` never applies the prelude, so the function does not exist in the committed session), hit `canceling statement due to lock timeout` while the live runner held `public.jobs` (one case, green on rerun), and cannot give `src/db/types.ts` the new table.
 - cause: a prelude lives only inside one rolled-back transaction of one connection, and the shared cloud database is busy.
