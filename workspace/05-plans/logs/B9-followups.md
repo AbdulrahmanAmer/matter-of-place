@@ -169,3 +169,33 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 1. `workspace/05-plans/logs/B9.md` (not blocking)
    - What: UNPROVEN, as the author already admits. Neither the CI migration-order step nor the db job has run on the PR with the renamed files. The local migration-order gate is green against the current origin/main, but if main gains a migration newer than 20261004172322 before PR 117 merges, the same refusal comes back. The log's statement that 'the db job stays the proof' is correct, but that proof has not been seen yet.
    - Evidence: No CI run exists for e6ea262 (brief). Local: node scripts/check-migrations.mjs printed 'migration-order: OK (25 on main, 2 added)' against origin/main as fetched at review time.
+
+## c6u · steps 6
+
+1. `workspace/05-plans/B4.md` (lines 47, 103, 119) and GOTCHAS.md P-730 (not blocking)
+   - What: The group exists so that CI's e2e job stops getting 404 on /media/<key>. But B4's plan still seeds the e2e and db jobs with `--images skip`, so no CI job will ever run the upload path this group built. Both the author's UNPROVEN note ('the proof moves to the CI e2e job on main') and P-730's rule ('UNPROVEN until the CI e2e job on main runs the seed') point to a job that, as planned, uploads nothing. No one owns switching B4's e2e seed to `--images upload` (about 87 s more per run, measured here). Until someone does, the 404 that motivated c6u stays.
+   - Evidence: grep in B4.md: line 103 says `bun run seed -- --target local --mode full --images skip` for both the db and e2e jobs, and line 47 says 'the seed runs with --images skip ... no Storage bucket of H33 (1) is written'. The ci.yml on origin/main and on this branch has no seed or e2e step yet. Confirmed by reading.
+
+2. `app/scripts/variants.ts` (supabaseMediaRows.setVariants / restoreVariants) (not blocking)
+   - What: The update is `.update({ variants }).eq("id", id)` with no match on the `media_key` it read. `stored()` reads every row once at the start, and then each row takes seconds of makeVariants, so on `--all` the window lasts minutes. If an editor replaces a photograph and its render_variants job runs apply_media_variants inside that window, the CLI writes the old photograph's sizes onto the new key. B2's orientation trigger then derives the orientation from the wrong hero. This is the 'never keep another photograph's sizes' rule that apply_media_variants enforces, and STANDARDS C11 requires naming the race partner. Neither is done. Fix: add `.eq("media_key", row.media_key)` to the update and count a row it did not match.
+   - Evidence: Suspected by reading app/scripts/variants.ts supabaseMediaRows.setVariants. Not run against a database: this lane may not touch mop-dev (H57).
+
+3. `app/scripts/variants.ts` (supabaseMediaRows.stored) (not blocking)
+   - What: The property_media select has no range or pagination. Supabase's PostgREST cap (1000 rows by default) would silently cut `--all` short, and it would still print 'variants stored 1000, failed 0' and exit 0.
+   - Evidence: Suspected by reading. The select chain has no .range(). Not run against a real table, and the author lists --property/--all against the real table as UNPROVEN.
+
+4. `app/scripts/seed.ts` main() and `app/scripts/lib/storage-env.ts` (not blocking)
+   - What: No test or run covers the wiring that points media-store at the seeded project (projectOf, then useForMediaStore). If `useForMediaStore(project)` were deleted, every test would stay green, and uploads would go to whatever SUPABASE_URL the shell holds. GOTCHAS line 1272 records that the dev profile shell does hold another project's URL. The author's fake-Storage run and mine both set SUPABASE_URL directly and skipped main(). UNPROVEN.
+   - Evidence: Read: main() calls useForMediaStore(project) before runSeed, so the code is right today. No test imports storage-env.ts or calls main().
+
+5. `app/scripts/variants.ts` main() (not blocking)
+   - What: The CLI writes property_media on the one database but calls neither guardEnv() (SEC-08) nor holdDevLock() (G34). The seed and og-static, which write to the same project, call both.
+   - Evidence: grep 'guardEnv()' app/scripts finds api-smoke, dev-vars, job-selftest, og-static, seed and set-environment, not variants.ts. Confirmed by running grep.
+
+6. `app/docs/coming-soon.md:56` (not blocking)
+   - What: Stale line, not this group's file: 'The `upload` mode needs B9's media store and refuses until B9 has landed.' On this branch the upload mode runs and does not refuse. The group fixed the matching line in docs/runbooks/database.md but missed this one.
+   - Evidence: Grep for '--images upload' across the snapshot found this line. Confirmed by running grep.
+
+7. `workspace/05-plans/B2.md:102` and the B9 Files entry for scripts/lib/media-store.mjs (not blocking)
+   - What: Stale plan text. It says the media store is loaded only lazily through a non-literal specifier and that B2's code never imports it statically. variants.ts now imports it statically, which is correct now that the file exists (the old reason was that tsc could not resolve a missing file). No src/ or Deno file imports variants.ts: the src mentions are comments only.
+   - Evidence: grep 'scripts/variants' in src finds only comment lines in spec.ts:94 and mappers.ts:194. bun run build exit 0.

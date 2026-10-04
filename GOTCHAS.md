@@ -1092,6 +1092,7 @@ Entry template
 - proof: `cd app && bun run lint` exits 0 on slice/b2 at B2 g6; with the cast put back in `tests/unit/workflow.test.ts` it prints the error above (measured 2026-10-03).
 - added: 2026-10-03
 - hit again: 2026-10-04, B3 g8: five new tests failed lint with the same rule on `JSON.parse(...) as T`, `await response.json() as T` and `... as Property`; parse with a Zod schema (`beaconBody.parse(JSON.parse(text))`) and give a helper the narrow `Pick<>` type it reads instead of casting a partial object.
+- hit again: 2026-10-04, B9 c6u: `bun run lint` refused `no-unsafe-type-assertion` on a cast in the new `tests/unit/assets/variants-upload.test.ts`; the cast was replaced by a type guard as above, and the group's costTime named this entry.
 
 ## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
 - symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
