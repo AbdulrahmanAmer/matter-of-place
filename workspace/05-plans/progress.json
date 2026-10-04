@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-04 07:20 (UTC+3)",
-  "now": "Build running: api lane on B3 steps 8b to 13; ops lane on B8 steps 7 to 8a after its close-out c5 (the runner deploy step of deploy.yml). B1b and B2 closed or nearly; B4, B5, B9, B14, B16 parked by dependency. The runner, cron and health route are live on mop-dev.",
+  "updated": "2026-10-04 14:40 (UTC+3)",
+  "now": "B3 closed; B8 at step 8a on main. Lanes: coming (B3b, all steps), tests (B4 steps 6 to 10), ops (B8 waits on B7 and B8b for 9 to 10a; 2a open). Next to open: B8b in a new lane, B9 steps 7 to 11 in the design lane, then B13 and B17 after B3b lands (they share files with it).",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -63,8 +63,14 @@
         "4",
         "5"
       ],
-      "inReview": [],
-      "note": "Steps 1 to 5 accepted and merged (PR 84, 2026-10-03); 6 to 10 wait on B3 and B3b."
+      "inReview": [
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "note": "Steps 1 to 5 on main; 6 to 10 building in the tests lane since 2026-10-04 14:10 (B3 on main)."
     },
     "B9": {
       "accepted": [
@@ -90,10 +96,17 @@
         "5b",
         "6",
         "7",
-        "8"
+        "8",
+        "8b",
+        "9",
+        "10",
+        "11",
+        "11b",
+        "12",
+        "13"
       ],
       "inReview": [],
-      "note": "Steps 1 to 2 on main (PR 102); 3 to 8 accepted on slice/b3; 8b to 13 building."
+      "note": "Closed 2026-10-04 (PR 100, 2ab9d52): the public API is on main and the dev Worker runs in live mode (data-services=\"live\", 20 of 20 smoke calls on pr-100). Step 12 item 8 (production Worker secrets) is L1's while PRODUCTION_DEPLOY is off; step 13's render CPU and the stored-photo media cost stay UNPROVEN in the runbook."
     },
     "B8": {
       "accepted": [
@@ -103,10 +116,13 @@
         "4",
         "5",
         "6",
-        "6a"
+        "6a",
+        "7",
+        "8",
+        "8a"
       ],
       "inReview": [],
-      "note": "Steps 1 to 6a merged (PRs 101, 109); the runner is deployed on mop-dev and the cron ticks; 7 to 8a next; 2a waits on B3, 9 to 10a on B7 and B8b."
+      "note": "Steps 1 to 8a merged (PRs 101, 109, 113); the dev job deploys the runner after db-push (c5). After 61acd22's deploy: GITHUB_DISPATCH_TOKEN function secret (P-912) and the live render round trip are the orchestrator's. 2a waits on nothing now (B3 on main); 9 to 10a on B7 and B8b."
     },
     "B14": {
       "accepted": [
@@ -136,6 +152,22 @@
       "accepted": [],
       "inReview": [],
       "note": "Acceptance panel, added 2026-10-04 (S66): runs after the B slices close."
+    },
+    "B3b": {
+      "accepted": [],
+      "inReview": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "note": "Started 2026-10-04 14:05 in the lane E:/mop-build/coming (branch slice/b3b, port 8878, bank numbers from P-1300 and G-550)."
     }
   },
   "lanes": [
