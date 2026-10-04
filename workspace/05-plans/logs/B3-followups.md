@@ -109,3 +109,35 @@
 3. `app/src/server/lib/headers.ts` (not blocking)
    - what: UNPROVEN on a deployed Worker (suspected fine, judged by reading only). supabaseOrigin() reads SUPABASE_URL through readVar, which reads globalThis.process.env. This relies on nodejs_compat filling process.env (compatibility_date 2026-09-30), the same mechanism env.ts relies on. headers.test.ts proves connect-src only in-process. No curl of a built or previewed Worker shows connect-src holding the Supabase origin. If it is missing, browser uploads to signed Storage URLs are blocked by CSP. The real Turnstile widget has also never run in a browser, as the log admits.
    - evidence: The test is unit-only (tests/unit/headers.test.ts). `grep -n compat .output/server/wrangler.json` gives nodejs_compat with compatibility_date 2026-09-30. No preview curl appears in the g5 log blocks.
+
+## g6 · steps 7,8
+
+1. `app/tests/unit/subrequest-budget.test.ts` (not blocking)
+   - what: The test counts fakeDb call-log entries plus a siteverify spy. The plan's Files line asks for a real supabase-js client on a counting fetch, and it says why: 'here fakeDb would hide the fetches being counted'. The slice log does not record this deviation. If supabase-js ever made a hidden extra fetch (a retry, an auth call), this gate would not see it.
+   - evidence: Test lines 46-63 and 99-108 build fakeDb({...}) and assert siteverify.mock.calls.length + db.calls.length <= 35. I measured with a real client on a counting fetch: 23 outbound calls for POST /submissions (40 media) and 22 for /uploads. That equals the plan's arithmetic, so the shipped behaviour is right today. The test still measures a proxy.
+
+2. `app/src/server/public/pipeline.ts` (not blocking)
+   - what: Invariant 11 says a bot that fills the honeypot 'learns nothing from the response'. For POST /submissions the trap answers {id, receivedAt} only. A real answer always carries upload_token and uploads, so a bot can tell it was caught by comparing shapes. On /submissions/:id/uploads the trap answers 201 where a real call answers 200.
+   - evidence: pipeline.ts write(): `if (filled) { ... return Response.json({ id: crypto.randomUUID(), receivedAt: ... }, { status: 201 ... }) }` runs before the route's own status and shape are known. SubmissionReceipt in submissions/service.ts adds upload_token and uploads (read, not run).
+
+3. `app/docs/architecture/services.md` (not blocking)
+   - what: Line 59 still says a signed upload URL is 'valid 15 minutes' and the path is '<submission id>/<sanitised name>'. The plan's Risks asked step 8 to check the lifetime and correct this doc. The author measured 7200 s (P-820) and left the doc as it was, calling it the superseded sketch. This file is the orchestrator's to fold.
+   - evidence: grep -n '15 minutes' app/docs/architecture/services.md -> 59: '... path `<submission id>/<sanitised name>`, valid 15 minutes ...'
+
+4. `app/tests/mutations/B3.json` (not blocking)
+   - what: Four API-level watched-fails are UNPROVEN: (hhh) the plain-insert contacts upsert going red on 23505 in submissions.api.test.ts, (iii) the kept kind, the 10-minute double post, and the 11-day duplicate_of. They are registered as manual entries (b3-hhh, b3-g6-sub-double, b3-g6-sub-duplicate). Their SQL mutations replay only in the rolled-back public-write.db.test.ts. The author declared this; it should close when CI's db job can replay SQL mutations against the API tests.
+   - evidence: Registry entries with kind 'manual' and procedure text citing P-901 and R18; watchfail reports 'manual 0 not replayed' for the selected ids.
+
+5. `app/src/server/submissions/reconcile.ts` (not blocking)
+   - what: Two filters have no test: the staging/ skip and the since-minus-2-hours window. The fakeDb table answers all rows whatever the filter, and no reconcile.test row sits under staging/. A mutation that drops `.filter((row) => !row.storage_path.startsWith(STAGING))` or the `.gt(...)` would stay green.
+   - evidence: tests/fixtures/fake-db.ts: 'a registered table answers the rows the query is meant to return' (is/gt/eq ignore their arguments). reconcile.test.ts rows are s1/*.jpg only (read, not mutated by me).
+
+6. `app/src/server/submissions/reconcile.ts` (not blocking)
+   - what: R04 and C04: three exports have no importer and no /** @public */ tag. They are `ImageType` and `ReconcileCounts` in reconcile.ts, and `SubmissionReceipt` in submissions/service.ts. I suspect knip misses SubmissionReceipt because routes.ts namespace-imports the service (`import * as submissions`); this is suspected from reading, not run.
+   - evidence: grep -rn 'ImageType|ReconcileCounts|SubmissionReceipt' src tests scripts outside src/server/submissions/ prints nothing.
+
+7. `workspace/05-plans/STANDARDS.md` (not blocking)
+   - what: R13 asks every anonymous route for at least one memory limit and one database limit. The plan gives POST /submissions/:id/uploads only its DB limit of 12 per hour per IP ('take only the limit of their own row'). The route follows the plan, so the conflict is between the two documents and is the orchestrator's to settle.
+   - evidence: routes.ts uploads row: limits: [{ scope: 'ip', store: 'db', limit: 12, windowSeconds: HOUR }]; R13 text at STANDARDS.md line 148.
+
+Two further g6 follow-ups concerned `GOTCHAS.md` and are banked there, not here: the missing hit-again line in P-1001 (added) and the reviewer's P-809 cost (hit-again line in P-809 and the new entry P-825).
