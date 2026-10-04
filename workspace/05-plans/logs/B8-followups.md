@@ -109,3 +109,23 @@
    - Evidence: From my reading of deploy.yml:10-14: the cost lines describe dev as the Worker deploy only. The diff touches only lines 266-273.
 
 (A third follow-up, the reviewer's own cost with the actionlint binary missing from a review snapshot, is banked as GOTCHAS P-913.)
+
+## g6 · steps 7
+
+1. `.github/workflows/render.yml` (not blocking)
+   - What: No test covers three security- or behaviour-relevant lines: `if: always()` on the callback step, RENDER_CALLBACK_SECRET scoped to that one step's env, and the setup-node step that post-callback.mjs's import.meta.main depends on. If `if: always()` is dropped, every failed render sends no callback, and the job waits 30 minutes for the reaper on every failure, with no test going red. If the secret moves to job level, B9's render scripts can read it. The plan's test list does not ask for these, so this is a follow-up.
+   - Evidence: Read by me: render-job.test.ts asserts only the if: expression, MOP_ENV, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and the absence of R2_/vars./repository_dispatch. hygiene.test.ts covers permissions {} and persist-credentials globally, not these. grep -n "always()" app/tests/unit/hygiene.test.ts app/tests/unit/jobs/render-job.test.ts prints nothing.
+
+2. `workspace/05-plans/B8.md` (step 7) (not blocking)
+   - What: Two parts of step 7 are NOT DONE: (1) GITHUB_DISPATCH_TOKEN as a mop-dev function secret, held back on purpose (P-912: set before render.yml is on main, it would turn every heavy job dead with dispatch_404); (2) RENDER_CALLBACK_SECRET and JOB_RUNNER_SECRET on the production Worker, which does not exist yet. The orchestrator must set (1) right after B8 merges and then run the SEC-02 probes (403 Contents PUT, 204 dispatch, largest client_payload against 65,535). (2) is caught by L1 preflight check (2). The plan line saying the production Worker 'holds the keys of the one database' (also in L1 step 1a, 'since B3 step 8') is stale against reality.
+   - Evidence: Confirmed by running: bunx wrangler secret list --name matter-of-place gives 'Worker "matter-of-place" not found'. supabase secrets list shows no GITHUB_DISPATCH_TOKEN. The log and P-912 state both honestly.
+
+3. `app/scripts/render-job.mjs` (not blocking)
+   - What: Nothing proves the live round trip yet (UNPROVEN until merge): enqueueJob of test.selftest_heavy, gh workflow run render.yml, the callback reaching the dev Worker, and the job reaching done. Only the B9-script import path was exercised by me against real B9 files, and no test does it. A mutation of the import base (`../${script}`) would leave every unit test green, because the only 'missing script' case uses a type with no file.
+   - Evidence: Confirmed by running: MOP_JOB with type render_cover reaches B9's render-cover.mjs (zod error 'payload.data.spec Required'). Read: the render-job.test.ts runJob cases use only social_post, render_nothing_here and the self-test.
+
+4. `app/scripts/post-callback.mjs` (not blocking)
+   - What: `process.exit(1)` right after a fetch aborts on Windows with a libuv assertion (UV_HANDLE_CLOSING) and exit 127 instead of 1. CI runs ubuntu, so production is unaffected, but anyone running the script on this laptop for a manual proof sees a crash, not a clean refusal. `process.exitCode = 1` would avoid it.
+   - Evidence: Confirmed by running: node scripts/post-callback.mjs against the dev Worker printed 'post-callback: 404 ...' then 'Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76', exit 127.
+
+(Three further follow-ups have GOTCHAS.md as their file and are banked as "hit again" lines: P-076 (JSON.parse JSDoc casts, `no-unsafe-assignment`), P-152 (bare `bunx vitest run` of hygiene.test.ts times out at 20 s), P-913 (actionlint binary missing from a review snapshot).)
