@@ -453,3 +453,6 @@ The g5 review (steps 6,7) found no blocking defect. Gotcha entries added: P-1321
 
 ## g6 · follow-ups recorded
 The g6 review (step 8) found no blocking defect. Gotcha entries added: P-1322 (batched watched-fail builds confound mutations on one observable), P-1323 (the implicit region role: the plan selector matches nothing). Other follow-ups: 5, listed in `workspace/05-plans/logs/B3b-followups.md` under "g6 · steps 8". The last one is for the operator: delete `E:/tmp-wr.log` by hand. No code changed.
+
+## g7 · follow-ups recorded
+The g7 review (steps 9,10) found no blocking defect. Gotcha entries added: P-1324 (H59's hash-only chunk names rename the SSR bundle, so G-025's proof named a file that no longer exists; G-025's proof line corrected to a count). Other follow-ups: 7, listed in `workspace/05-plans/logs/B3b-followups.md` under "g7 · steps 9,10". No code changed.
