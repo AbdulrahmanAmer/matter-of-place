@@ -19,6 +19,7 @@ export type Access = Partial<Record<TableOperation, readonly StaffRole[]>>;
 const staffRead: Access = { select: staffRoles };
 const editors = ["chief_editor", "managing_editor", "admin"] as const;
 const admin = ["admin"] as const;
+const automation = ["chief_editor", "media_ops", "admin"] as const;
 
 export const rlsMatrix: Record<string, Access> = {
   migration_checksums: {},
@@ -70,6 +71,14 @@ export const rlsMatrix: Record<string, Access> = {
   analytics_daily: staffRead,
   // B9: written only through the asset functions under the service role; media_ops and chief_editor may update.
   assets: { select: staffRoles, update: ["media_ops", "chief_editor"] },
+  // B8b step 1: recipes are never inserted or deleted (invariant 8), revisions come from a trigger, and only the
+  // service role reaches the fan-out retry rows (JOB-07). decline_reasons keeps B2's row above.
+  automation_recipes: { select: staffRoles, update: automation },
+  email_templates: { select: staffRoles, insert: automation, update: automation },
+  channel_settings: { select: staffRoles, insert: automation, update: automation },
+  schedule_settings: { select: staffRoles, insert: automation, update: automation },
+  automation_revisions: staffRead,
+  event_fanout_failures: {},
 };
 
 /**
