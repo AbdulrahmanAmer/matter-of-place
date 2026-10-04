@@ -16,6 +16,14 @@ export const LogEvent = [
   "runner_beat_failed",
   "ops_health_failed",
   "meta_token_refresh_failed",
+  "fanout_failed",
+  "fanout_payload_invalid",
+  "fanout_failure_unrecorded",
+  "schedule_cron_invalid",
+  "schedule_claim_failed",
+  "schedule_not_implemented",
+  "schedule_failed",
+  "schedule_rollback_missed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];
