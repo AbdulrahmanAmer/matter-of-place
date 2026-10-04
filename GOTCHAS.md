@@ -1883,6 +1883,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
 - rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
 - proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+- hit again: 2026-10-04, B8 g3: `runner.ts` exported the interface `JobOutcome`, used only inside the file as a member of the exported `RunSummary`; `bun run check` stopped at knip with `Unused exported types (1)  JobOutcome  interface  src/server/jobs/runner.ts:45:18`. A type that an exported type uses needs no `export` of its own; run `bun run knip` before the full check.
 - added: 2026-10-04
 
 ## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
