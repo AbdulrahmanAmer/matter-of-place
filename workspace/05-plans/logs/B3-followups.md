@@ -213,3 +213,19 @@ Two further g8 follow-ups concerned `GOTCHAS.md` and are banked there, not here:
    - evidence: Confirmed by running: the local build's bundle-check FAILED 9 = 7 budget + 2 seed-title lines, with no 'a chunk a public route can reach holds src/data/...' line, although the seed data is bundled in the entry.
 
 The two c12 follow-ups that concerned `GOTCHAS.md` are banked there, not here: P-831 as a recurrence of P-015 (cross-linked by a hit-again line in P-015) and the review diff against a moved branch (new entry P-838).
+
+## c13 · steps 13
+
+1. `app/docs/runbooks/api.md` (not blocking)
+   - what: Line 202 says the Storage read for the not-stored /media key "answered 404". On the wire, Supabase Storage answers HTTP 400 with statusCode "404" in the body; media.ts isMissing() exists because of this. The meaning (not found) is right, but an operator searching Storage logs for an HTTP 404 will not find one. Suggested wording: "answered not found (HTTP 400, statusCode 404 in the body)". Non-blocking: no product behaviour or decision depends on it, and the conclusion of the sentence holds.
+   - evidence: Confirmed by running: curl -s -D - https://<ref>.supabase.co/storage/v1/object/public/media/none.webp gives HTTP/1.1 400 Bad Request, body {"statusCode":"404","error":"not_found","code":"NoSuchKey"}
+
+2. `app/src/server/public/cache.ts` (not blocking; not this group's file)
+   - what: Not this group's file. The comment at line 45 says the edge cache is "absent ... on workers.dev, where the edge layer is a no-op". It is false: on pr-100.workers.dev the Cache API stores and serves. The author already handed this to the orchestrator in the log. I list it so it is not dropped.
+   - evidence: Confirmed by running: curl -sI pr-100/api/public/properties twice gives x-mop-cache: miss then hit; grep -n workers.dev app/src/server/public/cache.ts gives line 45 with the no-op claim
+
+3. `app/docs/runbooks/api.md` (not blocking)
+   - what: UNPROVEN, as the author also says. The 60 second expiry of a stored 404 (line 86 and the line-227 procedure) is read from code (MISSING_CONTROL s-maxage=60 together with Cache API honouring s-maxage). It was not observed as a hit turning into a miss after 60 s. I confirmed the store-and-hit half on pr-100. The list of miss causes on line 86 also leaves out platform eviction of a Cache API entry, which is a nuance and not a falsehood.
+   - evidence: Confirmed by running: curl -sI pr-100/api/public/properties/no-such-slug-zz twice gives Cache-Control: public, s-maxage=60, miss then hit. Expiry not measured.
+
+The c13 follow-up that concerned `GOTCHAS.md` is banked there, not here: the P-844 line that said the chain "ran nothing" is corrected, and the lesson that killing a spinning step does not stop the later steps of a chain is a hit-again line in P-094.
