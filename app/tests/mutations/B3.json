@@ -1,0 +1,548 @@
+[
+  {
+    "id": "b3-ll",
+    "kind": "file",
+    "test": "tests/unit/error-codes.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  wrong_state: 409,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/error-codes.test.ts",
+    "expect": "× .*holds every message a migration raises"
+  },
+  {
+    "id": "b3-mm",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "if (typeof handler !== \"function\") throw new Error(`unexpected rpc ${name}`);",
+    "replace": "if (typeof handler !== \"function\") return Promise.resolve({ data: null, error: null });",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*throws unexpected rpc zz for an unregistered RPC"
+  },
+  {
+    "id": "b3-mm-table",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "    if (!Array.isArray(rows)) throw new Error(`unexpected table ${name}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*serves registered table rows and throws for any other table"
+  },
+  {
+    "id": "b3-mm-storage",
+    "kind": "file",
+    "test": "tests/unit/fake-db.test.ts",
+    "file": "tests/fixtures/fake-db.ts",
+    "find": "              if (typeof handler !== \"function\") {\n                throw new Error(`unexpected storage ${bucket}.${method}`);\n              }\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/fake-db.test.ts",
+    "expect": "× .*answers a registered storage method and throws for any other"
+  },
+  {
+    "id": "b3-nn",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  return readVar(\"MOP_ENV\") === \"production\" || readVar(flags.live) === \"1\";",
+    "replace": "  const mopEnv = readVar(\"MOP_ENV\");\n  return mopEnv === undefined || mopEnv === \"production\" || readVar(flags.live) === \"1\";",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*is false for both channels when MOP_ENV is unset"
+  },
+  {
+    "id": "b3-nn-dry",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  if (readVar(flags.dryRun) === \"1\") return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*lets a dry-run flag win over production"
+  },
+  {
+    "id": "b3-nn-channel",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "readVar(flags.live) === \"1\"",
+    "replace": "readVar(FLAGS.email.live) === \"1\"",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*lets EMAIL_LIVE make only email true"
+  },
+  {
+    "id": "b3-nn-read",
+    "kind": "file",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  return runtime.process?.env?.[name] ?? runtime.Deno?.env.get(name);",
+    "replace": "  return runtime.Deno?.env.get(name);",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*reads at call time and answers undefined for an unset name"
+  },
+  {
+    "id": "b3-oo",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  for (let start = 0; start < keys.length; start += DELETE_BATCH) {\n    deleted += await deleteBatch(bucket, keys.slice(start, start + DELETE_BATCH), serviceKey);\n  }",
+    "replace": "  deleted += await deleteBatch(bucket, keys, serviceKey);",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*splits 2,500 keys into three requests"
+  },
+  {
+    "id": "b3-oo-status",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  if (!response.ok) throw storageUnavailable();\n  const removed",
+    "replace": "  const removed",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*throws storage_unavailable on a 500 answer"
+  },
+  {
+    "id": "b3-oo-network",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  } catch {\n    throw storageUnavailable();\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*throws storage_unavailable on a network error"
+  },
+  {
+    "id": "b3-oo-signal",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "    return await fetch(url, init);",
+    "replace": "    return await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*sets no abort signal"
+  },
+  {
+    "id": "b3-mmm-store",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "  if (opts?.absolute !== true) return `/media/${key}`;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*answers the relative /media address without absolute"
+  },
+  {
+    "id": "b3-mmm-once",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "      baseWarned = true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*falls back to the relative address and warns once"
+  },
+  {
+    "id": "b3-oo-cache",
+    "kind": "file",
+    "test": "tests/unit/media-store.test.ts",
+    "file": "src/server/lib/media-store.ts",
+    "find": "{ cf: { cacheEverything: true } }",
+    "replace": "{}",
+    "run": "bunx vitest run --project unit tests/unit/media-store.test.ts",
+    "expect": "× .*fetches the public object of the media bucket with edge caching on"
+  },
+  {
+    "id": "b3-pp",
+    "kind": "file",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "export { sha256Hex };",
+    "replace": "export const subtleProbe = crypto.subtle.digest;",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts",
+    "expect": "× .*only src/server/lib/crypto.ts calls crypto.subtle"
+  },
+  {
+    "id": "b3-g1-errors-store",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "\"cache-control\": \"no-store\", ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*is never stored"
+  },
+  {
+    "id": "b3-g1-errors-status",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "status: number = errorCodes[code],",
+    "replace": "status: number = 500,",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*takes its status from the code when none is given"
+  },
+  {
+    "id": "b3-g1-errors-retry",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "  if (known.status === 503) headers.set(\"retry-after\", OUTAGE_RETRY_AFTER);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*tells the client when to retry a 503"
+  },
+  {
+    "id": "b3-g1-errors-leak",
+    "kind": "file",
+    "test": "tests/unit/errors.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "new AppError(\"server\", undefined, SERVER_MESSAGE);",
+    "replace": "new AppError(\"server\", undefined, String(error));",
+    "run": "bunx vitest run --project unit tests/unit/errors.test.ts",
+    "expect": "× .*keeps the message of any other error inside the Worker"
+  },
+  {
+    "id": "b3-g1-env-prod",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "...(value.MOP_ENV === \"production\" ? REQUIRED_IN_PRODUCTION : []),",
+    "replace": "...(value.MOP_ENV === \"production\" ? [] : []),",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*names SUPABASE_URL when production lacks it"
+  },
+  {
+    "id": "b3-g1-env-local",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "...(value.MOP_ENV === \"local\" ? [] : REQUIRED_OUTSIDE_LOCAL),",
+    "replace": "...[],",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*needs the Turnstile secret and the Sentry DSN unless MOP_ENV is local"
+  },
+  {
+    "id": "b3-g1-env-default",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": ".default(\"production\")",
+    "replace": ".default(\"local\")",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*treats MOP_ENV as production when it is unset"
+  },
+  {
+    "id": "b3-g1-env-empty",
+    "kind": "file",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "value !== undefined && value !== \"\"",
+    "replace": "value !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*treats an empty value as unset"
+  },
+  {
+    "id": "b3-g1-db-count",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    calls += 1;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*counts every request to Supabase and resets to zero"
+  },
+  {
+    "id": "b3-g1-db-read",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    if (!READ_RPC.test(url.pathname)) return fetch(input, init ?? {});\n",
+    "replace": "    return fetch(input, init ?? {});\n",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*abandons public_state after 2 seconds"
+  },
+  {
+    "id": "b3-g1-db-write",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "    if (!READ_RPC.test(url.pathname)) return fetch(input, init ?? {});\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*leaves a write function without the 2 second limit"
+  },
+  {
+    "id": "b3-g1-db-unavailable",
+    "kind": "file",
+    "test": "tests/unit/db.test.ts",
+    "file": "src/server/lib/db.ts",
+    "find": "  if (url === undefined || key === undefined) {",
+    "replace": "  if (url === \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/db.test.ts",
+    "expect": "× .*throws 503 unavailable when the Worker holds no Supabase key"
+  },
+  {
+    "id": "b3-g1-ids-ip",
+    "kind": "file",
+    "test": "tests/unit/ids.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "?? \"0.0.0.0\"",
+    "replace": "?? \"127.0.0.1\"",
+    "run": "bunx vitest run --project unit tests/unit/ids.test.ts",
+    "expect": "× .*falls back to one shared address without the header"
+  },
+  {
+    "id": "b3-g1-ids-hash",
+    "kind": "file",
+    "test": "tests/unit/ids.test.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "sha256Hex(`${salt}:${value}`)",
+    "replace": "sha256Hex(`${value}${salt}`)",
+    "run": "bunx vitest run --project unit tests/unit/ids.test.ts",
+    "expect": "× .*is the SHA-256 of salt, a colon and the value"
+  },
+  {
+    "id": "b3-k",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, null\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*points a request for the same address 11 days later at the first one"
+  },
+  {
+    "id": "b3-g2-index",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*returns each media row with its 0-based index in payload order"
+  },
+  {
+    "id": "b3-g2-double",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '0 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*answers a second post within 10 minutes with the first request"
+  },
+  {
+    "id": "b3-g2-contact-kind",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    kind = excluded.kind,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*links one contact per email, keeps its first kind"
+  },
+  {
+    "id": "b3-g2-media-limit",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 41 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*refuses more than 40 media entries with validation"
+  },
+  {
+    "id": "b3-ff",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.rate_limit_check(p_checks jsonb)\nreturns table (allowed boolean, retry_after int)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_check jsonb;\n  v_window interval;\n  v_count int;\n  v_oldest timestamptz;\n  v_failed boolean := false;\n  v_wait int := 0;\nbegin\n  for v_check in select value from jsonb_array_elements(p_checks) loop\n    insert into public.rate_limits (bucket, key_hash, at) values (v_check ->> 'bucket', v_check ->> 'key_hash', now() - interval '1 day');\n    -- Two concurrent calls on one key cannot both take its last slot.\n    perform pg_advisory_xact_lock(hashtext((v_check ->> 'bucket') || ':' || (v_check ->> 'key_hash')));\n    v_window := make_interval(secs => (v_check ->> 'window_seconds')::int);\n    select count(*), min(r.at) into v_count, v_oldest\n    from public.rate_limits r\n    where r.bucket = v_check ->> 'bucket'\n      and r.key_hash = v_check ->> 'key_hash'\n      and r.at > now() - v_window;\n    if v_count >= (v_check ->> 'limit')::int then\n      v_failed := true;\n      v_wait := greatest(v_wait, 1, ceil(extract(epoch from v_oldest + v_window - now()))::int);\n    end if;\n  end loop;\n  if v_failed then\n    return query select false, v_wait;\n    return;\n  end if;\n  -- One hit per key, so two checks on one bucket with different windows each count the call once.\n  insert into public.rate_limits (bucket, key_hash, at)\n  select distinct c ->> 'bucket', c ->> 'key_hash', now()\n  from jsonb_array_elements(p_checks) c;\n  return query select true, 0;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*writes no hit for any check when one check of the call fails"
+  },
+  {
+    "id": "b3-aa",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.upsert_subscriber(p jsonb)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_email text := lower(p ->> 'email');\n  v_source text := p ->> 'source';\n  v_markets text[] := array(select jsonb_array_elements_text(coalesce(p -> 'markets', '[]'::jsonb)));\n  v_hash text := p ->> 'confirm_token_hash';\n  v_row public.subscribers;\n  v_id uuid;\n  v_lapsed boolean;\n  v_unconfirmed boolean;\n  v_newsletter_for_interest boolean;\nbegin\n  insert into public.subscribers (email, source, markets, confirm_token_hash)\n  values (v_email, v_source, v_markets, v_hash)\n  on conflict ((lower(email))) do nothing\n  returning id into v_id;\n  if v_id is not null then\n    return v_id;\n  end if;\n\n  select * into v_row from public.subscribers s where lower(s.email) = v_email for update;\n  -- DL-06, in order. An unsubscribed or archived address confirms again; until then it is unconfirmed.\n  v_lapsed := v_row.unsubscribed_at is not null or v_row.archived_at is not null;\n  v_unconfirmed := v_lapsed or v_row.confirmed_at is null;\n  -- A Place Notes signup for an address confirmed for market interest only waits for its own click.\n  v_newsletter_for_interest := not v_unconfirmed\n    and v_row.source like 'interest:%'\n    and v_source not like 'interest:%';\n  update public.subscribers s\n  set markets = array(select distinct m from unnest(v_row.markets || v_markets) m order by m),\n    confirmed_at = case when v_lapsed then null else s.confirmed_at end,\n    resend_contact_id = case when v_lapsed then null else s.resend_contact_id end,\n    source = case\n      when false then v_source\n      else s.source\n    end,\n    pending_source = case when v_newsletter_for_interest then v_source else s.pending_source end,\n    confirm_token_hash = case\n      when v_unconfirmed or v_newsletter_for_interest then v_hash\n      else s.confirm_token_hash\n    end\n  where s.id = v_row.id;\n  return v_row.id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*lets a Place Notes source replace an interest source on an unconfirmed row"
+  },
+  {
+    "id": "b3-yy",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.upsert_subscriber(p jsonb)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_email text := lower(p ->> 'email');\n  v_source text := p ->> 'source';\n  v_markets text[] := array(select jsonb_array_elements_text(coalesce(p -> 'markets', '[]'::jsonb)));\n  v_hash text := p ->> 'confirm_token_hash';\n  v_row public.subscribers;\n  v_id uuid;\n  v_lapsed boolean;\n  v_unconfirmed boolean;\n  v_newsletter_for_interest boolean;\nbegin\n  insert into public.subscribers (email, source, markets, confirm_token_hash)\n  values (v_email, v_source, v_markets, v_hash)\n  on conflict ((lower(email))) do nothing\n  returning id into v_id;\n  if v_id is not null then\n    return v_id;\n  end if;\n\n  select * into v_row from public.subscribers s where lower(s.email) = v_email for update;\n  -- DL-06, in order. An unsubscribed or archived address confirms again; until then it is unconfirmed.\n  v_lapsed := v_row.unsubscribed_at is not null or v_row.archived_at is not null;\n  v_unconfirmed := v_lapsed or v_row.confirmed_at is null;\n  -- A Place Notes signup for an address confirmed for market interest only waits for its own click.\n  v_newsletter_for_interest := not v_unconfirmed\n    and v_row.source like 'interest:%'\n    and v_source not like 'interest:%';\n  update public.subscribers s\n  set markets = array(select distinct m from unnest(v_row.markets || v_markets) m order by m),\n    confirmed_at = case when v_lapsed then null else s.confirmed_at end,\n    resend_contact_id = case when v_lapsed then null else s.resend_contact_id end,\n    source = case\n      when v_row.source like 'interest:%' and v_source not like 'interest:%' then v_source\n      else s.source\n    end,\n    pending_source = case when v_newsletter_for_interest then v_source else s.pending_source end,\n    confirm_token_hash = case\n      when v_unconfirmed or v_newsletter_for_interest then v_hash\n      else s.confirm_token_hash\n    end\n  where s.id = v_row.id;\n  return v_row.id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*parks a Place Notes source of a confirmed interest-only address in pending_source"
+  },
+  {
+    "id": "b3-g2-lapsed",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.upsert_subscriber(p jsonb)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_email text := lower(p ->> 'email');\n  v_source text := p ->> 'source';\n  v_markets text[] := array(select jsonb_array_elements_text(coalesce(p -> 'markets', '[]'::jsonb)));\n  v_hash text := p ->> 'confirm_token_hash';\n  v_row public.subscribers;\n  v_id uuid;\n  v_lapsed boolean;\n  v_unconfirmed boolean;\n  v_newsletter_for_interest boolean;\nbegin\n  insert into public.subscribers (email, source, markets, confirm_token_hash)\n  values (v_email, v_source, v_markets, v_hash)\n  on conflict ((lower(email))) do nothing\n  returning id into v_id;\n  if v_id is not null then\n    return v_id;\n  end if;\n\n  select * into v_row from public.subscribers s where lower(s.email) = v_email for update;\n  -- DL-06, in order. An unsubscribed or archived address confirms again; until then it is unconfirmed.\n  v_lapsed := false;\n  v_unconfirmed := v_lapsed or v_row.confirmed_at is null;\n  -- A Place Notes signup for an address confirmed for market interest only waits for its own click.\n  v_newsletter_for_interest := not v_unconfirmed\n    and v_row.source like 'interest:%'\n    and v_source not like 'interest:%';\n  update public.subscribers s\n  set markets = array(select distinct m from unnest(v_row.markets || v_markets) m order by m),\n    confirmed_at = case when v_lapsed then null else s.confirmed_at end,\n    resend_contact_id = case when v_lapsed then null else s.resend_contact_id end,\n    source = case\n      when v_unconfirmed and v_row.source like 'interest:%' and v_source not like 'interest:%' then v_source\n      else s.source\n    end,\n    pending_source = case when v_newsletter_for_interest then v_source else s.pending_source end,\n    confirm_token_hash = case\n      when v_unconfirmed or v_newsletter_for_interest then v_hash\n      else s.confirm_token_hash\n    end\n  where s.id = v_row.id;\n  return v_row.id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*makes an unsubscribed address that signs up again unconfirmed"
+  },
+  {
+    "id": "b3-g2-confirmed-other",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.upsert_subscriber(p jsonb)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_email text := lower(p ->> 'email');\n  v_source text := p ->> 'source';\n  v_markets text[] := array(select jsonb_array_elements_text(coalesce(p -> 'markets', '[]'::jsonb)));\n  v_hash text := p ->> 'confirm_token_hash';\n  v_row public.subscribers;\n  v_id uuid;\n  v_lapsed boolean;\n  v_unconfirmed boolean;\n  v_newsletter_for_interest boolean;\nbegin\n  insert into public.subscribers (email, source, markets, confirm_token_hash)\n  values (v_email, v_source, v_markets, v_hash)\n  on conflict ((lower(email))) do nothing\n  returning id into v_id;\n  if v_id is not null then\n    return v_id;\n  end if;\n\n  select * into v_row from public.subscribers s where lower(s.email) = v_email for update;\n  -- DL-06, in order. An unsubscribed or archived address confirms again; until then it is unconfirmed.\n  v_lapsed := v_row.unsubscribed_at is not null or v_row.archived_at is not null;\n  v_unconfirmed := v_lapsed or v_row.confirmed_at is null;\n  -- A Place Notes signup for an address confirmed for market interest only waits for its own click.\n  v_newsletter_for_interest := not v_unconfirmed\n    and v_row.source like 'interest:%'\n    and v_source not like 'interest:%';\n  update public.subscribers s\n  set markets = array(select distinct m from unnest(v_row.markets || v_markets) m order by m),\n    confirmed_at = case when v_lapsed then null else s.confirmed_at end,\n    resend_contact_id = case when v_lapsed then null else s.resend_contact_id end,\n    source = case\n      when v_unconfirmed and v_row.source like 'interest:%' and v_source not like 'interest:%' then v_source\n      else s.source\n    end,\n    pending_source = case when v_newsletter_for_interest then v_source else s.pending_source end,\n    confirm_token_hash = case\n      when true then v_hash\n      else s.confirm_token_hash\n    end\n  where s.id = v_row.id;\n  return v_row.id;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*changes only markets for any other post to a confirmed address"
+  },
+  {
+    "id": "b3-g2-pending",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.confirm_subscriber(p_token_hash text)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- The hash alone matches (G12): a re-permission hash on a confirmed row confirms it again, and a used link matches\n  -- nothing once the hash is cleared. A Place Notes source waiting on this click becomes the row's source (DL-06).\n  update public.subscribers\n  set confirmed_at = now(),\n    confirm_token_hash = null,\n    pending_source = null,\n    unsubscribed_at = null,\n    archived_at = null\n  where confirm_token_hash = p_token_hash\n  returning id;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*confirms once, moves a pending source into source"
+  },
+  {
+    "id": "b3-zz",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.confirm_subscriber(p_token_hash text)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- The hash alone matches (G12): a re-permission hash on a confirmed row confirms it again, and a used link matches\n  -- nothing once the hash is cleared. A Place Notes source waiting on this click becomes the row's source (DL-06).\n  update public.subscribers\n  set confirmed_at = now(),\n    confirm_token_hash = null,\n    source = coalesce(pending_source, source),\n    pending_source = null\n  where confirm_token_hash = p_token_hash\n  returning id;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*clears unsubscribed_at and archived_at when a returning address confirms"
+  },
+  {
+    "id": "b3-aaa",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.unsubscribe_email(p_email text)\nreturns boolean\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- Clearing the hash makes a confirm link sent before this answer `confirmed=0` (DL-06 (c)).\n  with changed as (\n    update public.subscribers\n    set unsubscribed_at = now(), pending_source = null\n    where lower(email) = lower(p_email) and unsubscribed_at is null\n    returning 1\n  )\n  select exists (select 1 from changed);\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*answers a link clicked after unsubscribe_email with no row"
+  },
+  {
+    "id": "b3-bb",
+    "kind": "sql",
+    "test": "tests/db/public-write.db.test.ts",
+    "sql": "create or replace function public.confirm_subscriber(p_token_hash text)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- The hash alone matches (G12): a re-permission hash on a confirmed row confirms it again, and a used link matches\n  -- nothing once the hash is cleared. A Place Notes source waiting on this click becomes the row's source (DL-06).\n  update public.subscribers\n  set confirmed_at = now(),\n    confirm_token_hash = null,\n    source = coalesce(pending_source, source),\n    pending_source = null,\n    unsubscribed_at = null,\n    archived_at = null\n  where confirm_token_hash = p_token_hash and confirmed_at is null\n  returning id;\n$$;",
+    "run": "bunx vitest run --project db tests/db/public-write.db.test.ts",
+    "expect": "× .*accepts a hash set on an already confirmed row"
+  },
+  {
+    "id": "b3-g2-rls-privacy",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "alter policy subject_requests_select_privacy on public.subject_requests using (app.is_staff())",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts",
+    "expect": "× .*as commercial, every table and operation matches the matrix"
+  },
+  {
+    "id": "b3-g2-rls-ratelimits",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "grant select on public.rate_limits to authenticated",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts",
+    "expect": "× .*authenticated holds exactly the matrix's table privileges"
+  },
+  {
+    "id": "b3-g2-manifest",
+    "kind": "sql",
+    "test": "tests/db/schema.db.test.ts",
+    "sql": "alter table public.subject_requests add column test_extra text",
+    "run": "bunx vitest run --project db tests/db/schema.db.test.ts",
+    "expect": "× .*subject_requests columns match the manifest"
+  },
+  {
+    "id": "b3-g2-memory-limit",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "  if (current.count >= limit) {",
+    "replace": "  if (current.count > limit) {",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*refuses the limit plus one with retryAfter"
+  },
+  {
+    "id": "b3-g2-memory-key",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "  const id = `${bucket}:${key}`;",
+    "replace": "  const id = bucket;",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*counts each key on its own"
+  },
+  {
+    "id": "b3-g2-memory-sweep",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "if (expired(window, now)) windows.delete(other);",
+    "replace": "if (now - window.start >= windowMs) windows.delete(other);",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*keeps a longer window through the sweep of many expired short ones"
+  },
+  {
+    "id": "b3-g2-db-snake",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "      window_seconds: check.windowSeconds,\n",
+    "replace": "      windowSeconds: check.windowSeconds,\n",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*sends every check in one rate_limit_check call"
+  },
+  {
+    "id": "b3-g2-db-retry",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "retryAfter: row.retry_after",
+    "replace": "retryAfter: 1",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*answers a refusal with the database's retry_after"
+  },
+  {
+    "id": "b3-g2-db-error",
+    "kind": "file",
+    "test": "tests/unit/ratelimit.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "    throw new AppError(\"unavailable\", undefined, UNAVAILABLE);",
+    "replace": "    return { ok: true };",
+    "run": "bunx vitest run --project unit tests/unit/ratelimit.test.ts",
+    "expect": "× .*throws 503 unavailable when the call fails"
+  },
+  {
+    "id": "b3-c-db",
+    "kind": "file",
+    "test": "tests/api/ratelimit.api.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "      limit: check.limit,\n",
+    "replace": "      limit: check.limit + 1,\n",
+    "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
+    "expect": "× .*refuses the 11th inquiry hit from one IP"
+  },
+  {
+    "id": "b3-g2-api-window",
+    "kind": "file",
+    "test": "tests/api/ratelimit.api.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "      window_seconds: check.windowSeconds,\n",
+    "replace": "      window_seconds: check.windowSeconds * 3,\n",
+    "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
+    "expect": "× .*lets a call pass once the window of the earlier hits has elapsed"
+  },
+  {
+    "id": "b3-g2-api-one-by-one",
+    "kind": "file",
+    "test": "tests/api/ratelimit.api.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "  const row = data?.[0];\n",
+    "replace": "  for (const check of checks.slice(1)) await db.rpc(\"rate_limit_check\", { p_checks: [{ bucket: check.bucket, key_hash: check.keyHash, limit: check.limit, window_seconds: check.windowSeconds }] });\n  const row = data?.[0];\n",
+    "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
+    "expect": "× .*writes no hit for any check when one check of the call fails"
+  },
+  {
+    "id": "b3-g2-api-daily",
+    "kind": "file",
+    "test": "tests/api/ratelimit.api.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "      window_seconds: check.windowSeconds,\n",
+    "replace": "      window_seconds: Math.min(check.windowSeconds, 3600),\n",
+    "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
+    "expect": "× .*counts a hit dated 3 hours ago in a daily bucket"
+  },
+  {
+    "id": "b3-g2-api-own-window",
+    "kind": "file",
+    "test": "tests/api/ratelimit.api.test.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "      window_seconds: check.windowSeconds,\n",
+    "replace": "      window_seconds: checks[0]?.windowSeconds ?? check.windowSeconds,\n",
+    "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
+    "expect": "× .*counts two checks on one bucket against their own windows"
+  }
+]

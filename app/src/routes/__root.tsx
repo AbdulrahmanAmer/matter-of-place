@@ -1,15 +1,21 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { Footer } from "../components/layout/footer";
-import { Header } from "../components/layout/header";
 import { NotFound } from "../components/layout/not-found";
 import { RouteError } from "../components/layout/route-error";
+import { SiteChrome } from "../components/layout/site-chrome";
 import { siteConfig } from "../config/site";
 import { defaultLocale, localeDirection } from "../lib/strings";
+import { services } from "../services";
 
 const fontsHref =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500;600&family=Urbanist:wght@300;500;700&family=Epilogue:wght@300;400&display=swap";
@@ -25,7 +31,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:locale", content: "en_US" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -36,8 +41,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootLayout,
-  notFoundComponent: NotFound,
-  errorComponent: RouteError,
+  notFoundComponent: PublicNotFound,
+  errorComponent: PublicRouteError,
 });
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -46,7 +51,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body data-services={services.mode}>
         {children}
         <Scripts />
       </body>
@@ -58,9 +63,31 @@ function RootLayout() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Header />
       <Outlet />
-      <Footer />
     </QueryClientProvider>
+  );
+}
+
+// An address no `_site` page matches, or a failure above one, never reaches the `_site` layout, so these two
+// carry the public chrome and the stylesheet themselves (React 19 hoists the link into the head).
+function PublicNotFound() {
+  return (
+    <>
+      <link rel="stylesheet" href={appCss} precedence="default" />
+      <SiteChrome>
+        <NotFound />
+      </SiteChrome>
+    </>
+  );
+}
+
+function PublicRouteError(props: ErrorComponentProps) {
+  return (
+    <>
+      <link rel="stylesheet" href={appCss} precedence="default" />
+      <SiteChrome>
+        <RouteError {...props} />
+      </SiteChrome>
+    </>
   );
 }

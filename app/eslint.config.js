@@ -14,6 +14,8 @@ import { readFileSync } from "node:fs";
 // its base path, so `bun run lint` lints it in a second run from the repository root with this
 // config, where the path below is relative to that root.
 const MERGE_GATE = "workspace/05-plans/merge-gate.mjs";
+// B14 keeps its tools beside the reports (workspace/audits) and its lint at the repository root; they share that second run.
+const ROOT_SCRIPTS = [MERGE_GATE, "workspace/audits/tools/*.mjs", "scripts/audit/*.mjs"];
 const prettierOptions = JSON.parse(readFileSync(new URL(".prettierrc", import.meta.url), "utf8"));
 
 // Deno-loaded files (CS-01): the job runner imports them, so every relative, `@/server/` and
@@ -209,7 +211,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["scripts/**/*.{ts,mjs}", MERGE_GATE],
+    files: ["scripts/**/*.{ts,mjs}", ...ROOT_SCRIPTS],
     extends: [js.configs.recommended, tseslint.configs.strictTypeChecked],
     languageOptions: {
       globals: globals.node,
@@ -272,5 +274,5 @@ export default defineConfig(
   ...syntaxBlocks(),
   eslintPluginPrettier,
   // Prettier looks for its config beside the file, and no folder above this one holds one.
-  { files: [MERGE_GATE], rules: { "prettier/prettier": ["error", prettierOptions] } },
+  { files: ROOT_SCRIPTS, rules: { "prettier/prettier": ["error", prettierOptions] } },
 );

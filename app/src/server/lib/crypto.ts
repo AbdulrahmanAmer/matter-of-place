@@ -41,8 +41,6 @@ export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** @public */
-// STUB(B3): first used by src/server/lib/ids.ts (hashKey, re-export)
 export async function sha256Hex(input: string | Uint8Array): Promise<string> {
   return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytesOf(input))));
 }
@@ -67,8 +65,6 @@ export function toBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** @public */
-// STUB(B3): first used by src/server/lib/ids.ts (newToken)
 export function randomToken(bytes = 32): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }

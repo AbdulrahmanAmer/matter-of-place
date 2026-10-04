@@ -34,6 +34,8 @@ impact, propose the smallest change that moves the number, and never touch the b
 - Every finding: evidence (URL, metric, screenshot path or response excerpt), impact estimate, proposed fix with
   the file it touches, effort (S/M/L). Rank by impact ÷ effort.
 - Brand guard: reject any fix that adds noise, popups, gimmicks, keyword stuffing, or copy outside the editorial voice.
+- A scheduled run follows `workspace/audits/ROUTINE-PROMPT.md` exactly: tools in the foreground, the report from
+  `REPORT-TEMPLATE.md`, pull requests by its PR flow.
 - Respect `PROJECT-STATE.md`; you propose patches as diffs or PR-ready branches only when the stage allows builds.
 
 ## Bank what bit you

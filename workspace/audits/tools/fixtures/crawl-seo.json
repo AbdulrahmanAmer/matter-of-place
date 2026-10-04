@@ -1,0 +1,4 @@
+{
+  "status": 1,
+  "output": "$ bun run scripts/check-seo.ts\nok sitemap reachable\nok title unique /\nfail x-robots-tag noindex, nofollow on https://matter-of-place-dev.holy-meadow-4327.workers.dev/\nfail robots.txt disallows all\nfail description length /faq"
+}

@@ -1,0 +1,8 @@
+# Paths are repository-root relative; the app is one folder down, so a bare src/server/ would match
+# nothing (G-012). Documentation until branch protection exists (P-028): GitHub requests a review
+# from the owner but cannot yet refuse a merge without it.
+/.github/ @AbdulrahmanAmer
+/app/supabase/migrations/ @AbdulrahmanAmer
+/app/supabase/sql/functions/ @AbdulrahmanAmer
+/app/wrangler.toml @AbdulrahmanAmer
+/app/src/server/ @AbdulrahmanAmer

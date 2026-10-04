@@ -1,0 +1,46 @@
+{
+  "stat": "ok",
+  "pagination": {
+    "offset": 0,
+    "limit": 50,
+    "total": 3
+  },
+  "monitors": [
+    {
+      "id": 801,
+      "friendly_name": "Matter of Place home",
+      "url": "https://matterofplace.com/",
+      "type": 1,
+      "sub_type": "",
+      "keyword_type": 0,
+      "keyword_value": "",
+      "interval": 300,
+      "status": 2,
+      "custom_uptime_ratio": "99.980"
+    },
+    {
+      "id": 802,
+      "friendly_name": "Public markets",
+      "url": "https://matterofplace.com/api/public/markets",
+      "type": 1,
+      "sub_type": "",
+      "keyword_type": 0,
+      "keyword_value": "",
+      "interval": 300,
+      "status": 2,
+      "custom_uptime_ratio": "100.000"
+    },
+    {
+      "id": 803,
+      "friendly_name": "Ops health",
+      "url": "https://matterofplace.com/api/hooks/ops-health/FIXTURE-OPS-TOKEN-0001",
+      "type": 2,
+      "sub_type": "",
+      "keyword_type": 2,
+      "keyword_value": "ok",
+      "interval": 300,
+      "status": 2,
+      "custom_uptime_ratio": "99.900"
+    }
+  ]
+}
