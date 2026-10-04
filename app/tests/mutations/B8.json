@@ -1014,5 +1014,59 @@
     "replace": "timeout_milliseconds := 5000",
     "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"re-applies to one row\"",
     "expect": "× .*re-applies to one row every minute"
+  },
+  {
+    "id": "runner-deploy-api",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "run: bunx supabase functions deploy job-runner --use-api",
+    "replace": "run: bunx supabase functions deploy job-runner",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "runner-deploy-token",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}\n          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n        run: bunx supabase functions",
+    "replace": "          DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n        run: bunx supabase functions",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "runner-deploy-guard",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "superseded != 'true'\n        env:\n          SUPABASE_ACCESS_TOKEN",
+    "replace": "superseded != 'false'\n        env:\n          SUPABASE_ACCESS_TOKEN",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "runner-deploy-order",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          bun run db:push",
+    "replace": "          bun run db:pull",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "runner-deploy-production",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build",
+    "replace": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build && bunx supabase functions deploy job-runner --use-api",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "runner-deploy-preview",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "pr-${{ github.event.number }}.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build",
+    "replace": "pr-${{ github.event.number }}.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build && bunx supabase functions deploy job-runner --use-api",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
+    "expect": "× .*only dev deploys the job runner"
   }
 ]
