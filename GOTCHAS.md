@@ -1690,6 +1690,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun install --frozen-lockfile` → `+ puppeteer-core@25.12.0 ... 23 packages installed`, then `bun run typecheck` exits 0 (measured 2026-10-04, B8 g3).
 - added: 2026-10-04
 
+## P-905 · B3's `fakeDb` answers `from(name).select()` with every registered row and has no filter method: a service that reads with `.eq`, `.in`, `.or` or `.order` throws `is not a function` in its unit test
+- symptom: B8 g3's runner reads `run_local` for one batch with `db.from("jobs").select("id, run_local").in("id", ids)` (ruling H34 (2): a local job's message is dropped before any claim). `fakeDb`'s `from` returns `{ select: () => Promise }`, so `.in` on that promise is `undefined` and the call throws `TypeError`.
+- cause: `tests/fixtures/fake-db.ts` (B3 step 1) models RPCs fully and tables as one unfiltered `select`; no service on main read a table with a filter before B8. `fake-db.ts` is B3's file, so a lane may not extend it (one writer per file).
+- rule: prefer an RPC for a server read a unit test must fake. When a filtered table read is the right call, the test file wraps its own `fakeDb` with `Object.assign(db, { from })`, records the call in `db.calls`, and answers only the chain the code uses (`tests/unit/jobs/runner.test.ts`, `setup`); no cast is needed because the result is an intersection. B8 step 9's `listJobs` (`.or(entityJobsFilter(...)).order(...).limit(...)`) meets the same wall: a filter chain in `fake-db.ts` itself is B3's or the orchestrator's change.
+- proof: `cd app && grep -c "select: () => Promise.resolve" tests/fixtures/fake-db.ts` → `1`; `bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t "run_local job"` → `1 passed` with the wrapper, and the registry entry `bj` replays `WATCHED-FAIL OK` (2026-10-04, B8 g3).
+- added: 2026-10-04
+
+## P-906 · B8 step 4's proof list carries the `beat` case of step 6a, whose function is not in `src/db/types.ts` yet
+- symptom: the brief of B8 g3 (steps 3 and 4) asks `runner.test.ts` to prove "`beat('runner', { claimed })` is called once per `runOnce` ... and a failing `beat` RPC is logged once" (DO-03). `git grep -c "beat" -- app/src/db/types.ts` finds no `beat` function: the `ops_heartbeat.sql` migration that creates it is step 6a, so `db.rpc("beat", ...)` cannot typecheck (the RPC name is typed by the generated `Functions`, P-902), and `runner_beat_failed` is not in `LogEvent` (B1b's `log-events.ts`, not a g3 file).
+- cause: the plan's step 4 proof line lists every case `runner.test.ts` ends with, while step 6a's own text says it adds "the `beat('runner', ...)` call in the `finally` of `runOnce`".
+- rule: a proof list that names a case whose function, migration or log name another step creates belongs to that step: build the rest, leave the case and its watched-fail (aj) to the owning step, and say so in the log. Before writing a call to a new RPC, `git grep -n '"<name>":' -- app/src/db/types.ts`.
+- proof: `cd app && git grep -c '"beat":' -- src/db/types.ts` → no output (exit 1) on slice/b8 at B8 g3; `grep -n "^6a\." ../workspace/05-plans/B8.md | grep -c "beat('runner'"` → `1` (2026-10-04).
+- added: 2026-10-04
+
 ## P-1100 · Adding a path to `lint`, `format:check` or the root-scripts block stales eight B1b registry entries and a hygiene pin
 - symptom: B14 g1 put `workspace/audits/tools` and `scripts/audit` under the root lint, the format check and `tsconfig.scripts.json`. `bun run check` went red on `hygiene.test.ts` (it pins the `format:check` string), and a find-count pass over the registries printed STALE for hy-lint-warnings, hy-lint-warnings-gate, mg-gate-format-config, mg-gate-lint-prettier, hy-gate-include, hy-gate-lint, hy-gate-format-path and hy-gate-prettier.
 - cause: those entries quote exact lines of `package.json`, `eslint.config.js` and `tsconfig.scripts.json`; `bun run check` does not replay the registry (P-066) and the tsconfig include array grew past one line.

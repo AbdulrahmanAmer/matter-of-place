@@ -42,7 +42,7 @@ export interface RunOptions {
   now?: Date;
 }
 
-export interface JobOutcome {
+interface JobOutcome {
   id: string;
   outcome: "done" | "dispatched" | "requeued" | "failed" | "dead" | "lost";
   reason?: string;
