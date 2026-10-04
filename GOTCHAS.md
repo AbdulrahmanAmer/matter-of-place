@@ -2169,3 +2169,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: compare the live and local answers by score and by the set of slugs of each score (`byScore` in the test), and for a pick that depends on list order assert membership of the same region, never the same slug. Do not change `matchProperties` to break ties by slug: that changes the local adapter the plan calls unchanged.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/search-concierge.api.test.ts` passes 17 of 17; registry entries `b3-o-api` and `b3-x-api` turn it red.
 - added: 2026-10-04
+
+## P-828 · A group sized to one file cannot close a plan step whose work items name fifteen: g9 of B3 owns only `docs/runbooks/api.md`, step 12 builds the rest
+- symptom: B3 g9 was briefed "steps 12, files: app/docs/runbooks/api.md". The step's items (0) to (6) name `scripts/cache-proof.mjs`, `scripts/bundle-check.mjs`, `tests/unit/bundle-check.test.ts`, `src/router.tsx`, `src/services/index.ts`, `vite.config.ts`, `scripts/smoke.mjs`, `tests/unit/smoke.test.ts`, `_site.properties.tsx` and the `ci.yml` step, and none of them exists or is in any group's file list; only item (1) (`start.ts`) and `data-services` were already built.
+- cause: `sizing/B3.json` took the group's files from the plan's Files list entry named in the step title ("Flip on preview and close-out") and not from the step's own work items, so the one-writer rule (one owner per file) leaves the builder with a runbook that would describe scripts that do not exist.
+- rule: before starting a group, list every path its step text names (`node workspace/05-plans/plan-brief.mjs <slice> --steps <n> --files <file>` prints the step) and compare it with the group's files; a path in the step that no group owns stops the group as BLOCKED with the list, and the orchestrator adds a group or widens this one. Never write a runbook for a script that is not in the tree.
+- proof: `cd app && ls scripts/cache-proof.mjs scripts/bundle-check.mjs tests/unit/bundle-check.test.ts tests/unit/router-hydration.test.ts 2>&1 | grep -c "No such file"` → 4 on the tree where this was found (B3 head 5c9150b); `grep -c "dehydrate" src/router.tsx` → 0.
+- added: 2026-10-04
+
+## P-829 · A plan line that says a repository variable "already exists" is stale after a ruling removed it: `VITE_API_BASE_URL` is absent, so no preview can print `data-services="live"`
+- symptom: step 12 says "The GitHub variable `VITE_API_BASE_URL` (`/api/public`) already exists (F12); only confirm it with `gh variable list`". The list holds `PRODUCTION_DEPLOY`, `VITE_SITE_URL` and `VITE_TURNSTILE_SITE_KEY` only.
+- cause: ruling H48 (1) removed the variable on 2026-10-02 until B3 serves `/api/public/*`; the step text was written before it and the sizing row for g9 ("needsOrchestrator") carries the correction, but the brief quoted to the builder does not.
+- rule: a plan line about live state of GitHub, Cloudflare or Supabase is a claim: run the confirming command first and, when it contradicts the line, name the ruling that explains it; the orchestrator sets the variable only after the last B3 group is on the branch and the pull request builds green, never before (a live build answers 500 on the pages without the routes).
+- proof: `gh variable list | grep -c VITE_API_BASE_URL` → 0 (measured 2026-10-04 08:20 +0300); `grep -n "H48" workspace/05-plans/ASSUMED.md | head -1` names the removal.
+- added: 2026-10-04
