@@ -1,6 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   isImplemented,
   listStepSpecs,
@@ -9,6 +13,12 @@ import {
 import { defaultMaxAttempts, type StepSpec } from "../../../src/server/automation/step-specs";
 import { getStep } from "../../../src/server/jobs/steps/index";
 import { listSystemJobs } from "../../../src/server/jobs/system/index";
+
+const reportSchema = z.object({
+  testResults: z.array(
+    z.object({ assertionResults: z.array(z.object({ status: z.string(), title: z.string() })) }),
+  ),
+});
 
 const SIDE_EFFECTS = ["none", "idempotency_key", "begin_row", "remote_lookup", "sql_guard"];
 const OUTSIDE_STEPS = [
@@ -34,23 +44,57 @@ const LIGHT_STEPS = [
   "queue_digest",
 ];
 
-const testsRoot = fileURLToPath(new URL("../../", import.meta.url));
+const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const selfPath = fileURLToPath(import.meta.url);
+const RUN_TWICE = "runs twice";
 
 function testFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : testFiles(path);
-    return entry.name.endsWith(".ts") ? [path] : [];
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return testFiles(path);
+    return /\.test\.tsx?$/.test(entry.name) ? [path] : [];
   });
 }
 
-// The titles of every `it(...)` and `test(...)` under tests/, read from the source so a renamed title is seen.
+// The titles vitest runs for the run-twice cases, as its json reporter prints them: a title written through
+// `it.each` with a `$type` placeholder is read as one title per row, which no scan of the source can do.
+// Only the unit and component projects are asked (the db project needs the database), and only the files that
+// carry the words, so the child run stays short.
 function testTitles(): string[] {
-  return testFiles(testsRoot).flatMap((file) =>
-    [...readFileSync(file, "utf8").matchAll(/\b(?:it|test)\(\s*(["'`])(.+?)\1/g)].map(
-      (match) => match[2] ?? "",
-    ),
+  const files = ["tests/unit", "src"]
+    .flatMap((dir) => testFiles(join(appRoot, dir)))
+    .filter((file) => file !== selfPath && readFileSync(file, "utf8").includes(RUN_TWICE));
+  const outDir = mkdtempSync(join(tmpdir(), "run-twice-"));
+  const outFile = join(outDir, "report.json");
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("VITEST")),
   );
+  const child = spawnSync(
+    process.execPath,
+    [
+      join(appRoot, "node_modules", "vitest", "vitest.mjs"),
+      "run",
+      "--project=unit",
+      "--project=component",
+      `--testNamePattern=${RUN_TWICE}`,
+      "--reporter=json",
+      `--outputFile=${outFile}`,
+      ...files,
+    ],
+    { cwd: appRoot, env, encoding: "utf8" },
+  );
+  try {
+    const report = reportSchema.parse(JSON.parse(readFileSync(outFile, "utf8")));
+    return report.testResults.flatMap((file) =>
+      file.assertionResults
+        .filter((result) => result.status === "passed" || result.status === "failed")
+        .map((result) => result.title),
+    );
+  } catch (error) {
+    throw new Error(`vitest json report unreadable: ${child.stderr}`, { cause: error });
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
 }
 
 // R28: a type with an outside effect that has a module in the registry needs its run-twice test.
@@ -116,7 +160,7 @@ describe("step specs", () => {
 
   it("finds a run-twice test for every implemented type with an outside effect", () => {
     expect(missingRunTwiceTests(getStep, testTitles())).toEqual([]);
-  });
+  }, 60000);
 
   it("names a type whose run-twice test is missing", () => {
     const implemented: StepRegistry = (type) => (type === "send_email" ? {} : undefined);

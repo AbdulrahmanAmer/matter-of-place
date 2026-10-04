@@ -523,15 +523,6 @@
     "expect": "× .*declares a sideEffect on every spec"
   },
   {
-    "id": "b8b-g2-specs-run-twice-real",
-    "test": "tests/unit/automation/step-specs.test.ts",
-    "file": "src/server/jobs/steps/index.ts",
-    "find": "const catalog: readonly StepDefinition[] = [];",
-    "replace": "const catalog: readonly StepDefinition[] = [{ type: \"send_email\", heavy: false, paramsSchema: undefined as never, run: () => Promise.resolve({ status: \"done\" }) }];",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
-    "expect": "× .*finds a run-twice test for every implemented type"
-  },
-  {
     "id": "b8b-g2-specs-run-twice-helper",
     "test": "tests/unit/automation/step-specs.test.ts",
     "file": "tests/unit/automation/step-specs.test.ts",
@@ -539,6 +530,24 @@
     "replace": "titles.includes(",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
     "expect": "× .*names a type whose run-twice test is missing"
+  },
+  {
+    "id": "b8b-c2s-run-twice-each-row",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "tests/unit/assets/steps.test.ts",
+    "find": "  { type: \"render_story\", kind: \"story\" },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*finds a run-twice test for every implemented type"
+  },
+  {
+    "id": "b8b-c2s-run-twice-reporter",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "tests/unit/automation/step-specs.test.ts",
+    "find": "result.status === \"passed\" || result.status === \"failed\"",
+    "replace": "result.status === \"skipped\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/step-specs.test.ts",
+    "expect": "× .*finds a run-twice test for every implemented type"
   },
   {
     "id": "b8b-g2-plan-key-order",
