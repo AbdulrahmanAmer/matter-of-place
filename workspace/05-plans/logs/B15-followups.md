@@ -83,3 +83,23 @@ Four follow-ups, all non-blocking. None names GOTCHAS.md, so none became a bank 
 4. File: `app/tests/unit/omnikom/webhook-step.test.ts`
    - Follow-up: Invariant 7 has no control over ctx.log. The step never logs, so the check runs over an empty list. It will fail only once someone adds a log line that contains the secret. The author labels this as a stand-in in UNPROVEN; I record it so it is not lost.
    - Evidence: grep -n 'ctx.log' app/src/server/jobs/steps/webhook-omnikom.ts finds no matches; the test's `logs` array stays empty
+
+## g4 · steps 5
+
+Six follow-ups, all non-blocking. Two name GOTCHAS.md and became bank entries (the first as hit-again lines in P-042 and P-831 and a proof line set in P-1706, the sixth as P-1708). The four others are below word for word; the eslint one is also banked as P-1707.
+
+1. File: `app/eslint.config.js`
+   - Follow-up: The global ignores do not list scripts/.wrangler. The author's answer to the 34 prettier errors is a manual rule to delete the folder after a local run, although ruling H46 allowed a one-entry ignore. Suspected by reading, not run: part (b)'s 'bunx wrangler deploy -c scripts/omnikom-mock.wrangler.toml' also writes scripts/.wrangler, so the next bun run check after part (b) goes red the same way unless someone remembers P-1706. I confirmed by running that wrangler dev creates the folder; I deleted it before the build.
+   - Evidence: grep -n ignores app/eslint.config.js lines 171-181: dist, .output, .vinxi, .tanstack, playwright-report, test-results, routeTree.gen.ts, db/types.ts, supabase/.temp. No .wrangler.
+
+2. File: `workspace/05-plans/B15.md`
+   - Follow-up: Step 5 and the FILES line no longer match the shipped code (logged deviations, for the orchestrator to fold). (1) run-local builds its client from DEV_SUPABASE_PROJECT_REF and DEV_SUPABASE_SERVICE_ROLE_KEY, not SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. (2) The mock's default export is 'typeof Bun === "undefined" ? worker : {}', not '{ fetch }' (P-1705). (3) For a lane, OMNIKOM_MOCK_SECRET lives in the worktree .env, not /e/Matter Of Place/.env. (4) The 5a dev-server recipe lacks MSYS_NO_PATHCONV=1, VITE_API_BASE_URL and VITE_TURNSTILE_SITE_KEY, without which the submit sends no request or answers 403. (5) Step 5a names tests/e2e/inquiry-forward.spec.ts, which step 6 creates.
+   - Evidence: app/scripts/omnikom-run-local.ts:26-31 and app/scripts/omnikom-mock.ts:74 against B15.md line 124 and the FILES lines; my own submit needed the P-1706 recipe to answer 201
+
+3. File: `app/scripts/omnikom-mock.ts`
+   - Follow-up: Minor: the Worker's '?fail=' with a code outside 409, 429 and 500 is silently ignored, so the mock answers 200 accepted and records the delivery. The local '--fail' flag refuses an unknown code. A tester who types ?fail=503 gets a 200 and could read it as a proof. This is a gap in a helper whose contract otherwise holds.
+   - Evidence: probe '?fail=418' against both the bun mock on 8787 and wrangler dev on 8919 printed 'fail418 200 accepted', and ?log=1 then listed probe-7
+
+4. File: `app/scripts/omnikom-mock.ts`
+   - Follow-up: Part (b) of step 5 is UNPROVEN and BLOCKED: no deployed Worker on workers.dev, no cloud job-runner run, no 'forwarded | t | done | 200 | t | f' query, and no delete or unset afterwards. The Worker path is proven only on local workerd. The author reports this honestly. It must run after merge, once job-runner is deployed, B8b has seeded the recipe and .env.ops is available, and it must end with the delete and the unset, so no mock URL survives the launch switch.
+   - Evidence: the author's part (b) proof says NOT RUN; I did not run it either
