@@ -83,7 +83,7 @@ Every public response carries `x-mop-cache`:
 | `stale`  | the database could not be read and the last good copy answered: the smoke test fails on it (DO-09) |
 | `bypass` | never stored: writes, errors answered before the service, `no-store` responses                     |
 
-A public GET also carries `x-catalog-version`. The Cache API does nothing on `workers.dev` hostnames and in `vite dev`, so a preview answers `miss` every time and runs on the memory layer alone. With no last good copy and no database the answer is 503 `unavailable`.
+A public GET also carries `x-catalog-version`. The Cache API stores and serves on `workers.dev` hostnames (on `pr-100` three requests in a row of `/api/public/properties` printed `x-mop-cache: hit`), so a preview answers `miss` only for an address nothing has requested since that deploy. There is no Worker in `vite dev`, so no edge layer there. With no last good copy and no database the answer is 503 `unavailable`.
 
 ### Purging
 
@@ -177,8 +177,8 @@ Measured 2026-10-04 on the deployed preview `pr-100` (commit `bbe712c`, the live
 | `GET /api/public/markets/:slug`                 | 3        | 4                 |
 | `GET /api/public/stories`                       | 3        | 2                 |
 | `GET /api/public/stories/:slug`                 | 3        | 2                 |
-| `/` (page)                                      | 2        | 3                 |
-| `/properties` (page)                            | 2        | 2                 |
+| `/` (page, edge hit)                            | 2        | 3                 |
+| `/properties` (page, edge hit)                  | 2        | 2                 |
 | `/sitemap.xml`                                  | 2        | 7                 |
 | `GET /media/<key>` (an unknown key, 404)        | 2        | 4                 |
 | `GET /api/public/subscribers/confirm` (unknown) | 5        | 5                 |
@@ -194,12 +194,12 @@ Measured 2026-10-04 on the deployed preview `pr-100` (commit `bbe712c`, the live
 Decision items under G-011 (8 ms or more; H1 decides, nothing is worked around here):
 
 1. `POST /api/public/submissions` reached 11 ms warm (11, 10 and 6 across the three smoke runs). It parses the form, checks Turnstile and signs up to 20 upload URLs, and it is the route the plan expected to be the heaviest. The 10 ms free limit is already passed on a warm isolate, and no 1102 was logged.
-2. Cold isolates are higher than the window above. The review of this group tailed a window that caught cold isolates and recorded `GET /api/public/properties` at 21 ms and `GET /api/public/stories` at 15 ms, `/` at 21, `/properties` at 58 and `/sitemap.xml` at 34 (the review's figures, not re-measured here: the isolate was warm in the window above and nothing here can make one cold). A deploy, a catalog edit and an idle isolate each start one, and what the first request pays (module load, snapshot fetch) is not separated here. All of these are above 8 ms.
+2. Cold isolates are higher than the window above. The review of this group tailed a window that caught cold isolates and recorded `GET /api/public/properties` at 21 ms and `GET /api/public/stories` at 15 ms, `/` at 21, `/properties` at 58 and `/sitemap.xml` at 34 (the review's figures, not re-measured here: the isolate was warm in the window above and nothing here can make one cold). A second review window caught cold isolates again and recorded `POST /api/public/client-error` at 17 ms on its first request, `/sitemap.xml` at 43 and `/properties` at 59: a second sample, not a reproduction of the first, and the spread (34 against 43 for the sitemap) says a cold figure is a range. A deploy, a catalog edit and an idle isolate each start one, and what the first request pays (module load, snapshot fetch) is not separated here. All of these are above 8 ms.
 3. `POST /api/public/search` and `/sitemap.xml` reached 7 ms: under the line, close to it.
 
-`resolveRedirect` (GD-02) runs inside the page rows: `/` and `/properties` took 3 and 2 ms with the lookup, so on a warm isolate the lookup is under 2 ms. The cold page figures of item 2 are not explained by it until the lookup is measured on its own.
+The two page rows are cache-hit figures, not render figures: on `pr-100` the Cache API serves on `workers.dev`, so the first request of `/` and of `/properties` was already an edge hit. They say what a visitor's request costs once the page is stored, not what a render costs. No render figure is recorded (UNPROVEN), and so the cost of `resolveRedirect` (GD-02) is not separated either: the cold page figures of item 2 are not explained by it until a page is measured on a request the cache cannot serve.
 
-UNPROVEN, no row in the table: `POST /api/public/client-error` (the smoke does not request it) and `POST /api/hooks/resend` (it needs a Svix signature), and the cost of `GET /media/<key>` on a stored photograph (the 404 above stops before a Storage read; no photograph is stored yet).
+UNPROVEN, no row in the table: `POST /api/public/client-error` and `POST /api/hooks/resend`. The smoke does request `/client-error` on every run (`POST /client-error`, 204), but its event is missing from this window: `wrangler tail --format json` drops events under a burst, so the tail window is lossy and a route can have fewer tail lines than requests sent. `/api/hooks/resend` needs a Svix signature, which no request here carries. Also UNPROVEN is the cost of `GET /media/<key>` on a stored photograph (it needs a Svix signature), and the cost of `GET /media/<key>` on a stored photograph (the 404 above stops before a Storage read; no photograph is stored yet).
 
 To repeat the measurement. The token that reads a tail is the local admin token `mop-admin` (the deploy token has no Workers Tail Read), and the account id travels with it: `eval "$(node scripts/load-env.mjs --profile ops)"` loads the token from `.env.ops` but does not export `CLOUDFLARE_ACCOUNT_ID`, and a shell that inherits another account's token without an account id answers `This Worker does not exist on your account. [code: 10007]` (P-840). Run it from the owner's shell, never from CI. The lane window above used the same token and account id from the lane's `.env` (F19), set for the one `wrangler` command and never exported to the dev shell; the owner's `.env.ops` is where SEC-08 keeps them.
 
@@ -210,13 +210,13 @@ mkdir -p ../.tmp
 bunx wrangler tail pr-<n> --format json > ../.tmp/tail.json
 ```
 
-In a second shell prepared by the dev loader (run `unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID` first: a shell that inherits either name makes the smoke refuse with `refusing: ops variables`, P-837), run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
+In a second shell prepared by the dev loader (run `unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID` first: a shell that inherits `CLOUDFLARE_API_TOKEN` makes the smoke refuse with `refusing: ops variables`, P-837; the account id causes no refusal, and the unset only keeps it out of the dev shell), run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
 
 ```
 node scripts/api-smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev --cleanup
 ```
 
-The smoke requests only `/api/public/*`, and `resolveRedirect` runs only for page requests, so in the same window request the pages twice each (the first answers a miss, which runs the render and the lookup, the second a hit) and the other three paths once or twice:
+The smoke requests only `/api/public/*`, and `resolveRedirect` runs only for page requests, so in the same window request the pages and the other two paths:
 
 ```
 B=https://pr-<n>.holy-meadow-4327.workers.dev
@@ -224,17 +224,19 @@ for p in / /properties; do curl -s -o /dev/null $B$p; curl -s -o /dev/null $B$p;
 curl -s -o /dev/null $B/sitemap.xml; curl -s -o /dev/null $B/media/none.webp
 ```
 
-`/sitemap.xml` is not a page: it is never cached and never runs the lookup, so it measures the sitemap alone. The tail file is not one object per line: `wrangler` pretty-prints each event. Take the maximum per path with:
+On a preview the Cache API stores and serves, so these page requests are edge hits and measure the stored answer, never a render: label each page row `hit`. A render figure needs a request the cache cannot serve: the first request of an address after a deploy (the release is in the key), or a page nothing has requested on that deploy (on `pr-100` the first request of `/markets` answered `x-mop-cache: miss`, so check the header with `curl -sI` before reading the figure). A query string does not help: the key drops it and pages ignore `q`. Label that row `render`. `/sitemap.xml` is not a page: it is never cached and never runs the lookup, so it measures the sitemap alone. The tail file is not one object per line: `wrangler` pretty-prints each event. Take the maximum per path with:
 
 ```
 node -e 'const t=require("fs").readFileSync("../.tmp/tail.json","utf8");for(const s of t.split(/^\}\s*$/m)){if(!s.trim())continue;const e=JSON.parse(s+"}");if(e.event?.request)console.log(e.cpuTime,e.event.request.method,new URL(e.event.request.url).pathname)}' | sort -k3,3 -k1,1nr | awk '!seen[$3]++'
 ```
 
+The tail window is lossy: `wrangler tail --format json` drops events under a burst. Before trusting a maximum, count the requests sent against the events kept (`grep -c cpuTime ../.tmp/tail.json` for the whole window, and the per-path lines the command above prints before `awk`). A route with fewer tail lines than requests sent has no trustworthy maximum: re-run that route alone, a few requests a second, and count again.
+
 Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The tail file holds IP hashes and request ids: delete it when the numbers are written here.
 
 ## Not yet proved
 
-- The `cpuTime` of `POST /api/public/client-error` and `POST /api/hooks/resend`, of `GET /media/<key>` on a stored photograph, and of a cold isolate measured by us (the figures in the section above are the review's), the Storage egress of `/media` misses, and the cost of `resolveRedirect` on its own. UNPROVEN: each needs a request the smoke does not make, a stored photograph or a cold isolate on demand.
+- The `cpuTime` of `POST /api/public/client-error` (requested by every smoke run, but its tail events were lost in the burst: re-run it alone and count) and of `POST /api/hooks/resend` (it needs a Svix signature), of `GET /media/<key>` on a stored photograph, of a page render (the page rows are edge hits) and of a cold isolate measured by us (the figures in the section above are the review's), the Storage egress of `/media` misses, and the cost of `resolveRedirect` on its own. UNPROVEN: each needs a lossless window, a request the cache cannot serve, a stored photograph or a cold isolate on demand.
 - The decision items of the CPU section (`POST /api/public/submissions` at 11 ms warm, the cold reads) are H1's under G-011.
 - The production Worker's secrets are put by the owner (`docs/runbooks/delivery.md`). UNPROVEN while the repository variable `PRODUCTION_DEPLOY` is off.
 - The edge layer on the custom domain and the 95 percent ratio are L1's and H1's.

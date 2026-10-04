@@ -2290,3 +2290,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing UNPROVEN or BLOCKED for a thing outside the tree (a deploy, a variable, a token, a pull request state), run the command that shows its state now (`gh pr view <n> --json statusCheckRollup`, `curl -s -o /dev/null -w "%{http_code}" <preview>/api/public/properties`, `gh variable list`) and paste it into the log; re-run it at every rework.
 - proof: `gh pr view 100 --json statusCheckRollup -q '.statusCheckRollup[]|select(.name=="preview")|.conclusion'` → `SUCCESS`; `curl -s -o /dev/null -w "%{http_code}" https://pr-100.holy-meadow-4327.workers.dev/api/public/properties` → `200`.
 - added: 2026-10-04
+
+## P-842 · `wrangler tail --format json` is lossy under a burst: a route can have fewer tail lines than requests sent, and a missing row is not "the smoke does not request it"
+- symptom: the runbook CPU table had no row for `POST /api/public/client-error` and said "the smoke does not request it"; `scripts/api-smoke.mjs` calls `${api}/client-error` on every run (`expectAnswer "POST /client-error"`, 204). A fourth review rejected the step for the false sentence.
+- cause: the tail window of three smoke runs plus extra curls is a burst, and `wrangler tail` drops events under a burst; the event was sent and never printed. The explanation was written from memory of the smoke instead of from `grep`.
+- rule: before trusting a maximum from a tail file, count the requests sent against `grep -c cpuTime` (and per path); a route with fewer tail lines than requests is re-run alone and counted again. Before writing "the smoke does not request X", grep the smoke for X.
+- proof: `grep -n "client-error" app/scripts/api-smoke.mjs` → the `call(\`${api}/client-error\`` line and the `POST /client-error` label; `grep -n "The tail window is lossy" app/docs/runbooks/api.md` → the count rule.
+- added: 2026-10-04
+
+## P-843 · The Cache API stores and serves on `workers.dev` previews: step 12's "x-mop-cache: miss on every request of the preview" was wrong, and so were the "request each page twice, the first is a render" procedure and the page CPU rows read as render figures
+- symptom: on `pr-100` three requests in a row of `/api/public/properties` printed `x-mop-cache: hit`; the first request of `/` and `/properties` in the CPU window was already a hit, so the table rows `/ 3 ms` and `/properties 2 ms` are stored-answer costs, not render costs. The runbook (line 86, written by c12 from the plan) said a preview answers `miss` every time.
+- cause: the plan assumed, from a general belief that the Cache API is a no-op on `workers.dev`, that previews run the memory layer alone; nobody ran `curl -sI` against the deployed preview. The CPU procedure then built on the same assumption.
+- rule: before writing what a platform feature does on a deploy, run `curl -sI` on the deploy and read the header. A render figure needs a request the cache cannot serve (the first request of an address after a deploy, or a page nothing has requested on that deploy); label page rows `hit` or `render`.
+- proof: `curl -sI https://pr-100.holy-meadow-4327.workers.dev/api/public/properties | grep -i x-mop-cache` → `x-mop-cache: hit` (repeat it); `curl -sI https://pr-100.holy-meadow-4327.workers.dev/markets | grep -i x-mop-cache` on a first request → `x-mop-cache: miss`, then `hit`.
+- added: 2026-10-04
