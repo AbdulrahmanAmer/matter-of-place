@@ -141,3 +141,27 @@
    - evidence: routes.ts uploads row: limits: [{ scope: 'ip', store: 'db', limit: 12, windowSeconds: HOUR }]; R13 text at STANDARDS.md line 148.
 
 Two further g6 follow-ups concerned `GOTCHAS.md` and are banked there, not here: the missing hit-again line in P-1001 (added) and the reviewer's P-809 cost (hit-again line in P-809 and the new entry P-825).
+
+## g7 · steps 8b,9
+
+1. `app/src/components/forms/submit/wizard.tsx` (not blocking)
+   - what: STANDARDS R45 says every public user action calls track() with an AnalyticsEvent name. The new Retry button in UploadStatus calls no track(). The author lists this as UNPROVEN and a follow-up. The fix is the analytics-event path (a new analyticsEvents name), which is the orchestrator's to schedule. It is not blocking: the existing Next, Back and Start again buttons do not track either, and a Retry click going uncounted in GA4 breaks no contract line.
+   - evidence: grep -n track src/components/forms/submit/wizard.tsx shows only line 76, track("submit_property"). UploadStatus's onClick={() => void retry()} has none.
+
+2. `app/src/server/public/routes.ts` (not blocking)
+   - what: Plan and STANDARDS disagree. R13 says every anonymous route declares at least one memory and one database limit. The new GET /subscribers/confirm row has only a database limit (20 per hour per IP), and /api/hooks/resend has none. Both match the plan's route table ('20 per hour per IP (DB)'; 'none (signature)'), and the existing submissions/:id/uploads row has the same shape. The orchestrator should reconcile R13 with the plan. The group followed the plan.
+   - evidence: routes.ts confirm row: limits: [{ scope: "ip", store: "db", limit: 20, windowSeconds: HOUR }], form unset; hook row: limits: []
+
+3. `workspace/05-plans/B3.md` (not blocking)
+   - what: A plan line is now stale (orchestrator's file). The Files line for upload-queue.ts gives runUploadQueue({ submissionId, uploadToken, entries, files, fetchMore, onProgress }). The built queue takes { entries, files, fetchMore, onProgress }, with the id and token bound inside fetchMore by submissions.send. The B3 log records this decision, but the plan line still names the old signature.
+   - evidence: app/src/services/http/upload-queue.ts QueueOptions has no submissionId/uploadToken; log B3.md g7 'runUploadQueue takes { entries, files, fetchMore, onProgress }'
+
+4. `app/src/services/http/index.ts` (not blocking)
+   - what: Suspected from reading, not run. The queue is started with `void runUploadQueue(...)` and nothing catches its rejection. putOnce resolves false on onerror, but a synchronous throw from XMLHttpRequest.open or send (for example a malformed signed URL) rejects the Promise executor. That rejection reaches run(), and the queue ends as an unhandled rejection with no final report(). The wizard would then show 'Uploading n of m' indefinitely and never offer Retry. Low likelihood, because the URLs come from our own signing call. Worth a .catch that marks the entry failed.
+   - evidence: upload-queue.ts putOnce: new Promise((resolve) => { request.open("PUT", url); ... }) has no reject path; worker loop has no try; index.ts: void runUploadQueue({...})
+
+5. `workspace/05-plans/logs/B3.md` (not blocking)
+   - what: One proof cannot be re-run (P-088). The signed, replayed and forged delivery against the local Worker came from a scratch probe that was never committed. I reproduced it with my own probe (200 / 200 / 401, plus a stale 401). A follow-up could make it repeatable by adding a signed /api/hooks/resend call to scripts/api-smoke.mjs, signed with the .dev.vars secret.
+   - evidence: log g7: '(local Worker) a delivery signed with the .dev.vars secret, its replay, and a forged one (scratch probe, receipt removed)'
+
+A sixth g7 follow-up concerned `GOTCHAS.md` and is banked there, not here: the worker-start timeout of `bun run check` under a parallel db suite (hit-again line in P-712, with P-329 and the G-031 hit-again line folded into it).
