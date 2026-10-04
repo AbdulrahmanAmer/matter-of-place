@@ -5,8 +5,10 @@ import {
   type GalleryImage,
   type ImageVariants,
   type Property,
+  type PropertyCard,
 } from "../../domain/property.ts";
 import { storySchema, type Story } from "../../domain/story.ts";
+import { pickCard } from "../../lib/property-card.ts";
 import { mediaUrl } from "../lib/media-store.ts";
 import type { PublicState } from "./state.ts";
 
@@ -298,6 +300,11 @@ export function toProperty(row: PropertyRow, representative?: RepresentativeRow)
     publishedAt: isoDate(row.published_at),
     ...(row.related.length > 0 && { related: row.related }),
   };
+}
+
+/** The list row of a property (PERF-06): the card fields only, the hero's `card` rendition, no gallery. */
+export function toPropertyCard(property: Property): PropertyCard {
+  return pickCard(property);
 }
 
 export function toStory(row: StoryRow): Story {

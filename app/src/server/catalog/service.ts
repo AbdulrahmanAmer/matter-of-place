@@ -1,5 +1,5 @@
 import type { Market } from "../../domain/market";
-import type { Property } from "../../domain/property";
+import type { Property, PropertyCard } from "../../domain/property";
 import type { Story } from "../../domain/story";
 import type { Db } from "../lib/db";
 import { AppError } from "../lib/errors";
@@ -15,8 +15,8 @@ function bySlug<T extends { slug: string }>(rows: readonly T[], slug: string): T
   return row;
 }
 
-export async function listProperties(db: Db): Promise<Property[]> {
-  return (await getCatalog(db)).properties;
+export async function listProperties(db: Db): Promise<PropertyCard[]> {
+  return (await getCatalog(db)).cards;
 }
 
 export async function getProperty(db: Db, slug: string): Promise<Property> {

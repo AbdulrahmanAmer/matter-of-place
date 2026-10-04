@@ -1,5 +1,5 @@
 import type { Market } from "../../domain/market";
-import type { Property } from "../../domain/property";
+import type { PropertyCard } from "../../domain/property";
 import type { FilterState } from "../../hooks/use-filters";
 import { featuresOf, statusesOf, stylesOf, typesOf } from "../../lib/catalog";
 import { FilterSelect } from "./filter-select";
@@ -27,7 +27,7 @@ export function FilterBar({
   showSearch = false,
 }: {
   state: FilterState;
-  pool: Property[];
+  pool: PropertyCard[];
   /** When provided, a market select is shown. */
   markets?: Market[];
   locations?: LocationOption[];

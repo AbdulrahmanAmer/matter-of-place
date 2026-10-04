@@ -362,6 +362,8 @@ export const propertyCardSchema = propertySchema
     beds: true,
     baths: true,
     interiorSqFt: true,
+    publishedAt: true,
+    features: true,
     heroRank: true,
     featuredRank: true,
     heroImage: true,

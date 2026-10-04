@@ -129,6 +129,8 @@ describe("propertyCardSchema", () => {
       slug: first.slug,
       price: first.price,
       heroImage: first.heroImage,
+      features: first.features,
+      publishedAt: first.publishedAt,
     });
   });
 

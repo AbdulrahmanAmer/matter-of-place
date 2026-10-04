@@ -76,6 +76,7 @@ interface Variation {
   path?: string;
   status?: number;
   form?: boolean;
+  turnstile?: boolean;
   limits?: RouteLimit[];
   /** `false` for a row that takes no body schema. */
   schema?: false;
@@ -86,7 +87,7 @@ const echoRow = (service: PublicService, over: Variation = {}): PublicRoute => (
   method: "POST",
   ...(over.schema === false ? {} : { schema: echoSchema }),
   limits: over.limits ?? [],
-  turnstile: false,
+  turnstile: over.turnstile ?? false,
   ...(over.form === undefined ? {} : { form: over.form }),
   status: over.status ?? 201,
   service,
@@ -124,6 +125,21 @@ describe("a catalog read", () => {
     expect(response.headers.get("cache-tag")).toBe("catalog");
     expect(response.headers.get("cache-control")).toBe("public, max-age=60");
     expect(z.array(z.object({ slug: z.string() })).parse(await response.json())).toHaveLength(1);
+  });
+
+  it("answers the list as cards: the card fields and no gallery, story or place", async () => {
+    const { handlePublic } = await load();
+    const response = await handlePublic(
+      request("/api/public/properties"),
+      "req-12345678",
+      catalogDb(),
+    );
+    const [card] = z.array(z.record(z.string(), z.unknown())).parse(await response.json());
+    const keys = Object.keys(card ?? {});
+    expect(keys).toContain("heroImage");
+    expect(
+      keys.filter((key) => ["gallery", "story", "place", "address", "video"].includes(key)),
+    ).toEqual([]);
   });
 
   it("reads every state and snapshot call from the client it was given, never getDb()", async () => {
@@ -524,5 +540,160 @@ describe("a raw row", () => {
       catalogDb(),
     );
     expect(response.status).toBe(413);
+  });
+});
+
+describe("Turnstile in a write (invariant 17)", () => {
+  const SECRET = "0x4AAAAAAA-real-secret";
+  const siteverify = vi.fn<(url: string, init: unknown) => Promise<Response>>();
+  const answer = (body: Record<string, unknown>) => {
+    siteverify.mockImplementation(() => Promise.resolve(Response.json(body)));
+  };
+  const withToken = { headers: { "x-turnstile-token": "tok" } };
+  const valid = { email: "a@b.co", n: 1 };
+  const turnstileLines = () => lines.filter((line) => line.includes("turnstile_unreachable"));
+
+  beforeEach(() => {
+    siteverify.mockReset();
+    answer({ success: true, hostname: "matterofplace.com", action: "echo" });
+    vi.stubEnv("TURNSTILE_SECRET", SECRET);
+    vi.stubGlobal("fetch", siteverify);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("answers a missing token with 403 forbidden, no call to Cloudflare, no database call and no catalog header", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { turnstile: true }));
+    const db = catalogDb();
+    const response = await handlePublic(post("/api/public/echo", valid), "req-12345678", db);
+    expect(response.status).toBe(403);
+    expect(await errorOf(response)).toMatchObject({ code: "forbidden", requestId: "req-12345678" });
+    expect(response.headers.get("x-mop-cache")).toBe("bypass");
+    expect(response.headers.get("x-catalog-version")).toBeNull();
+    expect(siteverify).not.toHaveBeenCalled();
+    expect(db.calls).toEqual([]);
+    expect(service).not.toHaveBeenCalled();
+  });
+
+  it("refuses a failed check before the schema and before every database call", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(
+      echoRow(service, {
+        turnstile: true,
+        limits: [{ scope: "ip", store: "db", limit: 10, windowSeconds: 3600 }],
+      }),
+    );
+    answer({ success: false });
+    const db = catalogDb();
+    const invalid = await handlePublic(
+      post("/api/public/echo", { email: 5 }, withToken),
+      "req-12345678",
+      db,
+    );
+    const failed = await handlePublic(
+      post("/api/public/echo", valid, withToken),
+      "req-12345679",
+      db,
+    );
+    expect([invalid.status, failed.status]).toEqual([403, 403]);
+    expect(dbCalls(db, "rate_limit_check")).toBe(0);
+    expect(db.calls).toEqual([]);
+    expect(service).not.toHaveBeenCalled();
+  });
+
+  it("checks the memory limit first: the 31st post from one IP is 429 and never reaches Cloudflare", async () => {
+    const { handlePublic, added } = await load();
+    added(echoRow(ok, { turnstile: true, form: true }));
+    const ip = nextIp();
+    for (let sent = 1; sent <= 30; sent += 1) {
+      await handlePublic(
+        post("/api/public/echo", valid, { ip, ...withToken }),
+        "req-12345678",
+        catalogDb(),
+      );
+    }
+    expect(siteverify).toHaveBeenCalledTimes(30);
+    const refused = await handlePublic(
+      post("/api/public/echo", valid, { ip, ...withToken }),
+      "req-12345679",
+      catalogDb(),
+    );
+    expect(refused.status).toBe(429);
+    expect(siteverify).toHaveBeenCalledTimes(30);
+  });
+
+  it("passes the route's bucket name as the action and the visitor's address as remoteip", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { turnstile: true }));
+    const passed = await handlePublic(
+      post("/api/public/echo", valid, { ip: TEST_IP, ...withToken }),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(passed.status).toBe(201);
+    const [, init] = siteverify.mock.calls[0] ?? [];
+    expect(
+      Object.fromEntries(
+        z.instanceof(URLSearchParams).parse(z.object({ body: z.unknown() }).parse(init).body),
+      ),
+    ).toMatchObject({ response: "tok", remoteip: TEST_IP });
+    expect(service.mock.calls[0]?.[2]).toMatchObject({ turnstileOk: true });
+    answer({ success: true, hostname: "matterofplace.com", action: "subscribers" });
+    const wrongAction = await handlePublic(
+      post("/api/public/echo", valid, withToken),
+      "req-12345679",
+      catalogDb(),
+    );
+    expect(wrongAction.status).toBe(403);
+    expect(turnstileLines()).toEqual([]);
+  });
+
+  it("accepts the write when Cloudflare cannot be reached, flags it and logs the outage", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { turnstile: true }));
+    siteverify.mockImplementation(() => Promise.reject(new TypeError("fetch failed")));
+    const response = await handlePublic(
+      post("/api/public/echo", valid, withToken),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(response.status).toBe(201);
+    expect(service.mock.calls[0]?.[2]).toMatchObject({ turnstileOk: false });
+    expect(turnstileLines()).toHaveLength(1);
+    expect(JSON.parse(turnstileLines()[0] ?? "{}")).toMatchObject({ level: "warn", route: "echo" });
+  });
+
+  it("accepts a write with no secret configured, flagged, as a local run does", async () => {
+    vi.stubEnv("TURNSTILE_SECRET", undefined);
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { turnstile: true }));
+    const response = await handlePublic(
+      post("/api/public/echo", valid),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(response.status).toBe(201);
+    expect(service.mock.calls[0]?.[2]).toMatchObject({ turnstileOk: false });
+    expect(siteverify).not.toHaveBeenCalled();
+  });
+
+  it("skips the check for a row that declares none", async () => {
+    const { handlePublic, added } = await load();
+    added(echoRow(ok));
+    const response = await handlePublic(
+      post("/api/public/echo", valid),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(response.status).toBe(201);
+    expect(siteverify).not.toHaveBeenCalled();
   });
 });

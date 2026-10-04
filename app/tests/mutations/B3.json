@@ -1510,10 +1510,10 @@
     "kind": "file",
     "test": "tests/api/parity.api.test.ts",
     "file": "src/server/public/mappers.ts",
-    "find": "    lotAcres: row.lot_acres,\n",
-    "replace": "    lotAcre: row.lot_acres,\n",
+    "find": "    baths: row.baths,\n",
+    "replace": "    baths: row.beds,\n",
     "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
-    "expect": "× .*answers /properties with the bundled properties and no difference"
+    "expect": "× .*answers /properties with the bundled cards and no difference"
   },
   {
     "id": "b3-g4-parity-markets",
@@ -1543,7 +1543,7 @@
     "find": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ),\n    markets:",
     "replace": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ).reverse(),\n    markets:",
     "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
-    "expect": "× .*answers /properties with the bundled properties and no difference"
+    "expect": "× .*answers /properties with the bundled cards and no difference"
   },
   {
     "id": "b3-g4-an-unique",
@@ -1844,5 +1844,595 @@
     "replace": "presentedByOwner && ownerCopy",
     "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
     "expect": "× .*leaves the other intents as they are for an owner's home"
+  },
+  {
+    "id": "b3-g5-sm-features-rank",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/property-card.ts",
+    "find": "    features: property.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*ranks cards as it ranks the full properties"
+  },
+  {
+    "id": "b3-g5-sm-features-reason",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/property-card.ts",
+    "find": "    features: property.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*scores a feature found in the card's feature list"
+  },
+  {
+    "id": "b3-g5-sm-sort",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "    .sort((a, b) => b.score - a.score)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*keeps the best matches first and honours the limit"
+  },
+  {
+    "id": "b3-g5-sm-limit",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "    .slice(0, limit);",
+    "replace": "    .slice(0, limit + 100);",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*keeps the best matches first and honours the limit"
+  },
+  {
+    "id": "b3-g5-sm-zero",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": ".filter((match) => match.score > 0)",
+    "replace": ".filter((match) => match.score >= 0)",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*leaves out a property that scores nothing"
+  },
+  {
+    "id": "b3-g5-hdr-origin",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "            ? supabaseOrigin()",
+    "replace": "            ? []",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
+  },
+  {
+    "id": "b3-g5-hdr-only-origin",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "[new URL(url).origin]",
+    "replace": "[url]",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
+  },
+  {
+    "id": "b3-g5-hdr-invalid",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "url !== undefined && URL.canParse(url) ? [new URL(url).origin] : []",
+    "replace": "url !== undefined ? [new URL(url).origin] : []",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*names no Supabase host when SUPABASE_URL is unset"
+  },
+  {
+    "id": "b3-g5-state-cards",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "visible.properties.map(toPropertyCard)",
+    "replace": "mapped.properties.map(toPropertyCard)",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*builds the cards of the visible properties once per version"
+  },
+  {
+    "id": "b3-g5-card-gallery",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return pickCard(property);",
+    "replace": "  return { ...pickCard(property), gallery: property.gallery };",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*keeps a card variant and the card fields"
+  },
+  {
+    "id": "b3-g5-card-bytes",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return pickCard(property);",
+    "replace": "  return { ...pickCard(property), gallery: property.gallery };",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*keeps a card at most 600 bytes"
+  },
+  {
+    "id": "b3-g5-list-cards",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "return (await getCatalog(db)).cards;",
+    "replace": "return (await getCatalog(db)).properties;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers the list as cards"
+  },
+  {
+    "id": "b3-g5-cl-features",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    features: true,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-cl-published",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    publishedAt: true,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-parity-pick",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/lib/property-card.ts",
+    "find": "    features: property.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled cards and no difference"
+  },
+  {
+    "id": "b3-g5-ts-pass-body",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "remoteip: ip",
+    "replace": "remoteip: \"0.0.0.0\"",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*passes when siteverify says success"
+  },
+  {
+    "id": "b3-g5-ts-fail",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (!answer.success) return \"fail\";\n",
+    "replace": "  if (!answer.success) return \"unreachable\";\n",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails when siteverify says the token is no good"
+  },
+  {
+    "id": "b3-g5-ts-net",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on a network error"
+  },
+  {
+    "id": "b3-g5-ts-notsv",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on an answer that is not siteverify's"
+  },
+  {
+    "id": "b3-g5-ts-5xx",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    if (response.status >= 500) return \"unreachable\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on a 5xx from Cloudflare"
+  },
+  {
+    "id": "b3-g5-ts-timeout",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "      signal: AbortSignal.timeout(TIMEOUT_MS),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*gives up after 2 seconds with no answer"
+  },
+  {
+    "id": "b3-g5-ts-nosecret",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable with no secret configured"
+  },
+  {
+    "id": "b3-g5-ts-notoken",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails an absent or empty token"
+  },
+  {
+    "id": "b3-g5-ts-host",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    answer.hostname !== undefined && turnstileHostAllowed(answer.hostname, env.MOP_ENV);",
+    "replace": "    true;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success whose hostname is not one the environment serves"
+  },
+  {
+    "id": "b3-g5-ts-nohost",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    answer.hostname !== undefined && turnstileHostAllowed(answer.hostname, env.MOP_ENV);",
+    "replace": "    true;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success that names no hostname"
+  },
+  {
+    "id": "b3-g5-ts-action",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return allowed && answer.action === action ? \"pass\" : \"fail\";",
+    "replace": "  return allowed ? \"pass\" : \"fail\";",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success whose action is another route's or absent"
+  },
+  {
+    "id": "b3-g5-ts-passright",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return allowed && answer.action === action ? \"pass\" : \"fail\";",
+    "replace": "  return \"fail\";",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*passes the right hostname with the right action"
+  },
+  {
+    "id": "b3-g5-ts-testsecret",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (TEST_SECRET.test(secret)) return \"pass\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*checks neither hostname nor action with the test secret"
+  },
+  {
+    "id": "b3-g5-ts-testfail",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (!answer.success) return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*still fails a failure with the test secret"
+  },
+  {
+    "id": "b3-g5-ts-hosts-prod",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return mopEnv === \"preview\" && PREVIEW_HOST.test(hostname);",
+    "replace": "  return PREVIEW_HOST.test(hostname);",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows the site's hosts in production and nothing else"
+  },
+  {
+    "id": "b3-g5-ts-hosts-preview",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "const PREVIEW_HOST = /^pr-\\d+\\.holy-meadow-4327\\.workers\\.dev$/;",
+    "replace": "const PREVIEW_HOST = /^pr-.+\\.holy-meadow-4327\\.workers\\.dev$/;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows the dev Worker and a pull request's preview"
+  },
+  {
+    "id": "b3-g5-ts-hosts-local",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (mopEnv === \"local\") return true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows any host locally"
+  },
+  {
+    "id": "b3-g5-pl-missing",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a missing token with 403 forbidden"
+  },
+  {
+    "id": "b3-g5-pl-order-db",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n",
+    "replace": "  const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const checks = await dbChecks(route, name, ctx.ipHash, input);\n  if (checks.length > 0) {\n    const limited = await checkDb(db, checks);\n    if (!limited.ok) return refused(ctx.requestId, limited.retryAfter);\n  }\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*refuses a failed check before the schema and before every database call"
+  },
+  {
+    "id": "b3-g5-pl-order-memory",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  const memory = memoryCheck(route, name, ctx.ipHash);\n  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n  await checkTurnstile(route, name, request, ctx);\n",
+    "replace": "  await checkTurnstile(route, name, request, ctx);\n  const memory = memoryCheck(route, name, ctx.ipHash);\n  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*checks the memory limit first"
+  },
+  {
+    "id": "b3-g5-pl-action",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    env,\n    name,\n  );",
+    "replace": "    env,\n    \"inquiries\",\n  );",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-remoteip",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    clientIp(request),",
+    "replace": "    \"0.0.0.0\",",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-fail-logs",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (outcome === \"fail\") {\n    throw new AppError(",
+    "replace": "  if (outcome === \"fail\") {\n    logLine(\"warn\", \"turnstile_unreachable\", { route: name });\n    throw new AppError(",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-flag",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  ctx.turnstileOk = outcome === \"pass\";",
+    "replace": "  ctx.turnstileOk = true;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-log",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (outcome === \"unreachable\") logLine(\"warn\", \"turnstile_unreachable\", { route: name });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-unreachable-pass",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-nosecret",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
+    "replace": "  if (secret === undefined || secret === \"\") return \"fail\";\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts a write with no secret configured"
+  },
+  {
+    "id": "b3-g5-pl-skip",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!route.turnstile) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*skips the check for a row that declares none"
+  },
+  {
+    "id": "b3-g5-ad-action",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "await guarded(\"inquiries\", input)",
+    "replace": "await guarded(\"subscribers\", input)",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send the Turnstile token of their own action"
+  },
+  {
+    "id": "b3-g5-ad-website",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    body: { website: \"\", ...input },",
+    "replace": "    body: input,",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send the Turnstile token of their own action"
+  },
+  {
+    "id": "b3-g5-ad-notoken",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    init: { headers: token === null ? {} : { \"x-turnstile-token\": token } },",
+    "replace": "    init: { headers: { \"x-turnstile-token\": token ?? \"\" } },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send no token header when the browser has none"
+  },
+  {
+    "id": "b3-g5-ad-honeypot",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    body: { website: \"\", ...input },",
+    "replace": "    body: { ...input, website: \"\" },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*carry a filled honeypot through to the Worker"
+  },
+  {
+    "id": "b3-g5-ad-read",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    listMarkets: () => api.get(\"/markets\", z.array(marketSchema)),",
+    "replace": "    listMarkets: async () => {\n      await getTurnstileToken(\"markets\");\n      return api.get(\"/markets\", z.array(marketSchema));\n    },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send a read with no Turnstile call"
+  },
+  {
+    "id": "b3-g5-ad-list",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "z.array(propertyCardSchema)",
+    "replace": "z.array(propertySchema)",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-ad-reqid-header",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "response.headers.get(\"x-request-id\")",
+    "replace": "response.headers.get(\"x-other-id\")",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*takes the request id from the x-request-id header"
+  },
+  {
+    "id": "b3-g5-ad-reqid-body",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "    return body.success ? body.data.error.requestId : undefined;",
+    "replace": "    return undefined;",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*falls back to the request id in the error body"
+  },
+  {
+    "id": "b3-g5-ad-reqid-none",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  } catch {\n    return undefined;\n  }",
+    "replace": "  } catch {\n    return \"unknown\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*has no request id when the body is not JSON or names none"
+  },
+  {
+    "id": "b3-g5-tc-nokey",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  if (siteKey === undefined || siteKey === \"\") return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null with no site key"
+  },
+  {
+    "id": "b3-g5-tc-execute",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      execution: \"execute\",",
+    "replace": "      execution: \"render\",",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-remove",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      if (widget.id !== undefined) api.remove(widget.id);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-host",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  if (existing) return existing;\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-error",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      \"error-callback\": () => {\n        settle(null);\n      },",
+    "replace": "      \"error-callback\": () => {},",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null when Cloudflare reports an error or a timeout"
+  },
+  {
+    "id": "b3-g5-tc-once",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  loading ??= new Promise((resolve) => {",
+    "replace": "  loading = new Promise((resolve) => {",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*loads the script once, on the first call"
+  },
+  {
+    "id": "b3-g5-tc-retry",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      loading = undefined;\n      resolve(null);",
+    "replace": "      resolve(null);",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null when the script is blocked, and tries again"
   }
 ]

@@ -4,7 +4,8 @@ import { AppError } from "../lib/errors.ts";
 import { logLine } from "../lib/log.ts";
 import { readVar } from "../lib/runtime-env.ts";
 import { z } from "zod";
-import { mapSnapshot, parseSnapshot, type Catalog } from "./mappers.ts";
+import type { PropertyCard } from "../../domain/property.ts";
+import { mapSnapshot, parseSnapshot, toPropertyCard, type Catalog } from "./mappers.ts";
 
 // The one read path of the public site (architecture 13 rule 1, invariant 15): two RPCs, memoised per
 // isolate, the last good answer kept for an outage. The job runner loads this file, so it reads
@@ -45,17 +46,20 @@ export interface StateRead {
   stale: boolean;
 }
 
+/** The visible catalog and its list rows side by side, both built once per version (PERF-06). */
+export type ServedCatalog = Catalog & { cards: PropertyCard[] };
+
 export interface CatalogRead extends StateRead {
-  catalog: Catalog;
+  catalog: ServedCatalog;
 }
 
 let stateMemo: { state: PublicState; checkedAt: number; stale: boolean } | undefined;
 let stateFlight: Promise<StateRead> | undefined;
-let catalogMemo: Catalog | undefined;
+let catalogMemo: ServedCatalog | undefined;
 // The version the state advertised when the memo was loaded, which the memo answers for.
 let catalogFor = Number.NaN;
 // One load per version: a request for a newer version never waits for a load of an older one.
-let catalogFlight: { version: number; load: Promise<Catalog> } | undefined;
+let catalogFlight: { version: number; load: Promise<ServedCatalog> } | undefined;
 let catalogStale = false;
 let lastReportAt = Number.NEGATIVE_INFINITY;
 const pendingReports: unknown[] = [];
@@ -141,12 +145,13 @@ export function resetPublicStateMemo(): void {
   if (stateMemo !== undefined) stateMemo = { ...stateMemo, checkedAt: Number.NEGATIVE_INFINITY };
 }
 
-async function loadCatalog(db: Db, state: PublicState): Promise<Catalog> {
+async function loadCatalog(db: Db, state: PublicState): Promise<ServedCatalog> {
   const mapped = mapSnapshot(parseSnapshot(await readRpc(db, "public_catalog_snapshot")), state);
-  const catalog = applyVisibility(mapped, {
+  const visible = applyVisibility(mapped, {
     state,
     env: { MOP_ENV: readVar("MOP_ENV") ?? "production" },
   });
+  const catalog = { ...visible, cards: visible.properties.map(toPropertyCard) };
   catalogMemo = catalog;
   catalogFor = state.catalogVersion;
   return catalog;
@@ -161,7 +166,7 @@ export async function readCatalog(db: Db): Promise<CatalogRead> {
   }
   try {
     if (catalogFlight?.version !== state.catalogVersion) {
-      const load: Promise<Catalog> = loadCatalog(db, state).finally(() => {
+      const load: Promise<ServedCatalog> = loadCatalog(db, state).finally(() => {
         if (catalogFlight?.load === load) catalogFlight = undefined;
       });
       catalogFlight = { version: state.catalogVersion, load };
@@ -189,6 +194,6 @@ export async function getPublicState(db: Db): Promise<PublicState> {
   return (await readState(db)).state;
 }
 
-export async function getCatalog(db: Db): Promise<Catalog> {
+export async function getCatalog(db: Db): Promise<ServedCatalog> {
   return (await readCatalog(db)).catalog;
 }

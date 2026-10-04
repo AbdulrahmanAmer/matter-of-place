@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Json } from "../../src/db";
 import { fakeDb } from "../fixtures/fake-db";
+import { propertyJson } from "../fixtures/snapshot";
 
 vi.mock("../../src/server/catalog/visibility", { spy: true });
 
@@ -20,7 +21,7 @@ function stateJson(version: number, extra: Record<string, Json> = {}): Json {
   };
 }
 
-function snapshotJson(version: number): Json {
+function snapshotJson(version: number, extra: Record<string, Json> = {}): Json {
   return {
     catalog_version: version,
     markets: [],
@@ -33,6 +34,7 @@ function snapshotJson(version: number): Json {
     redirects: [],
     slug_history: [],
     gone: [],
+    ...extra,
   };
 }
 
@@ -240,6 +242,27 @@ describe("getCatalog", () => {
     answers.snapshot = snapshotJson(4);
     expect((await state.getCatalog(db)).version).toBe(4);
     expect(rpcCalls(db, "public_catalog_snapshot")).toBe(2);
+  });
+
+  it("builds the cards of the visible properties once per version, after the visibility pass", async () => {
+    const { state, visibility } = await load();
+    vi.mocked(visibility.applyVisibility).mockImplementation((rows) => ({
+      ...rows,
+      properties: rows.properties.filter((property) => property.slug === "p1"),
+    }));
+    const read = fakeDb({
+      rpc: {
+        public_state: () => stateJson(5),
+        public_catalog_snapshot: () =>
+          snapshotJson(5, { properties: [propertyJson("p1"), propertyJson("p2")] }),
+      },
+    });
+    const first = await state.getCatalog(read);
+    expect(first.properties.map((property) => property.slug)).toEqual(["p1"]);
+    expect(first.cards.map((card) => card.slug)).toEqual(["p1"]);
+    expect(first.cards[0]).not.toHaveProperty("gallery");
+    expect((await state.getCatalog(read)).cards).toBe(first.cards);
+    expect(rpcCalls(read, "public_catalog_snapshot")).toBe(1);
   });
 
   it("runs applyVisibility once per version with the state and MOP_ENV", async () => {

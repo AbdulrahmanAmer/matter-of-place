@@ -1,6 +1,7 @@
 // The live catalog answers (`/properties`, `/markets`, `/stories`) against the bundled data the local adapter serves
 // (step 4): the same records, field for field, once every image address is reduced to the name of its source file.
-// This is the evidence that the frontend needs no change when `services.mode` turns live.
+// This is the evidence that the frontend needs no change when `services.mode` turns live. `/properties` answers cards
+// (PERF-06), so it is compared with `properties.map(pickCard)`, the cards the local adapter serves.
 //
 // Three things differ by design and are named here, not hidden: the database makes `id` a uuid where the bundled data
 // has "mop-001" (no component reads it), the snapshot carries neither `campaignTier` nor `source` (G-303), and the list
@@ -14,6 +15,7 @@ import { stripExif } from "../../scripts/lib/strip-exif";
 import { sha8Of } from "../../scripts/variants";
 import { markets } from "../../src/data/markets";
 import { properties } from "../../src/data/properties";
+import { pickCard } from "../../src/lib/property-card";
 import { stories } from "../../src/data/stories";
 import { handlePublic } from "../../src/server/public/pipeline";
 
@@ -118,16 +120,15 @@ function bySlug(items: readonly Fields[], omit: readonly string[], side: "bundle
 const asFields = (items: readonly object[]): Fields[] => records.parse(items);
 
 describe("the live catalog and the bundled data", () => {
-  it("answers /properties with the bundled properties and no difference", async () => {
+  it("answers /properties with the bundled cards and no difference", async () => {
     const answer = await live("/properties");
     expect(
       differences(
         "properties",
-        bySlug(asFields(properties), ["id", "campaignTier", "source"], "bundled"),
-        bySlug(answer, ["id"], "live"),
+        bySlug(asFields(properties.map(pickCard)), [], "bundled"),
+        bySlug(answer, [], "live"),
       ),
     ).toEqual([]);
-    expect(answer.every((item) => UUID.test(String(item["id"])))).toBe(true);
     const dates = answer.map((item) => String(item["publishedAt"]));
     expect(dates).toEqual([...dates].sort().reverse());
   });

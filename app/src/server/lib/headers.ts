@@ -1,3 +1,5 @@
+import { readVar } from "./runtime-env";
+
 export type Flags = Readonly<Record<string, unknown>>;
 
 // One row per directive. A comment names the slice that needs a source, so a source leaves with it.
@@ -32,6 +34,12 @@ const POLICY: Readonly<Record<string, readonly string[]>> = {
   "form-action": ["'self'"],
 };
 
+/** The browser uploads photographs straight to signed Storage URLs on the project's own origin (B3, E2E-02). */
+function supabaseOrigin(): string[] {
+  const url = readVar("SUPABASE_URL");
+  return url !== undefined && URL.canParse(url) ? [new URL(url).origin] : [];
+}
+
 /**
  * The Content-Security-Policy value. Inline scripts are allowed by hash only, never by a nonce,
  * because HTML is cached (architecture 13 rule 5). `env` and `flags` are part of the frozen
@@ -41,7 +49,11 @@ export function cspFor(_env: string, _flags: Flags, scriptHashes: readonly strin
   return Object.entries(POLICY)
     .map(([directive, sources]) => {
       const extra =
-        directive === "script-src" ? scriptHashes.map((hash) => `'sha256-${hash}'`) : [];
+        directive === "script-src"
+          ? scriptHashes.map((hash) => `'sha256-${hash}'`)
+          : directive === "connect-src"
+            ? supabaseOrigin()
+            : [];
       return [directive, ...sources, ...extra].join(" ");
     })
     .join("; ");

@@ -4,6 +4,7 @@ import {
   parseSnapshot,
   toMarket,
   toProperty,
+  toPropertyCard,
   toStory,
   type PropertyRow,
   type RepresentativeRow,
@@ -206,6 +207,55 @@ describe("toProperty", () => {
     expect("designer" in property).toBe(false);
     expect("featuredRank" in property).toBe(false);
     expect("related" in toProperty(row())).toBe(false);
+  });
+});
+
+describe("toPropertyCard", () => {
+  const gallery = Array.from({ length: 30 }, (_, index) => ({
+    media_key: `o/p1/${String(index + 2)}-0badc0de.webp`,
+    variants: SIZED,
+    alt: "Room",
+    orientation: "landscape" as const,
+    sort_order: index + 1,
+  }));
+  const rich = () =>
+    toProperty(
+      row({
+        video: { src: "v/a.mp4", poster: "v/a.jpg", caption: "c", duration: "0:18" },
+        og_image_key: "o/p1/cover.jpg",
+        media: [
+          {
+            media_key: MASTER,
+            variants: SIZED,
+            alt: "Front",
+            orientation: "landscape",
+            sort_order: 0,
+          },
+          ...gallery,
+        ],
+      }),
+    );
+
+  it("keeps a card variant and the card fields, with no gallery, video, og image or long text", () => {
+    const property = rich();
+    expect(property.gallery).toHaveLength(30);
+    const card = toPropertyCard(property);
+    expect(Object.keys(card)).not.toContain("gallery");
+    for (const dropped of ["video", "ogImage", "story", "place", "address", "representation"]) {
+      expect(Object.keys(card)).not.toContain(dropped);
+    }
+    expect(Object.keys(card.heroVariants ?? {})).toEqual(["card"]);
+    expect(card).toMatchObject({
+      slug: "p1",
+      title: "Cliff House",
+      heroImage: property.heroImage,
+      features: ["Pool"],
+      publishedAt: "2026-08-14",
+    });
+  });
+
+  it("keeps a card at most 600 bytes as JSON for a property with a 30 photograph gallery", () => {
+    expect(JSON.stringify(toPropertyCard(rich())).length).toBeLessThanOrEqual(600);
   });
 });
 

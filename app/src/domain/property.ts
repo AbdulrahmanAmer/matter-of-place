@@ -117,3 +117,34 @@ export const propertySchema = z.object({
   related: z.array(z.string()).optional(),
 });
 export type Property = z.infer<typeof propertySchema>;
+
+/**
+ * One row of the property list (PERF-06): exactly what a card, the filters and the matcher read, and the hero's
+ * `card` rendition. `features` stays because the feature filter and the matcher derive their names from it.
+ * Never the gallery, the video, the Open Graph image or the long text; `propertyCardSchema` of `contracts.ts` is
+ * its Zod twin.
+ */
+export type PropertyCard = Pick<
+  Property,
+  | "slug"
+  | "title"
+  | "market"
+  | "region"
+  | "city"
+  | "neighborhood"
+  | "state"
+  | "type"
+  | "style"
+  | "architect"
+  | "status"
+  | "price"
+  | "currency"
+  | "beds"
+  | "baths"
+  | "interiorSqFt"
+  | "publishedAt"
+  | "features"
+  | "heroRank"
+  | "featuredRank"
+  | "heroImage"
+> & { heroVariants?: Pick<ImageVariants, "card"> | undefined };

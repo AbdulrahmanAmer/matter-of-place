@@ -1,5 +1,5 @@
 import type { Market } from "../domain/market";
-import type { Property } from "../domain/property";
+import type { Property, PropertyCard } from "../domain/property";
 import type { Story } from "../domain/story";
 import type {
   ConciergeAnswer,
@@ -23,7 +23,7 @@ import type {
 type ServiceMode = "local" | "live";
 
 export interface CatalogService {
-  listProperties(): Promise<Property[]>;
+  listProperties(): Promise<PropertyCard[]>;
   getProperty(slug: string): Promise<Property | null>;
   listMarkets(): Promise<Market[]>;
   getMarket(slug: string): Promise<Market | null>;

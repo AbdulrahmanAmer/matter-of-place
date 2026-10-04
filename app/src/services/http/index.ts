@@ -1,14 +1,16 @@
 import { z } from "zod";
 import {
   conciergeAnswerSchema,
+  propertyCardSchema,
   receiptSchema,
   searchMatchSchema,
   submissionReceiptSchema,
 } from "../../domain/contracts";
 import { marketSchema } from "../../domain/market";
 import { propertySchema } from "../../domain/property";
+import { getTurnstileToken } from "../../lib/turnstile";
 import { storySchema } from "../../domain/story";
-import { createApiClient } from "./client";
+import { createApiClient, type FetchImpl } from "./client";
 import {
   ServiceError,
   type CatalogService,
@@ -33,11 +35,23 @@ const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
   }
 };
 
-export function createHttpServices(baseUrl: string) {
-  const api = createApiClient(baseUrl);
+/**
+ * A form write carries Turnstile's token, named for the route's bucket (G72, INT-02), when the browser has one, and
+ * the honeypot field `website`, empty unless a bot filled it.
+ */
+async function guarded<T extends object>(action: string, input: T) {
+  const token = await getTurnstileToken(action);
+  return {
+    body: { website: "", ...input },
+    init: { headers: token === null ? {} : { "x-turnstile-token": token } },
+  };
+}
+
+export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
+  const api = createApiClient(baseUrl, fetchImpl);
 
   const catalog: CatalogService = {
-    listProperties: () => api.get("/properties", z.array(propertySchema)),
+    listProperties: () => api.get("/properties", z.array(propertyCardSchema)),
     getProperty: (slug) =>
       nullOnNotFound(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
     listMarkets: () => api.get("/markets", z.array(marketSchema)),
@@ -49,12 +63,16 @@ export function createHttpServices(baseUrl: string) {
   };
 
   const inquiries: InquiryService = {
-    send: (input) => api.post("/inquiries", input, receiptSchema),
+    send: async (input) => {
+      const { body, init } = await guarded("inquiries", input);
+      return api.post("/inquiries", body, receiptSchema, init);
+    },
   };
 
   const submissions: SubmissionService = {
     async send(input, files) {
-      const receipt = await api.post("/submissions", input, submissionReceiptSchema);
+      const { body, init } = await guarded("submissions", input);
+      const receipt = await api.post("/submissions", body, submissionReceiptSchema, init);
       await Promise.all(
         receipt.uploads.map(async (upload) => {
           const file = files.find((candidate) => candidate.name === upload.name);
@@ -74,7 +92,10 @@ export function createHttpServices(baseUrl: string) {
   };
 
   const newsletter: NewsletterService = {
-    subscribe: (input) => api.post("/subscribers", input, receiptSchema),
+    subscribe: async (input) => {
+      const { body, init } = await guarded("subscribers", input);
+      return api.post("/subscribers", body, receiptSchema, init);
+    },
   };
 
   const search: SearchService = {

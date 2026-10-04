@@ -2,10 +2,11 @@ import { z, ZodError } from "zod";
 import { getDb, type Db } from "../lib/db";
 import { env, sentryOptions } from "../lib/env";
 import { AppError, fromZod, toErrorResponse } from "../lib/errors";
-import { hashKey } from "../lib/ids";
+import { clientIp, hashKey } from "../lib/ids";
 import { logLine } from "../lib/log";
 import { checkDb, checkMemory, type DbCheck, type LimitResult } from "../lib/ratelimit";
 import { captureException } from "../lib/sentry";
+import { verifyTurnstile } from "../lib/turnstile";
 import { waitUntilOf, type WaitUntil } from "../lib/wait-until";
 import { edgeCached } from "./cache";
 import { ipHashOf, logRequest } from "./request-log";
@@ -185,6 +186,34 @@ async function dbChecks(
   return checks;
 }
 
+/**
+ * The three outcomes of GD-05: a failed check is 403, an unreachable one lets the write through flagged
+ * (`ctx.turnstileOk` false) and logged. A row that declares no check skips it.
+ */
+async function checkTurnstile(
+  route: PublicRoute,
+  name: string,
+  request: Request,
+  ctx: PublicCtx,
+): Promise<void> {
+  if (!route.turnstile) return;
+  const outcome = await verifyTurnstile(
+    request.headers.get("x-turnstile-token"),
+    clientIp(request),
+    env,
+    name,
+  );
+  if (outcome === "fail") {
+    throw new AppError(
+      "forbidden",
+      undefined,
+      "We could not check this came from a person. Please reload the page and try again.",
+    );
+  }
+  if (outcome === "unreachable") logLine("warn", "turnstile_unreachable", { route: name });
+  ctx.turnstileOk = outcome === "pass";
+}
+
 async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Promise<Response> {
   const { route } = match;
   if (tooLarge(request)) {
@@ -195,6 +224,7 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
   const name = routeName(route.path);
   const memory = memoryCheck(route, name, ctx.ipHash);
   if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);
+  await checkTurnstile(route, name, request, ctx);
   const parsed = route.schema === undefined ? undefined : route.schema.safeParse(body);
   if (parsed?.success === false) throw fromZod(parsed.error);
   const input: unknown = parsed?.data;

@@ -1,10 +1,10 @@
-import type { Property } from "../../domain/property";
+import type { PropertyCard } from "../../domain/property";
 import type { FilterState } from "../../hooks/use-filters";
 import { featuresOf, stylesOf, typesOf } from "../../lib/catalog";
 import { FilterSelect } from "./filter-select";
 
 /** Three concise filters for market and region pages: type, architecture, design feature. */
-export function QuickFilters({ state, pool }: { state: FilterState; pool: Property[] }) {
+export function QuickFilters({ state, pool }: { state: FilterState; pool: PropertyCard[] }) {
   const { filters, set, reset, active } = state;
   return (
     <div className="quick-filters">

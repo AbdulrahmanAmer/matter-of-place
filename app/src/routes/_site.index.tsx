@@ -9,7 +9,7 @@ import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
 import { editorialQualities, offerings, programmatic } from "../data/exposure";
-import type { Property } from "../domain/property";
+import type { PropertyCard } from "../domain/property";
 import { featuredProperties, heroProperties } from "../lib/catalog";
 import { padIndex } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
@@ -175,7 +175,7 @@ function HomePage() {
   );
 }
 
-function Hero({ properties }: { properties: Property[] }) {
+function Hero({ properties }: { properties: PropertyCard[] }) {
   const [index, setIndex] = useState(0);
   const property = properties[index];
   const advance = (step: number) =>

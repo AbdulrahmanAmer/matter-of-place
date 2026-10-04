@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cspFor, securityHeaders } from "../../src/server/lib/headers";
 
 const CSP = "Content-Security-Policy-Report-Only";
@@ -64,6 +64,28 @@ describe("securityHeaders", () => {
 });
 
 describe("cspFor", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const directive = (policy: string, name: string) =>
+    policy.split("; ").find((part) => part.startsWith(`${name} `));
+
+  it("lets connect-src reach the origin of SUPABASE_URL for browser uploads, and only the origin", () => {
+    vi.stubEnv("SUPABASE_URL", "https://abcdefgh.supabase.co/rest/v1/");
+    const connect = directive(cspFor("production", {}), "connect-src");
+    expect(connect).toContain("https://abcdefgh.supabase.co");
+    expect(connect).not.toContain("/rest");
+    expect(directive(cspFor("production", {}), "script-src")).not.toContain("supabase.co");
+  });
+
+  it("names no Supabase host when SUPABASE_URL is unset or is not an address", () => {
+    vi.stubEnv("SUPABASE_URL", undefined);
+    expect(cspFor("production", {})).not.toContain("supabase");
+    vi.stubEnv("SUPABASE_URL", "not an address");
+    expect(cspFor("production", {})).not.toContain("not an");
+  });
+
   it("allows Turnstile and forbids framing", () => {
     const policy = cspFor("production", {});
     expect(policy).toContain("https://challenges.cloudflare.com");
