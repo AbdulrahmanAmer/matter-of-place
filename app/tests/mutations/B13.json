@@ -1,0 +1,227 @@
+[
+  {
+    "id": "b13-g1-img-relative",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "} catch {\n    return false;",
+    "replace": "} catch {\n    return true;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > drops a relative image path"
+  },
+  {
+    "id": "b13-g1-img-http",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": ".protocol === \"https:\"",
+    "replace": ".protocol !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > drops an http image"
+  },
+  {
+    "id": "b13-g1-img-tags",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "            { property: \"og:image:alt\", content: shownImage.alt },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > writes the Open Graph"
+  },
+  {
+    "id": "b13-g1-tw-site",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "      { name: \"twitter:title\", content: fullTitle },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead tags > repeats the title"
+  },
+  {
+    "id": "b13-g1-article-dates",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(type === \"article\" && published",
+    "replace": "...(published",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead tags > writes article dates only for an article"
+  },
+  {
+    "id": "b13-g1-canon-query",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const bare = path.split(/[?#]/, 1)[0] ?? \"\";",
+    "replace": "const bare = path;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead canonical > turns /properties"
+  },
+  {
+    "id": "b13-g1-canon-slash",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const trimmed = bare.replace(/\\/+$/, \"\");",
+    "replace": "const trimmed = bare;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead canonical > turns /faq/"
+  },
+  {
+    "id": "b13-g1-ser-escape",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "/[<>&",
+    "replace": "/[>&",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*serializeJsonForScript > escapes the characters"
+  },
+  {
+    "id": "b13-g1-ser-plain",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "/[<>&",
+    "replace": "/[\"<>&",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*serializeJsonForScript > leaves a payload"
+  },
+  {
+    "id": "b13-g1-ld-hostile",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead jsonLd > never lets a hostile value"
+  },
+  {
+    "id": "b13-g1-ld-graph",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const graph = Array.isArray(jsonLd)",
+    "replace": "const graph = Array.isArray(jsonLd) && false",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead jsonLd > wraps an array in one @graph"
+  },
+  {
+    "id": "b13-g1-csp-property",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*property page > renders a hostile payload"
+  },
+  {
+    "id": "b13-g1-csp-property-ld",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*property page structured data > parses back"
+  },
+  {
+    "id": "b13-g1-csp-story",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    scripts: graph\n      ? [{ type: \"application/ld+json\", children: serializeJsonForScript(graph) }]\n      : [],",
+    "replace": "    scripts: [{ children: title }],",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*story page > renders a hostile payload"
+  },
+  {
+    "id": "b13-g1-copy-dash",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "Short answers about Matter of Place: what we feature,",
+    "replace": "Short answers about Matter of Place — what we feature,",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*page descriptions > faq follows the copy rules"
+  },
+  {
+    "id": "b13-g1-copy-unique",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "\"Submit an existing residential property in California, New York or Florida for editorial review.\"",
+    "replace": "\"Short answers about Matter of Place: what we feature, what it costs and who receives inquiries.\"",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*page descriptions > gives every page its own description"
+  },
+  {
+    "id": "b13-g1-copy-data",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "${formatNumber(interiorSqFt)} sq ft",
+    "replace": "$${formatNumber(interiorSqFt)} sq ft",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > keep to the copy rules"
+  },
+  {
+    "id": "b13-g1-copy-archive",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "city: `in ${label}`",
+    "replace": "city: `in the city`",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > describes an archive page"
+  },
+  {
+    "id": "b13-g1-copy-singular",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "${pluralize(beds, \"bedroom\")}",
+    "replace": "bedrooms",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > uses the singular"
+  },
+  {
+    "id": "b13-g1-copy-pad",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "return text.length < MIN ? cutAtWord(`${text} ${PLATFORM}`) : text;",
+    "replace": "return text;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > completes a short story deck"
+  },
+  {
+    "id": "b13-g1-copy-cut",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "const end = /\\s/.test(text.charAt(MAX - 1)) ? head.length : head.lastIndexOf(\" \");",
+    "replace": "const end = head.length;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > cuts a long story deck"
+  },
+  {
+    "id": "b13-g1-copy-fit",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "if (next.length > MAX) break;",
+    "replace": "if (next.length > MAX + 200) break;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > adds a second sentence"
+  },
+  {
+    "id": "b13-g1-slug-apos",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/['’]/g, \"\")\n",
+    "replace": "\n",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"Caf"
+  },
+  {
+    "id": "b13-g1-slug-marks",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/\\p{M}/gu, \"\")\n",
+    "replace": "\n",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"Z"
+  },
+  {
+    "id": "b13-g1-slug-trim",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/^-+|-+$/g, \"\")",
+    "replace": ".replace(/^-+$/g, \"\")",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"  Shingle"
+  }
+]

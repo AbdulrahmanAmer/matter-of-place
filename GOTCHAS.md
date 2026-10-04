@@ -2774,3 +2774,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
 - enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
 - added: 2026-10-05
+
+## P-1800 · The Write and Edit tools turn a `\u2028` escape in your text into the character itself, and U+2028 inside a regex literal is a line break
+- symptom: B13 g1 wrote `/[<>&\u2028\u2029]/g` into `src/lib/seo.ts` with the Write tool; prettier refused the file with `Unterminated regular expression literal. (41:5)` and `cat -A` showed the bytes `M-bM-^@M-(` (U+2028) where the six characters `\u2028` had been typed. A patch script sent through a Bash heredoc with `"\u2028"` lost one backslash (P-008) and wrote the same bytes again, so the fix took three attempts.
+- cause: text passed to Write, Edit and Bash is unescaped once on the way in, so a `\uXXXX` sequence arrives as the character; a heredoc also halves doubled backslashes. U+2028 and U+2029 end a line for the JavaScript parser, so the regex literal broke.
+- rule: never type a `\uXXXX` escape in a Write, Edit or heredoc payload; patch the file with a node script (a file written by Write, run by `node`) that builds the characters with `String.fromCharCode(0x2028)` and the backslash with `String.fromCharCode(92)`, checks that its search text occurs exactly once, and read the line back with `cat -A`. A test file may hold the same escape written that way.
+- proof: `cd app && sed -n 41p src/lib/seo.ts | cat -A` → `    /[<>&\u2028\u2029]/g,$` (plain ASCII, no `M-` bytes), and `bunx vitest run --project unit tests/unit/seo.test.ts` passes (2026-10-05).
+- added: 2026-10-05
