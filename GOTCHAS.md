@@ -1015,6 +1015,7 @@ Entry template
 - added: 2026-10-03
 - Hit again 2026-10-04, B8 g5 review: the review brief's standing rule sourced the whole `.env`, so the first db run printed `Error: refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN (load the dev profile in a fresh shell)` at `scripts/lib/guard-env.mjs:16`; the db proofs ran only after `eval "$(node scripts/load-env.mjs --profile dev)"` in a fresh shell. The same brief says to run `plan-brief.mjs` from `E:/mop-build/ops` and forbids any command there (the reviewer ran it from the snapshot, the same commit; B8-followups.md, g4 item 6). The loader line of the standing rules in `.claude/workflows/build-slice.js` is still the inline one.
 - Hit again 2026-10-04, B3 g8 review: the review brief's db proofs say "dev loader shell" with no `env -u`, and this harness shell carries `CLOUDFLARE_API_TOKEN`, so both `bunx vitest run --project db tests/api/events.api.test.ts` runs after `eval "$(node scripts/load-env.mjs --profile dev)"` ended `Error: refusing: ops variables in this shell CLOUDFLARE_API_TOKEN (load the dev profile in a fresh shell)` at `scripts/lib/guard-env.mjs:16`, exit 1; with `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN` in front it passed 11/11. A proof line the author claims for a db test carries that prefix (the third hit by a brief, after B2 g11 and B8 g5).
+- Hit again 2026-10-04, B8 c8db review (a long db command under ruling H52): wrapping the db command whole as `quiet.mjs -- bash -c 'eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bunx vitest ...'` lost the dev profile (`DEV_DB_URL` not set) in the author's run, and in the reviewer's re-run it printed `quiet: ok (0 lines, showing the last 0)` with no test line, a green that ran nothing. The rule above says nothing of quiet.mjs. Working form: load the profile in the calling shell, then put quiet.mjs in front of the `env -u` part, from `app/`: `eval "$(node scripts/load-env.mjs --profile dev)"; node ../workspace/05-plans/quiet.mjs -- env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/migration-headers.test.ts` prints `Tests  3 passed (3)` and `quiet: ok (5 lines, showing the last 5)` (measured 2026-10-04). Never wrap the loader inside `bash -c` under quiet.mjs, and read a `quiet: ok (0 lines` result as no run.
 
 ## P-311 · The sketch commit 8dd6f26 has no `app/` folder, so the plan's `git show 8dd6f26:app/docs/database/schema.sql` fails
 - symptom: B2 g4 ran the read the plan names for the sketch columns (B2 Contract > Inputs: `git show 8dd6f26:"app/docs/database/schema.sql"`) and got `fatal: path 'app/docs/database/schema.sql' exists on disk, but not in '8dd6f26'`.
@@ -2468,20 +2469,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
 
-
-## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
-- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
-- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
-- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
-- added: 2026-10-04
-
 ## P-516 · The sizing agent returned two of ten plan steps; the run built them, merged, and ended as if the slice were done
 - symptom: B3b's run `wf_215f7901-b3a` sized g1 (step 1) and g2 (step 2) only; after both were accepted the final merge ran (`merge:B3b:all:1,2`, PR 118) and the workflow completed with steps 3 to 10 untouched and no error.
 - cause: the sizing prompt said "split the plan's ordered steps into groups" and nothing checked that every step landed in one; the schema (`groups[]`) accepts any count.
 - rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
 - proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
 - enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
+
+## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
+- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
+- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
+- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
 - added: 2026-10-04
 
 ## P-1305 · A registry folder inside the shared session scratchpad already holds other reviewers' files, and `watchfail --registry <dir>` replays all of them
