@@ -42,6 +42,8 @@
     "seed": "bun --preload ./scripts/lib/asset-loader.ts scripts/seed.ts",
     "fixtures:load": "bun scripts/load-fixtures.ts",
     "set-env": "bun scripts/set-environment.ts",
+    "cpu-gate": "node scripts/cpu-gate.mjs",
+    "lhci": "lhci autorun --config=lighthouserc.json",
     "variants": "bun scripts/variants.ts",
     "fonts": "node scripts/fonts.mjs",
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
@@ -71,6 +73,7 @@
     "@fontsource-variable/epilogue": "^5.3.0",
     "@fontsource-variable/jost": "^5.3.0",
     "@fontsource-variable/urbanist": "^5.3.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.63.0",
     "@supabase/supabase-js": "^2.117.2",
     "@testing-library/dom": "^10.4.2",

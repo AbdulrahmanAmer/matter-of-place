@@ -423,6 +423,17 @@ describe("ci.yml db and e2e (B4 steps 7 and 8; DO-08, T-01, T-04, T-12)", () => 
     }).toEqual({ needs: true, artifact: true, builds: false, narrow: [] });
   });
 
+  it("every e2e step after the change test waits for it, whatever its own if is", () => {
+    const steps = ci?.data.jobs["e2e"]?.steps ?? [];
+    const first = steps.findIndex((step) => step.id === "fe");
+    const loose = steps
+      .slice(first + 1)
+      .filter((step) => !(step.if ?? "").includes("steps.fe.outputs.changed == 'true'"))
+      .filter((step) => step.if !== "failure()")
+      .map((step) => step.name ?? step.uses ?? step.run ?? "");
+    expect({ first, loose }).toEqual({ first: 1, loose: [] });
+  });
+
   it("both are required checks of the merge gate", () => {
     expect(DATABASE_JOBS.filter((job) => !REQUIRED_PR_CHECKS.includes(job))).toEqual([]);
   });
@@ -477,6 +488,17 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
       extra: [],
       preview: true,
     });
+  });
+
+  it("the overflow and Lighthouse steps run only for a front-end change, never for a draft (DO-08, T-12)", () => {
+    const steps = deployJob("preview")?.steps ?? [];
+    const heavy =
+      "steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'";
+    const guarded = ["overflow", "lighthouse"].map(
+      (name) => steps.find((step) => step.name === name)?.if,
+    );
+    expect(guarded).toEqual([heavy, heavy]);
+    expect(steps.find((step) => step.id === "fe")?.run).toContain("^app/(src/|public/");
   });
 
   it("preview-db comments once, on a changed migration only, and touches no database (13)", () => {

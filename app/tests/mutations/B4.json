@@ -1029,5 +1029,305 @@
     "replace": "",
     "run": "bunx vitest run tests/unit/assert-not-production.test.ts",
     "expect": "[+] +\"tests/e2e/global-setup[.]ts\""
+  },
+  {
+    "id": "m-live",
+    "test": "tests/e2e/live-forms.spec.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";",
+    "replace": "  return \"fail\";\n  if (token === null || token === undefined || token === \"\") return \"fail\";",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=live-desktop live-forms.spec.ts --grep \"contact\"",
+    "expect": "Expected: 201[\\s\\S]*Received: 403",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "u-live-forms",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/e2e/live-forms.spec.ts",
+    "find": "import { assertNotProduction } from \"../../scripts/lib/assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/assert-not-production.test.ts",
+    "expect": "[+] +\"tests/e2e/live-forms[.]spec[.]ts\""
+  },
+  {
+    "id": "ee",
+    "test": "tests/e2e/client-error.spec.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "  if (seen.has(key) || seen.size >= MAX_PER_PAGE) return;",
+    "replace": "  if (seen.size >= MAX_PER_PAGE) return;",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=live-desktop client-error.spec.ts",
+    "expect": "Expected length: 1[\\s\\S]*Received length: 2",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "ff",
+    "test": "tests/api/payload-budget.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return pickCard(property);",
+    "replace": "  return { ...pickCard(property), gallery: property.gallery };",
+    "run": "bunx vitest run --project db tests/api/payload-budget.api.test.ts",
+    "expect": "expected [0-9.]+ to be less than or equal to 600"
+  },
+  {
+    "id": "ff-counter",
+    "test": "tests/unit/db-counter.test.ts",
+    "file": "tests/fixtures/db-counter.ts",
+    "find": "          note(\"storage\", `${bucket}.${method}`);\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/db-counter.test.ts",
+    "expect": "expected undefined to be 1"
+  },
+  {
+    "id": "ff-counter-from",
+    "test": "tests/unit/db-counter.test.ts",
+    "file": "tests/fixtures/db-counter.ts",
+    "find": "          note(name, called);\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/db-counter.test.ts",
+    "expect": "expected undefined to be 2"
+  },
+  {
+    "id": "ff-counter-reset",
+    "test": "tests/unit/db-counter.test.ts",
+    "file": "tests/fixtures/db-counter.ts",
+    "find": "    Object.assign(counts, emptyCounts());\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/db-counter.test.ts",
+    "expect": "starts again from zero after reset"
+  },
+  {
+    "id": "r-state",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < ttlMs()) {",
+    "replace": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < -1) {",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "expected [0-9]+ to be less than or equal to [0-9]+"
+  },
+  {
+    "id": "r-catalog",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (catalogMemo !== undefined && catalogFor === state.catalogVersion) {\n    catalogStale = false;",
+    "replace": "  if (catalogMemo !== undefined && catalogFor === -1) {\n    catalogStale = false;",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "expected [0-9]+ to be 1"
+  },
+  {
+    "id": "r-from",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n",
+    "replace": "let listed = 0;\nexport async function listProperties(db: Db): Promise<PropertyCard[]> {\n  if (listed++ === 0) await db.from(\"properties\").select(\"slug\").limit(1);\n",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "to deeply equal \\{\\}"
+  },
+  {
+    "id": "t-put",
+    "test": "tests/e2e/edge-cache.spec.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    await cache.put(key, stored.clone());\n    await writeLastGood(",
+    "replace": "    await writeLastGood(",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=edge edge-cache.spec.ts --grep \"miss, then a hit\"",
+    "expect": "Expected: \"hit\"[\\s\\S]*Received: \"miss\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "t-query",
+    "test": "tests/e2e/edge-cache.spec.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  const key = versionedKey(kind, version, pathname);\n  const hit = await cache?.match(key);",
+    "replace": "  const key = versionedKey(kind, version, pathname + new URL(request.url).search);\n  const hit = await cache?.match(key);",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=edge edge-cache.spec.ts --grep \"miss, then a hit\"",
+    "expect": "Expected: \"hit\"[\\s\\S]*Received: \"miss\"[\\s\\S]*cacheState\\(other\\)",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "hy-bulk",
+    "test": "tests/e2e/hydration.spec.ts",
+    "file": "src/routes/_site.index.tsx",
+    "find": "      queryClient.ensureQueryData(propertiesQuery()),\n",
+    "replace": "      queryClient.ensureQueryData(propertiesQuery()).then(async (cards) => {\n        const { propertyQuery } = await import(\"../lib/queries\");\n        await Promise.all(cards.map((card) => queryClient.ensureQueryData(propertyQuery(card.slug))));\n        return cards;\n      }),\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=live-desktop hydration.spec.ts --grep \"home document\"",
+    "expect": "Expected substring: not \"gallery:\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "s-hydrate",
+    "test": "tests/e2e/hydration.spec.ts",
+    "file": "src/router.tsx",
+    "find": "    dehydrate: () => ({ queryClientState: dehydrate(queryClient) }),\n    hydrate: (data) => {\n      hydrate(queryClient, data.queryClientState);\n    },\n",
+    "replace": "",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=live-desktop hydration.spec.ts --grep \"client navigation\"",
+    "expect": "Received  \\+ 2[\\s\\S]*\"/api/public/markets\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",
+    "kind": "manual"
+  },
+  {
+    "id": "p",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "lighthouserc.json",
+    "find": "153600",
+    "replace": "1000000",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "153600"
+  },
+  {
+    "id": "p-document",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "lighthouserc.json",
+    "find": "61440",
+    "replace": "122880",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "asserts 122880, budget.json holds 61440"
+  },
+  {
+    "id": "p-level",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "lighthouserc.json",
+    "find": "\"cumulative-layout-shift\": [\"error\"",
+    "replace": "\"cumulative-layout-shift\": [\"warn\"",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "cumulative-layout-shift: level warn, not error"
+  },
+  {
+    "id": "p-budget-script",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "budget.json",
+    "find": "\"scriptBytes\": 153600",
+    "replace": "\"scriptBytes\": 140000",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "expected 140000 to be 153600"
+  },
+  {
+    "id": "p-url",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "lighthouserc.json",
+    "find": "      \"numberOfRuns\": 3,",
+    "replace": "      \"numberOfRuns\": 3,\n      \"url\": [\"https://example.invalid/\"],",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "expected .* to not have property \"url\""
+  },
+  {
+    "id": "p-routes",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "    if (template === \"property:first\") return first(\"property\");",
+    "replace": "    if (template === \"property:first\") return \"/property\";",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "routes that do not resolve their template"
+  },
+  {
+    "id": "cg-fields",
+    "test": "tests/unit/cpu-gate.test.ts",
+    "file": "scripts/cpu-gate.mjs",
+    "find": "        ${fields}\n",
+    "replace": "        ${DEFAULT_FIELDS}\n",
+    "run": "bunx vitest run tests/unit/cpu-gate.test.ts",
+    "expect": "to contain 'sum \\{ requests cpuTimeUs \\}'"
+  },
+  {
+    "id": "cg-over",
+    "test": "tests/unit/cpu-gate.test.ts",
+    "file": "scripts/cpu-gate.mjs",
+    "find": "      if (p50 > limit) {",
+    "replace": "      if (p50 > limit * 1000) {",
+    "run": "bunx vitest run tests/unit/cpu-gate.test.ts",
+    "expect": "expected \\+0 to be 1"
+  },
+  {
+    "id": "cg-token",
+    "test": "tests/unit/cpu-gate.test.ts",
+    "file": "scripts/cpu-gate.mjs",
+    "find": "    print(\"BLOCKED CF_ANALYTICS_TOKEN\");\n    return 2;",
+    "replace": "    print(\"BLOCKED CF_ANALYTICS_TOKEN\");\n    return 0;",
+    "run": "bunx vitest run tests/unit/cpu-gate.test.ts",
+    "expect": "expected \\+0 to be 2"
+  },
+  {
+    "id": "cg-empty",
+    "test": "tests/unit/cpu-gate.test.ts",
+    "file": "scripts/cpu-gate.mjs",
+    "find": "reached the analytics in 5 minutes`);\n      return 1;",
+    "replace": "reached the analytics in 5 minutes`);\n      return 0;",
+    "run": "bunx vitest run tests/unit/cpu-gate.test.ts",
+    "expect": "expected \\+0 to be 1"
+  },
+  {
+    "id": "cg-unit",
+    "test": "tests/unit/cpu-gate.test.ts",
+    "file": "scripts/cpu-gate.mjs",
+    "find": "const MICROSECONDS_PER_MS = 1000;",
+    "replace": "const MICROSECONDS_PER_MS = 1;",
+    "run": "bunx vitest run tests/unit/cpu-gate.test.ts",
+    "expect": "expected 1 to be \\+0"
+  },
+  {
+    "id": "ff-detail",
+    "test": "tests/api/payload-budget.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    gallery: media.filter((entry) => entry !== heroRow).map(toGalleryImage),",
+    "replace": "    gallery: [],",
+    "run": "bunx vitest run --project db tests/api/payload-budget.api.test.ts",
+    "expect": "greater than or equal to 7"
+  },
+  {
+    "id": "r-search",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "  const { catalog, state } = await readCatalog(db);\n  const scored",
+    "replace": "  const { catalog, state } = await readCatalog(db);\n  await db.rpc(\"public_state\");\n  const scored",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "expected [0-9]+ to be \\+0"
+  },
+  {
+    "id": "r-ttl",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  return Number.isNaN(raw) ? DEFAULT_TTL_MS : raw;",
+    "replace": "  return DEFAULT_TTL_MS;",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "request 0"
+  },
+  {
+    "id": "r-nostore",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/lib/errors.ts",
+    "find": "  const headers = new Headers({ \"cache-control\": \"no-store\", \"x-request-id\": requestId });",
+    "replace": "  const headers = new Headers({ \"x-request-id\": requestId });",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "to be 'no-store'"
+  },
+  {
+    "id": "r-bump",
+    "test": "tests/api/cache-calls.api.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (catalogMemo !== undefined && catalogFor === state.catalogVersion) {\n    catalogStale = false;",
+    "replace": "  if (catalogMemo !== undefined) {\n    catalogStale = false;",
+    "run": "bunx vitest run --project db tests/api/cache-calls.api.test.ts",
+    "expect": "expected 1 to be 2"
+  },
+  {
+    "id": "x-fe",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - name: seed\n        if: steps.fe.outputs.changed == 'true'\n",
+    "replace": "      - name: seed\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "[+] +\"seed\""
+  },
+  {
+    "id": "x-deploy-heavy",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n",
+    "replace": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "the overflow and Lighthouse steps run only for a front-end change"
   }
 ]

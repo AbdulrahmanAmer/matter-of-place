@@ -150,6 +150,35 @@ jobs:
           exit 1
       - name: smoke
         run: node scripts/smoke.mjs "$PREVIEW_URL"
+      # B4 step 10: a front-end change is measured on the preview. The files come from the API: the checkout holds no
+      # credentials (persist-credentials: false), so a fetch of the two commits would be refused on a private repository.
+      - name: change test
+        id: fe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.number }}
+        run: |
+          files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files" --paginate --jq '.[].filename')
+          if printf '%s\n' "$files" | grep -qE '^app/(src/|public/|package\.json$|budget\.json$)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Real fonts here, so the overflow check of invariant 5 runs on the deployed build.
+      - name: overflow
+        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
+        env:
+          E2E_TARGET: url
+          E2E_BASE_URL: ${{ env.PREVIEW_URL }}
+          E2E_MODE: live
+        run: |
+          bun run test:e2e:install
+          bunx playwright test --project=phone --grep @overflow
+      - name: lighthouse
+        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
+        run: |
+          urls=$(node scripts/lhci-urls.mjs "$PREVIEW_URL")
+          bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/')
       - name: comment
         env:
           GH_TOKEN: ${{ github.token }}
