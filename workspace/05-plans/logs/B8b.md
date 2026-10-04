@@ -266,3 +266,7 @@ migration-order: OK (25 on main, 2 added)
 
 UNPROVEN until after the merge and the `dev` job: the five `select`s on mop-dev (18 recipes, eight schedules, no `prune` in `cron.job`, a `tz` per channel, a scheduler `reconcile:<date>T<HH:MM>` job `done`), the `job-runner` deploy as the runtime import proof of `npm:cron-parser@5.10.1`, and the `curl` of the runner answering 200 with `"claimed"`. The `settings.flags` select waits on B3b. The CI `db` job: none exists.
 Bank: P-1606, P-1607, P-1608, P-1609 added, P-094 hit again.
+
+### g3 · merge of main after the first push
+`git merge origin/main` (B3b PR 122: coming-soon migration `20261004155556`, earlier than this group's two) merged with no conflict; `check-gotchas` OK, `bun install` no changes, `migration-order: OK (25 on main, 2 added)`. After the merge `bun run check` → `quiet: ok (47 lines, showing the last 12)`, `exit=0`; `bun run build` → `quiet: ok (235 lines, showing the last 12)`, `build exit=0`.
+B3b's flags row is on mop-dev now: `bun run db:psql -- -Atc "select value from public.settings where key = 'flags';"` → `{"new_channels": false, "archive_pages": false}`.
