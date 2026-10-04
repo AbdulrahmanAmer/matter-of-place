@@ -2781,3 +2781,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
 - enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
 - added: 2026-10-05
+
+## P-1705 · `bun run file.ts` serves any default export that has `fetch` on port 3000, even with a `Bun.serve` of its own in the file
+- symptom: B15 g4's `bun run omnikom:mock` printed `Started development server: http://localhost:3000` under its own `listening on 127.0.0.1:8787` line; a second start of the mock died with `error: Failed to start server. Is port 3000 in use?`.
+- cause: the mock is one file that is a Worker (`export default { fetch }`) and a local server (`Bun.serve`). Bun's entry runner starts a server from the entry module's default export whenever it has `fetch`, on port 3000, whether or not the file called `Bun.serve`.
+- rule: a file that must stay a Worker module and also run under bun exports a handler only where `Bun` is undefined: `export default typeof Bun === "undefined" ? worker : {}`. A Worker needs `Bun.serve` guarded by `typeof Bun !== "undefined" && import.meta.main`, as `scripts/omnikom-mock.ts` does.
+- proof: `cd "$(mktemp -d)" && printf 'export default { fetch: () => new Response("w") };\n' > w.ts && timeout 3 bun run w.ts; echo` → prints `Started development server: http://localhost:3000`; `scripts/omnikom-mock.ts` on `bun run omnikom:mock` prints only its `listening` line (measured 2026-10-05, B15 g4).
+- added: 2026-10-05
+
+## P-1706 · B15 step 5a, four plan lines that did not match this lane: the root `.env`, the e2e spec, the Turnstile site key and `VITE_API_BASE_URL`
+- symptom: (1) the step appends `OMNIKOM_MOCK_SECRET` to `/e/Matter Of Place/.env`, a tree this lane may not touch; (2) `tests/e2e/inquiry-forward.spec.ts` does not exist; (3) with `bun run dev` started as the step says, the first form submit answered `403`; (4) the first submit through the real form sent no request at all and showed "This did not go through".
+- cause: (1) the lane's secrets are in `E:/mop-build/handoff/.env`, which `load-env.mjs` reads (its root is two folders above `scripts/`); (2) no group wrote the spec, the step says "by hand, or"; (3) the step names the Turnstile test secret but not the site key, and without `VITE_TURNSTILE_SITE_KEY` the browser sends no token, which the Worker refuses; (4) Git Bash rewrote `VITE_API_BASE_URL=/api/public` to `C:/Program Files/Git/api/public` in the child's environment (P-015), so `services` stayed the local adapter.
+- rule: append the mock secret to the worktree's own `.env`; submit through the real form with a Playwright script, not a missing spec; start the dev server with `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA` plus `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET=1x0000000000000000000000000000000AA`, `RATE_LIMIT_SALT` and `MOP_ENV=local` exported from the dev profile; the form then answers `201` on `/contact?utm_source=test`.
+- proof: `VITE_API_BASE_URL=/api/public node -p "process.env.VITE_API_BASE_URL"` in Git Bash → `C:/Program Files/Git/api/public`; with `MSYS_NO_PATHCONV=1` before it → `/api/public` (measured 2026-10-05, B15 g4).
+- also: `wrangler dev -c scripts/omnikom-mock.wrangler.toml` writes its bundle into `scripts/.wrangler/`, which git ignores but `eslint .` lints: 34 prettier errors in `bun run check`; delete `scripts/.wrangler` after a local mock run.
+- hit again: P-042 (`wrangler dev -c scripts/omnikom-mock.wrangler.toml` left `workerd` listening after its pid was killed; kill the parent `node.exe` that runs `wrangler-dist/cli.js dev`, found with `Get-CimInstance Win32_Process`).
+- added: 2026-10-05

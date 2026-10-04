@@ -624,5 +624,25 @@
     "replace": "nextRetryAt(attempts, ctx.now)",
     "run": "bunx vitest run --project unit tests/unit/omnikom/webhook-step.test.ts",
     "expect": "× invariant 3: a Retry-After later than the ladder wins"
+  },
+  {
+    "id": "b15-g4-run-local-call",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/omnikom-run-local.ts",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": ""
+  },
+  {
+    "id": "b15-g4-run-local-import",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/omnikom-run-local.ts",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProd",
+    "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";",
+    "replace": "const { assertNotProduction } = await import(\"./lib/\" + \"assert-not-production.mjs\");"
   }
 ]
