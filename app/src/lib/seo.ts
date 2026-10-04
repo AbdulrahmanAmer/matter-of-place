@@ -2,7 +2,7 @@ import { absoluteUrl, siteConfig } from "../config/site";
 
 type OpenGraphType = "website" | "article";
 
-type JsonLdObject = Record<string, unknown>;
+type JsonLdObject = object;
 
 type PageImage = {
   /** Absolute `https` URL. A relative path is dropped: social crawlers reject it. */

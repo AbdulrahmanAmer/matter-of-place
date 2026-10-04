@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "Matter of Place is an independent real-estate media platform for exceptional residential property in California, New York and Florida. An Omnikom company.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/about")({
-  head: () => pageHead({ title: "About", description, path: "/about" }),
+  head: () =>
+    pageHead({
+      title: "About",
+      description: pageDescription("about"),
+      path: "/about",
+      jsonLd: [breadcrumbLd([{ name: "About", path: "/about" }])],
+    }),
   component: AboutPage,
 });
 

@@ -6,6 +6,7 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { properties } from "../../src/data/properties";
 import { stories } from "../../src/data/stories";
 import { propertyQuery, storyQuery } from "../../src/lib/queries";
@@ -79,6 +80,7 @@ describe("property page structured data", () => {
     expect(blocks).toHaveLength(1);
     const body = blocks[0]?.[1] ?? "";
     expect(body).not.toMatch(/[<>&]/);
-    expect(JSON.parse(body)).toMatchObject({ name: HOSTILE });
+    const graph = z.object({ "@graph": z.array(z.object({ name: z.string().optional() })) });
+    expect(graph.parse(JSON.parse(body))["@graph"].map((node) => node.name)).toContain(HOSTILE);
   });
 });

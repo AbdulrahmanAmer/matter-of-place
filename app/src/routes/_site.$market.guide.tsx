@@ -6,7 +6,9 @@ import { TextLink } from "../components/site/text-link";
 import type { Note } from "../domain/market";
 import { useTrackView } from "../hooks/use-track-view";
 import { marketQuery } from "../lib/queries";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { marketGuideDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/$market/guide")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -18,8 +20,15 @@ export const Route = createFileRoute("/_site/$market/guide")({
     if (!market) return unavailableHead("Guide");
     return pageHead({
       title: `${market.name} guide`,
-      description: `Neighborhoods, what buyers and sellers ask for, and how we work in ${market.name}: ${market.regions.map((region) => region.name).join(", ")}.`,
+      description: marketGuideDescription(market),
       path: `/${market.slug}/guide`,
+      jsonLd: [
+        breadcrumbLd([
+          { name: "Markets", path: "/markets" },
+          { name: market.name, path: `/${market.slug}` },
+          { name: "Guide", path: `/${market.slug}/guide` },
+        ]),
+      ],
       type: "article",
     });
   },

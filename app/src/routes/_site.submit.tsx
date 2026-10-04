@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SubmitWizard } from "../components/forms/submit/wizard";
 import { PageIntro } from "../components/site/page-intro";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "Submit an existing residential property in California, New York or Florida for editorial review.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/submit")({
-  head: () => pageHead({ title: "Submit a Property", description, path: "/submit" }),
+  head: () =>
+    pageHead({
+      title: "Submit a Property",
+      description: pageDescription("submit"),
+      path: "/submit",
+      jsonLd: [breadcrumbLd([{ name: "Submit a Property", path: "/submit" }])],
+    }),
   component: SubmitPage,
 });
 

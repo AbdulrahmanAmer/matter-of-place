@@ -223,5 +223,185 @@
     "replace": ".replace(/^-+$/g, \"\")",
     "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
     "expect": "FAIL .*slugify > turns \"  Shingle"
+  },
+  {
+    "id": "b13-g2-site-search",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "required name=search_term_string",
+    "replace": "required name=q",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*WebSite > carries the site search"
+  },
+  {
+    "id": "b13-g2-crumb-position",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "      \"@type\": \"ListItem\",\n      position: index + 1,\n      name: item.name,\n      item:",
+    "replace": "      \"@type\": \"ListItem\",\n      position: index,\n      name: item.name,\n      item:",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*breadcrumbLd > starts at Home in position 1"
+  },
+  {
+    "id": "b13-g2-listing-date",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "    datePosted: property.publishedAt,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > parses as a RealEstateListing"
+  },
+  {
+    "id": "b13-g2-listing-geo",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "      \"@type\": \"Accommodation\",\n",
+    "replace": "      \"@type\": \"Accommodation\",\n      geo: { \"@type\": \"GeoCoordinates\", latitude: 1, longitude: 2 },\n",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > states the place to city level only"
+  },
+  {
+    "id": "b13-g2-listing-offers",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "...(property.status === \"Active\"",
+    "replace": "...(true",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > offers the property only while it is Active"
+  },
+  {
+    "id": "b13-g2-media-relative",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "if (value.startsWith(\"/media/\")) return absoluteUrl(value);",
+    "replace": "if (value.startsWith(\"/media/\")) return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > lists only images on the public media route"
+  },
+  {
+    "id": "b13-g2-media-relative-video",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "if (value.startsWith(\"/media/\")) return absoluteUrl(value);",
+    "replace": "if (value.startsWith(\"/media/\")) return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > makes the media addresses absolute"
+  },
+  {
+    "id": "b13-g2-article-date",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "    datePublished: story.publishedAt,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*articleLd > parses as an Article with datePublished"
+  },
+  {
+    "id": "b13-g2-media-foreign",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "return value.startsWith(\"https://\") ? value : undefined;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*articleLd > leaves the image out unless it is on the media route or https"
+  },
+  {
+    "id": "b13-g2-media-foreign-video",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "return value.startsWith(\"https://\") ? value : undefined;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > returns null for a src that is neither under /media/ nor an absolute https address"
+  },
+  {
+    "id": "b13-g2-collection-count",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "numberOfItems: items.length,",
+    "replace": "numberOfItems: items.length + 1,",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*collectionLd > parses as a CollectionPage"
+  },
+  {
+    "id": "b13-g2-faq-type",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "\"@type\": \"FAQPage\",",
+    "replace": "\"@type\": \"WebPage\",",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*faqJsonLd > parses as a FAQPage"
+  },
+  {
+    "id": "b13-g2-video-none",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "  if (video === undefined) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > returns null without a video"
+  },
+  {
+    "id": "b13-g2-duration-minutes",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "${String(minutes)}M",
+    "replace": "${String(minutes)}m",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > converts minutes and hours"
+  },
+  {
+    "id": "b13-g2-video-poster",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "const thumbnailUrl = mediaAddress(video.poster);",
+    "replace": "const thumbnailUrl = video.poster;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > omits the thumbnail when the poster is a bundled asset"
+  },
+  {
+    "id": "b13-g2-val-none",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "if (sources.length === 0) throw new Error(\"no application/ld+json block\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a page with no structured data"
+  },
+  {
+    "id": "b13-g2-val-json",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "parsed = JSON.parse(source);",
+    "replace": "parsed = {};",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a block that is not JSON"
+  },
+  {
+    "id": "b13-g2-val-context",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "\"@context\": z.literal(\"https://schema.org\")",
+    "replace": "\"@context\": z.string().optional()",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a block without the schema.org context"
+  },
+  {
+    "id": "b13-g2-val-field",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "      datePublished: text,\n",
+    "replace": "      datePublished: text.optional(),\n",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > names the type and the field"
+  },
+  {
+    "id": "b13-g2-val-single",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "checked.data[\"@graph\"] ?? [checked.data]",
+    "replace": "checked.data[\"@graph\"] ?? []",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > reads a single block and a graph alike"
   }
 ]

@@ -16,6 +16,7 @@ export type RouteClass =
   | "property"
   | "story"
   | "faq"
+  | "archive"
   | "exposure"
   | "notFound";
 
@@ -61,14 +62,15 @@ export const redirects: { from: string; to: string; status: 301 }[] = [
 
 /** The route class decides which structured-data types a page must carry; an empty list accepts any valid block. */
 export const jsonLdExpectations: Record<RouteClass, string[]> = {
-  home: ["Organization"],
+  home: ["Organization", "WebSite"],
   page: [],
   market: [],
   guide: [],
   region: [],
-  property: ["SingleFamilyResidence"],
-  story: [],
+  property: ["RealEstateListing", "BreadcrumbList"],
+  story: ["Article"],
   faq: ["FAQPage"],
+  archive: ["CollectionPage", "ItemList"],
   exposure: ["FAQPage"],
   notFound: [],
 };
