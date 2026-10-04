@@ -1406,6 +1406,13 @@ Entry template
 - proof: `cd app && bunx vitest run --project unit tests/unit/automation/step-specs.test.ts` → `Tests  7 passed (7)`; with the `render_story` row deleted from `renderTypes` in `tests/unit/assets/steps.test.ts` the gate prints `expected [ 'render_story' ] to deeply equal []` (measured 2026-10-04, B8b c2s).
 - added: 2026-10-04
 
+## P-1614 · A `bun run check` run in the background through `quiet.mjs` into a file read before its completion notice showed out-of-order lines and an `xit=0` fragment, so its exit code could not be trusted
+- symptom: the B8b c2s reviewer read `check.txt` of a backgrounded `quiet.mjs -- bun run check` run before the task's completion notice: lines out of order, a torn `xit=0` fragment beside `check exit=0` at 23:16:27, and a vitest `Start at 23:12:40` earlier than the 3-file run that began at 23:13:40. A foreground re-run (about 3.5 minutes) gave `check exit=0`, 125 files, 1650 tests passed.
+- cause: not pinned down. The file was read while the run still wrote to it, and the times in it were not all from one run, so it may have mixed output of two runs.
+- rule: a proof of `bun run check` runs in the foreground (raise the Bash timeout, up to 600000 ms), or its backgrounded output is read only after the completion notice and only for the run you started; never take an exit code from a file you read while the run could still be writing.
+- proof: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run check; echo "check exit=$?"` → `check exit=0` as the last line (foreground, measured by the B8b c2s reviewer, 2026-10-04).
+- added: 2026-10-04
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.

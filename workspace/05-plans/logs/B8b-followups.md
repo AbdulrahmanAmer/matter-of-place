@@ -67,3 +67,25 @@ Recorded from the g2 review (no blocking defect). None is blocking. A seventh fo
 - what: UNPROVEN, and stated as such by the author: `isImplemented("bump_catalog_version")` against the real registry is not asserted (the registry is empty on main), and the R28 real-registry case is vacuous until a step with an outside effect is implemented. Both must be tightened in g4. Also, the Plan type returned by planEvent carries no `warnings`, which the dry-run result in the Contract requires. That belongs to the later dry-run group and should be checked there.
 - evidence: Read: catalog.test.ts lines 141-148 use stub registries only. src/server/jobs/steps/index.ts has `const catalog: readonly StepDefinition[] = [];`. plan.ts lines 46-51 have no warnings field.
 - blocking: false
+
+## c2s · steps 2
+
+Recorded from the c2s review (no blocking defect). None is blocking. A fourth follow-up, about GOTCHAS.md, is banked as P-1614.
+
+### 1. workspace/05-plans/B8b.md
+
+- what: The plan's Files-list line for step-specs.test.ts still says the gate passes when 'some file under tests/ contains a test titled <type> runs twice ...'. The gate now asks vitest's unit and component projects only, which cover tests/unit/**, src/**/*.test.ts(x). A run-twice test placed in tests/db, tests/api or tests/e2e (a later B10 or B11 builder could reasonably put a post_* run-twice test in tests/api) will not be found, and the gate goes red. This fails closed, not open, and the author disclosed it as UNPROVEN. The plan text should be folded to match.
+- evidence: Read app/vitest.config.ts: unit includes tests/unit/**/*.test.ts and src/**/*.test.ts, component includes *.test.tsx, and db includes tests/db and tests/api. testTitles() passes --project=unit --project=component over tests/unit and src only.
+- blocking: false
+
+### 2. app/tests/unit/automation/step-specs.test.ts
+
+- what: Suspected by reading, not run. If spawnSync itself fails (for example node_modules/vitest/vitest.mjs is missing or execPath cannot start), child.stderr is null and child.error is dropped. The test still goes red, but the message reads 'vitest json report unreadable: null', and the cause it carries is the ENOENT on report.json, not the spawn error. That makes a CI failure of this kind slow to diagnose.
+- evidence: Lines in testTitles(): spawnSync(...) result is used only as child.stderr in `throw new Error(`vitest json report unreadable: ${child.stderr}`, { cause: error })`; child.error and child.status are never read.
+- blocking: false
+
+### 3. app/.gitignore
+
+- what: P-1613 records that vitest 5's json reporter writes .vitest/json/output.json into the app when no --outputFile is given, and that the folder is not ignored. Its rule leaves a person to remove it by hand before committing. The gate itself always passes --outputFile, so it is safe today. A one-line .vitest/ ignore would make the rule mechanical (H46-size change).
+- evidence: grep -n vitest app/.gitignore .gitignore printed no ignore line. P-1613 cause text: 'that folder is not in .gitignore'.
+- blocking: false

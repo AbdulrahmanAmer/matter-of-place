@@ -387,3 +387,6 @@ Change: `testTitles()` in `tests/unit/automation/step-specs.test.ts` now runs `v
 - `bun run build` → quiet: ok
 - The `--changed origin/main` replay of the whole branch was started once and not used as proof: it replays every entry of every changed file (over 1100 lines of output); the entries above were replayed one by one.
 Bank: P-1613 added, P-1612 and P-094 and P-713 extended.
+
+## c2s · follow-ups recorded
+The c2s review found no blocking defect and four follow-ups; no code changed. One concerned GOTCHAS.md and is banked as P-1614 (a backgrounded `bun run check` read before its completion notice gave an untrustworthy exit code). The other three (plan Files-list line for step-specs.test.ts still says "under tests/"; spawnSync failure drops child.error in testTitles(); no `.vitest/` line in app/.gitignore) are in `workspace/05-plans/logs/B8b-followups.md` under "## c2s · steps 2" for the orchestrator to fold or assign.
