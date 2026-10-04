@@ -296,7 +296,12 @@ function PropertyPage() {
         onOpenChange={setAskOpen}
         onRequestShowing={requestShowing}
       />
-      <InquiryDialog intent={intent} subject={subject} onClose={closeIntent} />
+      <InquiryDialog
+        intent={intent}
+        subject={subject}
+        presentedByOwner={property.presentedByOwner}
+        onClose={closeIntent}
+      />
     </main>
   );
 }

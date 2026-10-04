@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { Property } from "../domain/property";
+import type { PropertyCard } from "../domain/property";
 import { track } from "../lib/analytics";
 import { designFeatures } from "../lib/catalog";
 
@@ -31,7 +31,7 @@ const emptyFilters: Filters = {
   feature: "",
 };
 
-const matchesTerm = (property: Property, term: string) =>
+const matchesTerm = (property: PropertyCard, term: string) =>
   [
     property.city,
     property.neighborhood,
@@ -45,10 +45,10 @@ const matchesTerm = (property: Property, term: string) =>
     .toLowerCase()
     .includes(term);
 
-const matchesLocation = (property: Property, location: string) =>
+const matchesLocation = (property: PropertyCard, location: string) =>
   property.region === location || property.neighborhood === location || property.city === location;
 
-export function applyFilters(items: Property[], filters: Filters): Property[] {
+export function applyFilters(items: PropertyCard[], filters: Filters): PropertyCard[] {
   const term = filters.term.trim().toLowerCase();
   return items.filter(
     (property) =>

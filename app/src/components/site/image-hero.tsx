@@ -11,7 +11,8 @@ export function ImageHero({
   tag = t.common.illustrativeImagery,
   scrollTarget,
 }: {
-  image: string;
+  /** Nothing is drawn without one: a market, region or story may have no photograph yet (G55). */
+  image?: string | undefined;
   alt: string;
   eyebrow: string;
   title: string;
@@ -23,7 +24,9 @@ export function ImageHero({
 }) {
   return (
     <section className="image-hero">
-      <img src={image} width={1600} height={1104} alt={alt} fetchPriority="high" />
+      {image !== undefined && (
+        <img src={image} width={1600} height={1104} alt={alt} fetchPriority="high" />
+      )}
       <ContentTag label={tag} />
       <div className="image-hero-content">
         <p className="eyebrow">{eyebrow}</p>

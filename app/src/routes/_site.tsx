@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
+import { installClientErrorListeners } from "../lib/report-error";
 import appCss from "../styles.css?url";
 
 // The pathless layout of every public page (FE-02): public-only chrome and effects mount here, never in
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/_site")({
 });
 
 function SiteLayout() {
+  useEffect(() => installClientErrorListeners(), []);
   return (
     <SiteChrome>
       <Outlet />

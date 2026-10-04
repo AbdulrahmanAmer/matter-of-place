@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import type { Property } from "../../domain/property";
+import type { PropertyCard as PropertyCardData } from "../../domain/property";
 import { formatPrice } from "../../lib/catalog";
 import { ContentTag } from "./content-tag";
 
-function PropertyCard({ property }: { property: Property }) {
+function PropertyCard({ property }: { property: PropertyCardData }) {
   return (
     <Link to="/property/$slug" params={{ slug: property.slug }} className="property-card">
       <div className="property-card-image">
@@ -30,7 +30,7 @@ function PropertyCard({ property }: { property: Property }) {
   );
 }
 
-export function PropertyGrid({ items }: { items: Property[] }) {
+export function PropertyGrid({ items }: { items: PropertyCardData[] }) {
   return (
     <div className="property-grid">
       {items.map((property) => (

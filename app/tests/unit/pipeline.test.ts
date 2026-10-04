@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { serverErrorHtml } from "../../src/server/lib/error-page";
+import { AppError } from "../../src/server/lib/errors";
 import { securityHeaders } from "../../src/server/lib/headers";
 import {
   browserCacheControl,
@@ -36,6 +37,7 @@ function setup(options: {
   env?: string | undefined;
   render?: (request: Request) => Response | Promise<Response>;
   cache?: PipelineDeps["cache"];
+  redirect?: PipelineDeps["redirect"];
   getFlags?: PipelineDeps["getFlags"];
   apiRoutes?: string[];
 }) {
@@ -50,6 +52,7 @@ function setup(options: {
       rendered.push(`${request.method} ${new URL(request.url).pathname}`);
       return Promise.resolve(options.render?.(request) ?? new Response("<html></html>"));
     },
+    redirect: options.redirect ?? (() => Promise.resolve(null)),
     cache: options.cache ?? ((_request, render) => render()),
     getFlags: options.getFlags ?? (() => Promise.resolve({})),
     report,
@@ -395,16 +398,23 @@ describe("which requests reach the cache hook", () => {
     "/sitemap.xml",
     "/feed.xml",
     "/.well-known/security.txt",
+    "/.well-known/change-password",
     "/_serverFn/abc?payload=x",
     "/media/assets/p1/hero/r1/a.0123abcd.webp",
-  ])("keeps %s away from the cache hook and still adds the headers", async (path) => {
-    const cache = memoryCache();
-    const { run } = setup({ cache: cache.hook });
-    const response = await run(get(path));
-    expect(cache.calls).toEqual([]);
-    expect(response.headers.get("x-request-id")).not.toBeNull();
-    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-  });
+    "/media/o/p1/hero",
+  ])(
+    "keeps %s away from the cache hook and the redirect lookup and still adds the headers",
+    async (path) => {
+      const cache = memoryCache();
+      const redirect = vi.fn<PipelineDeps["redirect"]>(() => Promise.resolve(null));
+      const { run } = setup({ cache: cache.hook, redirect });
+      const response = await run(get(path));
+      expect(cache.calls).toEqual([]);
+      expect(redirect).not.toHaveBeenCalled();
+      expect(response.headers.get("x-request-id")).not.toBeNull();
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    },
+  );
 
   it("tells a page from a document", () => {
     expect(isPageRequest("/california")).toBe(true);
@@ -484,6 +494,23 @@ describe("an unhandled error", () => {
     expect(report).toHaveBeenCalledTimes(1);
     expect(report.mock.calls[0]?.[1]).toEqual({ requestId: id, route: "/california" });
     expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers an outage with the calm 503 and Retry-After, and reports nothing", async () => {
+    const outage = () => {
+      throw new AppError("unavailable", undefined, "down");
+    };
+    const { run, waitUntil, report } = setup({ render: outage });
+    const page = await run(get("/california", { headers: { accept: "text/html" } }));
+    expect(page.status).toBe(503);
+    expect(page.headers.get("retry-after")).toBe("30");
+    expect(page.headers.get("cache-control")).toBe("no-store");
+    expect(page.headers.get("content-type")).toContain("text/html");
+    const api = await run(get("/api/public/properties"));
+    expect(api.status).toBe(503);
+    expect(body.parse(await api.json()).error.code).toBe("unavailable");
+    expect(report).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
   });
 
   it("logs one unhandled_error line with the request id", async () => {

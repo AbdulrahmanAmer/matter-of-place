@@ -7,7 +7,10 @@ export interface FakeDbOptions {
   rpc?: {
     [F in keyof PublicSchema["Functions"]]?: (
       args: PublicSchema["Functions"][F]["Args"],
-    ) => PublicSchema["Functions"][F]["Returns"] | Error;
+    ) =>
+      | PublicSchema["Functions"][F]["Returns"]
+      | Error
+      | Promise<PublicSchema["Functions"][F]["Returns"] | Error>;
   };
   tables?: { [T in keyof PublicSchema["Tables"]]?: PublicSchema["Tables"][T]["Row"][] };
   storage?: Record<string, Record<string, (...args: unknown[]) => unknown>>;
@@ -20,6 +23,12 @@ export interface FakeCall {
 }
 
 export type FakeDb = Db & { calls: FakeCall[] };
+
+interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
+  is: () => FakeQuery;
+  gt: () => FakeQuery;
+  eq: () => FakeQuery;
+}
 
 const registered = (table: object | undefined, name: string): unknown =>
   table === undefined ? undefined : Reflect.get(table, name);
@@ -37,8 +46,8 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
     const handler = registered(options.rpc, name);
     if (typeof handler !== "function") throw new Error(`unexpected rpc ${name}`);
     const result: unknown = Reflect.apply(handler, undefined, [args]);
-    return Promise.resolve(
-      result instanceof Error ? { data: null, error: result } : { data: result, error: null },
+    return Promise.resolve(result).then((answer) =>
+      answer instanceof Error ? { data: null, error: answer } : { data: answer, error: null },
     );
   };
 
@@ -46,7 +55,14 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
     calls.push({ kind: "from", name, args: [] });
     const rows = registered(options.tables, name);
     if (!Array.isArray(rows)) throw new Error(`unexpected table ${name}`);
-    return { select: () => Promise.resolve({ data: rows, error: null }) };
+    // Filters are the database's work: a registered table answers the rows the query is meant to return.
+    const query = (): FakeQuery =>
+      Object.assign(Promise.resolve({ data: rows, error: null }), {
+        is: query,
+        gt: query,
+        eq: query,
+      });
+    return { select: query };
   };
 
   const storage = {

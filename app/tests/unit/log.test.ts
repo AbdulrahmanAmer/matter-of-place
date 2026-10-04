@@ -1,5 +1,9 @@
+import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import type * as Routes from "../../src/server/public/routes";
+import type { PublicRoute } from "../../src/server/public/routes";
+import { catalogDb } from "../fixtures/snapshot";
 import { LogEvent } from "../../src/server/lib/log-events";
 import { logLine, maskEmails } from "../../src/server/lib/log";
 
@@ -73,5 +77,51 @@ describe("maskEmails", () => {
     const started = performance.now();
     maskEmails("a".repeat(200_000));
     expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe("handlePublic (B3 invariant 2)", () => {
+  it("emits exactly one request line with the five fields, and no address in any line", async () => {
+    vi.resetModules();
+    vi.doMock("../../src/server/public/routes", async (importOriginal) => {
+      const original = await importOriginal<typeof Routes>();
+      const echo: PublicRoute = {
+        path: "/api/public/echo",
+        method: "POST",
+        schema: z.object({ email: z.string() }),
+        limits: [],
+        turnstile: false,
+        status: 201,
+        service: () => Promise.resolve({ ok: true }),
+      };
+      return { ...original, routes: [...original.routes, echo] };
+    });
+    const { handlePublic } = await import("../../src/server/public/pipeline");
+    written.length = 0; // importing env.ts warns about the optional names it lacks
+    const rawIp = "203.0.113.99";
+    const request = new Request("https://matterofplace.com/api/public/echo", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": rawIp },
+      body: JSON.stringify({ email: "x@y.com" }),
+    });
+    const response = await handlePublic(request, "req-12345678", catalogDb());
+    expect(response.status).toBe(201);
+    expect(written).toHaveLength(1);
+    const line = parsed(written[0]?.line ?? "");
+    expect(Object.keys(line).sort()).toEqual(
+      ["event", "ipHash", "level", "ms", "requestId", "route", "status"].sort(),
+    );
+    expect(line).toMatchObject({
+      level: "info",
+      event: "request",
+      requestId: "req-12345678",
+      route: "/api/public/echo",
+      status: 201,
+    });
+    expect(LogEvent).toContain(line["event"]);
+    for (const { line: text } of written) {
+      expect(text).not.toMatch(EMAIL_SHAPED);
+      expect(text).not.toContain(rawIp);
+    }
   });
 });

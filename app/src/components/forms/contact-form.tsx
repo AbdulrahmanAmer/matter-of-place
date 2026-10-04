@@ -1,13 +1,19 @@
 import { useState, type SyntheticEvent } from "react";
-import { contactTopics, inquirySchema, type ContactTopic } from "../../domain/contracts";
+import {
+  contactTopics,
+  honeypotFieldName,
+  inquirySchema,
+  type ContactTopic,
+} from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { track } from "../../lib/analytics";
-import { formText } from "../../lib/form-data";
+import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
 import { ChoiceGroup } from "./choice-group";
 import { Field } from "./field";
 import { DeliveryNotice, FormError, SentNotice } from "./form-notice";
+import { Honeypot } from "./honeypot";
 import { sentText } from "../../lib/form-copy";
 
 export function ContactForm() {
@@ -16,16 +22,19 @@ export function ContactForm() {
     const data = new FormData(form);
     const text = (key: string) => formText(data, key);
     return services.inquiries.send(
-      inquirySchema.parse({
-        intent: "general",
-        topic,
-        name: text("name"),
-        email: text("email"),
-        phone: text("phone"),
-        location: text("location"),
-        message: text("message"),
-        sourcePath: window.location.pathname,
-      }),
+      withHoneypot(
+        inquirySchema.parse({
+          intent: "general",
+          topic,
+          name: text("name"),
+          email: text("email"),
+          phone: text("phone"),
+          location: text("location"),
+          message: text("message"),
+          sourcePath: window.location.pathname,
+        }),
+        text(honeypotFieldName),
+      ),
     );
   });
 
@@ -74,6 +83,7 @@ export function ContactForm() {
       <Field label="Message">
         <textarea required rows={5} name="message" />
       </Field>
+      <Honeypot />
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>
           {pending ? t.common.sending : t.common.send}

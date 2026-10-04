@@ -33,7 +33,9 @@ export const Route = createFileRoute("/_site/properties")({
 function PropertiesPage() {
   const { properties, markets } = Route.useLoaderData();
   const { q } = Route.useSearch();
-  const filterState = useFilters({ term: q ?? "" });
+  // The server render ignores `q`: the page is stored once under the `/properties` key, so the
+  // effect below applies the term after hydration.
+  const filterState = useFilters();
   const [showFilters, setShowFilters] = useState(false);
   const { filters, set, reset, active } = filterState;
 

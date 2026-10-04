@@ -1,5 +1,6 @@
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
+import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
 import { securityHeaders, type Flags } from "./headers";
 import { logLine } from "./log";
 
@@ -11,6 +12,8 @@ export interface PipelineContext {
 export interface PipelineDeps {
   /** Runs the request through the router and the server routes, which read the id (H39 (1)). */
   render: (request: Request, requestId: string) => Promise<Response>;
+  /** A redirect for this path, or null (invariant 14). It must return a response whose headers can be set. */
+  redirect: (request: Request) => Promise<Response | null>;
   /** The cache hook B3 fills. It must return a response whose headers can be set. */
   cache: (request: Request, render: () => Promise<Response>) => Promise<Response>;
   getFlags: () => Promise<Flags>;
@@ -50,7 +53,7 @@ function decodeLikeRouter(text: string): string {
  * except `%25` and `%5C`, leading slashes made one, case ignored. `/API/x`, `/%61pi/x` and
  * `//api/x` all reach the `/api/x` route, so every prefix rule reads this form.
  */
-function routePath(pathname: string): string {
+export function routePath(pathname: string): string {
   const decoded = pathname
     .split(KEPT_ESCAPES)
     .map((part, index) => (index % 2 === 1 ? part : decodeLikeRouter(part)))
@@ -103,6 +106,7 @@ const ERROR_MESSAGES = {
   method_not_allowed: "This address does not accept that method.",
   not_acceptable: "This address answers with a web page only.",
   server: "Something went wrong. Please try again in a moment.",
+  unavailable: "The service is busy. Please try again in a moment.",
 } as const;
 
 /** The R09 error body, never stored. B3's `toErrorResponse` in `errors.ts` takes this over. */
@@ -117,16 +121,25 @@ export function errorJson(
   );
 }
 
-function calmServerError(request: Request, underApi: boolean, requestId: string): Response {
+/** The calm failure page or R09 body: 503 `unavailable` for an outage (invariant 16), 500 `server` for anything else. */
+function calmServerError(
+  request: Request,
+  underApi: boolean,
+  requestId: string,
+  outage: boolean,
+): Response {
   const readsPage = request.method === "GET" || request.method === "HEAD";
   const wantsHtml =
     readsPage && !underApi && (request.headers.get("accept") ?? "").includes("text/html");
-  return wantsHtml
+  const status = outage ? 503 : 500;
+  const response = wantsHtml
     ? new Response(serverErrorHtml(requestId), {
-        status: 500,
+        status,
         headers: { "content-type": "text/html; charset=utf-8" },
       })
-    : errorJson(500, "server", requestId);
+    : errorJson(status, outage ? "unavailable" : "server", requestId);
+  if (outage) response.headers.set("retry-after", OUTAGE_RETRY_AFTER);
+  return response;
 }
 
 /**
@@ -177,17 +190,24 @@ export async function handle(
   const mopEnv = ctx.env.MOP_ENV ?? "production";
   let flags: Flags = {};
   let response: Response;
+  let redirected = false;
   try {
     flags = await deps.getFlags();
     const render = () => deps.render(request, requestId);
-    response =
-      !neverCached(request, pathname) && isPageRequest(pathname)
-        ? await deps.cache(request, render)
-        : await render();
+    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.
+    const page = !neverCached(request, pathname) && isPageRequest(pathname);
+    const redirect = page ? await deps.redirect(request) : null;
+    redirected = redirect !== null;
+    response = redirect ?? (page ? await deps.cache(request, render) : await render());
   } catch (error) {
-    logLine("error", "unhandled_error", { requestId, route: pathname });
-    ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
-    response = calmServerError(request, underApi, requestId);
+    // A page that cannot read the database and holds no last good copy is an outage, already logged and
+    // reported once a minute by the read path: it answers 503, not an unhandled error.
+    const outage = error instanceof AppError && error.code === "unavailable";
+    if (!outage) {
+      logLine("error", "unhandled_error", { requestId, route: pathname });
+      ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
+    }
+    response = calmServerError(request, underApi, requestId, outage);
   }
   const refused = await refusedByRouter(request, response);
   if (refused && underApi) {
@@ -203,7 +223,7 @@ export async function handle(
   headers.set("x-request-id", requestId);
   if (neverCached(request, pathname, response)) {
     headers.set("cache-control", "no-store");
-  } else if (isPageRequest(pathname)) {
+  } else if (!redirected && isPageRequest(pathname)) {
     headers.set("cache-control", browserCacheControl("html"));
   }
   const hasPolicy =

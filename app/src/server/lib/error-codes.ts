@@ -6,6 +6,7 @@
 export const errorCodes = {
   bad_request: 400,
   validation: 422,
+  unauthorized: 401,
   forbidden: 403,
   not_found: 404,
   method_not_allowed: 405,
@@ -18,6 +19,7 @@ export const errorCodes = {
   already_exists: 409,
   version_conflict: 409,
   invalid_patch_key: 422,
+  invalid_kind: 422,
   publish_incomplete: 422,
   publish_not_allowed: 403,
   slug_immutable: 422,
@@ -26,7 +28,6 @@ export const errorCodes = {
   hard_delete_refused: 409,
   append_only: 409,
   upload_limit: 422,
-  invalid_kind: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

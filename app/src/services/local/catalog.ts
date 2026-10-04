@@ -1,6 +1,7 @@
 import { markets } from "../../data/markets";
 import { properties } from "../../data/properties";
 import { stories } from "../../data/stories";
+import { pickCard } from "../../lib/property-card";
 import type { CatalogService } from "../types";
 
 /** Display order of the three desks. */
@@ -8,7 +9,7 @@ const marketOrder = ["california", "new-york", "florida"];
 
 /** Catalog served from the content modules in `src/data`. */
 export const localCatalog: CatalogService = {
-  listProperties: () => Promise.resolve(properties),
+  listProperties: () => Promise.resolve(properties.map(pickCard)),
   getProperty: (slug) =>
     Promise.resolve(properties.find((property) => property.slug === slug) ?? null),
   listMarkets: () =>

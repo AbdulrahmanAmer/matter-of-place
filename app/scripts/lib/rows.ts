@@ -36,6 +36,11 @@ export function stableId(...parts: string[]): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(12, 15)}-a${hex.slice(15, 18)}-${hex.slice(18, 30)}`;
 }
 
+/** An image the domain object does not have is a null column (G55). */
+function optionalKey(source: string | undefined, keyOf: KeyOf, owner: string): string | null {
+  return source === undefined ? null : keyOf(source, owner, 0);
+}
+
 /** A catalog image column holds the key of the stripped master; `image_variants` stays `{}` until it is rendered. */
 export function marketToRows(market: Market, keyOf: KeyOf, order: number): MarketRows {
   return {
@@ -46,7 +51,7 @@ export function marketToRows(market: Market, keyOf: KeyOf, order: number): Marke
       currency: market.currency,
       intro: market.intro,
       places: market.places,
-      image: keyOf(market.image, market.slug, 0),
+      image: optionalKey(market.image, keyOf, market.slug),
       image_variants: {},
       sort_order: order,
     },
@@ -56,7 +61,7 @@ export function marketToRows(market: Market, keyOf: KeyOf, order: number): Marke
       name: region.name,
       intro: region.intro,
       places: region.places,
-      image: keyOf(region.image, region.slug, 0),
+      image: optionalKey(region.image, keyOf, region.slug),
       image_variants: {},
       sort_order: index,
     })),
@@ -171,8 +176,8 @@ export function propertyToRows(property: Property, keyOf: KeyOf): PropertyRows {
       listing_url: property.listingUrl ?? null,
       hero_rank: property.heroRank ?? null,
       featured_rank: property.featuredRank ?? null,
-      campaign_tier: property.campaignTier,
-      source: property.source,
+      campaign_tier: property.campaignTier ?? "Editorial",
+      source: property.source ?? "Editorial",
     },
     media: photographs.map((photograph, index) => ({
       id: stableId("property_media", slug, String(index)),
@@ -209,7 +214,7 @@ export function storyToRow(story: Story, keyOf: KeyOf): TablesInsert<"stories"> 
     deck: story.deck,
     category: story.category,
     market_slug: story.market,
-    image: keyOf(story.image, story.slug, 0),
+    image: optionalKey(story.image, keyOf, story.slug),
     image_variants: {},
     body: story.body,
     properties: story.properties,

@@ -544,5 +544,3639 @@
     "replace": "      window_seconds: checks[0]?.windowSeconds ?? check.windowSeconds,\n",
     "run": "bunx vitest run --project db tests/api/ratelimit.api.test.ts",
     "expect": "× .*counts two checks on one bucket against their own windows"
+  },
+  {
+    "id": "b3-dd",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    ...(row.video !== null && {",
+    "replace": "    ...(false && {",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*maps the video through mediaUrl"
+  },
+  {
+    "id": "b3-hh-variants",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return Object.keys(variants).length === 0 ? undefined : variants;",
+    "replace": "  return undefined;",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*derives the hero and gallery variants"
+  },
+  {
+    "id": "b3-hh-og",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    ...(row.og_image_key !== null && { ogImage: mediaUrl(row.og_image_key, { absolute: true }) }),",
+    "replace": "    ...(false && { ogImage: mediaUrl(row.og_image_key ?? '', { absolute: true }) }),",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*gives an absolute ogImage"
+  },
+  {
+    "id": "b3-kkk",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    presentedByOwner: row.presented_by_owner,",
+    "replace": "    presentedByOwner: false,",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*maps presented_by_owner"
+  },
+  {
+    "id": "b3-mmm-og",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "sizes.og !== undefined && { og: { jpg: mediaUrl(og, { absolute: true }), ...sizes.og } }),",
+    "replace": "sizes.og !== undefined && { og: { jpg: mediaUrl(og), ...sizes.og } }),",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*derives the hero and gallery variants"
+  },
+  {
+    "id": "b3-g3-map-gallery",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    gallery: media.filter((entry) => entry !== heroRow).map(toGalleryImage),",
+    "replace": "    gallery: media.map(toGalleryImage),",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*derives the hero and gallery variants"
+  },
+  {
+    "id": "b3-g3-map-coordinates",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  point === null ? undefined : [point[1], point[0]];",
+    "replace": "  point === null ? undefined : [point[0], point[1]];",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*maps the rest of the row into the domain shape"
+  },
+  {
+    "id": "b3-g3-map-story-image",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    market: row.market_slug,\n    ...(row.image !== null && { image: mediaUrl(row.image) }),\n    body: row.body,",
+    "replace": "    market: row.market_slug,\n    image: mediaUrl(row.image ?? ''),\n    body: row.body,",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*maps a market, a region and a story with a null image to no image"
+  },
+  {
+    "id": "b3-g3-map-coming-soon",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "        state.comingSoonGlobal || (state.comingSoonMarkets[row.slug] ?? false),",
+    "replace": "        state.comingSoonGlobal,",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*takes comingSoon from the public state"
+  },
+  {
+    "id": "b3-g3-map-guide",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "      needs: entries(\"need\").map(({ label, text }) => ({ label, text })),",
+    "replace": "      needs: entries(\"service\").map(({ label, text }) => ({ label, text })),",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*takes comingSoon from the public state"
+  },
+  {
+    "id": "b3-g3-map-strict",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  price: z.number(),",
+    "replace": "  price: z.number().nullable(),",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*refuses a published property that lacks a field"
+  },
+  {
+    "id": "b3-g3-map-master",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return parts === null\n    ? undefined\n",
+    "replace": "  return parts === null\n    ? \"v/x/y/z.webp\"\n",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*never lets a rendition of an unrecognised master become an address"
+  },
+  {
+    "id": "b3-g3-state-memo",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < ttlMs()) {",
+    "replace": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < -1) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*calls the RPC once and answers from memory inside the interval"
+  },
+  {
+    "id": "b3-p",
+    "kind": "file",
+    "test": "tests/api/cache.api.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < ttlMs()) {",
+    "replace": "  if (stateMemo !== undefined && Date.now() - stateMemo.checkedAt < -1) {",
+    "run": "bunx vitest run --project db tests/api/cache.api.test.ts",
+    "expect": "× .*costs two requests to warm"
+  },
+  {
+    "id": "b3-gg",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    ogStatic: raw.og_static ?? {},",
+    "replace": "    ogStatic: {},",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*passes og_static through unchanged"
+  },
+  {
+    "id": "b3-s",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    if (catalogMemo === undefined) throw unavailable();\n    catalogStale = true;",
+    "replace": "    throw unavailable();\n    catalogStale = true;",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*serves the last good catalog when the snapshot fails"
+  },
+  {
+    "id": "b3-g3-state-timeout",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "const READ_TIMEOUT_MS = 2000;",
+    "replace": "const READ_TIMEOUT_MS = 2000000;",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*gives up on an RPC that does not answer in 2 seconds"
+  },
+  {
+    "id": "b3-g3-state-throttle",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (now - lastReportAt < REPORT_EVERY_MS) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*logs and queues one report a minute"
+  },
+  {
+    "id": "b3-g3-state-flight",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  stateFlight ??= refreshState(db).finally(() => {",
+    "replace": "  stateFlight = refreshState(db).finally(() => {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*makes one snapshot call for requests that arrive together"
+  },
+  {
+    "id": "b3-g3-state-flight-version",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "if (catalogFlight?.version !== state.catalogVersion) {",
+    "replace": "if (catalogFlight === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*does not give a request for a newer version the load that is still reading an older one"
+  },
+  {
+    "id": "b3-g3-state-reset",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (stateMemo !== undefined) stateMemo = { ...stateMemo, checkedAt: Number.NEGATIVE_INFINITY };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*asks again inside the interval after resetPublicStateMemo"
+  },
+  {
+    "id": "b3-g3-state-503",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    if (stateMemo === undefined) throw unavailable();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*answers 503 unavailable when there is no last good state"
+  },
+  {
+    "id": "b3-g3-state-version",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (catalogMemo !== undefined && catalogFor === state.catalogVersion) {",
+    "replace": "  if (catalogMemo !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*reads the snapshot once per catalog version"
+  },
+  {
+    "id": "b3-g3-state-visibility",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  const visible = applyVisibility(mapped, {\n    state,\n    env: { MOP_ENV: readVar(\"MOP_ENV\") ?? \"production\" },\n  });",
+    "replace": "  const visible = mapped;",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*runs applyVisibility once per version with the state and MOP_ENV"
+  },
+  {
+    "id": "b3-g3-state-production",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "readVar(\"MOP_ENV\") ?? \"production\"",
+    "replace": "readVar(\"MOP_ENV\") ?? \"preview\"",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*reads an unset MOP_ENV as production"
+  },
+  {
+    "id": "b3-g3-state-stale-flag",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    stateMemo = { ...stateMemo, checkedAt: now, stale: true };",
+    "replace": "    stateMemo = { ...stateMemo, checkedAt: now, stale: false };",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*serves the last good state when the RPC fails, and says so"
+  },
+  {
+    "id": "b3-q",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  const { pathname } = new URL(request.url);\n  const cache = edgeCache();",
+    "replace": "  const pathname = new URL(request.url).pathname + new URL(request.url).search;\n  const cache = edgeCache();",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*drops the query string from the key"
+  },
+  {
+    "id": "b3-r",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (response.headers.has(\"set-cookie\") || control.includes(\"no-store\")) return false;",
+    "replace": "  if (control.includes(\"no-store\")) return false;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*never stores a cookie"
+  },
+  {
+    "id": "b3-w-policy",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"content-security-policy-report-only\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*keeps the policy and the preloads with the entry"
+  },
+  {
+    "id": "b3-w-link",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"link\",\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*keeps the policy and the preloads with the entry"
+  },
+  {
+    "id": "b3-rr-store",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    headers.set(\"cache-control\", `${browserCacheControl(kind)}, s-maxage=${String(sMaxAge)}`);",
+    "replace": "    headers.set(\"cache-control\", `${browserCacheControl(kind)}, s-maxage=300`);",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*stores a copy without the request id and sends the browser"
+  },
+  {
+    "id": "b3-rr-send",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (stored.status === 200) headers.set(\"cache-control\", browserCacheControl(kind));\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*stores a copy without the request id and sends the browser"
+  },
+  {
+    "id": "b3-ss",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    ? `${KEY_BASE}/last-good/${release()}/html${pathname}`",
+    "replace": "    ? `${KEY_BASE}/last-good/html${pathname}`",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*answers .stale. when the state cannot be read and a copy exists"
+  },
+  {
+    "id": "b3-g3-cache-etag",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (stored.status === 200 && matchesEtag(request, headers.get(\"etag\"))) {",
+    "replace": "  if (stored.status === 999) {",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*answers 304 to a matching If-None-Match"
+  },
+  {
+    "id": "b3-g3-cache-tag",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (edge?.tags !== undefined && edge.tags.length > 0)\n    headers.set(\"cache-tag\", edge.tags.join(\",\"));\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*tags the entry, gives it a weak ETag"
+  },
+  {
+    "id": "b3-g3-cache-once",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (lastGoodWritten.get(key) === version) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*is written once per path and version"
+  },
+  {
+    "id": "b3-g3-cache-only-unavailable",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    failure instanceof AppError && failure.code === \"unavailable\"\n",
+    "replace": "    true\n",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*is read when the build fails because the database is unavailable, and only then"
+  },
+  {
+    "id": "b3-g3-cache-stale-hit",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (hit !== undefined) return answer(request, hit, kind, stateStale ? \"stale\" : \"hit\");",
+    "replace": "  if (hit !== undefined) return answer(request, hit, kind, \"hit\");",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*answers a stored entry as stale while the state is stale"
+  },
+  {
+    "id": "b3-g3-cache-stale-put",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  const stale = stateStale || servingStale();\n  if (cache !== undefined && !stale) {",
+    "replace": "  const stale = stateStale || servingStale();\n  if (cache !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*is not written from an answer built while the state was stale"
+  },
+  {
+    "id": "b3-g3-cache-404",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  return (response.status === 404 || response.status === 410) && control.includes(\"s-maxage=60\");",
+    "replace": "  return false;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*stores the cacheable 404 and answers it with its own short lifetime"
+  },
+  {
+    "id": "b3-g3-cache-write",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (!isReadRequest(request)) return bypass(await build(), undefined);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*does not store a write"
+  },
+  {
+    "id": "b3-g3-media-nostore",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    headers.set(\"cache-control\", \"no-store\");\n    headers.set(\"x-mop-cache\", \"bypass\");\n    return new Response(upstream.body",
+    "replace": "    headers.set(\"cache-control\", \"public\");\n    headers.set(\"x-mop-cache\", \"bypass\");\n    return new Response(upstream.body",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*passes any other answer through as no-store"
+  },
+  {
+    "id": "b3-g3-media-query",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  const { origin, pathname } = new URL(request.url);\n  const key = `${origin}${pathname}`;",
+    "replace": "  const { origin, pathname, search } = new URL(request.url);\n  const key = `${origin}${pathname}${search}`;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*keys the file by its own URL without the query"
+  },
+  {
+    "id": "b3-lll-cache",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "    return await mediaCached(request, () => fromStorage(key, requestId));",
+    "replace": "    return await fromStorage(key, requestId);",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*streams the file on a miss, then answers from the edge cache"
+  },
+  {
+    "id": "b3-lll-dots",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  return KEY.test(decoded) && !decoded.split(\"/\").includes(\"..\") ? decoded : undefined;",
+    "replace": "  return KEY.test(decoded) ? decoded : undefined;",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*answers 404 for /media/a%2f..%2fb without a fetch"
+  },
+  {
+    "id": "b3-g3-media-head",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  const out = new Response(request.method === \"HEAD\" ? null : response.body, response);",
+    "replace": "  const out = new Response(response.body, response);",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*answers HEAD with the same headers and no body"
+  },
+  {
+    "id": "b3-g3-media-allow",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "    response.headers.set(\"allow\", \"GET, HEAD\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*answers 405 with Allow for any method but GET and HEAD"
+  },
+  {
+    "id": "b3-g3-media-503",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  return toErrorResponse((await isMissing(upstream)) ? notFound : storageUnavailable(), requestId);",
+    "replace": "  return toErrorResponse(notFound, requestId);",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*answers 503 storage_unavailable when Storage fails"
+  },
+  {
+    "id": "b3-g3-media-any",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/routes/media.$.ts",
+    "find": "handlers: { ANY: (",
+    "replace": "handlers: { GET: (",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*declares ANY on the route file"
+  },
+  {
+    "id": "b3-g3-media-prefix",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  if (!pathname.startsWith(PREFIX)) return undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*answers 404 for /other/abcdefghij without a fetch"
+  },
+  {
+    "id": "b3-g3-media-log",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/request-log.ts",
+    "find": "  logLine(\"info\", \"request\", { ...rest, ms: Date.now() - started });",
+    "replace": "  logLine(\"info\", \"request\", { ...rest, ms: Date.now() - started, extra: 1 });",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*makes no database call and writes one request line"
+  },
+  {
+    "id": "b3-u",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n",
+    "replace": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n  void db.from(\"properties\");\n",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*calls .*nowhere but state.ts"
+  },
+  {
+    "id": "b3-g3-readpath-write",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n",
+    "replace": "export async function listProperties(db: Db): Promise<PropertyCard[]> {\n  void db.from(\"analytics_events\").insert([]);\n",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*never go through"
+  },
+  {
+    "id": "b3-g3-readpath-request",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "const isoDate = (timestamp: string): string => timestamp.slice(0, 10);",
+    "replace": "const isoDate = (timestamp: string): string => timestamp.slice(0, 10);\nconst cookie = 1;",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*maps the snapshot with no request, cookie or header in sight"
+  },
+  {
+    "id": "b3-g3-readpath-state",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    name === \"public_state\" ? db.rpc(\"public_state\") : db.rpc(\"public_catalog_snapshot\"),",
+    "replace": "    name === \"public_state\" ? db.rpc(\"public_state\") : db.rpc(\"public_state_other\"),",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*asks state.ts for the two RPCs and no table"
+  },
+  {
+    "id": "b3-g3-parity-file",
+    "kind": "file",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "  catalogRead(\"/api/public/stories/:slug\", getStory, { tag: \"story\" }),",
+    "replace": "  catalogRead(\"/api/public/stories/:id\", getStory, { tag: \"story\" }),",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "× .*has a row for every file under src/routes/api/public"
+  },
+  {
+    "id": "b3-g3-parity-method",
+    "kind": "file",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/routes/api/public/markets.ts",
+    "find": "handlers: { ANY: (",
+    "replace": "handlers: { GET: (",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "× .*declares ANY in each file"
+  },
+  {
+    "id": "b3-g3-parity-cache",
+    "kind": "file",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    sMaxAge: EDGE_LIFETIME,",
+    "replace": "    sMaxAge: 300,",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "× .*stores every read under the catalog tag for a year"
+  },
+  {
+    "id": "b3-ooo",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  const started = Date.now();\n  const { pathname } = new URL(request.url);",
+    "replace": "  requestId = crypto.randomUUID();\n  const started = Date.now();\n  const { pathname } = new URL(request.url);",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 404 for a path no row has, with the id it was given in the body"
+  },
+  {
+    "id": "b3-ppp",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  response.headers.set(\n    \"allow\",\n    [...allowed].flatMap((method) => (method === \"GET\" ? [\"GET\", \"HEAD\"] : [method])).join(\", \"),\n  );\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a GET on a POST-only row with 405 and Allow: POST"
+  },
+  {
+    "id": "b3-g3-pipe-allow-head",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "(method === \"GET\" ? [\"GET\", \"HEAD\"] : [method])",
+    "replace": "[method]",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 405 with Allow for a method the row does not declare"
+  },
+  {
+    "id": "b3-b",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));",
+    "replace": "  const parsed = undefined as { success: boolean; data?: unknown; error?: never } | undefined;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*rejects a schema failure with 422"
+  },
+  {
+    "id": "b3-c",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  return limited.ok ? null : refused(ctx.requestId, limited.retryAfter);",
+    "replace": "  return limited.ok || checks.length > 0 ? null : refused(ctx.requestId, limited.retryAfter);",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*sends the database limits in one call with hashed keys"
+  },
+  {
+    "id": "b3-jj",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    ...(route.form === true ? [{ bucket: `${name}:form`, ...FORM_LIMIT }] : []),",
+    "replace": "    ...[{ bucket: `${name}:form`, ...FORM_LIMIT }],",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*applies the first limit only to a row that declares a form"
+  },
+  {
+    "id": "b3-kk",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (route.raw === true) return route.service(request, db, env);",
+    "replace": "  if (route.raw === true) {\n    await request.text();\n    return route.service(request, db, env);\n  }",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*reaches the service with the body unread"
+  },
+  {
+    "id": "b3-g3-pipe-size",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  Number(request.headers.get(\"content-length\") ?? \"0\") > MAX_BODY_BYTES;",
+    "replace": "  false;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*refuses a body over 64 KB, a wrong content type and a body that is not JSON"
+  },
+  {
+    "id": "b3-g3-pipe-memory",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n  await checkTurnstile(",
+    "replace": "  await checkTurnstile(",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*checks the first memory limit of a form before the schema"
+  },
+  {
+    "id": "b3-g3-pipe-own-limit",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "      .filter((limit) => limit.store === \"memory\")\n",
+    "replace": "      .filter((limit) => limit.store === \"db\")\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*counts a row's own memory limit per IP and answers 429 when it is spent"
+  },
+  {
+    "id": "b3-g3-pipe-404",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "        { status: 404, headers: { \"cache-control\": MISSING_CONTROL } },",
+    "replace": "        { status: 404 },",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a missing slug with the cacheable 404"
+  },
+  {
+    "id": "b3-g3-pipe-drain",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  for (const failure of drainStaleReports()) {",
+    "replace": "  for (const failure of [] as unknown[]) {",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one report on the collector for a stale read"
+  },
+  {
+    "id": "b3-g3-pipe-report",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "        wait(captureException(error, { requestId, route, ...sentryOptions() }));\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a calm 500 and reports it"
+  },
+  {
+    "id": "b3-g3-pipe-bypass",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!out.headers.has(\"x-mop-cache\")) out.headers.set(\"x-mop-cache\", \"bypass\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*calls the service with the client, the parsed body and the context"
+  },
+  {
+    "id": "b3-y",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    const handled = await dispatch(request, db ?? getDb(), ctx, pathname);",
+    "replace": "    const handled = await dispatch(request, getDb(), ctx, pathname);",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*reads every state and snapshot call from the client it was given"
+  },
+  {
+    "id": "b3-g3-log-shape",
+    "kind": "file",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/public/request-log.ts",
+    "find": "  logLine(\"info\", \"request\", { ...rest, ms: Date.now() - started });",
+    "replace": "  logLine(\"info\", \"request\", { ...rest, ms: Date.now() - started, extra: 1 });",
+    "run": "bunx vitest run --project unit tests/unit/log.test.ts",
+    "expect": "× .*emits exactly one request line with the five fields"
+  },
+  {
+    "id": "b3-g3-pipe-ip",
+    "kind": "file",
+    "test": "tests/unit/log.test.ts",
+    "file": "src/server/public/request-log.ts",
+    "find": "  return hashKey(env.RATE_LIMIT_SALT, clientIp(request));",
+    "replace": "  return Promise.resolve(clientIp(request));",
+    "run": "bunx vitest run --project unit tests/unit/log.test.ts",
+    "expect": "× .*emits exactly one request line with the five fields"
+  },
+  {
+    "id": "b3-m",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  for (const { slug, property_id: id } of catalog.slugHistory) {",
+    "replace": "  for (const { slug, property_id: id } of [] as typeof catalog.slugHistory) {",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*maps an old slug of a published property to its current one with a 301"
+  },
+  {
+    "id": "b3-m-api",
+    "kind": "file",
+    "test": "tests/api/redirects.api.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  for (const { slug, property_id: id } of catalog.slugHistory) {",
+    "replace": "  for (const { slug, property_id: id } of [] as typeof catalog.slugHistory) {",
+    "run": "bunx vitest run --project db tests/api/redirects.api.test.ts",
+    "expect": "× .*answers an old slug of a published property with 301"
+  },
+  {
+    "id": "b3-g3-redirect-published",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "    if (now !== undefined && now !== slug) {",
+    "replace": "    if (now !== slug) {",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*holds nothing for a property that is not published"
+  },
+  {
+    "id": "b3-g3-redirect-version",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  if (built?.version !== catalog.version) {",
+    "replace": "  if (built === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*follows the catalog version: an edited row answers within the interval"
+  },
+  {
+    "id": "b3-g3-redirect-unavailable",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "    if (error instanceof AppError && error.code === \"unavailable\") return undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*answers null, not an error, when the catalog cannot be read at all"
+  },
+  {
+    "id": "b3-g3-redirect-query",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  const location = target.to.includes(\"?\") ? target.to : `${target.to}${url.search}`;",
+    "replace": "  const location = target.to;",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*answers a moved slug with 301, the new path and no-store, keeping the query"
+  },
+  {
+    "id": "b3-g3-redirect-no-store",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "headers: { location, \"cache-control\": \"no-store\" }",
+    "replace": "headers: { location }",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*answers a moved slug with 301, the new path and no-store, keeping the query"
+  },
+  {
+    "id": "b3-g3-redirect-normalize",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  return path.length > 1 && path.endsWith(\"/\") ? path.slice(0, -1) : path;",
+    "replace": "  return path;",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*answers a table row with its stored status, however the path is cased or slashed"
+  },
+  {
+    "id": "b3-g3-redirect-gate",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const redirect = page ? await deps.redirect(request) : null;",
+    "replace": "    const redirect = await deps.redirect(request);",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*never looks up /api, /admin or a document"
+  },
+  {
+    "id": "b3-g3-redirect-final-header",
+    "kind": "file",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  } else if (!redirected && isPageRequest(pathname)) {",
+    "replace": "  } else if (isPageRequest(pathname)) {",
+    "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
+    "expect": "× .*answers a redirected path with 301 and no-store"
+  },
+  {
+    "id": "b3-qqq",
+    "kind": "file",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NOT_PAGE_PREFIXES = [\"/api/\", \"/media/\", \"/.well-known/\", \"/_serverfn/\"];",
+    "replace": "const NOT_PAGE_PREFIXES = [\"/api/\", \"/.well-known/\", \"/_serverfn/\"];",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*keeps /media/o/p1/hero away from the cache hook and the redirect lookup"
+  },
+  {
+    "id": "b3-g3-wellknown",
+    "kind": "file",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NOT_PAGE_PREFIXES = [\"/api/\", \"/media/\", \"/.well-known/\", \"/_serverfn/\"];",
+    "replace": "const NOT_PAGE_PREFIXES = [\"/api/\", \"/media/\", \"/_serverfn/\"];",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*keeps /.well-known/change-password away from the cache hook and the redirect lookup"
+  },
+  {
+    "id": "b3-a",
+    "kind": "file",
+    "test": "tests/api/catalog.api.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (edge?.tags !== undefined && edge.tags.length > 0)\n    headers.set(\"cache-tag\", edge.tags.join(\",\"));\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/catalog.api.test.ts",
+    "expect": "× .*answers /properties with every published property and the headers of the table"
+  },
+  {
+    "id": "b3-g3-catalog-404",
+    "kind": "file",
+    "test": "tests/api/catalog.api.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "  if (row === undefined)\n    throw new AppError(\"not_found\", undefined, \"There is nothing at this address.\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/catalog.api.test.ts",
+    "expect": "× .*answers a detail with its own tag, and a missing slug with the cacheable 404"
+  },
+  {
+    "id": "b3-g3-catalog-etag",
+    "kind": "file",
+    "test": "tests/api/catalog.api.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (stored.status === 200 && matchesEtag(request, headers.get(\"etag\"))) {",
+    "replace": "  if (stored.status === 999) {",
+    "run": "bunx vitest run --project db tests/api/catalog.api.test.ts",
+    "expect": "× .*answers 304 to the ETag it sent"
+  },
+  {
+    "id": "b3-qq",
+    "kind": "file",
+    "test": "scripts/deno-portable.ts",
+    "file": "src/server/public/state.ts",
+    "find": "import { readVar } from \"../lib/runtime-env.ts\";",
+    "replace": "import { readVar } from \"../lib/runtime-env\";",
+    "run": "bun run lint",
+    "expect": "Deno-loaded file: import with the .ts extension"
+  },
+  {
+    "id": "b3-qq-deno",
+    "kind": "file",
+    "test": "scripts/deno-portable.ts",
+    "file": "src/server/public/state.ts",
+    "find": "import { readVar } from \"../lib/runtime-env.ts\";",
+    "replace": "import { readVar } from \"../lib/runtime-env\";",
+    "run": "deno check --config supabase/functions/job-runner/deno.json scripts/deno-portable.ts",
+    "expect": "TS2307"
+  },
+  {
+    "id": "b3-g3-media-400",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  if (upstream.status !== 400) return false;\n",
+    "replace": "  return false;\n",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*reads Storage's 400 with a 404 in its body as a missing file"
+  },
+  {
+    "id": "b3-g3-media-400-body",
+    "kind": "file",
+    "test": "tests/unit/media-route.test.ts",
+    "file": "src/server/public/media.ts",
+    "find": "  return body.success && body.data.statusCode === \"404\";",
+    "replace": "  return body.success;",
+    "run": "bunx vitest run --project unit tests/unit/media-route.test.ts",
+    "expect": "× .*reads Storage's 400 with a 404 in its body as a missing file"
+  },
+  {
+    "id": "b3-g3-outage",
+    "kind": "file",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const outage = error instanceof AppError && error.code === \"unavailable\";",
+    "replace": "    const outage = false;",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*answers an outage with the calm 503 and Retry-After, and reports nothing"
+  },
+  {
+    "id": "b3-g3-state-restored",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  if (catalogMemo !== undefined && catalogFor === state.catalogVersion) {",
+    "replace": "  if (catalogMemo !== undefined && catalogFor >= state.catalogVersion) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*reads the snapshot again when the version goes down"
+  },
+  {
+    "id": "b3-g4-parity-properties",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    lotAcres: row.lot_acres,\n",
+    "replace": "    lotAcres: row.baths,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties/:slug with the bundled property and no difference"
+  },
+  {
+    "id": "b3-g5-parity-baths",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    baths: row.baths,\n",
+    "replace": "    baths: row.beds,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled cards and no difference"
+  },
+  {
+    "id": "b3-g4-parity-markets",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    intro: row.intro,\n    places: row.places,\n    regions: children.regions.map",
+    "replace": "    intro: row.intro,\n    places: [],\n    regions: children.regions.map",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /markets with the bundled markets and no difference"
+  },
+  {
+    "id": "b3-g4-parity-stories",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    deck: row.deck,\n",
+    "replace": "    deck: row.title,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /stories with the bundled stories and no difference"
+  },
+  {
+    "id": "b3-g4-order",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ),\n    markets:",
+    "replace": "        row.representative_id === null ? undefined : representatives.get(row.representative_id),\n      ),\n    ).reverse(),\n    markets:",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled cards and no difference"
+  },
+  {
+    "id": "b3-g4-an-unique",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"home_finder\",\n] as const;",
+    "replace": "  \"home_finder\",\n  \"Home_Finder\",\n] as const;",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*holds each name once, in snake_case"
+  },
+  {
+    "id": "b3-g4-an-listed",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"newsletter_signup\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*lists every event name that a track\\(\\) call in src spells out"
+  },
+  {
+    "id": "b3-g4-ss-steps",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "\"The story\", \"About you\", \"Exposure\"",
+    "replace": "\"The story\", \"Representation\", \"Exposure\"",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*name About you third and keep five steps"
+  },
+  {
+    "id": "b3-g4-ss-maxfiles",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "export const maxFiles = uploadLimits.maxFiles;",
+    "replace": "export const maxFiles = 20;",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*take the file limit from uploadLimits"
+  },
+  {
+    "id": "b3-g4-ss-kind",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "        draft.submitterKind !== \"\" &&\n        filled(draft.submitterName)",
+    "replace": "        filled(draft.submitterName)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*stays closed until a kind is chosen"
+  },
+  {
+    "id": "b3-g4-ss-agent-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "(draft.submitterKind !== \"agent\" || filled(draft.brokerage))",
+    "replace": "(draft.submitterKind !== \"agent\" || true)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*asks an agent for a brokerage"
+  },
+  {
+    "id": "b3-g4-ss-owner-brokerage",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "(draft.submitterKind !== \"agent\" || filled(draft.brokerage))",
+    "replace": "filled(draft.brokerage)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*asks an owner for no brokerage"
+  },
+  {
+    "id": "b3-g4-ss-option",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "kindOptions.find((option) => option === value) ?? \"\";",
+    "replace": "kindOptions.find((option) => option === value) ?? \"agent\";",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*reads the two kinds and anything else as not chosen"
+  },
+  {
+    "id": "b3-g4-ss-agent-fields",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "return { brokerage: draft.brokerage, sourceUrl: draft.sourceUrl };",
+    "replace": "return {\n      brokerage: draft.brokerage,\n      sourceUrl: draft.sourceUrl,\n      listedWithAgent: draft.listedWithAgent,\n    };",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends an agent's brokerage and source link and nothing about a listing"
+  },
+  {
+    "id": "b3-g4-ss-owner-fields",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    ...kindFields(draft),",
+    "replace": "    brokerage: draft.brokerage,\n    sourceUrl: draft.sourceUrl,\n    ...kindFields(draft),",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends an owner no brokerage and no source link, even from a draft that was an agent's"
+  },
+  {
+    "id": "b3-g4-ss-listing",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    ...(draft.listedWithAgent && {",
+    "replace": "    ...({",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*sends the listing agent only while the home is listed"
+  },
+  {
+    "id": "b3-g4-ss-no-kind",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "    submitterKind: draft.submitterKind,",
+    "replace": "    submitterKind: draft.submitterKind || \"owner\",",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*refuses a draft with no kind chosen"
+  },
+  {
+    "id": "b3-g4-ss-by-role",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": ": \"owner\";",
+    "replace": ": \"agent\";",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*reads name and brokerage for an agent, name and owner for an owner"
+  },
+  {
+    "id": "b3-g4-ss-by-listed",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "draft.submitterKind === \"owner\" && draft.listedWithAgent && filled(draft.listingAgentName)",
+    "replace": "draft.submitterKind === \"owner\" && filled(draft.listingAgentName)",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*adds the listing agent an owner names"
+  },
+  {
+    "id": "b3-g4-ss-by-empty",
+    "kind": "file",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "  if (draft.submitterKind === \"\") return \"\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/submit-state.test.ts",
+    "expect": "× .*is empty before a kind is chosen"
+  },
+  {
+    "id": "b3-g4-cl-markets-list",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/market.ts",
+    "find": "z.enum([\"california\", \"florida\", \"new-york\"])",
+    "replace": "z.enum([\"california\", \"new-york\"])",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*is the list of the database check subscribers_markets_subset"
+  },
+  {
+    "id": "b3-g4-cl-markets-max",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "markets: z.array(marketSlugSchema).max(3).default([]),",
+    "replace": "markets: z.array(marketSlugSchema).default([]),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*defaults to no market and takes at most three, each one of the three"
+  },
+  {
+    "id": "b3-g4-cl-kinds",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "[\"access\", \"deletion\", \"opt_out\", \"correction\"]",
+    "replace": "[\"access\", \"deletion\", \"opt_out\"]",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*is the list of the database check on subject_requests.kind"
+  },
+  {
+    "id": "b3-g4-cl-maxfiles",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "export const maxFiles = uploadLimits.maxFiles;",
+    "replace": "export const maxFiles = 20;",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*are one number for the form and the contract"
+  },
+  {
+    "id": "b3-g4-cl-41",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),",
+    "replace": "media: z.array(submissionMediaSchema).max(41).default([]),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*let a submission name 40 photographs and no more"
+  },
+  {
+    "id": "b3-g4-cl-type",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "type: z.enum(uploadLimits.types),",
+    "replace": "type: z.string().max(100),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*refuse a photograph over the size limit or of another type"
+  },
+  {
+    "id": "b3-g4-cl-card",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "unwrap().pick({ card: true })",
+    "replace": "unwrap().pick({ card: true, hero: true })",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition and drops everything else"
+  },
+  {
+    "id": "b3-g4-cl-card-slug",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  .pick({\n    slug: true,\n",
+    "replace": "  .pick({\n",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*refuses a record with no slug"
+  },
+  {
+    "id": "b3-g4-cl-uploads",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "media_ids: z.array(z.string().uuid()).min(1).max(10),",
+    "replace": "media_ids: z.array(z.string().uuid()).min(1).max(11),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*takes one to ten media ids and a token"
+  },
+  {
+    "id": "b3-g4-cl-client-error",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "stack: z.string().max(2048).optional(),",
+    "replace": "stack: z.string().optional(),",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*takes a message and a route, and bounds every text"
+  },
+  {
+    "id": "b3-g4-op-agent",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/property/representation.tsx",
+    "find": "<h2>Represented by</h2>",
+    "replace": "<h2>Represented</h2>",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*shows the representative of a home an agent presents"
+  },
+  {
+    "id": "b3-g4-op-owner",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/property/representation.tsx",
+    "find": "const owner = property.presentedByOwner;",
+    "replace": "const owner = false;",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*shows only 'Presented by the owner' for a home its owner presents"
+  },
+  {
+    "id": "b3-g4-op-default",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "eyebrow: \"CONTACT LISTING REPRESENTATIVE\",",
+    "replace": "eyebrow: \"CONTACT REPRESENTATIVE\",",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*writes to the listing representative by default"
+  },
+  {
+    "id": "b3-g4-op-title",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "title: \"Reach the owner.\",",
+    "replace": "title: \"Reach the representative.\",",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*writes to the owner when the owner presents the home"
+  },
+  {
+    "id": "b3-g4-op-other",
+    "kind": "file",
+    "test": "tests/unit/owner-presented.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "intent === \"agent\" && presentedByOwner && ownerCopy",
+    "replace": "presentedByOwner && ownerCopy",
+    "run": "bunx vitest run --project component tests/unit/owner-presented.test.tsx",
+    "expect": "× .*leaves the other intents as they are for an owner's home"
+  },
+  {
+    "id": "b3-g5-sm-features-rank",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/property-card.ts",
+    "find": "    features: property.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*ranks cards as it ranks the full properties"
+  },
+  {
+    "id": "b3-g5-sm-features-reason",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/property-card.ts",
+    "find": "    features: property.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*scores a feature found in the card's feature list"
+  },
+  {
+    "id": "b3-g5-sm-sort",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "    .sort((a, b) => b.score - a.score)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*keeps the best matches first and honours the limit"
+  },
+  {
+    "id": "b3-g5-sm-limit",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "    .slice(0, limit);",
+    "replace": "    .slice(0, limit + 100);",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*keeps the best matches first and honours the limit"
+  },
+  {
+    "id": "b3-g5-sm-zero",
+    "kind": "file",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": ".filter((match) => match.score > 0)",
+    "replace": ".filter((match) => match.score >= 0)",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "× .*leaves out a property that scores nothing"
+  },
+  {
+    "id": "b3-g5-hdr-origin",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "            ? supabaseOrigin()",
+    "replace": "            ? []",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
+  },
+  {
+    "id": "b3-g5-hdr-only-origin",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "[new URL(url).origin]",
+    "replace": "[url]",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
+  },
+  {
+    "id": "b3-g5-hdr-invalid",
+    "kind": "file",
+    "test": "tests/unit/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "url !== undefined && URL.canParse(url) ? [new URL(url).origin] : []",
+    "replace": "url !== undefined ? [new URL(url).origin] : []",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*names no Supabase host when SUPABASE_URL is unset"
+  },
+  {
+    "id": "b3-g5-state-cards",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "visible.properties.map(toPropertyCard)",
+    "replace": "mapped.properties.map(toPropertyCard)",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*builds the cards of the visible properties once per version"
+  },
+  {
+    "id": "b3-g5-card-gallery",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return pickCard(property);",
+    "replace": "  return { ...pickCard(property), gallery: property.gallery };",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*keeps a card variant and the card fields"
+  },
+  {
+    "id": "b3-g5-card-bytes",
+    "kind": "file",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "  return pickCard(property);",
+    "replace": "  return { ...pickCard(property), gallery: property.gallery };",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "× .*keeps a card at most 600 bytes"
+  },
+  {
+    "id": "b3-g5-list-cards",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "return (await getCatalog(db)).cards;",
+    "replace": "return (await getCatalog(db)).properties;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers the list as cards"
+  },
+  {
+    "id": "b3-g5-cl-features",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    features: true,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-cl-published",
+    "kind": "file",
+    "test": "tests/unit/contracts-live.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    publishedAt: true,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/contracts-live.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-parity-features",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    features: row.features,\n",
+    "replace": "    features: [],\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties with the bundled cards and no difference"
+  },
+  {
+    "id": "b3-g5-ts-pass-body",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "remoteip: ip",
+    "replace": "remoteip: \"0.0.0.0\"",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*passes when siteverify says success"
+  },
+  {
+    "id": "b3-g5-ts-fail",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (!answer.success) return \"fail\";\n",
+    "replace": "  if (!answer.success) return \"unreachable\";\n",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails when siteverify says the token is no good"
+  },
+  {
+    "id": "b3-g5-ts-net",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on a network error"
+  },
+  {
+    "id": "b3-g5-ts-notsv",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on an answer that is not siteverify's"
+  },
+  {
+    "id": "b3-g5-ts-5xx",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    if (response.status >= 500) return \"unreachable\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable on a 5xx from Cloudflare"
+  },
+  {
+    "id": "b3-g5-ts-timeout",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "      signal: AbortSignal.timeout(TIMEOUT_MS),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*gives up after 2 seconds with no answer"
+  },
+  {
+    "id": "b3-g5-ts-nosecret",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*is unreachable with no secret configured"
+  },
+  {
+    "id": "b3-g5-ts-notoken",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails an absent or empty token"
+  },
+  {
+    "id": "b3-g5-ts-host",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    answer.hostname !== undefined && turnstileHostAllowed(answer.hostname, env.MOP_ENV);",
+    "replace": "    true;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success whose hostname is not one the environment serves"
+  },
+  {
+    "id": "b3-g5-ts-nohost",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "    answer.hostname !== undefined && turnstileHostAllowed(answer.hostname, env.MOP_ENV);",
+    "replace": "    true;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success that names no hostname"
+  },
+  {
+    "id": "b3-g5-ts-action",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return allowed && answer.action === action ? \"pass\" : \"fail\";",
+    "replace": "  return allowed ? \"pass\" : \"fail\";",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*fails a success whose action is another route's or absent"
+  },
+  {
+    "id": "b3-g5-ts-passright",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return allowed && answer.action === action ? \"pass\" : \"fail\";",
+    "replace": "  return \"fail\";",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*passes the right hostname with the right action"
+  },
+  {
+    "id": "b3-g5-ts-testsecret",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (TEST_SECRET.test(secret)) return \"pass\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*checks neither hostname nor action with the test secret"
+  },
+  {
+    "id": "b3-g5-ts-testfail",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (!answer.success) return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*still fails a failure with the test secret"
+  },
+  {
+    "id": "b3-g5-ts-hosts-prod",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  return mopEnv === \"preview\" && PREVIEW_HOST.test(hostname);",
+    "replace": "  return PREVIEW_HOST.test(hostname);",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows the site's hosts in production and nothing else"
+  },
+  {
+    "id": "b3-g5-ts-hosts-preview",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "const PREVIEW_HOST = /^pr-\\d+\\.holy-meadow-4327\\.workers\\.dev$/;",
+    "replace": "const PREVIEW_HOST = /^pr-.+\\.holy-meadow-4327\\.workers\\.dev$/;",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows the dev Worker and a pull request's preview"
+  },
+  {
+    "id": "b3-g5-ts-hosts-local",
+    "kind": "file",
+    "test": "tests/unit/turnstile.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (mopEnv === \"local\") return true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
+    "expect": "× .*allows any host locally"
+  },
+  {
+    "id": "b3-g5-pl-missing",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a missing token with 403 forbidden"
+  },
+  {
+    "id": "b3-g5-pl-order-db",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*refuses a failed check before the schema and before every database call"
+  },
+  {
+    "id": "b3-g5-pl-order-memory",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  const memory = memoryCheck(route, name, ctx.ipHash);\n  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n  await checkTurnstile(route, name, request, ctx);\n",
+    "replace": "  await checkTurnstile(route, name, request, ctx);\n  const memory = memoryCheck(route, name, ctx.ipHash);\n  if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*checks the memory limit first"
+  },
+  {
+    "id": "b3-g5-pl-action",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    env,\n    name,\n  );",
+    "replace": "    env,\n    \"inquiries\",\n  );",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-remoteip",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    clientIp(request),",
+    "replace": "    \"0.0.0.0\",",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-fail-logs",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (outcome === \"fail\") {\n    throw new AppError(",
+    "replace": "  if (outcome === \"fail\") {\n    logLine(\"warn\", \"turnstile_unreachable\", { route: name });\n    throw new AppError(",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*passes the route's bucket name as the action"
+  },
+  {
+    "id": "b3-g5-pl-flag",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  ctx.turnstileOk = outcome === \"pass\";",
+    "replace": "  ctx.turnstileOk = true;",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-log",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (outcome === \"unreachable\") logLine(\"warn\", \"turnstile_unreachable\", { route: name });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-unreachable-pass",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts the write when Cloudflare cannot be reached"
+  },
+  {
+    "id": "b3-g5-pl-nosecret",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
+    "replace": "  if (secret === undefined || secret === \"\") return \"fail\";\n",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts a write with no secret configured"
+  },
+  {
+    "id": "b3-g5-pl-skip",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!route.turnstile) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*skips the check for a row that declares none"
+  },
+  {
+    "id": "b3-g5-ad-action",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "await guarded(\"inquiries\", input)",
+    "replace": "await guarded(\"subscribers\", input)",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send the Turnstile token of their own action"
+  },
+  {
+    "id": "b3-g5-ad-website",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    body: { website: \"\", ...input },",
+    "replace": "    body: input,",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send the Turnstile token of their own action"
+  },
+  {
+    "id": "b3-g5-ad-notoken",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    init: { headers: token === null ? {} : { \"x-turnstile-token\": token } },",
+    "replace": "    init: { headers: { \"x-turnstile-token\": token ?? \"\" } },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send no token header when the browser has none"
+  },
+  {
+    "id": "b3-g5-ad-honeypot",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    body: { website: \"\", ...input },",
+    "replace": "    body: { ...input, website: \"\" },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*carry a filled honeypot through to the Worker"
+  },
+  {
+    "id": "b3-g5-ad-read",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "    listMarkets: () => api.get(\"/markets\", z.array(marketSchema)),",
+    "replace": "    listMarkets: async () => {\n      await getTurnstileToken(\"markets\");\n      return api.get(\"/markets\", z.array(marketSchema));\n    },",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*send a read with no Turnstile call"
+  },
+  {
+    "id": "b3-g5-ad-list",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "z.array(propertyCardSchema)",
+    "replace": "z.array(propertySchema)",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*keeps the card fields and the card rendition"
+  },
+  {
+    "id": "b3-g5-ad-reqid-header",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "response.headers.get(\"x-request-id\")",
+    "replace": "response.headers.get(\"x-other-id\")",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*takes the request id from the x-request-id header"
+  },
+  {
+    "id": "b3-g5-ad-reqid-body",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "    return body.success ? body.data.error.requestId : undefined;",
+    "replace": "    return undefined;",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*falls back to the request id in the error body"
+  },
+  {
+    "id": "b3-g5-ad-reqid-none",
+    "kind": "file",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  } catch {\n    return undefined;\n  }",
+    "replace": "  } catch {\n    return \"unknown\";\n  }",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "× .*has no request id when the body is not JSON or names none"
+  },
+  {
+    "id": "b3-g5-tc-nokey",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  if (siteKey === undefined || siteKey === \"\") return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null with no site key"
+  },
+  {
+    "id": "b3-g5-tc-execute",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      execution: \"execute\",",
+    "replace": "      execution: \"render\",",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-remove",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      if (widget.id !== undefined) api.remove(widget.id);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-host",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  if (existing) return existing;\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*runs an execute-mode widget for the action"
+  },
+  {
+    "id": "b3-g5-tc-error",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      \"error-callback\": () => {\n        settle(null);\n      },",
+    "replace": "      \"error-callback\": () => {},",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null when Cloudflare reports an error or a timeout"
+  },
+  {
+    "id": "b3-g5-tc-once",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "  loading ??= new Promise((resolve) => {",
+    "replace": "  loading = new Promise((resolve) => {",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*loads the script once, on the first call"
+  },
+  {
+    "id": "b3-g5-tc-retry",
+    "kind": "file",
+    "test": "tests/unit/turnstile-client.test.tsx",
+    "file": "src/lib/turnstile.ts",
+    "find": "      loading = undefined;\n      resolve(null);",
+    "replace": "      resolve(null);",
+    "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
+    "expect": "× .*answers null when the script is blocked, and tries again"
+  },
+  {
+    "id": "b3-c3-state-memo-back",
+    "kind": "file",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "if (!(state.catalogVersion < catalogFor)) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*does not give a request for a newer version the load that is still reading an older one"
+  },
+  {
+    "id": "b3-f",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/request-log.ts",
+    "find": "  return hashKey(env.RATE_LIMIT_SALT, clientIp(request));",
+    "replace": "  return Promise.resolve(clientIp(request));",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row with a hashed address and no raw IP"
+  },
+  {
+    "id": "b3-g6-inq-source",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "      source_path: input.sourcePath,",
+    "replace": "      source_path: \"/elsewhere\",",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row"
+  },
+  {
+    "id": "b3-g6-inq-no-event",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  return fromService(route, await route.service(db, input, ctx));",
+    "replace": "  logLine(\"info\", \"event_pending\", { route: name });\n  return fromService(route, await route.service(db, input, ctx));",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one row"
+  },
+  {
+    "id": "b3-g6-inq-token",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  if (token === null || token === undefined || token === \"\") return \"fail\";",
+    "replace": "  if (token === null || token === undefined || token === \"\") return \"unreachable\";",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses a request without a Turnstile token with 403"
+  },
+  {
+    "id": "b3-d-unreachable",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/lib/turnstile.ts",
+    "find": "  } catch {\n    return \"unreachable\";\n  }",
+    "replace": "  } catch {\n    return \"pass\";\n  }",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*accepts the write flagged when Turnstile is unreachable"
+  },
+  {
+    "id": "b3-j",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (filled && name === \"\") {",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers a filled website field with 201, writes no row and emits no event"
+  },
+  {
+    "id": "b3-g6-inq-422",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    schema: inquirySchema,\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*rejects a schema failure with 422"
+  },
+  {
+    "id": "b3-g6-inq-ip-limit",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"ip\", store: \"db\", limit: 10, windowSeconds: HOUR },",
+    "replace": "      { scope: \"ip\", store: \"db\", limit: 20, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses the 11th inquiry from one IP"
+  },
+  {
+    "id": "b3-g6-inq-email-limit",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 5, windowSeconds: HOUR },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 6, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*refuses the 6th inquiry from one email"
+  },
+  {
+    "id": "b3-g6-inq-503",
+    "kind": "file",
+    "test": "tests/api/inquiries.api.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "    throw new AppError(\"unavailable\", undefined, UNAVAILABLE);",
+    "replace": "    throw new Error(\"database\");",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*answers 503 unavailable when the database refuses the write"
+  },
+  {
+    "id": "b3-g6-hp-tab",
+    "kind": "file",
+    "test": "tests/unit/honeypot.test.ts",
+    "file": "src/components/forms/honeypot.tsx",
+    "find": "          tabIndex={-1}",
+    "replace": "          tabIndex={0}",
+    "run": "bunx vitest run --project unit tests/unit/honeypot.test.ts",
+    "expect": "× .*renders one input named website"
+  },
+  {
+    "id": "b3-g6-hp-aria",
+    "kind": "file",
+    "test": "tests/unit/honeypot.test.ts",
+    "file": "src/components/forms/honeypot.tsx",
+    "find": "          aria-hidden=\"true\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/honeypot.test.ts",
+    "expect": "× .*renders one input named website"
+  },
+  {
+    "id": "b3-g6-sub-order",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    uploads: media.map((entry, position) => ({",
+    "replace": "    uploads: [...media].reverse().map((entry, position) => ({",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*stores the submission and one media row per entry, indexed in posted order"
+  },
+  {
+    "id": "b3-g6-sub-first10",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const SIGNED_PER_REQUEST = 10;",
+    "replace": "const SIGNED_PER_REQUEST = 11;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs the first 10 of 40 photographs"
+  },
+  {
+    "id": "b3-g6-sub-thumb",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  `${submissionId}/${mediaId}.thumb.jpg`;",
+    "replace": "  `${submissionId}/${mediaId}.thumb.png`;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs the first 10 of 40 photographs"
+  },
+  {
+    "id": "b3-ddd",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/upload-token.ts",
+    "find": "  if (exp * 1000 < now) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-sub-sig",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/upload-token.ts",
+    "find": "  return timingSafeEqual(encoder.encode(expected), encoder.encode(given));",
+    "replace": "  return given.length > 0;",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-params",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    ...Object.fromEntries(names.map((name, index) => [name, params[index]])),\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*signs 10 more on /uploads with the token"
+  },
+  {
+    "id": "b3-g6-sub-uploads-limit",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"db\", limit: 12, windowSeconds: HOUR }],",
+    "replace": "    limits: [{ scope: \"ip\", store: \"db\", limit: 13, windowSeconds: HOUR }],",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses the 13th /uploads call from one IP"
+  },
+  {
+    "id": "b3-g6-sub-sign-503",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  if (error !== null) throw unavailable();\n  return data.signedUrl;",
+    "replace": "  return data?.signedUrl ?? \"\";",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers 503 unavailable when a signing call fails"
+  },
+  {
+    "id": "b3-l",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),",
+    "replace": "    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles + 1).default([]),",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses an entry over 25 MB, a GIF and 41 entries with 422"
+  },
+  {
+    "id": "b3-g6-sub-kind",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      submitter_kind: input.submitterKind,",
+    "replace": "      submitter_kind: \"agent\",",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*links one contact per email"
+  },
+  {
+    "id": "b3-g6-sub-brokerage",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  if (value.submitterKind === \"agent\" && !isSet(value.brokerage)) {",
+    "replace": "  if (value.submitterKind === \"agent\" && isSet(value.brokerage) && !isSet(value.brokerage)) {",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*refuses an agent without a brokerage with 422"
+  },
+  {
+    "id": "b3-g6-sub-listing",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      listing_agent_name: input.listingAgentName,",
+    "replace": "      listing_agent_name: undefined,",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*stores an owner's listing agent"
+  },
+  {
+    "id": "b3-g6-sub-rights",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      rights_version: currentRightsVersion,",
+    "replace": "      rights_version: \"2026-01-01\",",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*records the rights version, time and a hashed address"
+  },
+  {
+    "id": "b3-j-sub",
+    "kind": "file",
+    "test": "tests/api/submissions.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (filled && name === \"\") {",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers a filled website field with 201 and writes no row"
+  },
+  {
+    "id": "b3-g6-sub-double",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*answers a second post within 10 minutes",
+    "procedure": "The 10-minute rule lives in create_submission only; its mutation is b3-g2-double, replayed in the rolled-back public-write.db.test.ts. Here the rule is reached through supabase-js, which cannot see a rolled-back function (P-901), and only main may change mop-dev (R18)."
+  },
+  {
+    "id": "b3-g6-sub-duplicate",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*points a request for the same address and email 11 days later",
+    "procedure": "Duplicate flagging lives in create_submission only; its mutation is b3-k, replayed in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-hhh",
+    "kind": "manual",
+    "test": "tests/api/submissions.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/submissions.api.test.ts",
+    "expect": "× .*links one contact per email",
+    "procedure": "(hhh) and (iii) mutate the contacts upsert of create_submission; b3-g2-contact-kind replays them in the rolled-back public-write.db.test.ts (P-901, R18). b3-g6-sub-kind covers the service side of this case."
+  },
+  {
+    "id": "b3-g6-rec-png",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  if (at(0) === 0x89 && at(1) === 0x50",
+    "replace": "  if (at(0) === 0x88 && at(1) === 0x50",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*names each of the four types by its signature"
+  },
+  {
+    "id": "b3-g6-rec-brand",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "\"heim\", \"msf1\"]",
+    "replace": "\"heim\"]",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*reads every HEIC brand of GQ-07 as image/heic"
+  },
+  {
+    "id": "b3-g6-rec-webp",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  if (ascii(bytes, 0, 4) === \"RIFF\" && ascii(bytes, 8, 12) === \"WEBP\") return \"image/webp\";",
+    "replace": "  if (ascii(bytes, 0, 4) === \"RIFF\") return \"image/webp\";",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*answers null for any other bytes"
+  },
+  {
+    "id": "b3-i",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      const removed = await store.remove([row.storage_path]);\n      if (removed.error !== null) throw storageUnavailable();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*marks a good JPEG, removes PNG bytes under a .jpg name"
+  },
+  {
+    "id": "b3-g6-rec-missing",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      if (now - Date.parse(row.submissions.received_at) > UPLOAD_WINDOW_MS) counts.missing += 1;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*marks a good JPEG, removes PNG bytes under a .jpg name"
+  },
+  {
+    "id": "b3-g6-rec-throw",
+    "kind": "file",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  return parsed.success && parsed.data.code === \"NoSuchKey\";",
+    "replace": "  return parsed.success;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*throws on a download error other than not-found"
+  },
+  {
+    "id": "b3-vv",
+    "kind": "file",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      .slice(0, SIGNED_PER_REQUEST)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
+    "expect": "× .*keeps POST /submissions with 40 photographs at 35 calls or fewer"
+  },
+  {
+    "id": "b3-g6-budget-more",
+    "kind": "file",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "      data.map(async (row) => ({",
+    "replace": "      [...data, ...data].map(async (row) => ({",
+    "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
+    "expect": "× .*keeps one POST /submissions/:id/uploads call of 10 photographs at 35 calls or fewer"
+  },
+  {
+    "id": "b3-eee",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "  if (longEdge <= maxEdge) return { width, height };",
+    "replace": "  if (longEdge > 0) return { width, height };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*brings 6000x4000 to 480x320"
+  },
+  {
+    "id": "b3-g7-fit-small",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "  if (longEdge <= maxEdge) return { width, height };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*keeps 2400x1600 unchanged"
+  },
+  {
+    "id": "b3-g7-prep-large",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    if (Math.max(bitmap.width, bitmap.height) <= MAX_UPLOAD_EDGE) return { ...unchanged, thumb };",
+    "replace": "    if (Math.max(bitmap.width, bitmap.height) <= 100000) return { ...unchanged, thumb };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*re-encodes a 6000 px original"
+  },
+  {
+    "id": "b3-g7-prep-small",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    if (Math.max(bitmap.width, bitmap.height) <= MAX_UPLOAD_EDGE) return { ...unchanged, thumb };",
+    "replace": "    if (Math.max(bitmap.width, bitmap.height) < 0) return { ...unchanged, thumb };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*sends a 2400 px original unchanged"
+  },
+  {
+    "id": "b3-g7-prep-heic",
+    "kind": "file",
+    "test": "tests/unit/image-prep.test.ts",
+    "file": "src/lib/image-prep.ts",
+    "find": "    bitmap = await createImageBitmap(file);\n  } catch {\n    return unchanged;",
+    "replace": "    bitmap = await createImageBitmap(file);\n  } catch {\n    return { ...unchanged, type: \"image/jpeg\" };",
+    "run": "bunx vitest run --project unit tests/unit/image-prep.test.ts",
+    "expect": "× .*sends a file the browser cannot decode"
+  },
+  {
+    "id": "b3-ww-concurrency",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const CONCURRENCY = 3;",
+    "replace": "const CONCURRENCY = 40;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*never has more than 3 PUTs in flight"
+  },
+  {
+    "id": "b3-ww-index",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    const file = files[entry.index];",
+    "replace": "    const file = files[0];",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*uploads two files both named image.jpg"
+  },
+  {
+    "id": "b3-g7-queue-thumb",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    return file.thumb === null || put(signed.thumb_url, file.thumb, \"image/jpeg\");",
+    "replace": "    return true;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*sends each file's thumbnail right after"
+  },
+  {
+    "id": "b3-g7-queue-retry",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "  for (const wait of BACKOFF_MS) {",
+    "replace": "  for (const wait of []) {",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*retries one 500 on the same URL"
+  },
+  {
+    "id": "b3-g7-queue-only-failed",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "    const again = entries.filter((entry) => failed.has(entry.index));",
+    "replace": "    const again = entries;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*gives up after three retries"
+  },
+  {
+    "id": "b3-g7-queue-backoff",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const BACKOFF_MS = [1000, 3000, 9000];",
+    "replace": "const BACKOFF_MS = [1000, 3000];",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*gives up after three retries"
+  },
+  {
+    "id": "b3-g7-queue-batch",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/upload-queue.ts",
+    "find": "const SIGN_BATCH = 10;",
+    "replace": "const SIGN_BATCH = 1;",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*asks fetchMore three times"
+  },
+  {
+    "id": "b3-g7-send-progress",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "        onProgress,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*keeps the receipt when a PUT fails for good"
+  },
+  {
+    "id": "b3-g7-send-await",
+    "kind": "file",
+    "test": "tests/unit/upload-queue.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "      void runUploadQueue({",
+    "replace": "      await runUploadQueue({",
+    "run": "bunx vitest run --project unit tests/unit/upload-queue.test.ts",
+    "expect": "× .*keeps the receipt when a PUT fails for good"
+  },
+  {
+    "id": "b3-g7-svix-vector",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "`${headers.id}.${headers.timestamp}.${body}`",
+    "replace": "`${headers.id}.${body}`",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*accepts Svix's documented vector"
+  },
+  {
+    "id": "b3-g7-svix-several",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  return headers.signature.split(\" \").some((entry) => {",
+    "replace": "  return headers.signature.split(\" \").slice(0, 1).some((entry) => {",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*accepts the vector among several"
+  },
+  {
+    "id": "b3-g7-svix-compare",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    return given !== null && timingSafeEqual(given, expected);",
+    "replace": "    return given !== null;",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*refuses a changed body, id or timestamp"
+  },
+  {
+    "id": "b3-g7-svix-version",
+    "kind": "file",
+    "test": "tests/unit/resend-signature.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    if (version !== \"v1\" || value === undefined) return false;",
+    "replace": "    if (value === undefined) return false;",
+    "run": "bunx vitest run --project unit tests/unit/resend-signature.test.ts",
+    "expect": "× .*refuses another secret, another version"
+  },
+  {
+    "id": "b3-g7-parity-confirm",
+    "kind": "file",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    status: 303,\n",
+    "replace": "    status: 303,\n    cache: { sMaxAge: 1, tags: [\"catalog\"] },\n",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "× .*never stores the confirm link"
+  },
+  {
+    "id": "b3-g7-receipt-index",
+    "kind": "file",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "      index: z.number().int().nonnegative(),\n",
+    "replace": "      index: z.number().int().nonnegative().optional(),\n",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "× .*submissionReceiptSchema carries one entry per photograph"
+  },
+  {
+    "id": "b3-g7-subs-hash",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "      confirm_token_hash: await sha256Hex(token),",
+    "replace": "      confirm_token_hash: token,",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*merges two posts into one row"
+  },
+  {
+    "id": "b3-g7-subs-confirm",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "  return landing(confirmedSchema.parse(data) !== null);",
+    "replace": "  return landing(true);",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*confirms on a valid token"
+  },
+  {
+    "id": "b3-g7-subs-unconfirmed",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*lets a Place Notes source replace",
+    "procedure": "The source rule lives in upsert_subscriber only; its mutation is b3-aa, replayed in the rolled-back public-write.db.test.ts. Through supabase-js a rolled-back function is invisible (P-901) and only main changes mop-dev (R18)."
+  },
+  {
+    "id": "b3-g7-subs-pending",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*holds a Place Notes source for a confirmed",
+    "procedure": "DL-06 (a) lives in upsert_subscriber and confirm_subscriber; b3-yy and b3-g2-pending replay it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-lapsed",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*makes an unsubscribed address confirm again",
+    "procedure": "DL-06 (b) lives in upsert_subscriber and confirm_subscriber; b3-g2-lapsed and b3-zz replay it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-repermission",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*accepts a hash set on an already confirmed row",
+    "procedure": "The hash-only match lives in confirm_subscriber; b3-bb replays it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-same-kind",
+    "kind": "manual",
+    "test": "tests/api/subscribers.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*gives a confirmed address no new link",
+    "procedure": "The no-new-link rule lives in upsert_subscriber; b3-g2-confirmed-other replays it in the rolled-back public-write.db.test.ts (P-901, R18)."
+  },
+  {
+    "id": "b3-g7-subs-log",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "  const token = newToken();\n",
+    "replace": "  const token = newToken();\n  console.log(JSON.stringify({ event: \"event_pending\", email: input.email }));\n",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*writes no event_pending line"
+  },
+  {
+    "id": "b3-g7-subs-market",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  markets: z.array(marketSlugSchema).max(3).default([]),",
+    "replace": "  markets: z.array(z.string()).max(3).default([]),",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*refuses a market outside the three"
+  },
+  {
+    "id": "b3-g7-subs-email-limit",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 3, windowSeconds: HOUR },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 4, windowSeconds: HOUR },",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts",
+    "expect": "× .*refuses the 4th signup for one email"
+  },
+  {
+    "id": "b3-g7-hook-complaint",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (event.type !== \"email.complained\") return;",
+    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*unsubscribes the recipient of a complaint"
+  },
+  {
+    "id": "b3-g7-hook-dl06c",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (event.type !== \"email.complained\") return;",
+    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*makes a confirm link sent before a complaint"
+  },
+  {
+    "id": "b3-g7-hook-replay",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!receipt.data) return ok();\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*applies a replayed svix-id once"
+  },
+  {
+    "id": "b3-g7-hook-signature",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!(await verifySvix(secret, { id, timestamp, signature }, body))) throw refused();",
+    "replace": "  await verifySvix(secret, { id, timestamp, signature }, body);",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*refuses a bad signature"
+  },
+  {
+    "id": "b3-e",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (!Number.isInteger(sentAt) || Math.abs(Date.now() / 1000 - sentAt) > TOLERANCE_SECONDS) {",
+    "replace": "  if (!Number.isInteger(sentAt)) {",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*refuses a svix-timestamp 301 seconds old"
+  },
+  {
+    "id": "b3-g7-hook-forget",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "    const forgot = await db.rpc(\"forget_webhook_receipt\", { p_provider: PROVIDER, p_id: id });",
+    "replace": "    const forgot = { error: null };",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*answers 500 when the effect fails"
+  },
+  {
+    "id": "b3-g7-hook-secret",
+    "kind": "file",
+    "test": "tests/api/resend.api.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  if (secret === undefined) {",
+    "replace": "  if (secret === \"\") {",
+    "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
+    "expect": "× .*answers 503 unavailable while the signing secret"
+  },
+  {
+    "id": "b3-g7-subj-kind",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "      kind: input.kind,",
+    "replace": "      kind: \"deletion\",",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers 201 with a Receipt and stores one received"
+  },
+  {
+    "id": "b3-n",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "  const { data, error } = await db.rpc(\"create_subject_request\", {",
+    "replace": "  const known = await db.from(\"subscribers\").select(\"id\").eq(\"email\", input.email);\n  if ((known.data ?? []).length === 0) throw new AppError(\"not_found\");\n  const { data, error } = await db.rpc(\"create_subject_request\", {",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers the same Receipt shape"
+  },
+  {
+    "id": "b3-g7-subj-correction",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "export const subjectRequestKinds = [\"access\", \"deletion\", \"opt_out\", \"correction\"] as const;",
+    "replace": "export const subjectRequestKinds = [\"access\", \"deletion\", \"opt_out\"] as const;",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*takes a correction request as its own kind"
+  },
+  {
+    "id": "b3-g7-subj-sell",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  kind: z.enum(subjectRequestKinds),",
+    "replace": "  kind: z.string(),",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses kind sell with 422"
+  },
+  {
+    "id": "b3-g7-subj-ip",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"ip\", store: \"db\", limit: 3, windowSeconds: DAY },",
+    "replace": "      { scope: \"ip\", store: \"db\", limit: 4, windowSeconds: DAY },",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses the 4th request in a day from one IP"
+  },
+  {
+    "id": "b3-g7-subj-email",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "      { scope: \"email\", store: \"db\", limit: 2, windowSeconds: DAY },",
+    "replace": "      { scope: \"email\", store: \"db\", limit: 3, windowSeconds: DAY },",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses the 3rd request in a day for one email"
+  },
+  {
+    "id": "b3-g7-subj-token",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    turnstile: true,\n    form: true,\n    status: 201,\n    service: subjects.request,",
+    "replace": "    turnstile: false,\n    form: true,\n    status: 201,\n    service: subjects.request,",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*refuses a request without a Turnstile token"
+  },
+  {
+    "id": "b3-g7-subj-log",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/subjects/service.ts",
+    "find": "): Promise<Receipt> {\n",
+    "replace": "): Promise<Receipt> {\n  console.log(JSON.stringify({ event: \"request\", email: input.email }));\n",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*writes the address into no log line"
+  },
+  {
+    "id": "b3-j-subj",
+    "kind": "file",
+    "test": "tests/api/subjects.api.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (filled) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
+    "expect": "× .*answers a filled website field with 201 and writes no row"
+  },
+  {
+    "id": "b3-v",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "send(queue.splice(0, BATCH_SIZE))",
+    "replace": "send(queue.splice(0, 1))",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*sends 25 events made in a second"
+  },
+  {
+    "id": "b3-ii",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  if (!utmAllowed()) return undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*adds no utm and stores no mop_utm while the default predicate holds"
+  },
+  {
+    "id": "b3-g8-an-hidden",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "if (document.visibilityState === \"hidden\") flush();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*flushes at once when the page becomes hidden"
+  },
+  {
+    "id": "b3-g8-an-cut",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "params.get(name)?.slice(0, 100)",
+    "replace": "params.get(name)",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*cuts a long one to 100 characters"
+  },
+  {
+    "id": "b3-g8-an-stored",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "return parsed.success ? parsed.data : undefined;",
+    "replace": "return JSON.parse(stored) as Utm;",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*ignores a stored value that is not the three parameters"
+  },
+  {
+    "id": "b3-g8-an-nobase",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "if (siteConfig.apiBaseUrl && typeof navigator.sendBeacon === \"function\") {",
+    "replace": "if (typeof navigator.sendBeacon === \"function\") {",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*queues nothing when no API base URL is configured"
+  },
+  {
+    "id": "b3-g8-an-throws",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  } catch {\n    return undefined;\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*adds no utm and never throws when the storage fails"
+  },
+  {
+    "id": "b3-g8-an-empty",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "while (queue.length > 0) send(queue.splice(0, BATCH_SIZE));",
+    "replace": "do {\n    send(queue.splice(0, BATCH_SIZE));\n  } while (queue.length > 0);",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*sends nothing for an empty queue"
+  },
+  {
+    "id": "b3-g8-ev-one-call",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  const { error } = await db.rpc(\"record_analytics_events\", { p_rows: rows });\n",
+    "replace": "  let error = null;\n  for (const row of rows) {\n    ({ error } = await db.rpc(\"record_analytics_events\", { p_rows: [row] }));\n  }\n",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*stores a beacon of 20 envelopes"
+  },
+  {
+    "id": "b3-g8-ev-drop",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": ".filter(({ event }) => known.has(event))",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*drops an unknown event name with 204"
+  },
+  {
+    "id": "b3-g8-ev-clamp",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "Math.min(now + DAY_MS, Math.max(now - DAY_MS, given))",
+    "replace": "given",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*clamps occurred_at to within 24 hours of now"
+  },
+  {
+    "id": "b3-g8-ev-scrub",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "if (typeof value === \"string\") return maskEmails(value);",
+    "replace": "if (typeof value === \"string\") return value;",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*scrubs an email-shaped value from data and path"
+  },
+  {
+    "id": "b3-g8-ev-path",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "path: maskEmails(path),",
+    "replace": "path,",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*scrubs an email-shaped value from data and path"
+  },
+  {
+    "id": "b3-g8-ev-limit",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 120, windowSeconds: 60",
+    "replace": "limit: 1200, windowSeconds: 60",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*the 121st beacon in a minute from one address is 429"
+  },
+  {
+    "id": "b3-g8-ev-size",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": ".length <= 1024",
+    "replace": ".length <= 100000",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*rejects data over 1 KB with 422"
+  },
+  {
+    "id": "b3-g8-ev-utm",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "const utmValue = z.string().max(100).optional();",
+    "replace": "const utmValue = z.string().max(1000).optional();",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*answers 422 for a utm_source of 101 characters"
+  },
+  {
+    "id": "b3-g8-ev-batch",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": ".min(1).max(20);",
+    "replace": ".min(1).max(21);",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*answers 422 for 21 envelopes"
+  },
+  {
+    "id": "b3-g8-ev-failed",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  if (error !== null) logLine(\"warn\", \"analytics_store_failed\", { requestId: ctx.requestId });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*still answers 204 when the batch cannot be stored"
+  },
+  {
+    "id": "b3-g8-ev-31",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 120, windowSeconds: 60",
+    "replace": "limit: 30, windowSeconds: 60",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts 31 beacons to /events from one IP"
+  },
+  {
+    "id": "b3-g8-ev-table",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  const { error } = await db.rpc(\"record_analytics_events\", { p_rows: rows });",
+    "replace": "  const { error } = await db.from(\"analytics_events\").insert(rows);",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*never go through `.from\\(<table>\\).insert"
+  },
+  {
+    "id": "b3-o",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "const hits = new Map(lookup(getSearchIndex(catalog), input.text).map((hit) => [hit.slug, hit]));",
+    "replace": "const hits = new Map<string, { hits: number; fields: never[] }>();",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*finds a property by its architect"
+  },
+  {
+    "id": "b3-o-api",
+    "kind": "file",
+    "test": "tests/api/search-concierge.api.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "const hits = new Map(lookup(getSearchIndex(catalog), input.text).map((hit) => [hit.slug, hit]));",
+    "replace": "const hits = new Map<string, { hits: number; fields: never[] }>();",
+    "run": "bunx vitest run --project db tests/api/search-concierge.api.test.ts",
+    "expect": "× .*finds a property by a word only its title holds"
+  },
+  {
+    "id": "b3-x",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "const query = tokenize(text);",
+    "replace": "const query = text.toLowerCase().split(/\\s+/);",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*finds the singular by the plural"
+  },
+  {
+    "id": "b3-x-api",
+    "kind": "file",
+    "test": "tests/api/search-concierge.api.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "const query = tokenize(text);",
+    "replace": "const query = text.toLowerCase().split(/\\s+/);",
+    "run": "bunx vitest run --project db tests/api/search-concierge.api.test.ts",
+    "expect": "× .*returns the same property for a plural and its singular"
+  },
+  {
+    "id": "b3-g8-ti-fold",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "return token.endsWith(\"s\") ? token.slice(0, -1) : token;",
+    "replace": "return token;",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*folds plurals so a word and its plural are one token"
+  },
+  {
+    "id": "b3-g8-ti-prefix",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "query.length >= MIN_PREFIX && token.startsWith(query)",
+    "replace": "token.startsWith(query)",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*matches a prefix of three characters or more"
+  },
+  {
+    "id": "b3-g8-ti-hits",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "hit.add(word);",
+    "replace": "hit.add(slug);",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*counts the distinct query words that hit"
+  },
+  {
+    "id": "b3-bbb",
+    "kind": "file",
+    "test": "tests/unit/catalog.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "export async function getCatalog(db: Db): Promise<ServedCatalog> {\n  return (await readCatalog(db)).catalog;\n}",
+    "replace": "export async function getCatalog(db: Db): Promise<ServedCatalog> {\n  const { catalog } = await readCatalog(db);\n  (await import(\"../search/token-index\")).buildTokenIndex(catalog.properties);\n  return catalog;\n}",
+    "run": "bunx vitest run --project unit tests/unit/catalog.test.ts -t lazy_index",
+    "expect": "× .*lazy_index"
+  },
+  {
+    "id": "b3-g8-ix-version",
+    "kind": "file",
+    "test": "tests/unit/catalog.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "let index = indexes.get(catalog);",
+    "replace": "let index: TokenIndex | undefined;",
+    "run": "bunx vitest run --project unit tests/unit/catalog.test.ts -t lazy_index",
+    "expect": "× .*lazy_index"
+  },
+  {
+    "id": "b3-g8-se-rank",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "b.entry.score - a.entry.score ||",
+    "replace": "0 ||",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*puts the matcher's score before token hits"
+  },
+  {
+    "id": "b3-g8-se-limit",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": ".slice(0, input.limit)",
+    "replace": ".slice(0, 24)",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*honours the limit"
+  },
+  {
+    "id": "b3-g8-se-version",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/public/post-read.ts",
+    "find": "\"x-catalog-version\": String(catalogVersion),",
+    "replace": "\"x-catalog-version\": \"0\",",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*answers no-store, with the catalog version it read through"
+  },
+  {
+    "id": "b3-g8-se-reasons",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "reasons: [...entry.reasons, ...(hit?.fields ?? [])],",
+    "replace": "reasons: entry.reasons,",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*names the field that held the words"
+  },
+  {
+    "id": "b3-g8-co-404",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/concierge/service.ts",
+    "find": "if (property === undefined) {",
+    "replace": "if (false as boolean) {",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a concierge question the same way, and 404"
+  },
+  {
+    "id": "b3-g8-co-limit",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 30, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,",
+    "replace": "limit: 300, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
+  },
+  {
+    "id": "b3-g8-se-limit-60",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 60, windowSeconds: 60",
+    "replace": "limit: 600, windowSeconds: 60",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
+  },
+  {
+    "id": "b3-g8-cr-action",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "        action: \"showing\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*answers a showing request with the showing action"
+  },
+  {
+    "id": "b3-g8-cr-nearby",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "relatedProperties(pool, property, 1)[0]",
+    "replace": "relatedProperties([], property, 1)[0]",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*names a nearby property that is not the one asked about"
+  },
+  {
+    "id": "b3-g8-cr-status",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "property.status.toLowerCase()",
+    "replace": "\"open\"",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*answers availability from the status"
+  },
+  {
+    "id": "b3-xx",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "if (seen.has(key) || seen.size >= MAX_PER_PAGE) return;",
+    "replace": "if (seen.size >= MAX_PER_PAGE) return;",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*sends two identical errors on one route as one beacon"
+  },
+  {
+    "id": "b3-g8-re-cap",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "if (seen.has(key) || seen.size >= MAX_PER_PAGE) return;",
+    "replace": "if (seen.has(key)) return;",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*sends 12 distinct errors as 10 beacons"
+  },
+  {
+    "id": "b3-g8-re-stack",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "error.stack?.slice(0, STACK_CHARS)",
+    "replace": "error.stack",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-message",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "messageOf(error).slice(0, MESSAGE_CHARS)",
+    "replace": "messageOf(error)",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-route",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "route: route.slice(0, ROUTE_CHARS),",
+    "replace": "route,",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-id",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "carriesRequestId.safeParse(error).data?.requestId",
+    "replace": "undefined",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*takes the request id from an error that carries one"
+  },
+  {
+    "id": "b3-g8-re-ssr",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "  if (typeof window === \"undefined\") return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*does nothing on the server"
+  },
+  {
+    "id": "b3-g8-re-remove",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "window.removeEventListener(\"unhandledrejection\", onRejection);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*the remover takes both off"
+  },
+  {
+    "id": "b3-g8-re-reject",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "reportClientError(reason, { route: window.location.pathname });",
+    "replace": "reportClientError(\"x\", { route: window.location.pathname });",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*the remover takes both off"
+  },
+  {
+    "id": "b3-rrr",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "      ...sentryOptions(),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-side",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "side: \"browser\",",
+    "replace": "side: \"worker\",",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-wait",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "  ctx.wait(",
+    "replace": "  void (",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-stack",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "if (input.stack !== undefined) failure.stack = input.stack;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-release",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "...(input.release === undefined || input.release === \"\" ? {} : { release: input.release }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*takes the release and the request id from the body"
+  },
+  {
+    "id": "b3-g8-ce-limit",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 30, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,",
+    "replace": "limit: 3000, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 for the 31st post from one IP in a minute and reports 30"
+  },
+  {
+    "id": "b3-g8-ce-message",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "message: z.string().max(500),",
+    "replace": "message: z.string().max(5000),",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 422 for a message over 500 characters"
+  },
+  {
+    "id": "b3-tt",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (cache !== \"hit\" && cache !== \"miss\")",
+    "replace": "if (cache !== \"hit\" && cache !== \"miss\" && cache !== \"stale\")",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a stale catalog read"
+  },
+  {
+    "id": "b3-smoke-bypass-read",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (cache !== \"hit\" && cache !== \"miss\")",
+    "replace": "if (cache !== \"hit\" && cache !== \"miss\" && cache !== \"bypass\")",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read that bypassed the cache"
+  },
+  {
+    "id": "b3-smoke-version",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (headers.get(\"x-catalog-version\") === null) problems.push(\"no x-catalog-version\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read without x-catalog-version"
+  },
+  {
+    "id": "b3-smoke-read-status",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (properties.answer.status !== 200)\n        problems.push(`status ${String(properties.answer.status)}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read that answers 500"
+  },
+  {
+    "id": "b3-smoke-beacon",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "cache === \"bypass\" ? [] :",
+    "replace": "cache !== null ? [] :",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a beacon that is not bypass"
+  },
+  {
+    "id": "b3-smoke-no-services",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "else if (services !== \"live\")\n    report(new URL(\"/\", base).href, [`data-services ${String(services)}`]);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a home page that names no data-services"
+  },
+  {
+    "id": "b3-nnn",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (services === \"local\") print(\"api checks skipped (local adapter)\");\n  else if (services !== \"live\")\n    report(new URL(\"/\", base).href, [`data-services ${String(services)}`]);\n  else {",
+    "replace": "{",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*skips the API checks on a local adapter"
+  },
+  {
+    "id": "b3-smoke-skip-line",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "print(\"api checks skipped (local adapter)\");",
+    "replace": "print(\"api checks skipped\");",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*skips the API checks on a local adapter"
+  },
+  {
+    "id": "b3-rh-dehydrate",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "    dehydrate: () => ({ queryClientState: dehydrate(queryClient) }),",
+    "replace": "    dehydrate: () => undefined,",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*fills the browser's query cache from the server's dehydrated state"
+  },
+  {
+    "id": "b3-rh-hydrate",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "      hydrate(queryClient, data.queryClientState);",
+    "replace": "      void data;",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*serves a hydrated query without calling the catalog again"
+  },
+  {
+    "id": "b3-rh-client",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "export const getRouter = () => {\n  const queryClient = new QueryClient();\n",
+    "replace": "const queryClient = new QueryClient();\n\nexport const getRouter = () => {\n",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*gives each router its own query client"
+  },
+  {
+    "id": "b3-bc-budget",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES)",
+    "replace": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES * 2)",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails one of 160 KB"
+  },
+  {
+    "id": "b3-bc-nesting",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "if (other === id || id.startsWith(`${other}.`)) reach(manifest, otherKey, false, loaded);",
+    "replace": "if (other === id) reach(manifest, otherKey, false, loaded);",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*sums the entry, the route's chunk and the chunk of each route it nests in"
+  },
+  {
+    "id": "b3-bc-data",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/data\\/(?!exposure\\.ts$|faq\\.ts$)/,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/data/properties.ts"
+  },
+  {
+    "id": "b3-bc-admin",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/admin\\//,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/admin/screen.tsx"
+  },
+  {
+    "id": "b3-bc-admin-domain",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/domain\\/admin-/,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/domain/admin-roles.ts"
+  },
+  {
+    "id": "b3-bc-allow",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "/^src\\/data\\/(?!exposure\\.ts$|faq\\.ts$)/",
+    "replace": "/^src\\/data\\//",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone"
+  },
+  {
+    "id": "b3-bc-lazy",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "    for (const reachable of reach(manifest, key, true, new Set())) everything.add(reachable);\n",
+    "replace": "    for (const reachable of reach(manifest, key, false, new Set())) everything.add(reachable);\n",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/data/properties.ts"
+  },
+  {
+    "id": "b3-bc-unreachable",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "for (const key of everything) {",
+    "replace": "for (const key of entries) {",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone, and a chunk no public route reaches"
+  },
+  {
+    "id": "b3-bc-admin-route",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "!id.startsWith(\"admin\") && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone, and a chunk no public route reaches"
+  },
+  {
+    "id": "b3-bc-title",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "const found = titles.find((title) => text.includes(title));",
+    "replace": "const found = titles.find((title) => text.includes(title) && text === title);",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 1 when a property title of the seed is in any output file"
+  },
+  {
+    "id": "b3-bc-title-parse",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "const TITLE = /^\\s+title: (",
+    "replace": "const TITLE = /^\\s+titl: (",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*reads every title of the bundled properties"
+  },
+  {
+    "id": "b3-bc-usage",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "if (rest.length > 0 || output.startsWith(\"--\")) {",
+    "replace": "if (rest.length > 0) {",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*is a command: exit 0 on a clean output, 1 on a seeded one, 2 on a stray flag"
+  },
+  {
+    "id": "b3-bc-lines",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "for (const size of routes) print(`ok   ${size.route} ${String(size.bytes)} gzip bytes`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 0 and prints one line per route for a live output"
+  },
+  {
+    "id": "b3-bc-exit",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "return problems.length === 0 ? 0 : 1;",
+    "replace": "return 0;",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 1 on an entry of 160 KB"
+  },
+  {
+    "id": "b3-z",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev",
+    "file": "src/server/public/cache.ts",
+    "find": "    await cache.put(key, stored.clone());\n",
+    "replace": "",
+    "run": "bun run build && bunx wrangler dev --config .output/server/wrangler.json --port 8828 --persist-to ../.tmp/wrangler-cache-proof, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL GET /api/public/properties again"
+  },
+  {
+    "id": "b3-fff",
+    "kind": "manual",
+    "test": "scripts/bundle-check.mjs on a live build",
+    "file": "src/services/index.ts",
+    "find": "export const services: Services = import.meta.env.VITE_API_BASE_URL\n",
+    "replace": "export const services: Services = Reflect.get(import.meta.env, \"VITE_API_BASE_URL\")\n",
+    "run": "VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && node scripts/bundle-check.mjs",
+    "expect": "holds the seed title \"A residence shaped around the landscape.\" of src/data/properties.ts"
+  },
+  {
+    "id": "b3-af-id",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "return handlePublic(request, requestId, undefined, waitUntilOf(page));",
+    "replace": "return handlePublic(request, crypto.randomUUID(), undefined, waitUntilOf(page));",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*calls the public pipeline in-process with the page's request id"
+  },
+  {
+    "id": "b3-af-url",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "new URL(input, page.url)",
+    "replace": "new URL(input, \"https://matterofplace.com\")",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*calls the public pipeline in-process with the page's request id"
+  },
+  {
+    "id": "b3-af-init",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "{ ...init, headers }",
+    "replace": "{ headers }",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*keeps the method, the body and the headers of the call"
+  },
+  {
+    "id": "b3-af-ip",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "if (address !== null) headers.set(\"cf-connecting-ip\", address);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*hands on the visitor's address from the page request"
+  },
+  {
+    "id": "b3-af-noip",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "if (address !== null) headers.set(\"cf-connecting-ip\", address);",
+    "replace": "headers.set(\"cf-connecting-ip\", address ?? \"\");",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*sends no address when the page request had none"
+  },
+  {
+    "id": "b3-af-response",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "return handlePublic(request, requestId, undefined, waitUntilOf(page));",
+    "replace": "await handlePublic(request, requestId, undefined, waitUntilOf(page));\n  return new Response(\"[]\");",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*answers with the pipeline's response"
+  },
+  {
+    "id": "b3-af-context",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "const { requestId } = startContext.parse(getGlobalStartContext());",
+    "replace": "const context = getGlobalStartContext();\n  const requestId = context === undefined ? \"minted\" : startContext.parse(context).requestId;",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*refuses to run without the id of the page request, and mints none"
+  },
+  {
+    "id": "b3-c12-q",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev (the server render ignores q)",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "  const filterState = useFilters();\n",
+    "replace": "  const filterState = useFilters({ term: q ?? \"\" });\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL the stored /properties page links every slug: 0 of 16"
+  },
+  {
+    "id": "b3-c12-html-cache",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev (deps.cache wired to cachedResponse)",
+    "file": "src/start.ts",
+    "find": "cache: (page, render) => (hasDatabase ? cachedResponse(page, \"html\", render) : render()),",
+    "replace": "cache: (page, render) => (hasDatabase && page.method === \"NONE\" ? cachedResponse(page, \"html\", render) : render()),",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL GET /: 200 none"
   }
 ]

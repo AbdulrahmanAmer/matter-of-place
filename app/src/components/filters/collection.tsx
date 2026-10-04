@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { Property } from "../../domain/property";
+import type { PropertyCard } from "../../domain/property";
 import type { FilterState } from "../../hooks/use-filters";
 import { pluralize } from "../../lib/format";
 import { PropertyGrid } from "../site/property-card";
@@ -25,8 +25,8 @@ export function FilteredCollection({
   eyebrow: string;
   title: string;
   state: FilterState;
-  pool: Property[];
-  items: Property[];
+  pool: PropertyCard[];
+  items: PropertyCard[];
   locations: LocationOption[];
   tabs: ReactNode;
   /** Shown when nothing matches and no filter is active. */

@@ -107,6 +107,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.markets.$.tsx": "redirect",
   "_site.place-notes.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
+  "media.$.ts": "server",
   "sitemap[.]xml.ts": sitemapRoute,
 };
 

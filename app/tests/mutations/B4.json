@@ -408,10 +408,10 @@
     "id": "b",
     "test": "tests/unit/contracts.test.ts",
     "file": "src/domain/contracts.ts",
-    "find": "media: z.array(submissionMediaSchema).max(20).default([]),",
-    "replace": "media: z.array(submissionMediaSchema).max(21).default([]),",
+    "find": "media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),",
+    "replace": "media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles + 1).default([]),",
     "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
-    "expect": "FAIL .*> submissionSchema > rejects more than 20 media and accepts 20"
+    "expect": "FAIL .*> submissionSchema > rejects more than 40 media and accepts 40"
   },
   {
     "id": "o",

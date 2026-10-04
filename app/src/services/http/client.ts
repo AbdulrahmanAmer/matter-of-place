@@ -1,5 +1,5 @@
-import type { z } from "zod";
-import { ServiceError } from "../types";
+import { z } from "zod";
+import { ServiceError, type ServiceErrorKind } from "../types";
 
 /**
  * Minimal JSON client for the Matter of Place API. Every body is parsed with the response schema
@@ -13,6 +13,31 @@ export type ApiClient = {
   post<T>(path: string, body: unknown, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
 };
 
+/** A failed call, with the id the Worker logged it under so an error page can quote it (G33). */
+export class HttpServiceError extends ServiceError {
+  readonly requestId?: string;
+
+  constructor(kind: ServiceErrorKind, message: string, status: number, requestId?: string) {
+    super(kind, message, status);
+    this.name = "HttpServiceError";
+    if (requestId !== undefined) this.requestId = requestId;
+  }
+}
+
+const errorBodySchema = z.object({ error: z.object({ requestId: z.string().optional() }) });
+
+/** The `x-request-id` header, else the id in the error body; a body that is not JSON gives none. */
+async function requestIdOf(response: Response): Promise<string | undefined> {
+  const header = response.headers.get("x-request-id");
+  if (header !== null) return header;
+  try {
+    const body = errorBodySchema.safeParse(await response.json());
+    return body.success ? body.data.error.requestId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const withHeaders = (defaults: Record<string, string>, extra: HeadersInit | undefined) => {
   const headers = new Headers(defaults);
   new Headers(extra).forEach((value, key) => headers.set(key, value));
@@ -25,11 +50,14 @@ const kindForStatus = (status: number) => {
   return "server" as const;
 };
 
-export function createApiClient(baseUrl: string): ApiClient {
+/** What the client needs of `fetch`, so a test or the server-side loader can pass its own. */
+export type FetchImpl = (input: string, init: RequestInit) => Promise<Response>;
+
+export function createApiClient(baseUrl: string, fetchImpl: FetchImpl = fetch): ApiClient {
   const request = async <T>(path: string, shape: z.ZodType<T>, init: RequestInit): Promise<T> => {
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}${path}`, {
+      response = await fetchImpl(`${baseUrl}${path}`, {
         ...init,
         headers: withHeaders({ accept: "application/json" }, init.headers),
       });
@@ -37,7 +65,12 @@ export function createApiClient(baseUrl: string): ApiClient {
       throw new ServiceError("network", error instanceof Error ? error.message : "Network error");
     }
     if (!response.ok) {
-      throw new ServiceError(kindForStatus(response.status), response.statusText, response.status);
+      throw new HttpServiceError(
+        kindForStatus(response.status),
+        response.statusText,
+        response.status,
+        await requestIdOf(response),
+      );
     }
     return shape.parse(response.status === 204 ? undefined : await response.json());
   };

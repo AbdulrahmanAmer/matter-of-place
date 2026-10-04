@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { marketSlugSchema } from "./market.ts";
 import { propertySchema } from "./property.ts";
 
 /**
@@ -22,6 +23,9 @@ export const contactTopics = [
 ] as const;
 const contactTopicSchema = z.enum(contactTopics);
 export type ContactTopic = z.infer<typeof contactTopicSchema>;
+
+/** The hidden field every public form carries (GD-05): a person leaves it empty, the pipeline drops it before Zod. */
+export const honeypotFieldName = "website";
 
 const email = z.string().trim().email().max(254);
 const shortText = z.string().trim().max(200);
@@ -91,6 +95,9 @@ export const submitterKindLabels: Record<SubmitterKind, string> = {
  * of the database checks `properties_slug_format` and `slug_history_slug_format`; `__e2e-` is reserved for fixtures.
  */
 export const slugPattern = "^(__e2e-)?[a-z0-9]+(-[a-z0-9]+)*$";
+
+/** The `:slug` of a detail read, bounded only: a slug that no row holds is not found (404), never a validation error. */
+export const slugSchema = z.string().min(1).max(120);
 
 /**
  * Internal workflow. Never shown publicly; editorial acceptance must precede
@@ -173,16 +180,21 @@ export const uploadLimits = {
 export const currentRightsVersion = "2026-10-01";
 
 /**
+ * What a visitor may ask of their personal data: the values of the check on `subject_requests.kind` (G29).
+ */
+export const subjectRequestKinds = ["access", "deletion", "opt_out", "correction"] as const;
+
+/**
  * The HTTP statuses a redirect row may carry, the check on `redirects.status`.
  * @public
  */
 export const redirectStatuses = [301, 302, 307, 308] as const;
 
-/** Metadata for a photograph the submitter selected. Binary upload is a separate step (see docs). */
+/** Metadata for a photograph the submitter selected, within the limits of `uploadLimits`. The bytes follow in a separate request. */
 const submissionMediaSchema = z.object({
   name: z.string().min(1).max(255),
-  size: z.number().int().nonnegative(),
-  type: z.string().max(100),
+  size: z.number().int().nonnegative().max(uploadLimits.maxBytes),
+  type: z.enum(uploadLimits.types),
 });
 
 const optionalUrl = z
@@ -272,7 +284,7 @@ export const submissionSchema = z
     package: z.enum(exposurePackages),
     mediaBudget: z.number().nonnegative().optional(),
     rightsConfirmed: z.literal(true),
-    media: z.array(submissionMediaSchema).max(20).default([]),
+    media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),
     sourcePath: z.string().max(300),
   })
   .superRefine(submitterRules);
@@ -282,10 +294,12 @@ export const subscriberSchema = z.object({
   email,
   /** Where the visitor subscribed (home, stories, property slug). */
   source: z.string().max(120),
+  /** The markets the visitor wants to hear about: the values of the check `subscribers_markets_subset`. */
+  markets: z.array(marketSlugSchema).max(3).default([]),
 });
 export type SubscriberInput = z.input<typeof subscriberSchema>;
 
-const searchQuerySchema = z.object({
+export const searchQuerySchema = z.object({
   text: z.string().trim().min(1).max(500),
   limit: z.number().int().min(1).max(24).default(6),
 });
@@ -297,7 +311,7 @@ export const conciergeQuestions = [
   "Are there similar properties nearby?",
   "Can you send the full details?",
 ] as const;
-const conciergeQuestionSchema = z.object({
+export const conciergeQuestionSchema = z.object({
   propertySlug: z.string().min(1).max(120),
   question: z.enum(conciergeQuestions),
 });
@@ -310,17 +324,38 @@ export const receiptSchema = z.object({
 });
 export type Receipt = z.infer<typeof receiptSchema>;
 
+/**
+ * `POST /submissions`: one entry per photograph in `media`, matched by its `index` in that array, never by name
+ * (FE-04). The first ten carry their signed PUT targets; `upload_token` asks `POST /submissions/:id/uploads` for
+ * the rest (E2E-02).
+ */
 export const submissionReceiptSchema = receiptSchema.extend({
-  /** One signed PUT target per photograph named in `media`, valid for a short window. */
-  uploads: z.array(z.object({ name: z.string(), url: z.string() })),
+  upload_token: z.string(),
+  uploads: z.array(
+    z.object({
+      media_id: z.string(),
+      index: z.number().int().nonnegative(),
+      url: z.string().optional(),
+      thumb_url: z.string().optional(),
+    }),
+  ),
 });
 
-export const searchMatchSchema = z.object({
-  property: propertySchema,
-  score: z.number(),
-  reasons: z.array(z.string()),
+/** `POST /submissions/:id/uploads`: the signed targets of the photographs still without their file. */
+export const signedUploadsSchema = z.object({
+  uploads: z.array(z.object({ media_id: z.string(), url: z.string(), thumb_url: z.string() })),
 });
-export type SearchMatch = z.infer<typeof searchMatchSchema>;
+
+/** `GET /subscribers/confirm?token=`: the 32 random bytes of `newToken`, base64url. */
+export const confirmQuerySchema = z.object({ token: z.string().regex(/^[\w-]{43}$/) });
+
+/** `POST /subjects/request` (GP-01): what a visitor asks of the personal data we hold. */
+export const subjectRequestSchema = z.object({
+  email,
+  kind: z.enum(subjectRequestKinds),
+  note: z.string().trim().max(500).optional(),
+});
+export type SubjectRequest = z.infer<typeof subjectRequestSchema>;
 
 export const conciergeAnswerSchema = z.object({
   text: z.string(),
@@ -328,3 +363,99 @@ export const conciergeAnswerSchema = z.object({
   action: z.literal("showing").optional(),
 });
 export type ConciergeAnswer = z.infer<typeof conciergeAnswerSchema>;
+
+/**
+ * One row of `GET /properties` (PERF-06): the fields a card, the filters and the matcher read, and the hero's `card`
+ * rendition. Never the gallery, the video or the long text. It is the Zod twin of `PropertyCard` in `property.ts`.
+ */
+export const propertyCardSchema = propertySchema
+  .pick({
+    slug: true,
+    title: true,
+    market: true,
+    region: true,
+    city: true,
+    neighborhood: true,
+    state: true,
+    type: true,
+    style: true,
+    architect: true,
+    status: true,
+    price: true,
+    currency: true,
+    beds: true,
+    baths: true,
+    interiorSqFt: true,
+    publishedAt: true,
+    features: true,
+    heroRank: true,
+    featuredRank: true,
+    heroImage: true,
+  })
+  .extend({
+    heroVariants: propertySchema.shape.heroVariants.unwrap().pick({ card: true }).optional(),
+  });
+
+/** One answer of `POST /search`: the card of a property, how well it fits and why (the matcher reads card fields only). */
+export const searchMatchSchema = z.object({
+  property: propertyCardSchema,
+  score: z.number(),
+  reasons: z.array(z.string()),
+});
+export type SearchMatch = z.infer<typeof searchMatchSchema>;
+
+/** `POST /submissions/:id/uploads`: the next photographs to sign, with the token the first answer carried (E2E-02). */
+export const submissionUploadsSchema = z.object({
+  media_ids: z.array(z.string().uuid()).min(1).max(10),
+  upload_token: z.string().max(200),
+});
+
+/** `POST /client-error`: one error the browser caught (FE-09). */
+export const clientErrorSchema = z.object({
+  message: z.string().max(500),
+  stack: z.string().max(2048).optional(),
+  route: z.string().max(200),
+  release: z.string().max(100).optional(),
+  requestId: z.string().max(100).optional(),
+});
+export type ClientError = z.infer<typeof clientErrorSchema>;
+
+const utmValue = z.string().max(100).optional();
+
+/** The three campaign parameters of the landing address, as `track()` sends them in `data.utm` (G45). */
+export const utmSchema = z
+  .object({ utm_source: utmValue, utm_medium: utmValue, utm_campaign: utmValue })
+  .strict();
+export type Utm = z.infer<typeof utmSchema>;
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValue),
+    z.record(z.string(), jsonValue),
+  ]),
+);
+
+/** One analytics event as `track()` queues it. `event` is any string: the server drops a name it does not list. */
+const analyticsEnvelopeSchema = z.object({
+  event: z.string().min(1).max(60),
+  path: z.string().max(300),
+  at: z.string().datetime({ offset: true }),
+  data: z
+    .object({
+      /** The session's campaign attribution (G45), stored unchanged. */
+      utm: utmSchema.optional(),
+    })
+    .catchall(jsonValue)
+    .refine((data) => new TextEncoder().encode(JSON.stringify(data)).length <= 1024, {
+      message: "data is larger than 1 KB",
+    }),
+});
+
+/** The body of `POST /events`: one beacon, at most 20 envelopes. */
+export const analyticsBatchSchema = z.array(analyticsEnvelopeSchema).min(1).max(20);
+export type AnalyticsBatch = z.infer<typeof analyticsBatchSchema>;

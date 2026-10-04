@@ -1,14 +1,20 @@
 import { z } from "zod";
 import {
   conciergeAnswerSchema,
+  propertyCardSchema,
   receiptSchema,
   searchMatchSchema,
+  signedUploadsSchema,
   submissionReceiptSchema,
 } from "../../domain/contracts";
 import { marketSchema } from "../../domain/market";
 import { propertySchema } from "../../domain/property";
+import { prepareImage, type PreparedImage } from "../../lib/image-prep";
+import { getTurnstileToken } from "../../lib/turnstile";
 import { storySchema } from "../../domain/story";
-import { createApiClient } from "./client";
+import { createApiClient, type FetchImpl } from "./client";
+import { apiFetch } from "../../lib/api-fetch.functions";
+import { runUploadQueue } from "./upload-queue";
 import {
   ServiceError,
   type CatalogService,
@@ -33,11 +39,23 @@ const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
   }
 };
 
-export function createHttpServices(baseUrl: string) {
-  const api = createApiClient(baseUrl);
+/**
+ * A form write carries Turnstile's token, named for the route's bucket (G72, INT-02), when the browser has one, and
+ * the honeypot field `website`, empty unless a bot filled it.
+ */
+async function guarded<T extends object>(action: string, input: T) {
+  const token = await getTurnstileToken(action);
+  return {
+    body: { website: "", ...input },
+    init: { headers: token === null ? {} : { "x-turnstile-token": token } },
+  };
+}
+
+export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
+  const api = createApiClient(baseUrl, fetchImpl ?? apiFetch);
 
   const catalog: CatalogService = {
-    listProperties: () => api.get("/properties", z.array(propertySchema)),
+    listProperties: () => api.get("/properties", z.array(propertyCardSchema)),
     getProperty: (slug) =>
       nullOnNotFound(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
     listMarkets: () => api.get("/markets", z.array(marketSchema)),
@@ -49,32 +67,51 @@ export function createHttpServices(baseUrl: string) {
   };
 
   const inquiries: InquiryService = {
-    send: (input) => api.post("/inquiries", input, receiptSchema),
+    send: async (input) => {
+      const { body, init } = await guarded("inquiries", input);
+      return api.post("/inquiries", body, receiptSchema, init);
+    },
   };
 
   const submissions: SubmissionService = {
-    async send(input, files) {
-      const receipt = await api.post("/submissions", input, submissionReceiptSchema);
-      await Promise.all(
-        receipt.uploads.map(async (upload) => {
-          const file = files.find((candidate) => candidate.name === upload.name);
-          if (!file) return;
-          const response = await fetch(upload.url, {
-            method: "PUT",
-            headers: { "content-type": file.type || "application/octet-stream" },
-            body: file,
-          });
-          if (!response.ok) {
-            throw new ServiceError("server", `Upload failed for ${file.name}`, response.status);
-          }
-        }),
-      );
+    /**
+     * Prepares the photographs one at a time (decoding forty at once would exhaust a phone's memory), posts once
+     * and resolves as soon as the API has the submission; the files follow through the upload queue, so a failed
+     * PUT never turns a received submission into a failed one (FE-04).
+     */
+    async send(input, files, onProgress) {
+      const prepared: PreparedImage[] = [];
+      const media: { name: string; size: number; type: string }[] = [];
+      for (const file of files) {
+        const image = await prepareImage(file);
+        prepared.push(image);
+        media.push({ name: file.name, size: image.original.size, type: image.type });
+      }
+      const { body, init } = await guarded("submissions", { ...input, media });
+      const receipt = await api.post("/submissions", body, submissionReceiptSchema, init);
+      const more = `/submissions/${encodeURIComponent(receipt.id)}/uploads`;
+      void runUploadQueue({
+        entries: receipt.uploads,
+        files: prepared,
+        fetchMore: async (mediaIds) => {
+          const answer = await api.post(
+            more,
+            { media_ids: mediaIds, upload_token: receipt.upload_token },
+            signedUploadsSchema,
+          );
+          return answer.uploads;
+        },
+        onProgress,
+      });
       return { id: receipt.id, receivedAt: receipt.receivedAt };
     },
   };
 
   const newsletter: NewsletterService = {
-    subscribe: (input) => api.post("/subscribers", input, receiptSchema),
+    subscribe: async (input) => {
+      const { body, init } = await guarded("subscribers", input);
+      return api.post("/subscribers", body, receiptSchema, init);
+    },
   };
 
   const search: SearchService = {
