@@ -262,10 +262,13 @@
     },
     {
       "phase": "Phase 2",
-      "lane": "Hardening and launch",
+      "lane": "Hardening, acceptance and launch",
       "parts": [
         {
           "slice": "H1"
+        },
+        {
+          "slice": "H2"
         },
         {
           "slice": "L1"
