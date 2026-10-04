@@ -55,3 +55,20 @@ Proof 3, watched-fail replay of all 34 entries (`node scripts/watchfail.mjs --re
 Proof 4, `bun run check` (quiet): layout, typecheck, lint, knip, jscpd, stubs and format:check passed; the vitest stage printed `Test Files  1 failed | 110 passed (111)` with `× lint gives prettier/prettier the options of .prettierrc for it 29880ms` (`Test timed out in 20000ms`, its own limit, with two other lanes running). `bunx vitest run --project unit tests/unit/hygiene.test.ts tests/unit/mutation-registry.test.ts tests/unit/analytics-allowlist.test.ts` right after: `Test Files  3 passed (3)`, `Tests  61 passed (61)`. Load, banked as a hit on G-031.
 
 Proof 5: `bun run build` -> `quiet: ok (243 lines)`.
+
+## g1 · steps 1
+
+Repair after review. Fixed in `app/docs/coming-soon.md`, each from the plan line it states: launch checklist now follows L1 step 1 letters 1b to 1g, adds `gh variable set MOP_DB_PRODUCTION --body true` (B3b.md:136, L1.md:24), names `MOP_LAUNCHED` (L1 step 4e) and the rollback remedy; the illustrative section follows B3b.md:22, 105, 122 to 128 (one `IllustrativeNotice` block wherever an illustrative property shows, a separate `ILLUSTRATIVE PROPERTY` tag on cards and heroes); both who-flips lines name the chief and managing editor (B7.md:70 `markets.edit`); the flag recipe names `defaultFlags` as a literal (it is one in `src/domain/flags.ts`); the desktop flip leads with `with-coming-soon.ts` (G34); the seed line says `--images upload` waits for B9; the pointer-close focus line says where focus goes and that step 5 records it. Bank: P-008 and P-712 hit again, P-1300 added.
+
+Proof 1 (in `app/`):
+
+```
+$ node -e "const rows=...filter(l=>/^\| \x60/.test(l));...console.log(rows.length+' rows, '+bad.length+' bad')..."
+31 rows, 0 bad
+```
+
+Proof 2: `bun run check` (quiet, background) -> `exit=0`, stages layout, typecheck, lint, knip, jscpd, stubs, format:check and vitest ran; `quiet: ok (50 lines, showing the last 12)`.
+
+Proof 3: `bun run build` -> `quiet: ok (242 lines, showing the last 12)`.
+
+Proof 4: `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (38 path entries, 263 process entries)`.

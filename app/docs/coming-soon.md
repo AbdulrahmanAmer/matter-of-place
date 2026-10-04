@@ -10,7 +10,7 @@ Three independent layers keep an illustrative property off production.
 2. `settings.coming_soon_global` forces every collection empty whatever the markets say. Default false. It is how a designer or the operator sees the empty state on a database that holds the seed.
 3. `settings.environment` marks the one database. Once it is `production`, a trigger refuses an `Illustrative` property and the public catalog also hides any such row.
 
-A market opens when its first property is published (the `property.published` recipe, B8b) or when an admin turns the market switch off (`/admin/markets`). Opening bumps `catalog_version`, so the pages change within the 15 second state memo, not after the 5 minute edge cache.
+A market opens when its first property is published (the `property.published` recipe, B8b) or when the chief editor or the managing editor turns the market switch off (`/admin/markets`). Opening bumps `catalog_version`, so the pages change within the 15 second state memo, not after the 5 minute edge cache.
 
 While a market is coming soon, its photographs, the region photographs and the market guide hero are not rendered (CEO override S43). The pages are type on Bone and Ivory.
 
@@ -21,7 +21,7 @@ Flags are data in the `settings` row `flags`. They are read in one place: `getFl
 - `new_channels` and `archive_pages` are the stored flags, both false by default.
 - `coming_soon` is derived: `mergeFlags` adds it from `coming_soon_global`. It is never stored in the row.
 
-To add a flag, add its key to `featureFlags` in `src/domain/flags.ts`. `defaultFlags` is built from that list, so the default is false with no second edit. Read it only through `getFlags`. No migration is needed, the `/admin/settings` editor (B7 screen 24, B8b editor) lists the same array, and unknown keys in the row are ignored. Flipping a flag in production needs no deploy.
+To add a flag, add its key to `featureFlags` in `src/domain/flags.ts` and its default, false, to `defaultFlags` in the same file; the `Record` type refuses a flag without a default. Read it only through `getFlags`. No migration is needed, the `/admin/settings` editor (B7 screen 24, B8b editor) lists the same array, and unknown keys in the row are ignored. Flipping a flag in production needs no deploy.
 
 ## Consent record
 
@@ -35,7 +35,7 @@ Google Analytics (gtag.js only) loads only when the stored record allows it. The
 
 ## Who flips what
 
-- `markets.coming_soon`: staff with the markets permission in `/admin/markets` (screen 15, B7), or the publish recipe when a market's first property goes out.
+- `markets.coming_soon`: the chief editor or the managing editor (permission `markets.edit`, B7) in `/admin/markets` (screen 15), or the publish recipe when a market's first property goes out.
 - `settings.coming_soon_global`: an admin only, with a recent sign-in, in `/admin/settings` (screen 24).
 - Feature flags: an admin only, in the flags editor on `/admin/settings` (screen 24).
 - `settings.environment`: nobody by hand. `bun run set-env -- --target dev --value production` is the last act of the launch switch and cannot be undone by the same script.
@@ -45,19 +45,19 @@ Google Analytics (gtag.js only) loads only when the stored record allows it. The
 The local adapter serves the bundled illustrative data, so it cannot show an empty state. No local database exists (S50). Run the app in live mode against `mop-dev` with the global switch on.
 
 - In the browser: `/admin/settings`, `coming_soon_global` on. Turn it off when you finish.
-- From the laptop, before the launch switch only: `bun run db:psql -- -c "update settings set value = 'true'::jsonb where key = 'coming_soon_global'"`, and the same with `'false'::jsonb` to restore. `scripts/with-coming-soon.ts` does this around one command and restores the value it read.
-- After the launch switch every destructive or test command refuses (`refusing: production database`). Preview Workers then build with the local adapter and show the bundled seed.
+- From the laptop, before the launch switch only: `bun scripts/with-coming-soon.ts --value true -- <command>`. It takes the advisory lock `mop-dev-tests`, sets `coming_soon_global`, runs the command and restores the value it read, so it cannot collide with a committed test run on the same database (G34). It is the one way this slice flips the value from the laptop; do not run a bare `update` through `db:psql`, which takes no lock and has no production check.
+- After the launch switch `with-coming-soon.ts` refuses (`refusing: production database`), as does every destructive or test command. Preview Workers then build with the local adapter and show the bundled seed.
 
 ## Launch checklist
 
-This is L1's launch switch on the one database (ruling H35 (4)), then the assertion. Run it once, from `main`, in this order.
+The launch switch is L1 step 1, letters 1b to 1g, run once from `main` in letter order (ruling H35 (4); `workspace/05-plans/L1.md` holds the full text). This page names the parts that touch coming-soon mode.
 
-1. The previews lose the database pair, then the last `bun run db:reset` empties the database.
-2. B2's production seed: `bun run seed -- --target dev --mode reference --images upload` (markets, regions, notes and guide, all editorial, none illustrative).
-3. The first admin user.
-4. `bun run set-env -- --target dev --value production`.
-5. `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` against the production Worker. It exits 0 only when the properties list is empty, all three markets are coming soon, and no page carries `ILLUSTRATIVE` or a property card. `deploy.yml` runs it on every production deploy.
-6. Once a first property is published, the same script runs with `--after-launch`, which checks only that no page carries `ILLUSTRATIVE`.
+1. 1b: the previews lose the database pair, then the last `bun run db:reset` empties the database. 1c and 1d push the launch auth values and the job runner secrets.
+2. 1e: B2's production seed, `bun run seed -- --target dev --mode reference --images upload` (markets, regions, notes and guide, all editorial, none illustrative). The `upload` mode needs B9's media store and refuses until B9 has landed.
+3. 1f: the first admin user.
+4. 1g: `bun run set-env -- --target dev --value production`, then `gh variable set MOP_DB_PRODUCTION --body true`. Without the variable the deploy-time assertion below is skipped, silently.
+5. `deploy.yml` then runs `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` after every production deploy, only while `vars.MOP_DB_PRODUCTION` is `true`. It exits 0 only when the properties list is empty, all three markets are coming soon, and no page carries `ILLUSTRATIVE` or a property card. A failure fails the job after the deploy; the remedy is `bunx wrangler rollback`, not a retry. Run it by hand the same way for a first proof.
+6. L1 step 4e attaches the domain and sets `gh variable set MOP_LAUNCHED --body true`. From then on `deploy.yml` adds `--after-launch`, which runs one check, that neither `/` nor `/properties` carries `ILLUSTRATIVE`, because a published property and an open market are then expected (L1 step 7).
 
 ## Design decisions
 
@@ -89,7 +89,7 @@ One component in three scopes: home, collection pages (properties, stories) and 
 
 ### Illustrative wording
 
-`illustrative.*` renders only when the catalog says illustrative content is allowed (development and preview). The label sits quietly on a property card or property page. The block (`title`, `text`, `link`) sits once at the foot of the properties page and of a property page. Production never renders any of it. Stories carry no illustrative wording at all (G70), and the stories page drops its intro line "Sample stories, shown to set the format."
+`illustrative.*` renders only when the catalog says illustrative content is allowed (development and preview). `IllustrativeNotice` is one block (`label`, `title`, `text`, `link`). It renders wherever the page holds a property whose status is `Illustrative`, and nothing otherwise: under the hero on home, and on the properties, market, region and property pages. Cards and heroes carry a separate, smaller tag, `ILLUSTRATIVE PROPERTY`, only on an `Illustrative` property; it is not part of the copy table. Production never renders any of it. Stories carry no illustrative wording at all (G70), and the stories page drops its intro line "Sample stories, shown to set the format."
 
 ### Consent notice
 
@@ -160,7 +160,7 @@ Where each string appears: `eyebrow`, `*.title`, `*.text` and the `form.*` strin
 - It takes no focus on load and announces nothing on load.
 - The two buttons are native `button` elements whose accessible names are their visible text (`Allow`, `No, thank you`). The privacy link is a real link.
 - DOM order is the sentence, `Allow`, `No, thank you`, then the link, which is the phone order. On desktop the link is set under the sentence on the left, so Tab runs Allow, No thank you, then back to the link. A one-line bend, taken to keep a single DOM for both widths.
-- Closing by keyboard moves focus to the footer's `Cookie settings` button (`id="consent-change"`). Closing by pointer leaves focus where it is.
+- Closing by keyboard moves focus to the footer's `Cookie settings` button (`id="consent-change"`). Closing by pointer removes the clicked button with the row, so the browser returns focus to the page; nothing is announced and no ring shows. Step 5's consent spec records where focus lands, and this line changes if it does not hold.
 - Pressing `Cookie settings` reopens the row and moves focus to the region (`tabindex="-1"`), so a keyboard user hears its name and reaches `Allow` with the next Tab. This is user initiated, not on load.
 - The focus ring is the site's `:focus-visible` outline in `--foreground`.
 
