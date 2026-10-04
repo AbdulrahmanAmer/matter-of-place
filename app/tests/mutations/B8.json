@@ -834,5 +834,185 @@
     "replace": "throw new Error(\"selftest_nonretryable\");",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts",
     "expect": "× .*runs test.selftest_light to done"
+  },
+  {
+    "id": "ops-hook-no-store",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "\"cache-control\": \"no-store\"",
+    "replace": "\"cache-control\": \"max-age=60\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 200 ok as no-store plain text"
+  },
+  {
+    "id": "ops-hook-names",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "failing.join(\",\")",
+    "replace": "failing.join(\" \")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 naming every failing check"
+  },
+  {
+    "id": "al",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "!timingSafeEqual(bytes(token), bytes(secret))",
+    "replace": "false",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when the token differs"
+  },
+  {
+    "id": "ops-hook-prefix",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/lib/crypto.ts",
+    "find": "  if (a.length !== b.length) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when the token is a prefix of the secret"
+  },
+  {
+    "id": "ops-hook-unset",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "secret === undefined || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 404 with no RPC when OPS_HEALTH_TOKEN is unset"
+  },
+  {
+    "id": "ops-hook-log",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "  logLine(\"error\", \"ops_health_failed\", { message });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc and logs once"
+  },
+  {
+    "id": "ops-hook-no-key",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "    message = error instanceof Error ? error.message : String(error);",
+    "replace": "    throw error;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc when the Worker holds no database key"
+  },
+  {
+    "id": "ops-hook-shape",
+    "test": "tests/unit/jobs/ops-health-hook.test.ts",
+    "file": "src/server/hooks/ops-health.ts",
+    "find": "ok: z.boolean()",
+    "replace": "ok: z.unknown()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/ops-health-hook.test.ts",
+    "expect": "× .*answers 503 fail: ops_health_rpc to an answer of the wrong shape"
+  },
+  {
+    "id": "aj",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    await beat(db, tick.summary.claimed);\n  }",
+    "replace": "  }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*beats once per runOnce as runner"
+  },
+  {
+    "id": "beat-finally",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "    await reapStaleJobs(db);\n    return tick.summary;\n  } finally {\n    await beat(db, tick.summary.claimed);\n  }",
+    "replace": "    await reapStaleJobs(db);\n    await beat(db, tick.summary.claimed);\n    return tick.summary;\n  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*beats once also when the tick throws"
+  },
+  {
+    "id": "beat-log",
+    "test": "tests/unit/jobs/runner.test.ts",
+    "file": "src/server/jobs/runner.ts",
+    "find": "if (error !== null) logLine(\"error\", \"runner_beat_failed\", { message: error.message });",
+    "replace": "if (error !== null) return;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/runner.test.ts -t beat",
+    "expect": "× .*logs a failing beat RPC once"
+  },
+  {
+    "id": "ops-health-ok",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', false, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"answers ok with no failing name\"",
+    "expect": "× .*answers ok with no failing name"
+  },
+  {
+    "id": "ak",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '30 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names runner when its beat is 4 minutes old\"",
+    "expect": "× .*names runner when its beat is 4 minutes old"
+  },
+  {
+    "id": "ops-health-no-row",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at < p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"never beaten\"",
+    "expect": "× .*names runner when the runner has never beaten"
+  },
+  {
+    "id": "bg",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names stale_queue\"",
+    "expect": "× .*never for a run_local job"
+  },
+  {
+    "id": "ops-health-dead",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names dead_jobs\"",
+    "expect": "× .*names dead_jobs for a job dead 23 hours ago"
+  },
+  {
+    "id": "ops-health-schedules",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"watches keepwarm and backup\"",
+    "expect": "× .*watches keepwarm and backup only while"
+  },
+  {
+    "id": "bg-liveness",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.jobs_liveness(p_now timestamptz default now())\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8b's keep-warm tick reports job_runner_stalled from these two values (JOB-04). A local job waits for the laptop\n  -- by design, so it never reads as a stalled runner (ruling H34 (2)).\n  select jsonb_build_object(\n    'runner_beat_at', (select h.at from public.ops_heartbeats h where h.name = 'runner'),\n    'oldest_due_age_s', (\n      select floor(extract(epoch from p_now - min(j.run_after)))::bigint\n      from public.jobs j\n      where j.status in ('queued', 'failed') and j.run_after <= p_now\n    )\n  );\n$$;\n\nrevoke execute on function public.jobs_liveness(timestamptz) from public, anon, authenticated;\ngrant execute on function public.jobs_liveness(timestamptz) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"leaving run_local jobs out\"",
+    "expect": "× .*leaving run_local jobs out"
+  },
+  {
+    "id": "beat-upsert",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.beat(p_name text, p_detail jsonb)\nreturns void\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- DO-03: the one writer of ops_heartbeats; ops_health reads how old each row is.\n  insert into public.ops_heartbeats (name, at, detail)\n  values (p_name, now(), p_detail)\n  on conflict (name) do nothing;\n$$;\n\nrevoke execute on function public.beat(text, jsonb) from public, anon, authenticated;\ngrant execute on function public.beat(text, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"keeps one row per name\"",
+    "expect": "× .*keeps one row per name and replaces its detail"
+  },
+  {
+    "id": "ops-health-grants",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "grant execute on function public.ops_health(timestamptz) to anon;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"only service_role may execute\"",
+    "expect": "× .*only service_role may execute beat"
+  },
+  {
+    "id": "job-cron-timeout",
+    "test": "tests/db/ops-health.db.test.ts",
+    "file": "supabase/migrations/20261004023709_job_cron.sql",
+    "find": "timeout_milliseconds := 55000",
+    "replace": "timeout_milliseconds := 5000",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"re-applies to one row\"",
+    "expect": "× .*re-applies to one row every minute"
   }
 ]

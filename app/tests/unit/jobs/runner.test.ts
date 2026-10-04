@@ -98,10 +98,11 @@ interface Setup {
   light?: JobRow[];
   heavy?: JobRow[];
   readLight?: (qty: number) => { job_id: string; msg_id: number; read_ct: number }[];
+  beatError?: Error;
 }
 
 // The queues hold one message per listed job; claim_job claims a queued or failed row once.
-function setup({ jobs, light = [], heavy = [], readLight }: Setup): FakeDb {
+function setup({ jobs, light = [], heavy = [], readLight, beatError }: Setup): FakeDb {
   const find = (id: string) => jobs.find((row) => row.id === id);
   const claimed = new Set<string>();
   const message = (row: JobRow) => ({ job_id: row.id, msg_id: row.msg_id ?? 0, read_ct: 1 });
@@ -124,6 +125,7 @@ function setup({ jobs, light = [], heavy = [], readLight }: Setup): FakeDb {
       fail_job: () => true,
       requeue_job: () => true,
       reap_stale_jobs: () => ({ lease_expired: 0, callback_timeout: 0, resent: 0 }),
+      beat: () => beatError,
     },
   });
   // B3's fakeDb answers `from(...).select()` with no filter; the runner reads `run_local` with `.in("id", ids)`.
@@ -475,6 +477,32 @@ describe("runOnce messages", () => {
     expect(vi.mocked(fanoutPendingEvents).mock.calls).toEqual([[db, 50]]);
     expect(vi.mocked(runDueSchedules).mock.calls).toEqual([[db, NOW]]);
     expect(rpcNames(db).filter((name) => name === "reap_stale_jobs")).toHaveLength(1);
+  });
+});
+
+describe("runOnce beat", () => {
+  it("beats once per runOnce as runner with the number of jobs claimed", async () => {
+    step("t.done", () => Promise.resolve({ status: "done" }));
+    const rows = [job("t.done"), job("t.done")];
+    const db = setup({ jobs: rows, light: rows });
+    await tick(db);
+    expect(rpcArgs(db, "beat")).toEqual([{ p_name: "runner", p_detail: { claimed: 2 } }]);
+  });
+
+  it("beats once also when the tick throws", async () => {
+    vi.mocked(fanoutPendingEvents).mockRejectedValueOnce(new Error("sweep_failed"));
+    const db = setup({ jobs: [] });
+    await expect(tick(db)).rejects.toThrow("sweep_failed");
+    expect(rpcArgs(db, "beat")).toEqual([{ p_name: "runner", p_detail: { claimed: 0 } }]);
+  });
+
+  it("logs a failing beat RPC once and still returns the summary", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const db = setup({ jobs: [], beatError: new Error("beat_down") });
+    expect(await tick(db)).toEqual({ claimed: 0, jobs: [] });
+    expect(logged.mock.calls.map(([line]) => String(line))).toEqual([
+      JSON.stringify({ level: "error", event: "runner_beat_failed", message: "beat_down" }),
+    ]);
   });
 });
 

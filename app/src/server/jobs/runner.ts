@@ -252,17 +252,29 @@ async function runBatch(tick: Tick, heavy: boolean, qty: number): Promise<boolea
   return read.data.length === qty;
 }
 
+// DO-03: the `runner` row the ops-health hook reads. A failed beat must not fail the tick; the row going stale is
+// what the monitor sees.
+async function beat(db: Db, claimed: number): Promise<void> {
+  const { error } = await db.rpc("beat", { p_name: "runner", p_detail: { claimed } });
+  if (error !== null) logLine("error", "runner_beat_failed", { message: error.message });
+}
+
 /**
  * One tick: the event sweep (JOB-07), the scheduler, the light queue in batches, at most HEAVY_PER_TICK
  * heavy jobs, then the reaper. No job starts after START_CUTOFF_MS; each runs under its own timeout.
+ * Every tick ends with one beat, also a tick that throws.
  */
 export async function runOnce(db: Db, opts: RunOptions): Promise<RunSummary> {
   const tick: Tick = { db, opts, started: Date.now(), summary: { claimed: 0, jobs: [] } };
-  await fanoutPendingEvents(db, FANOUT_LIMIT);
-  await runDueSchedules(db, opts.now ?? new Date());
-  let more = true;
-  while (more && !pastCutoff(tick)) more = await runBatch(tick, false, BATCH);
-  if (!pastCutoff(tick)) await runBatch(tick, true, HEAVY_PER_TICK);
-  await reapStaleJobs(db);
-  return tick.summary;
+  try {
+    await fanoutPendingEvents(db, FANOUT_LIMIT);
+    await runDueSchedules(db, opts.now ?? new Date());
+    let more = true;
+    while (more && !pastCutoff(tick)) more = await runBatch(tick, false, BATCH);
+    if (!pastCutoff(tick)) await runBatch(tick, true, HEAVY_PER_TICK);
+    await reapStaleJobs(db);
+    return tick.summary;
+  } finally {
+    await beat(db, tick.summary.claimed);
+  }
 }

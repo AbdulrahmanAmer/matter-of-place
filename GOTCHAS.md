@@ -1793,6 +1793,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the check reads the path before the `cd` takes effect, so `../x` resolves from the session folder (`E:\Matter Of Place`) to the drive root.
 - rule: give `rm` absolute paths only (`rm /e/mop-build/api/app/src/routes/spike.tsx`), and write scratch output (curl bodies, wrangler logs) into the session scratchpad, never into the lane folder.
 - proof: `rm /e/mop-build/api/spike-page.txt` removed the file that `rm ../spike-page.txt` was refused for (2026-10-03, B3 g1).
+- hit again: 2026-10-04, B8 g5: `cd app && ... > ../../ops-scratch-head.sql; ...; rm ../../ops-scratch-head.sql` was refused as `E:ops-scratch-head.sql` and the whole command did not run; the head went into the session scratchpad with Write instead.
 - added: 2026-10-03
 
 ## P-802 · B3 step 1 says B2's generated types "exist by now", but `src/db/types.ts` is only on `origin/slice/b2` until B2 merges
@@ -1950,4 +1951,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: lint is type-aware (R01, projectService) and `app/tsconfig.json` includes no `supabase/functions/**`, because Deno code has no Deno globals in the app's type environment. The fix in `eslint.config.js` (a block that extends `tseslint.configs.disableTypeChecked`, declares `Deno` and sets `projectService: false`) also switches off every type-checked rule for these files: `no-floating-promises` no longer runs there, and `deno check` does not catch a floating promise either.
 - rule: a new Deno entry needs that block and its `DENO_FILES` entry (H46) the moment it exists; a dropped `await` in a Deno file is caught only by review until a project block with Deno types replaces the disabled one (open follow-up of B8 g4).
 - proof: `cd app && node_modules/.bin/eslint supabase/functions/job-runner/index.ts; echo $?` → `0`; with `eslint.config.js` taken from the commit before 82600a5 (`git show 82600a5~1:app/eslint.config.js`) the same command prints `was not found by the project service` (watched, 2026-10-04).
+- added: 2026-10-04
+
+## P-910 · A lane's code that calls an RPC of its own unmerged migration cannot typecheck: `gen:types` reads mop-dev, which lacks the function
+- symptom: B8 g5 (step 6a) had to call `db.rpc("beat", ...)` in `runner.ts` and `db.rpc("ops_health", ...)` in the hook, and register both in `fakeDb`; `src/db/types.ts` had neither (`git grep -c '"beat":' -- app/src/db/types.ts` → no output), so the calls and the fakes are type errors. Ruling H57 forbids pushing the migration from the lane, `gen:types -- --db` reads mop-dev (P-508), and `--local` needs CI's stack, which does not exist yet.
+- cause: the generator only reads a live schema; the only live schema is the one `main` pushed. P-906 moved the `beat` case to step 6a, but step 6a meets the same wall.
+- rule: add the new table and function entries to `src/db/types.ts` in the generator's own shape (alphabetical place, its quoting and spacing, `Returns: undefined` for `void`, `Returns: Json` for `jsonb`, an argument with a default as optional), say so in the log, and list the regeneration as UNPROVEN: after `main` pushes the migration, `bun run gen:types -- --db` must print `wrote src/db/types.ts` and `git diff --exit-code src/db/types.ts` must exit 0. A diff there means the hand entries were wrong and the regenerated file wins.
+- proof: `cd app && git grep -c '"ops_heartbeats": {\|"beat":\|"ops_health":\|"jobs_liveness":' -- src/db/types.ts` → `4` on slice/b8 at B8 g5 and `bun run typecheck` exits 0; after main's push, the regenerate-and-diff above (UNPROVEN on 2026-10-04).
+- added: 2026-10-04
+
+## P-911 · pg_cron 1.6.4 replaces a job of the same name, so "unschedule by name first" (F16) has no observable effect and its watched-fail stays green
+- symptom: B8 g5 removed `select cron.unschedule('job-runner') where exists (...)` from `20261004023709_job_cron.sql` and replayed the re-apply case of `tests/db/ops-health.db.test.ts` (the migration run twice in one transaction): `WATCHED-FAIL BAD: stayed green`. The case still found exactly one `job-runner` row.
+- cause: since pg_cron 1.3, `cron.schedule(job_name, schedule, command)` updates the existing job of that name instead of adding a second one; mop-dev runs `pg_cron` 1.6.4 (`select extversion from pg_extension where extname = 'pg_cron'`).
+- rule: keep the unschedule line where a plan requires it (B2's `analytics-partitions` and B8's cron migrations do), but do not register a watched-fail for it and do not claim a test proves it; the re-apply property (one row after two applies) is what the test asserts. A plan that wants a guard against an older pg_cron says so.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --file supabase/migrations/20261004023709_job_cron.sql --find "<the two unschedule lines>" --replace "" --run "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"re-applies to one row\"" --expect "× .*re-applies"` → `WATCHED-FAIL BAD: stayed green` (measured 2026-10-04, B8 g5).
+- added: 2026-10-04
+
+## G-350 · In PL/pgSQL, `text[] || 'literal'` reads the literal as an array and raises `malformed array literal`
+- paths: app/supabase/sql/functions/**
+- severity: warn
+- symptom: B8 g5's first `ops_health` built its list with `v_failing := v_failing || 'runner'` and the probe on mop-dev raised `ERROR:  malformed array literal: "runner"` with `DETAIL:  Array value must start with "{" or dimension information.`
+- cause: `||` has both `anyarray || anyelement` and `anyarray || anyarray`; an untyped string literal resolves to the array form, so Postgres parses `'runner'` as an array literal.
+- rule: append to an array with `array_append(v_list, 'name')` (or cast the literal, `'name'::text`); never `v_list || 'name'`.
+- proof: `cd app && bun run db:psql -- -Atc "select array['a'] || 'b'"` → `ERROR:  malformed array literal: "b"`; `select array_append(array['a'], 'b')` → `{a,b}` (measured 2026-10-04, B8 g5).
 - added: 2026-10-04

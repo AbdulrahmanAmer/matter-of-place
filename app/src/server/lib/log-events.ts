@@ -4,6 +4,8 @@ export const LogEvent = [
   "env_invalid",
   "env_optional_missing",
   "media_public_base_unset",
+  "runner_beat_failed",
+  "ops_health_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];
