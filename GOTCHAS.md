@@ -559,6 +559,7 @@ Entry template
 - proof: `git status --short` showed ` M .claude/workflows/build-slice.js` after the failure; after `git checkout -- .claude/workflows/build-slice.js` the parse check passed; `grep -c 'proof: a test file with \`it.each' <scratchpad>/trace/ruling-h43.mjs` prints 1 only when the backslash is part of the pattern.
 - merged: P-119
 - added: 2026-10-02
+- hit again: 2026-10-04, B3 g7 follow-ups: `sed -i "1621,1630d"` removed a range read off a `grep -n` of two headings, one line past the entry (the next entry's heading and symptom went with it); `git diff --stat` showed 9 deletions where 8 were meant, restored from a backup copy. Delete a block by the lines of its own heading and the blank line before the next heading, and read `git diff` before the commit. Proof: `grep -c "hit again: 2026-10-04, B3 g7 follow-ups" GOTCHAS.md` prints 1.
 
 ## P-130 · The shell on this laptop prints "EDT" for Egypt Daylight Time, not US Eastern
 - symptom: every time written with `date "+%H:%M %Z"` reads "EDT". The progress board took the label as US Eastern, stored the build's start with the offset -04:00, and reported 6.1 hours of work where 13.2 had passed, so its pace line was wrong by a factor of two.
