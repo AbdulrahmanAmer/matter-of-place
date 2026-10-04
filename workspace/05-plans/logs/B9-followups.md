@@ -163,3 +163,9 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 5. `app/src/server/assets/voice.ts` (not blocking)
    - What: These follow-ups carry over from the author's own list and none blocks. usage.input_tokens counts only uncached input, so B14 will under-count. alt_text and slide_alts are not linted for em dashes or banned words. The .slice(0, 25) in captions-runner.ts repeats .limit(25), and the fake database ignores limit. The render-hook 299 s flake is in B8's file (P-729).
    - Evidence: The author's unproven list. Reading voice.ts:142-189 shows lintCaption is applied only to the three caption variants.
+
+## c9m · steps 7
+
+1. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: UNPROVEN, as the author already admits. Neither the CI migration-order step nor the db job has run on the PR with the renamed files. The local migration-order gate is green against the current origin/main, but if main gains a migration newer than 20261004172322 before PR 117 merges, the same refusal comes back. The log's statement that 'the db job stays the proof' is correct, but that proof has not been seen yet.
+   - Evidence: No CI run exists for e6ea262 (brief). Local: node scripts/check-migrations.mjs printed 'migration-order: OK (25 on main, 2 added)' against origin/main as fetched at review time.
