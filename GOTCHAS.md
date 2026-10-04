@@ -2536,6 +2536,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/111479744989/logs | grep -a "FAIL .*db"` → the two lines above (2026-10-04, B4 g6).
 - added: 2026-10-04
 
+## P-428 · Watched-fail (dd) as B4 words it stays green: `create table zz_once (id int)` re-applies, because `db:reset -- --local` drops `public` first
+- symptom: B4 step 8's re-apply drill adds `create table zz_once (id int)` to a scratch migration and expects the `db` job red at `bun run db:reset -- --local`. On the drill branch (run 37217783985) the migration held that line and then `create schema zz_once_schema`; the re-apply ran the table line without error and failed only on `ERROR: schema "zz_once_schema" already exists (SQLSTATE 42P06)`.
+- cause: `emptyDatabase` in `scripts/db-reset-dev.mjs` drops `public` and `app` before the push, so any object in those schemas is gone when the migration runs again; only objects elsewhere (a new schema, `extensions`, a role) survive the reset.
+- rule: a re-apply drill creates something outside `public` and `app` without `if not exists` (a schema is the simplest); the table line of the plan proves nothing.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/111481729402/logs | grep -a "already exists"` → the schema line only (2026-10-04, B4 g6).
+- added: 2026-10-04
+
 ## P-426 · Replaying the registry entry `fd-harness` against the dev project commits one fixture row
 - symptom: B4 g6's replay of `fd-harness` (a `sql` entry whose mutation is `commit`) left 12 fixture submissions on the dev project where the data set holds 11.
 - cause: the entry proves `withRollback` rolls back by ending its transaction early, so the row it writes is committed wherever the replay runs; in CI that is the job's own stack, on the laptop it is the shared database.
