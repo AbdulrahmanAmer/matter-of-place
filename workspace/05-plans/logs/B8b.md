@@ -390,3 +390,27 @@ Bank: P-1613 added, P-1612 and P-094 and P-713 extended.
 
 ## c2s · follow-ups recorded
 The c2s review found no blocking defect and four follow-ups; no code changed. One concerned GOTCHAS.md and is banked as P-1614 (a backgrounded `bun run check` read before its completion notice gave an untrustworthy exit code). The other three (plan Files-list line for step-specs.test.ts still says "under tests/"; spawnSync failure drops child.error in testTitles(); no `.vitest/` line in app/.gitignore) are in `workspace/05-plans/logs/B8b-followups.md` under "## c2s · steps 2" for the orchestrator to fold or assign.
+
+## c3r · steps 4
+Started from main at fbfd3dd (git merge-base origin/main HEAD; origin/main is an ancestor, no merge needed); proofs run on the tree at 1b27cca, handed in with the log commit that follows it. No code changed: every proof below passed. 2026-10-04 23:39 +0300.
+Scope: the first half of step 4 (fan-out, scheduler, cron, seed and schedules migrations). The plan's proof also names `bump-catalog-version.test.ts`, `purge-cache.test.ts` and `tests/unit/scheduled.test.ts`; those files do not exist yet (second half of step 4), so they were not run here: NOT DONE in this group.
+- `bunx vitest run tests/unit/automation/cron.test.ts tests/unit/automation/scheduler.test.ts tests/unit/automation/fanout.test.ts`
+   Test Files  3 passed (3) /      Tests  34 passed (34)
+  (fanout.test.ts includes "a first event whose RPC throws does not stop the second" and "a failure record_fanout_failure cannot store is logged and the sweep goes on")
+- `bunx vitest run tests/unit/readpath.test.ts -t "table writes"`
+   Test Files  1 passed (1) /      Tests  1 passed | 4 skipped (5)
+- `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` (from `app/`) → deno exit=0
+- dev profile, `node ../workspace/05-plans/quiet.mjs -- env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bunx vitest run --project db tests/db/automation.db.test.ts`
+   Test Files  1 passed (1) /      Tests  28 passed (28) / quiet: ok (5 lines, showing the last 5)
+  (local run against mop-dev inside rolled-back transactions, the seed and schedules migration text run in the test; `ci.yml` has jobs run, check, build, merge-gate and no `db` job, so the CI `db` line of the plan is UNPROVEN)
+- `bun run scripts/stubs.ts` → `stubs: 10 markers, 0 on closed slices`; lines with `STUB(B8b step 4)`: 0
+- `grep -rn "reconcile_uploads\|reconcile-uploads\|has_markets\|build_issue" src supabase` → nothing, exit 1
+- `grep -rn "—" supabase/migrations/*automation_seed.sql` → nothing, exit 1
+- `node scripts/check-migrations.mjs` → migration-order: OK (27 on main, 2 added)
+- dev profile, `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node scripts/watchfail.mjs --registry tests/mutations --changed origin/main`
+   watchfail: replayed 208: ok 208, bad 0, stale 0; manual 2 not replayed; 1892 not selected
+  (42 of them are `b8b-g3-*`, among them the brief items g, t, y, ac, a, ah, an, aj, aj-deno, seed-twice, fan-unrecorded, sch-cron-invalid; `git status` clean afterwards)
+- `node ../workspace/05-plans/quiet.mjs -- bun run check` (foreground, P-1614) → layout, typecheck, lint, knip, jscpd, stubs, format:check, unit and component tests; `quiet: ok (49 lines, showing the last 12)`, check exit=0
+- `node ../workspace/05-plans/quiet.mjs -- bun run build` → `quiet: ok (235 lines, showing the last 12)`, build exit=0
+UNPROVEN until after the merge and the `dev` job: the post-merge selects on mop-dev (18 recipes, eight schedule rows, no `prune` or `reconcile_uploads` in cron.job, a `tz` per channel), the `job-runner` deploy as the runtime import proof of `npm:cron-parser@5.10.1`, its 200 with `"claimed"`, and the scheduler's `reconcile:<UTC date>T<HH:MM>` job `done`.
+Bank: nothing cost a second attempt in this group; no entry added.
