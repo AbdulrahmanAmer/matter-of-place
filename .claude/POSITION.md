@@ -1004,3 +1004,22 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   round trip; B3 step 12 item 8 and the production Worker secrets at L1; README regenerated with this commit.
 - NEXT: open B8b (new lane), B9 steps 7 to 11 (design lane); B13 and B17 after B3b lands (shared files); B7 after B8b
   steps 1 to 5; B5 after B8b step 2; B16 rest after B3b and B5.
+
+## 2026-10-05 00:35 · B3b closed; five lanes; the production switch waits on two secrets
+- Closed today: B3 (2ab9d52) and B3b (9529d0a). On main besides: B8 to 8a plus 2a and two close-outs, B8b step 1, B9 to 9 with
+  the seed image upload, B15 step 3, B4 steps 1 to 5 (6 to 10 accepted or in review on the lane). Board 88 of 259 at
+  midnight; 10 slice pull requests merged since 14:00. Pace about 3 steps an hour at 4 to 5 lanes; the laptop's processor
+  is the ceiling (99 to 100 percent at five lanes).
+- Rulings and upgrades on main: H59 (hash-only chunk names), H60 and S67 (the builder's own pass before commit),
+  P-513 to P-518 (scope is the step text; gh variable from Git Bash; never stop an unknown shell; sizing must cover
+  every step; the merge agent renames an out-of-order migration; an after-the-merge note does not stop the merge).
+- WAITING ON OPERATOR, none launch-blocking today: (1) GITHUB_DISPATCH_TOKEN, a fine-grained GitHub token (this
+  repository, Actions read and write) into .env, then `bunx supabase secrets set GITHUB_DISPATCH_TOKEN=...` for the
+  heavy render jobs (P-912); (2) CF_ANALYTICS_TOKEN, a Cloudflare token with Account Analytics Read, for B4's CPU gate;
+  (3) the production Turnstile pair (site key as the repository variable VITE_TURNSTILE_SITE_KEY for production builds,
+  secret as PROD_TURNSTILE_SECRET in .env), after which the orchestrator puts the production Worker's five secrets
+  (B3 step 12 item 8) and sets PRODUCTION_DEPLOY on (H49 (1)); (4) the contract note to Omnikom (B15, S59).
+- Lanes now: tests (B4 9 and 10 second review, then merge), auto (B8b c3r then 4a, 5), handoff (B15 4), seo (B13),
+  site (B17). Idle: coming, api, db, design, ops, legal, audit, email, spine.
+- NEXT: B5 after B8b step 4 merges email_templates (email lane); B7 after B8b step 5 (new lane, 20 steps, the
+  biggest); B16 rest after B5 and B17; B14, B6, B10 to B12 after B7; H1 after the B slices; then H2, then L1.

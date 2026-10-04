@@ -2862,3 +2862,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `git status --short` before `git fetch -q origin && git merge origin/main`; commit (or stash) every dirty file the merge would touch first, then merge, then `node workspace/05-plans/check-gotchas.mjs`.
 - proof: `d=$(mktemp -d) && cd "$d" && git init -q -b main . && git config user.email a@b && git config user.name x && echo a > f && git add f && git commit -qm a && git checkout -qb side && git checkout -q main && echo b > f && git commit -qam b && git checkout -q side && echo c > f && git merge main 2>&1 | grep -c "would be overwritten by merge"` → `1` (measured 2026-10-04); with `git commit -qam c` before the merge the merge starts instead.
 - added: 2026-10-04
+
+## P-518 · A group whose orchestrator note begins "After the merge" stopped the run before the merge; the slice ended fully accepted with its pull request open
+- symptom: B3b's run `wf_9db11d34-9b1` accepted every step, ran the bank records and ended; PR 128 stayed an open draft with checks pending. The final merge never ran.
+- cause: `stoppedForOrchestrator` treated any `needsOrchestrator` text on an accepted group as a stop, and g7's note said "After the merge: gh variable set PRODUCTION_DEPLOY ...", an action that needs the merge first.
+- rule: a note that starts with "After the merge" does not stop the final merge (the regex in `build-slice.js`); the orchestrator acts once main holds the slice. Any other orchestrator note still stops the run before the merge.
+- proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
+- enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
+- added: 2026-10-05
