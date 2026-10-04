@@ -48,6 +48,7 @@ begin
   values ('test-rls-house', 'Test house', 'california', 'Berkeley', 'CA', '1 Test Way', 'Residence')
   returning id into v_property;
   insert into public.property_media (property_id, staging_path) values (v_property, 'staging/test/a.jpg');
+  insert into public.assets (property_id, kind) values (v_property, 'cover');
   insert into public.property_features (property_id, feature) values (v_property, 'Test');
   insert into public.property_related (property_id, related_slug) values (v_property, 'test-rls-other');
   insert into public.stories (slug, title, deck, category, market_slug)

@@ -29,6 +29,13 @@ export const errorCodes = {
   append_only: 409,
   upload_limit: 422,
   invalid_token_state: 422,
+  asset_incomplete: 422,
+  caption_lint_failed: 422,
+  rejection_note_required: 422,
+  invalid_target: 422,
+  manual_approval: 403,
+  asset_not_pending: 409,
+  asset_not_rejectable: 409,
   // B8b: the automation console (invariants 7, 8, 11 and 12, SEC-11).
   human_only: 403,
   unknown_trigger: 404,
