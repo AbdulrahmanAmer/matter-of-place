@@ -97,3 +97,15 @@
    - Evidence: Headers of the 503 from wrangler dev on port 8839: Content-Type, Cache-Control, X-Content-Type-Options, x-request-id; no Retry-After
 
 (A seventh follow-up, the reviewer's own cost with the secrets loader and the self-contradicting review brief, is banked as a "Hit again" line in GOTCHAS P-310.)
+
+## c5 · steps 5
+
+1. `app/docs/runbooks/delivery.md` (not blocking)
+   - What: Follow-up (not this group's file). The '## Deploys from main' paragraph (lines 270-275) lists every step of the dev job and still leaves out the new functions-deploy step. It also does not say that a failed function deploy, for example after an expired SUPABASE_ACCESS_TOKEN or a Supabase API error, now ends dev before the Worker deploy and so skips production (needs: dev). It does not say that the Worker rollback on a red smoke rolls back only the Worker: the runner stays at the new SHA, and scripts/rollback-runner.sh is the manual path. STANDARDS C23 asks a deploy-path change to update the rollback or incident runbook.
+   - Evidence: From my reading of delivery.md:270-275: 'When main holds a migration it first links the one project and runs bun run db:push ... a failed push ends the job before the Worker deploy. It builds like a preview ...' with no mention of the function deploy. deploy.yml:268-273 now adds functions-deploy between db-push and the Worker deploy, and deploy.yml:342-343 runs the rollback step only for the Worker.
+
+2. `.github/workflows/deploy.yml` (not blocking)
+   - What: Follow-up (C22). The cost comment in the header (lines 10-14, 'about 1 minute each ... (UNPROVEN)') was not updated for the new step. The dev job now also runs a supabase functions deploy --use-api (a bundle and upload) on every code push to main. The estimate is already marked UNPROVEN, so measure it on the first post-merge dev run, together with the UNPROVEN 'Deployed Functions' log check.
+   - Evidence: From my reading of deploy.yml:10-14: the cost lines describe dev as the Worker deploy only. The diff touches only lines 266-273.
+
+(A third follow-up, the reviewer's own cost with the actionlint binary missing from a review snapshot, is banked as GOTCHAS P-913.)

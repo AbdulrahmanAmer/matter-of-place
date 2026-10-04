@@ -1977,6 +1977,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx wrangler secret list --name matter-of-place` → `Worker "matter-of-place" not found` (2026-10-04 08:27 +0300); `bunx supabase secrets list --project-ref "$DEV_SUPABASE_PROJECT_REF" | grep -o '"name":"[A-Z_]*"'` lists `GITHUB_REPO` and `RENDER_CALLBACK_URL` and no `GITHUB_DISPATCH_TOKEN` after B8 g6.
 - added: 2026-10-04
 
+## P-913 · A review snapshot has no `scratch/`, so the author's actionlint proof cannot be re-run there: the reviewer downloads the binary into its own folder
+- symptom: reviewing B8 c5 (a `deploy.yml` change) in `E:/mop-build/ops-review`, the author's proof `scratch/actionlint/actionlint.exe -shellcheck= .github/workflows/deploy.yml` failed: `ls scratch/actionlint` printed `No such file or directory` and `which actionlint` found nothing.
+- cause: P-139 puts the actionlint binary in the lane's `scratch/`, which `.gitignore` ignores; `review-snapshot.mjs` makes the snapshot from a git commit and copies only `.env` and `app/.dev.vars`, so no ignored file reaches it.
+- rule: a reviewer of a workflow change does not look for the author's binary: it downloads the release into its own scratchpad (`gh release download v1.7.12 -R rhysd/actionlint -p '*windows_amd64.zip' -D <scratchpad>`, unzip) and runs `actionlint.exe -shellcheck= .github/workflows/<file>` from the snapshot root; exit 0 is the gate. An author's proof for a workflow names the release download as well as the scratch path. Whether `review-snapshot.mjs` should copy `scratch/actionlint` is the orchestrator's call (logged as a follow-up).
+- proof: `git check-ignore -v scratch/actionlint/actionlint.exe` → `.gitignore:37:scratch/	scratch/actionlint/actionlint.exe`; `grep -c "actionlint" workspace/05-plans/review-snapshot.mjs` → `0` (measured 2026-10-04).
+- added: 2026-10-04
+
 ## G-350 · In PL/pgSQL, `text[] || 'literal'` reads the literal as an array and raises `malformed array literal`
 - paths: app/supabase/sql/functions/**
 - severity: warn
