@@ -291,6 +291,7 @@ Entry template
 - proof: `until [ -f scratchpad/am1.png ]; do sleep 3; done; echo ready` → ready; `new Function(... 'return (async()=>{' + script + '})')` parses the workflow script that `node --check` rejects.
 - merged: P-046
 - added: 2026-09-30
+- hit again: 2026-10-04, B3 g8: `bun run typecheck`, `bun run build` and `bun run lint` each ran past the 120 second foreground limit (other lanes were running) and moved to the background; they were started with a background shell writing to a file and read with a bounded `timeout 110 bash -c 'until ...; do sleep 5; done'`.
 
 ## P-021 · Full-page screenshots misplace `position: fixed` UI and hide real defects
 - symptom: the phone sticky action bar and the desktop Ask button appeared mid-page over the fact row and Save/Share in `before/*.png`, and a footer line covered by the bar at page end was invisible.
@@ -595,6 +596,7 @@ Entry template
 - hit again: 2026-10-04, B3 g7: moving the database-limit lines of `write()` into a shared `dbLimited()` in `src/server/public/pipeline.ts` left `b3-c` and `b3-g5-pl-order-db` at 0 occurrences and `b3-g3-pipe-memory` at 2 (the new uncached GET path repeats the memory line); a read-only count of every `file` entry's `find` over the files `git diff --name-only` lists caught all three before the commit, and each was re-pointed and replayed `WATCHED-FAIL OK`. Also, the first replay call passed 20 ids to `--only` as a comma list and replayed nothing (`no entry with id b3-eee,...`). Proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b3-c` → `WATCHED-FAIL OK B3:b3-c`; `node scripts/watchfail.mjs --registry tests/mutations --only b3-c,b3-e` → `no entry with id b3-c,b3-e`.
 - hit again: 2026-10-04, B3 g5 repair: a replay with `--only <id1>,<id2>` matched no entry and ended `no entry with id <list>` (exit 64): `scripts/watchfail.mjs` compares `entry.id !== only` for one string. The rule above already says one id per call; it was typed from habit and its cost was listed in the repair round with the wrong entry (P-094). Loop over the ids: `for id in b3-a b3-b; do node scripts/watchfail.mjs --registry tests/mutations --only "$id"; done`.
 - added: 2026-10-02
+- hit again: 2026-10-04, B3 g8: the registry entry `b3-g8-se-rank` (drop the matcher's score from the sort) printed `WATCHED-FAIL BAD: stayed green`: the test's two properties had one token hit each, so the order held without the score. A mutation of an ordering rule needs a fixture where the other key alone would give the opposite order (here the token-only property has two hits against one).
 
 ## P-067 · Clearing a baseline "by fixing" is not making the tool quiet: a validator that validates nothing, and exports a later plan changes
 - symptom: `no-unsafe-type-assertion` on `(await response.json()) as T` was cleared with `z.custom<T>()`, which accepts any value (`z.custom().parse(42)` returns 42). Knip's unused exports were cleared by deleting `submissionStates` and `editorialRoles` (and their types) from `contracts.ts`, but B2.md lines 52, 53 and 132 and four review files tell B2 to change exactly those constants. A fresh reviewer found both; each cost a rework.
