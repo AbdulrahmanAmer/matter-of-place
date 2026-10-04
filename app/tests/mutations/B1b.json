@@ -2146,8 +2146,8 @@
     "id": "hy-lint-warnings",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"lint\": \"eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
-    "replace": "\"lint\": \"eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs\",",
+    "find": "\"lint\": \"eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
+    "replace": "\"lint\": \"eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "lint is type-aware, zero-warning and refuses the named rules"
   },
@@ -2164,8 +2164,8 @@
     "id": "hy-lint-warnings-gate",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "--config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\"",
-    "replace": "--config app/eslint.config.js workspace/05-plans/merge-gate.mjs\"",
+    "find": "--config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\"",
+    "replace": "--config app/eslint.config.js workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\"",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint runs on it from the repository root"
   },
@@ -2823,8 +2823,8 @@
     "id": "mg-gate-format-config",
     "test": "bun run format:check",
     "file": "package.json",
-    "find": "\"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
-    "replace": "\"prettier --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "find": "\"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs ../workspace/audits/tools ../scripts/audit\"",
+    "replace": "\"prettier --check . ../workspace/05-plans/merge-gate.mjs ../workspace/audits/tools ../scripts/audit\"",
     "run": "bun run format:check",
     "expect": "warn\\S*\\] \\.\\./workspace/05-plans/merge-gate\\.mjs"
   },
@@ -2832,7 +2832,7 @@
     "id": "mg-gate-lint-prettier",
     "test": "bun run lint",
     "file": "eslint.config.js",
-    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "find": "  { files: ROOT_SCRIPTS, rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
     "replace": "",
     "run": "bun run lint",
     "expect": "workspace.05-plans.merge-gate\\.mjs[\\s\\S]*prettier/prettier"
@@ -2850,7 +2850,7 @@
     "id": "hy-gate-lint",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": " && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs\",",
+    "find": " && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
     "replace": "\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint runs on it from the repository root"
@@ -2859,7 +2859,7 @@
     "id": "hy-gate-format-path",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"format:check\": \"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs\"",
+    "find": "\"format:check\": \"prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs ../workspace/audits/tools ../scripts/audit\"",
     "replace": "\"format:check\": \"prettier --config .prettierrc --check .\"",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint runs on it from the repository root"
@@ -2877,7 +2877,7 @@
     "id": "hy-gate-prettier",
     "test": "tests/unit/hygiene.test.ts",
     "file": "eslint.config.js",
-    "find": "  { files: [MERGE_GATE], rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
+    "find": "  { files: ROOT_SCRIPTS, rules: { \"prettier/prettier\": [\"error\", prettierOptions] } },\n",
     "replace": "",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint gives prettier/prettier the options of \\.prettierrc"

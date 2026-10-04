@@ -191,6 +191,7 @@ Entry template
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
 - hit again: 2026-10-04, B16 g1: a registry generator written through a Bash heredoc lost the backslash of `/\d/`, so the entry replayed `STALE: find occurs 0 times`; fixed with the Edit tool.
+- hit again: 2026-10-04, B14 g1: a `node -` patch fed from a heredoc wrote a code line whose escaped newline became a real line break, so `cache.mjs` stopped parsing and vitest printed `Failed to parse source for import analysis`; a second patch of the same kind failed on a `rep` anchor that held a `\n`. Edit code with the Edit tool or a Write-made script file. Proof: `grep -n 'join("' workspace/audits/tools/cache.mjs` shows the newline escape inside its string literal.
 - added: 2026-09-30
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
@@ -782,6 +783,7 @@ Entry template
 - hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
 - hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
 - hit again: 2026-10-04, B16 g1 retry: a stray `python3 - <<EOF` with an empty body hung 120 seconds and moved to the background; nothing it was meant to do needed python.
+- hit again: 2026-10-04, B14 g1 fix: a leading `python - <<'EOF'` before a `node -e` hung 120 seconds; the node edit ran only after the python process was killed by its process id, and the Edit calls made meanwhile duplicated an import. After a hung call read `git diff` before editing again.
 - added: 2026-10-02
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
@@ -1112,7 +1114,7 @@ Entry template
 - cause: the group file list is copied from the step's Files lines, which name the migration and its two read functions only; the manifest line and invariant 19 live in other sections.
 - rule: before writing, list every function the migration creates and every symbol the proof imports, and check each has a file in the list; a missing one that no later group of the slice names is added by the group that needs it and named in the log and the report, never silently. An index the plan names that an earlier migration already created is listed in a comment and asserted by name, not created twice.
 - proof: `cd app && git grep -c "publicPropertyKeys" -- tests/db/schema-manifest.ts` → `1` after B2 g8, `0` before; `ls supabase/sql/functions | grep -c bump_catalog_version` → `2` (measured 2026-10-03, B2 g8).
-- hit again: 2026-10-03, B3 g1: the brief for steps 1 and 1b omitted the tests of the libs, `tests/mutations/B3.json`, the keys of `tests/e2e/fixtures/routes.ts` and three `file` values of `tests/mutations/B4.json` that the route renames break; all were added by the group and named in the log.
+- hit again: 2026-10-04, B14 g1: the sized list named four paths; steps 2 and 3 also need `scripts/audit/lint-report.mjs`, `REPORT-TEMPLATE.md`, `ROUTINE-PROMPT.md`, `keywords.json`, `cost-alerts.md`, the nine unit tests, `tests/mutations/B14.json`, the `mop-auditor.md` line, and the lint, typecheck and format entries for the two root folders (`app/eslint.config.js`, `app/tsconfig.scripts.json`, `app/package.json`). Proof: `git diff --stat origin/main...slice/b14 | tail -1`.
 - added: 2026-10-03
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
@@ -1206,6 +1208,7 @@ Entry template
 - rule: one red `check` whose only message is a worker-start timeout is not a code failure: rerun the test step once and quote both runs (P-322 says the same of the database project); a case that fails the same way twice is real.
 - proof: `grep -n "Timeout waiting for worker to respond" workspace/05-plans/logs/B2.md` finds the g10 review's first run (measured 2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-04, B14 g1 review: `bun run check` exited 1 on `[vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts ... Timeout waiting for worker to respond` while another lane ran; `bun run test` alone then passed 49 files. The same review's combined audit-tests plus registry-replay call passed the 600 s tool ceiling (P-712). Proof: `grep -c "hit again: 2026-10-04, B14 g1 review" GOTCHAS.md` prints 1.
 
 ## P-331 · An agent shell can hold `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` of another project, and `serviceClient()` prefers them to the dev profile
 - symptom: B2 g11's first `bun run seed -- --target dev --mode full --images skip` printed `lock mop-dev-tests held` and then `seed: markets upsert failed: Could not find the table 'public.markets' in the schema cache`, three times, although `curl` with `DEV_SUPABASE_SERVICE_ROLE_KEY` read `markets` on mop-dev with 200 (`[]`). A `NOTIFY pgrst, 'reload schema'` changed nothing.
@@ -1259,6 +1262,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: an entry's `find` is a copy of code; any edit of the mutated file can change that code. `bun run check` does not replay the registry, and P-081 only covers new entries. Hit again in B1b c7: putting the merge script into `package.json`'s `lint` moved `hy-lint-warnings`; `replay.mjs --check` printed `BAD hy-lint-warnings: find occurs 0 times` before the commit. Hit again in B1b c7 (H49): the new end of the production `if:` and the new `current` step moved `hy-main-event` and `hy-dev-db-order` (`find occurs 0 times`); both were rebuilt from the file by a script and replayed red.
 - rule: after every edit of a file the registry mutates (`node -e "console.log([...new Set(require('./tests/mutations/B1b.json').map(e=>e.file))].join('\n'))"` lists them), run the replay runner's `--check` (every `find` occurs exactly once) before the commit, and rewrite a moved entry to the new code, then replay it red. Keep a mutated line's text stable when the change does not need to touch it (bind a new value under the old name rather than renaming what an entry finds).
 - proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
+- hit again: 2026-10-04, B14 g1: eight B1b entries went stale at once, see P-1100.
 - added: 2026-10-02
 
 ## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
@@ -1616,36 +1620,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
 
-## P-1000 · B16 steps 1 and 2 are not buildable "any time after B2": `service.ts`, `readiness.ts` and `set-site.ts` import B3 files that are not on main
-- severity: warn
-- symptom: B16 g1 found `src/server/public/state.ts` (`getPublicState`), `src/server/lib/db.ts` (the client type) and `src/server/lib/errors.ts` (`AppError`) absent from main; `git log --all -- app/src/server/public/state.ts` prints nothing, and `slice/b3` holds the lib files but not `public/`.
-- cause: the plan's landing order says "B16 steps 1 and 2 any time after B2", while its Depends line and the Files list make `getSiteSettings` read `getPublicState(db).site` (B3) and throw `AppError` (R09); step 2's list was sized as if only the migration were needed.
-- rule: before a group that imports another slice's file, `git ls-tree -r --name-only origin/main | grep <file>`; if it is missing, build the parts that do not import it (domain, migration) and report the rest BLOCKED on the named B3 group, never stub the import.
-- proof: `git ls-tree -r --name-only origin/main app/src/server | grep -c "public/state.ts"` → `0` at 4a05fdb (measured 2026-10-04, B16 g1).
+## P-1100 · Adding a path to `lint`, `format:check` or the root-scripts block stales eight B1b registry entries and a hygiene pin
+- symptom: B14 g1 put `workspace/audits/tools` and `scripts/audit` under the root lint, the format check and `tsconfig.scripts.json`. `bun run check` went red on `hygiene.test.ts` (it pins the `format:check` string), and a find-count pass over the registries printed STALE for hy-lint-warnings, hy-lint-warnings-gate, mg-gate-format-config, mg-gate-lint-prettier, hy-gate-include, hy-gate-lint, hy-gate-format-path and hy-gate-prettier.
+- cause: those entries quote exact lines of `package.json`, `eslint.config.js` and `tsconfig.scripts.json`; `bun run check` does not replay the registry (P-066) and the tsconfig include array grew past one line.
+- rule: after any edit of those three files run the find-count one-liner of the proof before the check, repair the finds and the hygiene pin in the same commit, and replay the repaired ids one by one (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`).
+- proof: `cd app && node -e "const fs=require('fs');for(const f of fs.readdirSync('tests/mutations'))for(const e of JSON.parse(fs.readFileSync('tests/mutations/'+f,'utf8'))){if(e.kind==='sql'||e.kind==='manual'||!e.file)continue;const n=fs.readFileSync(e.file,'utf8').split(e.find).length-1;if(n!==1)console.log('STALE',f,e.id,n)}"` → prints `STALE B4.json z 7` only (older than this entry) on slice/b14 at B14 g1; before the repair it listed the eight ids above too.
 - added: 2026-10-04
 
-## P-1001 · A plan Files line that names an export before its first importer lands fails knip; a zod 3 `.default(x)` mutation on a preprocessed leaf stays green
-- severity: warn
-- symptom: `settings.ts` exported `PublicSite` and `SiteFieldKey` as the Files list says, and `bun run knip` printed `Unused exported types (2)` and exited 1 (the configuration hint alone exits 0 on main). Separately the registry entry that changed `.default(null)` to `.default("")` on a leaf stayed `BAD: stayed green`.
-- cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
-- rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
-- proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+## P-1101 · A slice sized with no unmet dependency can still need slices that are not on main: B14's live cache and crawl proofs found no cache layer, no catalog routes and no B13 checkers
+- symptom: `node workspace/audits/tools/cache.mjs --url http://127.0.0.1:8858` against the build of main printed `x-mop-cache -` and `x-catalog-version -` on every row, 404 on `/api/public/markets`, `/properties` and `/stories`, and `edge_hit_ratio: null`; `crawl.mjs` printed `error: Module not found "scripts/check-seo.ts"`; `scripts/dev-vars.mjs` and `scripts/cpu-gate.mjs` do not exist.
+- cause: B14 step 3 needs B3 (the pipeline cache layer, the catalog routes, `dev-vars.mjs`) and B13 (`check-seo.ts`, `validate-jsonld.ts`, `validate-llms.ts`); `sizing/B14.json` lists `unmetDependencies: []` while `app/scripts` and `app/src` hold none of them.
+- rule: before the live half of a proof, check that what it measures exists on the tree (the proof below); when it does not, prove the collector against fixtures, write the live row as UNPROVEN with the slice that unblocks it, and run it again when that slice lands.
+- proof: `cd app && grep -rl x-mop-cache src | wc -l` → `0`, and `ls scripts/check-seo.ts scripts/dev-vars.mjs` → `No such file or directory` twice, on main at 4a05fdb (2026-10-04).
 - added: 2026-10-04
 
-## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
-- severity: warn
-- symptom: B16 g1's `retentionPeriods` copied the Files-list literal (`analytics_events: { months: 13 }`, no `contacts_anonymise`) and the fresh reviewer rejected it: B2 seeds `analytics_events` at 90 days (ruling H16) and `contacts_anonymise` at 24 months; the 13 months belong to the separate key `analytics_daily` (B8 step 8a). The only unit test checked units, not values, so it passed.
-- cause: the Files line predates H16 and H32; Contract 8 and STANDARDS R25 state the later numbers. The same constant is read by the privacy page and by a db test, so a wrong number would have printed a false retention period.
-- rule: a constant that mirrors seeded rows is written from the seed migration, and a unit test reads that migration and compares key by key (`retentionPeriods > equal the periods B2 seeds`); when a plan literal and a ruling disagree, the ruling and the rows win. A migration that is on no main yet is changed by deleting it and re-running `bun run db:fn <name>` (a new timestamp); `check-migrations.mjs` throws ENOENT on the deleted file until the deletion is committed.
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only retention-seed` → `WATCHED-FAIL OK B16:retention-seed` (measured 2026-10-04, B16 g1 retry).
-- added: 2026-10-04
-
-## P-1003 · A merge of origin/main that brings a new dependency leaves `node_modules` behind: run `bun install` before the first typecheck
-- severity: warn
-- symptom: after `git merge origin/main` into slice/b16 (the B9 g5 merge, 9fcf7f5), `tsc` failed on `puppeteer-core` in B16 g1 and the group's cost line named P-1002, which says nothing about it; the fresh reviewer found the cost unbanked.
-- cause: the merge brought `"puppeteer-core"` into `app/package.json` and `bun.lock`, but a lane's `node_modules` is installed once and a merge never runs the install, so the typecheck saw a package that was declared and absent.
-- rule: after any merge of origin/main, if `git diff --name-only HEAD~1 HEAD -- app/package.json app/bun.lock` names a file, run `cd app && bun install` before `bun run check`; a typecheck error that names an import of a package present in `package.json` is a stale `node_modules`, not a code defect. The other half of that cost, a registry entry going STALE after an edit to a mutated file, is banked in the registry rule (P-066).
-- proof: `cd app && grep -c '"puppeteer-core"' package.json` → `1` on slice/b16 at bec47c2 (line 98, merged from main with 500d04b); `cd app && bun install --frozen-lockfile 2>&1 | tail -1` then `bunx tsc --noEmit` exits 0 (the red output of the missed install was not kept: UNPROVEN as text, reported by the g1 cost line and the reviewer).
+## P-1102 · New `.mjs` under the root tool folders is checked strict: a recursive JSDoc typedef, `typeof fetch`, template literals and a literal em dash each cost a round
+- symptom: `tsc -p tsconfig.scripts.json` printed TS2456 `Type alias 'Json' circularly references itself`; eslint printed `restrict-template-expressions` for `${new URLSearchParams(...)}` and `no-base-to-string` for `String(unknown)`; a test stub `(url) => Promise<Response>` did not fit `typeof fetch` (bun's types add `preconnect`); prettier rewrote the escape `"\u2014"` in a source file into a literal em dash.
+- cause: `checkJs` runs with `strict` and the `strictTypeChecked` rules on every `.mjs` of `tsconfig.scripts.json`, which now includes `workspace/audits/tools` and `scripts/audit`.
+- rule: type an injected fetch as `(url: string, init?: RequestInit) => Promise<Response>` (`Fetch` in `workspace/audits/tools/common.mjs`); write the open JSON type as `null | boolean | number | string | unknown[] | Record<string, unknown>`; call `.toString()` on a `URLSearchParams` before a template; build an em dash as `String.fromCodePoint(0x2014)`. Run each new command-line tool once by hand with every flag it documents: `util.parseArgs` is strict by default, and the shared `contextFromArgs` threw `Unknown option '--check-config'` on `uptime.mjs` while every unit test was green, because no test went through the command line.
+- proof: `cd app && node node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json` → no output, exit 0; `grep -c -P "\x{2014}" ../scripts/audit/lint-report.mjs` → `0`; `env -u UPTIME_API_KEY node ../workspace/audits/tools/uptime.mjs --check-config; echo $?` → `Not measured: uptime (UPTIME_API_KEY unset)` and `1` (2026-10-04).
 - added: 2026-10-04
 
 ## P-713 · `watchfail.mjs --registry tests/mutations` replays every registry of the repository, and `--changed` sees only committed work
@@ -1681,6 +1674,69 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the runner's child output carries NUL bytes, which makes grep treat the file as binary; the replay also runs the B8 registry as a nested replay with its own `watchfail: replayed 37` line ahead of the real summary (P-713: it replays every registry).
 - rule: read a redirected replay with `grep -a`, and take the last `watchfail: replayed` line as the result; the earlier ones belong to nested registries.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit > .tmp/wf.txt 2>&1; grep -a 'watchfail: replayed' .tmp/wf.txt | tail -1` → the B9 line, `watchfail: replayed 47: ok 47, bad 0, stale 0; ...` (reviewer's run: `replayed 37` on line 38, `replayed 47` on line 102).
+- added: 2026-10-04
+
+## P-1103 · A group's file list named `workspace/audits/tools/scope-check.mjs`; the plan, the routine prompt and trace.json say `scripts/audit/scope-check.mjs`
+- symptom: the g4 task listed `workspace/audits/tools/scope-check.mjs`, while B14.md invariant 2 and the Files list, `ROUTINE-PROMPT.md` (`node scripts/audit/scope-check.mjs origin/main HEAD`) and `trace.json` all name `scripts/audit/scope-check.mjs`, next to `lint-report.mjs`.
+- cause: the sized file list was typed from the folder of the other tools, not from the Files list of the plan.
+- rule: when a group's file list and the plan's Files list disagree on a path, the plan wins if two other artifacts (prompt, trace) already name its path; build there and say so in the log. The same lint, format and tsconfig entries cover both folders.
+- proof: `grep -n "scope-check" workspace/audits/ROUTINE-PROMPT.md | cut -c1-120` → the line names `scripts/audit/scope-check.mjs`; `git ls-files scripts/audit` → `scope-check.mjs` and `lint-report.mjs`.
+- added: 2026-10-04
+
+## P-1104 · A bare `cat > file; node - <<EOF` waited on stdin for the whole 120 s and left an empty file outside the worktree
+- symptom: a Bash call timed out at 120 s with no output and the heredoc script after it never ran; `E:/tmp_unused` (an empty file, one folder above the drive's project folders) appeared. Removing it was refused by the permission check, so it stays for the operator.
+- cause: a mistyped `cat > ../../../x 2>/dev/null` before the heredoc read the terminal instead of a file; the relative path went three folders up from `app/`.
+- rule: never write a scratch file with a bare redirect; use Write into the scratchpad. A call that prints nothing and times out has not run its later commands: check `git status` before trusting the state (P-056).
+- proof: `ls E:/tmp_unused` → exists, size 0 (the operator may delete it).
+- added: 2026-10-04
+
+## P-1105 · Tests that build a throwaway git repository on this laptop: `core.autocrlf` prints a warning on stderr, and `git mv` needs the target folder
+- symptom: a helper that asserted `stderr` empty after `git add -A` failed with `warning: in the working copy of 'app/wrangler.toml', LF will be replaced by CRLF`; `git mv` into a folder that did not exist exited 128.
+- cause: the machine's global `core.autocrlf` is on; `git mv` does not create directories.
+- rule: assert the exit status of setup commands, never an empty stderr; `mkdirSync` the target folder before `git mv`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/scope-check.test.ts` → `Tests  9 passed (9)`.
+- added: 2026-10-04
+
+## P-1106 · A guard line whose watched-fail stays green is dead code: the backslash refusal in `scope-check.mjs` was removed
+- symptom: the registry entry that removed `if (path.includes("\\")) return false;` replayed `WATCHED-FAIL BAD: stayed green`.
+- cause: a path with a backslash and no slash never starts with an allowed folder, and a backslash inside a slash path is a literal file-name character on Linux, so the allow-list refused every such path already.
+- rule: when a watched-fail of a guard stays green, first ask whether another line already refuses the case; delete the dead line and its entry instead of bending the test (R04, no dead code).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b14-scope-dotdot` → `WATCHED-FAIL OK B14:b14-scope-dotdot`; `grep -c 'includes(' scripts/audit/scope-check.mjs` → `1` (only the allow-list lookup).
+- added: 2026-10-04
+
+## P-900 · While the api lane is mop-dev's schema writer, B2's schema, rls and function-source tests are red on mop-dev for every other lane
+- symptom: B8 g1 proved its unmerged jobs migration with the prelude (P-312) and got `Tests  4 failed | 36 passed (40)` from `schema.db.test.ts`, `2 failed | 12 passed (14)` from `rls.db.test.ts` and `withoutFile: [confirm_subscriber, create_inquiry, ... upsert_subscriber]` from `function-source.db.test.ts`. Without the prelude the same files were red too (7, 11 and 1 failures). Every diff named B3's objects (`rate_limits`, `webhook_receipts`, `subject_requests`, `submissions.duplicate_of`, `subscribers.pending_source`), none named `events`, `jobs` or `job_events`.
+- cause: ruling H1 (a) makes the api lane (B3) the one writer of `mop-dev` until it merges, so `mop-dev` holds B3's migration `20261003184651` while `origin/main`'s newest is `20261003173858`, and the manifest, the RLS matrix and the function files on `main` do not know B3's objects yet.
+- rule: before reading a red B2 schema test as your own, check `supabase_migrations.schema_migrations` against `ls supabase/migrations` on `origin/main`; when mop-dev is ahead, judge your change by the diff lines alone (`grep -E "^\s+[-+] " | grep -ciE "<your tables>"` prints 0 when none of the red is yours) and say in the log which reds are the other lane's. Never edit the manifest or matrix for another lane's tables.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select version from supabase_migrations.schema_migrations order by version desc limit 1"` → `20261003184651` while `git ls-tree --name-only origin/main supabase/migrations/ | tail -1` ends `20261003173858_fn_enforce_publish_gate.sql`; `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts 2>&1 | grep "Tests "` → `7 failed | 33 passed (40)` on slice/b8 without the prelude (measured 2026-10-03, B8 g1).
+- added: 2026-10-03
+
+## P-901 · A `sql` registry entry for a test that runs under `committed()` never replays: it stays green whatever the mutation does
+- symptom: the B8 g1 review replayed entry `e` (`claim_job` accepting `running`) of `tests/mutations/B8.json` on a native PostgreSQL 18 cluster holding the jobs migration: `WATCHED-FAIL BAD: stayed green (B8:e)`. The same mutation applied by hand and committed turned the parallel-claim case red (`+   "second": 1`). The author's log had called the entry "replayable after the merge".
+- cause: watchfail hands a `sql` entry to the test as `MOP_MUTATION_SQL`, and only `withRollback` in `tests/fixtures/db.ts` runs it; `committed()` cannot (it would commit the mutation to the shared database), so a committed case never sees it.
+- rule: a committed case that a `sql` entry covers applies `MOP_MUTATION_SQL` itself, in a connection whose transaction rolls back (the parallel claim applies it in the second claim's transaction and ends that one with `rollback`). Otherwise its entry is `manual` with a procedure someone can re-run. Replay every entry on a database that holds the migration before calling it replayable; a red for the wrong reason (`relation ... does not exist`) proves nothing about the replay.
+- proof: from `app/`, with a native cluster holding the B8 migration (`DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/postgres`), `node scripts/watchfail.mjs --registry <folder with B8.json> --only e` → `WATCHED-FAIL OK B8:e`; with the line that runs `MOP_MUTATION_SQL` in the parallel-claim case removed → `BAD: stayed green` (measured 2026-10-03, B8 g1 fix).
+- added: 2026-10-03
+
+## P-1107 · A collector's own sidecar was never run through the report lint: the cache probe wrote an ops-health path the lint refuses, so no real report could pass
+- symptom: `run-all.mjs` against a stub wrote `data/<date>.json` holding `"check": "never_cached /api/hooks/ops-health/probe"`, and `lintReport` answered `secret: the sidecar holds an ops-health path segment other than <redacted> (DO-03)`; every unit test was green because the sidecar fixture has no `cache.checks`.
+- cause: the lint (a secret check) and the cache probe (a list of paths) were built and tested apart; each was right alone, and the DO-03 rule "a path segment after `ops-health/` is `<redacted>`" was only applied in `uptime.mjs`.
+- rule: a tool that writes into the sidecar redacts through `redactUrl` of `uptime.mjs` at the moment it records a path, and its test passes the collected sidecar to `lintReport` instead of asserting on the probe alone.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/cache.test.ts` → the case "writes a sidecar the report lint accepts" passes; `node scripts/watchfail.mjs --registry tests/mutations --only b14-cache-redacted-path` → `WATCHED-FAIL OK B14:b14-cache-redacted-path`.
+- added: 2026-10-04
+
+## P-1108 · Replaying one slice's registry out of a shared scratch folder ran another slice's entry and printed BAD
+- symptom: a reviewer's `node scripts/watchfail.mjs --registry <folder>` ran `B8:a` (a `db`-project entry) and printed `WATCHED-FAIL BAD: wrong reason`; the folder held `B14.json` and `B8.json` from an earlier run.
+- cause: `--registry` replays every `*.json` in the folder; a reused scratch folder keeps the last slice's file.
+- rule: build the single-slice registry folder fresh each time (`R=$(mktemp -d); cp tests/mutations/B14.json $R/; ls $R`) and look at the listing before replaying.
+- proof: `R=$(mktemp -d); cp app/tests/mutations/B14.json $R/; ls $R` → `B14.json` only.
+- added: 2026-10-04
+
+## P-1109 · `npx prettier --write` on a root tool file from `app/` ignores the app's config and reflows the whole file at 80 columns
+- symptom: `npx prettier --write ../workspace/audits/tools/common.mjs` run in `app/` rewrote 15 untouched lines; `bun run lint` then reported seven prettier errors in the file it had just formatted.
+- cause: prettier finds its config from the file's folder upward; `workspace/audits/tools` has none, and the repository's settings live in `app/eslint.config.js` (the `prettier/prettier` rule), which only the lint command applies.
+- rule: format a file outside `app/` with the lint's own command from the repository root, `./app/node_modules/.bin/eslint --config app/eslint.config.js --fix <file>`, and read `git diff --stat` before going on; if a file was reflowed, `git checkout` it and redo the edit.
+- proof: `./app/node_modules/.bin/eslint --config app/eslint.config.js workspace/audits/tools scripts/audit` → no output, exit 0.
 - added: 2026-10-04
 
 ## P-800 · A route file named with a leading double underscore is a pathless layout, not the path `/__name`: B3's `src/routes/__spike.tsx` stops the build
@@ -1750,20 +1806,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/media-store.test.ts` passes; with `signal: AbortSignal.timeout(10_000)` put back in `storageFetch` it fails `sets no abort signal, so a slow stream of a large file is never cut off` (measured 2026-10-03, B3 g1 review fix).
 - added: 2026-10-03
 
-## P-900 · While the api lane is mop-dev's schema writer, B2's schema, rls and function-source tests are red on mop-dev for every other lane
-- symptom: B8 g1 proved its unmerged jobs migration with the prelude (P-312) and got `Tests  4 failed | 36 passed (40)` from `schema.db.test.ts`, `2 failed | 12 passed (14)` from `rls.db.test.ts` and `withoutFile: [confirm_subscriber, create_inquiry, ... upsert_subscriber]` from `function-source.db.test.ts`. Without the prelude the same files were red too (7, 11 and 1 failures). Every diff named B3's objects (`rate_limits`, `webhook_receipts`, `subject_requests`, `submissions.duplicate_of`, `subscribers.pending_source`), none named `events`, `jobs` or `job_events`.
-- cause: ruling H1 (a) makes the api lane (B3) the one writer of `mop-dev` until it merges, so `mop-dev` holds B3's migration `20261003184651` while `origin/main`'s newest is `20261003173858`, and the manifest, the RLS matrix and the function files on `main` do not know B3's objects yet.
-- rule: before reading a red B2 schema test as your own, check `supabase_migrations.schema_migrations` against `ls supabase/migrations` on `origin/main`; when mop-dev is ahead, judge your change by the diff lines alone (`grep -E "^\s+[-+] " | grep -ciE "<your tables>"` prints 0 when none of the red is yours) and say in the log which reds are the other lane's. Never edit the manifest or matrix for another lane's tables.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select version from supabase_migrations.schema_migrations order by version desc limit 1"` → `20261003184651` while `git ls-tree --name-only origin/main supabase/migrations/ | tail -1` ends `20261003173858_fn_enforce_publish_gate.sql`; `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/schema.db.test.ts 2>&1 | grep "Tests "` → `7 failed | 33 passed (40)` on slice/b8 without the prelude (measured 2026-10-03, B8 g1).
-- added: 2026-10-03
-
-## P-901 · A `sql` registry entry for a test that runs under `committed()` never replays: it stays green whatever the mutation does
-- symptom: the B8 g1 review replayed entry `e` (`claim_job` accepting `running`) of `tests/mutations/B8.json` on a native PostgreSQL 18 cluster holding the jobs migration: `WATCHED-FAIL BAD: stayed green (B8:e)`. The same mutation applied by hand and committed turned the parallel-claim case red (`+   "second": 1`). The author's log had called the entry "replayable after the merge".
-- cause: watchfail hands a `sql` entry to the test as `MOP_MUTATION_SQL`, and only `withRollback` in `tests/fixtures/db.ts` runs it; `committed()` cannot (it would commit the mutation to the shared database), so a committed case never sees it.
-- rule: a committed case that a `sql` entry covers applies `MOP_MUTATION_SQL` itself, in a connection whose transaction rolls back (the parallel claim applies it in the second claim's transaction and ends that one with `rollback`). Otherwise its entry is `manual` with a procedure someone can re-run. Replay every entry on a database that holds the migration before calling it replayable; a red for the wrong reason (`relation ... does not exist`) proves nothing about the replay.
-- proof: from `app/`, with a native cluster holding the B8 migration (`DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/postgres`), `node scripts/watchfail.mjs --registry <folder with B8.json> --only e` → `WATCHED-FAIL OK B8:e`; with the line that runs `MOP_MUTATION_SQL` in the parallel-claim case removed → `BAD: stayed green` (measured 2026-10-03, B8 g1 fix).
-- added: 2026-10-03
-
 ## P-508 · `supabase gen types --project-id` and `migration repair --linked` answer 403 for this account; the pooler route works
 - symptom: `bun run gen:types` exited 1 with `GenTypesUnexpectedStatusError ... Your account does not have the necessary privileges to access this endpoint`; `supabase migration repair --linked` failed the same way (`DbConfigLoginRoleStatusError 403`) (2026-10-04 01:00, main folder, stored CLI login and the `.env` token both present).
 - cause: the management endpoints the CLI uses for those two commands need an organisation privilege the account no longer has; the database itself is reachable through the pooler with the dev profile.
@@ -1790,4 +1832,36 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `db-push.mjs` compares main's files with the remote history; a lane's unmerged push creates a remote-only version, and a later-merged older file is out of order against it. R16 (new file after main's newest) only protects the branch, not the remote.
 - rule: while one lane pushes migrations, no other lane's migration merges to main before that lane's; if it must, apply the older file from main by hand in one transaction (`psql -1 -f`), record its version in `supabase_migrations.schema_migrations` and `public.migration_checksums`, and run `bun run db:push` from main until it prints `Remote database is up to date`. Merge a schema writer's accepted migration early (its own small PR) rather than letting it sit on the branch.
 - proof: `bun run db:push` from main at b3e90d1 → `refusing: remote-only migrations 20261003184651`; after the rename and the manual apply → `{"upToDate":true,...,"message":"Remote database is up to date."}`.
+- added: 2026-10-04
+
+## P-1000 · B16 steps 1 and 2 are not buildable "any time after B2": `service.ts`, `readiness.ts` and `set-site.ts` import B3 files that are not on main
+- severity: warn
+- symptom: B16 g1 found `src/server/public/state.ts` (`getPublicState`), `src/server/lib/db.ts` (the client type) and `src/server/lib/errors.ts` (`AppError`) absent from main; `git log --all -- app/src/server/public/state.ts` prints nothing, and `slice/b3` holds the lib files but not `public/`.
+- cause: the plan's landing order says "B16 steps 1 and 2 any time after B2", while its Depends line and the Files list make `getSiteSettings` read `getPublicState(db).site` (B3) and throw `AppError` (R09); step 2's list was sized as if only the migration were needed.
+- rule: before a group that imports another slice's file, `git ls-tree -r --name-only origin/main | grep <file>`; if it is missing, build the parts that do not import it (domain, migration) and report the rest BLOCKED on the named B3 group, never stub the import.
+- proof: `git ls-tree -r --name-only origin/main app/src/server | grep -c "public/state.ts"` → `0` at 4a05fdb (measured 2026-10-04, B16 g1).
+- added: 2026-10-04
+
+## P-1001 · A plan Files line that names an export before its first importer lands fails knip; a zod 3 `.default(x)` mutation on a preprocessed leaf stays green
+- severity: warn
+- symptom: `settings.ts` exported `PublicSite` and `SiteFieldKey` as the Files list says, and `bun run knip` printed `Unused exported types (2)` and exited 1 (the configuration hint alone exits 0 on main). Separately the registry entry that changed `.default(null)` to `.default("")` on a leaf stayed `BAD: stayed green`.
+- cause: R04 (ruling H38 (1)) makes a name nothing imports file-local and expects the step that first imports it to add `export`; the plan's Files line does not say so. Zod 3 feeds a `.default(x)` value through the inner schema, and the inner `preprocess` turned `""` back into null, so the mutation changed nothing observable.
+- rule: export only what a file in this group imports; a type with no importer yet is left out and its step adds it (here `PublicSite` arrives with `getPublicSite`, step 3). A mutation must change an observable value: remove the `.default` (the parse then throws `Required`) instead of changing it to a value the inner schema normalises.
+- proof: `cd app && bunx knip | grep -c "Unused exported"` → `0` on slice/b16 at B16 g1; `node scripts/watchfail.mjs --registry tests/mutations --only partial-null` → `WATCHED-FAIL OK B16:partial-null` (measured 2026-10-04).
+- added: 2026-10-04
+
+## P-1002 · A literal in a plan's Files list is older than the rulings: build a constant that mirrors rows from the rows, not from the list
+- severity: warn
+- symptom: B16 g1's `retentionPeriods` copied the Files-list literal (`analytics_events: { months: 13 }`, no `contacts_anonymise`) and the fresh reviewer rejected it: B2 seeds `analytics_events` at 90 days (ruling H16) and `contacts_anonymise` at 24 months; the 13 months belong to the separate key `analytics_daily` (B8 step 8a). The only unit test checked units, not values, so it passed.
+- cause: the Files line predates H16 and H32; Contract 8 and STANDARDS R25 state the later numbers. The same constant is read by the privacy page and by a db test, so a wrong number would have printed a false retention period.
+- rule: a constant that mirrors seeded rows is written from the seed migration, and a unit test reads that migration and compares key by key (`retentionPeriods > equal the periods B2 seeds`); when a plan literal and a ruling disagree, the ruling and the rows win. A migration that is on no main yet is changed by deleting it and re-running `bun run db:fn <name>` (a new timestamp); `check-migrations.mjs` throws ENOENT on the deleted file until the deletion is committed.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only retention-seed` → `WATCHED-FAIL OK B16:retention-seed` (measured 2026-10-04, B16 g1 retry).
+- added: 2026-10-04
+
+## P-1003 · A merge of origin/main that brings a new dependency leaves `node_modules` behind: run `bun install` before the first typecheck
+- severity: warn
+- symptom: after `git merge origin/main` into slice/b16 (the B9 g5 merge, 9fcf7f5), `tsc` failed on `puppeteer-core` in B16 g1 and the group's cost line named P-1002, which says nothing about it; the fresh reviewer found the cost unbanked.
+- cause: the merge brought `"puppeteer-core"` into `app/package.json` and `bun.lock`, but a lane's `node_modules` is installed once and a merge never runs the install, so the typecheck saw a package that was declared and absent.
+- rule: after any merge of origin/main, if `git diff --name-only HEAD~1 HEAD -- app/package.json app/bun.lock` names a file, run `cd app && bun install` before `bun run check`; a typecheck error that names an import of a package present in `package.json` is a stale `node_modules`, not a code defect. The other half of that cost, a registry entry going STALE after an edit to a mutated file, is banked in the registry rule (P-066).
+- proof: `cd app && grep -c '"puppeteer-core"' package.json` → `1` on slice/b16 at bec47c2 (line 98, merged from main with 500d04b); `cd app && bun install --frozen-lockfile 2>&1 | tail -1` then `bunx tsc --noEmit` exits 0 (the red output of the missed install was not kept: UNPROVEN as text, reported by the g1 cost line and the reviewer).
 - added: 2026-10-04

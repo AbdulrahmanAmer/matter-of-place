@@ -1,0 +1,33 @@
+{
+  "rows": [
+    {
+      "keys": ["architect designed home california"],
+      "clicks": 4,
+      "impressions": 120,
+      "ctr": 0.033,
+      "position": 8.2
+    },
+    {
+      "keys": ["Modern Home in Palm Beach"],
+      "clicks": 1,
+      "impressions": 45,
+      "ctr": 0.022,
+      "position": 11.4
+    },
+    {
+      "keys": ["brownstone interiors"],
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": 30
+    },
+    {
+      "keys": ["matter of place"],
+      "clicks": 6,
+      "impressions": 60,
+      "ctr": 0.1,
+      "position": 1.4
+    }
+  ],
+  "responseAggregationType": "byProperty"
+}

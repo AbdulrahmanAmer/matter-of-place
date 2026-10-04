@@ -1,0 +1,173 @@
+{
+  "base": "https://matterofplace.com",
+  "routes": {
+    "/": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/properties": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/markets": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "miss",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/stories": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/exposure": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/faq": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/api/public/markets": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/api/public/properties": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/api/public/stories": [
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      },
+      {
+        "x-mop-cache": "hit",
+        "x-catalog-version": "v42",
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=86400"
+      }
+    ],
+    "/admin": [
+      {
+        "cache-control": "no-store"
+      }
+    ],
+    "/api/admin/me": [
+      {
+        "cache-control": "no-store"
+      }
+    ],
+    "/api/hooks/ops-health/probe": [
+      {
+        "cache-control": "no-store"
+      }
+    ]
+  }
+}

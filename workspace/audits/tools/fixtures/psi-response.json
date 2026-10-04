@@ -1,0 +1,29 @@
+{
+  "id": "https://matterofplace.com/",
+  "loadingExperience": {
+    "metrics": {
+      "INTERACTION_TO_NEXT_PAINT": {
+        "percentile": 180,
+        "category": "FAST"
+      }
+    }
+  },
+  "lighthouseResult": {
+    "categories": {
+      "performance": {
+        "score": 0.93
+      }
+    },
+    "audits": {
+      "largest-contentful-paint": {
+        "numericValue": 2140.6
+      },
+      "cumulative-layout-shift": {
+        "numericValue": 0.0123
+      },
+      "total-byte-weight": {
+        "numericValue": 812345
+      }
+    }
+  }
+}
