@@ -93,3 +93,39 @@ Follow-ups whose file is GOTCHAS.md are banked, not listed here: P-416 (a recurr
    - Evidence: forms.spec.ts:180-181
 
 Follow-ups whose file is GOTCHAS.md are banked, not listed here: the g5 log cited P-419 for the `heic-convert` install and P-421 for a strict-mode locator and a wrong `expect` text, and none covered them. Now: hit-again lines in P-904 (the install), P-066 (the `expect` of `cc-post` and `rd`) and P-154 (the shared scratchpad: a registry folder holding other agents' B14, B8 and B8b entries, a shared check.log), and the new entry P-429 (two header search buttons break strict mode).
+
+## g6 · steps 7,8
+
+1. `.github/workflows/ci.yml` (not blocking)
+   - What: Two plan proofs are NOT DONE: step 7 wants a green e2e run and step 8 wants a green db run. Merging this file to main makes db and e2e required checks for every pull request (merge-gate requires a name from the commit whose workflow first defines it). From then on, every pull request is refused until two things are fixed elsewhere. e2e fails on every seeded database: the seed's image upload is STUB(B9 step 6), so 711 /media 404s (P-422). db fails on two B8 cases that expect schedule_settings to be absent (P-427), unless CI_HEAVY=off. Also NOT DONE: the broken-form drill's 'revert, green', the hydration drill (s), and pasting the run ids into tests/README.md. Nothing in this group's files can fix the two causes, and the group's own job steps are green, so this is not marked blocking. The orchestrator must hold slice/b4's merge or set CI_HEAVY=off.
+   - Evidence: Confirmed by running: gh api .../jobs/111472753607/logs shows 711 '404 .../media/o/' lines and '88 failed / 52 passed (13.0m)'. gh api .../jobs/111476176372/logs shows 'Tests 2 failed | 436 passed (438)', both in tests/db/jobs.db.test.ts and tests/db/ops-health.db.test.ts. scripts/merge-gate.mjs:12 REQUIRED_PR_CHECKS includes db and e2e, filtered by definedJobs.
+
+2. `app/tests/mutations/B4.json` (not blocking)
+   - What: The registry entry aa-factories is missing. Watched-fail (aa) of the plan names tests/fixtures/factories.ts. workspace/05-plans/logs/B4.md:130 says 'The group that writes factories.ts (step 8) adds the entry the plan words (aa-factories) over it'. This group's 24 entries do not include it, so the CI replay never re-checks the time-model guard over factories.ts. The guard itself works: I made the mutation and saw it red.
+   - Evidence: node -e filter of B4.json for time-model shows only 'aa' over tests/db/harness.db.test.ts. My scratch entry aa-factories (import FIXED_NOW into factories.ts) gave WATCHED-FAIL OK.
+
+3. `.github/workflows/ci.yml` (not blocking)
+   - What: C22: the two new heavy jobs state no unit cost, and the header's cost line ('check ... build ... so 2 to 3 Actions minutes a run', lines 5 to 8) is now wrong for a ready pull request run. Measured: e2e ran about 16 min (13 min of specs with retries on failures), db about 2.5 min, and about 8 min with the mutation replay. The plan estimated 12 min per ready push and set a 10 min threshold for the e2e path filter. A green e2e duration is UNPROVEN.
+   - Evidence: gh run view 37214655312: e2e 15:53:35 to 16:09:30. gh run view 37217107769: db 16:31:59 to 16:40:03. Header comment at ci.yml lines 5 to 8.
+
+4. `.github/workflows/ci.yml` (not blocking)
+   - What: Suspected by reading, not run. The coming-soon step (written by the author, P-408) and the admin step (written by the plan) run their specs only when 'playwright test --list --project=...' exits 0, and otherwise print 'absent' and pass. Once B3b's coming-soon.spec.ts exists, a load or compile error in it also makes --list exit 1. The step would then print 'coming-soon spec absent (B3b not landed)' and stay green. A file-existence test (test -f tests/e2e/coming-soon.spec.ts) would not hide that.
+   - Evidence: ci.yml coming-soon step: 'if bunx playwright test --list --project=coming-soon-desktop > /dev/null; then ... else echo "coming-soon spec absent (B3b not landed)"'
+
+5. `workspace/05-plans/B8.md` (not blocking)
+   - What: B8 step 1's fixture work has no owner. That is createJob, the seven dataset jobs ('jobs 7') and the createJob case of factories.db.test.ts. B8 landed before B4, recorded it NOT DONE (logs/B8.md:17, :175), and this group did not add it either (it is not in its step). The orchestrator must assign it. B8b.md:203 says '10 dataset submissions', while the dataset prints 11.
+   - Evidence: grep -rn createJob app/tests app/scripts finds nothing. logs/B8.md:17: 'NOT DONE ... createJob, the seven dataset jobs and the createJob case belong to B4's ... factories.ts'
+
+6. `workspace/05-plans/B4.md` (not blocking)
+   - What: Plan lines are out of date (the orchestrator folds them). 'submissions 10' should be 11 (P-414). The GQ-03 grep 'prints nothing' finds B2's tests/fixtures/db.ts. The draft run lists db and e2e as skipped jobs, not absent ones. Watched-fail (dd)'s table line cannot fail (P-428). 'the sweep reads bundled images' is false in live mode (P-422). The jobs predicate is now unconditional because jobs is on main.
+   - Evidence: Re-run outputs above. gh run view 37214595255 lists 'db skipped', 'e2e skipped'.
+
+7. `app/tests/mutations/B4.json` (not blocking)
+   - What: Replaying fd-harness on the laptop commits one fixture submission and its contact to mop-dev every time (P-426), and the cleanup is manual. Anyone who replays the B4 registry with the dev profile leaves the dataset at 12 until someone runs fixtures:load -- --reset. The db project's global-setup guard covers this after launch. Before launch it is shared-DB litter, and it changes the hash other lanes check.
+   - Evidence: Confirmed by running: after my replay, db:psql printed 12|dd46a4d5410cb1f396d16ce0b06990c0. After fixtures:load -- --reset it printed 11|7b93049a6b185143f23e2db7c29fb982.
+
+8. `app/tests/e2e/global-setup.ts` (not blocking)
+   - What: The E2E_DATASET=1 branch is UNPROVEN under Playwright and in CI until B7's admin project exists. I proved it only by calling the function directly on mop-dev: it printed 'fixtures: submissions 11' and the hash was unchanged.
+   - Evidence: E2E_DATASET=1 bun -e "(await import('./tests/e2e/global-setup.ts')).default()" printed 'lock mop-dev-tests held' / 'fixtures: submissions 11'
+
+Follow-ups whose file is GOTCHAS.md are banked, not listed here: hit-again lines in P-154 (the reviewer's scratch registry folder `g6reg` still held `B4.json` and `B8.json`, so a 24-entry replay ran 61) and in P-015 (with `MSYS_NO_PATHCONV=1` set, `"$(pwd)/.dev.vars"` reaches Windows node as `/e/...` and wrangler fails; use `"$(pwd -W)/.dev.vars"`).
