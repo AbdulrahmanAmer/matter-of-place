@@ -101,3 +101,101 @@ Three follow-ups on GOTCHAS.md are banked as P-711 (the dead planner clamp), P-7
    - Evidence: Viewed .tmp/rv1/linkedin-set-0.1b4b06f9.jpg: photograph, then wordmark, '01 / 04' and location only.
 
 The sixth follow-up of the review is on GOTCHAS.md and is banked as P-717 (reading a redirected watchfail replay with `grep -a`), not listed here.
+
+## g6 · steps 7,8
+
+1. `app/src/domain/assets.ts` (not blocking)
+   - What: R04/C04: seven exports are used nowhere in src, tests or scripts: assetKindLabels, assetStatusLabels, assetListFilters, AssetListFilters, AssetFile, AssetKind, AssetStatus. knip passes only because the new 'export * from "./assets.ts"' line in src/domain/index.ts (a knip entry) re-exports them. R04 says an export kept for a later slice carries /** @public */ and a STUB marker, and none of these do, so the stubs gate will never flag them if service.ts and the admin screens never arrive. The content itself is what plan step 7 asks for.
+   - Evidence: for n in assetKindLabels ... AssetStatus; grep -rlw $n src tests scripts | grep -v src/domain/assets.ts → empty for all seven; git diff origin/main...HEAD -- app/src/domain/index.ts adds the barrel line; the author's log says the line 'is what keeps knip from calling its exports unused'
+
+2. `app/supabase/sql/functions/approve_asset.sql (also reject_asset.sql, rerender_asset.sql, set_asset_caption.sql)` (not blocking)
+   - What: R21/R05: these functions insert into audit_log directly because B7's write_audit does not exist yet. That gap is admitted, but no '-- STUB(B7 ...)' line marks the place, unlike B8b's '-- STUB(B8b step 6)' precedent. Also, scripts/stubs.ts cannot see SQL markers at all (P-1600). So when B7 lands nothing tracks moving these four functions onto write_audit and its actor, disabled and role checks.
+   - Evidence: grep -rn STUB supabase/sql/functions/*.sql lists only the seven automation_* B8b lines; grep -rln 'insert into public.audit_log' supabase/sql/functions includes approve_asset, reject_asset, rerender_asset, set_asset_caption
+
+3. `app/src/server/jobs/steps/render-variants.ts` (not blocking)
+   - What: R09 (follow-up): lines 163 and 196 throw a plain Error ('render_variants: no result for <id>') in server code, not an AppError or NonRetryableError. A callback whose result lacks a signed media id therefore fails as retryable and re-dispatches the whole batch until max_attempts. It writes nothing before throwing (tested), so no data is at risk. B8's dispatch.ts has the same pattern.
+   - Evidence: grep -rn 'throw new Error' src/server → render-variants.ts:163, :196 (plus B8's dispatch.ts:52, selftest.ts:17)
+
+4. `app/src/server/jobs/steps/render-specs.ts` (not blocking)
+   - What: This stand-in for B8b step 2 (marked STUB) sits in jobs/steps/, where the folder-map row allows one file per step type, and render-specs is not a step type. Its specs declare maxAttempts but no timeoutMs, which R27 requires once they move to step-specs.ts. When B8b step 2 lands, the file should be deleted and timeoutMs added.
+   - Evidence: cat src/server/jobs/steps/render-specs.ts: heavy, maxAttempts 12, paramsSchema; no timeoutMs; marker '// STUB(B8b step 2)'
+
+5. `app/tests/unit/assets/steps.test.ts` (not blocking)
+   - What: The test titled '$type runs twice without a second outside effect' (line 319) checks that the second run makes a second render.yml dispatch identical to the first. So the outside effect (an Actions run) does happen twice. No second upload happens only because downstream keys are content-hashed and putIfMissing skips existing keys, and this test does not exercise that. The title overstates what is proven (R28/HO-7).
+   - Evidence: steps.test.ts:333-336: run twice, then expect(second).toEqual(first) on dispatchedJob(spy, 0) and dispatchedJob(spy, 1)
+
+6. `app/src/server/jobs/steps/render-variants.ts` (not blocking)
+   - What: NOT DONE, as the author recorded: the request_property_render call when a claim returns 40 rows, and its unit case, are missing. Until B7 lands, a property with more than 40 staged photographs gets only the first 40 rendered; the rest wait for another attach to queue a job. Marked '// STUB(B7 step 8)'. I confirmed request_property_render is not on origin/main (00f1d80).
+   - Evidence: git grep -l request_property_render origin/main -- app/supabase app/src/db/types.ts → nothing; render-variants.ts:139 STUB line
+
+7. `workspace/05-plans/B9.md (orchestrator to fold)` (not blocking)
+   - What: Plan text and code differ, as the log records. upsert_asset_stub moves job_id to the new job only on a pending row (plan: coalesce(p_job_id, job_id) always), and when every revision is rejected it starts revision n+1 (plan: 'else 1'). approve_asset keeps the old og_image_key when a cover has no main file. All three are reasonable and documented, but the plan line is now stale.
+   - Evidence: supabase/sql/functions/upsert_asset_stub.sql lines with 'filter (where a.status <> 'rejected'), max(a.revision) + 1' and 'v_row.status = 'pending''; log block 'Decisions and plan gaps'
+
+8. `(B2) property_media_bump_catalog_version` (not blocking)
+   - What: P-719 is open for B2: every claim_media_for_render, apply_media_variants and clear_media_staging bumps catalog_version, which invalidates the public cache. A claim alone changes no public column, so one render_variants run causes three cache-key bumps.
+   - Evidence: GOTCHAS P-719 symptom and cause, reproduced by the two-connection claim test passing only with the Lock-wait poll
+
+9. `UNPROVEN (no file)` (not blocking)
+   - What: Still UNPROVEN: the plan's CI db job (ci.yml has none until B4) and the type-drift check of src/db/types.ts on an ephemeral stack. Also unproven: a render in Actions with real Chrome and fonts, render_variants and render_og_static running to done, and the settings row og_static (waiting on B8 step 7's dispatch token).
+   - Evidence: gh pr checks 117: no db job; the og-static jobs I enqueued stayed queued and were cancelled
+
+The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, not the data directory) and is banked as P-726, not listed here.
+
+## g7 · steps 9
+
+1. `app/src/server/jobs/steps/write-captions.ts` (not blocking)
+   - What: An editor's caption can still be overwritten in a short window. typedByHand (lines 49-63) reads caption_lint once, then the loop (lines 124-144) calls set_asset_text for up to six kinds one after another over the network. An editor who saves through set_asset_caption between that read and a given kind's write loses the caption. For the last kind the window is several round trips (about 0.5 s against the cloud), not 'milliseconds'. The plan says such a kind is 'never overwritten'. A full fix needs a caption_lint = 'edited' guard inside set_asset_text, which is g6's SQL, not a file of this group. Reading the row again for each kind inside the loop would narrow the window further.
+   - Evidence: Found by reading write-captions.ts:123-143. The author lists it under unproven and in P-727 as a follow-up for g6. It is not yet in workspace/05-plans/logs/B9-followups.md: grep for set_asset_text there prints nothing.
+
+2. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: The g7 rework's Proof 2 line says 'Tests 135 passed (135)'. Running the same command on head 6263aa7 gives 136. The pass claim holds and only the count is stale, probably from a run before the last test was added.
+   - Evidence: bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts tests/unit/assets/steps.test.ts tests/unit/automation/step-specs.test.ts tests/unit/assets/voice.test.ts tests/unit/assets/captions.test.ts tests/unit/assets/links.test.ts -> 'Tests 136 passed (136)'
+
+3. `app/tests/unit/assets/steps.test.ts` (not blocking)
+   - What: The rework rightly removed a self-proving assertion (it checked the fixture's status, not the step's output) and renamed the case to 'Campaign creates both, with the same block'. As a result, the plan proof clause 'Campaign creates both, the standalone pending' and the Verification line 'steps.test.ts asserts every row a B9 step creates has status pending' are now proven only at the SQL layer (assets.db.test.ts, upsert_asset_stub). No unit case in steps.test.ts covers them. The plan line should be updated to name the db test.
+   - Evidence: git show 6263aa7 -- app/tests/unit/assets/steps.test.ts; grep -n pending tests/unit/assets/steps.test.ts shows only the variants_pending and revision cases
+
+4. `app/tests/unit/automation/step-specs.test.ts` (not blocking)
+   - What: This plan proof file does not exist on the branch (it comes from B8b step 2). Vitest skips a missing path without any message, so the author's proof command exits 0 and looks green even though that part checks nothing. Re-run the proof once B8b lands. newsletter-block.test.ts is also missing; it waits on B5 step 1 and is already in the follow-ups.
+   - Evidence: ls tests/unit/automation/ -> 'No such file or directory'; the vitest command still exits 0 with 5 files
+
+5. `app/src/server/assets/voice.ts` (not blocking)
+   - What: These follow-ups carry over from the author's own list and none blocks. usage.input_tokens counts only uncached input, so B14 will under-count. alt_text and slide_alts are not linted for em dashes or banned words. The .slice(0, 25) in captions-runner.ts repeats .limit(25), and the fake database ignores limit. The render-hook 299 s flake is in B8's file (P-729).
+   - Evidence: The author's unproven list. Reading voice.ts:142-189 shows lintCaption is applied only to the three caption variants.
+
+## c9m · steps 7
+
+1. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: UNPROVEN, as the author already admits. Neither the CI migration-order step nor the db job has run on the PR with the renamed files. The local migration-order gate is green against the current origin/main, but if main gains a migration newer than 20261004172322 before PR 117 merges, the same refusal comes back. The log's statement that 'the db job stays the proof' is correct, but that proof has not been seen yet.
+   - Evidence: No CI run exists for e6ea262 (brief). Local: node scripts/check-migrations.mjs printed 'migration-order: OK (25 on main, 2 added)' against origin/main as fetched at review time.
+
+## c6u · steps 6
+
+1. `workspace/05-plans/B4.md` (lines 47, 103, 119) and GOTCHAS.md P-730 (not blocking)
+   - What: The group exists so that CI's e2e job stops getting 404 on /media/<key>. But B4's plan still seeds the e2e and db jobs with `--images skip`, so no CI job will ever run the upload path this group built. Both the author's UNPROVEN note ('the proof moves to the CI e2e job on main') and P-730's rule ('UNPROVEN until the CI e2e job on main runs the seed') point to a job that, as planned, uploads nothing. No one owns switching B4's e2e seed to `--images upload` (about 87 s more per run, measured here). Until someone does, the 404 that motivated c6u stays.
+   - Evidence: grep in B4.md: line 103 says `bun run seed -- --target local --mode full --images skip` for both the db and e2e jobs, and line 47 says 'the seed runs with --images skip ... no Storage bucket of H33 (1) is written'. The ci.yml on origin/main and on this branch has no seed or e2e step yet. Confirmed by reading.
+
+2. `app/scripts/variants.ts` (supabaseMediaRows.setVariants / restoreVariants) (not blocking)
+   - What: The update is `.update({ variants }).eq("id", id)` with no match on the `media_key` it read. `stored()` reads every row once at the start, and then each row takes seconds of makeVariants, so on `--all` the window lasts minutes. If an editor replaces a photograph and its render_variants job runs apply_media_variants inside that window, the CLI writes the old photograph's sizes onto the new key. B2's orientation trigger then derives the orientation from the wrong hero. This is the 'never keep another photograph's sizes' rule that apply_media_variants enforces, and STANDARDS C11 requires naming the race partner. Neither is done. Fix: add `.eq("media_key", row.media_key)` to the update and count a row it did not match.
+   - Evidence: Suspected by reading app/scripts/variants.ts supabaseMediaRows.setVariants. Not run against a database: this lane may not touch mop-dev (H57).
+
+3. `app/scripts/variants.ts` (supabaseMediaRows.stored) (not blocking)
+   - What: The property_media select has no range or pagination. Supabase's PostgREST cap (1000 rows by default) would silently cut `--all` short, and it would still print 'variants stored 1000, failed 0' and exit 0.
+   - Evidence: Suspected by reading. The select chain has no .range(). Not run against a real table, and the author lists --property/--all against the real table as UNPROVEN.
+
+4. `app/scripts/seed.ts` main() and `app/scripts/lib/storage-env.ts` (not blocking)
+   - What: No test or run covers the wiring that points media-store at the seeded project (projectOf, then useForMediaStore). If `useForMediaStore(project)` were deleted, every test would stay green, and uploads would go to whatever SUPABASE_URL the shell holds. GOTCHAS line 1272 records that the dev profile shell does hold another project's URL. The author's fake-Storage run and mine both set SUPABASE_URL directly and skipped main(). UNPROVEN.
+   - Evidence: Read: main() calls useForMediaStore(project) before runSeed, so the code is right today. No test imports storage-env.ts or calls main().
+
+5. `app/scripts/variants.ts` main() (not blocking)
+   - What: The CLI writes property_media on the one database but calls neither guardEnv() (SEC-08) nor holdDevLock() (G34). The seed and og-static, which write to the same project, call both.
+   - Evidence: grep 'guardEnv()' app/scripts finds api-smoke, dev-vars, job-selftest, og-static, seed and set-environment, not variants.ts. Confirmed by running grep.
+
+6. `app/docs/coming-soon.md:56` (not blocking)
+   - What: Stale line, not this group's file: 'The `upload` mode needs B9's media store and refuses until B9 has landed.' On this branch the upload mode runs and does not refuse. The group fixed the matching line in docs/runbooks/database.md but missed this one.
+   - Evidence: Grep for '--images upload' across the snapshot found this line. Confirmed by running grep.
+
+7. `workspace/05-plans/B2.md:102` and the B9 Files entry for scripts/lib/media-store.mjs (not blocking)
+   - What: Stale plan text. It says the media store is loaded only lazily through a non-literal specifier and that B2's code never imports it statically. variants.ts now imports it statically, which is correct now that the file exists (the old reason was that tsc could not resolve a missing file). No src/ or Deno file imports variants.ts: the src mentions are comments only.
+   - Evidence: grep 'scripts/variants' in src finds only comment lines in spec.ts:94 and mappers.ts:194. bun run build exit 0.

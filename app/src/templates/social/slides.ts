@@ -37,7 +37,7 @@ export type SlideSpec =
 const MIN_SLIDES = 6;
 const LINKEDIN_PHOTOS = 3;
 
-function firstSentence(text: string): string {
+export function firstSentence(text: string): string {
   const match = /^.*?[.!?](?=\s|$)/s.exec(text.trim());
   return match ? match[0] : text.trim();
 }
