@@ -5,6 +5,7 @@ import { logLine } from "./log.ts";
 // Writes that start an automation emit inside their SQL function (G20); this module is the one import for
 // server code that runs outside such a transaction.
 
+/** @public */
 export type CatalogEventType =
   | "submission.received"
   | "submission.declined"
@@ -25,6 +26,7 @@ export type CatalogEventType =
   | "health.failed"
   | "subject_request.received";
 
+/** @public */
 export interface CatalogEvent {
   type: CatalogEventType;
   entity: string;
