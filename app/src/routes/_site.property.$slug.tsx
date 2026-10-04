@@ -9,6 +9,7 @@ import { Representation } from "../components/property/representation";
 import { ShareCover } from "../components/property/share-cover";
 import { StickyActions } from "../components/property/sticky-actions";
 import { Breadcrumb } from "../components/site/breadcrumb";
+import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { ImageHero } from "../components/site/image-hero";
 import { InquiryBlock } from "../components/site/inquiry-block";
 import { PlaceMap } from "../components/site/place-map";
@@ -109,6 +110,8 @@ function PropertyPage() {
     setIntent("showing");
   };
 
+  const illustrative = property.status === "Illustrative";
+
   const subject = {
     kind: "property",
     slug: property.slug,
@@ -119,14 +122,15 @@ function PropertyPage() {
     <main>
       <ImageHero
         image={property.heroImage}
-        alt={`Illustrative architecture in ${property.city}`}
+        alt={`${illustrative ? "Illustrative architecture" : "Architecture"} in ${property.city}`}
         eyebrow={`${property.city.toUpperCase()}, ${property.state.toUpperCase()}`}
         title={property.title}
-        tag="ILLUSTRATIVE PROPERTY"
+        {...(illustrative ? { tag: "ILLUSTRATIVE PROPERTY" } : {})}
         scrollTarget="dossier"
       >
         <p>{formatPrice(property)}</p>
       </ImageHero>
+      <IllustrativeNotice properties={[property]} />
 
       <div className="section-wrap" id="dossier">
         <div className="dossier-toolbar">
@@ -180,6 +184,7 @@ function PropertyPage() {
         video={property.video}
         city={property.city}
         slug={property.slug}
+        status={property.status}
       />
 
       <section className="section-wrap details-section">

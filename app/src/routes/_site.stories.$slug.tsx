@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ImageHero } from "../components/site/image-hero";
+import { PageIntro } from "../components/site/page-intro";
 import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
@@ -37,12 +38,16 @@ function StoryPage() {
   useTrackView("story_view", story.slug, { category: story.category });
   return (
     <main>
-      <ImageHero
-        image={story.image}
-        alt=""
-        eyebrow={`${story.category.toUpperCase()} · ILLUSTRATIVE STORY`}
-        title={story.title}
-      />
+      {story.image === undefined ? (
+        <PageIntro eyebrow={story.category.toUpperCase()} title={story.title} />
+      ) : (
+        <ImageHero
+          image={story.image}
+          alt=""
+          eyebrow={story.category.toUpperCase()}
+          title={story.title}
+        />
+      )}
       <article className="copy-page story-body">
         <p className="story-deck">{story.deck}</p>
         {story.body.map((paragraph) => (

@@ -2,6 +2,7 @@ import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/r
 import { getRouter } from "./router";
 import { getDb } from "./server/lib/db";
 import { env, sentryOptions } from "./server/lib/env";
+import { getFlags } from "./server/lib/flags";
 import { handle } from "./server/lib/pipeline";
 import { captureException } from "./server/lib/sentry";
 import { waitUntilOf } from "./server/lib/wait-until";
@@ -36,8 +37,7 @@ const pipeline = createMiddleware({ type: "request" }).server<{ requestId: strin
         render: async (_request, requestId) => (await next({ context: { requestId } })).response,
         redirect: (page) => (hasDatabase ? resolveRedirect(page, getDb()) : Promise.resolve(null)),
         cache: (page, render) => (hasDatabase ? cachedResponse(page, "html", render) : render()),
-        // STUB(B3b): getFlags(db) from src/server/lib/flags.ts
-        getFlags: () => Promise.resolve({}),
+        getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({})),
         report: (error, info) => captureException(error, { ...info, ...sentryOptions() }),
         isApiRoute,
       },

@@ -462,6 +462,12 @@ jobs:
       - name: smoke
         if: steps.guard.outputs.superseded != 'true'
         run: node scripts/smoke.mjs "$URL"
+      # Coming-soon mode holds (B3b step 10), only once L1's launch switch has made the one database production
+      # (H35 (4)); after the domain cut-over MOP_LAUNCHED keeps only the illustrative check. A failure is
+      # rolled back below, never retried.
+      - name: assert-coming-soon
+        if: steps.guard.outputs.superseded != 'true' && vars.MOP_DB_PRODUCTION == 'true'
+        run: node scripts/assert-coming-soon.mjs "$URL" ${{ vars.MOP_LAUNCHED == 'true' && '--after-launch' || '' }}
       - name: rollback
         if: failure() && steps.deploy.outcome == 'success'
         env:

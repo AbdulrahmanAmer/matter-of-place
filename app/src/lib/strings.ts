@@ -55,7 +55,6 @@ const en = {
   },
   common: {
     illustrative: "ILLUSTRATIVE",
-    illustrativeImagery: "ILLUSTRATIVE IMAGERY",
     exploreProperties: "Explore properties",
     subscribe: "Subscribe",
     emailAddress: "Email address",

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { ImageHero } from "../components/site/image-hero";
+import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import type { Note } from "../domain/market";
 import { useTrackView } from "../hooks/use-track-view";
@@ -44,12 +45,16 @@ function GuidePage() {
 
   return (
     <main>
-      <ImageHero
-        image={market.image}
-        alt={`Illustrative ${market.name} architecture`}
-        eyebrow="GUIDE"
-        title={market.name}
-      />
+      {market.comingSoon || market.image === undefined ? (
+        <PageIntro eyebrow="GUIDE" title={market.name} />
+      ) : (
+        <ImageHero
+          image={market.image}
+          alt={`${market.name} architecture`}
+          eyebrow="GUIDE"
+          title={market.name}
+        />
+      )}
 
       <section className="section-wrap guide-block">
         <p className="eyebrow">NEIGHBORHOODS</p>
