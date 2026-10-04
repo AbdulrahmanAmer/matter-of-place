@@ -1283,7 +1283,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
 - hit again: 2026-10-04, B14 g1: eight B1b entries went stale at once, see P-1100.
 - hit again: 2026-10-04, B3 g6: passing path parameters into the write parse rewrote the `safeParse` line of `pipeline.ts`, and `b3-b` and `b3-g5-pl-order-db` would have replayed STALE; an occurrence count of every entry whose `file` the diff touched found both before any replay, and the registry script rewrote their `find` and `replace`.
-- hit again: 2026-10-04, B4 g6: two new pinned `actions/upload-artifact` lines in `ci.yml` (`db-types`, `playwright-report`) made B1b's entry `ao` occur three times; its `find` now carries the two `with:` lines of `build-output`.
+- hit again: 2026-10-04, B4 g6: two new pinned `actions/upload-artifact` lines in `ci.yml` (`db-types`, `playwright-report`) made B1b's entry `ao` occur three times; its `find` now carries the two `with:` lines of `build-output`. The first CI replay of the branch (`--changed origin/main`, run 37217107769, 157 entries in 5.5 min) then found two entries stale since earlier groups, because nothing had touched their files: `B2:c` (`| "Withdrawn"` of a prettier-formatted `types.ts`; the generated file is raw, now `"Completed"|"Withdrawn"`) and `B4:z` (its `"test": "tests/unit/seo.test.ts",` occurs 7 times since g4's seo entries; it now names `clock.test.ts`, which one entry names).
 - added: 2026-10-02
 
 ## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
@@ -2527,6 +2527,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a later edit of the generated file (an agent's write that strips trailing spaces, or a generation from an older database) reached main; nothing compared the file with a generator before this job.
 - rule: never write `src/db/types.ts` by hand or through a tool that trims whitespace; take it from `gh run download <id> -n db-types` or `bun run gen:types -- --db` and commit it unchanged.
 - proof: `cd app && bun run gen:types -- --db && git diff --stat src/db/types.ts` on slice/b4 after commit 3602375 → no change (measured 2026-10-04, B4 g6).
+- added: 2026-10-04
+
+## P-427 · Two B8 database cases assume `schedule_settings` is absent, and B8b's migration created it: `test:db` is red on main's tree
+- symptom: on CI's fresh stack the `db` job's `bun run test:db` ended `Tests  2 failed | 443 passed (445)` (run 37217107769, slice/b4 merged with main at f80d697): `jobs.db.test.ts > health_counts > returns backup null while schedule_settings is absent` (`expected { absent: false, backup: null } to deeply equal { absent: true, backup: null }`) and `ops-health.db.test.ts > ops_health > watches keepwarm and backup only while their schedule row is enabled`. Neither file is B4's.
+- cause: B8 wrote both cases before B8b; `20261004115859_automation.sql` (B8b g1) creates `schedule_settings`, so the "absent" branch no longer exists on any database built from main.
+- rule: a slice that creates a table another slice's test treats as absent updates that test in the same pull request; until B8 or B8b does, every pull request's `db` job is red on these two cases, which is not the pull request's fault, and the orchestrator owns the fix.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/111479744989/logs | grep -a "FAIL .*db"` → the two lines above (2026-10-04, B4 g6).
 - added: 2026-10-04
 
 ## P-426 · Replaying the registry entry `fd-harness` against the dev project commits one fixture row
