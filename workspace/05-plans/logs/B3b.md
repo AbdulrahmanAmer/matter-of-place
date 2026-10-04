@@ -445,3 +445,5 @@ Proof 6, gates in `app/`: `bun run check` exit 0 (`quiet: ok (48 lines)`); `bun 
 
 UNPROVEN: the deploy step itself runs only on a production deploy after L1's launch switch sets `MOP_DB_PRODUCTION` (H35 (4)); nothing pins its `if:` or the `MOP_LAUNCHED` switch except the grep above (the hygiene pin covers its place and its guard).
 Bank: P-1319 (two proofs that cannot pass as written), P-1320 (deploy step vs B1b pins); P-1102, P-042, P-1312, P-1318 followed.
+
+Handed-in commit: 7c26d75 (the work); this line is the commit after it.
