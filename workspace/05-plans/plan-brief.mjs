@@ -46,7 +46,9 @@ for (const title of ["Contract", "Data changes", "Verification", "Risks and gotc
   const picked = section(title).filter((l) => l.trim() && mentions(l));
   if (picked.length) out.push("", `## From "${title}", the lines that name this group's work`, ...picked);
 }
-const fileLines = section("Files").filter((l) => files.some((f) => l.includes(f) || l.includes(f.split("/").pop())));
+// the Files lines of the group's own paths and of every path the step text names: a step that says "write
+// `scripts/cache-proof.mjs` (Files)" is scope even when the sizing's file list omits it (P-513)
+const fileLines = section("Files").filter((l) => l.trim() && (files.some((f) => l.includes(f) || l.includes(f.split("/").pop())) || mentions(l)));
 if (fileLines.length) out.push("", "## From the Files list", ...fileLines);
 const goal = section("Goal and observed exit").filter((l) => l.trim()).slice(0, 6);
 if (goal.length) out.push("", "## The slice's goal, first lines", ...goal);
