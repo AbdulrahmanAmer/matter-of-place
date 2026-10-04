@@ -348,7 +348,7 @@ export async function handlePublic(
   let response: Response;
   let route = pathname;
   try {
-    const ctx: PublicCtx = { requestId, ipHash, turnstileOk: false, env };
+    const ctx: PublicCtx = { requestId, ipHash, turnstileOk: false, wait, env };
     const handled = await dispatch(request, db ?? getDb(), ctx, pathname);
     response = handled.response;
     route = handled.label;

@@ -1,6 +1,10 @@
 import type { z } from "zod";
 import {
+  analyticsBatchSchema,
+  clientErrorSchema,
+  conciergeQuestionSchema,
   inquirySchema,
+  searchQuerySchema,
   slugSchema,
   subjectRequestSchema,
   submissionSchema,
@@ -14,10 +18,15 @@ import {
   listProperties,
   listStories,
 } from "../catalog/service";
+import * as clientErrors from "../client-errors/service";
+import * as concierge from "../concierge/service";
+import * as events from "../events/service";
 import * as hooks from "../hooks/resend";
 import * as inquiries from "../inquiries/service";
 import type { Db } from "../lib/db";
 import type { env } from "../lib/env";
+import type { WaitUntil } from "../lib/wait-until";
+import * as search from "../search/service";
 import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
 import * as subscribers from "../subscribers/service";
@@ -31,6 +40,8 @@ export interface PublicCtx {
   requestId: string;
   ipHash: string;
   turnstileOk: boolean;
+  /** Keeps work running after the response (`waitUntil`); the collector of a test. */
+  wait: WaitUntil;
   env: Env;
 }
 
@@ -173,6 +184,42 @@ export const routes: PublicRoute[] = [
     form: true,
     status: 201,
     service: subjects.request,
+  },
+  {
+    path: "/api/public/events",
+    method: "POST",
+    schema: analyticsBatchSchema,
+    limits: [{ scope: "ip", store: "memory", limit: 120, windowSeconds: 60 }],
+    turnstile: false,
+    status: 204,
+    service: events.record,
+  },
+  {
+    path: "/api/public/search",
+    method: "POST",
+    schema: searchQuerySchema,
+    limits: [{ scope: "ip", store: "memory", limit: 60, windowSeconds: 60 }],
+    turnstile: false,
+    status: 200,
+    service: search.match,
+  },
+  {
+    path: "/api/public/concierge",
+    method: "POST",
+    schema: conciergeQuestionSchema,
+    limits: [{ scope: "ip", store: "memory", limit: 30, windowSeconds: 60 }],
+    turnstile: false,
+    status: 200,
+    service: concierge.answer,
+  },
+  {
+    path: "/api/public/client-error",
+    method: "POST",
+    schema: clientErrorSchema,
+    limits: [{ scope: "ip", store: "memory", limit: 30, windowSeconds: 60 }],
+    turnstile: false,
+    status: 204,
+    service: clientErrors.report,
   },
   {
     path: "/api/hooks/resend",

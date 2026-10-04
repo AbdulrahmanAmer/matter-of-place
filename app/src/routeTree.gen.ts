@@ -36,9 +36,13 @@ import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.ind
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
+import { Route as ApiPublicClientErrorRouteImport } from './routes/api/public/client-error'
+import { Route as ApiPublicConciergeRouteImport } from './routes/api/public/concierge'
+import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inquiries'
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
+import { Route as ApiPublicSearchRouteImport } from './routes/api/public/search'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
@@ -184,6 +188,21 @@ const ApiHooksSentryTestRoute = ApiHooksSentryTestRouteImport.update({
   path: '/api/hooks/sentry-test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicClientErrorRoute = ApiPublicClientErrorRouteImport.update({
+  id: '/api/public/client-error',
+  path: '/api/public/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicConciergeRoute = ApiPublicConciergeRouteImport.update({
+  id: '/api/public/concierge',
+  path: '/api/public/concierge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEventsRoute = ApiPublicEventsRouteImport.update({
+  id: '/api/public/events',
+  path: '/api/public/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicInquiriesRoute = ApiPublicInquiriesRouteImport.update({
   id: '/api/public/inquiries',
   path: '/api/public/inquiries',
@@ -197,6 +216,11 @@ const ApiPublicMarketsRoute = ApiPublicMarketsRouteImport.update({
 const ApiPublicPropertiesRoute = ApiPublicPropertiesRouteImport.update({
   id: '/api/public/properties',
   path: '/api/public/properties',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSearchRoute = ApiPublicSearchRouteImport.update({
+  id: '/api/public/search',
+  path: '/api/public/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicStoriesRoute = ApiPublicStoriesRouteImport.update({
@@ -277,9 +301,13 @@ export interface FileRoutesByFullPath {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/api/public/client-error': typeof ApiPublicClientErrorRoute
+  '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
+  '/api/public/search': typeof ApiPublicSearchRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -315,9 +343,13 @@ export interface FileRoutesByTo {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/api/public/client-error': typeof ApiPublicClientErrorRoute
+  '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
+  '/api/public/search': typeof ApiPublicSearchRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -358,9 +390,13 @@ export interface FileRoutesById {
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
+  '/api/public/client-error': typeof ApiPublicClientErrorRoute
+  '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
+  '/api/public/search': typeof ApiPublicSearchRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -401,9 +437,13 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
+    | '/api/public/client-error'
+    | '/api/public/concierge'
+    | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
+    | '/api/public/search'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -439,9 +479,13 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
+    | '/api/public/client-error'
+    | '/api/public/concierge'
+    | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
+    | '/api/public/search'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -481,9 +525,13 @@ export interface FileRouteTypes {
     | '/_site/stories/$slug'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
+    | '/api/public/client-error'
+    | '/api/public/concierge'
+    | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
     | '/api/public/properties'
+    | '/api/public/search'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -505,9 +553,13 @@ export interface RootRouteChildren {
   MediaSplatRoute: typeof MediaSplatRoute
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
+  ApiPublicClientErrorRoute: typeof ApiPublicClientErrorRoute
+  ApiPublicConciergeRoute: typeof ApiPublicConciergeRoute
+  ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiPublicInquiriesRoute: typeof ApiPublicInquiriesRoute
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRouteWithChildren
+  ApiPublicSearchRoute: typeof ApiPublicSearchRoute
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
@@ -706,6 +758,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHooksSentryTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/client-error': {
+      id: '/api/public/client-error'
+      path: '/api/public/client-error'
+      fullPath: '/api/public/client-error'
+      preLoaderRoute: typeof ApiPublicClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/concierge': {
+      id: '/api/public/concierge'
+      path: '/api/public/concierge'
+      fullPath: '/api/public/concierge'
+      preLoaderRoute: typeof ApiPublicConciergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/events': {
+      id: '/api/public/events'
+      path: '/api/public/events'
+      fullPath: '/api/public/events'
+      preLoaderRoute: typeof ApiPublicEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inquiries': {
       id: '/api/public/inquiries'
       path: '/api/public/inquiries'
@@ -725,6 +798,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/properties'
       fullPath: '/api/public/properties'
       preLoaderRoute: typeof ApiPublicPropertiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/search': {
+      id: '/api/public/search'
+      path: '/api/public/search'
+      fullPath: '/api/public/search'
+      preLoaderRoute: typeof ApiPublicSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/stories': {
@@ -943,9 +1023,13 @@ const rootRouteChildren: RootRouteChildren = {
   MediaSplatRoute: MediaSplatRoute,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
+  ApiPublicClientErrorRoute: ApiPublicClientErrorRoute,
+  ApiPublicConciergeRoute: ApiPublicConciergeRoute,
+  ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiPublicInquiriesRoute: ApiPublicInquiriesRoute,
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRouteWithChildren,
+  ApiPublicSearchRoute: ApiPublicSearchRoute,
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,

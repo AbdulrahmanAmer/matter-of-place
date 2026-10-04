@@ -3268,5 +3268,555 @@
     "replace": "  if (false) {",
     "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
     "expect": "× .*answers a filled website field with 201 and writes no row"
+  },
+  {
+    "id": "b3-v",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "send(queue.splice(0, BATCH_SIZE))",
+    "replace": "send(queue.splice(0, 1))",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*sends 25 events made in a second"
+  },
+  {
+    "id": "b3-ii",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  if (!utmAllowed()) return undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*adds no utm and stores no mop_utm while the default predicate holds"
+  },
+  {
+    "id": "b3-g8-an-hidden",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "if (document.visibilityState === \"hidden\") flush();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*flushes at once when the page becomes hidden"
+  },
+  {
+    "id": "b3-g8-an-cut",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "params.get(name)?.slice(0, 100)",
+    "replace": "params.get(name)",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*cuts a long one to 100 characters"
+  },
+  {
+    "id": "b3-g8-an-stored",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "return parsed.success ? parsed.data : undefined;",
+    "replace": "return JSON.parse(stored) as Utm;",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*ignores a stored value that is not the three parameters"
+  },
+  {
+    "id": "b3-g8-an-nobase",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "if (siteConfig.apiBaseUrl && typeof navigator.sendBeacon === \"function\") {",
+    "replace": "if (typeof navigator.sendBeacon === \"function\") {",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*queues nothing when no API base URL is configured"
+  },
+  {
+    "id": "b3-g8-an-throws",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  } catch {\n    return undefined;\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*adds no utm and never throws when the storage fails"
+  },
+  {
+    "id": "b3-g8-an-empty",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "while (queue.length > 0) send(queue.splice(0, BATCH_SIZE));",
+    "replace": "do {\n    send(queue.splice(0, BATCH_SIZE));\n  } while (queue.length > 0);",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*sends nothing for an empty queue"
+  },
+  {
+    "id": "b3-g8-ev-one-call",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  const { error } = await db.rpc(\"record_analytics_events\", { p_rows: rows });\n",
+    "replace": "  let error = null;\n  for (const row of rows) {\n    ({ error } = await db.rpc(\"record_analytics_events\", { p_rows: [row] }));\n  }\n",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*stores a beacon of 20 envelopes"
+  },
+  {
+    "id": "b3-g8-ev-drop",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": ".filter(({ event }) => known.has(event))",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*drops an unknown event name with 204"
+  },
+  {
+    "id": "b3-g8-ev-clamp",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "Math.min(now + DAY_MS, Math.max(now - DAY_MS, given))",
+    "replace": "given",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*clamps occurred_at to within 24 hours of now"
+  },
+  {
+    "id": "b3-g8-ev-scrub",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "if (typeof value === \"string\") return maskEmails(value);",
+    "replace": "if (typeof value === \"string\") return value;",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*scrubs an email-shaped value from data and path"
+  },
+  {
+    "id": "b3-g8-ev-path",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "path: maskEmails(path),",
+    "replace": "path,",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*scrubs an email-shaped value from data and path"
+  },
+  {
+    "id": "b3-g8-ev-limit",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 120, windowSeconds: 60",
+    "replace": "limit: 1200, windowSeconds: 60",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*the 121st beacon in a minute from one address is 429"
+  },
+  {
+    "id": "b3-g8-ev-size",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": ".length <= 1024",
+    "replace": ".length <= 100000",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*rejects data over 1 KB with 422"
+  },
+  {
+    "id": "b3-g8-ev-utm",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "const utmValue = z.string().max(100).optional();",
+    "replace": "const utmValue = z.string().max(1000).optional();",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*answers 422 for a utm_source of 101 characters"
+  },
+  {
+    "id": "b3-g8-ev-batch",
+    "kind": "file",
+    "test": "tests/api/events.api.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": ".min(1).max(20);",
+    "replace": ".min(1).max(21);",
+    "run": "bunx vitest run --project db tests/api/events.api.test.ts",
+    "expect": "× .*answers 422 for 21 envelopes"
+  },
+  {
+    "id": "b3-g8-ev-failed",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  if (error !== null) logLine(\"warn\", \"analytics_store_failed\", { requestId: ctx.requestId });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*still answers 204 when the batch cannot be stored"
+  },
+  {
+    "id": "b3-g8-ev-31",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 120, windowSeconds: 60",
+    "replace": "limit: 30, windowSeconds: 60",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*accepts 31 beacons to /events from one IP"
+  },
+  {
+    "id": "b3-g8-ev-table",
+    "kind": "file",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  const { error } = await db.rpc(\"record_analytics_events\", { p_rows: rows });",
+    "replace": "  const { error } = await db.from(\"analytics_events\").insert(rows);",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "× .*never go through `.from\\(<table>\\).insert"
+  },
+  {
+    "id": "b3-o",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "const hits = new Map(lookup(getSearchIndex(catalog), input.text).map((hit) => [hit.slug, hit]));",
+    "replace": "const hits = new Map<string, { hits: number; fields: never[] }>();",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*finds a property by its architect"
+  },
+  {
+    "id": "b3-o-api",
+    "kind": "file",
+    "test": "tests/api/search-concierge.api.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "const hits = new Map(lookup(getSearchIndex(catalog), input.text).map((hit) => [hit.slug, hit]));",
+    "replace": "const hits = new Map<string, { hits: number; fields: never[] }>();",
+    "run": "bunx vitest run --project db tests/api/search-concierge.api.test.ts",
+    "expect": "× .*finds a property by a word only its title holds"
+  },
+  {
+    "id": "b3-x",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "const query = tokenize(text);",
+    "replace": "const query = text.toLowerCase().split(/\\s+/);",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*finds the singular by the plural"
+  },
+  {
+    "id": "b3-x-api",
+    "kind": "file",
+    "test": "tests/api/search-concierge.api.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "const query = tokenize(text);",
+    "replace": "const query = text.toLowerCase().split(/\\s+/);",
+    "run": "bunx vitest run --project db tests/api/search-concierge.api.test.ts",
+    "expect": "× .*returns the same property for a plural and its singular"
+  },
+  {
+    "id": "b3-g8-ti-fold",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "return token.endsWith(\"s\") ? token.slice(0, -1) : token;",
+    "replace": "return token;",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*folds plurals so a word and its plural are one token"
+  },
+  {
+    "id": "b3-g8-ti-prefix",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "query.length >= MIN_PREFIX && token.startsWith(query)",
+    "replace": "token.startsWith(query)",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*matches a prefix of three characters or more"
+  },
+  {
+    "id": "b3-g8-ti-hits",
+    "kind": "file",
+    "test": "tests/unit/token-index.test.ts",
+    "file": "src/server/search/token-index.ts",
+    "find": "hit.add(word);",
+    "replace": "hit.add(slug);",
+    "run": "bunx vitest run --project unit tests/unit/token-index.test.ts",
+    "expect": "× .*counts the distinct query words that hit"
+  },
+  {
+    "id": "b3-bbb",
+    "kind": "file",
+    "test": "tests/unit/catalog.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "export async function getCatalog(db: Db): Promise<ServedCatalog> {\n  return (await readCatalog(db)).catalog;\n}",
+    "replace": "export async function getCatalog(db: Db): Promise<ServedCatalog> {\n  const { catalog } = await readCatalog(db);\n  (await import(\"../search/token-index\")).buildTokenIndex(catalog.properties);\n  return catalog;\n}",
+    "run": "bunx vitest run --project unit tests/unit/catalog.test.ts -t lazy_index",
+    "expect": "× .*lazy_index"
+  },
+  {
+    "id": "b3-g8-ix-version",
+    "kind": "file",
+    "test": "tests/unit/catalog.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "let index = indexes.get(catalog);",
+    "replace": "let index: TokenIndex | undefined;",
+    "run": "bunx vitest run --project unit tests/unit/catalog.test.ts -t lazy_index",
+    "expect": "× .*lazy_index"
+  },
+  {
+    "id": "b3-g8-se-rank",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "b.entry.score - a.entry.score ||",
+    "replace": "0 ||",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*puts the matcher's score before token hits"
+  },
+  {
+    "id": "b3-g8-se-limit",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": ".slice(0, input.limit)",
+    "replace": ".slice(0, 24)",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*honours the limit"
+  },
+  {
+    "id": "b3-g8-se-version",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/public/post-read.ts",
+    "find": "\"x-catalog-version\": String(catalogVersion),",
+    "replace": "\"x-catalog-version\": \"0\",",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*answers no-store, with the catalog version it read through"
+  },
+  {
+    "id": "b3-g8-se-reasons",
+    "kind": "file",
+    "test": "tests/unit/search-service.test.ts",
+    "file": "src/server/search/service.ts",
+    "find": "reasons: [...entry.reasons, ...(hit?.fields ?? [])],",
+    "replace": "reasons: entry.reasons,",
+    "run": "bunx vitest run --project unit tests/unit/search-service.test.ts",
+    "expect": "× .*names the field that held the words"
+  },
+  {
+    "id": "b3-g8-co-404",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/concierge/service.ts",
+    "find": "if (property === undefined) {",
+    "replace": "if (false as boolean) {",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers a concierge question the same way, and 404"
+  },
+  {
+    "id": "b3-g8-co-limit",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 30, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,",
+    "replace": "limit: 300, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
+  },
+  {
+    "id": "b3-g8-se-limit-60",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 60, windowSeconds: 60",
+    "replace": "limit: 600, windowSeconds: 60",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
+  },
+  {
+    "id": "b3-g8-cr-action",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "        action: \"showing\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*answers a showing request with the showing action"
+  },
+  {
+    "id": "b3-g8-cr-nearby",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "relatedProperties(pool, property, 1)[0]",
+    "replace": "relatedProperties([], property, 1)[0]",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*names a nearby property that is not the one asked about"
+  },
+  {
+    "id": "b3-g8-cr-status",
+    "kind": "file",
+    "test": "tests/unit/concierge-rules.test.ts",
+    "file": "src/lib/concierge-rules.ts",
+    "find": "property.status.toLowerCase()",
+    "replace": "\"open\"",
+    "run": "bunx vitest run --project unit tests/unit/concierge-rules.test.ts",
+    "expect": "× .*answers availability from the status"
+  },
+  {
+    "id": "b3-xx",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "if (seen.has(key) || seen.size >= MAX_PER_PAGE) return;",
+    "replace": "if (seen.size >= MAX_PER_PAGE) return;",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*sends two identical errors on one route as one beacon"
+  },
+  {
+    "id": "b3-g8-re-cap",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "if (seen.has(key) || seen.size >= MAX_PER_PAGE) return;",
+    "replace": "if (seen.has(key)) return;",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*sends 12 distinct errors as 10 beacons"
+  },
+  {
+    "id": "b3-g8-re-stack",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "error.stack?.slice(0, STACK_CHARS)",
+    "replace": "error.stack",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-message",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "messageOf(error).slice(0, MESSAGE_CHARS)",
+    "replace": "messageOf(error)",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-route",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "route: route.slice(0, ROUTE_CHARS),",
+    "replace": "route,",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*cuts the stack to 2,048 characters"
+  },
+  {
+    "id": "b3-g8-re-id",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "carriesRequestId.safeParse(error).data?.requestId",
+    "replace": "undefined",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*takes the request id from an error that carries one"
+  },
+  {
+    "id": "b3-g8-re-ssr",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "  if (typeof window === \"undefined\") return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*does nothing on the server"
+  },
+  {
+    "id": "b3-g8-re-remove",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "window.removeEventListener(\"unhandledrejection\", onRejection);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*the remover takes both off"
+  },
+  {
+    "id": "b3-g8-re-reject",
+    "kind": "file",
+    "test": "tests/unit/report-error.test.ts",
+    "file": "src/lib/report-error.ts",
+    "find": "reportClientError(reason, { route: window.location.pathname });",
+    "replace": "reportClientError(\"x\", { route: window.location.pathname });",
+    "run": "bunx vitest run --project unit tests/unit/report-error.test.ts",
+    "expect": "× .*the remover takes both off"
+  },
+  {
+    "id": "b3-rrr",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "      ...sentryOptions(),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-side",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "side: \"browser\",",
+    "replace": "side: \"worker\",",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-wait",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "  ctx.wait(",
+    "replace": "  void (",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-stack",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "if (input.stack !== undefined) failure.stack = input.stack;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*queues exactly one browser report"
+  },
+  {
+    "id": "b3-g8-ce-release",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/client-errors/service.ts",
+    "find": "...(input.release === undefined || input.release === \"\" ? {} : { release: input.release }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*takes the release and the request id from the body"
+  },
+  {
+    "id": "b3-g8-ce-limit",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "limit: 30, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,",
+    "replace": "limit: 3000, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 429 for the 31st post from one IP in a minute and reports 30"
+  },
+  {
+    "id": "b3-g8-ce-message",
+    "kind": "file",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "message: z.string().max(500),",
+    "replace": "message: z.string().max(5000),",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "× .*answers 422 for a message over 500 characters"
   }
 ]

@@ -118,9 +118,11 @@ const slugOf = (body) => {
  * @param {boolean} expectLimits
  */
 async function callRoutes(api, checks, expectLimits) {
+  let propertySlug = "";
   for (const kind of ["properties", "markets", "stories"]) {
     const list = await call(`${api}/${kind}`);
     expectAnswer(checks, `GET /${kind}`, list, 200, isList, expectLimits);
+    if (kind === "properties") propertySlug = slugOf(list.body);
     const detail = await call(`${api}/${kind}/${encodeURIComponent(slugOf(list.body))}`);
     expectAnswer(
       checks,
@@ -205,6 +207,40 @@ async function callRoutes(api, checks, expectLimits) {
     body: { email, kind: "access", note: "__smoke" },
   });
   expectAnswer(checks, "POST /subjects/request", subject, 201, isReceipt, expectLimits);
+  const events = await call(`${api}/events`, {
+    method: "POST",
+    body: [{ event: "property_view", path: SOURCE, at: new Date().toISOString(), data: {} }],
+  });
+  expectAnswer(checks, "POST /events", events, 204, (body) => body === null, expectLimits);
+  const search = await call(`${api}/search`, {
+    method: "POST",
+    body: { text: "modern house with a pool under 6m" },
+  });
+  expectAnswer(checks, "POST /search", search, 200, Array.isArray, expectLimits);
+  const concierge = await call(`${api}/concierge`, {
+    method: "POST",
+    body: { propertySlug, question: "Is the property still available?" },
+  });
+  expectAnswer(
+    checks,
+    "POST /concierge",
+    concierge,
+    200,
+    (body) => typeof record(body)["text"] === "string",
+    expectLimits,
+  );
+  const clientError = await call(`${api}/client-error`, {
+    method: "POST",
+    body: { message: "__smoke", route: SOURCE },
+  });
+  expectAnswer(
+    checks,
+    "POST /client-error",
+    clientError,
+    204,
+    (body) => body === null,
+    expectLimits,
+  );
   return email;
 }
 

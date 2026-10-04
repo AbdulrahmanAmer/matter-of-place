@@ -200,6 +200,7 @@ Entry template
 - hit again: 2026-10-04, B14 g1: a `node -` patch fed from a heredoc wrote a code line whose escaped newline became a real line break, so `cache.mjs` stopped parsing and vitest printed `Failed to parse source for import analysis`; a second patch of the same kind failed on a `rep` anchor that held a `\n`. Edit code with the Edit tool or a Write-made script file. Proof: `grep -n 'join("' workspace/audits/tools/cache.mjs` shows the newline escape inside its string literal.
 - hit again: 2026-10-04, B3 g6: a quoted heredoc (`cat >> logs/B3.md <<'EOF'`) holding a log block with apostrophes and backticks ended in `unexpected EOF while looking for matching` and wrote nothing; the block went in through a Write-made file and `cat`, and a `sed` over a Write-made script missed its target because the file held escaped backticks.
 - added: 2026-09-30
+- hit again: 2026-10-04, B3 g8: a `node -e` and a heredoc patch script lost a backslash, so `"\n"` reached the file as a real line break inside a string; `node -e` with a quote or backtick inside a pattern ended in `unexpected token '('`. Patch scripts went into the scratchpad as files (Write tool), run with `node`.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -631,6 +632,7 @@ Entry template
 - merged: P-302, P-303, P-501
 - hit again: 2026-10-04, B3 g6: `git merge origin/main` printed `merge-gotchas: both sides changed P-008, P-094, P-320; ours kept, compare by hand` and left GOTCHAS.md conflicted with no markers; the main side's `hit again` lines were copied in by a script and each entry's `- added:` moved back to the last line, then `check-gotchas.mjs` printed OK.
 - added: 2026-10-02
+- hit again: 2026-10-04, B3 g8: `git merge origin/main` printed `merge-gotchas: both sides changed P-094, P-310, P-706, P-1001; ours kept, compare by hand`; the four theirs-only `hit again` lines were copied in by a script that diffed each entry against the base, and `check-gotchas.mjs` printed OK.
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
 - paths: app/src/start.ts
@@ -805,6 +807,7 @@ Entry template
 - hit again: 2026-10-04, B3 g5 repair round (second hit of the same group): a stray interactive `python -` ran again in the repair commit's session; the first round's hit is above. The repair commit `a2f4cb3` changed this entry not at all, so the review counted the cost as unbanked. The hook that refuses `(^|[;&|] *)python3? +-( |$)` is still the open mechanism (see the B3 c3 line).
 - added: 2026-10-02
 - hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.
+- hit again: 2026-10-04, B3 g8: a leftover `python3 - <<EOF` hung the shell 120 seconds while a merge was being resolved, and later a bare `cat > file` chained before a heredoc waited on stdin for another 120 seconds; each was ended by its own process id (the first with `taskkill //IM python.exe`, which stops every python process: use `//PID`). Write a script file with the Write tool and run it with `node`, never a stdin script.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -1062,6 +1065,7 @@ Entry template
 - rule: narrow the keys with a type guard instead of a cast: `Object.keys(obj).filter((key): key is K => key in obj)`.
 - proof: `cd app && bun run lint` exits 0 on slice/b2 at B2 g6; with the cast put back in `tests/unit/workflow.test.ts` it prints the error above (measured 2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-04, B3 g8: five new tests failed lint with the same rule on `JSON.parse(...) as T`, `await response.json() as T` and `... as Property`; parse with a Zod schema (`beaconBody.parse(JSON.parse(text))`) and give a helper the narrow `Pick<>` type it reads instead of casting a partial object.
 
 ## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
 - symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
@@ -1457,6 +1461,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-04, B3 g7: the brief for steps 8b and 9 named seven paths; the steps also needed `src/services/types.ts`, `src/services/index.ts` (re-export of `UploadProgress`), `wizard.tsx`, `strings.ts`, `contracts.ts` (receipt shape, `confirmQuerySchema`, `subjectRequestSchema`), `routes.ts`, `pipeline.ts` (an uncached GET path for the confirm link), four route files, `src/server/subjects/service.ts` (no later group of B3 names `POST /subjects/request`), `error-codes.ts` (`unauthorized`), `log-events.ts`, `crypto.ts` (its `STUB(B3)` retired), `scripts/api-smoke.mjs`, `tests/mutations/B3.json`, three existing tests whose shapes changed and five new test files; all are named in the log. Proof: `git diff --stat origin/main...slice/b3 -- app/src/server/subjects app/src/server/public/pipeline.ts | tail -1`.
 - hit again: 2026-10-04, B3 g6: the brief named `app/src/server/lib/upload-token.ts` where the plan's Files list and the folder map put `src/server/submissions/upload-token.ts` (built there), and steps 7 and 8 also needed the three route files, `routes.ts`, `pipeline.ts`, `contracts.ts` (`honeypotFieldName`), `crypto.ts` (two STUB markers retired), `src/lib/form-data.ts`, the four forms, `forms.css`, `scripts/deno-portable.ts`, `tests/fixtures/fake-db.ts`, `tests/mutations/B3.json` and the tests `inquiries.api`, `honeypot`, `reconcile` and `subrequest-budget`; all are named in the log.
 - added: 2026-10-03
+- hit again: 2026-10-04, B3 g8: the brief for steps 10, 11 and 11b named six paths; the steps also needed `src/domain/contracts.ts` (the analytics batch, the utm schema, the exports of the search and concierge schemas, `searchMatchSchema` moved onto the card), `src/lib/analytics.ts`, `src/lib/concierge-rules.ts`, `src/services/local/concierge.ts`, `src/server/{concierge,public/post-read,public/routes,public/pipeline}.ts`, `src/server/search/token-index.ts`, `src/components/layout/route-error.tsx`, `scripts/api-smoke.mjs`, seven test files and `tests/mutations/B3.json`; all are named in the log.
 
 ## P-321 · A statement-level catalog trigger bumps twice for one slug rename: `enforce_slug_immutable` deletes before it inserts
 - symptom: B2 g8's first run of `renaming a draft's slug bumps it once` received `2`.
@@ -2151,4 +2156,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `||` has both `anyarray || anyelement` and `anyarray || anyarray`; an untyped string literal resolves to the array form, so Postgres parses `'runner'` as an array literal.
 - rule: append to an array with `array_append(v_list, 'name')` (or cast the literal, `'name'::text`); never `v_list || 'name'`.
 - proof: `cd app && bun run db:psql -- -Atc "select array['a'] || 'b'"` → `ERROR:  malformed array literal: "b"`; `select array_append(array['a'], 'b')` → `{a,b}` (measured 2026-10-04, B8 g5).
+- added: 2026-10-04
+
+## P-826 · A lane that merges main can find main already holds the real body of a file its plan stubs: `AA` on `events.ts`, and the stub's log event goes dead
+- symptom: B3 g8 started with `git merge origin/main` and got `CONFLICT (add/add): Merge conflict in app/src/server/lib/events.ts` (and content conflicts in `log-events.ts`, `scripts/load-env.mjs`, `routeTree.gen.ts`). B3's `events.ts` is the `STUB(B8 step 3)` that logs `event_pending`; B8 g3 had already merged the real `emit_event` RPC body, a different export surface (`catalogEventTypes`, `Promise<string>`).
+- cause: the plan builds a stub for a slice that lands later, and the lanes run side by side, so the later slice can reach main first. Nothing in the B3 plan says what to do then; a hand merge of the two bodies would bring the stub back over the real function.
+- rule: for `AA` on a file one slice stubs and another implements, take main's side (`git checkout --theirs <file>`), drop the stub's own tests and markers, and check what only the stub used: `event_pending` stays in `LogEvent` because two API tests assert no such line, and nothing writes it any more. Regenerate `src/routeTree.gen.ts` with `bun run build` instead of merging it by hand (G-021), and add both sides of an allow-list such as `scripts/load-env.mjs`.
+- proof: `cd app && git grep -n "event_pending" -- src tests | head` → one entry in `src/server/lib/log-events.ts` and the `not.toContain("event_pending")` assertions of `tests/api/inquiries.api.test.ts` and `subscribers.api.test.ts`; `git log --oneline -1 -- src/server/lib/events.ts` is the merge commit `B3 g8: merge origin/main` (measured 2026-10-04, B3 g8).
+- added: 2026-10-04
+
+## P-827 · A proof that the live search returns "the same order as the local adapter" cannot hold on ties: the live catalog is newest first, the bundled array is in authoring order
+- symptom: B3 g8's `tests/api/search-concierge.api.test.ts` failed on four of five fixture queries with `expected [ 'la-courtyard', ... ] to deeply equal [ 'berkeley-hills-house', ... ]`, and the concierge answer to "similar properties nearby" named `oak-hill-residence` locally and `berkeley-hills-house` live.
+- cause: `matchProperties` sorts by score and keeps the list's order for equal scores, and `relatedProperties` takes the first sibling of the list. `public_catalog_snapshot()` orders `published_at desc, id` while `src/data/properties.ts` is in authoring order (the header of `parity.api.test.ts` says so). Step 11 of the plan wrote "in the same order for the structured fixtures" without that.
+- rule: compare the live and local answers by score and by the set of slugs of each score (`byScore` in the test), and for a pick that depends on list order assert membership of the same region, never the same slug. Do not change `matchProperties` to break ties by slug: that changes the local adapter the plan calls unchanged.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/search-concierge.api.test.ts` passes 17 of 17; registry entries `b3-o-api` and `b3-x-api` turn it red.
 - added: 2026-10-04

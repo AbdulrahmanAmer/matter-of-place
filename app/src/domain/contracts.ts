@@ -299,7 +299,7 @@ export const subscriberSchema = z.object({
 });
 export type SubscriberInput = z.input<typeof subscriberSchema>;
 
-const searchQuerySchema = z.object({
+export const searchQuerySchema = z.object({
   text: z.string().trim().min(1).max(500),
   limit: z.number().int().min(1).max(24).default(6),
 });
@@ -311,7 +311,7 @@ export const conciergeQuestions = [
   "Are there similar properties nearby?",
   "Can you send the full details?",
 ] as const;
-const conciergeQuestionSchema = z.object({
+export const conciergeQuestionSchema = z.object({
   propertySlug: z.string().min(1).max(120),
   question: z.enum(conciergeQuestions),
 });
@@ -357,13 +357,6 @@ export const subjectRequestSchema = z.object({
 });
 export type SubjectRequest = z.infer<typeof subjectRequestSchema>;
 
-export const searchMatchSchema = z.object({
-  property: propertySchema,
-  score: z.number(),
-  reasons: z.array(z.string()),
-});
-export type SearchMatch = z.infer<typeof searchMatchSchema>;
-
 export const conciergeAnswerSchema = z.object({
   text: z.string(),
   link: z.object({ slug: z.string(), title: z.string() }).optional(),
@@ -403,6 +396,14 @@ export const propertyCardSchema = propertySchema
     heroVariants: propertySchema.shape.heroVariants.unwrap().pick({ card: true }).optional(),
   });
 
+/** One answer of `POST /search`: the card of a property, how well it fits and why (the matcher reads card fields only). */
+export const searchMatchSchema = z.object({
+  property: propertyCardSchema,
+  score: z.number(),
+  reasons: z.array(z.string()),
+});
+export type SearchMatch = z.infer<typeof searchMatchSchema>;
+
 /** `POST /submissions/:id/uploads`: the next photographs to sign, with the token the first answer carried (E2E-02). */
 export const submissionUploadsSchema = z.object({
   media_ids: z.array(z.string().uuid()).min(1).max(10),
@@ -417,3 +418,44 @@ export const clientErrorSchema = z.object({
   release: z.string().max(100).optional(),
   requestId: z.string().max(100).optional(),
 });
+export type ClientError = z.infer<typeof clientErrorSchema>;
+
+const utmValue = z.string().max(100).optional();
+
+/** The three campaign parameters of the landing address, as `track()` sends them in `data.utm` (G45). */
+export const utmSchema = z
+  .object({ utm_source: utmValue, utm_medium: utmValue, utm_campaign: utmValue })
+  .strict();
+export type Utm = z.infer<typeof utmSchema>;
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValue),
+    z.record(z.string(), jsonValue),
+  ]),
+);
+
+/** One analytics event as `track()` queues it. `event` is any string: the server drops a name it does not list. */
+const analyticsEnvelopeSchema = z.object({
+  event: z.string().min(1).max(60),
+  path: z.string().max(300),
+  at: z.string().datetime({ offset: true }),
+  data: z
+    .object({
+      /** The session's campaign attribution (G45), stored unchanged. */
+      utm: utmSchema.optional(),
+    })
+    .catchall(jsonValue)
+    .refine((data) => new TextEncoder().encode(JSON.stringify(data)).length <= 1024, {
+      message: "data is larger than 1 KB",
+    }),
+});
+
+/** The body of `POST /events`: one beacon, at most 20 envelopes. */
+export const analyticsBatchSchema = z.array(analyticsEnvelopeSchema).min(1).max(20);
+export type AnalyticsBatch = z.infer<typeof analyticsBatchSchema>;

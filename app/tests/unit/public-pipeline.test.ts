@@ -697,3 +697,209 @@ describe("Turnstile in a write (invariant 17)", () => {
     expect(siteverify).not.toHaveBeenCalled();
   });
 });
+
+describe("client-error (FE-09)", () => {
+  const body = { message: "Cannot read properties of undefined", route: "/property/p1" };
+
+  it("answers 429 for the 31st post from one IP in a minute and reports 30, never the 31st", async () => {
+    const { handlePublic, sentry } = await load();
+    const { queued, wait } = collector();
+    const ip = nextIp();
+    const statuses: number[] = [];
+    for (let sent = 1; sent <= 31; sent += 1) {
+      const response = await handlePublic(
+        post("/api/public/client-error", { ...body, message: `failure ${String(sent)}` }, { ip }),
+        "req-12345678",
+        catalogDb(),
+        wait,
+      );
+      statuses.push(response.status);
+    }
+    await Promise.all(queued);
+    expect(statuses.slice(0, 30).every((status) => status === 204)).toBe(true);
+    expect(statuses[30]).toBe(429);
+    expect(sentry.captureException).toHaveBeenCalledTimes(30);
+    const reported = vi.mocked(sentry.captureException).mock.calls.map(([error]) => String(error));
+    expect(reported.join("\n")).not.toContain("failure 31");
+  });
+
+  it("answers a valid post with 204 and queues exactly one browser report with the options of sentryOptions()", async () => {
+    vi.stubEnv("SENTRY_DSN", "https://key@o1.ingest.sentry.io/1");
+    vi.stubEnv("SENTRY_RELEASE", "release-abc");
+    const { handlePublic, sentry } = await load();
+    const { queued, wait } = collector();
+    const db = catalogDb();
+    const response = await handlePublic(
+      post("/api/public/client-error", { ...body, stack: "Error: x\n    at f (a.js:1:1)" }),
+      "req-12345678",
+      db,
+      wait,
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get("x-mop-cache")).toBe("bypass");
+    expect(queued).toHaveLength(1);
+    await Promise.all(queued);
+    expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    const [error, options] = vi.mocked(sentry.captureException).mock.calls[0] ?? [];
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toMatchObject({ stack: "Error: x\n    at f (a.js:1:1)" });
+    expect(options).toMatchObject({
+      dsn: "https://key@o1.ingest.sentry.io/1",
+      env: "local",
+      release: "release-abc",
+      side: "browser",
+      route: "/property/p1",
+      requestId: "req-12345678",
+    });
+    expect(db.calls).toEqual([]);
+  });
+
+  it("takes the release and the request id from the body when it carries them", async () => {
+    vi.stubEnv("SENTRY_RELEASE", "release-abc");
+    const { handlePublic, sentry } = await load();
+    const { queued, wait } = collector();
+    await handlePublic(
+      post("/api/public/client-error", { ...body, release: "release-page", requestId: "req-page" }),
+      "req-12345678",
+      catalogDb(),
+      wait,
+    );
+    await Promise.all(queued);
+    expect(vi.mocked(sentry.captureException).mock.calls[0]?.[1]).toMatchObject({
+      release: "release-page",
+      requestId: "req-page",
+    });
+  });
+
+  it("answers 422 for a message over 500 characters and reports nothing", async () => {
+    const { handlePublic, sentry } = await load();
+    const { queued, wait } = collector();
+    const response = await handlePublic(
+      post("/api/public/client-error", { ...body, message: "m".repeat(501) }),
+      "req-12345678",
+      catalogDb(),
+      wait,
+    );
+    expect(response.status).toBe(422);
+    expect(queued).toHaveLength(0);
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+});
+
+describe("the rows of events, search and concierge", () => {
+  const nothing = { event: "property_view", path: "/", at: new Date().toISOString(), data: {} };
+
+  it("accepts 31 beacons to /events from one IP, all 204, and stores each with one function call", async () => {
+    const { handlePublic } = await load();
+    const db = fakeDb({ rpc: { record_analytics_events: () => 1 } });
+    const ip = nextIp();
+    const statuses: number[] = [];
+    for (let sent = 1; sent <= 31; sent += 1) {
+      statuses.push(
+        (await handlePublic(post("/api/public/events", [nothing], { ip }), "req-12345678", db))
+          .status,
+      );
+    }
+    expect(statuses.every((status) => status === 204)).toBe(true);
+    expect(dbCalls(db, "record_analytics_events")).toBe(31);
+  });
+
+  it("still answers 204 when the batch cannot be stored, and logs analytics_store_failed without the events", async () => {
+    const { handlePublic } = await load();
+    const db = fakeDb({ rpc: { record_analytics_events: () => new Error("down") } });
+    const response = await handlePublic(
+      post("/api/public/events", [{ ...nothing, path: "/secret-path" }]),
+      "req-12345678",
+      db,
+    );
+    expect(response.status).toBe(204);
+    const failed = lines.filter((line) => line.includes("analytics_store_failed"));
+    expect(failed).toHaveLength(1);
+    expect(JSON.parse(failed[0] ?? "{}")).toMatchObject({
+      level: "warn",
+      requestId: "req-12345678",
+    });
+    expect(failed[0]).not.toContain("secret-path");
+  });
+
+  it("answers a search with the catalog version it read through, a bypassed cache and no-store", async () => {
+    const { handlePublic } = await load();
+    const response = await handlePublic(
+      post("/api/public/search", { text: "Cliff House" }),
+      "req-12345678",
+      catalogDb(9),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-catalog-version")).toBe("9");
+    expect(response.headers.get("x-mop-cache")).toBe("bypass");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("answers a concierge question the same way, and 404 for a property that is not in the catalog", async () => {
+    const { handlePublic } = await load();
+    const db = catalogDb(9);
+    const answered = await handlePublic(
+      post("/api/public/concierge", {
+        propertySlug: "p1",
+        question: "Can I request a private showing?",
+      }),
+      "req-12345678",
+      db,
+    );
+    expect(answered.status).toBe(200);
+    expect(answered.headers.get("x-catalog-version")).toBe("9");
+    expect(answered.headers.get("x-mop-cache")).toBe("bypass");
+    expect(await answered.json()).toMatchObject({ action: "showing" });
+    const missing = await handlePublic(
+      post("/api/public/concierge", {
+        propertySlug: "nothing",
+        question: "Can I request a private showing?",
+      }),
+      "req-12345679",
+      db,
+    );
+    expect(missing.status).toBe(404);
+  });
+
+  it("answers 422 for a question outside the four and for an empty search", async () => {
+    const { handlePublic } = await load();
+    const db = catalogDb(9);
+    const question = await handlePublic(
+      post("/api/public/concierge", { propertySlug: "p1", question: "What is the price?" }),
+      "req-12345678",
+      db,
+    );
+    const empty = await handlePublic(
+      post("/api/public/search", { text: "   " }),
+      "req-12345679",
+      db,
+    );
+    expect([question.status, empty.status]).toEqual([422, 422]);
+  });
+
+  it("answers 429 to the 61st search and the 31st concierge question from one IP in a minute", async () => {
+    const { handlePublic } = await load();
+    const db = catalogDb(9);
+    const ip = nextIp();
+    const asked = { propertySlug: "p1", question: "Can I request a private showing?" };
+    let search = 0;
+    let concierge = 0;
+    for (let sent = 1; sent <= 61; sent += 1) {
+      const response = await handlePublic(
+        post("/api/public/search", { text: "house" }, { ip }),
+        "req-12345678",
+        db,
+      );
+      if (response.status === 429) search = sent;
+    }
+    for (let sent = 1; sent <= 31; sent += 1) {
+      const response = await handlePublic(
+        post("/api/public/concierge", asked, { ip }),
+        "req-12345678",
+        db,
+      );
+      if (response.status === 429) concierge = sent;
+    }
+    expect([search, concierge]).toEqual([61, 31]);
+  });
+});
