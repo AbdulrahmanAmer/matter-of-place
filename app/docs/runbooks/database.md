@@ -144,7 +144,7 @@ Storage objects are not backed up; that risk is listed in H1. UNPROVEN until the
 
 - `--mode full`: the illustrative catalog (3 markets, 12 regions, 16 `Illustrative` properties, 6 stories). It refuses once the stage is `production`. It is not part of the first-time setup of production and never runs there.
 - `--mode reference`: markets, regions, notes and guide entries only. It is idempotent and never changes `coming_soon` of an existing market. This is the seed the launch switch runs.
-- `--images skip`: the image keys are written exactly as an upload would write them, and nothing is stored. `--images upload` stores the variants in `media` and works once B9's `scripts/lib/media-store.mjs` exists; until then it stops with `seed: --images upload needs the media-store of B9`.
+- `--images skip`: the image keys are written exactly as an upload would write them, and nothing is stored. `--images upload` first puts each master and its five sizes into the `media` bucket (`putIfMissing`, so a rerun uploads nothing twice), then writes the rows with `variants` and `image_variants` filled. `bun run variants -- --property <uuid>` or `--all` fills `property_media.variants` of masters that are already stored.
 - `--target local` writes to the CI stack through `API_URL` and `SERVICE_ROLE_KEY`.
 
 To confirm a full seed: `select count(*) from properties where status = 'Illustrative'` returns 16.

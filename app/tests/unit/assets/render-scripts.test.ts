@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import * as carousel from "../../../scripts/render-carousel.mjs";
 import * as cover from "../../../scripts/render-cover.mjs";
+import * as ogStatic from "../../../scripts/render-og-static.mjs";
 import * as story from "../../../scripts/render-story.mjs";
 import * as variants from "../../../scripts/render-variants.mjs";
 
@@ -32,7 +33,7 @@ function jobWith(keyPrefix: string) {
 
 describe("render scripts", () => {
   it("each render script exports a function run", () => {
-    for (const script of [cover, carousel, story, variants]) {
+    for (const script of [cover, carousel, story, variants, ogStatic]) {
       expect(typeof script.run).toBe("function");
     }
   });
@@ -40,5 +41,11 @@ describe("render scripts", () => {
   it("refuses a key_prefix that is not assets/<property>/<kind>/r<revision>/", async () => {
     await expect(cover.run(jobWith("assets/p1/cover/"))).rejects.toThrow("key_prefix");
     await expect(story.run(jobWith("p1/story/r1/"))).rejects.toThrow("key_prefix");
+  });
+
+  it("render-og-static refuses a page that has no card before a browser starts", async () => {
+    await expect(ogStatic.run({ payload: { params: { pages: ["nowhere"] } } })).rejects.toThrow(
+      "pages",
+    );
   });
 });
