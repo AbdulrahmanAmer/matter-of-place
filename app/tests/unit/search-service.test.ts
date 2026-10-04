@@ -80,8 +80,8 @@ describe("search.match", () => {
   });
 
   it("puts the matcher's score before token hits", async () => {
-    // "Sausalito" is a city the matcher scores; "Kerrigan" is a token hit only.
-    const { body } = await ask("Sausalito Kerrigan");
+    // "Sausalito" is a city the matcher scores; "Kerrigan" and "Anselm" are token hits only, two of them against the one of "Sausalito".
+    const { body } = await ask("Sausalito Kerrigan Anselm");
     expect(body.map((m) => m.property.slug)).toEqual(["harbour-lofts", "quiet-house"]);
     expect(body[0]?.score).toBeGreaterThan(0);
     expect(body[1]?.score).toBe(0);
