@@ -155,3 +155,24 @@
 6. `app/scripts/job-selftest.ts` (not blocking)
    - What: Still UNPROVEN after the merge (ruling H57): the full self-test printing 'heavy done' with the created, claimed, dispatched, callback, done timeline (needs GITHUB_DISPATCH_TOKEN as a function secret, P-912); --reconcile printing 'reconcile done' (the deployed runner does not have the reconcile type yet, and reconcile.ts passes a STUB(B3 step 8) stand-in, so it proves the job path only); the pushed-database retention_policies selects; the CI db job; and gen:types matching the hand-written types.ts entries (P-910). Separately, the 3 deno check errors in g5/B3 files (db.ts:2,3, runner.ts:227) remain for the CI deno step.
    - Evidence: Author's unproven list and log lines 675 and 732. deno check output above. reconcile.ts: '// STUB(B3 step 8)'
+
+## c8w · steps 8
+
+1. `app/src/routes/api/hooks/sentry-test.ts, app/src/server/jobs/system/reconcile.ts` (not blocking)
+   - What: slice/b8 at 8f4d1d6 conflicts with origin/main. PR 114 (49e3799) rewrote the two STUB comment lines to 'STUB(B8 step 2a)', and this commit deletes those same lines. A conflicting pull request starts no CI run (P-136). The fix is small: merge origin/main into slice/b8 and keep the branch side of both hunks, then run check-gotchas, because GOTCHAS.md also changed on main.
+   - Evidence: Confirmed by running: git merge-tree --write-tree --name-only HEAD origin/main gives exit 1 with 'CONFLICT (content): Merge conflict in app/src/routes/api/hooks/sentry-test.ts' and '... in app/src/server/jobs/system/reconcile.ts'.
+   - Recorded by the follow-ups pass: origin/main was merged into slice/b8 and the branch side of both hunks was kept (both files equal the branch's own version, no STUB left); the merge commit is on the branch.
+
+2. `app/tests/unit/sentry-test-route.test.ts:104` (not blocking)
+   - What: The new route case loads the TanStack route module with vi.resetModules() and then a dynamic import, and it sets no timeout of its own. On a cold transform cache, the author's own proof command (a bare bunx vitest run, which keeps the 5000 ms default) went red. It passes under bun run check, which gives every test 60 s. render-variants.test.ts had the same problem and now sets { timeout: 60_000 } (G-031 hit-again, B9 g5). This case could do the same, or the proof command could add --testTimeout=60000.
+   - Evidence: Confirmed by running. The first run in the fresh snapshot gave 'FAIL |unit| tests/unit/sentry-test-route.test.ts > the sentry-test route > reads SENTRY_TEST_TOKEN through env.ts ... Error: Test timed out in 5000ms.' The next three runs passed in 3.1 s to 5.0 s.
+
+3. `app/tests/unit/jobs/reconcile.test.ts:93` (not blocking)
+   - What: Follow-up on test strength. The case 'runs the real reconcileUploads' uses an empty submission_media table, so the stored counts (all zero) match the stand-in's. Only the call-shape assertion (client.calls contains from submission_media) tells real from stand-in, which is close to an internal-call assertion (C10). The watched-fail replay proves it goes red when the stand-in is put back, so the contract holds. A row-carrying case (one waiting row and a storage fake answering NoSuchKey, so missing or checked counts become 1) would assert behaviour, not shape. Not required by the step.
+   - Evidence: Read the diff. The watchfail replay of rc-wired printed WATCHED-FAIL OK, so the test does fail when the wiring is removed.
+
+4. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: UNPROVEN, as the author says. The deployed job-runner still runs the stand-in, because main at 49e3799 still holds it. The --reconcile self-test I re-ran (exit 0, all-zero counts) proves the job path, not the real reconcileUploads. It needs a re-run after merge and the job-runner redeploy. The sentry-test route against a deployed Worker holding SENTRY_TEST_TOKEN is also UNPROVEN. The orchestrator should track both to closure.
+   - Evidence: bun run scripts/job-selftest.ts --reconcile gave 'reconcile done in 54 s', 'reconcile uploads: {"checked":0,"deleted":0,"missing":0,"uploaded":0}', exit 0
+
+(A fifth follow-up, the reviewer's own two costs in a bare vitest run and a loaded `bun run check`, is banked as hit-again lines on GOTCHAS G-031 and P-712.)

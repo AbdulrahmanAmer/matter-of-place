@@ -926,6 +926,7 @@ Entry template
 - enforced-by: the `test` script of `app/package.json` passes `--testTimeout=60000 --hookTimeout=60000` to every test of `bun run check` (ruling H49 (3)), pinned by `tests/unit/hygiene.test.ts` (`the test script gives every test and hook 60 s`); a bare `bunx vitest run` still has the 5000 ms default (P-140); one case, `lint gives prettier/prettier the options of .prettierrc for it`, carries its own `}, 20_000);` that overrides the 60 s (P-152)
 - added: 2026-10-02
 - hit again: 2026-10-03, B9 g5: four `render-variants.test.ts` cases (sharp on a 2400x1600 photograph, five sizes each) timed out at 5000 ms when four test files ran at once and passed alone and with `--testTimeout=60000`; the plan's own proof command (no flag) went red the same way under load, so `render-variants.test.ts` now carries `{ timeout: 60_000 }` on its `describe`.
+- hit again: 2026-10-04, B8 c8w review: the new case `the sentry-test route reads SENTRY_TEST_TOKEN through env.ts` in `tests/unit/sentry-test-route.test.ts` resets modules and then imports the TanStack route; on a cold transform cache it gave `Error: Test timed out in 5000ms.` under the author's bare `bunx vitest run` proof command, and the next three runs passed in 3.1 s to 5.0 s. A test that does `vi.resetModules()` and a dynamic route import carries its own `{ timeout: 60_000 }`, or its proof command adds `--testTimeout=60000`. Proof: `grep -c "hit again: 2026-10-04, B8 c8w review: the new case" GOTCHAS.md` prints 1.
 
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
 - symptom: H42 (1) says a documents-only pull request has no check, "measured on PRs 21 and 23", because every changed path is under `paths-ignore`. `gh pr view 23 --json files` lists `.claude/workflows/build-slice.js`, which matches none of `workspace/**`, `launch/**`, `**/*.md`, and `origin/main` holds no workflow at all, so neither PR could have had a check whatever it changed.
@@ -1590,6 +1591,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-03, B3 g1 review: `bun run check` failed in its vitest stage (`Test Files  39 passed ... Errors  1 error ... Failed to start forks worker for test files .../tests/unit/analytics.test.ts`, exit 1) while other lanes ran; `bun run test` alone then passed 40 of 40, exit 0.
 - added: 2026-10-03
 - hit again: 2026-10-03, B9 g5: `bun run typecheck` plus `eslint` plus three render runs in one call passed the 120 s foreground limit and moved to the background; split them into calls under 100 s.
+- hit again: 2026-10-04, B8 c8w review: `bun run check` exited 1 on `Failed to start forks worker ... Timeout waiting for worker to respond` with no failing test, because the reviewer ran other vitest processes at the same time; run alone it exited 0 after about 7 minutes. Proof: `grep -c "hit again: 2026-10-04, B8 c8w review: .bun run check" GOTCHAS.md` prints 1.
 - hit again: 2026-10-04, B8 g3 review: `bun run check` failed only in its vitest stage (`Error: [vitest-pool]: Failed to start forks worker for test files .../tests/unit/analytics.test.ts ... Timeout waiting for worker to respond`, exit 1) while other lanes ran; `bun run test` alone then gave `Test Files  65 passed (65)`, exit 0.
 
 ## P-333 · A watched-fail of a budget or a "nothing leaks" assertion stays green until the mutation makes something exceed the budget or leak
@@ -2362,4 +2364,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "Also UNPROVEN is the cost of .GET /media" app/docs/runbooks/api.md` → `1`; `grep -n "catalog version" app/docs/runbooks/api.md | grep -c "first after a catalog change"` → at least `2`.
 - hit again: the fifth fix still shipped two false sentences. Line 86 listed the key's two parts after "only" and was still false, because the key is not the only reason for a miss: a stored 404 expires after 60 seconds (`pipeline.ts` line 171), the Cache API is per data center, and `/media` has its own key (origin and path). Line 202 said the `/media/none.webp` 404 stopped before Storage, but `none.webp` passes the key pattern, so `mediaCached` ran and Storage was read (`x-mop-cache: bypass`; `/media/_bad` has no such header). A cache or cost claim is proved by a `curl -sI` sequence on the deploy, never by a term grep or a reading of the key. The same review hit P-712 (a vitest worker-start timeout under load, green alone), and this fix hit P-094 (a stray `python -` in a command spun for two minutes; after it was killed the chain's `node` edit ran anyway and wrote these hit-again lines twice, and the first copy was removed by hand).
 - proof 2: `B=https://pr-100.holy-meadow-4327.workers.dev; curl -sI $B/media/none.webp | grep -ic x-mop-cache; curl -sI $B/media/_bad | grep -ic x-mop-cache` → `1` then `0`.
+- added: 2026-10-04
+
+## P-514 · `gh variable set X --body /api/public` from Git Bash stored `C:/Program Files/Git/api/public`
+- symptom: `gh variable list` showed `VITE_API_BASE_URL=C:/Program Files/Git/api/public` after the set; a preview built with it would call a Windows path.
+- cause: MSYS path conversion rewrites an argument that begins with a slash into a Windows path before `gh` sees it (the same class as P-008).
+- rule: set a value that starts with a slash from PowerShell (`gh variable set X --body "/api/public"`), or prefix the Bash call with `MSYS_NO_PATHCONV=1`; read the value back with `gh variable list` in the same turn.
+- proof: `gh variable list --json name,value --jq '.[] | select(.name=="VITE_API_BASE_URL") | .value'` → `/api/public`.
+- added: 2026-10-04
+
+## P-515 · A workflow builder's background shells appear in the orchestrator's task list without an owner; the orchestrator stopped two of them as stale
+- symptom: the goal check-in listed two shells (`b1r7u6wve`, `b6suf32si`) with empty output; the orchestrator stopped them. The TaskStop result showed they were the B8 builder's own `vitest --project db` batch and its waiter in `E:/mop-build/ops/app`, mid-run.
+- cause: subagents' `run_in_background` shells are attributed to the session, not to the agent, and the list shows the first 100 characters of the command only.
+- rule: never stop a background shell whose command you did not start in this context without reading its full command first (the TaskStop result prints it, so the check costs one call: read before stopping, or leave it). A shell running inside a lane folder (`E:/mop-build/<lane>`) belongs to that lane's builder.
+- proof: `grep -c "mop-build/ops" <tasks>/b1r7u6wve.output` is the wrong check (output was empty); the command text of the task, printed by TaskStop, names the lane.
 - added: 2026-10-04
