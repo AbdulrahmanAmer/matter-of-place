@@ -192,3 +192,94 @@ Merge after the push: PR 122 showed `CONFLICTING` (P-136), so `git merge origin/
 ## g3 · follow-ups recorded
 
 The reviewer of g3 found no blocking defect and eight follow-ups; no code changed. Five follow-ups are listed word for word in `workspace/05-plans/logs/B3b-followups.md` under "## g3 · steps 3" (types.ts regeneration, the re-encoded em dash in B3b.md mutations, the untested lock race, with-coming-soon.ts signal and quoting paths, the stale plan lines). The three whose file is `GOTCHAS.md` went into the bank: P-1305 added (scratch registry folders are shared in the session scratchpad); hit-again lines on P-136, P-156, P-322 and P-1602; the P-008 hit-again line separated from P-010 by a blank line.
+
+## g4 · steps 4,5
+
+Start: `git fetch && git checkout slice/b3b && git merge origin/main` fast-forwarded to 4693942 (no conflict). Files: `src/server/lib/flags.ts` (`getFlags`), `src/start.ts`, `src/server/catalog/visibility.ts`, `src/components/forms/interest-form.tsx`, `src/components/site/coming-soon.tsx`, `src/components/layout/consent-notice.tsx`, `src/components/layout/footer.tsx`, `src/styles/components/coming-soon.css`, `src/styles/components/consent.css`, `src/styles.css` (two imports), seven test files, `tests/mutations/B3b.json` (37 entries, P-079).
+
+Deviations from the plan text (each banked):
+- `start.ts` wires `getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({}))`, the guard `redirect` and `cache` already carry; the plan line has none and a Worker with no key would answer 503 on every page (P-1310).
+- The `flags` case asserts the spy reaches `securityHeaders`; the `cspFor` half cannot be observed through a module spy because `securityHeaders` calls it inside the module (P-1308). UNPROVEN until B17 makes `cspFor` read a flag.
+- `coming-soon.api.test.ts` reads the shell's `MOP_ENV` before `./env` overwrites it with `local` (P-1306); otherwise the plan's production run never runs its case.
+- The follow-up of step 1's review: `consent.css` sets `outline-color: var(--foreground)` on `.consent-allow:focus-visible`; the same ring on `.interest-submit`, the other filled button on an Ivory page.
+
+Proof 1, step 4 wiring and stubs:
+
+```
+$ bunx vitest run tests/unit/pipeline.test.ts -t flags
+ Test Files  1 passed (1)
+      Tests  2 passed | 83 skipped (85)
+$ grep -n "getFlags" src/start.ts
+5:import { getFlags } from "./server/lib/flags";
+40:        getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({})),
+$ grep -c "STUB(" src/server/catalog/visibility.ts
+0
+$ bun scripts/stubs.ts; echo exit=$?
+stubs: 9 markers, 0 on closed slices
+exit=0
+```
+
+Proof 2, `bunx vitest run tests/unit/flags.test.ts tests/unit/visibility.test.ts`:
+
+```
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+```
+
+The counter cases: 100 `getFlags(fake)` calls move `public_state` by 1 and make no `from()` call; 100 `getCatalog(fake)` calls move `public_state` and `public_catalog_snapshot` by 1 each and make no `from()` call; a fake that fails after one good call is served stale by both.
+
+Proof 3, database project, dev profile, `CATALOG_VERSION_TTL_MS=0`:
+
+```
+$ bunx vitest run --project db tests/api/coming-soon.api.test.ts tests/db/market-opening.db.test.ts
+ Test Files  2 passed (2)
+      Tests  4 passed | 1 skipped (5)
+$ MOP_ENV=production bunx vitest run --project db tests/api/coming-soon.api.test.ts
+ Test Files  1 passed (1)
+      Tests  3 passed | 1 skipped (4)
+$ MOP_ENV=local bunx vitest run --project db tests/api/coming-soon.api.test.ts
+ Test Files  1 passed (1)
+      Tests  3 passed | 1 skipped (4)
+$ bun run db:psql -- -c "select (select value from settings where key='coming_soon_global') g, (select value from settings where key='flags') f, (select count(*) from properties where slug like 'test-b3b-%') p"
+ false | {"new_channels": false, "archive_pages": false} | 0
+```
+
+`market-opening.db.test.ts` runs on the one `pg` client of `withRollback` through `pgRpc(client)`. The environment of `mop-dev` reads `development` (not `preview`), which `public_state()` also treats as illustrative-on; the test sets it with `set_environment('development')` inside its transaction.
+
+Proof 4, step 5 components, `bunx vitest run --project component tests/unit/interest-form.test.tsx tests/unit/coming-soon-block.test.tsx tests/unit/consent-notice.test.tsx`:
+
+```
+ Test Files  3 passed (3)
+      Tests  17 passed (17)
+```
+
+Proof 5, watched-fail replay of the 37 new entries (fresh folder holding only this group's entries, P-1305; `b3b-dd` is `manual`, replayed by hand below):
+
+```
+$ node scripts/watchfail.mjs --registry <scratchpad>/reg-g4
+WATCHED-FAIL OK B3b:b3b-a ... b3b-q, b3b-vis-market, b3b-vis-global, b3b-vis-local, b3b-vis-rows
+WATCHED-FAIL OK B3b:b3b-api-prod, b3b-api-local, b3b-l-vis, b3b-api-flags, b3b-c, b3b-mo-bump, b3b-y
+WATCHED-FAIL OK B3b:b3b-fl-getflags, b3b-o, b3b-p, b3b-fl-stale, b3b-x, b3b-x-handle
+WATCHED-FAIL OK B3b:b3b-e, b3b-if-chooser, b3b-if-track, b3b-if-hp, b3b-if-sent
+WATCHED-FAIL OK B3b:b3b-s, b3b-cs-h2, b3b-cs-title, b3b-cs-market
+WATCHED-FAIL OK B3b:b3b-k-notice, b3b-cn-track, b3b-cn-collapse, b3b-cn-focus, b3b-cn-version, b3b-cn-open, b3b-cn-dialog
+first replay: WATCHED-FAIL BAD: stayed green (B3b:b3b-j)   (the `?raw` CSS import was empty, P-1307)
+after the fix: WATCHED-FAIL OK B3b:b3b-j
+```
+
+Plan letters: (a) `b3b-a`, (c) `b3b-c` and `b3b-mo-bump`, (e) `b3b-e`, (j) `b3b-j`, (k) `b3b-k-notice`, (l) second half `b3b-l-vis`, (o) `b3b-o`, (p) `b3b-p`, (q) `b3b-q`, (s) `b3b-s`, (x) `b3b-x` and `b3b-x-handle`, (y) `b3b-y`. (dd) by hand with a scratch PLAN whose B3b row says closed and the STUB line put back:
+
+```
+$ bun scripts/stubs.ts --plan <scratch>/PLAN-b3b-closed.md
+src/server/catalog/visibility.ts:13 STUB(B3b) slice is closed: coming-soon and illustrative filtering
+stubs: 10 markers, 1 on closed slices
+exit=1
+```
+
+Review evidence, not the gate: a temporary route `_site.zzpreview.tsx` (deleted, `routeTree.gen.ts` restored with `git checkout`) rendered `ComingSoon` in the `home` and `market` scopes under the real footer at 1440 and 390 under `vite dev --port 8878` without a database; both read as the layout section describes (eyebrow left, one hairline, field and button on one row with the chooser beneath on desktop; stacked with 44 px rows on the phone; the notice a single row above the footer links). The screenshots of `/` with the live flag (`with-coming-soon.ts`) are NOT DONE: `ComingSoon` is wired into the routes by step 6, so `/` shows nothing of it yet.
+
+Proof 6, gates in `app/`: `bun run check` exit 0 (layout, typecheck, lint, knip, jscpd, stubs, format, 1426 tests of the unit and component projects) and `bun run build` exit 0. The first `check` was red twice: tsc (`exactOptionalPropertyTypes` on `market={market}` of `InterestForm`, and a spread of a possibly undefined array element in `visibility.test.ts`) and `mutation-registry.test.ts` (the six new test files had no entry); both fixed.
+
+Bank: P-1306 to P-1310 added; P-008, P-094 and P-331 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 278 process entries)`.
+
+UNPROVEN: the e2e rows of watched-fails (e), (f), (k), (n) and `tests/e2e/consent.spec.ts` (steps 6 to 8, other groups); the overlap with the sticky action bar; `bun run db` of CI on this pull request (the db project was run here against `mop-dev`, which holds g3's migration through main).

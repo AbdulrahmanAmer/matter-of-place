@@ -470,5 +470,373 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
     "expect": "\\+\\s+\"scripts/with-coming-soon\\.ts\""
+  },
+  {
+    "id": "b3b-a",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": " && env.MOP_ENV !== \"production\"",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*drops an illustrative row under MOP_ENV production"
+  },
+  {
+    "id": "b3b-q",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "state.illustrativeContent && env.MOP_ENV",
+    "replace": "env.MOP_ENV",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*drops an illustrative row when the setting is off"
+  },
+  {
+    "id": "b3b-vis-market",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "state.comingSoonMarkets[market] !== true;",
+    "replace": "true;",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*drops the properties of a coming-soon market"
+  },
+  {
+    "id": "b3b-vis-global",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "!state.comingSoonGlobal && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*drops every property while the global switch is on"
+  },
+  {
+    "id": "b3b-vis-local",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "const showIllustrative = state.illustrativeContent && env.MOP_ENV !== \"production\";",
+    "replace": "const showIllustrative = false;",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*keeps an illustrative row when the setting is on"
+  },
+  {
+    "id": "b3b-vis-rows",
+    "kind": "file",
+    "test": "tests/unit/visibility.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "  return {\n    ...rows,\n    properties:",
+    "replace": "  return {\n    ...rows,\n    markets: [],\n    properties:",
+    "run": "bunx vitest run --project unit tests/unit/visibility.test.ts",
+    "expect": "× .*leaves markets and stories as they are"
+  },
+  {
+    "id": "b3b-api-prod",
+    "kind": "file",
+    "test": "tests/api/coming-soon.api.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": " && env.MOP_ENV !== \"production\"",
+    "replace": "",
+    "run": "MOP_ENV=production bunx vitest run --project db tests/api/coming-soon.api.test.ts",
+    "expect": "× .*does not list a planted illustrative row"
+  },
+  {
+    "id": "b3b-api-local",
+    "kind": "file",
+    "test": "tests/api/coming-soon.api.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "const showIllustrative = state.illustrativeContent && env.MOP_ENV !== \"production\";",
+    "replace": "const showIllustrative = false;",
+    "run": "MOP_ENV=local bunx vitest run --project db tests/api/coming-soon.api.test.ts",
+    "expect": "× .*lists a planted illustrative row"
+  },
+  {
+    "id": "b3b-l-vis",
+    "kind": "file",
+    "test": "tests/api/coming-soon.api.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "!state.comingSoonGlobal && ",
+    "replace": "",
+    "run": "MOP_ENV=local bunx vitest run --project db tests/api/coming-soon.api.test.ts",
+    "expect": "× .*empties /properties"
+  },
+  {
+    "id": "b3b-api-flags",
+    "kind": "file",
+    "test": "tests/api/coming-soon.api.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "mergeFlags(state.flags,",
+    "replace": "mergeFlags({},",
+    "run": "MOP_ENV=local bunx vitest run --project db tests/api/coming-soon.api.test.ts",
+    "expect": "× .*changes getFlags at once"
+  },
+  {
+    "id": "b3b-c",
+    "kind": "file",
+    "test": "tests/db/market-opening.db.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "state.comingSoonMarkets[market] !== true;",
+    "replace": "state.comingSoonMarkets[market] === undefined;",
+    "run": "bunx vitest run --project db tests/db/market-opening.db.test.ts",
+    "expect": "× .*shows its published property, reads open"
+  },
+  {
+    "id": "b3b-mo-bump",
+    "kind": "sql",
+    "test": "tests/db/market-opening.db.test.ts",
+    "sql": "drop trigger markets_bump_catalog_version on public.markets",
+    "run": "bunx vitest run --project db tests/db/market-opening.db.test.ts",
+    "expect": "× .*shows its published property, reads open"
+  },
+  {
+    "id": "b3b-y",
+    "kind": "file",
+    "test": "tests/db/market-opening.db.test.ts",
+    "file": "tests/db/market-opening.db.test.ts",
+    "find": "    const result = await client.query<{ v: unknown }>(`select public.${name}() as v`);\n",
+    "replace": "    const { default: pg } = await import(\"pg\");\n    const other = new pg.Client({ connectionString: process.env[\"DEV_DB_URL\"] });\n    await other.connect();\n    const result = await other.query<{ v: unknown }>(`select public.${name}() as v`);\n    await other.end();\n",
+    "run": "bunx vitest run --project db tests/db/market-opening.db.test.ts",
+    "expect": "× .*shows its published property, reads open"
+  },
+  {
+    "id": "b3b-fl-getflags",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "mergeFlags(state.flags, state.comingSoonGlobal)",
+    "replace": "mergeFlags({}, state.comingSoonGlobal)",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*reads the flags and the global switch from the state"
+  },
+  {
+    "id": "b3b-o",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "  const state = await getPublicState(db);\n",
+    "replace": "  const state = await getPublicState(db);\n  await db.from(\"settings\").select(\"value\");\n",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*moves the counter by one public_state call"
+  },
+  {
+    "id": "b3b-p",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "  const visible = applyVisibility(mapped, {",
+    "replace": "  await db.from(\"markets\").select(\"slug\");\n  const visible = applyVisibility(mapped, {",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*one state call and one snapshot call in 100 getCatalog calls"
+  },
+  {
+    "id": "b3b-fl-stale",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    if (stateMemo === undefined) throw unavailable();\n    // Held for one more interval",
+    "replace": "    throw unavailable();\n    // Held for one more interval",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*serves the last good flags"
+  },
+  {
+    "id": "b3b-x",
+    "kind": "file",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/start.ts",
+    "find": "getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({})),",
+    "replace": "getFlags: () => Promise.resolve({}),",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*wires start.ts.s flags dependency"
+  },
+  {
+    "id": "b3b-x-handle",
+    "kind": "file",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    flags = await deps.getFlags();",
+    "replace": "    flags = {};",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*calls the reader once per page request"
+  },
+  {
+    "id": "b3b-e",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "subscriberSchema.parse({ email: input.email, source, markets: input.markets })",
+    "replace": "subscriberSchema.parse({ email: input.email, source })",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*sends the market of its prop"
+  },
+  {
+    "id": "b3b-if-chooser",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "disabled={pending || markets.length === 0}",
+    "replace": "disabled={pending}",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*disables the button while the chooser is empty"
+  },
+  {
+    "id": "b3b-if-track",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "if (receipt) track(\"interest_signup\", { markets });",
+    "replace": "track(\"interest_signup\", { markets });",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*tracks nothing after a failure"
+  },
+  {
+    "id": "b3b-if-hp",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "      <Honeypot />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*renders one input named website"
+  },
+  {
+    "id": "b3b-if-sent",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/components/forms/interest-form.tsx",
+    "find": "fill(t.comingSoon.form.sentMarket, { market: only.name })",
+    "replace": "t.comingSoon.form.sentAny",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*tracks interest_signup once with the markets after a receipt"
+  },
+  {
+    "id": "b3b-s",
+    "kind": "file",
+    "test": "tests/unit/coming-soon-block.test.tsx",
+    "file": "src/components/site/coming-soon.tsx",
+    "find": "useTrackView(\"coming_soon_view\", interestSource(scope, market, region), { scope });",
+    "replace": "useTrackView(\"coming_soon_view\", String(Math.random()), { scope });",
+    "run": "bunx vitest run --project component tests/unit/coming-soon-block.test.tsx",
+    "expect": "× .*tracks coming_soon_view once across three re-renders"
+  },
+  {
+    "id": "b3b-cs-h2",
+    "kind": "file",
+    "test": "tests/unit/coming-soon-block.test.tsx",
+    "file": "src/components/site/coming-soon.tsx",
+    "find": "<h2>{fill(t.comingSoon[scope].title, names)}</h2>",
+    "replace": "<h1>{fill(t.comingSoon[scope].title, names)}</h1>",
+    "run": "bunx vitest run --project component tests/unit/coming-soon-block.test.tsx",
+    "expect": "× .*renders one h2 and no h1"
+  },
+  {
+    "id": "b3b-cs-title",
+    "kind": "file",
+    "test": "tests/unit/coming-soon-block.test.tsx",
+    "file": "src/components/site/coming-soon.tsx",
+    "find": "fill(t.comingSoon[scope].title, names)",
+    "replace": "t.comingSoon.home.title",
+    "run": "bunx vitest run --project component tests/unit/coming-soon-block.test.tsx",
+    "expect": "× .*shows the title of the stories scope"
+  },
+  {
+    "id": "b3b-cs-market",
+    "kind": "file",
+    "test": "tests/unit/coming-soon-block.test.tsx",
+    "file": "src/components/site/coming-soon.tsx",
+    "find": "<InterestForm scope={scope} market={market} region={region} />",
+    "replace": "<InterestForm scope={scope} />",
+    "run": "bunx vitest run --project component tests/unit/coming-soon-block.test.tsx",
+    "expect": "× .*names the market in the title and preselects it"
+  },
+  {
+    "id": "b3b-k-notice",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    writeConsent(analytics);",
+    "replace": "    writeConsent(true);",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*No, thank you stores analytics false"
+  },
+  {
+    "id": "b3b-cn-track",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    track(\"consent_set\", { analytics });\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*Allow stores analytics true"
+  },
+  {
+    "id": "b3b-cn-collapse",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    setOpen(false);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*Allow stores analytics true"
+  },
+  {
+    "id": "b3b-cn-focus",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    if (event.detail === 0) document.getElementById(\"consent-change\")?.focus();\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*moves focus to Cookie settings after a keyboard choice"
+  },
+  {
+    "id": "b3b-cn-version",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "readConsent()?.version === CONSENT_VERSION",
+    "replace": "readConsent() !== undefined",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*asks again when the stored choice is from an older version"
+  },
+  {
+    "id": "b3b-cn-open",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    return onConsentNoticeOpen(() => {\n      setOpen(true);\n    });",
+    "replace": "    return undefined;",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*stays closed once decided, and Cookie settings"
+  },
+  {
+    "id": "b3b-cn-dialog",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "<section className=\"consent-notice\" aria-label={t.consent.label}>",
+    "replace": "<section className=\"consent-notice\" role=\"dialog\" aria-label={t.consent.label}>",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*shows a region named Cookie notice"
+  },
+  {
+    "id": "b3b-j",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/styles/components/consent.css",
+    "find": ".consent-notice {\n  padding-block: 24px;",
+    "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*is never fixed or sticky"
+  },
+  {
+    "id": "b3b-dd",
+    "kind": "manual",
+    "test": "tests/unit/stubs.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "export function applyVisibility",
+    "replace": "// STUB(B3b step 4): coming-soon and illustrative filtering\nexport function applyVisibility",
+    "run": "bun scripts/stubs.ts --plan <a copy of PLAN.md whose B3b row says closed>",
+    "expect": "src/server/catalog/visibility.ts:13 STUB(B3b) slice is closed"
   }
 ]
