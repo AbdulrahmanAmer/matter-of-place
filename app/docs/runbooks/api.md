@@ -137,8 +137,48 @@ It checks 200 `miss` with `public, max-age=31536000, immutable`, then `hit` with
 
 `node scripts/bundle-check.mjs` runs in the `build` job of CI on the live artifact. Every public route stays under 153600 gzip bytes of first-load script, no chunk a public route can reach is the entry of `src/data/` (except the pricing and FAQ copy), `src/admin/` or `src/domain/admin-*`, and no title of the bundled seed properties is in any built file. It exits 1 on a local-adapter build, which carries the seed.
 
+## CPU and egress of the routes
+
+Free Workers allow 10 ms of CPU a request (G-011, P-009). Page CPU was measured on a deployed Worker in 2026-10 (E3: `/` 6 to 52 ms, `/properties` 10 to 24 ms, no error 1102 in 36 requests). API route CPU is UNPROVEN: it needs `cpuTime` from `wrangler tail`, which `wrangler dev` does not report.
+
+Measured here, 2026-10-04, on the live build under `wrangler dev` (port 8828) against `mop-dev`, five requests per route. These are wall times through curl on this laptop, not CPU, and they carry no network. They bound nothing on the edge:
+
+| Route                              | Response bytes | `x-mop-cache` | Wall, ms                               |
+| ---------------------------------- | -------------- | ------------- | -------------------------------------- |
+| `GET /api/public/properties`       | 9,510          | hit           | 11 to 27                               |
+| `GET /api/public/properties/:slug` | 1,781          | miss then hit | 18 to 21 on a miss, 16 to 20 on a hit  |
+| `GET /api/public/markets`          | 10,919         | hit           | 11 to 19                               |
+| `GET /api/public/markets/:slug`    | 3,848          | miss then hit | 21 on a miss, 11 to 16 on a hit        |
+| `GET /api/public/stories`          | 4,046          | hit           | 11 to 14                               |
+| `GET /api/public/stories/:slug`    | 826            | miss then hit | 21 on a miss, 11 to 13 on a hit        |
+| `/` (page)                         | 41,997         | miss then hit | 92 to 112 on a miss, 10 to 12 on a hit |
+| `/properties` (page)               | 40,123         | miss then hit | 41 to 57 on a miss, 10 to 16 on a hit  |
+| `/sitemap.xml`                     | 4,279          | not cached    | 20 to 23                               |
+
+`node scripts/api-smoke.mjs http://127.0.0.1:8828 --cleanup` ran three times against it: `api-smoke: 20 ok, 0 failed` each time. The seed catalog is small, so the byte counts grow with the published set. Egress follows from them: a catalog list is about 10 KB, so even a few hundred cache misses an hour stay far under the 5 GB a month of Supabase free (P-009), and a warm read costs the database nothing.
+
+To prove API CPU on a preview (the owner's shell, not CI; the deploy token has no Workers Tail Read, so the local admin token comes from `.env.ops`, which does not exist on this laptop yet):
+
+```
+eval "$(node scripts/load-env.mjs --profile ops)"
+bunx wrangler tail pr-<n> --format json > ../.tmp/tail.jsonl
+```
+
+In a second shell prepared by the dev loader, run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
+
+```
+node scripts/api-smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev --cleanup
+```
+
+Then take the maximum `cpuTime` per route from the tail file and note it here. Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The redirect map lookup (`resolveRedirect`, which runs on every page request) is in the same numbers: read it from the page rows.
+
+| Route             | Max `cpuTime` on a preview                                |
+| ----------------- | --------------------------------------------------------- |
+| every route above | UNPROVEN until `pr-<n>` is deployed and `.env.ops` exists |
+
 ## Not yet proved
 
+- The maximum `cpuTime` per API route on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
 - The preview lines (`data-services="live"` on a pull request, `api-smoke.mjs` against it, `x-mop-cache: miss` on workers.dev) wait for the repository variable `VITE_API_BASE_URL`, which the orchestrator sets after this slice is accepted. UNPROVEN until then.
 - The production Worker's secrets are put by the owner (`docs/runbooks/delivery.md`). UNPROVEN while the repository variable `PRODUCTION_DEPLOY` is off.
 - The edge layer on the custom domain and the 95 percent ratio are L1's and H1's.

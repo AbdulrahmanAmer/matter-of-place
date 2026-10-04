@@ -2252,3 +2252,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: keep the single `// @ts-expect-error -- <reason>` line above `dehydrate`; do not add a cast or an `any`; when the router pin reaches 1.170.33 move to the package and delete both options and the comment. `hydrate` needs nothing.
 - proof: `cd app && bunx tsc --noEmit -p tsconfig.json` exits 0; deleting the comment line prints the TS2322 above; `bunx vitest run --project unit tests/unit/router-hydration.test.ts` passes (3 cases).
 - added: 2026-10-04
+
+## P-837 · `load-env.mjs --profile dev` refuses in a lane whose `.env` has no `OPS_HEALTH_TOKEN`, so the dev loader of the plan exports nothing
+- symptom: B3 g10 `eval "$(node scripts/load-env.mjs --profile dev)"` printed `load-env: .env has no OPS_HEALTH_TOKEN` and exported nothing; the next `node scripts/dev-vars.mjs` and `scripts/api-smoke.mjs` then failed on a missing name or on `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN` (P-310, hit again).
+- cause: B8's step 6 added `OPS_HEALTH_TOKEN` to the dev allow-list of `scripts/load-env.mjs`; the git-ignored `.env` of this tree does not carry it (the owner supplies it) and the loader exits at the first missing name.
+- rule: in a lane without that name export the five names the group needs (`DEV_DB_URL`, `DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `PREVIEW_RATE_LIMIT_SALT`) from `.env` in the same shell, then `unset CLOUDFLARE_API_TOKEN` before any script that calls `guardEnv()`; never source the whole `.env` (it holds ops names). The owner adds `OPS_HEALTH_TOKEN` to `.env` to restore the loader.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; echo $?` → in this tree prints `load-env: .env has no OPS_HEALTH_TOKEN` and `0` from the eval; `grep -c '^OPS_HEALTH_TOKEN=' ../.env` → `0`.
+- added: 2026-10-04
