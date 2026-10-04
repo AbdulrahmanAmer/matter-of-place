@@ -2774,3 +2774,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
 - enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
 - added: 2026-10-05
+
+## P-519 · The sizer's briefs ran to 15,000 to 30,000 characters each, so its one answer could not hold every group and steps were dropped
+- symptom: B3b's first sizing returned 2 of 10 steps (P-516 was found this way); B13's returned 4 of 13 and the new check refused the run (`sizing of B13 omits plan steps 5, 6, 7, 8, 9, 10, 11, 12, 13`). Both sizings had briefs of 12,000 to 34,000 characters per group.
+- cause: the sizing prompt asked for every Contract, Invariants and Files line verbatim in each brief; a slice with ten groups then needs more output than one answer holds, and the model trims groups rather than words.
+- rule: a brief stays under 5,000 characters (the step text and only the Contract lines naming its files); a slice with more than six groups gets empty briefs and the builder runs `plan-brief.mjs`, which quotes the same lines mechanically. Fewer words, never fewer groups (the P-516 check refuses the latter).
+- proof: `grep -c "keep every brief under 5,000 characters" .claude/workflows/build-slice.js` → 1; B13's second sizing (`wf_5748a66c-dea`) covers steps 1 to 13.
+- enforced-by: .claude/workflows/build-slice.js (the sizing prompt's size rule and the P-516 steps check)
+- added: 2026-10-05
+
+## P-520 · The first production deploy raced the edge: one asset 404 and one API answer without our headers seconds after the first version, and the rollback restored the empty placeholder Worker that `wrangler secret put` had created
+- symptom: run 37235569634, job production: every page 200, then `FAIL /assets/C9wIkZXF.js: status 404` and `FAIL /api/public/events: x-mop-cache null`; the rollback step rolled back to "Current Version ID e6d87e25", the version `wrangler secret put --name matter-of-place` had created minutes earlier (it prints "Creating new Worker" in non-interactive mode), and production answered `error code: 1101` until the re-run.
+- cause: the smoke runs seconds after the first upload of a new Worker, before every edge serves the new version; the dev Worker never shows this because it is not new. The rollback target on a first deploy is whatever version exists, here an empty script.
+- rule: when a Worker is created through `secret put`, the first deploy may need one re-run (`gh run rerun <id> --failed`); H1 adds a short retry to the smoke step for a first version (follow-up). Never put secrets through `wrangler secret put` on a Worker that is meant to be created by a deploy unless the next step is that deploy.
+- proof: re-run of 37235569634: production success; `curl -s -o /dev/null -w '%{http_code}' https://matter-of-place.holy-meadow-4327.workers.dev/` → 200; `/properties | grep -ci illustrative` → 0.
+- added: 2026-10-05

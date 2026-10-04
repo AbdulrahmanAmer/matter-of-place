@@ -1023,3 +1023,15 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   site (B17). Idle: coming, api, db, design, ops, legal, audit, email, spine.
 - NEXT: B5 after B8b step 4 merges email_templates (email lane); B7 after B8b step 5 (new lane, 20 steps, the
   biggest); B16 rest after B5 and B17; B14, B6, B10 to B12 after B7; H1 after the B slices; then H2, then L1.
+
+## 2026-10-05 01:25 · production Worker live in coming-soon mode; Turnstile pair banked; B4 merging
+- Operator logged the browser into Cloudflare (01:00). The Turnstile widget "matterofplace.com forms" (site key already the
+  repository variable VITE_TURNSTILE_SITE_KEY) gained the hostname matter-of-place.holy-meadow-4327.workers.dev; its secret
+  and site key are in `.env` as PROD_TURNSTILE_SECRET and PROD_TURNSTILE_SITE_KEY (values never printed).
+- The production Worker `matter-of-place` holds SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TURNSTILE_SECRET, RATE_LIMIT_SALT,
+  SENTRY_DSN (B3 step 12 item 8 done; `wrangler secret list --name matter-of-place` lists the five). PRODUCTION_DEPLOY=on
+  (H49 (1)). First production deploy: run 37235569634 failed its smoke on an edge race and rolled back to the placeholder
+  (P-520); the re-run succeeded: home 200, API 200, data-services live, 0 illustrative mentions, x-robots-tag noindex.
+- Database types regenerated after B3b's migration (PR 130); B4's merge waited on that and is going through the gate now
+  (PR 119, with its own new e2e and db jobs).
+- Open operator items now: GITHUB_DISPATCH_TOKEN (heavy render jobs), CF_ANALYTICS_TOKEN (CPU gate), the Omnikom note.
