@@ -139,7 +139,7 @@ It checks 200 `miss` with `public, max-age=31536000, immutable`, then `hit` with
 
 ## CPU and egress of the routes
 
-Free Workers allow 10 ms of CPU a request (G-011, P-009). Page CPU was measured on a deployed Worker in 2026-10 (E3: `/` 6 to 52 ms, `/properties` 10 to 24 ms, no error 1102 in 36 requests). API route CPU is UNPROVEN: it needs `cpuTime` from `wrangler tail`, which `wrangler dev` does not report.
+Free Workers allow 10 ms of CPU a request (G-011, P-009). Page CPU was measured on a deployed Worker in 2026-10 (E3: `/` 6 to 52 ms, `/properties` 10 to 24 ms, no error 1102 in 36 requests). API route CPU comes from `cpuTime` in `wrangler tail`, which `wrangler dev` does not report: it is measured on a deployed preview (section "CPU on a preview" below), where `POST /api/public/submissions` and a cold isolate pass 8 ms.
 
 Measured here, 2026-10-04, on the live build under `wrangler dev` (port 8828) against `mop-dev`, five requests per route. These are wall times through curl on this laptop, not CPU, and they carry no network. They bound nothing on the edge:
 
@@ -165,40 +165,76 @@ Supabase egress is what the Worker reads from Supabase, not what it sends to a v
 
 The 5 GB is shared by the three. At 70 KB (raw) the snapshot alone would use it up in about 71,000 loads and at 1.5 MB in about 3,300, so those figures describe the catalog share only: every photograph miss and every write comes out of the same budget. The count of isolate loads is not measurable here (UNPROVEN, H1 reads it from Supabase usage).
 
-To prove API CPU on a preview (the owner's shell, not CI; the deploy token has no Workers Tail Read, so the local admin token comes from `.env.ops`, which does not exist on this laptop yet):
+### CPU on a preview
+
+Measured 2026-10-04 on the deployed preview `pr-100` (commit `bbe712c`, the live adapter, `mop-dev` behind it), from a tail window that held three runs of `api-smoke` and the extra requests below: 50 events, every one `outcome: ok`, no error 1102. `cpuTime` is whole milliseconds. This is the maximum per route in that window, with the count of requests behind it. The isolate was already warm, so the figures are warm figures.
+
+| Route                                           | Requests | Max `cpuTime`, ms |
+| ----------------------------------------------- | -------- | ----------------- |
+| `GET /api/public/properties`                    | 3        | 4                 |
+| `GET /api/public/properties/:slug`              | 3        | 3                 |
+| `GET /api/public/markets`                       | 3        | 3                 |
+| `GET /api/public/markets/:slug`                 | 3        | 4                 |
+| `GET /api/public/stories`                       | 3        | 2                 |
+| `GET /api/public/stories/:slug`                 | 3        | 2                 |
+| `/` (page)                                      | 2        | 3                 |
+| `/properties` (page)                            | 2        | 2                 |
+| `/sitemap.xml`                                  | 2        | 7                 |
+| `GET /media/<key>` (an unknown key, 404)        | 2        | 4                 |
+| `GET /api/public/subscribers/confirm` (unknown) | 5        | 5                 |
+| `POST /api/public/submissions`                  | 3        | 11                |
+| `POST /api/public/submissions/:id/uploads`      | 3        | 7                 |
+| `POST /api/public/inquiries`                    | 3        | 6                 |
+| `POST /api/public/subscribers`                  | 3        | 5                 |
+| `POST /api/public/subjects/request`             | 2        | 4                 |
+| `POST /api/public/search`                       | 2        | 7                 |
+| `POST /api/public/concierge`                    | 1        | 2                 |
+| `POST /api/public/events`                       | 2        | 4                 |
+
+Decision items under G-011 (8 ms or more; H1 decides, nothing is worked around here):
+
+1. `POST /api/public/submissions` reached 11 ms warm (11, 10 and 6 across the three smoke runs). It parses the form, checks Turnstile and signs up to 20 upload URLs, and it is the route the plan expected to be the heaviest. The 10 ms free limit is already passed on a warm isolate, and no 1102 was logged.
+2. Cold isolates are higher than the window above. The review of this group tailed a window that caught cold isolates and recorded `GET /api/public/properties` at 21 ms and `GET /api/public/stories` at 15 ms, `/` at 21, `/properties` at 58 and `/sitemap.xml` at 34 (the review's figures, not re-measured here: the isolate was warm in the window above and nothing here can make one cold). A deploy, a catalog edit and an idle isolate each start one, and what the first request pays (module load, snapshot fetch) is not separated here. All of these are above 8 ms.
+3. `POST /api/public/search` and `/sitemap.xml` reached 7 ms: under the line, close to it.
+
+`resolveRedirect` (GD-02) runs inside the page rows: `/` and `/properties` took 3 and 2 ms with the lookup, so on a warm isolate the lookup is under 2 ms. The cold page figures of item 2 are not explained by it until the lookup is measured on its own.
+
+UNPROVEN, no row in the table: `POST /api/public/client-error` (the smoke does not request it) and `POST /api/hooks/resend` (it needs a Svix signature), and the cost of `GET /media/<key>` on a stored photograph (the 404 above stops before a Storage read; no photograph is stored yet).
+
+To repeat the measurement. The token that reads a tail is the local admin token `mop-admin` (the deploy token has no Workers Tail Read), and the account id travels with it: `eval "$(node scripts/load-env.mjs --profile ops)"` loads the token from `.env.ops` but does not export `CLOUDFLARE_ACCOUNT_ID`, and a shell that inherits another account's token without an account id answers `This Worker does not exist on your account. [code: 10007]` (P-840). Run it from the owner's shell, never from CI. The lane window above used the same token and account id from the lane's `.env` (F19), set for the one `wrangler` command and never exported to the dev shell; the owner's `.env.ops` is where SEC-08 keeps them.
 
 ```
 eval "$(node scripts/load-env.mjs --profile ops)"
+export CLOUDFLARE_ACCOUNT_ID=<the account that holds holy-meadow-4327>
 mkdir -p ../.tmp
-bunx wrangler tail pr-<n> --format json > ../.tmp/tail.jsonl
+bunx wrangler tail pr-<n> --format json > ../.tmp/tail.json
 ```
 
-In a second shell prepared by the dev loader (run `unset CLOUDFLARE_API_TOKEN` first: a shell that inherits that name makes the smoke refuse with `refusing: ops variables`, P-837), run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
+In a second shell prepared by the dev loader (run `unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID` first: a shell that inherits either name makes the smoke refuse with `refusing: ops variables`, P-837), run three times (each run uses a fresh email and its cleanup clears the smoke's own rate-limit buckets, so none meets a 429):
 
 ```
 node scripts/api-smoke.mjs https://pr-<n>.holy-meadow-4327.workers.dev --cleanup
 ```
 
-The smoke requests only `/api/public/*`. Page requests are not in it, and `resolveRedirect` (GD-02) runs only for pages, so in the same window, from the same shell, request the pages too, twice each (the first answers a miss, which runs the render, the second a hit):
+The smoke requests only `/api/public/*`, and `resolveRedirect` runs only for page requests, so in the same window request the pages twice each (the first answers a miss, which runs the render and the lookup, the second a hit) and the other three paths once or twice:
 
 ```
-for p in / /properties /sitemap.xml; do curl -s -o /dev/null https://pr-<n>.holy-meadow-4327.workers.dev$p; curl -s -o /dev/null https://pr-<n>.holy-meadow-4327.workers.dev$p; done
+B=https://pr-<n>.holy-meadow-4327.workers.dev
+for p in / /properties; do curl -s -o /dev/null $B$p; curl -s -o /dev/null $B$p; done
+curl -s -o /dev/null $B/sitemap.xml; curl -s -o /dev/null $B/media/none.webp
 ```
 
-Then take the maximum `cpuTime` per route from the tail file and note it here. Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The redirect map lookup is inside the page rows: a page at 8 ms or more is not explained by it until the lookup is measured on its own.
+`/sitemap.xml` is not a page: it is never cached and never runs the lookup, so it measures the sitemap alone. The tail file is not one object per line: `wrangler` pretty-prints each event. Take the maximum per path with:
 
-| Route                                                                                                       | Max `cpuTime` on a preview                                |
-| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| the six GET reads, `/`, `/properties` and `/sitemap.xml` of the table above                                 | UNPROVEN until `pr-<n>` is deployed and `.env.ops` exists |
-| `POST /submissions` (Zod, Turnstile, up to 20 signed upload URLs), `POST /submissions/:id/uploads`          | UNPROVEN, the likeliest to pass 8 ms: same condition      |
-| `POST /inquiries`, `/subscribers`, `/subjects/request`, `/search`, `/concierge`, `/events`, `/client-error` | UNPROVEN: same condition                                  |
-| `GET /subscribers/confirm` (the smoke calls it with an unknown token; it writes state on a real one)        | UNPROVEN: same condition                                  |
-| `GET /media/<key>` (the smoke does not request it: fetch one published key by hand after the smoke)         | UNPROVEN: same condition                                  |
-| `POST /api/hooks/resend` (the smoke does not request it: it needs a signed body)                            | UNPROVEN: same condition, and a Svix signature to send    |
+```
+node -e 'const t=require("fs").readFileSync("../.tmp/tail.json","utf8");for(const s of t.split(/^\}\s*$/m)){if(!s.trim())continue;const e=JSON.parse(s+"}");if(e.event?.request)console.log(e.cpuTime,e.event.request.method,new URL(e.event.request.url).pathname)}' | sort -k3,3 -k1,1nr | awk '!seen[$3]++'
+```
+
+Anything at 8 ms or more is a decision item under G-011, not a silent workaround. The tail file holds IP hashes and request ids: delete it when the numbers are written here.
 
 ## Not yet proved
 
-- The maximum `cpuTime` per API route, write routes, `GET /subscribers/confirm`, `/media/<key>` and `/api/hooks/resend` included, the Storage egress of `/media` misses, and the cost of `resolveRedirect` on a preview (section above). UNPROVEN until `pr-<n>` is deployed and the owner has `.env.ops`.
-- The preview lines (`data-services="live"` on a pull request, `api-smoke.mjs` against it, `x-mop-cache: miss` on workers.dev) wait for the repository variable `VITE_API_BASE_URL`, which the orchestrator sets after this slice is accepted. UNPROVEN until then.
+- The `cpuTime` of `POST /api/public/client-error` and `POST /api/hooks/resend`, of `GET /media/<key>` on a stored photograph, and of a cold isolate measured by us (the figures in the section above are the review's), the Storage egress of `/media` misses, and the cost of `resolveRedirect` on its own. UNPROVEN: each needs a request the smoke does not make, a stored photograph or a cold isolate on demand.
+- The decision items of the CPU section (`POST /api/public/submissions` at 11 ms warm, the cold reads) are H1's under G-011.
 - The production Worker's secrets are put by the owner (`docs/runbooks/delivery.md`). UNPROVEN while the repository variable `PRODUCTION_DEPLOY` is off.
 - The edge layer on the custom domain and the 95 percent ratio are L1's and H1's.
