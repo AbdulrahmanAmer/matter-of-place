@@ -159,3 +159,31 @@ Follow-ups whose file is GOTCHAS.md are banked, not listed here: hit-again lines
 7. `app/tests/WATCHED-FAIL.md` (not blocking)
    - What: The new entry u-catalog-version and the six rewritten entries (e, rc-gone, rc-redirect, rc-pattern, B1b hy-checkout, B1b as) have no ledger row. Registry replays do not append to the ledger, and the plan's step 10 proof asks for a row for every test added. The test file itself (assert-not-production.test.ts) already has rows, so this is bookkeeping only.
    - Evidence: grep -n catalog-version app/tests/WATCHED-FAIL.md prints nothing; commit 4ee2560 does not touch WATCHED-FAIL.md.
+
+## c7l · steps 7
+
+1. `workspace/05-plans/ASSUMED.md` (not blocking)
+   - What: Ruling H61, which the README, the perf-budget.test.ts comment and WATCHED-FAIL.md cite as 'CTO, 2026-10-05', is not recorded anywhere (ASSUMED.md ends at H60). lighthouserc.json now explicitly breaks plan invariant 11 ('fails ... when an assertion level is warn for a hard limit') and plan GQ-01's 'a decision recorded in PROJECT-STATE.md, not a silent loosening'. Until H61 is written down, the loosening of LCP and script size to warn rests on an unrecorded ruling. The script-size limit is still enforced at build time by bundle-check (G16), so the gap is LCP only. This is the orchestrator's file to fix; the author flagged it.
+   - Evidence: grep -n H61 workspace/05-plans/ASSUMED.md returns nothing (latest H60 at line 255). The plan-brief quotes invariant 11 and Files line 42 still saying 'assertions at error'.
+
+2. `workspace/05-plans/B4.md` (not blocking)
+   - What: Three plan lines are now stale: invariant 11 (warn forbidden for a hard limit), the Files line for lighthouserc.json ('assertions at error' for all four), and the Contract line saying the e2e seed uses '--images skip', no Storage bucket written. The orchestrator should fold them.
+   - Evidence: plan-brief.mjs B4 --steps 7 output, lines 15 and 42; ci.yml line 283 now reads --images upload
+
+3. `app/tests/README.md` (not blocking)
+   - What: The Lighthouse paragraph calls run 37236145703 'the first preview run', while the earlier failing run 37234045561 'read the same'. That run's LCP reached 3,998 ms (/properties), outside the quoted 3,538 to 3,902 range. The wording is loose, not false: both runs failed exactly the same two assertions on all six pages.
+   - Evidence: gh run view 37234045561 --log-failed | grep found: -> LCP 3657.6, 3997.97, 3677.8, 3866.5, 3646.4, 3646.5
+
+4. `app/tests/README.md` (not blocking)
+   - What: Line 62 still explains the red e2e in the present tense ('because the seed does not upload photographs until B9 step 6'). The sentence appended after it corrects this, but the first clause now reads as current fact.
+   - Evidence: grep -n 'does not upload photographs' app/tests/README.md -> line 62
+
+5. `.github/workflows/ci.yml` (not blocking)
+   - What: UNPROVEN, and the author says so: the new 'media bucket' curl (Authorization header only, no apikey header) and `bun run seed -- --target local --mode full --images upload` have never run against a stack. The 404 count falling from 682 to 0 and the e2e minutes after the change depend on the next ready run of PR 119. Likewise, the preview printing LCP and script size as warnings (exit 0) is not yet observed.
+   - Evidence: No CI run exists for 7776db8. Last e2e (job 111535650995) shows 682 media 404s, '88 failed, 80 passed (14.3m)'.
+
+6. `workspace/05-plans/logs/B4.md` (not blocking)
+   - What: The author's report lists gotchasAdded as [], but this group (commit f1aed38) added a new entry, P-435, plus hit-again lines on P-066 and P-094 and a resolved line on P-422. The bank is correct; the report field is wrong.
+   - Evidence: git diff 4a65bcc..7776db8 -- GOTCHAS.md shows '## P-435 · A workflow `run:` written as a one-line plain scalar...' added 2026-10-05
+
+(The seventh follow-up, the P-422 proof that no longer reproduces, is a GOTCHAS.md item and is banked as P-436, not listed here.)

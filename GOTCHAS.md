@@ -2922,3 +2922,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a `run:` whose command holds `: ` or ` #` is a block scalar (`run: |`); parse the workflow before the push (`bun run check` runs it through the hygiene test).
 - proof: `cd app && bunx vitest run --project unit tests/unit/hygiene.test.ts` → `Tests 63 passed`; with `run: curl -H "Authorization: Bearer x" y` on one line in `ci.yml` it fails with `YAMLParseError` (measured 2026-10-05).
 - added: 2026-10-05
+
+## P-436 · A proof that greps for a stub marker stops reproducing the day the stub is removed
+- symptom: the proof line of P-422 (`git grep -n "STUB(B9 step 6)" -- scripts/seed.ts` → line 89) now prints nothing and exits 1, because B9 c6u removed the stub; the rule line of the same entry still says the `e2e` job "stays red until B9 step 6". A reader who runs the proof reads a fixed bug as a missing file.
+- cause: the proof pointed at the cause (a `STUB(...)` marker) instead of at the symptom, and the `resolved:` line added later covered the meaning but left the old proof and rule text in place.
+- rule: when an entry gets a `resolved:` line, rewrite its proof in the same edit to a command that reproduces the resolved state (here the `e2e` job logging 0 `404 .../media/o/` lines), or retire the entry once that is observed; a proof never rests on a marker a later slice deletes.
+- proof: `git grep -n "STUB(B9 step 6)" -- app/scripts/seed.ts; echo $?` → `1` (no match); `grep -n "^- resolved:" GOTCHAS.md | grep -c "B4 c7l"` → `1`.
+- added: 2026-10-05
