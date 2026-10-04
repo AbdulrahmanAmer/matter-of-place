@@ -679,6 +679,7 @@ Entry template
 - rule: when a step needs something a later step creates, give the dependency to the caller as a member of the injected `deps` (here `report`), carry a STUB marker with the replacing step on the line above the stand-in (STANDARDS R04, C04), and say so in the slice log. Never create the later file early with a guess of its contents.
 - proof: `git grep -n "STUB(B1b" -- app/src/start.ts` → the marker above `report`; `git grep -c "captureException" -- app/src` → `1` (that marker line only) until step 4 replaces the stand-in.
 - hit again: 2026-10-04, B3b g2 (step 2): the plan has `flags.test.ts` (step 2) test `mergeFlags`, which it files under `src/server/lib/flags.ts` (step 4), and says "keep mergeFlags where step 4 will place it". The file did not exist, so step 2 created it with `mergeFlags` alone and step 4 adds `getFlags` to it. A step that tests a function owns the file that holds it, even when a later step names the file.
+- hit again: 2026-10-04, B4 g6: step 7's hydration drill (watched-fail (s)) needs `tests/e2e/hydration.spec.ts`, which step 9 writes; the drill is NOT DONE in g6 and moves to g7.
 - added: 2026-10-02
 
 ## P-075 · A test case from a plan cannot always be built: `Headers` rejects a newline in a value
@@ -1130,6 +1131,7 @@ Entry template
 - cause: the plan was written for a database with B2's `settings` table (a later B2 step, not on main) and for CI, which sets the plain names for its own stack. Other plans (B16, B9, B6) build the URL from `DEV_SUPABASE_PROJECT_REF` and read `DEV_SUPABASE_SERVICE_ROLE_KEY`.
 - rule: `serviceClient()` reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and falls back to `https://<DEV_SUPABASE_PROJECT_REF>.supabase.co` and `DEV_SUPABASE_SERVICE_ROLE_KEY`; it holds no host or project-ref guard (H35 (5)). A proof that needs a table another slice has not landed is reported UNPROVEN against `mop-dev` and run against a stand-in meanwhile: a throwaway HTTP server that answers PostgREST for `settings` (lane scratch, never committed) with `SUPABASE_URL` pointed at it and the real `DEV_DB_URL` for the lock. The real run is repeated when the table exists.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && bun run db:psql -- -c "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'settings'"` prints `0` (measured 2026-10-03, B4 g3); against the stand-in the run prints `lock mop-dev-tests held`, `coming_soon_global restored to false` and exits 1 (`No tests found`).
+- hit again: 2026-10-04, B4 g6: the plan's CI `e2e` job runs `bun run test:e2e:coming-soon` unconditionally; with no `coming-soon.spec.ts` it exits 1 (`bunx playwright test --list --project=coming-soon-desktop; echo $?` → `1`), so the step runs it only when that list exits 0, as the plan already does for the admin project.
 - added: 2026-10-03
 
 ## P-409 · Two sweep lines of the plan did not match what the site does: the first axe run is clean, and the image check above axe hides `image-alt`
@@ -1200,6 +1202,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: the brief for `state-machine.test.ts` says "exhaustive 10x10 expected matrix from diagram 1" and `analytics.test.ts` says "for each name in B3's `analyticsEvents`". `workflow.ts` on main has eleven states (`Withdrawn`, DL-04, which diagram 1 does not draw) and `git grep analyticsEvents -- app` finds nothing, because B3 has not landed.
 - cause: diagram 1 predates DL-04, and the step 4 line is ordered after B2 step 7 only, while its analytics line leans on a B3 step.
 - rule: write the matrix 11x11 with the `Withdrawn` column and row taken from B2 invariant 5; in `analytics.test.ts` type the name list as `Record<AnalyticsEvent, true>`, which fails the typecheck when the union gains or loses a name, and replace it with `analyticsEvents` when B3 step 5 lands (B3 changes `analytics.ts` and updates this test).
+- hit again: 2026-10-04, B4 g6: step 8 says the data set is "one submission per workflow state" and prints `submissions 10`; with eleven states the load prints `submissions 11` (`fixtureDataset` is built from `submissionTransitions`, so no count is written by hand).
 - proof: `cd app && node -e "const s=require('fs').readFileSync('tests/unit/state-machine.test.ts','utf8');console.log(s.match(/^ {2}(\"[A-Za-z ]+\"|[A-Za-z]+): .*\"[01 ]+\",$/gm).length)"` → `11`; `git grep -c "Record<AnalyticsEvent, true>" -- tests/unit/analytics.test.ts` → `2` (the comment and the declaration).
 - added: 2026-10-03
 
@@ -1280,6 +1283,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node ../scratch/replay.mjs --check` (the runner's text is in `workspace/05-plans/logs/B1b.md`, g4 close-out) → `checked 118, bad 0`; with a space put before the `;` of `const options = cutOptions(given);` in `src/server/lib/sentry.ts` it prints `BAD sentry-cut-off: find occurs 0 times` and `checked 118, bad 1` (measured 2026-10-02, bytes restored after).
 - hit again: 2026-10-04, B14 g1: eight B1b entries went stale at once, see P-1100.
 - hit again: 2026-10-04, B3 g6: passing path parameters into the write parse rewrote the `safeParse` line of `pipeline.ts`, and `b3-b` and `b3-g5-pl-order-db` would have replayed STALE; an occurrence count of every entry whose `file` the diff touched found both before any replay, and the registry script rewrote their `find` and `replace`.
+- hit again: 2026-10-04, B4 g6: two new pinned `actions/upload-artifact` lines in `ci.yml` (`db-types`, `playwright-report`) made B1b's entry `ao` occur three times; its `find` now carries the two `with:` lines of `build-output`.
 - added: 2026-10-02
 
 ## P-134 · A build with `VITE_API_BASE_URL` set answers 500 on every catalog page until B3 serves `/api/public/*`
@@ -1352,6 +1356,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `ci.yml` uploads `.output/` (about 9.4 MB) on every pull request push, and four lanes push all day; a 1-day retention does not keep the sum under the quota while that rate lasts. The quota itself is UNPROVEN (the billing API needs the `user` scope; GitHub documents 500 MB for Free).
 - rule: before choosing an artifact's retention, sum the live artifacts, not only the new one; when the live sum nears the quota, the orchestrator reads the billing page and decides (fewer pushes or a smaller artifact), because an account over its storage quota with a zero spending limit may refuse new uploads, the backup's included (UNPROVEN until seen).
 - proof: `gh api --paginate "repos/AbdulrahmanAmer/matter-of-place/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | .size_in_bytes'` summed → 1284006728 over 137 artifacts, all named `build-output` (2026-10-03 10:03 UTC).
+- hit again: 2026-10-04, B4 g6: the first failing `e2e` run uploaded `playwright-report` with `app/test-results/` beside it, 377,526,517 bytes in one artifact (`gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs/37215885141/artifacts --jq '.artifacts[] | "\(.name) \(.size_in_bytes)"'`); the HTML report already holds the traces, so the job now uploads `app/playwright-report/` alone, kept 3 days.
 - added: 2026-10-03
 
 ## P-151 · A bank entry that cites another entry by number points at the wrong entry once a merge renumbers the cited one
@@ -2494,4 +2499,39 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
 - proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
 - enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
+
+## P-422 · The live sweep cannot pass on any seeded database yet: the seed skips images, so every `/media/<key>` a page asks for answers 404
+- symptom: the first ready run of CI's `e2e` job (run 37214655312, PR 120) ended `88 failed, 52 passed (13.0m)`: every failure is `sweep.spec.ts` on a route with a photograph, and its only errors are `404 http://127.0.0.1:8788/media/o/<slug>/0-<sha8>.webp` and the matching console line (711 of each). Forms, redirects and the nine photograph-free sweep routes passed. The same key on the dev project answers 400 from Storage.
+- cause: B4's plan says "the seed runs with `--images skip`, the sweep reads bundled images", but a live build reads the catalog from the API, whose media keys point at Storage objects nobody uploaded. The seed's upload mode is `STUB(B9 step 6)` and throws (`seed: --images upload needs the media-store of B9`).
+- rule: the `e2e` job (and any live sweep on the laptop) stays red until B9 step 6 gives the seed an upload mode and the job seeds with it; never filter `/media` 404s out of the sweep. Because `e2e` is a required check (`REQUIRED_PR_CHECKS`), `ci.yml` with the `e2e` job must not reach `main` before that, or every pull request is refused; the orchestrator decides the order (hold the group, or `CI_HEAVY=off`).
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<e2e job id of run 37214655312>/logs | grep -c "404 http://127.0.0.1:8788/media/o/"` → `711`; `cd app && git grep -n "STUB(B9 step 6)" -- scripts/seed.ts` → line 89.
+- added: 2026-10-04
+
+## P-423 · `eval "$(bunx supabase status -o env)"` sets shell variables, not environment: the seed it precedes sees no `API_URL`
+- symptom: B4's plan writes the CI seed step as `eval "$(bunx supabase status -o env)"; bun run seed -- --target local ...`; the seed reads `process.env["API_URL"]` and `SERVICE_ROLE_KEY`, which that line never exports, and a failed `status` would be read as empty (G-040).
+- cause: `eval` of `NAME="value"` lines assigns unexported shell variables; only `set -a` (or `export`) passes them to a child process, and a command substitution's status is lost inside `eval "$(...)"`.
+- rule: in a workflow step write `stack=$(bunx supabase status -o env)` then `set -a; eval "$stack"; set +a`, and check a value you need (`test -n "${SERVICE_ROLE_KEY:-}"`) before using it.
+- proof: `bash -c 'eval "A=1"; node -e "console.log(process.env.A)"'` → `undefined`; `bash -c 'set -a; eval "A=1"; set +a; node -e "console.log(process.env.A)"'` → `1`; the `seed` step of the `e2e` job of run 37214655312 → `success` (measured 2026-10-04, B4 g6).
+- added: 2026-10-04
+
+## P-424 · A pinned `uses:` SHA typed from memory passes every local gate
+- symptom: B4 g6 first wrote `actions/download-artifact@d3f86a10...` with the comment `# v4.3.0` from memory; `hygiene.test.ts` (40 hex characters and a version comment) and actionlint both passed it, and only a `git grep` for another pin of the same action showed there was none to copy. A wrong SHA fails only on the runner, after a push and a billed run.
+- cause: the hygiene case checks the format of a pin, actionlint does not resolve SHAs, and no local tool asks GitHub.
+- rule: resolve every new pin with `gh api repos/<owner>/<action>/git/ref/tags/<tag> --jq '.object.sha + " " + .object.type'` (type `commit`; an annotated tag needs one more `git/tags/<sha>` hop) and copy the SHA from that output; reuse a pin already in `.github/workflows` when one exists.
+- proof: `gh api repos/actions/download-artifact/git/ref/tags/v8.0.1 --jq '.object.sha + " " + .object.type'` → `3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c commit` (2026-10-04).
+- added: 2026-10-04
+
+## P-425 · `src/db/types.ts` on main drifted from its generator, and the CI `db` job's drift check was the first gate to compare them
+- symptom: the first `db` run (run 37214655312) failed at `git diff --exit-code src/db/types.ts`: main's file had three whitespace-only lines emptied and no `settings_put_site`, while both the CI stack and `bun run gen:types -- --db` against the dev project print the function and the spaces.
+- cause: a later edit of the generated file (an agent's write that strips trailing spaces, or a generation from an older database) reached main; nothing compared the file with a generator before this job.
+- rule: never write `src/db/types.ts` by hand or through a tool that trims whitespace; take it from `gh run download <id> -n db-types` or `bun run gen:types -- --db` and commit it unchanged.
+- proof: `cd app && bun run gen:types -- --db && git diff --stat src/db/types.ts` on slice/b4 after commit 3602375 → no change (measured 2026-10-04, B4 g6).
+- added: 2026-10-04
+
+## P-426 · Replaying the registry entry `fd-harness` against the dev project commits one fixture row
+- symptom: B4 g6's replay of `fd-harness` (a `sql` entry whose mutation is `commit`) left 12 fixture submissions on the dev project where the data set holds 11.
+- cause: the entry proves `withRollback` rolls back by ending its transaction early, so the row it writes is committed wherever the replay runs; in CI that is the job's own stack, on the laptop it is the shared database.
+- rule: after replaying `fd-harness` on the laptop, run `bun run fixtures:load -- --reset` with the dev profile; the CI replay needs nothing.
+- proof: `cd app && bun run db:psql -- -At -c "select count(*) from submissions where submitter_email like '%@fixtures.invalid'"` → `12` after the replay, `11` after `bun run fixtures:load -- --reset` (measured 2026-10-04, B4 g6).
 - added: 2026-10-04
