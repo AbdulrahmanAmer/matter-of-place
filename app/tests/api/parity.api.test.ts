@@ -1,7 +1,8 @@
-// The live catalog answers (`/properties`, `/markets`, `/stories`) against the bundled data the local adapter serves
+// The live catalog answers (`/properties`, `/properties/:slug`, `/markets`, `/stories`) against the bundled data the local adapter serves
 // (step 4): the same records, field for field, once every image address is reduced to the name of its source file.
 // This is the evidence that the frontend needs no change when `services.mode` turns live. `/properties` answers cards
-// (PERF-06), so it is compared with `properties.map(pickCard)`, the cards the local adapter serves.
+// (PERF-06), so it is compared with `properties.map(pickCard)`, the cards the local adapter serves; `/properties/:slug`
+// answers the whole property, compared with the bundled one.
 //
 // Three things differ by design and are named here, not hidden: the database makes `id` a uuid where the bundled data
 // has "mop-001" (no component reads it), the snapshot carries neither `campaignTier` nor `source` (G-303), and the list
@@ -95,13 +96,17 @@ function differences(path: string, left: unknown, right: unknown): string[] {
   return Object.is(left, right) ? [] : [`${path}: bundled ${show(left)}, live ${show(right)}`];
 }
 
-async function live(path: string): Promise<Fields[]> {
+async function liveJson(path: string): Promise<unknown> {
   const response = await handlePublic(
     new Request(`http://localhost/api/public${path}`),
     "req-api-parity-0001",
   );
   expect(response.status).toBe(200);
-  return records.parse(await response.json());
+  return response.json();
+}
+
+async function live(path: string): Promise<Fields[]> {
+  return records.parse(await liveJson(path));
 }
 
 /** The records by slug, without the fields that differ by design, each image address as the name of its file. */
@@ -131,6 +136,22 @@ describe("the live catalog and the bundled data", () => {
     ).toEqual([]);
     const dates = answer.map((item) => String(item["publishedAt"]));
     expect(dates).toEqual([...dates].sort().reverse());
+  });
+
+  it("answers /properties/:slug with the bundled property and no difference", async () => {
+    const differing = await Promise.all(
+      properties.map(async (property) => {
+        const answer = z
+          .record(z.string(), z.unknown())
+          .parse(await liveJson(`/properties/${property.slug}`));
+        return differences(
+          property.slug,
+          bySlug(asFields([property]), ["id", "campaignTier", "source"], "bundled"),
+          bySlug([answer], ["id"], "live"),
+        );
+      }),
+    );
+    expect(differing.flat()).toEqual([]);
   });
 
   it("answers /markets with the bundled markets and no difference", async () => {

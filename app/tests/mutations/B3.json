@@ -1510,6 +1510,16 @@
     "kind": "file",
     "test": "tests/api/parity.api.test.ts",
     "file": "src/server/public/mappers.ts",
+    "find": "    lotAcres: row.lot_acres,\n",
+    "replace": "    lotAcres: row.baths,\n",
+    "run": "bunx vitest run --project db tests/api/parity.api.test.ts",
+    "expect": "× .*answers /properties/:slug with the bundled property and no difference"
+  },
+  {
+    "id": "b3-g5-parity-baths",
+    "kind": "file",
+    "test": "tests/api/parity.api.test.ts",
+    "file": "src/server/public/mappers.ts",
     "find": "    baths: row.baths,\n",
     "replace": "    baths: row.beds,\n",
     "run": "bunx vitest run --project db tests/api/parity.api.test.ts",

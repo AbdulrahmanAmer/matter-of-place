@@ -43,7 +43,8 @@ function supabaseOrigin(): string[] {
 /**
  * The Content-Security-Policy value. Inline scripts are allowed by hash only, never by a nonce,
  * because HTML is cached (architecture 13 rule 5). `env` and `flags` are part of the frozen
- * signature that B17 and H1 build on; the policy is the same for every environment today.
+ * signature that B17 and H1 build on; the policy does not vary with them today, only `connect-src`
+ * carries the origin of this deployment's SUPABASE_URL (none when the variable is absent).
  */
 export function cspFor(_env: string, _flags: Flags, scriptHashes: readonly string[] = []): string {
   return Object.entries(POLICY)
