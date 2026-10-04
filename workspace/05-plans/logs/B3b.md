@@ -352,3 +352,24 @@ Proof 5: bun run check exits 0 (48 lines, ok), bun run build exits 0.
 Watched-fail (a build per batch, all restored, git status clean afterwards; scratch runner outside the repository). Batch A, 15 source edits at once, red for the named reason: market card badge removed (home: Expected substring "Opening soon"), `properties.length === -1` (filter-bar count 1), market, guide and region images rendered whatever comingSoon says (<img src= printed), stories branch (story-card count 0, expected 6), `markets` dropped from interest-form (row markets differ), source changed (row source differs, batch B), property route throws (Expected 404, Received 500), Google img in Footer (www.google-analytics.com), consent.css fixed bottom 0 (notice sits in the footer: Expected value not "fixed"; phone overlap: bar 788 to 844 against notice 571 to 804), `writeConsent` always true (analytics false case), `decided` against version + 1 (reload case), `setUtmConsent` line deleted (utm Received undefined), outline-color rule deleted (Expected not rgb(245, 242, 235)). The Global Privacy Control case stayed green in batch A because the same batch had deleted the utm line (a confound); alone in batch B it went red (Received + 13). Batch C: ComingSoon branch off the market page (california case red on the h2), `min-width: 2000px` (document scroll width 2000 against 1440 and 1560). Batch D: aria-label and placeholder off the email input (axe: new violations on /, /properties, /california/bay-area). A colour mutation (`.coming-soon { color: var(--background) }`) stayed green and was dropped.
 Not replayed by the tool: every entry is kind manual (a replay needs a rebuild), as B4's e2e entries are.
 Costs banked: P-1315, P-1316, P-1317; hit again P-1311, P-331, P-071, P-042.
+
+## g5 · steps 6,7 (repair after review)
+
+Branch slice/b3b, main merged first (clean merge, brings H59). Blocking defect (step 7 production `grep -ci illustrative` prints 1, chunk name `illustrative-notice-<hash>.js`): ruled by H59, which puts hash-only chunk names in `vite.config.ts` under step 9 (g7); g5 does not touch `vite.config.ts` or `trace.json`. No g5 file changes. `coming_soon_global` read before the live proofs: `false` (P-1318).
+
+Proof 1, `bunx vitest run tests/unit/no-image.test.tsx tests/unit/illustrative-labels.test.tsx`: `Test Files 2 passed (2)`, `Tests 15 passed (15)`. `bun run check` exit 0 (eslint, knip, jscpd, stubs, prettier, unit and component projects).
+
+Proof 2, step 6 on a fresh live build (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public ... bun run build` exit 0; `data-services="live"` printed; preview port 8878):
+```
+1
+1
+coming_soon_global restored to false
+```
+
+Proof 3, step 7, `MOP_ENV=local`: `/` "What is real here" 1; `/california` "No property is listed in California yet." 0.
+`MOP_ENV=production` (wrangler stopped by parent id, page cache removed, P-1312): `/` "What is real here" 0; `/california` empty state 1; `/properties` "No property is listed yet." 1; `/properties | grep -ci illustrative` 1 <- plan says 0.
+`grep -aoi '[a-z0-9./-]*illustrative[a-z0-9./-]*'` on `/properties` finds only `/assets/illustrative-notice-CdH1IBQU.js`. With `/assets/<name>` removed (`sed 's#/assets/[A-Za-z0-9_.-]*##g'`), `/` and `/properties` both print 0.
+
+UNPROVEN until step 9 lands (H59): the literal `grep -ci illustrative` printing 0 on `/properties` under production. Also UNPROVEN: e2e rows (f), (r) (g6); an open market with a photograph; `Gallery` and `Representation` status wording has no test of its own. Reviewer note, not changed (plan-literal): the home text hero with `ComingSoon scope="home"` shows whenever no property has a `heroRank`, even when one has a `featuredRank`; a ranking rule for B7.
+
+Bank: P-1318 added (shared flag), P-1313 carries the ruling, P-094 hit again. Preview stopped by its parent process id; `.dev.vars` back to `MOP_ENV=local`.
