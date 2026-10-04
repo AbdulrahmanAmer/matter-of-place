@@ -141,3 +141,25 @@ The sixth follow-up of the review is on GOTCHAS.md and is banked as P-717 (readi
    - Evidence: gh pr checks 117: no db job; the og-static jobs I enqueued stayed queued and were cancelled
 
 The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, not the data directory) and is banked as P-726, not listed here.
+
+## g7 · steps 9
+
+1. `app/src/server/jobs/steps/write-captions.ts` (not blocking)
+   - What: An editor's caption can still be overwritten in a short window. typedByHand (lines 49-63) reads caption_lint once, then the loop (lines 124-144) calls set_asset_text for up to six kinds one after another over the network. An editor who saves through set_asset_caption between that read and a given kind's write loses the caption. For the last kind the window is several round trips (about 0.5 s against the cloud), not 'milliseconds'. The plan says such a kind is 'never overwritten'. A full fix needs a caption_lint = 'edited' guard inside set_asset_text, which is g6's SQL, not a file of this group. Reading the row again for each kind inside the loop would narrow the window further.
+   - Evidence: Found by reading write-captions.ts:123-143. The author lists it under unproven and in P-727 as a follow-up for g6. It is not yet in workspace/05-plans/logs/B9-followups.md: grep for set_asset_text there prints nothing.
+
+2. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: The g7 rework's Proof 2 line says 'Tests 135 passed (135)'. Running the same command on head 6263aa7 gives 136. The pass claim holds and only the count is stale, probably from a run before the last test was added.
+   - Evidence: bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts tests/unit/assets/steps.test.ts tests/unit/automation/step-specs.test.ts tests/unit/assets/voice.test.ts tests/unit/assets/captions.test.ts tests/unit/assets/links.test.ts -> 'Tests 136 passed (136)'
+
+3. `app/tests/unit/assets/steps.test.ts` (not blocking)
+   - What: The rework rightly removed a self-proving assertion (it checked the fixture's status, not the step's output) and renamed the case to 'Campaign creates both, with the same block'. As a result, the plan proof clause 'Campaign creates both, the standalone pending' and the Verification line 'steps.test.ts asserts every row a B9 step creates has status pending' are now proven only at the SQL layer (assets.db.test.ts, upsert_asset_stub). No unit case in steps.test.ts covers them. The plan line should be updated to name the db test.
+   - Evidence: git show 6263aa7 -- app/tests/unit/assets/steps.test.ts; grep -n pending tests/unit/assets/steps.test.ts shows only the variants_pending and revision cases
+
+4. `app/tests/unit/automation/step-specs.test.ts` (not blocking)
+   - What: This plan proof file does not exist on the branch (it comes from B8b step 2). Vitest skips a missing path without any message, so the author's proof command exits 0 and looks green even though that part checks nothing. Re-run the proof once B8b lands. newsletter-block.test.ts is also missing; it waits on B5 step 1 and is already in the follow-ups.
+   - Evidence: ls tests/unit/automation/ -> 'No such file or directory'; the vitest command still exits 0 with 5 files
+
+5. `app/src/server/assets/voice.ts` (not blocking)
+   - What: These follow-ups carry over from the author's own list and none blocks. usage.input_tokens counts only uncached input, so B14 will under-count. alt_text and slide_alts are not linted for em dashes or banned words. The .slice(0, 25) in captions-runner.ts repeats .limit(25), and the fake database ignores limit. The render-hook 299 s flake is in B8's file (P-729).
+   - Evidence: The author's unproven list. Reading voice.ts:142-189 shows lintCaption is applied only to the three caption variants.
