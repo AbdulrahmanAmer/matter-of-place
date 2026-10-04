@@ -453,17 +453,17 @@
     "id": "e",
     "test": "tests/unit/routes-covered.test.ts",
     "file": "tests/e2e/fixtures/routes.ts",
-    "find": "  \"about.tsx\": \"/about\",\n",
+    "find": "  \"_site.about.tsx\": \"/about\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
-    "expect": "\\+\\s+\"about\\.tsx\""
+    "expect": "\\+\\s+\"_site\\.about\\.tsx\""
   },
   {
     "id": "rc-gone",
     "test": "tests/unit/routes-covered.test.ts",
     "file": "tests/e2e/fixtures/routes.ts",
-    "find": "  \"about.tsx\": \"/about\",",
-    "replace": "  \"about-gone.tsx\": \"/about\",",
+    "find": "  \"_site.about.tsx\": \"/about\",",
+    "replace": "  \"_site.about-gone.tsx\": \"/about\",",
     "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
     "expect": "FAIL .*are all still on disk when the map names them"
   },
@@ -471,8 +471,8 @@
     "id": "rc-redirect",
     "test": "tests/unit/routes-covered.test.ts",
     "file": "tests/e2e/fixtures/routes.ts",
-    "find": "  \"pricing.tsx\": \"redirect\",",
-    "replace": "  \"pricing.tsx\": \"/exposure\",",
+    "find": "  \"_site.pricing.tsx\": \"redirect\",",
+    "replace": "  \"_site.pricing.tsx\": \"/exposure\",",
     "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
     "expect": "FAIL .*map a redirect-only file to redirect"
   },
@@ -480,8 +480,8 @@
     "id": "rc-pattern",
     "test": "tests/unit/routes-covered.test.ts",
     "file": "tests/e2e/fixtures/routes.ts",
-    "find": "  \"legal.tsx\": \"/legal\",",
-    "replace": "  \"legal.tsx\": \"/legal-notice\",",
+    "find": "  \"_site.legal.tsx\": \"/legal\",",
+    "replace": "  \"_site.legal.tsx\": \"/legal-notice\",",
     "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
     "expect": "FAIL .*serve a pattern the sweep lists"
   },
@@ -1051,6 +1051,15 @@
     "expect": "[+] +\"tests/e2e/live-forms[.]spec[.]ts\""
   },
   {
+    "id": "u-catalog-version",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/fixtures/catalog-version.ts",
+    "find": "import { assertNotProduction } from \"../../scripts/lib/assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/assert-not-production.test.ts",
+    "expect": "[+] +\"tests/fixtures/catalog-version[.]ts\""
+  },
+  {
     "id": "ee",
     "test": "tests/e2e/client-error.spec.ts",
     "file": "src/lib/report-error.ts",
@@ -1190,8 +1199,8 @@
     "id": "p-level",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "lighthouserc.json",
-    "find": "\"cumulative-layout-shift\": [\"error\"",
-    "replace": "\"cumulative-layout-shift\": [\"warn\"",
+    "find": "\"cumulative-layout-shift\": [\n          \"error\"",
+    "replace": "\"cumulative-layout-shift\": [\n          \"warn\"",
     "run": "bunx vitest run tests/unit/perf-budget.test.ts",
     "expect": "cumulative-layout-shift: level warn, not error"
   },

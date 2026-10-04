@@ -3138,8 +3138,8 @@
     "id": "as",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": " && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'",
-    "replace": " && vars.CI_HEAVY != 'off'",
+    "find": " && github.actor != 'dependabot[bot]' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'",
+    "replace": " && github.actor != 'dependabot[bot]' && vars.CI_HEAVY != 'off'",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× the heavy jobs skip drafts and obey CI_HEAVY"
   },

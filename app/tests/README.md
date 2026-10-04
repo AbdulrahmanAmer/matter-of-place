@@ -55,7 +55,9 @@ Billed minutes are the sum of job durations, each rounded up to the minute; a sk
 | ready (run 37214655312) | `check` 3, `build` 1, `db` 3, `e2e` 16 | 23     | 16.8 |
 | ready (run 37215885141) | `check` 3, `build` 1, `db` 3, `e2e` 15 | 22     | 15.3 |
 
-The month so far: 562 runs and 591 minutes of run time by 2026-10-04 (`gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate`, the H6 command), 30 percent of 2,000 in four days, while nine lanes push at once. At 23 minutes a ready push, 2,000 minutes are 87 ready pushes; at 4 a draft push, 500.
+Both ready runs had a red `db` as well: run 37214655312 stopped at type drift, so seed, `test:db` and the mutation replay did not run, and 37215885141 stopped at `test:db`, so the replay did not run. The `db` figure of 3 is a lower bound.
+
+The month so far: 562 runs and 591 minutes of run time by 2026-10-04 (`gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate`, the H6 command), 30 percent of 2,000 in four days, while nine lanes push at once. That is wall time; a ready push bills about 35 percent more than its wall time (23 against 16.8), so the billed month is nearer 800 minutes and the 70 percent line of `CI_HEAVY` is reached sooner than the 591 suggests. At 23 minutes a ready push, 2,000 minutes are 87 ready pushes; at 4 a draft push, 500.
 
 The ready pushes exceed 10 minutes, so the one cut of T-04 is applied: `e2e` does its work only when the push changes `src/`, `supabase/`, `package.json` or `bun.lock`. UNPROVEN that this is needed: both ready runs had a red `e2e` (88 sweep failures, each run twice, because the seed does not upload photographs until B9 step 6, GOTCHAS P-422), so its specs step took 13 of the 16 minutes running those tests twice. Measure again on the first green ready push and remove the filter if it is under 10.
 
