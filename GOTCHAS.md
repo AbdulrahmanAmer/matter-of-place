@@ -1873,3 +1873,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node <scratchpad>/trace/simulate-workflow.mjs` → the schema scenario's agents end `review:B2:g2:2* | merge:B2:g2:2` (the merge follows the schema group's review); `simulation: 6 scenarios passed`.
 - enforced-by: .claude/workflows/build-slice.js (the schema merge hook and the H57 rule in the builder brief)
 - added: 2026-10-04
+
+## P-1200 · B5 g1's file list disagreed with the plan and the folder map, and the step 1 proof needs files the list does not name
+- symptom: the group's file list named `app/src/templates/email/theme.gen.ts`, but the folder map (STANDARDS section 1), B5's Files line, B6, B9 and B11 all say `src/templates/theme.gen.ts`; the proof runs `tests/unit/theme.test.ts` and `tests/unit/email/render.test.ts`, which no list names; `bun add` of the two react-email packages failed `bun run knip` with "Unused dependencies (2)" until a `knip.json` entry named them; a first export of `EmailTemplate` and `EmailSettings` types failed knip as "unused exported types"; the plan's deno.json line maps `@react-email/render@1` while `bun add` installed 2.1.0.
+- cause: the file list is derived from the step text, not from the folder map or the proof; R04 says a dependency is added where it is first imported, but step 1 installs it two groups before a template imports it.
+- rule: take the path from the folder map when a list differs, and say so in the log; a group that proves with a test creates it and its `tests/mutations/<slice>.json` entries (P-079); a dependency installed ahead of its importer gets the smallest `ignoreDependencies` entry in `knip.json` (ruling H46), removed by the group that imports it; a domain type is exported only once something imports it; the group that writes `supabase/functions/job-runner/deno.json` maps `@react-email/render` to the major in `package.json` (2), not `@1`.
+- proof: `cd app && bun run knip | grep -c "Unused"` → `0`; `git ls-files app/src/templates/theme.gen.ts` lists the file; `grep -n "react-email" app/knip.json` names both packages until the first template imports them.
+- hit again (P-008): 2026-10-04, B5 g1: a heredoc turned `\s` in a regex template literal into `\s`, so `tokenOf` returned undefined and four theme cases went red for the wrong reason; fixed with the Edit tool.
+- added: 2026-10-04

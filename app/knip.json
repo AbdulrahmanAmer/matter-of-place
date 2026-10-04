@@ -10,5 +10,5 @@
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql"],
-  "ignoreDependencies": ["@fontsource-variable/*"]
+  "ignoreDependencies": ["@fontsource-variable/*", "@react-email/components", "@react-email/render"]
 }
