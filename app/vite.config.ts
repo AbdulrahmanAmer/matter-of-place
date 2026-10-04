@@ -31,7 +31,17 @@ export default defineConfig(({ command, mode }) => {
     define,
     css: { transformer: "lightningcss" },
     // The client manifest lists module paths only; scripts/bundle-check.mjs reads it (FE-03).
-    build: { manifest: true },
+    // File names are hashes only, so no module name reaches a shipped page (H59, P-1313).
+    build: {
+      manifest: true,
+      rolldownOptions: {
+        output: {
+          entryFileNames: "assets/[hash].js",
+          chunkFileNames: "assets/[hash].js",
+          assetFileNames: "assets/[hash][extname]",
+        },
+      },
+    },
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
       dedupe: [

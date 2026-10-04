@@ -30,9 +30,9 @@ export function Representation({
                 </div>
               ) : (
                 <p className="representation-note">
-                  No brokerage is attached to this illustrative property. Matter of Place is not the
-                  listing brokerage; on live listings the representative, brokerage and licence
-                  appear here.
+                  {property.status === "Illustrative"
+                    ? "No brokerage is attached to this illustrative property. Matter of Place is not the listing brokerage; on live listings the representative, brokerage and licence appear here."
+                    : "No brokerage is attached to this property. Matter of Place is not the listing brokerage."}
                 </p>
               )}
             </>

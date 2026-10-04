@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ContentTag } from "./content-tag";
-import { t } from "../../lib/strings";
 
 export function ImageHero({
   image,
@@ -8,7 +7,7 @@ export function ImageHero({
   eyebrow,
   title,
   children,
-  tag = t.common.illustrativeImagery,
+  tag,
   scrollTarget,
 }: {
   /** Nothing is drawn without one: a market, region or story may have no photograph yet (G55). */
@@ -18,6 +17,7 @@ export function ImageHero({
   title: string;
   /** Optional line beneath the title (price, headline). */
   children?: ReactNode;
+  /** A label over the photograph; none unless a caller passes one. */
   tag?: string;
   /** Element id the scroll cue points to; omit to hide the cue. */
   scrollTarget?: string;
@@ -27,7 +27,7 @@ export function ImageHero({
       {image !== undefined && (
         <img src={image} width={1600} height={1104} alt={alt} fetchPriority="high" />
       )}
-      <ContentTag label={tag} />
+      {tag !== undefined && <ContentTag label={tag} />}
       <div className="image-hero-content">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>

@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import type { Story } from "../../domain/story";
 
-function StoryCard({ story }: { story: Story }) {
+export function StoryCard({ story }: { story: Story }) {
   return (
     <Link to="/stories/$slug" params={{ slug: story.slug }} className="story-card">
       {story.image !== undefined && (
         <img src={story.image} loading="lazy" width={1200} height={1500} alt="" />
       )}
-      <span className="eyebrow">{story.category.toUpperCase()} · ILLUSTRATIVE</span>
+      <span className="eyebrow">{story.category.toUpperCase()}</span>
       <h3>{story.title}</h3>
       <p>{story.deck}</p>
     </Link>

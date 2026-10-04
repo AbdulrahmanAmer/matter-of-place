@@ -1,13 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
+import { openConsentNotice } from "../../lib/consent";
 import { t } from "../../lib/strings";
+import { ConsentNotice } from "./consent-notice";
 
 export function Footer() {
   const groups = t.footer.groups;
   return (
     <footer className="site-footer">
       <div className="hf-inner">
+        <ConsentNotice />
         <div className="footer-top">
           <Link to="/" className="footer-brand" aria-label={t.header.home}>
             <Emblem className="footer-emblem" />
@@ -51,6 +54,14 @@ export function Footer() {
             <Link to="/legal" hash="terms">
               {t.nav.terms}
             </Link>
+            <button
+              type="button"
+              id="consent-change"
+              className="consent-change"
+              onClick={openConsentNotice}
+            >
+              {t.consent.change}
+            </button>
             {siteConfig.social.instagram && (
               <a href={siteConfig.social.instagram} rel="noopener noreferrer" target="_blank">
                 {t.nav.instagram}

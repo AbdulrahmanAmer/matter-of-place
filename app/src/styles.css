@@ -20,6 +20,8 @@
 @import "./styles/components/dialogs.css";
 @import "./styles/components/gallery.css";
 @import "./styles/components/turnstile.css";
+@import "./styles/components/coming-soon.css";
+@import "./styles/components/consent.css";
 
 @import "./styles/pages/home.css";
 @import "./styles/pages/markets.css";
