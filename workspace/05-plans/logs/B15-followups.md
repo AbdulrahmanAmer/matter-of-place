@@ -63,3 +63,23 @@ Seven follow-ups, all non-blocking. Two more named GOTCHAS.md and became bank en
 7. File: `app/docs/runbooks/database.md`
    - Follow-up: Line 33 lists the load-env profile names. It was already missing PREVIEW_RATE_LIMIT_SALT and OPS_HEALTH_TOKEN, and now also misses OMNIKOM_MOCK_SECRET (dev), OMNIKOM_WEBHOOK_URL and OMNIKOM_WEBHOOK_SECRET (ops). It is a stale doc line in a file outside this group, for the orchestrator to fold.
    - Evidence: grep -n OPS_HEALTH_TOKEN docs/runbooks/database.md: line 33 lists dev = DEV_DB_URL, DEV_SUPABASE_PROJECT_REF, DEV_SUPABASE_DB_PASSWORD, DEV_SUPABASE_SERVICE_ROLE_KEY only
+
+## g3 · steps 4
+
+Four follow-ups, all non-blocking. None names GOTCHAS.md, so none became a bank entry.
+
+1. File: `app/tests/unit/omnikom/webhook-step.test.ts`
+   - Follow-up: Lines 83-100: dbOf() replaces fakeDb's `from` with its own hand-written table layer. It still throws `unexpected table` and records calls, but it is a second copy of the fixture's query chain, which R50 and C05 rule out ('Unit tests reach a database only through tests/fixtures/fake-db.ts'; no second copy of a helper in tests/fixtures). It also drops every filter. So `.eq("id", inquiryId)` in loadInquiry, `.eq("slug", slug)` in loadSubject and `.eq("id", representativeId)` could each name the wrong column and every test would stay green. By reading, the three filters are correct. The likely cause is that FakeDbOptions.tables wants full Row types; the clean fix is to widen that fixture. Not blocking: I cannot name an input that makes the shipped step go wrong.
+   - Evidence: Read lines 83-100 of the test and lines 58-74 of tests/fixtures/fake-db.ts: the same Object.assign(Promise.resolve(...), { eq: query }) pattern. The author's own UNPROVEN list says the same about 'archived included'.
+
+2. File: `app/src/server/jobs/steps/webhook-omnikom.ts`
+   - Follow-up: Line 109: the step does not pass ctx.signal to deliver(). R27 and the StepContext comment in types.ts ('Every outside fetch passes it (JOB-02)') require it. client.ts (g1's file) has no signal parameter and uses only AbortSignal.timeout(10_000). This is benign today: the runner's 20 s light-step timeout bounds the step, and a fetch that lands after the job has failed is answered 409 on the next run, which then marks the inquiry. The author already logged it as a follow-up for g1's client.ts. Fixing it needs a signal option on deliver() threaded from the step.
+   - Evidence: grep -n signal app/src/server/omnikom/client.ts: only `signal: AbortSignal.timeout(TIMEOUT_MS)`; app/src/server/jobs/runner.ts:158 is `AbortSignal.timeout(timeoutFor(def))` with DEFAULT_TIMEOUT_MS = 20_000
+
+3. File: `workspace/05-plans/B15.md`
+   - Follow-up: A stale plan line, for the orchestrator to fix. Risks say jobs.attempts 'stays 1 for the whole ladder'. The author measured that claim_job leaves attempts alone and only fail_job moves it, so a laddered new job keeps 0. The step's comment states the measured behaviour and the slice log records the mismatch. The plan text still says 1.
+   - Evidence: workspace/05-plans/logs/B15.md, g3 block: 'Plan Risks say `jobs.attempts` "stays 1 for the whole ladder". `claim_job.sql` says attempts change only in `fail_job`'
+
+4. File: `app/tests/unit/omnikom/webhook-step.test.ts`
+   - Follow-up: Invariant 7 has no control over ctx.log. The step never logs, so the check runs over an empty list. It will fail only once someone adds a log line that contains the secret. The author labels this as a stand-in in UNPROVEN; I record it so it is not lost.
+   - Evidence: grep -n 'ctx.log' app/src/server/jobs/steps/webhook-omnikom.ts finds no matches; the test's `logs` array stays empty
