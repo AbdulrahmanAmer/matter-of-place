@@ -69,3 +69,31 @@
 6. `.claude/workflows/build-slice.js` (not blocking)
    - What: The review brief contradicts itself. It says to run plan-brief.mjs 'from E:/mop-build/ops' and also 'never read, run or write anything there'. I ran plan-brief from the snapshot, which gives the same output because the snapshot is the same commit.
    - Evidence: Brief text: '(the brief is mechanical: run `node workspace/05-plans/plan-brief.mjs B8 ...` from E:/mop-build/ops'
+
+## g5 · steps 6,6a
+
+1. `app/src/db/types.ts` (not blocking)
+   - What: The hand-written entries (P-910) are not in the generator's byte shape. The generator writes blank lines inside 'Relationships: [' as 20 spaces (22 such lines remain). The edit writes empty lines, and it also changed the existing migration_checksums blank line. So P-910's own after-push proof ('gen:types -- --db' then 'git diff --exit-code src/db/types.ts' exits 0) will go red on whitespace even if the types are right. P-910's rule also claims entries 'in the generator's own shape'.
+   - Evidence: git diff 2043064..9f6e1f2 -- app/src/db/types.ts | cat -A shows '-                    $' replaced by '+$'; grep -c '^ \{20\}$' src/db/types.ts gives 22
+
+2. `app/docs/runbooks/jobs.md` (not blocking)
+   - What: Line 33 cites ASSUMED E5 for 'The deploy does not honour a stale deno.lock'. E5 does not say that. B8-followups.md line 66 lists that record as still owed by the orchestrator. The statement was measured by g4, but the citation points to a record that does not hold it yet.
+   - Evidence: grep -n 'E5' workspace/05-plans/ASSUMED.md: row 61 covers deploy --use-api and npm imports only; B8-followups.md:66 'ASSUMED E5 must record that --use-api did not honour a stale deno.lock'
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Two plan lines do not match reality, and neither is banked or in B8-followups.md (the author recorded both only in the log). (1) Step 6a's proof 'bunx vitest run tests/unit/jobs/ops-health-hook.test.ts tests/unit/jobs/runner.test.ts -t beat' skips the whole hook file, so it proves nothing about the hook. (2) The Files line 'handleOpsHealth(getDb(), params.token, process.env)' would break the Contract on a Worker with no database key: getDb() throws AppError unavailable before the token compare, so a wrong token would get 503 JSON instead of 404. The author passes getDb (the function) and the parsed env instead. That is correct, but it is a deviation from the plan.
+   - Evidence: Re-run of the -t beat command: 'Test Files 1 passed | 1 skipped (2)'. src/server/lib/db.ts:41-42 throws AppError('unavailable') when the key is unset
+
+4. `app/supabase/migrations/20261004023709_job_cron.sql` (not blocking)
+   - What: The plan-mandated 'unschedule by name first' (F16) has no test that can detect its removal. pg_cron 1.6.4 replaces a job of the same name, so the re-apply case stays green without those lines. The author measured this, banked it as P-911 and did not register it. This is recorded so the orchestrator can decide whether F16 still holds. It is not a defect of this group.
+   - Evidence: psql: select extversion from pg_extension where extname='pg_cron' gives 1.6.4; GOTCHAS P-911
+
+5. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: STANDARDS C22 asks that a new public route or per-tick cost state its unit cost and the P-009 line it draws on. The log and the runbook do not. The beat adds one RPC per runner tick (about 1440 a day). The ops-health hook adds one Worker request and one RPC per monitor poll (about 288 a day at 5 minutes).
+   - Evidence: grep -n 'P-009\|unit cost' in the g5 log block finds nothing
+
+6. `app/src/server/hooks/ops-health.ts` (not blocking)
+   - What: R09 says a dependency outage answers 503 with Retry-After. The hook's 503 'fail: ops_health_rpc' has no Retry-After. The H40 exception only covers the plain-text body. The uptime monitor ignores the header, so nothing breaks for this product. The orchestrator should say whether H40 also exempts the header.
+   - Evidence: Headers of the 503 from wrangler dev on port 8839: Content-Type, Cache-Control, X-Content-Type-Options, x-request-id; no Retry-After
+
+(A seventh follow-up, the reviewer's own cost with the secrets loader and the self-contradicting review brief, is banked as a "Hit again" line in GOTCHAS P-310.)
