@@ -31,7 +31,7 @@ export type Database = {
                     "day"?: string,"dim"?: string,"event"?: string,"events"?: number,"p75"?: number | null,"path"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"analytics_events": {
                   Row: {
@@ -421,7 +421,7 @@ isOneToOne: false
                     "pushed_at"?: string,"sha256"?: string,"version"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"ops_heartbeats": {
                   Row: {
@@ -434,7 +434,7 @@ isOneToOne: false
                     "at"?: string,"detail"?: Json | null,"name"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"payments": {
                   Row: {
@@ -814,7 +814,14 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "market_interest_counts": {
+                  Row: {
+                    "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "apply_media_variants":
@@ -1154,6 +1161,9 @@ isOneToOne: false
                            },
 "set_asset_text":
 { Args: { "p_alt_text"?: string,"p_asset": string,"p_caption"?: string,"p_meta"?: Json }; Returns: undefined
+                           },
+"set_environment":
+{ Args: { "p_value": string }; Returns: undefined
                            },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined
