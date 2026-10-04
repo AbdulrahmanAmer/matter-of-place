@@ -1068,5 +1068,338 @@
     "replace": "pr-${{ github.event.number }}.holy-meadow-4327.workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build && bunx supabase functions deploy job-runner --use-api",
     "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
     "expect": "× .*only dev deploys the job runner"
+  },
+  {
+    "id": "b-script",
+    "test": "tests/unit/jobs/hmac.test.ts",
+    "file": "scripts/post-callback.mjs",
+    "find": "createHmac(\"sha256\", secret)",
+    "replace": "createHmac(\"sha256\", `${secret}x`)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/hmac.test.ts",
+    "expect": "× .*signs it the same way in the render job"
+  },
+  {
+    "id": "c",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "if (job.status !== \"running\" || job.locked_by !== body.claim) {",
+    "replace": "if (job.status !== \"running\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*ignores a claim from before a manual retry"
+  },
+  {
+    "id": "rh-repeat",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "if (job.status !== \"running\" || job.locked_by !== body.claim) {",
+    "replace": "if (job.locked_by !== body.claim) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers a repeat with 200 and changes nothing"
+  },
+  {
+    "id": "d",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": " || age > MAX_AGE_SECONDS",
+    "replace": " || age < 0",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*refuses a timestamp 301 seconds old"
+  },
+  {
+    "id": "rh-window-299",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "const MAX_AGE_SECONDS = 300;",
+    "replace": "const MAX_AGE_SECONDS = 298;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*accepts a timestamp 299 seconds old"
+  },
+  {
+    "id": "rh-signature",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "if (!(await verifyBody(secret, timestamp, raw, signature))) {",
+    "replace": "if (!(await verifyBody(secret, timestamp, raw, signature)) && signature === \"\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*refuses a bad signature with 401"
+  },
+  {
+    "id": "rh-404",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "if (job === null) throw new AppError(\"not_found\", undefined, \"There is no such job.\");",
+    "replace": "if (job === null) return answer({ ignored: \"stale_claim\" });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers 404 for an unknown job_id"
+  },
+  {
+    "id": "rh-not-json",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "return refused(\"bad_request\", 400, \"The callback body is not JSON.\");",
+    "replace": "throw new Error(\"unparsed\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers 400 to text that is not JSON"
+  },
+  {
+    "id": "rh-status",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "status: z.enum([\"done\", \"failed\"]),",
+    "replace": "status: z.enum([\"done\", \"failed\", \"maybe\"]),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers 400 to an unknown status"
+  },
+  {
+    "id": "rh-uuid",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "job_id: z.string().uuid(),",
+    "replace": "job_id: z.string(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers 400 to a job_id that is not a uuid"
+  },
+  {
+    "id": "rh-run-url",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "const fenced = { jobId: body.job_id, claim: body.claim, runUrl: body.run_url };",
+    "replace": "const fenced = { jobId: body.job_id, claim: body.claim };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*applies a valid callback with one finish_job"
+  },
+  {
+    "id": "rh-retryable-default",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "retryable: z.boolean().default(true),",
+    "replace": "retryable: z.boolean().default(false),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*calls fail_job on status failed, retryable by default"
+  },
+  {
+    "id": "rh-dead",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "dead: !body.retryable,",
+    "replace": "dead: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*sends retryable false to fail_job as p_dead"
+  },
+  {
+    "id": "rh-on-result-throw",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "return failJob(db, { ...fenced, error: `on_result: ${message}` });",
+    "replace": "return finishJob(db, { ...fenced, result: message });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*calls fail_job when onResult throws"
+  },
+  {
+    "id": "rh-ctx-result",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "result: job.result,",
+    "replace": "result: null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*gives onResult a Date now, the stored jobs"
+  },
+  {
+    "id": "ab",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "src/server/hooks/render.ts",
+    "find": "const secret = serverEnv.RENDER_CALLBACK_SECRET;",
+    "replace": "const secret = serverEnv.RENDER_CALLBACK_SECRET ?? \"\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*answers 503 unavailable and calls nothing"
+  },
+  {
+    "id": "ao",
+    "test": "tests/unit/jobs/render-hook.test.ts",
+    "file": "tests/unit/jobs/render-hook.test.ts",
+    "find": "[items, items, items].map(",
+    "replace": "items.map(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-hook.test.ts",
+    "expect": "× .*keeps a 40-item callback to 5 calls"
+  },
+  {
+    "id": "m",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "type.slice(\"render_\".length).replaceAll(",
+    "replace": "type.replaceAll(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*maps render_variants to its B9 script"
+  },
+  {
+    "id": "rj-other-type",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "if (!type.startsWith(\"render_\")) return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*runs the heavy self-test inline and knows no other type"
+  },
+  {
+    "id": "rj-not-impl-final",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "if (url === null || !existsSync(url)) throw final(\"not_implemented\");",
+    "replace": "if (url === null || !existsSync(url)) throw new Error(\"not_implemented\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*settles a type outside the catalog as not_implemented"
+  },
+  {
+    "id": "rj-missing-script",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "if (url === null || !existsSync(url)) throw final(\"not_implemented\");",
+    "replace": "if (url === null) throw final(\"not_implemented\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*settles a render type with no script as not_implemented"
+  },
+  {
+    "id": "rj-selftest",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "throw final(\"selftest_nonretryable\");",
+    "replace": "throw new Error(\"selftest_nonretryable\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*runs the self-test inline, and its nonretryable failure"
+  },
+  {
+    "id": "rj-unreadable",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "  } catch {\n    throw final(\"job_unreadable\");",
+    "replace": "  } catch {\n    throw new Error(\"job_unreadable\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*settles unreadable job JSON as job_unreadable"
+  },
+  {
+    "id": "rj-site",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "(url.hostname === SITE_HOST || url.hostname.endsWith(WORKERS_HOST_SUFFIX))",
+    "replace": "url.hostname.endsWith(WORKERS_HOST_SUFFIX)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*accepts preview and production with the dev Worker"
+  },
+  {
+    "id": "bk",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "const ENVS = [\"preview\", \"production\"];",
+    "replace": "const ENVS = [\"preview\", \"production\", \"development\"];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*refuses an env other than preview or production"
+  },
+  {
+    "id": "rj-host",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "(url.hostname === SITE_HOST || url.hostname.endsWith(WORKERS_HOST_SUFFIX))",
+    "replace": "url.hostname !== \"\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*refuses a callback_url on another host"
+  },
+  {
+    "id": "rj-lookalike",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "url.hostname.endsWith(WORKERS_HOST_SUFFIX))",
+    "replace": "url.hostname.includes(WORKERS_HOST_SUFFIX.slice(1)))",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*refuses a callback_url on a look-alike host"
+  },
+  {
+    "id": "rj-https",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "url.protocol === \"https:\" &&",
+    "replace": "url.protocol !== \"\" &&",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*refuses a callback_url on plain http"
+  },
+  {
+    "id": "rj-parse",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": " || !URL.canParse(value)) return false;",
+    "replace": ") return false;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*refuses a callback_url on no URL"
+  },
+  {
+    "id": "rj-done",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "return { status: \"done\", result: await run(job) };",
+    "replace": "return { status: \"done\", result: (await run(job), null) };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*gives done with the value run resolves"
+  },
+  {
+    "id": "aa",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "      retryable,\n",
+    "replace": "      retryable: false && retryable,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*keeps a storage_unavailable throw retryable"
+  },
+  {
+    "id": "rj-final",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "scripts/render-job.mjs",
+    "find": "error.retryable === false",
+    "replace": "error.retryable === \"never\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*makes an error that carries retryable false final"
+  },
+  {
+    "id": "rj-if",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "if: fromJSON(inputs.job).type != 'render_reel'",
+    "replace": "if: fromJSON(inputs.job).type == 'render_reel'",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*runs the render job for every type but render_reel"
+  },
+  {
+    "id": "bl",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*gives the scripts MOP_ENV and the one project"
+  },
+  {
+    "id": "z",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "      MOP_ENV: ${{ fromJSON(inputs.job).env }}\n",
+    "replace": "      MOP_ENV: ${{ fromJSON(inputs.job).env }}\n      R2_BUCKET: media\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*names no R2 key, no variable and no repository_dispatch"
+  },
+  {
+    "id": "ap",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "on:\n  workflow_dispatch:\n",
+    "replace": "on:\n  repository_dispatch:\n    types: [render]\n  workflow_dispatch:\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*names no R2 key, no variable and no repository_dispatch"
+  },
+  {
+    "id": "ba",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0",
+    "replace": "uses: actions/cache@v4",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"every uses: is pinned\"",
+    "expect": "× .*every uses: is pinned to a 40-character commit SHA"
   }
 ]

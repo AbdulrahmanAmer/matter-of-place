@@ -35,6 +35,7 @@ import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.ind
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
+import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
@@ -165,6 +166,11 @@ const ApiHooksOpsHealthTokenRoute = ApiHooksOpsHealthTokenRouteImport.update({
   path: '/api/hooks/ops-health/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHooksRenderCallbackRoute = ApiHooksRenderCallbackRouteImport.update({
+  id: '/api/hooks/render/callback',
+  path: '/api/hooks/render/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
 }
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/markets/'
     | '/stories/'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sitemap.xml'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/stories'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
   id:
     | '__root__'
     | '/_site'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/_site/markets/'
     | '/_site/stories/'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -333,6 +345,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
+  ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHooksOpsHealthTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/hooks/render/callback': {
+      id: '/api/hooks/render/callback'
+      path: '/api/hooks/render/callback'
+      fullPath: '/api/hooks/render/callback'
+      preLoaderRoute: typeof ApiHooksRenderCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -609,6 +629,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
+  ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
