@@ -203,6 +203,7 @@ Entry template
 - hit again: 2026-10-04, B8 g7: a `node -e '...'` that replaced a doubled psql `\i` line in a scratch probe matched nothing (the backslash was lost), so the probe ran the migration twice and failed on `trigger ... already exists`; rewriting the probe with the Write tool fixed it.
 - hit again: 2026-10-04, B9 g6: a `node -` heredoc whose strings held `\n` and a bash heredoc that appended bank entries both lost their backslashes or failed with `unexpected EOF`; two registry-generator patches and one bank append were redone with the Write and Edit tools.
 - added: 2026-09-30
+- hit again: 2026-10-04, B9 c6u: a regex written into a patch heredoc (`/^o\/([^/]+)\/(\d+)-.../`) lost every backslash and read `/^o/([^/]+)/(d+)-.../`; tsc and prettier accepted it and only the file's own unit test would have gone red. Re-read any regex a heredoc wrote with `grep -n` before the next step, or write the file with Write or Edit.
 - hit again: 2026-10-04, B3 g8: a `node -e` and a heredoc patch script lost a backslash, so `"\n"` reached the file as a real line break inside a string; `node -e` with a quote or backtick inside a pattern ended in `unexpected token '('`. Patch scripts went into the scratchpad as files (Write tool), run with `node`.
 - hit again: 2026-10-04, B3 c12: four times a regular expression or a `\n` written through `node` in a heredoc lost its backslash (`replace(//+$/, ...)`, `[^>]*sdata-services`, a `join("` broken across two lines) and the next `tsc` or `prettier` failed on it; the repair went through the Edit tool.
 
@@ -1595,6 +1596,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a watched-fail of a guard stays green, first ask whether any input reaches the guard. If none does, delete it (do not add a test that calls the guard directly); if one does, the test is missing: add the input that reaches it. A range promised to a caller ("6 to 8") is pinned by a test per boundary and per branch that decides it (here 6, 7 and 8), not by a clamp.
 - proof: `grep -n "Math[.]" app/src/templates/social/slides.ts` → only the LinkedIn photo count (`Math.min(LINKEDIN_PHOTOS, ...)`), no clamp in `planCarousel` (2026-10-03).
 - added: 2026-10-03
+- hit again: 2026-10-04, B9 c6u: `if (stored.has(key)) continue;` in the seed's `uploadAll` guarded a repeated key that the catalog never produces (`(owner, n)` is unique per image); its watched-fail stayed green, so the line was deleted.
 
 ## P-712 · `bun run check` under load runs past the 600 s tool ceiling, and its vitest stage can then fail with `Failed to start forks worker ... Timeout waiting for worker to respond`: that is not a red test
 - symptom: the B9 g4 review ran `bun run check` in the foreground with other lanes running. The call passed the 600 s Bash ceiling and the vitest stage failed on `tests/unit/analytics.test.ts` with `Failed to start forks worker ... Timeout waiting for worker to respond`, which reads as a red gate. `bun run test` alone, re-run afterwards, passed 32 of 32 files.
@@ -2571,4 +2573,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the scratchpad belongs to the session, not to one worker, and `watchfail` replays every `*.json` in the folder it is given.
 - rule: a scratch registry lives in a folder only this run created, named by group and time (for example `reg-<group>-<epoch>`), and holds only this run's file; check `ls` of the folder before replaying.
 - proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
+- added: 2026-10-04
+
+## P-730 · A review defect asked for the seed to run against mop-dev, and ruling H57 (1) forbids it: prove the upload mode against a local fake Storage
+- symptom: the reviewer of c6u marked `seed.ts` blocking with the proof "`bun run seed -- --target dev --mode full --images upload` exits 0, then curl on the dev Worker prints 200". The group's standing rule says never run the seed on mop-dev from a lane (H57 (1)), so the proof as written could not be run.
+- cause: the defect text was copied from the B2 step 13 close-out wording, written before H57; the plan line and the lane rule disagree.
+- rule: a lane proves `--images upload` with the real `runSeed` and the real uploader against a `Bun.serve` fake of `POST /storage/v1/object/media/<key>` (it can check `x-upsert: false` and the immutable `cache-control`), counts that every key the rows name was stored, and says UNPROVEN for the 200 on `/media/<key>` until the CI e2e job on main runs the seed against its own stack. Never run the seed on mop-dev to satisfy a review line; say that the line conflicts with H57.
+- proof: `cd app && bunx vitest run --project unit tests/unit/rows.test.ts tests/unit/assets/variants-upload.test.ts` passes (the upload cases), and `git grep -n "STUB(B9" -- scripts` prints nothing (measured 2026-10-04, B9 c6u; the fake-Storage run printed 92 keys named, 558 objects stored, 0 named but not stored, 84 s).
 - added: 2026-10-04

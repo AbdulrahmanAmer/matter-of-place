@@ -2397,5 +2397,95 @@
     "replace": "build_newsletter_block: { heavy: false, local: true,",
     "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"the only registered step of the local class\"",
     "expect": "× .*the only registered step of the local class"
+  },
+  {
+    "id": "c6u-seed-variants-empty",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "return (key) => (key === null ? {} : (stored.get(key) ?? {}));",
+    "replace": "return () => ({});",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "FAIL .*uploads every key the rows name once and stores its sizes beside it"
+  },
+  {
+    "id": "c6u-seed-key-mismatch",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "if (result.media_key !== key) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "FAIL .*stops before any write when the stored key is not the key the rows name"
+  },
+  {
+    "id": "c6u-seed-skip-uploads",
+    "test": "tests/unit/rows.test.ts",
+    "file": "scripts/seed.ts",
+    "find": "args.images === \"upload\"\n      ?",
+    "replace": "true\n      ?",
+    "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
+    "expect": "FAIL .*never uploads with --images skip and leaves every variants column empty"
+  },
+  {
+    "id": "c6u-store-bucket",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "putIfMissing(\"media\", file.key",
+    "replace": "putIfMissing(\"submissions\", file.key",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*uploads the master and all five sizes to the media bucket"
+  },
+  {
+    "id": "c6u-store-master",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "{ key: keys.master, body: made.master, type: \"image/webp\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*uploads the master and all five sizes to the media bucket"
+  },
+  {
+    "id": "c6u-store-size",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "h: made.files[name].h })",
+    "replace": "h: made.files[name].w })",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*returns the width and height of each size and nothing else"
+  },
+  {
+    "id": "c6u-keys-refuse",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "if (owner === undefined || n === undefined || sha8 === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*refuses a key that is not a master"
+  },
+  {
+    "id": "c6u-restore-own-keys",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "const keys = keysOfMaster(row.media_key);",
+    "replace": "const keys = variantKeys(\"x\", 0, \"00000000\");",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*uploads the sizes under each master's own keys and writes variants to that row"
+  },
+  {
+    "id": "c6u-restore-write",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "await db.setVariants(row.id, (await storeVariants(made, keys)).variants);",
+    "replace": "await storeVariants(made, keys);",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*uploads the sizes under each master's own keys and writes variants to that row"
+  },
+  {
+    "id": "c6u-restore-continue",
+    "test": "tests/unit/assets/variants-upload.test.ts",
+    "file": "scripts/variants.ts",
+    "find": "} catch (failure) {",
+    "replace": "} catch (failure) {\n      throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
+    "expect": "FAIL .*names a row whose master cannot be read, leaves its variants alone and goes on"
   }
 ]

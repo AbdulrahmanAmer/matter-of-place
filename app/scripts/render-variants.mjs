@@ -6,11 +6,8 @@ import { dirname, extname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { z } from "zod";
-import { putIfMissing } from "./lib/media-store.mjs";
-import { makeVariants, variantKeys } from "./variants.ts";
+import { NAMES, makeVariants, storeVariants, variantFiles, variantKeys } from "./variants.ts";
 
-/** @type {readonly ("thumb" | "card" | "hero" | "og" | "carousel")[]} */
-const SIZES = ["thumb", "card", "hero", "og", "carousel"];
 const MIME_OF = new Map([
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
@@ -36,30 +33,6 @@ const jobSchema = z.object({
 });
 
 /**
- * The stripped master and the five sizes with the key each is stored under.
- * @param {Uint8Array} original
- * @param {string} mime
- * @param {string} owner
- * @param {number} n
- */
-async function render(original, mime, owner, n) {
-  const made = await makeVariants(original, mime);
-  const keys = variantKeys(owner, n, made.sha8);
-  const files = [
-    { key: keys.master, body: made.master, type: "image/webp" },
-    ...SIZES.map((name) => ({
-      key: keys[name],
-      body: made.files[name].body,
-      type: made.files[name].type,
-    })),
-  ];
-  const variants = Object.fromEntries(
-    SIZES.map((name) => [name, { w: made.files[name].w, h: made.files[name].h }]),
-  );
-  return { made, keys, files, variants };
-}
-
-/**
  * @param {unknown} job `{ payload: { data: { media: [{ media_id, staged_url, mime, owner, n }] } } }`
  * @returns {Promise<{ media: Record<string, { media_key: string, variants: Record<string, { w: number, h: number }> }> }>}
  */
@@ -74,9 +47,8 @@ export async function run(job) {
       );
     }
     const original = new Uint8Array(await response.arrayBuffer());
-    const { keys, files, variants } = await render(original, item.mime, item.owner, item.n);
-    await Promise.all(files.map((file) => putIfMissing("media", file.key, file.body, file.type)));
-    media[item.media_id] = { media_key: keys.master, variants };
+    const made = await makeVariants(original, item.mime);
+    media[item.media_id] = await storeVariants(made, variantKeys(item.owner, item.n, made.sha8));
   }
   return { media };
 }
@@ -89,8 +61,9 @@ export async function run(job) {
 async function runLocal(file, out) {
   const mime = MIME_OF.get(extname(file).toLowerCase());
   if (mime === undefined) throw new Error(`render_variants: unsupported file type ${file}`);
-  const { made, keys, files } = await render(await readFile(file), mime, "local", 0);
-  for (const { key, body } of files) {
+  const made = await makeVariants(await readFile(file), mime);
+  const keys = variantKeys("local", 0, made.sha8);
+  for (const { key, body } of variantFiles(made, keys).files) {
     await mkdir(dirname(join(out, key)), { recursive: true });
     await writeFile(join(out, key), body);
   }
@@ -98,7 +71,7 @@ async function runLocal(file, out) {
   console.log(
     `original ${String(master.width)}x${String(master.height)} ${String(made.master.length)} bytes ${keys.master}`,
   );
-  for (const name of SIZES) {
+  for (const name of NAMES) {
     const { w, h, body } = made.files[name];
     console.log(`${name} ${String(w)}x${String(h)} ${String(body.length)} bytes ${keys[name]}`);
   }
