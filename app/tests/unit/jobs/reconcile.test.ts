@@ -1,21 +1,23 @@
 // B8 step 8: the reconcile system job (G10). B3's reconcileUploads is passed in as a fake, so the cases prove which
-// `since` the job hands it and what it stores.
+// `since` the job hands it and what it stores; one case runs the registered job against a fake client.
 import { describe, expect, it, vi } from "vitest";
 import type { JsonObject, StepContext } from "../../../src/server/jobs/types";
 import { NonRetryableError } from "../../../src/server/jobs/types";
 import {
+  reconcile,
   reconcileJob,
   type ReconcileUploads,
   type UploadCounts,
 } from "../../../src/server/jobs/system/reconcile";
+import type { Db } from "../../../src/server/lib/db";
 import { logLine } from "../../../src/server/lib/log";
 import { fakeDb } from "../../fixtures/fake-db";
 
 const NOW = new Date("2026-10-04T13:00:00.000Z");
 const COUNTS: UploadCounts = { checked: 3, uploaded: 2, deleted: 1, missing: 0 };
 
-/** A context whose one jobs read answers the latest done reconcile run, or none. */
-function context(lastFinishedAt: string | null): StepContext {
+/** The jobs read of the job: the latest done reconcile run, or none. */
+function jobsChain(lastFinishedAt: string | null) {
   const chain = {
     select: () => chain,
     eq: () => chain,
@@ -28,8 +30,13 @@ function context(lastFinishedAt: string | null): StepContext {
         error: null,
       }),
   };
+  return chain;
+}
+
+/** A context whose database answers the one jobs read, or the given client. */
+function context(lastFinishedAt: string | null, db: Db = jobsOnly(lastFinishedAt)): StepContext {
   return {
-    db: Object.assign(fakeDb(), { from: () => chain }),
+    db,
     env: {},
     log: logLine,
     now: NOW,
@@ -44,6 +51,10 @@ function context(lastFinishedAt: string | null): StepContext {
       eventId: null,
     },
   };
+}
+
+function jobsOnly(lastFinishedAt: string | null): Db {
+  return Object.assign(fakeDb(), { from: () => jobsChain(lastFinishedAt) });
 }
 
 async function sinceGiven(lastFinishedAt: string | null, data: JsonObject = {}): Promise<string> {
@@ -77,6 +88,20 @@ describe("reconcile", () => {
   it("throws when reconcileUploads throws, so the runner retries", async () => {
     const failing = reconcileJob(() => Promise.reject(new Error("storage_list_failed")));
     await expect(failing.run(context(null), {}, {})).rejects.toThrow("storage_list_failed");
+  });
+
+  it("runs the real reconcileUploads, which reads the waiting submission_media rows", async () => {
+    const client = fakeDb({ tables: { submission_media: [] } });
+    const db = Object.assign(fakeDb(), {
+      from: (table: "jobs" | "submission_media") =>
+        table === "jobs" ? jobsChain(null) : client.from(table),
+    });
+    const result = await reconcile.run(context(null, db), {}, {});
+    expect(result).toEqual({
+      status: "done",
+      result: { uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0 } },
+    });
+    expect(client.calls).toContainEqual({ kind: "from", name: "submission_media", args: [] });
   });
 
   it("refuses an unreadable data.since without retrying", async () => {
