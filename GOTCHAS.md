@@ -423,6 +423,7 @@ Entry template
 - hit again: 2026-10-03, B3 g1: stopping the built Worker on port 8828 took four `taskkill` calls because killing the listener's process id left the respawning `node.exe` parent; the group's log banked the cost under P-094 (python), which is the wrong entry. The review found it.
 - added: 2026-10-01
 - hit again: 2026-10-04, B3b g6: `taskkill /IM workerd.exe` stopped one workerd by image name, which the lane rules forbid (another lane's preview could have been the target); the server stayed up anyway because its `node` parent respawned it. Find the lane's own `bunx.exe` with `Get-CimInstance Win32_Process | Where CommandLine -match '<port>'` and `taskkill /F /T /PID <bunx pid>`.
+- hit again: 2026-10-05, B15 g4: `wrangler dev -c scripts/omnikom-mock.wrangler.toml --port 8918` left `workerd` listening after its pid was killed; the fix was the parent `node.exe` that runs `wrangler-dist/cli.js dev`, found with `Get-CimInstance Win32_Process`. The g4 author banked this inside P-1706; the review moved it here.
 
 ## P-043 · "Is it documented" and "are we ready" were answered from memory and from a gate that measured the wrong things
 - symptom: asked whether the plans say in code terms what makes each automation work, an audit of the 17 step types found no plan naming the step module of `render_variants` or `render_og_static`, and two more owners ambiguous, after the project had been declared ready. On 2026-10-01 the readiness gate printed `READY TO BUILD: yes`; the operator did not believe it, and a full audit found 1,152 gaps in its first round: 299 contradictions between documents, 219 mechanisms described without the code that performs them, 104 things used and created by nobody, 96 with two owners, 88 with no proof, 67 with no code file.
@@ -2306,6 +2307,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: on this laptop write `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build` for every live build and every proof that builds one; a 500 on every page of a live build with no error line in the log is this until the log's route says otherwise. A proof line, claim or log that names a live build carries the prefix verbatim: the g10 review rebuilt from a log line without it and lost about 5 minutes to this entry (hit again, 2026-10-04).
 - proof: with the prefix, `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8828/` on the built Worker prints `200` and `node scripts/cache-proof.mjs http://127.0.0.1:8828` exits 0; without it, the same two print `500` and exit 1 (measured 2026-10-04, B3 c12).
 - added: 2026-10-04
+- hit again: 2026-10-05, B15 g4: B15 step 5a's `bun run dev` recipe lacks the prefix, so the first submit through the real form sent no request and showed "This did not go through" (`services` stayed the local adapter). The recipe needs `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`; the form then answers `201`. Banked with the other three plan lines in P-1706.
 
 ## P-832 · The plan's proof key `__proof/photo.00000000.jpg` fails the media route's own key rule, so the object is stored and never served
 - symptom: after the plan's `curl -X POST .../storage/v1/object/media/__proof/photo.00000000.jpg` printed `200`, `node scripts/cache-proof.mjs http://127.0.0.1:8828 --media-key __proof/photo.00000000.jpg` failed with `GET /media/__proof/photo.00000000.jpg: 404 none`, no `x-mop-cache` header and a body of 127 characters.
@@ -2483,19 +2485,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
 
-## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
-- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
-- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
-- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
-- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
-- added: 2026-10-04
-
 ## P-516 · The sizing agent returned two of ten plan steps; the run built them, merged, and ended as if the slice were done
 - symptom: B3b's run `wf_215f7901-b3a` sized g1 (step 1) and g2 (step 2) only; after both were accepted the final merge ran (`merge:B3b:all:1,2`, PR 118) and the workflow completed with steps 3 to 10 untouched and no error.
 - cause: the sizing prompt said "split the plan's ordered steps into groups" and nothing checked that every step landed in one; the schema (`groups[]`) accepts any count.
 - rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
 - proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
 - enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
+
+## P-1304 · A view written `with (security_invoker = on)` fails `schema.db.test.ts`: the check matches the stored option `security_invoker=true` literally
+- symptom: B3b g3's `market_interest_counts`, written `with (security_invoker = on)` as the plan words it, failed `every view is security_invoker (R20)` with `expected [ { name: 'market_interest_counts' } ] to deeply equal []`, although the view did run with the caller's rights (anon got `permission denied for view market_interest_counts`).
+- cause: Postgres keeps a view option as written, `security_invoker=on`, in `pg_class.reloptions`, and the test asks for `'security_invoker=true' = any (c.reloptions)`.
+- rule: write `with (security_invoker = true)` in every migration, whatever a plan line says.
+- proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "begin; create view public.probe_v with (security_invoker = on) as select 1; select reloptions from pg_class where relname = 'probe_v'; rollback"` → `{security_invoker=on}`; with `= true` → `{security_invoker=true}`.
 - added: 2026-10-04
 
 ## P-1305 · A registry folder inside the shared session scratchpad already holds other reviewers' files, and `watchfail --registry <dir>` replays all of them
@@ -2505,68 +2507,39 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `ls <scratchpad>/reg-<group>-<epoch>` lists exactly one `.json`, and `cd app && node scripts/watchfail.mjs --registry <that folder>` prints `replayed N` with N equal to that file's entries (the failing case read 71 against a registry of 16).
 - added: 2026-10-04
 
-## P-1306 · `tests/api/env.ts` sets `MOP_ENV=local` for every API test, so a plan's `MOP_ENV=production bunx vitest run ... ` and its `describe.runIf(process.env.MOP_ENV === "production")` never run the production case
-- symptom: B3b step 4 says to run `tests/api/coming-soon.api.test.ts` twice, `MOP_ENV=production` and `MOP_ENV=local`, each case guarded by `describe.runIf(process.env.MOP_ENV === ...)`. Written that way, both runs read `local` (the guard of the production case is false in both), so the claim "a planted illustrative row is absent under production" is never exercised.
-- cause: `tests/api/env.ts`, imported first by every API test, assigns `process.env["MOP_ENV"] = "local"` unconditionally; a static import runs before the test file's own body.
-- rule: a test that needs the shell's `MOP_ENV` reads it into a constant before anything imports `./env` (top-level `await import("./env")`, with the Worker's modules imported after it), then writes it back to `process.env` once those modules are loaded; `readVar("MOP_ENV")` reads it at call time (G39), so the catalog sees the shell's value.
-- proof: from `app/` with the dev profile, `MOP_ENV=production env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/coming-soon.api.test.ts` → `3 passed | 1 skipped`, and registry entry `b3b-api-prod` (drop the production check in `visibility.ts`) turns it red naming `does not list a planted illustrative row` (measured 2026-10-04, B3b g4).
+## P-1700 · The B15 plan's `@/server/` and `@/domain/` imports do not resolve under vitest: server files import by relative `.ts` path
+- symptom: B15 g1's first `bunx vitest run tests/unit/omnikom/payload.test.ts` failed before any test ran: `Error: Cannot find package '@/domain/omnikom.ts' imported from E:/mop-build/handoff/app/src/server/omnikom/payload.ts`, although the plan's Files line says the `@/` specifiers resolve "through the app's tsconfig `@/*` alias in `bun run check`, vitest and `bun run scripts/...`".
+- cause: `vitest.config.ts` declares no `@` alias (only `vite.config.ts` does, for the site build), and no file under `src/server/jobs` or `src/server/automation` uses `@/` at all; R07 allows a relative `.ts` path as well.
+- rule: a Deno-loaded file (`src/server/{jobs,automation,omnikom,...}/**`, `src/domain/**`) imports by relative path with the `.ts` extension (`../lib/hmac.ts`, `../../domain/omnikom.ts`), whatever a plan line says about `@/`.
+- proof: `cd app && grep -c "alias" vitest.config.ts` → `0`; `git grep -n 'from "@/' -- src/server/jobs src/server/omnikom` → no hits; with `../lib/crypto.ts` put back as `@/server/lib/crypto.ts` in `src/server/omnikom/payload.ts` the test file fails with the error above (measured 2026-10-04).
 - added: 2026-10-04
 
-## P-1307 · In the component project `import css from "x.css?raw"` is an empty string, and `new URL(..., import.meta.url)` is not a file URL under jsdom, so a test that injects a stylesheet into jsdom measured nothing
-- symptom: B3b g4's computed-style test of the consent notice (`position` never `fixed`) stayed green when `consent.css` was mutated to `position: fixed` (`WATCHED-FAIL BAD: stayed green (B3b:b3b-j)`); a probe printed `len=0` for the imported text. Reading the file with `new URL("../../src/styles/...", import.meta.url)` threw `The URL must be of scheme file`.
-- cause: Vitest processes CSS imports and returns nothing for `?raw` under its default `css` setting; jsdom's `URL` is the whatwg one, which `readFileSync` refuses for the page URL.
-- rule: read a stylesheet a component test needs with `readFileSync(join(process.cwd(), "src/styles/<file>.css"), "utf8")` (vitest runs in `app/`), put it in a `<style>` element, and watch the test fail by mutating the CSS before trusting a computed-style assertion.
-- proof: `cd app && bunx vitest run --project component tests/unit/consent-notice.test.tsx` → `7 passed`; `node scripts/watchfail.mjs --registry <folder holding only b3b-j>` → `WATCHED-FAIL OK B3b:b3b-j` (measured 2026-10-04, B3b g4).
+## P-1701 · A plan-named file that is not ordinary code fails the layout gate or knip: run both right after creating it
+- symptom: B15 g1's first `bun run check` stopped at `layout: app/tests/unit/omnikom/vector.json: outside the folder map`, the second at knip's `Unused files (1) docs/verify-example.mjs` and `Unused exports (1) classifyStatus`; each failure cost one full check run.
+- cause: `scripts/check-layout.mjs` lists `tests/unit/**/fixtures/**` but not a JSON beside the tests, knip's `entry` holds no `docs/` file, and an export only the file itself uses is unused for knip even when STANDARDS R34 asks for it to be exported.
+- rule: after creating a file the plan names, run `bun run layout && bun run knip` before the full check; add the smallest entry naming the file (ruling H46) and use an exported table in a test or do not export it.
+- proof: `cd app && bun run layout` exits 0 on slice/b15 at B15 g1; with the line `"tests/unit/omnikom/vector.json",` removed from `scripts/check-layout.mjs` it prints the error above.
 - added: 2026-10-04
 
-## P-1308 · A `vi.mock(path, { spy: true })` of `headers.ts` sees `securityHeaders` but never `cspFor`, because `securityHeaders` calls `cspFor` inside the module
-- symptom: the B3b step 4 `flags` case asks that "`securityHeaders` and `cspFor` each receive that object as `flags`". The module-level spy replaces the export other modules import; the call from `securityHeaders` to `cspFor` is a local binding and is not intercepted, so a spy on `cspFor` records no call whatever the code does.
-- cause: ES module internals are not reached by a mock of the module's exports.
-- rule: assert the flags at `securityHeaders` (the pipeline's call) and leave `cspFor` to B17, which makes it read a flag and can then assert the policy text it returns; do not write a `cspFor` spy assertion. The `flags` case of `pipeline.test.ts` asserts the spy of `deps.getFlags` is called once and `securityHeaders` receives `{ csp_enforce: true }`.
-- proof: `cd app && bunx vitest run --project unit tests/unit/pipeline.test.ts -t flags` → `2 passed`; registry entries `b3b-x-handle` (`flags = {}` in `handle`) and `b3b-x` (`getFlags: () => Promise.resolve({})` in `start.ts`) each turn it red (measured 2026-10-04, B3b g4).
+## P-1702 · A type error in your own file turns another slice's `tsc` registry entry into `BAD: wrong reason`: typecheck before a replay
+- symptom: B15 g1's review fix replayed `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit`; vitest was green and the new entries OK, but `WATCHED-FAIL BAD: wrong reason (B1b:aj)` printed `expected /TS2554/` with `src/server/omnikom/client.ts(38,35): error TS2345: Argument of type 'TextDecoderStream' is not assignable to parameter of type 'ReadableWritablePair<string, Uint8Array<ArrayBufferLike>>'`, and the whole replay (30 entries, several minutes) had to run again.
+- cause: vitest strips types, so a type error does not fail the tests; an entry whose `run` is `bun run typecheck` reads the first tsc error, which was ours. The error itself: a parameter typed `ReadableStream<Uint8Array>` is `Uint8Array<ArrayBufferLike>`, which `TextDecoderStream`'s `BufferSource` writable refuses; `Response["body"]` (`Uint8Array<ArrayBuffer>`) is accepted.
+- rule: run `bun run typecheck` before any registry replay; type a response stream as `Response["body"]`.
+- proof: `cd app && bun run typecheck` exits 0 on slice/b15; with `detailOf(body: ReadableStream<Uint8Array> | null)` in `src/server/omnikom/client.ts` it prints the TS2345 above (measured 2026-10-04).
 - added: 2026-10-04
 
-## P-1309 · Copying a published `properties` row to plant a test row fails on the generated column `search_text` and on the unique `hero_rank` and `featured_rank`
-- symptom: `insert into public.properties select * from planted` raised `cannot insert a non-DEFAULT value into column "search_text"`, and after that `duplicate key value violates unique constraint "properties_hero_rank_key"`.
-- cause: `search_text` is `generated always`; `hero_rank` and `featured_rank` are unique and the copy carried the seeded row's values.
-- rule: plant by copying a seeded row into a temp table, setting `id = gen_random_uuid()`, the `test-b3b-` slug, `hero_rank = null` and `featured_rank = null`, and insert the columns of `information_schema.columns where is_generated = 'NEVER'`, never `select *`.
-- proof: from `app/` with the dev profile, `MOP_ENV=local env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/coming-soon.api.test.ts` → `3 passed | 1 skipped`, and `select count(*) from properties where slug like 'test-b3b-%'` → `0` after it (measured 2026-10-04, B3b g4).
+## P-1703 · `git merge origin/main` is refused while GOTCHAS.md (or any file main also changed) has uncommitted edits: commit the bank entry first, then merge
+- symptom: B15 g2's first merge of `origin/main` printed `error: Your local changes to the following files would be overwritten by merge: GOTCHAS.md` and `Aborting`, exit 1; nothing merged, and the group committed the entry first and merged second.
+- cause: a lane adds its bank entries in the same session it works, so GOTCHAS.md is usually dirty when the start-of-work merge runs, and main changes GOTCHAS.md on almost every merge. P-336 is a different failure (conflicts in `knip.json` and `.prettierignore` after a merge that did start); the GOTCHAS.md merge driver only runs for committed changes.
+- rule: run `git status --short` before `git fetch -q origin && git merge origin/main`; commit (or stash) every dirty file the merge would touch first, then merge, then `node workspace/05-plans/check-gotchas.mjs`.
+- proof: `d=$(mktemp -d) && cd "$d" && git init -q -b main . && git config user.email a@b && git config user.name x && echo a > f && git add f && git commit -qm a && git checkout -qb side && git checkout -q main && echo b > f && git commit -qam b && git checkout -q side && echo c > f && git merge main 2>&1 | grep -c "would be overwritten by merge"` → `1` (measured 2026-10-04); with `git commit -qam c` before the merge the merge starts instead.
 - added: 2026-10-04
 
-## P-1310 · The plan's `getFlags: () => getFlags(getDb())` in `start.ts` throws `unavailable` on every page for a Worker with no database key, which the pipeline answers with 503
-- symptom: none yet on a deployed Worker; read from the code. After the launch switch a preview holds no database key and renders from the bundled adapter (H35 (7)); `start.ts` already guards `redirect` and `cache` with `hasDatabase`, but `getDb()` throws `unavailable` when the key is missing and `handle` turns that into a 503 for every page.
-- cause: the plan line names the call and not the guard its two neighbours carry.
-- rule: `getFlags` in `start.ts` is `() => (hasDatabase ? getFlags(getDb()) : Promise.resolve({}))`, the same guard as `redirect` and `cache`; an empty map is what B1b's default gave a DB-less Worker. The `flags` case of `pipeline.test.ts` mocks `env` with both keys so the wiring line is the one reached.
-- proof: `cd app && grep -n "getFlags" src/start.ts` prints the import and the guarded wiring line; registry entry `b3b-x` turns the wiring case red (measured 2026-10-04, B3b g4).
-- added: 2026-10-04
-
-## P-1311 · `VITE_API_BASE_URL=/api/public bun run build` in Git Bash bakes `C:/Program Files/Git/api/public` into the live build
-- symptom: B3b g5's first live build served `/` as 503 and then 500; the Worker log showed its own fetches to `/Program%20Files/Git/api/public/markets` answering 404. `curl -s http://127.0.0.1:8878/ | grep -ao 'data-services="live"'` still printed the attribute, so the plan's check passed on a broken build.
-- cause: MSYS converts an environment-variable assignment whose value starts with `/` when it launches a native program (P-015 covers arguments; this is the same rewrite on a prefix assignment). Vite then defines `import.meta.env.VITE_API_BASE_URL` as the Windows path.
-- rule: every live build is `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`; after it, `grep -rl "Program Files/Git" .output/server .output/public` prints nothing, and the first curl is a page that reads the catalog (`/california` answers 200), not only the `data-services` check.
-- proof: with the prefix, `grep -rl "Program Files/Git" app/.output/server | wc -l` → `0`; without it, a non-zero count and `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8878/` → `500` (measured 2026-10-04, B3b g5).
-- added: 2026-10-04
-- hit again: 2026-10-04, B3b g6: the first live build of the group ran without `MSYS_NO_PATHCONV=1` and had to be rebuilt (a two-minute build) before the coming-soon run could mean anything. Put the prefix into the first command of the group, not the second.
-
-## P-1312 · The local Worker's page cache survives a restart and its key has no `MOP_ENV`, so a production-mode run replays the local HTML
-- symptom: after `MOP_ENV=production` in `.dev.vars` and a restart of `wrangler dev`, `curl -s http://127.0.0.1:8878/ | grep -c "What is real here"` still printed 1 and the response had `x-mop-cache: hit`; `/api/public/properties` still listed the illustrative rows.
-- cause: `wrangler dev` persists the Cache API under `.output/server/.wrangler/state/v3/cache`, and the cache key is release plus catalog version only (architecture 13), which is right for a deployed Worker whose environment never changes and wrong for a laptop that flips it.
-- rule: before every `MOP_ENV` switch of the local preview, stop wrangler by its parent process (P-042), `rm -rf .output/server/.wrangler/state/v3/cache`, copy `.dev.vars` next to the config and start again; a rebuild replaces `.output/` and clears it by itself.
-- proof: after the removal and a restart with `MOP_ENV=production`, `curl -s http://127.0.0.1:8878/ | grep -c "What is real here"` → `0` (measured 2026-10-04, B3b g5).
-- added: 2026-10-04
-
-## P-1313 · The plan's file name `illustrative-notice.tsx` becomes a chunk name that sits in the HTML of every page, so "HTML contains no `illustrative`" cannot hold
-- symptom: under `MOP_ENV=production` with no visible property, `curl -s http://127.0.0.1:8878/properties | grep -ci illustrative` printed 1 instead of the plan's 0; the match is `<link rel="modulepreload" href="/assets/illustrative-notice-B7cqm258.js"/>` and the same name in the route manifest. `/` carries it too. B3b g7's `assert-coming-soon.mjs --after-launch` fails `no-illustrative` on `/` and `/properties` for the same reason, on every production page.
-- cause: five routes import the module, so the bundler gives it a chunk of its own named after the file; the plan names the file in B3b.md, `trace.json` and the sizing, and the step 7 proof and the g7 check never considered an asset URL.
-- rule: either the chunk name must not carry the word (a `chunkFileNames` function in `vite.config.ts` that hashes any chunk whose name contains `illustrative`, or a neutral file name with `trace.json`, the plan and the sizing renamed together) or the assertion must read the HTML without `href`, `src` and manifest attributes. A ruling picks one before g7; a builder does not edit `vite.config.ts` or `trace.json` from g5. Ruled: H59 (2026-10-04) picks hash-only chunk, entry and asset names in `vite.config.ts`, carried by B3b step 9; until that step lands, the step 7 grep prints 1 and the only match is the asset file name (the same grep over the HTML with `/assets/...` URLs removed prints 0).
-- proof: `cd app && grep -rl "illustrative-notice" .output/public/assets | wc -l` → non-zero after `bun run build`; `curl -s http://127.0.0.1:8878/properties | grep -aoi "[a-z/-]*illustrative[a-z0-9./-]*"` names the chunk (measured 2026-10-04, B3b g5).
-- added: 2026-10-04
-
-## P-1314 · The home header is see-through and light by route, so a text-only home hero on Bone left the navigation unreadable
-- symptom: the first screenshot of `/` with the coming-soon flag showed the nav links and logo pale grey on Ivory, with no header spacer and no bar.
-- cause: `header.tsx` makes the header an overlay on every visit to `/` until the page scrolls, because the home hero has always been a photograph; a hero without one inherits light type on a light page.
-- rule: a hero that renders at the top of `/` is dark: `.hero-text` in `hero.css` is Obsidian with Bone type and clears the header height. Any other light top block on `/` needs the header changed first.
-- proof: with the global flag on, a headless screenshot of `http://127.0.0.1:8878/` at 1440 shows the nav links in Bone on Obsidian; with `.hero-text` set to Ivory they vanish (measured 2026-10-04, B3b g5).
+## P-1704 · `quiet.mjs -- bun run check` hides the vitest summary: stderr is printed after stdout, and the last 12 lines are bun's `$` echoes
+- symptom: B15 g3's green `node workspace/05-plans/quiet.mjs -- bun run check` showed `Start at`, `Duration`, then ten `$ bun run ...` lines and `Using config from .jscpd.json`; neither `Test Files` nor `Tests` was among the 12 lines, so the log had no test count and `bun run test` ran a second time (80 s) only to read it.
+- cause: `quiet.mjs` joins all of stdout, then all of stderr, before it takes the last 12 lines; bun writes each script echo (`$ ...`) and jscpd its config line to stderr, eleven lines that land after vitest's stdout summary. Its header says the summaries of check live in the last 12; for `check` they do not.
+- rule: read a green `check`'s test count with `bun run check 2>&1 | grep -E "Test Files|Tests "` (exit through `${PIPESTATUS[0]}`), or keep quiet for the gates and take the count from a `bun run test 2>&1 | grep` you were going to run anyway; never run the suite twice for a number.
+- proof: `node workspace/05-plans/quiet.mjs -- bash -c '"echo Tests 1 passed; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do echo step\$i >&2; done"' | grep -c "Tests "` → `0`; with three stderr lines instead of twelve → `1` (measured 2026-10-04).
 - added: 2026-10-04
 
 ## P-718 · A db test needs no Docker and no pushed migration: a native PostgreSQL 18 cluster restored from mop-dev's schema runs the whole `db` project, and `gen types` reads it
@@ -2661,6 +2634,78 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/rows.test.ts tests/unit/assets/variants-upload.test.ts` passes (the upload cases), and `git grep -n "STUB(B9" -- scripts` prints nothing (measured 2026-10-04, B9 c6u; the fake-Storage run printed 92 keys named, 558 objects stored, 0 named but not stored, 84 s).
 - added: 2026-10-04
 
+## P-517 · Most fix rounds were false sentences, not bad code: the builder never re-read its own claims against the file
+- symptom: 2026-10-04, eleven rejections across B3, B3b, B4, B8b, B9, B15: seven on runbook or log sentences that stated something false about a cache key, a header, a focus ring or a start commit (B3 step 13 alone took five reviews); two on registry entries the formatter made stale; two on code (a token in a network error, a fan-out that stopped on a bad event).
+- cause: the brief asked for proofs and a log, never for a re-read of written facts; "only" and "never" sentences were written from intent, not from the code; prettier ran after the watched-fail was recorded.
+- rule: ruling H60: the brief ends with the builder's own pass (facts checked against files or runs, absolutes given a second case, registry replayed after formatting, start and hand-in commits named, stand-in proofs labelled). The reviewer does not soften.
+- proof: `grep -c "the reviewer's own pass (ruling H60" .claude/workflows/build-slice.js` → 1; the measure is the fix-round count per accepted group in the journals of the next day against today's 11 of 24.
+- enforced-by: .claude/workflows/build-slice.js (the builder brief)
+- added: 2026-10-04
+
+## P-1306 · `tests/api/env.ts` sets `MOP_ENV=local` for every API test, so a plan's `MOP_ENV=production bunx vitest run ... ` and its `describe.runIf(process.env.MOP_ENV === "production")` never run the production case
+- symptom: B3b step 4 says to run `tests/api/coming-soon.api.test.ts` twice, `MOP_ENV=production` and `MOP_ENV=local`, each case guarded by `describe.runIf(process.env.MOP_ENV === ...)`. Written that way, both runs read `local` (the guard of the production case is false in both), so the claim "a planted illustrative row is absent under production" is never exercised.
+- cause: `tests/api/env.ts`, imported first by every API test, assigns `process.env["MOP_ENV"] = "local"` unconditionally; a static import runs before the test file's own body.
+- rule: a test that needs the shell's `MOP_ENV` reads it into a constant before anything imports `./env` (top-level `await import("./env")`, with the Worker's modules imported after it), then writes it back to `process.env` once those modules are loaded; `readVar("MOP_ENV")` reads it at call time (G39), so the catalog sees the shell's value.
+- proof: from `app/` with the dev profile, `MOP_ENV=production env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/coming-soon.api.test.ts` → `3 passed | 1 skipped`, and registry entry `b3b-api-prod` (drop the production check in `visibility.ts`) turns it red naming `does not list a planted illustrative row` (measured 2026-10-04, B3b g4).
+- added: 2026-10-04
+
+## P-1307 · In the component project `import css from "x.css?raw"` is an empty string, and `new URL(..., import.meta.url)` is not a file URL under jsdom, so a test that injects a stylesheet into jsdom measured nothing
+- symptom: B3b g4's computed-style test of the consent notice (`position` never `fixed`) stayed green when `consent.css` was mutated to `position: fixed` (`WATCHED-FAIL BAD: stayed green (B3b:b3b-j)`); a probe printed `len=0` for the imported text. Reading the file with `new URL("../../src/styles/...", import.meta.url)` threw `The URL must be of scheme file`.
+- cause: Vitest processes CSS imports and returns nothing for `?raw` under its default `css` setting; jsdom's `URL` is the whatwg one, which `readFileSync` refuses for the page URL.
+- rule: read a stylesheet a component test needs with `readFileSync(join(process.cwd(), "src/styles/<file>.css"), "utf8")` (vitest runs in `app/`), put it in a `<style>` element, and watch the test fail by mutating the CSS before trusting a computed-style assertion.
+- proof: `cd app && bunx vitest run --project component tests/unit/consent-notice.test.tsx` → `7 passed`; `node scripts/watchfail.mjs --registry <folder holding only b3b-j>` → `WATCHED-FAIL OK B3b:b3b-j` (measured 2026-10-04, B3b g4).
+- added: 2026-10-04
+
+## P-1308 · A `vi.mock(path, { spy: true })` of `headers.ts` sees `securityHeaders` but never `cspFor`, because `securityHeaders` calls `cspFor` inside the module
+- symptom: the B3b step 4 `flags` case asks that "`securityHeaders` and `cspFor` each receive that object as `flags`". The module-level spy replaces the export other modules import; the call from `securityHeaders` to `cspFor` is a local binding and is not intercepted, so a spy on `cspFor` records no call whatever the code does.
+- cause: ES module internals are not reached by a mock of the module's exports.
+- rule: assert the flags at `securityHeaders` (the pipeline's call) and leave `cspFor` to B17, which makes it read a flag and can then assert the policy text it returns; do not write a `cspFor` spy assertion. The `flags` case of `pipeline.test.ts` asserts the spy of `deps.getFlags` is called once and `securityHeaders` receives `{ csp_enforce: true }`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/pipeline.test.ts -t flags` → `2 passed`; registry entries `b3b-x-handle` (`flags = {}` in `handle`) and `b3b-x` (`getFlags: () => Promise.resolve({})` in `start.ts`) each turn it red (measured 2026-10-04, B3b g4).
+- added: 2026-10-04
+
+## P-1309 · Copying a published `properties` row to plant a test row fails on the generated column `search_text` and on the unique `hero_rank` and `featured_rank`
+- symptom: `insert into public.properties select * from planted` raised `cannot insert a non-DEFAULT value into column "search_text"`, and after that `duplicate key value violates unique constraint "properties_hero_rank_key"`.
+- cause: `search_text` is `generated always`; `hero_rank` and `featured_rank` are unique and the copy carried the seeded row's values.
+- rule: plant by copying a seeded row into a temp table, setting `id = gen_random_uuid()`, the `test-b3b-` slug, `hero_rank = null` and `featured_rank = null`, and insert the columns of `information_schema.columns where is_generated = 'NEVER'`, never `select *`.
+- proof: from `app/` with the dev profile, `MOP_ENV=local env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/coming-soon.api.test.ts` → `3 passed | 1 skipped`, and `select count(*) from properties where slug like 'test-b3b-%'` → `0` after it (measured 2026-10-04, B3b g4).
+- added: 2026-10-04
+
+## P-1310 · The plan's `getFlags: () => getFlags(getDb())` in `start.ts` throws `unavailable` on every page for a Worker with no database key, which the pipeline answers with 503
+- symptom: none yet on a deployed Worker; read from the code. After the launch switch a preview holds no database key and renders from the bundled adapter (H35 (7)); `start.ts` already guards `redirect` and `cache` with `hasDatabase`, but `getDb()` throws `unavailable` when the key is missing and `handle` turns that into a 503 for every page.
+- cause: the plan line names the call and not the guard its two neighbours carry.
+- rule: `getFlags` in `start.ts` is `() => (hasDatabase ? getFlags(getDb()) : Promise.resolve({}))`, the same guard as `redirect` and `cache`; an empty map is what B1b's default gave a DB-less Worker. The `flags` case of `pipeline.test.ts` mocks `env` with both keys so the wiring line is the one reached.
+- proof: `cd app && grep -n "getFlags" src/start.ts` prints the import and the guarded wiring line; registry entry `b3b-x` turns the wiring case red (measured 2026-10-04, B3b g4).
+- added: 2026-10-04
+
+## P-1311 · `VITE_API_BASE_URL=/api/public bun run build` in Git Bash bakes `C:/Program Files/Git/api/public` into the live build
+- symptom: B3b g5's first live build served `/` as 503 and then 500; the Worker log showed its own fetches to `/Program%20Files/Git/api/public/markets` answering 404. `curl -s http://127.0.0.1:8878/ | grep -ao 'data-services="live"'` still printed the attribute, so the plan's check passed on a broken build.
+- cause: MSYS converts an environment-variable assignment whose value starts with `/` when it launches a native program (P-015 covers arguments; this is the same rewrite on a prefix assignment). Vite then defines `import.meta.env.VITE_API_BASE_URL` as the Windows path.
+- rule: every live build is `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`; after it, `grep -rl "Program Files/Git" .output/server .output/public` prints nothing, and the first curl is a page that reads the catalog (`/california` answers 200), not only the `data-services` check.
+- proof: with the prefix, `grep -rl "Program Files/Git" app/.output/server | wc -l` → `0`; without it, a non-zero count and `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8878/` → `500` (measured 2026-10-04, B3b g5).
+- added: 2026-10-04
+- hit again: 2026-10-04, B3b g6: the first live build of the group ran without `MSYS_NO_PATHCONV=1` and had to be rebuilt (a two-minute build) before the coming-soon run could mean anything. Put the prefix into the first command of the group, not the second.
+
+## P-1312 · The local Worker's page cache survives a restart and its key has no `MOP_ENV`, so a production-mode run replays the local HTML
+- symptom: after `MOP_ENV=production` in `.dev.vars` and a restart of `wrangler dev`, `curl -s http://127.0.0.1:8878/ | grep -c "What is real here"` still printed 1 and the response had `x-mop-cache: hit`; `/api/public/properties` still listed the illustrative rows.
+- cause: `wrangler dev` persists the Cache API under `.output/server/.wrangler/state/v3/cache`, and the cache key is release plus catalog version only (architecture 13), which is right for a deployed Worker whose environment never changes and wrong for a laptop that flips it.
+- rule: before every `MOP_ENV` switch of the local preview, stop wrangler by its parent process (P-042), `rm -rf .output/server/.wrangler/state/v3/cache`, copy `.dev.vars` next to the config and start again; a rebuild replaces `.output/` and clears it by itself.
+- proof: after the removal and a restart with `MOP_ENV=production`, `curl -s http://127.0.0.1:8878/ | grep -c "What is real here"` → `0` (measured 2026-10-04, B3b g5).
+- added: 2026-10-04
+
+## P-1313 · The plan's file name `illustrative-notice.tsx` becomes a chunk name that sits in the HTML of every page, so "HTML contains no `illustrative`" cannot hold
+- symptom: under `MOP_ENV=production` with no visible property, `curl -s http://127.0.0.1:8878/properties | grep -ci illustrative` printed 1 instead of the plan's 0; the match is `<link rel="modulepreload" href="/assets/illustrative-notice-B7cqm258.js"/>` and the same name in the route manifest. `/` carries it too. B3b g7's `assert-coming-soon.mjs --after-launch` fails `no-illustrative` on `/` and `/properties` for the same reason, on every production page.
+- cause: five routes import the module, so the bundler gives it a chunk of its own named after the file; the plan names the file in B3b.md, `trace.json` and the sizing, and the step 7 proof and the g7 check never considered an asset URL.
+- rule: either the chunk name must not carry the word (a `chunkFileNames` function in `vite.config.ts` that hashes any chunk whose name contains `illustrative`, or a neutral file name with `trace.json`, the plan and the sizing renamed together) or the assertion must read the HTML without `href`, `src` and manifest attributes. A ruling picks one before g7; a builder does not edit `vite.config.ts` or `trace.json` from g5. Ruled: H59 (2026-10-04) picks hash-only chunk, entry and asset names in `vite.config.ts`, carried by B3b step 9; until that step lands, the step 7 grep prints 1 and the only match is the asset file name (the same grep over the HTML with `/assets/...` URLs removed prints 0).
+- proof: `cd app && grep -rl "illustrative-notice" .output/public/assets | wc -l` → non-zero after `bun run build`; `curl -s http://127.0.0.1:8878/properties | grep -aoi "[a-z/-]*illustrative[a-z0-9./-]*"` names the chunk (measured 2026-10-04, B3b g5).
+- added: 2026-10-04
+
+## P-1314 · The home header is see-through and light by route, so a text-only home hero on Bone left the navigation unreadable
+- symptom: the first screenshot of `/` with the coming-soon flag showed the nav links and logo pale grey on Ivory, with no header spacer and no bar.
+- cause: `header.tsx` makes the header an overlay on every visit to `/` until the page scrolls, because the home hero has always been a photograph; a hero without one inherits light type on a light page.
+- rule: a hero that renders at the top of `/` is dark: `.hero-text` in `hero.css` is Obsidian with Bone type and clears the header height. Any other light top block on `/` needs the header changed first.
+- proof: with the global flag on, a headless screenshot of `http://127.0.0.1:8878/` at 1440 shows the nav links in Bone on Obsidian; with `.hero-text` set to Ivory they vanish (measured 2026-10-04, B3b g5).
+- added: 2026-10-04
+
 ## P-1315 · The plan's "no `img` inside `main` on `/california`" cannot hold: the market page lists story cards, and stories keep their photographs under the global flag
 - symptom: B3b g6's first `bun run test:e2e:coming-soon` failed `expect(locator('main img')).toHaveCount(0)` on `/california` in both projects with `Received: 2`: `<img src="/media/o/light-on-the-northern-side-of-the-bay/0-f06e4596.webp" ... alt="">` and `courtyards-of-the-westside`.
 - cause: step 8 reads the S43 rule (no market or region photograph while a market is coming soon) as "no `img` in `main`". `_site.$market.index.tsx` also renders "Stories from California" through `StoryGrid`, and rule 5 keeps stories visible under `coming_soon_global`, so their cards keep their own photographs. The plan line is wrong about the page, not the code about the rule.
@@ -2703,14 +2748,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b3b-deploy-assert` → `WATCHED-FAIL OK B3b:b3b-deploy-assert`; `--only hy-guard-rollback` → `WATCHED-FAIL OK B1b:hy-guard-rollback` (2026-10-04, B3b g7).
 - added: 2026-10-04
 
-## P-517 · Most fix rounds were false sentences, not bad code: the builder never re-read its own claims against the file
-- symptom: 2026-10-04, eleven rejections across B3, B3b, B4, B8b, B9, B15: seven on runbook or log sentences that stated something false about a cache key, a header, a focus ring or a start commit (B3 step 13 alone took five reviews); two on registry entries the formatter made stale; two on code (a token in a network error, a fan-out that stopped on a bad event).
-- cause: the brief asked for proofs and a log, never for a re-read of written facts; "only" and "never" sentences were written from intent, not from the code; prettier ran after the watched-fail was recorded.
-- rule: ruling H60: the brief ends with the builder's own pass (facts checked against files or runs, absolutes given a second case, registry replayed after formatting, start and hand-in commits named, stand-in proofs labelled). The reviewer does not soften.
-- proof: `grep -c "the reviewer's own pass (ruling H60" .claude/workflows/build-slice.js` → 1; the measure is the fix-round count per accepted group in the journals of the next day against today's 11 of 24.
-- enforced-by: .claude/workflows/build-slice.js (the builder brief)
-- added: 2026-10-04
-
 ## P-1321 · `with-coming-soon.ts` spawns its command with `shell: true` and no quoting, so a plan proof of the form `-- bash -c '<curl | grep>; <curl | grep>'` is split by the shell
 - symptom: B3b g5 review ran `bun scripts/with-coming-soon.ts --value true -- bash -c 'curl -s http://127.0.0.1:8879/california | grep -c "No property is listed in California yet."; ...'` and got `0`, `curl: try 'curl --help'`, `coming_soon_global restored to false`, exit 1. The same greps run from a file (`bash step6.sh`) printed 1, 1. The g3 author suspected it (follow-up 4), the g5 author worked around it with a script file and banked nothing.
 - cause: `with-coming-soon.ts` calls `spawn(file, rest, { stdio: "inherit", shell: true, ... })` (line 57); Node joins the arguments with spaces and no quotes, so the shell sees `bash -c curl -s ... | grep ...` and splits at the first pipe or semicolon. The same cause as P-708 for `quiet.mjs`.
@@ -2739,38 +2776,43 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run build && grep -rl handledProtocolRelativeURL .output/server | wc -l` → a number of at least `1`, and `ls .output/server/_ssr/ssr.mjs` → `No such file or directory` (measured 2026-10-04 23:42 +0300, B3b g7 follow-up).
 - added: 2026-10-04
 
-## P-1700 · The B15 plan's `@/server/` and `@/domain/` imports do not resolve under vitest: server files import by relative `.ts` path
-- symptom: B15 g1's first `bunx vitest run tests/unit/omnikom/payload.test.ts` failed before any test ran: `Error: Cannot find package '@/domain/omnikom.ts' imported from E:/mop-build/handoff/app/src/server/omnikom/payload.ts`, although the plan's Files line says the `@/` specifiers resolve "through the app's tsconfig `@/*` alias in `bun run check`, vitest and `bun run scripts/...`".
-- cause: `vitest.config.ts` declares no `@` alias (only `vite.config.ts` does, for the site build), and no file under `src/server/jobs` or `src/server/automation` uses `@/` at all; R07 allows a relative `.ts` path as well.
-- rule: a Deno-loaded file (`src/server/{jobs,automation,omnikom,...}/**`, `src/domain/**`) imports by relative path with the `.ts` extension (`../lib/hmac.ts`, `../../domain/omnikom.ts`), whatever a plan line says about `@/`.
-- proof: `cd app && grep -c "alias" vitest.config.ts` → `0`; `git grep -n 'from "@/' -- src/server/jobs src/server/omnikom` → no hits; with `../lib/crypto.ts` put back as `@/server/lib/crypto.ts` in `src/server/omnikom/payload.ts` the test file fails with the error above (measured 2026-10-04).
-- added: 2026-10-04
-
-## P-1701 · A plan-named file that is not ordinary code fails the layout gate or knip: run both right after creating it
-- symptom: B15 g1's first `bun run check` stopped at `layout: app/tests/unit/omnikom/vector.json: outside the folder map`, the second at knip's `Unused files (1) docs/verify-example.mjs` and `Unused exports (1) classifyStatus`; each failure cost one full check run.
-- cause: `scripts/check-layout.mjs` lists `tests/unit/**/fixtures/**` but not a JSON beside the tests, knip's `entry` holds no `docs/` file, and an export only the file itself uses is unused for knip even when STANDARDS R34 asks for it to be exported.
-- rule: after creating a file the plan names, run `bun run layout && bun run knip` before the full check; add the smallest entry naming the file (ruling H46) and use an exported table in a test or do not export it.
-- proof: `cd app && bun run layout` exits 0 on slice/b15 at B15 g1; with the line `"tests/unit/omnikom/vector.json",` removed from `scripts/check-layout.mjs` it prints the error above.
-- added: 2026-10-04
-
-## P-1702 · A type error in your own file turns another slice's `tsc` registry entry into `BAD: wrong reason`: typecheck before a replay
-- symptom: B15 g1's review fix replayed `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit`; vitest was green and the new entries OK, but `WATCHED-FAIL BAD: wrong reason (B1b:aj)` printed `expected /TS2554/` with `src/server/omnikom/client.ts(38,35): error TS2345: Argument of type 'TextDecoderStream' is not assignable to parameter of type 'ReadableWritablePair<string, Uint8Array<ArrayBufferLike>>'`, and the whole replay (30 entries, several minutes) had to run again.
-- cause: vitest strips types, so a type error does not fail the tests; an entry whose `run` is `bun run typecheck` reads the first tsc error, which was ours. The error itself: a parameter typed `ReadableStream<Uint8Array>` is `Uint8Array<ArrayBufferLike>`, which `TextDecoderStream`'s `BufferSource` writable refuses; `Response["body"]` (`Uint8Array<ArrayBuffer>`) is accepted.
-- rule: run `bun run typecheck` before any registry replay; type a response stream as `Response["body"]`.
-- proof: `cd app && bun run typecheck` exits 0 on slice/b15; with `detailOf(body: ReadableStream<Uint8Array> | null)` in `src/server/omnikom/client.ts` it prints the TS2345 above (measured 2026-10-04).
-- added: 2026-10-04
-
-## P-1703 · `git merge origin/main` is refused while GOTCHAS.md (or any file main also changed) has uncommitted edits: commit the bank entry first, then merge
-- symptom: B15 g2's first merge of `origin/main` printed `error: Your local changes to the following files would be overwritten by merge: GOTCHAS.md` and `Aborting`, exit 1; nothing merged, and the group committed the entry first and merged second.
-- cause: a lane adds its bank entries in the same session it works, so GOTCHAS.md is usually dirty when the start-of-work merge runs, and main changes GOTCHAS.md on almost every merge. P-336 is a different failure (conflicts in `knip.json` and `.prettierignore` after a merge that did start); the GOTCHAS.md merge driver only runs for committed changes.
-- rule: run `git status --short` before `git fetch -q origin && git merge origin/main`; commit (or stash) every dirty file the merge would touch first, then merge, then `node workspace/05-plans/check-gotchas.mjs`.
-- proof: `d=$(mktemp -d) && cd "$d" && git init -q -b main . && git config user.email a@b && git config user.name x && echo a > f && git add f && git commit -qm a && git checkout -qb side && git checkout -q main && echo b > f && git commit -qam b && git checkout -q side && echo c > f && git merge main 2>&1 | grep -c "would be overwritten by merge"` → `1` (measured 2026-10-04); with `git commit -qam c` before the merge the merge starts instead.
-- added: 2026-10-04
-
 ## P-518 · A group whose orchestrator note begins "After the merge" stopped the run before the merge; the slice ended fully accepted with its pull request open
 - symptom: B3b's run `wf_9db11d34-9b1` accepted every step, ran the bank records and ended; PR 128 stayed an open draft with checks pending. The final merge never ran.
 - cause: `stoppedForOrchestrator` treated any `needsOrchestrator` text on an accepted group as a stop, and g7's note said "After the merge: gh variable set PRODUCTION_DEPLOY ...", an action that needs the merge first.
 - rule: a note that starts with "After the merge" does not stop the final merge (the regex in `build-slice.js`); the orchestrator acts once main holds the slice. Any other orchestrator note still stops the run before the merge.
 - proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
 - enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
+- added: 2026-10-05
+
+## P-1705 · `bun run file.ts` serves any default export that has `fetch` on port 3000, even with a `Bun.serve` of its own in the file
+- symptom: B15 g4's `bun run omnikom:mock` printed `Started development server: http://localhost:3000` under its own `listening on 127.0.0.1:8787` line; a second start of the mock died with `error: Failed to start server. Is port 3000 in use?`.
+- cause: the mock is one file that is a Worker (`export default { fetch }`) and a local server (`Bun.serve`). Bun's entry runner starts a server from the entry module's default export whenever it has `fetch`, on port 3000, whether or not the file called `Bun.serve`.
+- rule: a file that must stay a Worker module and also run under bun exports a handler only where `Bun` is undefined: `export default typeof Bun === "undefined" ? worker : {}`. A Worker needs `Bun.serve` guarded by `typeof Bun !== "undefined" && import.meta.main`, as `scripts/omnikom-mock.ts` does.
+- proof: `cd "$(mktemp -d)" && printf 'export default { fetch: () => new Response("w") };\n' > w.ts && timeout 3 bun run w.ts; echo` → prints `Started development server: http://localhost:3000`; `scripts/omnikom-mock.ts` on `bun run omnikom:mock` prints only its `listening` line (measured 2026-10-05, B15 g4).
+- added: 2026-10-05
+
+## P-1706 · B15 step 5a, four plan lines that did not match this lane: the root `.env`, the e2e spec, the Turnstile site key and `VITE_API_BASE_URL`
+- symptom: (1) the step appends `OMNIKOM_MOCK_SECRET` to `/e/Matter Of Place/.env`, a tree this lane may not touch; (2) `tests/e2e/inquiry-forward.spec.ts` does not exist; (3) with `bun run dev` started as the step says, the first form submit answered `403`; (4) the first submit through the real form sent no request at all and showed "This did not go through".
+- cause: (1) the lane's secrets are in `E:/mop-build/handoff/.env`, which `load-env.mjs` reads (its root is two folders above `scripts/`); (2) no group wrote the spec, the step says "by hand, or"; (3) the step names the Turnstile test secret but not the site key, and without `VITE_TURNSTILE_SITE_KEY` the browser sends no token, which the Worker refuses; (4) Git Bash rewrote `VITE_API_BASE_URL=/api/public` to `C:/Program Files/Git/api/public` in the child's environment (P-015), so `services` stayed the local adapter.
+- rule: append the mock secret to the worktree's own `.env`; submit through the real form with a Playwright script, not a missing spec; start the dev server with `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA` plus `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET=1x0000000000000000000000000000000AA`, `RATE_LIMIT_SALT` and `MOP_ENV=local` exported from the dev profile; the form then answers `201` on `/contact?utm_source=test`.
+- proof: `VITE_API_BASE_URL=/api/public node -p "process.env.VITE_API_BASE_URL"` in Git Bash → `C:/Program Files/Git/api/public`; with `MSYS_NO_PATHCONV=1` before it → `/api/public` (measured 2026-10-05, B15 g4).
+- also: `wrangler dev -c scripts/omnikom-mock.wrangler.toml` writes its bundle into `scripts/.wrangler/`, which git ignores but `eslint .` lints: 34 prettier errors in `bun run check`; delete `scripts/.wrangler` after a local mock run.
+- also: the `VITE_API_BASE_URL` rewrite of (4) is P-831 and the `workerd` respawn of the mock run is P-042; each carries its own "hit again" line for this group, so this entry holds only what is new.
+- proof (1): `grep -n "ROOT = " app/scripts/load-env.mjs` → `const ROOT = fileURLToPath(new URL("../../", import.meta.url));`, so the dev profile reads the `.env` two folders above `scripts/`, which in a lane is the worktree's own.
+- proof (2): `ls app/tests/e2e/inquiry-forward.spec.ts` → `No such file or directory` until B15 step 6 creates it (measured 2026-10-05, B15 g4); `grep -n "inquiry-forward.spec" workspace/05-plans/B15.md` lists the plan lines that name it earlier.
+- proof (3): `grep -n "VITE_TURNSTILE_SITE_KEY" app/src/lib/turnstile.ts` → line 70 reads the key and line 71 returns `null` when it is unset or empty, so the form posts without a token.
+- added: 2026-10-05
+
+## P-1707 · `wrangler dev` or `wrangler deploy` with a config under `scripts/` writes `scripts/.wrangler/`, which git ignores but `eslint .` lints: `bun run check` goes red with 34 errors
+- symptom: after B15 g4's local mock run, `bun run check` printed 34 prettier errors in files nobody wrote; the review's own `wrangler dev` created the folder again, and the author deleted it before the build. Part (b) of B15 step 5 runs `bunx wrangler deploy -c scripts/omnikom-mock.wrangler.toml`, which by reading also writes it (not run).
+- cause: wrangler puts its bundle next to the config it was given. `.gitignore` lists `.wrangler/`, but `app/eslint.config.js` has its own global `ignores` (dist, .output, .vinxi, .tanstack, playwright-report, test-results, routeTree.gen.ts, db/types.ts, supabase/.temp) that does not name `.wrangler`. Ruling H46 allowed a one-entry ignore; none was added.
+- rule: until `.wrangler` is in that ignore list, delete `app/scripts/.wrangler` after every wrangler run that uses a config under `scripts/` and before `bun run check`; the fix is one entry in the global `ignores` of `app/eslint.config.js`, made by whoever owns that file next.
+- proof: `cd app && mkdir -p scripts/.wrangler && printf 'export const a  =   1\n' > scripts/.wrangler/probe.ts && bunx eslint scripts/.wrangler/probe.ts; rm -rf scripts/.wrangler` → eslint reports `E:\mop-build\handoff\app\scripts\.wrangler\probe.ts` with one error (measured 2026-10-05, B15 g4 review); `grep -c "\.wrangler" app/eslint.config.js` → `0`.
+- added: 2026-10-05
+
+## P-1708 · A reviewer's test row on `mop-dev` becomes the "latest" inquiry that `omnikom:run-local -- --latest` forwards, and the brief and the standing rules gave this lane two preview ports
+- symptom: the B15 g4 review forwarded the author's row `B15 g4 test second` and inserted its own `B15 g4 review` row (state `new`, utm_source `test`); the next `bun run omnikom:run-local -- --latest` picks the review row, not an author row. The g4 brief gave this lane's preview port as 8918, the standing rules say 8919; the author used 8918 and the reviewer 8919.
+- cause: there is one database (H35), so every lane's and reviewer's test rows are the newest rows; `--latest` means newest of all. No file settles the lane's port: `grep -n "8919\|8918" workspace/05-plans/ASSUMED.md workspace/05-plans/STANDARDS.md GOTCHAS.md` finds neither.
+- rule: a proof that runs the step on a row names it with `--id <uuid>` and the uuid of the row it just inserted, never `--latest`; a lane takes its port from its brief and says in its log which it used, until the orchestrator settles one value in ASSUMED section E.
+- proof: `cd app && bun run db:psql -- -c "select name, state from inquiries order by received_at desc limit 1"` → the newest row of any lane or reviewer (`B15 g4 review | new` when measured 2026-10-05, B15 g4 review); `grep -n "latest" app/scripts/omnikom-run-local.ts` shows `--latest` taking the newest inquiry with no filter on name.
 - added: 2026-10-05
