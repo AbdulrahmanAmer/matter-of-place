@@ -90,3 +90,7 @@ Proof 3: `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (38 p
 Proof 4: `bun run check` (background, `echo exit=$?` into the same log) -> `exit=0`; `Test Files  111 passed (111)`, `Tests  1396 passed (1396)`.
 
 Proof 5: `bun run build` -> `quiet: ok (248 lines, showing the last 12)`.
+
+## g2 · follow-ups recorded
+
+The g2 review found no blocking defect and five follow-ups; no code changed. One is a cost with no bank entry and is now P-1302 (scratch output file names collide across sessions). The other four are in `workspace/05-plans/logs/B3b-followups.md` under "## g2 · steps 2" for the orchestrator to fold or assign: `quiet.mjs` drops the quotes of an argument with a space, a stale case title in `analytics-batch.test.ts`, the event count in `pages-and-wording.md` section 6, and the `analytics.test.ts` edit outside the named list (H46).
