@@ -31,7 +31,7 @@ export type Database = {
                     "day"?: string,"dim"?: string,"event"?: string,"events"?: number,"p75"?: number | null,"path"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"analytics_events": {
                   Row: {
@@ -396,7 +396,7 @@ isOneToOne: false
                     "pushed_at"?: string,"sha256"?: string,"version"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"ops_heartbeats": {
                   Row: {
@@ -409,7 +409,7 @@ isOneToOne: false
                     "at"?: string,"detail"?: Json | null,"name"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"payments": {
                   Row: {
@@ -1085,6 +1085,9 @@ isOneToOne: false
       } },
 "set_vault_secret":
 { Args: { "p_name": string,"p_value": string }; Returns: undefined
+                           },
+"settings_put_site":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean
