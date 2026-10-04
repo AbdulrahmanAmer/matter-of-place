@@ -98,3 +98,91 @@ The g2 review found no blocking defect and five follow-ups; no code changed. One
 ## g1 · follow-ups recorded
 
 The g1 review found no blocking defect and five follow-ups; no code changed. One is a cost with no bank entry and is now P-1303 (Git Bash `/tmp` and node's `/tmp` are different folders). The other four are in `workspace/05-plans/logs/B3b-followups.md` under "## g1 · steps 1" for the orchestrator to fold or assign: the unowned consent outline and focus assertions (step 5 or 8 in the plan and the doc), the launch switch section of `database.md`, the missing `coming-soon.md` row in the docs index, and the invisible focus ring on filled `.button` in `base.css`.
+
+## g3 · steps 3
+
+Main merged first (`git merge origin/main`, fast-forward to 00f1d80). 2026-10-04 19:22 +0300.
+
+Files: `supabase/migrations/20261004155556_coming_soon.sql` (made by `bun run db:fn --name coming_soon set_environment refuse_illustrative_in_production`, then the `-- down:` header, the trigger, the view and the `flags` row added; the plan's name `20261001110000_coming_soon.sql` is older than main's newest migration, so R16 and P-324 give it today's version), `supabase/sql/functions/{set_environment,refuse_illustrative_in_production}.sql` (R19), `scripts/set-environment.ts`, `scripts/with-coming-soon.ts`, `package.json` (`set-env`), `tests/db/{illustrative-guard,interest-counts,flags}.db.test.ts`, `tests/unit/assert-not-production.test.ts` (`guardedScripts` lists both scripts), `src/server/lib/error-codes.ts` (`illustrative_in_production` 409, `invalid_environment` 422: `error-codes.test.ts` went red on the two raised messages), `tests/mutations/B3b.json` (16 entries). The brief named `app/scripts/set-env.mjs`; the plan's file is `scripts/set-environment.ts` (P-320 hit again). `with-coming-soon.ts` is in no step's Files line, but the step 3 proof greps it and lists it in the guard test, so this group wrote it from its Files entry; it sets `MOP_DEV_LOCK_HELD=1` for its child, as B4's `e2e-coming-soon.ts` does, so a committed test under it does not wait on its parent's lock (G34).
+
+Choices beyond the plan text, for the review: `set_environment` takes the `environment` row `for update` before it checks for an Illustrative property, and the trigger reads that row `for share`, so an illustrative insert racing a switch to production either commits first (and the check sees it) or waits and then reads `production` (R22). The view is `security_invoker = true`, not `= on` as the plan words it: `schema.db.test.ts` matches the stored option literally (P-1304). The view revokes all from `public, anon, authenticated` and grants `select` to `authenticated, service_role` (G-100). `illustrative-guard.db.test.ts` deletes every Illustrative row inside its transaction before the switch, because mop-dev holds the 16 seeded ones. The interest counts are asserted as deltas over what the view held at the start, so a database that already has signups reads the same.
+
+NOT DONE: `src/db/types.ts` is unchanged. Main has no CI `db` job and no `db-types` artifact, and `gen:types` reads mop-dev, which lacks this migration (P-327 hit again). It is regenerated after main's dev job pushes the migration.
+
+Proof 1, the three db files of step 3 plus `function-source`, on mop-dev inside rolled-back transactions with the migration as prelude (P-312; ruling H57: the CI `db` job does not exist on main and the post-push run is UNPROVEN):
+
+```
+$ eval "$(node scripts/load-env.mjs --profile dev)"; export MOP_MUTATION_SQL="$(cat supabase/migrations/20261004155556_coming_soon.sql)"
+$ env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/illustrative-guard.db.test.ts tests/db/interest-counts.db.test.ts tests/db/flags.db.test.ts tests/db/function-source.db.test.ts --reporter=verbose
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > allows an illustrative insert in development and refuses production while one exists 2758ms
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > set_environment('production') succeeds once none is left and writes one system audit row 3009ms
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > in production an illustrative insert and an update to Illustrative both raise 3124ms
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > both functions run with an empty search_path 1561ms
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > refuses an environment outside development, preview and production 1826ms
+ ✓ |db| tests/db/illustrative-guard.db.test.ts > illustrative guard > anon and authenticated get permission denied on set_environment 3056ms
+ ✓ |db| tests/db/interest-counts.db.test.ts > market_interest_counts > counts one signup for california and one for california and florida as 2 and 1 2198ms
+ ✓ |db| tests/db/interest-counts.db.test.ts > market_interest_counts > moves a confirmed signup from pending to confirmed 1886ms
+ ✓ |db| tests/db/interest-counts.db.test.ts > market_interest_counts > does not count an unsubscribed or an archived signup 2324ms
+ ✓ |db| tests/db/interest-counts.db.test.ts > market_interest_counts > refuses anon, shows a staff user the counts and a signed-in non-staff user none 4150ms
+ ✓ |db| tests/db/flags.db.test.ts > settings.flags > exists with new_channels and archive_pages false 1919ms
+ ✓ |db| tests/db/flags.db.test.ts > settings.flags > an update of the row bumps catalog_version once 2825ms
+ ✓ |db| tests/db/function-source.db.test.ts > function source > every function file's body equals pg_proc.prosrc, and every public or app function has a file 2344ms
+ Test Files  4 passed (4)
+      Tests  13 passed (13)
+```
+
+The `search_path` case reads `proconfig` = `{search_path=""}` for both functions (a psql probe of the same prelude printed `set_environment | {"search_path=\"\""}`). With the same prelude, file by file: `rls.db.test.ts` 14 passed, `catalog-version.db.test.ts` 18 passed, `schema.db.test.ts` first `1 failed | 50 passed (51)` (`× every view is security_invoker (R20)`, the `= on` spelling, P-1304), after the fix `51 passed (51)`.
+
+Proof 2, watched-fail replay of the 16 new entries (a fresh scratch registry, each `sql` entry with the migration first and `run` in the node form, P-312; the file entries as committed):
+
+```
+$ env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry <scratchpad>/reg-g3-1791129979
+WATCHED-FAIL OK B3b:b3b-ig-exists
+WATCHED-FAIL OK B3b:b3b-ig-audit
+WATCHED-FAIL OK B3b:b3b-b
+WATCHED-FAIL OK B3b:b3b-ig-update
+WATCHED-FAIL OK B3b:b3b-ig-path
+WATCHED-FAIL OK B3b:b3b-ig-staging
+WATCHED-FAIL OK B3b:b3b-u
+WATCHED-FAIL OK B3b:b3b-ic-count
+WATCHED-FAIL OK B3b:b3b-ic-confirmed
+WATCHED-FAIL OK B3b:b3b-ic-live
+WATCHED-FAIL OK B3b:b3b-ic-invoker
+WATCHED-FAIL OK B3b:b3b-ic-anon
+WATCHED-FAIL OK B3b:b3b-m
+WATCHED-FAIL OK B3b:b3b-fl-bump
+WATCHED-FAIL OK B3b:b3b-t
+WATCHED-FAIL OK B3b:b3b-w
+watchfail: replayed 16: ok 16, bad 0, stale 0; manual 0 not replayed; 0 not selected
+```
+
+Plan letters: (b) `b3b-b`, (m) `b3b-m`, (t) `b3b-t`, (u) `b3b-u`, (w) `b3b-w`. (t) and (w) delete the import only, which is enough for the guard test to name the file (`expect` is the `+ "scripts/<file>"` line of its diff). `git status` after the replay showed only this group's files.
+
+Proof 3, the scripts (dev profile loaded):
+
+```
+$ env -u CLOUDFLARE_API_TOKEN bun run set-env -- --target prod --value production
+unknown target prod
+exit=2
+$ env -u CLOUDFLARE_API_TOKEN -u DEV_DB_URL -u DEV_SUPABASE_PROJECT_REF -u DEV_SUPABASE_SERVICE_ROLE_KEY HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 bun scripts/set-environment.ts --target prod --value production
+unknown target prod
+exit=2
+$ git add -N scripts/set-environment.ts scripts/with-coming-soon.ts; git grep -n "assert-not-production" -- scripts/set-environment.ts scripts/with-coming-soon.ts
+scripts/set-environment.ts:8:import { assertNotProduction } from "./lib/assert-not-production.mjs";
+scripts/with-coming-soon.ts:7:import { assertNotProduction } from "./lib/assert-not-production.mjs";
+$ bunx vitest run --project unit tests/unit/assert-not-production.test.ts
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+$ env -u CLOUDFLARE_API_TOKEN bun scripts/with-coming-soon.ts --value false -- node -e process.exitCode=3
+coming_soon_global restored to false
+exit=3
+$ env -u CLOUDFLARE_API_TOKEN bun scripts/with-coming-soon.ts --value maybe -- node --version
+usage: bun scripts/with-coming-soon.ts --value true|false -- <command...>
+exit=2
+```
+
+UNPROVEN until main's dev job pushes the migration (H57): `bunx supabase migration list --linked` showing `20261004155556`; `bun run set-env -- --target dev --value preview` exit 0 and `bun run db:psql -- -c "select value from settings where key = 'environment'"` printing `"preview"`; the three db files without the prelude; the CI `db` job and its type drift check (no such job on main).
+
+Proof 4, gates in `app/`: first `bun run check` red in lint (prettier on `flags.db.test.ts`, fixed with `prettier --write`); second red in `error-codes.test.ts` (`× holds every message a migration raises`: `invalid_environment` and `illustrative_in_production` of `20261004155556_coming_soon.sql`); third `quiet: ok (50 lines, showing the last 12)`, exit 0. `bun run build` -> `quiet: ok (235 lines, showing the last 12)`.
+
+Bank: P-1304 added; P-320, P-327 and P-008 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 270 process entries)`.
