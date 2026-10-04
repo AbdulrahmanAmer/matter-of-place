@@ -97,7 +97,9 @@ jobs:
       - name: worker-name
         run: |
           node -e "const n=require('./.output/server/wrangler.json').name;if(n!=='matter-of-place'){console.error('worker name',n);process.exit(1)}"
-      # B3 adds the step named bundle-check here: node scripts/bundle-check.mjs (FE-03).
+      # The live artifact: every public route under the script budget, no bundled catalog (FE-03).
+      - name: bundle-check
+        run: node scripts/bundle-check.mjs
       # The glob skips every path whose name starts with a dot, `.output` itself included.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

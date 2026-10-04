@@ -13,6 +13,7 @@ import { prepareImage, type PreparedImage } from "../../lib/image-prep";
 import { getTurnstileToken } from "../../lib/turnstile";
 import { storySchema } from "../../domain/story";
 import { createApiClient, type FetchImpl } from "./client";
+import { apiFetch } from "../../lib/api-fetch.functions";
 import { runUploadQueue } from "./upload-queue";
 import {
   ServiceError,
@@ -51,7 +52,7 @@ async function guarded<T extends object>(action: string, input: T) {
 }
 
 export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
-  const api = createApiClient(baseUrl, fetchImpl);
+  const api = createApiClient(baseUrl, fetchImpl ?? apiFetch);
 
   const catalog: CatalogService = {
     listProperties: () => api.get("/properties", z.array(propertyCardSchema)),

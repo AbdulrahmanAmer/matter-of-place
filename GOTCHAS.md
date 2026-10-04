@@ -201,6 +201,7 @@ Entry template
 - hit again: 2026-10-04, B3 g6: a quoted heredoc (`cat >> logs/B3.md <<'EOF'`) holding a log block with apostrophes and backticks ended in `unexpected EOF while looking for matching` and wrote nothing; the block went in through a Write-made file and `cat`, and a `sed` over a Write-made script missed its target because the file held escaped backticks.
 - added: 2026-09-30
 - hit again: 2026-10-04, B3 g8: a `node -e` and a heredoc patch script lost a backslash, so `"\n"` reached the file as a real line break inside a string; `node -e` with a quote or backtick inside a pattern ended in `unexpected token '('`. Patch scripts went into the scratchpad as files (Write tool), run with `node`.
+- hit again: 2026-10-04, B3 c12: four times a regular expression or a `\n` written through `node` in a heredoc lost its backslash (`replace(//+$/, ...)`, `[^>]*sdata-services`, a `join("` broken across two lines) and the next `tsc` or `prettier` failed on it; the repair went through the Edit tool.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -811,6 +812,7 @@ Entry template
 - added: 2026-10-02
 - hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.
 - hit again: 2026-10-04, B3 g8: a leftover `python3 - <<EOF` hung the shell 120 seconds while a merge was being resolved, and later a bare `cat > file` chained before a heredoc waited on stdin for another 120 seconds; each was ended by its own process id (the first with `taskkill //IM python.exe`, which stops every python process: use `//PID`). Write a script file with the Write tool and run it with `node`, never a stdin script.
+- hit again: 2026-10-04, B3 c12: a `python - ; node -e ...` chain hung 120 seconds, the node edit ran only after the python process was ended by its own id; the file held the edit when the Edit tool then said `String to replace not found`.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -2198,4 +2200,55 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the scope of a group is the step text; the file list is ownership. The brief now says so, and `plan-brief.mjs` quotes the Files line of every path a step names. The orchestrator still sizes a group's files from the step's "(Files)" and "(Change)" marks, and a step that names a file another group owns is a sizing defect to fix before launch, not a builder's problem.
 - proof: `node workspace/05-plans/plan-brief.mjs B3 --steps 12 --files app/docs/runbooks/api.md 2>/dev/null | grep -c "cache-proof.mjs\|bundle-check.mjs"` → `11` (was 0); `grep -c "not its scope: the scope is the step text" .claude/workflows/build-slice.js` → `1`.
 - enforced-by: .claude/workflows/build-slice.js (the files line of the builder brief) and workspace/05-plans/plan-brief.mjs
+- added: 2026-10-04
+
+## P-831 · `VAR=/path` in Git Bash is rewritten to `C:/Program Files/Git/path` for the child process: a live build with `VITE_API_BASE_URL=/api/public` answers 500 on every page
+- symptom: B3 c12 built the plan's proof line `VITE_API_BASE_URL=/api/public ... bun run build` and ran it under `wrangler dev`: `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8828/` printed `500`, `scripts/cache-proof.mjs` failed `GET /` with `500 bypass`, and the Worker log showed `"route":"/Program%20Files/Git/api/public/markets","status":404`: the build had baked a Windows path as the API base.
+- cause: MSYS converts a POSIX-looking value in the environment it hands a Windows program, as it converts an argument (P-015); `loadEnv` in `vite.config.ts` reads the converted value and `define` inlines it. CI runs on Linux and is not affected.
+- rule: on this laptop write `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build` for every live build and every proof that builds one; a 500 on every page of a live build with no error line in the log is this until the log's route says otherwise.
+- proof: with the prefix, `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8828/` on the built Worker prints `200` and `node scripts/cache-proof.mjs http://127.0.0.1:8828` exits 0; without it, the same two print `500` and exit 1 (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## P-832 · The plan's proof key `__proof/photo.00000000.jpg` fails the media route's own key rule, so the object is stored and never served
+- symptom: after the plan's `curl -X POST .../storage/v1/object/media/__proof/photo.00000000.jpg` printed `200`, `node scripts/cache-proof.mjs http://127.0.0.1:8828 --media-key __proof/photo.00000000.jpg` failed with `GET /media/__proof/photo.00000000.jpg: 404 none`, no `x-mop-cache` header and a body of 127 characters.
+- cause: step 3 of B3 limits a key to `^[A-Za-z0-9][A-Za-z0-9._/-]{0,511}$` and answers 404 before any Storage read when the first character is not a letter or a digit; step 12 names a key that starts with two underscores. Both lines are the plan's, so the proof could never pass as written, and the missing-key case `__proof/missing.jpg` passed for the wrong reason (the regex, not Storage).
+- rule: use a key that starts with a letter, `proof/photo.00000000.jpg`, and `proof/missing.jpg` for the missing case, which reaches Storage and its 400 `NoSuchKey` answer (P-820); remove the object with `deleteObjects("media", [key])`. The plan lines of B3 step 12 and of its Verification ("Edge proof") still say `__proof`: the orchestrator corrects them.
+- proof: `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8828/media/__proof/photo.00000000.jpg` → `404` with the object present; the same for `proof/photo.00000000.jpg` → `200` (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## P-833 · `apiFetch` was deferred in g1 and never built, and the plan's home for it, `src/services/http/fetch.ts`, breaks R06: step 12's live render was 500 until it existed
+- symptom: with the live build of `slice/b3` under `wrangler dev`, `/` and `/properties` answered 500 (`Something went wrong`) while `/api/public/properties` answered 200: the services adapter fetched the relative `/api/public/...` inside the Worker. The g1 log said "the final `src/services/http/fetch.ts` (`apiFetch` needs `handlePublic`, step 3) ... was proved as a temporary function inside the spike page"; no later group had the file in its list. Built there, `tests/unit/boundaries.test.ts` failed: `src/services/http/fetch.ts:15 imports ../../server/public/pipeline`.
+- cause: a deferral written in a group's log is not a line in the sizing of the later step, and nothing lists the Files-line paths that still do not exist; R06 (browser code never imports `src/server`, except `src/lib/*.functions.ts`) was written after the plan's Files line.
+- rule: when a group defers a file of its own Files list, it names the step that will build it in the log and in its report, and the orchestrator adds it to that group; before the last group of a slice, run `ls` over every path of every Files line (`node workspace/05-plans/plan-brief.mjs <slice> --steps <n> --files <path>` prints them). The in-process fetch lives in `src/lib/api-fetch.functions.ts` (`createIsomorphicFn`, dynamic imports of the server modules in its server branch), which `src/services/http/index.ts` imports.
+- proof: `ls app/src/lib/api-fetch.functions.ts && cd app && bunx vitest run --project unit tests/unit/boundaries.test.ts tests/unit/api-fetch.test.ts` passes; `grep -rl "handlePublic" app/.output/public` after a live build prints nothing (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## P-834 · `grep -o` on a page of this site prints `Binary file (standard input) matches`: the router's match ids hold NUL bytes
+- symptom: the plan's proof `curl -s https://pr-<n>.holy-meadow-4327.workers.dev/ | grep -o 'data-services="live"'` printed `Binary file (standard input) matches` on this laptop for a live build.
+- cause: TanStack Router's dehydrated match ids are `__root__\0` and `\0_site\0\0`: nine NUL bytes in the home page, so GNU grep treats the stream as binary.
+- rule: grep a page of this site with `-a`: `grep -ao 'data-services="live"'`; `scripts/smoke.mjs` reads the text and is not affected.
+- proof: `curl -s http://127.0.0.1:8828/ | tr -cd '\000' | wc -c` → `9`; `curl -s http://127.0.0.1:8828/ | grep -ao 'data-services="live"'` prints `data-services="live"` (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## P-835 · The plan's bundle check names every module of `src/data` and a manifest that lists chunks, not modules: the pricing and FAQ copy is allowed, the title grep is the guard
+- symptom: FE-03 (2) says "fails when a chunk reachable from a public route contains a module under `src/admin/`, `src/domain/admin-` or `src/data/`", but `src/routes/_site.exposure.tsx` and `_site.faq.tsx` import `src/data/exposure.ts` and `faq.ts` on purpose (R06, R39), and Vite's client manifest names only entry chunks and shared chunks, never the modules inside one. A first draft that closed over the entry's `dynamicImports` would also have flagged every admin chunk once B7 lands, because the entry lists every route lazily.
+- cause: the plan line was written before R06 named the two allowed files, and before anyone read a real manifest.
+- rule: `scripts/bundle-check.mjs` forbids `src/admin/`, `src/domain/admin-` and `src/data/` except `exposure.ts` and `faq.ts` by the `src` or key of a chunk a public route can reach (static closure of the entry, full closure from each public route chunk), skips `admin` and `api/` route ids, and relies on the grep for the seed titles of `src/data/properties.ts` in every built file for what the manifest cannot see.
+- proof: `cd app && bunx vitest run --project unit tests/unit/bundle-check.test.ts` passes (13 cases); `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build && node scripts/bundle-check.mjs` exits 0 and the same with the original `services/index.ts` exits 1 on 22 problems (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## P-836 · A watched-fail of `start.ts` that leaves an import unused fails the build, not the proof; and a readiness probe on a cached route spends the cache proof's first miss
+- symptom: the mutation `cache: (_page, render) => render()` in `src/start.ts` stopped `bun run build` with `[import-protection] Import denied in client environment ... Import: "./server/public/cache"` instead of turning `cache-proof.mjs` red. Separately, a `curl` readiness loop on `/api/public/properties` made the first request of the cache proof a `hit`, so `miss` could not be shown on that Worker.
+- cause: import protection judges the module graph of the client build, and an import left without a use in `start.ts` stays in it; the Cache API entry written by any request is the first request of its key.
+- rule: mutate the condition, keep the call: `hasDatabase && page.method === "NONE" ? cachedResponse(page, "html", render) : render()`. Wait for a `wrangler dev` Worker by the line `Ready on` in its log, never by a request to a cached path, and start the proof on a fresh `--persist-to` folder.
+- proof: `grep -n '"id": "b3-c12-html-cache"' app/tests/mutations/B3.json` prints the entry with that mutation; the proof with it printed `FAIL GET /: 200 none` four times (measured 2026-10-04, B3 c12).
+- added: 2026-10-04
+
+## G-304 · `router.tsx` hands `dehydrate` a state the router's serializability type refuses: one `@ts-expect-error` with its reason stays, no cast
+- paths: app/src/router.tsx
+- severity: warn
+- symptom: `dehydrate: () => ({ queryClientState: dehydrate(queryClient) })` failed `tsc` with TS2322: `The types of 'queryClientState.mutations' are incompatible ... 'unknown' is not assignable to 'SerializationError<"Type may not be serializable">'`.
+- cause: `DehydratedState` carries `unknown` query keys and data, and `createRouter`'s `Constrain<TDehydrated, ValidateSerializableInput<...>>` refuses `unknown`; the lint refuses the cast that would hide it (`no-unsafe-type-assertion`). `@tanstack/react-router-ssr-query` would remove it but needs `@tanstack/react-router` 1.170.33, the app pins 1.170.18.
+- rule: keep the single `// @ts-expect-error -- <reason>` line above `dehydrate`; do not add a cast or an `any`; when the router pin reaches 1.170.33 move to the package and delete both options and the comment. `hydrate` needs nothing.
+- proof: `cd app && bunx tsc --noEmit -p tsconfig.json` exits 0; deleting the comment line prints the TS2322 above; `bunx vitest run --project unit tests/unit/router-hydration.test.ts` passes (3 cases).
 - added: 2026-10-04

@@ -3818,5 +3818,365 @@
     "replace": "message: z.string().max(5000),",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*answers 422 for a message over 500 characters"
+  },
+  {
+    "id": "b3-tt",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (cache !== \"hit\" && cache !== \"miss\")",
+    "replace": "if (cache !== \"hit\" && cache !== \"miss\" && cache !== \"stale\")",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a stale catalog read"
+  },
+  {
+    "id": "b3-smoke-bypass-read",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (cache !== \"hit\" && cache !== \"miss\")",
+    "replace": "if (cache !== \"hit\" && cache !== \"miss\" && cache !== \"bypass\")",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read that bypassed the cache"
+  },
+  {
+    "id": "b3-smoke-version",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (headers.get(\"x-catalog-version\") === null) problems.push(\"no x-catalog-version\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read without x-catalog-version"
+  },
+  {
+    "id": "b3-smoke-read-status",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (properties.answer.status !== 200)\n        problems.push(`status ${String(properties.answer.status)}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a catalog read that answers 500"
+  },
+  {
+    "id": "b3-smoke-beacon",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "cache === \"bypass\" ? [] :",
+    "replace": "cache !== null ? [] :",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a beacon that is not bypass"
+  },
+  {
+    "id": "b3-smoke-no-services",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "else if (services !== \"live\")\n    report(new URL(\"/\", base).href, [`data-services ${String(services)}`]);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*fails on a home page that names no data-services"
+  },
+  {
+    "id": "b3-nnn",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "if (services === \"local\") print(\"api checks skipped (local adapter)\");\n  else if (services !== \"live\")\n    report(new URL(\"/\", base).href, [`data-services ${String(services)}`]);\n  else {",
+    "replace": "{",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*skips the API checks on a local adapter"
+  },
+  {
+    "id": "b3-smoke-skip-line",
+    "kind": "file",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "print(\"api checks skipped (local adapter)\");",
+    "replace": "print(\"api checks skipped\");",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*skips the API checks on a local adapter"
+  },
+  {
+    "id": "b3-rh-dehydrate",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "    dehydrate: () => ({ queryClientState: dehydrate(queryClient) }),",
+    "replace": "    dehydrate: () => undefined,",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*fills the browser's query cache from the server's dehydrated state"
+  },
+  {
+    "id": "b3-rh-hydrate",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "      hydrate(queryClient, data.queryClientState);",
+    "replace": "      void data;",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*serves a hydrated query without calling the catalog again"
+  },
+  {
+    "id": "b3-rh-client",
+    "kind": "file",
+    "test": "tests/unit/router-hydration.test.ts",
+    "file": "src/router.tsx",
+    "find": "export const getRouter = () => {\n  const queryClient = new QueryClient();\n",
+    "replace": "const queryClient = new QueryClient();\n\nexport const getRouter = () => {\n",
+    "run": "bunx vitest run --project unit tests/unit/router-hydration.test.ts",
+    "expect": "× .*gives each router its own query client"
+  },
+  {
+    "id": "b3-bc-budget",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES)",
+    "replace": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES * 2)",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails one of 160 KB"
+  },
+  {
+    "id": "b3-bc-nesting",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "if (other === id || id.startsWith(`${other}.`)) reach(manifest, otherKey, false, loaded);",
+    "replace": "if (other === id) reach(manifest, otherKey, false, loaded);",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*sums the entry, the route's chunk and the chunk of each route it nests in"
+  },
+  {
+    "id": "b3-bc-data",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/data\\/(?!exposure\\.ts$|faq\\.ts$)/,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/data/properties.ts"
+  },
+  {
+    "id": "b3-bc-admin",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/admin\\//,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/admin/screen.tsx"
+  },
+  {
+    "id": "b3-bc-admin-domain",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "  /^src\\/domain\\/admin-/,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/domain/admin-roles.ts"
+  },
+  {
+    "id": "b3-bc-allow",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "/^src\\/data\\/(?!exposure\\.ts$|faq\\.ts$)/",
+    "replace": "/^src\\/data\\//",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone"
+  },
+  {
+    "id": "b3-bc-lazy",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "    for (const reachable of reach(manifest, key, true, new Set())) everything.add(reachable);\n",
+    "replace": "    for (const reachable of reach(manifest, key, false, new Set())) everything.add(reachable);\n",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*fails a chunk that lists src/data/properties.ts"
+  },
+  {
+    "id": "b3-bc-unreachable",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "for (const key of everything) {",
+    "replace": "for (const key of entries) {",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone, and a chunk no public route reaches"
+  },
+  {
+    "id": "b3-bc-admin-route",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "!id.startsWith(\"admin\") && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*leaves the pricing and FAQ copy of src/data alone, and a chunk no public route reaches"
+  },
+  {
+    "id": "b3-bc-title",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "const found = titles.find((title) => text.includes(title));",
+    "replace": "const found = titles.find((title) => text.includes(title) && text === title);",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 1 when a property title of the seed is in any output file"
+  },
+  {
+    "id": "b3-bc-title-parse",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "const TITLE = /^\\s+title: (",
+    "replace": "const TITLE = /^\\s+titl: (",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*reads every title of the bundled properties"
+  },
+  {
+    "id": "b3-bc-usage",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "if (rest.length > 0 || output.startsWith(\"--\")) {",
+    "replace": "if (rest.length > 0) {",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*is a command: exit 0 on a clean output, 1 on a seeded one, 2 on a stray flag"
+  },
+  {
+    "id": "b3-bc-lines",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "for (const size of routes) print(`ok   ${size.route} ${String(size.bytes)} gzip bytes`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 0 and prints one line per route for a live output"
+  },
+  {
+    "id": "b3-bc-exit",
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "find": "return problems.length === 0 ? 0 : 1;",
+    "replace": "return 0;",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "expect": "× .*exits 1 on an entry of 160 KB"
+  },
+  {
+    "id": "b3-z",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev",
+    "file": "src/server/public/cache.ts",
+    "find": "    await cache.put(key, stored.clone());\n",
+    "replace": "",
+    "run": "bun run build && bunx wrangler dev --config .output/server/wrangler.json --port 8828 --persist-to ../.tmp/wrangler-cache-proof, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL GET /api/public/properties again"
+  },
+  {
+    "id": "b3-fff",
+    "kind": "manual",
+    "test": "scripts/bundle-check.mjs on a live build",
+    "file": "src/services/index.ts",
+    "find": "export const services: Services = import.meta.env.VITE_API_BASE_URL\n",
+    "replace": "export const services: Services = Reflect.get(import.meta.env, \"VITE_API_BASE_URL\")\n",
+    "run": "VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && node scripts/bundle-check.mjs",
+    "expect": "holds the seed title \"A residence shaped around the landscape.\" of src/data/properties.ts"
+  },
+  {
+    "id": "b3-af-id",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "return handlePublic(request, requestId, undefined, waitUntilOf(page));",
+    "replace": "return handlePublic(request, crypto.randomUUID(), undefined, waitUntilOf(page));",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*calls the public pipeline in-process with the page's request id"
+  },
+  {
+    "id": "b3-af-url",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "new URL(input, page.url)",
+    "replace": "new URL(input, \"https://matterofplace.com\")",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*calls the public pipeline in-process with the page's request id"
+  },
+  {
+    "id": "b3-af-init",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "{ ...init, headers }",
+    "replace": "{ headers }",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*keeps the method, the body and the headers of the call"
+  },
+  {
+    "id": "b3-af-ip",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "if (address !== null) headers.set(\"cf-connecting-ip\", address);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*hands on the visitor's address from the page request"
+  },
+  {
+    "id": "b3-af-noip",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "if (address !== null) headers.set(\"cf-connecting-ip\", address);",
+    "replace": "headers.set(\"cf-connecting-ip\", address ?? \"\");",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*sends no address when the page request had none"
+  },
+  {
+    "id": "b3-af-response",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "return handlePublic(request, requestId, undefined, waitUntilOf(page));",
+    "replace": "await handlePublic(request, requestId, undefined, waitUntilOf(page));\n  return new Response(\"[]\");",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*answers with the pipeline's response"
+  },
+  {
+    "id": "b3-af-context",
+    "kind": "file",
+    "test": "tests/unit/api-fetch.test.ts",
+    "file": "src/lib/api-fetch.functions.ts",
+    "find": "const { requestId } = startContext.parse(getGlobalStartContext());",
+    "replace": "const context = getGlobalStartContext();\n  const requestId = context === undefined ? \"minted\" : startContext.parse(context).requestId;",
+    "run": "bunx vitest run --project unit tests/unit/api-fetch.test.ts",
+    "expect": "× .*refuses to run without the id of the page request, and mints none"
+  },
+  {
+    "id": "b3-c12-q",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev (the server render ignores q)",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "  const filterState = useFilters();\n",
+    "replace": "  const filterState = useFilters({ term: q ?? \"\" });\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL the stored /properties page links every slug: 0 of 16"
+  },
+  {
+    "id": "b3-c12-html-cache",
+    "kind": "manual",
+    "test": "scripts/cache-proof.mjs against bunx wrangler dev (deps.cache wired to cachedResponse)",
+    "file": "src/start.ts",
+    "find": "cache: (page, render) => (hasDatabase ? cachedResponse(page, \"html\", render) : render()),",
+    "replace": "cache: (page, render) => (hasDatabase && page.method === \"NONE\" ? cachedResponse(page, \"html\", render) : render()),",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
+    "expect": "FAIL GET /: 200 none"
   }
 ]

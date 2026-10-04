@@ -30,6 +30,8 @@ export default defineConfig(({ command, mode }) => {
   return {
     define,
     css: { transformer: "lightningcss" },
+    // The client manifest lists module paths only; scripts/bundle-check.mjs reads it (FE-03).
+    build: { manifest: true },
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
       dedupe: [
