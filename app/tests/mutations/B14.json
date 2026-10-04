@@ -1,0 +1,839 @@
+[
+  {
+    "id": "b14-bing-window",
+    "test": "tests/unit/audit/bing.test.ts",
+    "file": "../workspace/audits/tools/bing.mjs",
+    "find": "Number(stamp) >= since && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/bing.test.ts",
+    "expect": "parseBing > sums only the rows of the last 28 days"
+  },
+  {
+    "id": "b14-bing-unset",
+    "test": "tests/unit/audit/bing.test.ts",
+    "file": "../workspace/audits/tools/bing.mjs",
+    "find": "if (key === undefined || key === \"\") return { bing",
+    "replace": "if (false) return { bing",
+    "run": "bunx vitest run --project unit tests/unit/audit/bing.test.ts",
+    "expect": "bing collect > makes no request and records not_measure"
+  },
+  {
+    "id": "b14-bing-url",
+    "test": "tests/unit/audit/bing.test.ts",
+    "file": "../workspace/audits/tools/bing.mjs",
+    "find": "GetQueryStats\";",
+    "replace": "GetQueryStat\";",
+    "run": "bunx vitest run --project unit tests/unit/audit/bing.test.ts",
+    "expect": "bing collect > calls GetQueryStats once with the key an"
+  },
+  {
+    "id": "b14-bing-errorcode",
+    "test": "tests/unit/audit/bing.test.ts",
+    "file": "../workspace/audits/tools/bing.mjs",
+    "find": "if (code !== undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/bing.test.ts",
+    "expect": "bing collect > records not_measured for an ErrorCode bo"
+  },
+  {
+    "id": "b14-cache-target",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "const TARGET = 0.95;",
+    "replace": "const TARGET = 1.01;",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives ratio 1 and no red row for the all"
+  },
+  {
+    "id": "b14-cache-workersdev",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "host.endsWith(\".workers.dev\")",
+    "replace": "host.endsWith(\".workers.invalid\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives edge_hit_ratio null and prints Not"
+  },
+  {
+    "id": "b14-cache-sidecar",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "measured({ ...summary, checks })",
+    "replace": "measured({ checks })",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > records the probe under cache in the sid"
+  },
+  {
+    "id": "b14-cache-admin-skip",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "status: verdict(row.cache_control?.trim().toLowerCase() === \"no-store\"),",
+    "replace": "status: verdict(row.path.startsWith(\"/api/admin/\") || row.cache_control?.trim().toLowerCase() === \"no-store\"),",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives a red row for a never-cached route"
+  },
+  {
+    "id": "b14-cache-merged",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "status: verdict(row.cache_control?.trim().toLowerCase() === \"no-store\"),",
+    "replace": "status: verdict(row.cache_control?.includes(\"no-store\") === true),",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives a red row for a never-cached route"
+  },
+  {
+    "id": "b14-cache-cookie",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "const cookieOnCached = cached.some((row) => row.set_cookie);",
+    "replace": "const cookieOnCached = false;",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives a red row for a cookie on a cached"
+  },
+  {
+    "id": "b14-cache-version",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "status: versions.size <= 1 ? \"ok\" : \"red\",",
+    "replace": "status: \"ok\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives a red row for a catalog version th"
+  },
+  {
+    "id": "b14-cache-variant",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "variants.every((row) => row.cache === \"hit\")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > gives a red row for a query variant that"
+  },
+  {
+    "id": "b14-cache-miss-as-hit",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "ratio(second.filter((row) => row.cache === \"hit\").length, second.length)",
+    "replace": "ratio(second.filter((row) => row.cache === \"hit\" || row.cache === \"miss\").length, second.length)",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > counts a miss on the second pass against"
+  },
+  {
+    "id": "b14-cache-no-cache-header",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "headers: { accept: \"text/html,application/json\" },",
+    "replace": "headers: { accept: \"text/html,application/json\", \"cache-control\": \"no-cache\" },",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the probe's requests > send no cookie, no cache-control header,"
+  },
+  {
+    "id": "b14-cache-never-401",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "(row.pass !== \"never\" && row.status >= 400)",
+    "replace": "row.status >= 400",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "reachability > does not call a never-cached route answe"
+  },
+  {
+    "id": "b14-cache-dedupe",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "[...new Map(unreachable.map((row) => [row.path, row])).values()]",
+    "replace": "unreachable",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "reachability > gives one red row for a page read that a"
+  },
+  {
+    "id": "b14-crawl-echo",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "!line.startsWith(\"$ \")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "parseRows > reads ok, skip and fail lines, and ignor"
+  },
+  {
+    "id": "b14-crawl-exit",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "if (status !== 0 && !rows.some((row) => row.status === \"fail\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "parseRows > turns a non-zero exit with no fail line "
+  },
+  {
+    "id": "b14-crawl-noindex-dev",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "if (production) return { rows, notMeasured: [] };",
+    "replace": "if (true) return { rows, notMeasured: [] };",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "classifyCrawl > moves the indexability rows of a workers"
+  },
+  {
+    "id": "b14-crawl-production",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "const production = host === PRODUCTION_HOST || host === `www.${PRODUCTION_HOST}`;",
+    "replace": "const production = false;",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "classifyCrawl > keeps the noindex row as a red row on ma"
+  },
+  {
+    "id": "b14-crawl-linked",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "llms_linked: /llms\\.txt/i.test(head),",
+    "replace": "llms_linked: false,",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "crawl collect > folds the three checkers into seo and ae"
+  },
+  {
+    "id": "b14-ga4-session",
+    "test": "tests/unit/audit/ga4.test.ts",
+    "file": "../workspace/audits/tools/ga4.mjs",
+    "find": "const SESSION_EVENT = \"session_start\";",
+    "replace": "const SESSION_EVENT = \"page_view\";",
+    "run": "bunx vitest run --project unit tests/unit/audit/ga4.test.ts",
+    "expect": "parseGa4 > turns a recorded runReport answer into e"
+  },
+  {
+    "id": "b14-ga4-empty",
+    "test": "tests/unit/audit/ga4.test.ts",
+    "file": "../workspace/audits/tools/ga4.mjs",
+    "find": "?.count ?? 0,",
+    "replace": "?.count ?? 1,",
+    "run": "bunx vitest run --project unit tests/unit/audit/ga4.test.ts",
+    "expect": "parseGa4 > gives no events for an empty property"
+  },
+  {
+    "id": "b14-ga4-unset",
+    "test": "tests/unit/audit/ga4.test.ts",
+    "file": "../workspace/audits/tools/ga4.mjs",
+    "find": "if (saJsonB64 === undefined || saJsonB64 === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/ga4.test.ts",
+    "expect": "ga4 collect > records not_measured with the reason and"
+  },
+  {
+    "id": "b14-gsc-clicks",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "clicks: count(row[\"clicks\"]),",
+    "replace": "clicks: count(row[\"impressions\"]),",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "parseGsc > turns a recorded searchAnalytics answer "
+  },
+  {
+    "id": "b14-gsc-coverage",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": ".filter((row) => row.impressions >= 1)",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "keywordCoverage > counts a term covered by a case-folded q"
+  },
+  {
+    "id": "b14-gsc-unset",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "if (saJsonB64 === undefined || saJsonB64 === \"\") return missing",
+    "replace": "if (false) return missing",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "gsc collect > records both keys under not_measured whi"
+  },
+  {
+    "id": "b14-gsc-sign",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/google-auth.mjs",
+    "find": "createSign(\"RSA-SHA256\")",
+    "replace": "createSign(\"RSA-SHA1\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "gsc collect > signs the token request with the service"
+  },
+  {
+    "id": "b14-gsc-refused",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "if (answer.status !== 200) return missing",
+    "replace": "if (false) return missing",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "gsc collect > records not_measured for a refused answe"
+  },
+  {
+    "id": "b14-lint-summary",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "const SUMMARY_LINES = 5;",
+    "replace": "const SUMMARY_LINES = 6;",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > passes a complete report whose numbers a|lintReport > enforces a five-line summary"
+  },
+  {
+    "id": "b14-lint-trend",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "  \"Analytics trend\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a report without ## Analytics tr"
+  },
+  {
+    "id": "b14-lint-inquiries",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "  \"Inquiries by source\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a report without ## Inquiries by"
+  },
+  {
+    "id": "b14-lint-notmeasured",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "  \"Not measured\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a report without ## Not measured"
+  },
+  {
+    "id": "b14-lint-caching",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "  \"Caching\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a Scorecard without the Caching "
+  },
+  {
+    "id": "b14-lint-unranked",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (!(impact >= 1 && impact <= 5) || effort === undefined || Number.isNaN(score)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a finding without impact, effort"
+  },
+  {
+    "id": "b14-lint-order",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "before !== undefined && finding.score > before.score",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects findings that are not in score o"
+  },
+  {
+    "id": "b14-lint-score",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (Math.abs(score - expected) > 0.01) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a score that is not impact over "
+  },
+  {
+    "id": "b14-lint-number",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (!candidates.some((candidate) => known.has(candidate))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a number in a table that is miss"
+  },
+  {
+    "id": "b14-lint-emdash",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (line.includes(EM_DASH)) problems.push(",
+    "replace": "if (false) problems.push(",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects an em dash"
+  },
+  {
+    "id": "b14-lint-mopk",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "/\\bmopk_[A-Za-z0-9_-]+/,",
+    "replace": "/\\bmopk_NEVER/,",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a sidecar holding mopk_dev_x, na"
+  },
+  {
+    "id": "b14-lint-envvalue",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (report.includes(value)) problems.push(",
+    "replace": "if (false) problems.push(",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects the value of a secret name set i"
+  },
+  {
+    "id": "b14-lint-opshealth",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (!OPS_HEALTH_ALLOWED.includes(match[1] ?? \"\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects an ops-health path segment other"
+  },
+  {
+    "id": "b14-lint-nosidecar",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "if (sidecarText === null) {",
+    "replace": "if (sidecarText === null && false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lintReport > rejects a report with no sidecar"
+  },
+  {
+    "id": "b14-lint-template",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../workspace/audits/REPORT-TEMPLATE.md",
+    "find": "## Analytics trend",
+    "replace": "## Analytics",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "the REPORT-TEMPLATE\\.md > holds every section heading in order and"
+  },
+  {
+    "id": "b14-lint-exit",
+    "test": "tests/unit/audit/lint-report.test.ts",
+    "file": "../scripts/audit/lint-report.mjs",
+    "find": "process.exitCode = problems.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/lint-report.test.ts",
+    "expect": "lint-report\\.mjs as a command > exits 0 for a good report and non-zero w"
+  },
+  {
+    "id": "b14-psi-lcp",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "audit(\"largest-contentful-paint\"), \"numericValue\")), 0)",
+    "replace": "audit(\"largest-contentful-paint\"), \"numericValue\")), 1)",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "parsePsi > turns a recorded answer into score, LCP,"
+  },
+  {
+    "id": "b14-psi-null",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "score: score === null ? null : Math.round(score * 100),",
+    "replace": "score: score === null ? 0 : Math.round(score * 100),",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "parsePsi > gives null for a number the answer lacks"
+  },
+  {
+    "id": "b14-psi-pages",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "const market = MARKETS.find((path) => paths.includes(path));",
+    "replace": "const market = undefined;",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "pickPages > takes the four fixed pages, the first pr"
+  },
+  {
+    "id": "b14-psi-unset",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "if (key === undefined || key === \"\") return { psi",
+    "replace": "if (false) return { psi",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "psi collect > makes no call and records not_measured w"
+  },
+  {
+    "id": "b14-psi-runs",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "const RUNS = 3;",
+    "replace": "const RUNS = 2;",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "psi collect > measures six pages, three runs each, on "
+  },
+  {
+    "id": "b14-psi-retry",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "if (answer.status === 429 || answer.status >= 500) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "psi collect > retries a 429 once after 10 seconds"
+  },
+  {
+    "id": "b14-psi-allfail",
+    "test": "tests/unit/audit/psi.test.ts",
+    "file": "../workspace/audits/tools/psi.mjs",
+    "find": "if (pages.length === 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/psi.test.ts",
+    "expect": "psi collect > records not_measured when every run fail"
+  },
+  {
+    "id": "b14-run-skip",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (\"enabled\" in schedule && !schedule.enabled) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "the schedule switch > prints skipped, disabled, writes no file"
+  },
+  {
+    "id": "b14-run-manual",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (!flags.manual) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "the schedule switch > runs on with --manual against the same d"
+  },
+  {
+    "id": "b14-run-bearer",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "authorization: `Bearer ${key}`,",
+    "replace": "authorization: key,",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "the schedule switch > reads the row with the agent key and rec"
+  },
+  {
+    "id": "b14-run-readfail",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (\"reason\" in schedule) notMeasured[\"schedule\"] = schedule.reason;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "the schedule switch > goes on and records the schedule under n"
+  },
+  {
+    "id": "b14-run-throw",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "    } catch (error) {\n      collected = Object.fromEntries(",
+    "replace": "    } catch (error) {\n      throw error;\n      collected = Object.fromEntries(",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "failed sources > records a collector that throws under no"
+  },
+  {
+    "id": "b14-run-500",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "else notMeasured[\"record_run\"] = answer.reason;",
+    "replace": "else sidecar[\"record_run\"] = { status: answer.status };",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "failed sources > records a 500 from record-run under not_"
+  },
+  {
+    "id": "b14-run-collect-only",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (!flags.collectOnly) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "failed sources > makes no record-run call under --collect"
+  },
+  {
+    "id": "b14-run-creds-exit",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "return REQUIRED.some((name) => !isSet(ctx.env, name)) ? 1 : 0;",
+    "replace": "return 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "--check-credentials > prints ok or missing per name, never a v"
+  },
+  {
+    "id": "b14-run-creds-optional",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "return REQUIRED.some((name) => !isSet(ctx.env, name)) ? 1 : 0;",
+    "replace": "return [...REQUIRED, ...OPTIONAL].some((name) => !isSet(ctx.env, name)) ? 1 : 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "--check-credentials > exits 0 when only SENTRY_AUTH_TOKEN is m"
+  },
+  {
+    "id": "b14-run-fromdata",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (takenFromData && entry.vendor) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "--from-data > skips the vendor collectors, keeps their"
+  },
+  {
+    "id": "b14-run-fromdata-missing",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (\"reason\" in found) notMeasured[\"from_data\"] = found.reason;",
+    "replace": "if (\"reason\" in found) notMeasured[\"elsewhere\"] = found.reason;",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "--from-data > records from_data under not_measured and"
+  },
+  {
+    "id": "b14-run-secretnames",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "  \"OPS_HEALTH_TOKEN\",\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "the lists the lint and the credential check read > keep every collector key unique and the "
+  },
+  {
+    "id": "b14-uptime-interval",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "interval_s: numeric(monitor[\"interval\"]),",
+    "replace": "interval_s: 600,",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "parseUptime > gives the three monitors with interval_s"
+  },
+  {
+    "id": "b14-uptime-redact",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "[^/?#\\s]+/",
+    "replace": "[^/]+/",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "parseUptime > redacts the segment after /ops-health/ o"
+  },
+  {
+    "id": "b14-uptime-three",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "if ((found.interval_s ?? Infinity) > want.interval_s) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "monitorRows against monitoring/uptime\\.json > expects three monitors and finds them al"
+  },
+  {
+    "id": "b14-uptime-paused",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "if (found.status === PAUSED) return",
+    "replace": "if (false) return",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for a paused monitor"
+  },
+  {
+    "id": "b14-uptime-600",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "if ((found.interval_s ?? Infinity) > want.interval_s) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for a 600 second interva"
+  },
+  {
+    "id": "b14-uptime-markets",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": ": pathOf(monitor.url) === path,",
+    "replace": ": pathOf(monitor.url).startsWith(\"/api/\"),",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for a missing /api/publi"
+  },
+  {
+    "id": "b14-uptime-keyword",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "want.keyword !== undefined &&",
+    "replace": "false &&",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for a missing or non-key"
+  },
+  {
+    "id": "b14-uptime-token",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "url: redactUrl(String(monitor[\"url\"])),",
+    "replace": "url: String(monitor[\"url\"]),",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime collect > writes the ops-health URL redacted and i"
+  },
+  {
+    "id": "b14-uptime-statfail",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "if (field(answer.json, \"stat\") !== \"ok\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime collect > records uptime under not_measured for a "
+  },
+  {
+    "id": "b14-uptime-cc-ok",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "code: rows.some((row) => row[\"status\"] === \"red\") ? 1 : 0,",
+    "replace": "code: 1,",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime --check-config > exits 0 with three ok rows for the recor"
+  },
+  {
+    "id": "b14-uptime-cc-paused",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "code: rows.some((row) => row[\"status\"] === \"red\") ? 1 : 0,",
+    "replace": "code: 0,",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime --check-config > exits 1 and names the monitor when one i"
+  },
+  {
+    "id": "b14-uptime-cc-cli",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/common.mjs",
+    "find": ", strict: false",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime --check-config > exits 1 on the command line while the ke"
+  },
+  {
+    "id": "b14-uptime-unset",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "if (key === undefined || key === \"\") return { uptime",
+    "replace": "if (false) return { uptime",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "uptime collect > makes no request and records not_measure"
+  },
+  {
+    "id": "b14-scope-allow-public",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/public/\",",
+    "replace": "\"app/publicx/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > allows head, copy"
+  },
+  {
+    "id": "b14-scope-allow-prefix",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/src/routes/\",",
+    "replace": "\"src/routes/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > allows head, copy"
+  },
+  {
+    "id": "b14-scope-wrangler",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const ALLOWED_FILES = [\"GOTCHAS.md\"];",
+    "replace": "const ALLOWED_FILES = [\"GOTCHAS.md\", \"app/wrangler.toml\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-server",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"app/src/lib/\",",
+    "replace": "\"app/src/\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-env",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": ".startsWith(\".env\")",
+    "replace": ".startsWith(\".envx\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-api-dir",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "path === API_FOLDER || path.startsWith(`${API_FOLDER}/`)",
+    "replace": "path === API_FOLDER",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-api-flat",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "path.startsWith(API_FLAT_PREFIX)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses server code"
+  },
+  {
+    "id": "b14-scope-claude-md",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const ALLOWED_FILES = [\"GOTCHAS.md\"];",
+    "replace": "const ALLOWED_FILES = [\"GOTCHAS.md\", \"CLAUDE.md\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses the plans, CLAUDE.md"
+  },
+  {
+    "id": "b14-scope-dotdot",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "segment === \"\" || segment === \".\" || segment === \"..\"",
+    "replace": "segment === \"\" || segment === \".\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check paths > refuses a path that only starts"
+  },
+  {
+    "id": "b14-scope-exit0",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = refused.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 1;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 0 when every changed path"
+  },
+  {
+    "id": "b14-scope-exit1",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = refused.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 1 and names each refused"
+  },
+  {
+    "id": "b14-scope-rename",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "\"--no-renames\", ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > checks the old path of a renamed"
+  },
+  {
+    "id": "b14-scope-merge-base",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "`${base}...${head}`]",
+    "replace": "`${base}..${head}`]",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > reads the diff from the merge base"
+  },
+  {
+    "id": "b14-scope-usage",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "process.exitCode = 2;",
+    "replace": "process.exitCode = 1;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "scope-check command > exits 2 with a usage line"
+  },
+  {
+    "id": "b14-cache-redacted-path",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "const shown = redactUrl(path);",
+    "replace": "const shown = path;",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "the cache probe on recorded header sets > writes a sidecar the report lint accepts"
+  },
+  {
+    "id": "b14-crawl-spawn-error",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/common.mjs",
+    "find": "  if (result.error !== undefined) throw result.error;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "the default run > throws when the program cannot start"
+  }
+]

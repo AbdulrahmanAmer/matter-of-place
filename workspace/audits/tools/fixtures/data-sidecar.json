@@ -1,0 +1,34 @@
+{
+  "front": {
+    "date": "2026-10-03",
+    "run_id": "audit-2026-10-03",
+    "schedule": "scheduled"
+  },
+  "psi": {
+    "strategy": "mobile",
+    "pages": [
+      {
+        "path": "/",
+        "score": 91
+      }
+    ]
+  },
+  "gsc": {
+    "queries": 12
+  },
+  "keywords": {
+    "covered": 2,
+    "total": 3,
+    "missing": ["brownstone"]
+  },
+  "ga4": {
+    "sessions": 620
+  },
+  "bing": {
+    "queries": 2
+  },
+  "uptime": {
+    "monitors": []
+  },
+  "not_measured": {}
+}

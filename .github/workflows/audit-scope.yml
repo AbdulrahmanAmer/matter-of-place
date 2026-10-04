@@ -1,0 +1,44 @@
+name: audit-scope
+
+# A red check the CEO reads before merging an audit pull request, not a hard gate: GitHub branch
+# protection is not available on this plan (GOTCHAS P-028). No path filter, on purpose: ci.yml
+# ignores workspace/**, launch/** and **/*.md, so a pull request touching only a refused path such
+# as workspace/05-plans/B2.md would run no check there (B14 invariant 1). It needs no secret and
+# no database, so it also runs for pull requests the routine opens.
+on:
+  pull_request:
+
+permissions: {}
+
+defaults:
+  run:
+    working-directory: app
+
+concurrency:
+  group: audit-scope-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-scope:
+    if: startsWith(github.head_ref, 'audit/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      # The guard that runs is the one on the base branch: a pull request cannot loosen the
+      # list it is judged by.
+      - name: scope-check
+        working-directory: .
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git show "origin/$BASE_REF:scripts/audit/scope-check.mjs" > "$RUNNER_TEMP/scope-check.mjs"
+          node "$RUNNER_TEMP/scope-check.mjs" "origin/$BASE_REF" HEAD
