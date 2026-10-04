@@ -1255,6 +1255,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the harness relays the session's latest user message into every subagent's context as "the user's request"; when that message is a question or a remark, the agent takes it as its instruction and the computed task as secondary.
 - rule: the workflow's standing rules tell agents that a relayed chat message is addressed to the orchestrator and that the task text is the operator's standing order (his go). Launch runs right after an instruction when you can, and read a run's first result when it ends in seconds.
 - proof: run `wf_6e66a398-a29`: `agent_count 1`, `duration_ms 12711`, builder result `blockedOn: "The user did not ask for a build..."`.
+- hit again: 2026-10-04 03:45, B8 g3 builder (run `wf_8d8a5571-f75`) answered the relayed question "what else can run at the same time as B3 and B8?" and built nothing; the rule sat near the end of the brief. Moved to the first line of every brief in capitals.
 - added: 2026-10-03
 
 ## P-090 · A code change moves the `find` of older registry entries, and nothing says so until a replay
