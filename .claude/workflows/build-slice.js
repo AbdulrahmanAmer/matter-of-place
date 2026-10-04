@@ -91,6 +91,7 @@ const rulesFor = (ROOT, BASH_ROOT, PORT) => `Standing rules for this project (th
 ${ROOT === MAIN ? '' : `- Your working tree is ${ROOT}, a git worktree of the repository (a lane of the 48-hour build, S54). Every path you read or write is under it. Never read, edit, check out or run git in ${MAIN}: other lanes and the orchestrator work there. A Supabase CLI command that needs the project link runs \`supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"\` in this tree's app folder first (the link is per folder). Never push an unmerged migration to mop-dev from a lane (ASSUMED section H, ruling DB-01): your database proof is the \`db\` job of CI on your pull request.\n`}- ${ROOT}/workspace/05-plans/STANDARDS.md binds every line you write: its folder map says where each file lives (a file that fits no row stops you: say so, do not invent a folder), its rules and mechanical gates are part of every proof. ASSUMED section H (the engineering review rulings) overrules older plan text; when a plan line cites a finding id (for example DB-01), its full text is in ${ROOT}/workspace/05-plans/review/${slice}.md.
 - Write only what the step needs. No dead code, no speculative option or abstraction, no comment that restates the code, no swallowed error, no TODO left behind, no file outside the folder map, nothing committed that is build output, a log or a scratch file.- Work only on the branch ${branch}. Check \`git -C "${ROOT}" branch --show-current\` before every commit. Never commit to main, never merge your branch into main, never force-push, never rewrite pushed history. You may bring main into your branch with \`git fetch -q origin && git merge origin/main\` (a merge commit, never a rebase) at the start of your work and whenever GitHub shows your pull request as conflicting, because a conflicting pull request starts no CI run (GOTCHAS P-136); GOTCHAS.md merges by entry through its own driver, and you run \`node workspace/05-plans/check-gotchas.mjs\` after such a merge.
 - One writer per file: touch only the files your group names, plus ${logPath} (append only). One exception (ruling H46): when a gate of \`bun run check\` fails only because your group's own new files need an entry in a gate's configuration (knip.json, .jscpd.json, eslint.config.js, a tsconfig include, .gitignore, tests/mutations registry wiring), add the smallest entry that names your files or your binary, say it in the log, and go on. That is not a reason to stop BLOCKED. A dependency the plan installs before any code imports it is added in the step that first imports it (STANDARDS R04).
+- Migrations (ruling H57): never push a migration to mop-dev from this lane and never run db:reset or the seed there; prove a migration inside rolled-back transactions on mop-dev (P-312). The workflow merges an accepted migration group into main at once and main pushes it; a proof that needs the pushed migration is UNPROVEN until then and says so.
 - Lanes run side by side (ruling H45). The local preview port of this lane is ${PORT}: wherever a plan step, a script or a gotcha says 8788, use ${PORT} here (\`wrangler dev --config .output/server/wrangler.json --port ${PORT}\` after copying .dev.vars as the cf:preview script does). Stop only the processes you started, by their own process id; never stop every node or workerd process, another lane may be serving its own preview.${a.bankBase ? ` Gotcha numbers in this lane start at P-${a.bankBase.P} and G-${a.bankBase.G}: take the next free number at or above them, so two lanes never hand out the same number.` : ''}
 - Context is the cost (ruling H52): read a file longer than about 300 lines in slices (offset and limit), never re-read a file you just edited, run every command that prints more than a screen through \`node workspace/05-plans/quiet.mjs -- <command>\`, and never run a test suite in verbose mode unless a proof asks for a listed test name.
 - Each cost you list under costTime names the gotcha entry that banks it. A cost without an entry is not finished work.
@@ -255,6 +256,18 @@ const settle = async () => {
 const settleAll = async () => { while (pending.length) { await Promise.all(pending.map((x) => x.review)); await settle() } }
 const failed = () => out.some((o) => o.status === 'rejected' || o.status === 'failed' || (o.status === 'blocked' && o.built))
 
+// One merge of the branch into main through the gate (ruling H50); used after an accepted schema group (P-512) and at the slice end.
+let acceptedAtLastMerge = 0
+let merged = null
+const mergeNow = (label) => callAgent(`${RULES}
+
+You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
+1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; resolve a conflict only in GOTCHAS.md (it merges by entry through its driver; run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}) or in a log file (keep both sides). Any other conflict: stop and return status "blocked" naming the file. Push.
+2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one, not a draft (\`gh pr create --base main --head ${branch}\` with a title naming the slice and the steps it carries). Otherwise \`gh pr ready <n>\`.
+3. Wait for its checks: \`gh pr checks <n> --watch --interval 20\` (run it in the background and read its output file if it passes ten minutes). If a check fails, read the failing job's log (\`gh run view <id> --log-failed\`), fix nothing, and return status "blocked" with the failing step's output pasted.
+4. \`node workspace/05-plans/merge-gate.mjs <n>\` from ${ROOT}; paste its output. It must print the merge; if it refuses, return status "blocked" with its words.
+5. Record the merge commit (\`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid\`) in proofs, with the CI run id. Report status "done".`, { label, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+
 for (const g of groups) {
   if (g.blocked) {
     out.push({ group: g.id, steps: g.steps, status: 'blocked', blockedOn: g.blockedOn })
@@ -272,6 +285,13 @@ for (const g of groups) {
   pending.push(item)
   startReview(item, 0)
   await settle()
+  // P-512: a migration lands on main before the code that needs it, and never from a branch: an accepted schema group
+  // merges now, while the lane is quiet (the next builder has not started).
+  if (schemaWork(g) && !a.noMerge) {
+    await settleAll()
+    const mine = out.find((o) => o.group === g.id)
+    if (mine && mine.status === 'accepted') { const m = await mergeNow(`merge:${slice}:${g.id}:${g.steps}`); merged = m; if (m && m.status === 'done') acceptedAtLastMerge = out.filter((o) => o.status === 'accepted').length; if (!m || m.status !== 'done') { log(`${g.id}: the merge of the schema group did not land; stopping`); out.push({ group: `${g.id}-merge`, steps: g.steps, status: 'failed', blockedOn: m ? m.blockedOn : 'merge agent died' }); break } }
+  }
   if (g.needsOrchestrator) { await settleAll(); log(`stopping after ${g.id}: the orchestrator must act: ${g.needsOrchestrator}`); break }
 }
 await settleAll()
@@ -287,15 +307,8 @@ const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.need
 // A group the sizing marked blocked (waiting on another slice) has no `built` and does not hold the merge back;
 // a group a builder returned blocked, or a rejected or failed one, does.
 const sliceDone = !next && out.some((o) => o.status === 'accepted') && out.every((o) => o.status === 'accepted' || (o.status === 'blocked' && !o.built))
-let merged = null
-if (!a.noMerge && (sliceDone || (a.mergeEach && out.at(-1)?.status === 'accepted')) && !stoppedForOrchestrator) {
-  merged = await callAgent(`${RULES}
-
-You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
-1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; resolve a conflict only in GOTCHAS.md (it merges by entry through its driver; run \`node workspace/05-plans/check-gotchas.mjs\` from ${ROOT}) or in a log file (keep both sides). Any other conflict: stop and return status "blocked" naming the file. Push.
-2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one, not a draft (\`gh pr create --base main --head ${branch}\` with a title naming the slice and the steps it carries). Otherwise \`gh pr ready <n>\`.
-3. Wait for its checks: \`gh pr checks <n> --watch --interval 20\` (run it in the background and read its output file if it passes ten minutes). If a check fails, read the failing job's log (\`gh run view <id> --log-failed\`), fix nothing, and return status "blocked" with the failing step's output pasted.
-4. \`node workspace/05-plans/merge-gate.mjs <n>\` from ${ROOT}; paste its output. It must print the merge; if it refuses, return status "blocked" with its words.
-5. Record the merge commit (\`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid\`) in proofs, with the CI run id. Report status "done".`, { label: `merge:${slice}:all:${out.map((o) => o.steps).join(',')}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+const unmerged = out.filter((o) => o.status === 'accepted').length > acceptedAtLastMerge
+if (!a.noMerge && unmerged && (sliceDone || (a.mergeEach && out.at(-1)?.status === 'accepted')) && !stoppedForOrchestrator) {
+  merged = await mergeNow(`merge:${slice}:all:${out.map((o) => o.steps).join(',')}`)
 }
 return { slice, branch, root: ROOT, base: BASE, log: logPath, groups: out, merged, resumeWith: next ? { slice, startAt: next.id } : null, sizing: sized }
