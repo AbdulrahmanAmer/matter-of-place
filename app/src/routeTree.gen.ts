@@ -47,6 +47,7 @@ import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/storie
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
+import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
 import { Route as ApiPublicMarketsSlugRouteImport } from './routes/api/public/markets.$slug'
 import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public/properties.$slug'
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
@@ -243,6 +244,11 @@ const ApiHooksOpsHealthTokenRoute = ApiHooksOpsHealthTokenRouteImport.update({
   path: '/api/hooks/ops-health/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHooksRenderCallbackRoute = ApiHooksRenderCallbackRouteImport.update({
+  id: '/api/hooks/render/callback',
+  path: '/api/hooks/render/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketsSlugRoute = ApiPublicMarketsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
@@ -404,6 +412,7 @@ export interface FileRoutesById {
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
+  '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
   '/api/public/properties/$slug': typeof ApiPublicPropertiesSlugRoute
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/markets/'
     | '/stories/'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/stories'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/_site/markets/'
     | '/_site/stories/'
     | '/api/hooks/ops-health/$token'
+    | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
     | '/api/public/properties/$slug'
     | '/api/public/stories/$slug'
@@ -564,6 +576,7 @@ export interface RootRouteChildren {
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
+  ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
 }
 
@@ -835,6 +848,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHooksOpsHealthTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/hooks/render/callback': {
+      id: '/api/hooks/render/callback'
+      path: '/api/hooks/render/callback'
+      fullPath: '/api/hooks/render/callback'
+      preLoaderRoute: typeof ApiHooksRenderCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/markets/$slug': {
       id: '/api/public/markets/$slug'
       path: '/$slug'
@@ -1034,6 +1054,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
+  ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
 }
 export const routeTree = rootRouteImport

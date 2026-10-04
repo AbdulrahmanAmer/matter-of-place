@@ -70,6 +70,7 @@ begin
   values ('ask', 'Test Person', 'person@example.test', 'x', '/contact');
   insert into public.subscribers (email, source) values ('test-rls-' || v_user || '@example.test', 'test');
   insert into public.analytics_events (event, path, occurred_at) values ('page_view', '/', now());
+  insert into public.analytics_daily (day, event, path, events) values (current_date, 'page_view', '/test-rls', 1);
   insert into public.payments (submission_id, product, amount) values (v_submission, 'The Feature', 1000)
   returning id into v_payment;
   insert into public.campaigns (property_id, payment_id, package) values (v_property, v_payment, 'The Feature')

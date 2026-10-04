@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { signBody, verifyBody } from "../../../src/server/lib/hmac";
+import { signBody as signInScript } from "../../../scripts/post-callback.mjs";
 
 // The contract vector shared with the render job's callback script (B8 step 7). The signature was
 // computed once with node:crypto `createHmac("sha256", SECRET).update(`${TIMESTAMP}.${BODY}`)`.
@@ -12,6 +13,10 @@ const SIGNATURE = "sha256=9da8a1d2c55882fea1e279f1c8ca7f5167a73f66ae756d5ad9d534
 describe("signBody", () => {
   it("signs the contract vector", async () => {
     expect(await signBody(SECRET, TIMESTAMP, BODY)).toBe(SIGNATURE);
+  });
+
+  it("signs it the same way in the render job's callback script", () => {
+    expect(signInScript(SECRET, TIMESTAMP, BODY)).toBe(SIGNATURE);
   });
 });
 

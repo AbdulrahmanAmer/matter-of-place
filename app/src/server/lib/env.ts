@@ -19,6 +19,8 @@ const shape = z.object({
   RESEND_WEBHOOK_SECRET: text.optional(),
   // Path token of the ops-health hook; unset, the hook answers 404 (DO-03).
   OPS_HEALTH_TOKEN: text.optional(),
+  // Key of the render callback signature; unset, the render hook answers 503 (B8 Contract).
+  RENDER_CALLBACK_SECRET: text.optional(),
   CATALOG_VERSION_TTL_MS: z.coerce.number().int().nonnegative().optional(),
 });
 
