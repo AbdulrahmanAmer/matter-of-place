@@ -814,5 +814,220 @@
     "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
     "expect": "Expected: \"/exposure\"[\\s\\S]*Received: \"/about\"",
     "kind": "manual"
+  },
+  {
+    "id": "fa-same",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    id: deterministicUuid(\"fixtures:submission\", n),",
+    "replace": "    id: deterministicUuid(\"fixtures:submission\", 0),",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "gives the same row for the same n and another row for another n"
+  },
+  {
+    "id": "fa-override",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    ...overrides,\n  } satisfies SubmissionInsert;",
+    "replace": "  } satisfies SubmissionInsert;",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "lets an override win, and the row is a submissions insert"
+  },
+  {
+    "id": "fa-dates",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    accepted_at: dated(ACCEPTED.includes(state), base, -20),",
+    "replace": "    accepted_at: dated(true, base, -20),",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "dates review, acceptance and activation from base, as the state requires"
+  },
+  {
+    "id": "fa-sources",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/dataset.ts",
+    "find": "  const base = await dbNow(db);",
+    "replace": "  const base = await dbNow(db);\n  void Date.now();",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "takes no time, randomness or id from outside its inputs"
+  },
+  {
+    "id": "fa-states",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/dataset.ts",
+    "find": "  submissions: states.map((state, index) => ({ state, n: index + 1 })),",
+    "replace": "  submissions: states.map((state) => ({ state, n: 1 })),",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "holds one submission per workflow state, each with its own n"
+  },
+  {
+    "id": "fa-format",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/dataset.ts",
+    "find": ".join(\", \");",
+    "replace": ".join(\" \");",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "prints its counts in load order"
+  },
+  {
+    "id": "o-rights",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    rights_version: \"2026-10-01\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"inserts a row the constraints accept\"",
+    "expect": "null value in column \"rights_version\""
+  },
+  {
+    "id": "o-retention",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "  await db.query(\"select set_config('mop.retention', 'on', true)\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves zero rows with the marker\"",
+    "expect": "hard_delete_refused"
+  },
+  {
+    "id": "fd-dbnow",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/dataset.ts",
+    "find": "    ids.push(await createSubmission(db, { ...submission, base }));",
+    "replace": "    ids.push(await createSubmission(db, { ...submission, base: new Date() }));",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves the same rows when it runs twice\"",
+    "expect": "× .*leaves the same rows when it runs twice"
+  },
+  {
+    "id": "fd-contact",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "  const entries = Object.entries({ ...row, contact_id: contact.rows[0]?.id });",
+    "replace": "  const entries = Object.entries(row);",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"inserts a row the constraints accept\"",
+    "expect": "× .*inserts a row the constraints accept at every workflow state, linked to its contact"
+  },
+  {
+    "id": "fd-gate",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    accepted_at: dated(ACCEPTED.includes(state), base, -20),",
+    "replace": "    accepted_at: null,",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"gives the gate an accepted row\"",
+    "expect": "wrong_state"
+  },
+  {
+    "id": "fd-contact-kept",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "\n     and not exists (select 1 from public.submissions s where s.contact_id = c.id)",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"keeps a contact that a submission it does not match still uses\"",
+    "expect": "violates foreign key constraint"
+  },
+  {
+    "id": "fd-jobs",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    emailLike === FIXTURE_EMAIL_LIKE\n",
+    "replace": "    emailLike !== \"\"\n",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"removes fixture jobs only with the default pattern\"",
+    "expect": "× .*removes fixture jobs only with the default pattern"
+  },
+  {
+    "id": "fd-harness",
+    "kind": "sql",
+    "test": "tests/db/factories.db.test.ts",
+    "sql": "commit",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves no fixture row behind once it returns\"",
+    "expect": "× .*leaves no fixture row behind once it returns"
+  },
+  {
+    "id": "x-if",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n    needs: build\n",
+    "replace": "    needs: build\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "each carries the heavy-job condition verbatim and a timeout[\\s\\S]*[+] +\"e2e\""
+  },
+  {
+    "id": "x-timeout",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    timeout-minutes: 30\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "each carries the heavy-job condition verbatim and a timeout"
+  },
+  {
+    "id": "x-group",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    timeout-minutes: 20\n",
+    "replace": "    timeout-minutes: 20\n    concurrency:\n      group: mop-dev\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "[+] +\"db: group:"
+  },
+  {
+    "id": "x-local",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "          E2E_MODE: live\n        run: bunx playwright test --project=desktop",
+    "replace": "          E2E_MODE: local\n        run: bunx playwright test --project=desktop",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "[+] +\"e2e: E2E_MODE"
+  },
+  {
+    "id": "x-secret",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "            echo \"CATALOG_VERSION_TTL_MS=0\"\n",
+    "replace": "            echo \"CATALOG_VERSION_TTL_MS=0\"\n            echo \"X=${{ secrets.X }}\"\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "each starts a stack of its own and reads no secret"
+  },
+  {
+    "id": "x-artifact",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    needs: build\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "e2e tests build's artifact and never builds"
+  },
+  {
+    "id": "x-filter",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - run: bun run test:e2e:install\n",
+    "replace": "      - run: git diff --name-only origin/main -- supabase\n      - run: bun run test:e2e:install\n",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "a path filter on it keeps src/"
+  },
+  {
+    "id": "x-required",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"db\", \"e2e\", \"preview\"];",
+    "replace": "export const REQUIRED_PR_CHECKS = [\"check\", \"build\", \"preview\"];",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "both are required checks of the merge gate"
+  },
+  {
+    "id": "u-load-fixtures",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/load-fixtures.ts",
+    "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/assert-not-production.test.ts",
+    "expect": "[+] +\"scripts/load-fixtures[.]ts\""
+  },
+  {
+    "id": "u-global-setup",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/e2e/global-setup.ts",
+    "find": "import { assertNotProduction } from \"../../scripts/lib/assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/assert-not-production.test.ts",
+    "expect": "[+] +\"tests/e2e/global-setup[.]ts\""
   }
 ]

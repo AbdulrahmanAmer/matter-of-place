@@ -377,6 +377,57 @@ describe("workflows (invariants 1, 8, 13 to 15; R54, R56, R58)", () => {
   });
 });
 
+const HEAVY_IF =
+  "if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'";
+const DATABASE_JOBS = ["db", "e2e"];
+
+describe("ci.yml db and e2e (B4 steps 7 and 8; DO-08, T-01, T-04, T-12)", () => {
+  it("each carries the heavy-job condition verbatim and a timeout", () => {
+    const loose = DATABASE_JOBS.filter((job) => {
+      const text = textOf(ci, job);
+      return !text.includes(HEAVY_IF) || !/^ {4}timeout-minutes: \d+$/m.test(text);
+    });
+    expect(loose).toEqual([]);
+  });
+
+  it("each starts a stack of its own and reads no secret", () => {
+    const loose = DATABASE_JOBS.filter((job) => {
+      const text = textOf(ci, job);
+      return !text.includes("bunx supabase start -x ") || text.includes("secrets.");
+    });
+    expect(loose).toEqual([]);
+  });
+
+  it("no job names the shared database's group or project, or sweeps in local mode", () => {
+    const FORBIDDEN = [
+      /group:\s*["']?mop-dev/,
+      /DEV_SUPABASE_PROJECT_REF/,
+      /E2E_MODE(=|:\s*)local/,
+    ];
+    const hits = [...(ci?.jobText ?? [])].flatMap(([job, text]) =>
+      FORBIDDEN.filter((word) => word.test(text)).map((word) => `${job}: ${word.source}`),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("e2e tests build's artifact and never builds, and a path filter on it keeps src/", () => {
+    const text = textOf(ci, "e2e");
+    const filters = (ci?.data.jobs["e2e"]?.steps ?? [])
+      .flatMap((step) => (step.run ?? "").split("\n"))
+      .filter((line) => line.includes("git diff --name-only"));
+    expect({
+      needs: /^ {4}needs: build$/m.test(text),
+      artifact: /actions\/download-artifact@[\s\S]*name: build-output/.test(text),
+      builds: text.includes("bun run build"),
+      narrow: filters.filter((line) => !/\bsrc\//.test(line)),
+    }).toEqual({ needs: true, artifact: true, builds: false, narrow: [] });
+  });
+
+  it("both are required checks of the merge gate", () => {
+    expect(DATABASE_JOBS.filter((job) => !REQUIRED_PR_CHECKS.includes(job))).toEqual([]);
+  });
+});
+
 const PR_JOBS = ["preview-db", "preview", "preview-cleanup"];
 const deployJob = (job: string) => deploy?.data.jobs[job];
 const has = (job: string, needle: string) => textOf(deploy, job).includes(needle);

@@ -1138,8 +1138,8 @@
     "id": "ao",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
-    "find": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
-    "replace": "actions/upload-artifact@v4",
+    "find": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1\n        with:\n          name: build-output",
+    "replace": "actions/upload-artifact@v4\n        with:\n          name: build-output",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "uses: actions/upload-artifact@v4"
   },

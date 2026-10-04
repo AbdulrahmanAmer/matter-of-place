@@ -17,6 +17,8 @@ const guardedScripts = [
   "scripts/e2e-coming-soon.ts",
   "scripts/seed.ts",
   "scripts/job-selftest.ts",
+  "scripts/load-fixtures.ts",
+  "tests/e2e/global-setup.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {
