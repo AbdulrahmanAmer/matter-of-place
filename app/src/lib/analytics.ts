@@ -1,5 +1,6 @@
 import { siteConfig } from "../config/site";
 import { utmSchema, type Utm } from "../domain/contracts";
+import { consentGranted } from "./consent";
 
 /**
  * Analytics events. Every user action calls `track()`; add new names to
@@ -32,6 +33,9 @@ export const analyticsEvents = [
   "filter_use",
   "search",
   "home_finder",
+  "interest_signup",
+  "coming_soon_view",
+  "consent_set",
 ] as const;
 export type AnalyticsEvent = (typeof analyticsEvents)[number];
 
@@ -58,10 +62,12 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let listening = false;
 let utmAllowed: () => boolean = () => false;
 
-/** Campaign attribution (G45) is sent only while the visitor's consent holds; B3b wires `consentGranted` here. */
+/** Campaign attribution (G45) is sent only while the visitor's consent holds. */
 export function setUtmConsent(check: () => boolean): void {
   utmAllowed = check;
 }
+// Read lazily inside `track`, so no storage is touched while the module loads on the server (G50).
+setUtmConsent(consentGranted);
 
 /** The campaign parameters of an address, each cut to 100 characters, a missing one left out. */
 function readUtm(search: string): Utm | undefined {
