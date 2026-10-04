@@ -2686,3 +2686,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before any live proof that names the flag, read it with the psql line below and record the value in the log; if it is not the value the plan expects, wait or record the proof UNPROVEN, and never set it by hand to make a proof pass, because that breaks the other lane's run.
 - proof: `psql "$DEV_DB_URL" -At -c "select value::text from settings where key='coming_soon_global'"` → `false` before step 6's `with-coming-soon.ts --value true` run, which then ends `coming_soon_global restored to false` (measured 2026-10-04 22:47 +0300, B3b g5 repair).
 - added: 2026-10-04
+
+## P-517 · Most fix rounds were false sentences, not bad code: the builder never re-read its own claims against the file
+- symptom: 2026-10-04, eleven rejections across B3, B3b, B4, B8b, B9, B15: seven on runbook or log sentences that stated something false about a cache key, a header, a focus ring or a start commit (B3 step 13 alone took five reviews); two on registry entries the formatter made stale; two on code (a token in a network error, a fan-out that stopped on a bad event).
+- cause: the brief asked for proofs and a log, never for a re-read of written facts; "only" and "never" sentences were written from intent, not from the code; prettier ran after the watched-fail was recorded.
+- rule: ruling H60: the brief ends with the builder's own pass (facts checked against files or runs, absolutes given a second case, registry replayed after formatting, start and hand-in commits named, stand-in proofs labelled). The reviewer does not soften.
+- proof: `grep -c "the reviewer's own pass (ruling H60" .claude/workflows/build-slice.js` → 1; the measure is the fix-round count per accepted group in the journals of the next day against today's 11 of 24.
+- enforced-by: .claude/workflows/build-slice.js (the builder brief)
+- added: 2026-10-04
