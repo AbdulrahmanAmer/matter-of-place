@@ -2257,5 +2257,23 @@
     "sql": "create or replace function public.meta_token_record(\n  p_checked_at timestamptz,\n  p_token_state text,\n  p_missing_scopes text[],\n  p_expires_at timestamptz default null,\n  p_data_access_expires_at timestamptz default null,\n  p_new_token text default null\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-06: what the daily check read about the Meta token, merged into settings.meta (an admin key, so no catalog\n  -- bump, G21). A null expiry means never; the two dates come last with defaults, so a caller leaves a null one out.\n  -- A refreshed token goes to Vault with its one secret.rotated row in the same transaction. Two runs never write at\n  -- once: the second answers locked (G21).\n  if not pg_try_advisory_xact_lock(hashtext('meta_page_token')) then\n    return 'locked';\n  end if;\n  update public.settings\n  set value = value || jsonb_build_object(\n    'token_expires_at', p_expires_at,\n    'token_checked_at', p_checked_at,\n    'token_state', p_token_state,\n    'missing_scopes', to_jsonb(p_missing_scopes),\n    'data_access_expires_at', p_data_access_expires_at\n  )\n  where key = 'meta';\n  if p_new_token is not null then\n    perform public.set_vault_secret('meta_page_token', p_new_token);\n    insert into public.audit_log (action, entity, actor_id, actor_kind)\n    values ('secret.rotated', 'META_PAGE_TOKEN', null, null);\n  end if;\n  return 'ok';\nend;\n$$;\n\nrevoke execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  from public, anon, authenticated;\ngrant execute on function public.meta_token_record(timestamptz, text, text[], timestamptz, timestamptz, text)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/retention.db.test.ts -t \"meta_token_record refuses a token state\"",
     "expect": "× .*meta_token_record refuses a token state"
+  },
+  {
+    "id": "st-route-env",
+    "test": "tests/unit/sentry-test-route.test.ts",
+    "file": "src/routes/api/hooks/sentry-test.ts",
+    "find": "env.SENTRY_TEST_TOKEN",
+    "replace": "process.env[\"SENTRY_TEST_TOKEN\"]",
+    "run": "bunx vitest run --project unit tests/unit/sentry-test-route.test.ts -t \"reads SENTRY_TEST_TOKEN through env.ts\"",
+    "expect": "promise resolved .* instead of rejecting"
+  },
+  {
+    "id": "rc-wired",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "reconcileJob(settleUploads)",
+    "replace": "reconcileJob(() => Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }))",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts -t \"runs the real reconcileUploads\"",
+    "expect": "expected \\[\\] to deep equally contain"
   }
 ]
