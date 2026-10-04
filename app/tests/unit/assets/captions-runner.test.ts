@@ -132,6 +132,13 @@ describe("runClaudeCli", () => {
       "caption CLI exited with code 1",
     );
   }, 30_000);
+
+  it("an answer that reports is_error and exits 0 throws", async () => {
+    vi.stubEnv("CAPTIONS_STUB_MODE", "error_answer");
+    await expect(runClaudeCli(PROMPT, MODEL, new AbortController().signal)).rejects.toThrow(
+      "caption CLI answered an error",
+    );
+  }, 30_000);
 });
 
 describe("runCaptionJobs", () => {

@@ -799,6 +799,7 @@ interface TextRows {
   media?: ReturnType<typeof mediaRow>[];
   stubs?: Partial<Record<AssetKind, Partial<Tables<"assets">>>>;
   jobs?: Tables<"jobs">[];
+  assets?: Tables<"assets">[];
 }
 
 const captionModel = {
@@ -823,7 +824,7 @@ function textDb(rows: TextRows = {}): FakeDb {
     tables: {
       properties: [rows.property ?? propertyRow()],
       property_media: rows.media ?? [mediaRow(0), mediaRow(1), mediaRow(2)],
-      assets: [assetRow({ kind: "carousel" })],
+      assets: rows.assets ?? [assetRow({ kind: "carousel" })],
       jobs: rows.jobs ?? [],
       settings: [captionModel],
     },
@@ -964,6 +965,19 @@ describe("write_captions", () => {
     expect(textFor(db, "carousel").every((args) => !("p_caption" in args))).toBe(true);
   });
 
+  it("a caption typed by hand while the model answers is not overwritten", async () => {
+    const assets = [assetRow({ kind: "carousel" })];
+    const db = textDb({ assets });
+    const complete = stubComplete();
+    complete.mockImplementationOnce(() => {
+      assets.push(assetRow({ id: "asset-cover", kind: "cover", meta: { caption_lint: "edited" } }));
+      return Promise.resolve(answered(GOOD_CAPTIONS));
+    });
+    await runCaptions(db, complete);
+    expect(textFor(db, "cover")).toEqual([]);
+    expect(textFor(db, "story")).toHaveLength(1);
+  });
+
   it("approved work is untouched by a second publish and the model is not asked", async () => {
     const approved = { status: "approved" } as const;
     const db = textDb({
@@ -1096,7 +1110,7 @@ describe("build_newsletter_block", () => {
     ]);
   });
 
-  it("Campaign creates both, the standalone pending, with the same block", async () => {
+  it("Campaign creates both, with the same block", async () => {
     const db = textDb({ property: campaign });
     await run(db);
     expect(stubKinds(db)).toEqual(["newsletter_block", "standalone_email"]);
@@ -1107,7 +1121,6 @@ describe("build_newsletter_block", () => {
       subject: "A residence",
       preheader: "A quiet street under old oaks.",
     });
-    expect(assetRow({ kind: "standalone_email" }).status).toBe("pending");
   });
 
   it("a job with data.kind standalone_email and revision 2 upserts no newsletter_block row", async () => {

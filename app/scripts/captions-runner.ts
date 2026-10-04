@@ -30,7 +30,6 @@ const ENV_FILE_NAMES = [
   "DEV_SUPABASE_PROJECT_REF",
   "DEV_SUPABASE_SERVICE_ROLE_KEY",
   "CAPTIONS_CLI",
-  "MEDIA_PUBLIC_BASE",
 ];
 
 const cliAnswer = z.object({

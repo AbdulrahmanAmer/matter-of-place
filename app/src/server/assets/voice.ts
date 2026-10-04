@@ -173,9 +173,9 @@ export function lintCaption(
   if (links.some((found) => found !== link) || (channel === "x" && !links.includes(link))) {
     add(
       "link",
-      channel === "x"
-        ? `Carry exactly this link and no other: ${link}`
-        : "Carry no link; the profile holds it.",
+      channel === "instagram"
+        ? "Carry no link; the profile holds it."
+        : `Carry exactly this link and no other: ${link}`,
     );
   }
   const limit = CAPTION_LIMITS[channel];

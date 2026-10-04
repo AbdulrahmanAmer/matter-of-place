@@ -1,6 +1,7 @@
 // The stub of the Claude CLI (ASSUMED H34 (7)): `CAPTIONS_CLI=bun tests/fixtures/claude-stub.ts`. It answers `--version`,
 // appends its arguments and the length of its stdin to the file named by CAPTIONS_STUB_LOG, and prints the fixed CLI
-// result that holds the caption JSON of property.fixture.json. CAPTIONS_STUB_MODE=error prints an error result.
+// result that holds the caption JSON of property.fixture.json. CAPTIONS_STUB_MODE=error prints an error result and exits 1;
+// error_answer prints the same result and exits 0, the CLI's way of reporting an error inside a clean exit.
 import { appendFileSync } from "node:fs";
 import fixture from "../../src/templates/social/fixtures/property.fixture.json";
 import { propertyLink } from "../../src/server/assets/links.ts";
@@ -22,7 +23,8 @@ if (args.includes("--version")) {
   if (logFile !== undefined) {
     appendFileSync(logFile, `${JSON.stringify({ args, stdin_length: stdin.length })}\n`);
   }
-  const failing = process.env["CAPTIONS_STUB_MODE"] === "error";
+  const mode = process.env["CAPTIONS_STUB_MODE"];
+  const failing = mode === "error" || mode === "error_answer";
   const captions = {
     ...fixture.captions,
     x: `${fixture.captions.x} ${propertyLink(fixture.property.slug, "x")}`,
@@ -34,5 +36,5 @@ if (args.includes("--version")) {
     usage: { input_tokens: 900, output_tokens: 300 },
   };
   process.stdout.write(`${JSON.stringify(answer)}\n`);
-  process.exitCode = failing ? 1 : 0;
+  process.exitCode = mode === "error" ? 1 : 0;
 }

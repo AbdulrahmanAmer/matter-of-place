@@ -95,6 +95,13 @@ describe("lintCaption", () => {
     expect(rules(`A quiet house. ${propertyLink("oak-hill", "x")}`)).toContain("link");
   });
 
+  it("a linkedin caption with the wrong link is told which link to carry, not to drop it", () => {
+    const wrong = propertyLink("oak-hill", "x");
+    const [issue] = lintCaption(`A quiet house. ${wrong}`, PROPERTY, "linkedin");
+    expect(issue?.rule).toBe("link");
+    expect(issue?.message).toContain(propertyLink("oak-hill", "linkedin"));
+  });
+
   it("instagram holds 2200 characters and not 2201", () => {
     expect(rules("a".repeat(2200))).toEqual([]);
     expect(rules("a".repeat(2201))).toContain("length");

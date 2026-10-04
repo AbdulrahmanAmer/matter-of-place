@@ -45,6 +45,23 @@ async function requestedSlides(ctx: StepContext): Promise<number> {
   return carouselJob.safeParse(data[0]?.payload).data?.params.max_slides ?? DEFAULT_MAX_SLIDES;
 }
 
+/** The rows an editor typed while the model was answering: `set_asset_caption` does not stop a running job (H34 (5)). */
+async function typedByHand(ctx: StepContext, stubs: Tables<"assets">[]): Promise<Set<string>> {
+  const { data, error } = await ctx.db
+    .from("assets")
+    .select("id, meta")
+    .in(
+      "id",
+      stubs.map((stub) => stub.id),
+    );
+  if (error !== null) throw unavailable("assets");
+  return new Set(
+    data
+      .filter((row) => lintState.safeParse(row.meta).data?.caption_lint === "edited")
+      .map((row) => row.id),
+  );
+}
+
 /** Invariants 7, 10 and 12 and H34 (5): the stubs, the skips, the wait, then one `set_asset_text` per kind. */
 export async function runWriteCaptions(
   ctx: StepContext,
@@ -103,7 +120,9 @@ export async function runWriteCaptions(
 
   const { instagram, x, linkedin, alt_text: altText, slide_alts: slideAlts } = written.captions;
   const withAlt = params.alt_text !== false;
+  const edited = await typedByHand(ctx, writing);
   for (const stub of writing) {
+    if (edited.has(stub.id)) continue;
     // The newsletter block holds only the alt text of its image; its copy is `build_newsletter_block`'s.
     if (stub.kind === "newsletter_block" && !withAlt) continue;
     const { error } = await ctx.db.rpc(

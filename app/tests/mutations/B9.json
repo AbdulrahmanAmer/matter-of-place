@@ -1922,6 +1922,15 @@
     "expect": "× .*carries no link of another channel"
   },
   {
+    "id": "b9g7-voice-linkedin-link",
+    "test": "tests/unit/assets/voice.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "channel === \"instagram\"\n        ? \"Carry no link; the profile holds it.\"",
+    "replace": "channel !== \"x\"\n        ? \"Carry no link; the profile holds it.\"",
+    "run": "bunx vitest run --project unit tests/unit/assets/voice.test.ts -t \"told which link to carry\"",
+    "expect": "× .*told which link to carry"
+  },
+  {
     "id": "b9g7-voice-instagram",
     "test": "tests/unit/assets/voice.test.ts",
     "file": "src/server/assets/voice.ts",
@@ -2051,10 +2060,19 @@
     "id": "b9g7-runner-error",
     "test": "tests/unit/assets/captions-runner.test.ts",
     "file": "scripts/captions-runner.ts",
-    "find": "  if (run.code !== 0) throw new Error(`caption CLI exited with code ${String(run.code)}`);\n  let raw: unknown;\n  try {\n    raw = JSON.parse(run.stdout);\n  } catch {\n    throw new Error(\"caption CLI answer is not JSON\");\n  }\n  const answer = cliAnswer.safeParse(raw);\n  if (!answer.success) throw new Error(\"caption CLI answer is not the result object\");\n  if (answer.data.is_error === true) throw new Error(\"caption CLI answered an error\");",
-    "replace": "  let raw: unknown;\n  try {\n    raw = JSON.parse(run.stdout);\n  } catch {\n    throw new Error(\"caption CLI answer is not JSON\");\n  }\n  const answer = cliAnswer.safeParse(raw);\n  if (!answer.success) throw new Error(\"caption CLI answer is not the result object\");",
+    "find": "  if (run.code !== 0) throw new Error(`caption CLI exited with code ${String(run.code)}`);\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"an error answer throws\"",
     "expect": "× .*an error answer throws"
+  },
+  {
+    "id": "b9g7-runner-is-error",
+    "test": "tests/unit/assets/captions-runner.test.ts",
+    "file": "scripts/captions-runner.ts",
+    "find": "answer.data.is_error === true",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/assets/captions-runner.test.ts -t \"reports is_error and exits 0\"",
+    "expect": "× .*reports is_error and exits 0"
   },
   {
     "id": "b9g7-runner-usage",
@@ -2199,6 +2217,15 @@
     "replace": "true",
     "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"keeps its caption\"",
     "expect": "× .*keeps its caption"
+  },
+  {
+    "id": "b9g7-wc-typed-meanwhile",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "    if (edited.has(stub.id)) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"typed by hand while the model answers\"",
+    "expect": "× .*typed by hand while the model answers"
   },
   {
     "id": "b9g7-wc-approved",
