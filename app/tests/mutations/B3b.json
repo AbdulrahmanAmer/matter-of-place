@@ -1,0 +1,342 @@
+[
+  {
+    "id": "b3b-d",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "Nothing is listed yet. Leave your email and we will write when the first property is published.\",\n    },\n    properties",
+    "replace": "Nothing is listed yet \u2014 Leave your email and we will write when the first property is published.\",\n    },\n    properties",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*has no em dash"
+  },
+  {
+    "id": "b3b-cv-count",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "    badge: \"Opening soon\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*holds 31 strings"
+  },
+  {
+    "id": "b3b-cv-hype",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "link: \"Read our editorial standard\"",
+    "replace": "link: \"Unlock our editorial standard\"",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*has no hyperbole"
+  },
+  {
+    "id": "b3b-cv-brief",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "note: \"We will only write about this.\"",
+    "replace": "note: \"We will only write about this. We will only write about this. We will only write about this. We will only write about this. We will only write about this. We will only write about this. We will only write about this. We will only write about this. \"",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*is brief"
+  },
+  {
+    "id": "b3b-cv-places",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "badge: \"Opening soon\"",
+    "replace": "badge: \"Opening soon in London\"",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*names no market outside"
+  },
+  {
+    "id": "b3b-cv-fill",
+    "kind": "file",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "{intro} No property is listed in {market} yet.",
+    "replace": "{intro} No property is listed in {town} yet.",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "× .*uses only the placeholders"
+  },
+  {
+    "id": "b3b-h",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.version === CONSENT_VERSION &&\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*is false for a stale version"
+  },
+  {
+    "id": "b3b-i",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    !globalPrivacyControl()\n",
+    "replace": "    true\n",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*is false when Global Privacy Control is set"
+  },
+  {
+    "id": "b3b-k",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "      analytics,\n      decided_at",
+    "replace": "      analytics: true,\n      decided_at",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*stores a decline as analytics false"
+  },
+  {
+    "id": "b3b-co-none",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record !== undefined &&\n",
+    "replace": "    record === undefined ||\n",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*is false with no record"
+  },
+  {
+    "id": "b3b-co-yes",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n",
+    "replace": "    !record.analytics &&\n",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*is true for a record of the current version"
+  },
+  {
+    "id": "b3b-co-no",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*is false for a record that says no"
+  },
+  {
+    "id": "b3b-co-corrupt",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  } catch {\n    return undefined;\n  }",
+    "replace": "  } catch {\n    return { version: CONSENT_VERSION, analytics: true };\n  }",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*reads corrupt JSON"
+  },
+  {
+    "id": "b3b-co-write-throw",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  } catch {\n    return false;\n  }\n  for",
+    "replace": "  } catch {\n    return true;\n  }\n  for",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*reads a throwing localStorage"
+  },
+  {
+    "id": "b3b-co-stores",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "      version: CONSENT_VERSION,\n",
+    "replace": "      version: 0,\n",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*stores the current version"
+  },
+  {
+    "id": "b3b-co-once",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "for (const listener of listeners) listener();",
+    "replace": "for (const listener of listeners) {\n    listener();\n    listener();\n  }",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*tells a listener once per write"
+  },
+  {
+    "id": "b3b-co-refused",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  } catch {\n    return false;\n  }\n  for",
+    "replace": "  } catch {\n    for (const listener of listeners) listener();\n    return false;\n  }\n  for",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*tells no listener"
+  },
+  {
+    "id": "b3b-co-event",
+    "kind": "file",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "window.dispatchEvent(new Event(OPEN_EVENT));",
+    "replace": "window.dispatchEvent(new Event(\"mop:other\"));",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*reaches a subscriber once"
+  },
+  {
+    "id": "b3b-l",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "    coming_soon: comingSoonGlobal === true,\n",
+    "replace": "    coming_soon: false,\n",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*turns coming_soon_global into the flag"
+  },
+  {
+    "id": "b3b-fl-defaults",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "  new_channels: false,\n",
+    "replace": "  new_channels: true,\n",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*defaults every feature flag to false"
+  },
+  {
+    "id": "b3b-fl-unknown",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "Object.fromEntries(Object.entries(row).filter(([key]) => isFeatureFlag(key)))",
+    "replace": "row",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*keeps a stored key and drops an unknown one"
+  },
+  {
+    "id": "b3b-fl-refuse",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "z.record(z.enum(featureFlags), z.boolean())",
+    "replace": "z.record(z.enum(featureFlags), z.unknown())",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*refuses a row that is not a record"
+  },
+  {
+    "id": "b3b-fl-snake",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "    coming_soon: comingSoonGlobal === true,\n",
+    "replace": "    comingSoon: comingSoonGlobal === true,\n",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*returns coming_soon, new_channels and archive_pages"
+  },
+  {
+    "id": "b3b-fl-archive",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "    ...defaultFlags,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*reads archive_pages as false"
+  },
+  {
+    "id": "b3b-fl-ignore",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "...(parsed.success ? parsed.data : {}),",
+    "replace": "...(typeof flagsRow === \"object\" ? flagsRow : {}),",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*ignores an unknown key of the row"
+  },
+  {
+    "id": "b3b-fl-malformed",
+    "kind": "file",
+    "test": "tests/unit/flags.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "parsed.success ? parsed.data : {}",
+    "replace": "parsed.success ? parsed.data : { new_channels: true }",
+    "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
+    "expect": "× .*gives the defaults for a malformed row"
+  },
+  {
+    "id": "b3b-cs-open",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "markets.filter((market) => !isComingSoon(market))",
+    "replace": "markets.filter((market) => isComingSoon(market))",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*reads a market's comingSoon and keeps"
+  },
+  {
+    "id": "b3b-cs-listings",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "properties.length > 0",
+    "replace": "properties.length >= 0",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*is false for an empty list"
+  },
+  {
+    "id": "b3b-cs-source",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "`interest:${market.slug}/${region.slug}`",
+    "replace": "`interest:${market.slug}`",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*names the page scopes"
+  },
+  {
+    "id": "b3b-cs-fill",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "values[name] ?? match",
+    "replace": "values[name] ?? \"\"",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*fills every occurrence"
+  },
+  {
+    "id": "b3b-cs-own",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "    if (own !== undefined && own !== \"\") return own;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*returns the market's own copy"
+  },
+  {
+    "id": "b3b-cs-empty",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "own !== undefined && own !== \"\"",
+    "replace": "own !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*returns the table string"
+  },
+  {
+    "id": "b3b-cs-scopes",
+    "kind": "file",
+    "test": "tests/unit/coming-soon.test.ts",
+    "file": "src/lib/coming-soon.ts",
+    "find": "if (scope === \"market\" || scope === \"region\") {",
+    "replace": "if (scope !== \"home\") {",
+    "run": "bunx vitest run --project unit tests/unit/coming-soon.test.ts",
+    "expect": "× .*ignores the market's copy"
+  },
+  {
+    "id": "b3b-z",
+    "kind": "file",
+    "test": "tests/unit/analytics-batch.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "setUtmConsent(consentGranted);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-batch.test.ts",
+    "expect": "× .*utm consent follows"
+  }
+]

@@ -94,11 +94,68 @@ const en = {
       "Thank you. Place Notes opens with the live service; your address stays with you for now.",
     liveSent: "Thank you. Place Notes will reach you when the next letter is ready.",
   },
+  comingSoon: {
+    eyebrow: "OPENING SOON",
+    what: "Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida.",
+    home: {
+      title: "The first properties are being considered.",
+      text: "We publish only what we have reviewed and accepted. Nothing is listed yet. Leave your email and we will write when the first property is published.",
+    },
+    properties: {
+      title: "No property is listed yet.",
+      text: "Every property here will have been reviewed and accepted by our editors. Tell us where you are looking and we will write when the first one is published.",
+    },
+    market: {
+      title: "No property is listed in {market} yet.",
+      text: "The {market} desk is reading the market and reviewing what agents send us. We will write when the first {market} property is published.",
+    },
+    region: {
+      title: "No property is listed in {region} yet.",
+      text: "The first {market} properties will appear here and on the {market} page. Leave your email and we will write when they do.",
+    },
+    stories: {
+      title: "Stories arrive with the first properties.",
+      text: "We write about a place once we have properly considered it. Leave your email and we will write when the first story is published.",
+    },
+    form: {
+      legend: "Where are you looking?",
+      submit: "Tell me when it opens",
+      note: "We will only write about this.",
+      sentMarket: "Thank you. We will write when the first {market} property is published.",
+      sentAny: "Thank you. We will write when the first property is published.",
+    },
+    badge: "Opening soon",
+    cardLine: "No property listed yet",
+    meta: {
+      properties:
+        "No property is listed yet. Leave your email to hear when the first one is published.",
+      market: "{intro} No property is listed in {market} yet.",
+    },
+    illustrative: {
+      title: "What is real here",
+      text: "The properties shown on this site are illustrative. They show how a dossier reads. None is for sale through Matter of Place and none is a real listing.",
+      link: "Read our editorial standard",
+      label: "ILLUSTRATIVE PREVIEW",
+    },
+  },
+  consent: {
+    label: "Cookie notice",
+    text: "We would like to count which pages are read, using Google Analytics. It sets cookies. If you say no, nothing else changes.",
+    accept: "Allow",
+    decline: "No, thank you",
+    link: "Read our privacy policy",
+    change: "Cookie settings",
+  },
 } as const;
 
 export type Strings = typeof en;
 
 const tables: Record<Locale, Strings> = { en };
+
+/** Fills `{name}` placeholders from `values`; a placeholder with no value stays as written. */
+export function fill(template: string, values: Readonly<Record<string, string | undefined>>) {
+  return template.replace(/\{(\w+)\}/g, (match, name: string) => values[name] ?? match);
+}
 
 /** Returns the string table for a locale (English until other tables exist). */
 function getStrings(locale: Locale = defaultLocale): Strings {
