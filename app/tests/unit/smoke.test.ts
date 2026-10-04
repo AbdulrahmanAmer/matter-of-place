@@ -21,8 +21,13 @@ type Call = { method: string; path: string; redirect: string; signal: boolean };
 
 const SECURITY = { "x-content-type-options": "nosniff", "x-frame-options": "DENY" };
 const PAGE_PATHS = ["/properties", "/markets", "/california", "/stories", "/submit", "/contact"];
+const API_READ = "/api/public/properties";
+const API_BEACON = "/api/public/events";
 
-function recorded(robotsTag: string | null = NOINDEX): Map<string, Answer> {
+function recorded(
+  robotsTag: string | null = NOINDEX,
+  services: "live" | "local" = "live",
+): Map<string, Answer> {
   const page = (extra: Record<string, string> = {}): Answer => ({
     status: 200,
     headers: { ...SECURITY, "x-robots-tag": robotsTag, ...extra },
@@ -30,7 +35,7 @@ function recorded(robotsTag: string | null = NOINDEX): Map<string, Answer> {
   const answers = new Map<string, Answer>(PAGE_PATHS.map((path) => [`GET ${path}`, page()]));
   answers.set("GET /", {
     ...page({ "cache-control": "public, max-age=0, must-revalidate" }),
-    body: `<!DOCTYPE html><html><head><link rel="modulepreload" href="${ASSET}"/></head></html>`,
+    body: `<!DOCTYPE html><html><head><link rel="modulepreload" href="${ASSET}"/></head><body class="x" data-services="${services}"></body></html>`,
   });
   answers.set("GET /sitemap.xml", page({ "content-type": "application/xml; charset=utf-8" }));
   answers.set(`HEAD ${ASSET}`, {
@@ -45,6 +50,15 @@ function recorded(robotsTag: string | null = NOINDEX): Map<string, Answer> {
     status: 404,
     headers: { "cache-control": "no-store", ...SECURITY },
   });
+  if (services === "local") {
+    answers.set(`GET ${API_READ}`, { status: 503, headers: {} });
+    return answers;
+  }
+  answers.set(`GET ${API_READ}`, {
+    status: 200,
+    headers: { "x-mop-cache": "miss", "x-catalog-version": "7" },
+  });
+  answers.set(`POST ${API_BEACON}`, { status: 400, headers: { "x-mop-cache": "bypass" } });
   return answers;
 }
 
@@ -117,6 +131,8 @@ describe("runSmoke", () => {
           (path) => `ok   ${PREVIEW}${path}`,
         ),
         `ok   ${PREVIEW}/api/hooks/sentry-test`,
+        `ok   ${PREVIEW}${API_READ}`,
+        `ok   ${PREVIEW}${API_BEACON}`,
         `smoke: OK ${PREVIEW}`,
       ],
       methods: [
@@ -124,6 +140,8 @@ describe("runSmoke", () => {
         `HEAD ${ASSET}`,
         "HEAD /media/tiburon-waterline.mp4",
         "POST /api/hooks/sentry-test",
+        `GET ${API_READ}`,
+        `POST ${API_BEACON}`,
       ],
       manual: true,
     });
@@ -175,7 +193,8 @@ describe("runSmoke", () => {
     {
       name: "/ with no /assets/*.js in its HTML",
       key: "GET /",
-      change: (a: Answer) => (a.body = "<!DOCTYPE html><html></html>"),
+      change: (a: Answer) =>
+        (a.body = `<!DOCTYPE html><html><body data-services="live"></body></html>`),
       line: `FAIL ${PREVIEW}/: no /assets/*.js in the HTML`,
     },
     {
@@ -214,6 +233,42 @@ describe("runSmoke", () => {
       change: (a: Answer) => (a.headers["cache-control"] = "no-store, private"),
       line: `FAIL ${PREVIEW}/api/hooks/sentry-test: cache-control no-store, private`,
     },
+    {
+      name: "a stale catalog read",
+      key: `GET ${API_READ}`,
+      change: (a: Answer) => (a.headers["x-mop-cache"] = "stale"),
+      line: `FAIL ${PREVIEW}${API_READ}: x-mop-cache stale, expected hit or miss`,
+    },
+    {
+      name: "a catalog read that bypassed the cache",
+      key: `GET ${API_READ}`,
+      change: (a: Answer) => (a.headers["x-mop-cache"] = "bypass"),
+      line: `FAIL ${PREVIEW}${API_READ}: x-mop-cache bypass, expected hit or miss`,
+    },
+    {
+      name: "a catalog read without x-catalog-version",
+      key: `GET ${API_READ}`,
+      change: (a: Answer) => (a.headers["x-catalog-version"] = null),
+      line: `FAIL ${PREVIEW}${API_READ}: no x-catalog-version`,
+    },
+    {
+      name: "a catalog read that answers 500",
+      key: `GET ${API_READ}`,
+      change: (a: Answer) => (a.status = 500),
+      line: `FAIL ${PREVIEW}${API_READ}: status 500`,
+    },
+    {
+      name: "a beacon that is not bypass",
+      key: `POST ${API_BEACON}`,
+      change: (a: Answer) => (a.headers["x-mop-cache"] = "miss"),
+      line: `FAIL ${PREVIEW}${API_BEACON}: x-mop-cache miss, expected bypass`,
+    },
+    {
+      name: "a home page that names no data-services",
+      key: "GET /",
+      change: (a: Answer) => (a.body = (a.body ?? "").replace(' data-services="live"', "")),
+      line: `FAIL ${PREVIEW}/: data-services undefined`,
+    },
   ])("fails on $name and names the URL", async ({ key, change, line }) => {
     const answers = recorded();
     edit(answers, key, change);
@@ -221,6 +276,21 @@ describe("runSmoke", () => {
     expect({ code, failed: lines.filter((l) => l.startsWith("FAIL")) }).toEqual({
       code: 1,
       failed: [line],
+    });
+  });
+
+  it("skips the API checks on a local adapter and exits 0 (H35 (7))", async () => {
+    const { code, lines, calls } = await smoke(PREVIEW, recorded(NOINDEX, "local"));
+    expect({
+      code,
+      skipped: lines.filter((line) => line.startsWith("api checks")),
+      apiCalls: calls.filter((call) => call.path.startsWith("/api/public")).length,
+      last: lines.at(-1),
+    }).toEqual({
+      code: 0,
+      skipped: ["api checks skipped (local adapter)"],
+      apiCalls: 0,
+      last: `smoke: OK ${PREVIEW}`,
     });
   });
 

@@ -32,8 +32,8 @@ const regionSchema = z.object({
   intro: z.string(),
   /** Neighbourhoods and towns the region covers, in display order. */
   places: z.array(z.string()),
-  /** Editorial hero photograph for the region page. */
-  image: z.string(),
+  /** Editorial hero photograph for the region page; unset until one is stored (G55). */
+  image: z.string().optional(),
 });
 
 /** A labelled paragraph of local knowledge. */
@@ -69,7 +69,11 @@ export const marketSchema = z.object({
   /** "How we read this market": what shapes its architecture. */
   notes: z.array(noteSchema),
   guide: marketGuideSchema,
-  /** Editorial hero photograph for the market. */
-  image: z.string(),
+  /** Editorial hero photograph for the market; unset until one is stored (G55). */
+  image: z.string().optional(),
+  /** The market is not open yet: no property shows and the page takes interest instead. */
+  comingSoon: z.boolean(),
+  /** What the interest signup says about this market while it is coming soon. */
+  interestCopy: z.string().optional(),
 });
 export type Market = z.infer<typeof marketSchema>;

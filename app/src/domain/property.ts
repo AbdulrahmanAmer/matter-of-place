@@ -15,10 +15,26 @@ const representationSchema = z.object({
   photo: z.string().optional(),
 });
 
+const renditionSchema = z.object({ w: z.number(), h: z.number() });
+
+/**
+ * The renditions a photograph has, as site addresses (`/media/<key>`; `og` absolute). They are WebP, except `og`,
+ * which social channels need as JPEG (H33 (8)). `thumb` and `carousel` are never sent to a page.
+ */
+const imageVariantsSchema = z
+  .object({
+    card: renditionSchema.extend({ webp: z.string() }),
+    hero: renditionSchema.extend({ webp: z.string() }),
+    og: renditionSchema.extend({ jpg: z.string() }),
+  })
+  .partial();
+export type ImageVariants = z.infer<typeof imageVariantsSchema>;
+
 const galleryImageSchema = z.object({
   src: z.string(),
   alt: z.string(),
   orientation: z.enum(["landscape", "portrait"]),
+  variants: imageVariantsSchema.optional(),
 });
 export type GalleryImage = z.infer<typeof galleryImageSchema>;
 
@@ -72,6 +88,10 @@ export const propertySchema = z.object({
   designer: z.string().optional(),
   status: z.enum(["Illustrative", "Active", "Off-market", "Under offer", "Sold"]),
   heroImage: z.string(),
+  /** The hero photograph's renditions, once they are rendered. */
+  heroVariants: imageVariantsSchema.optional(),
+  /** Absolute address of the Open Graph image; unset until one is chosen. */
+  ogImage: z.string().optional(),
   gallery: z.array(galleryImageSchema),
   video: propertyVideoSchema.optional(),
   /** Editorial narrative, one paragraph per entry. */
@@ -80,16 +100,51 @@ export const propertySchema = z.object({
   place: z.string(),
   features: z.array(z.string()),
   representation: representationSchema.optional(),
+  /** The owner presents the home: no representative is named. */
+  presentedByOwner: z.boolean(),
   listingUrl: z.string().optional(),
   /** Position in the home page opening sequence; unset means not shown there. */
   heroRank: z.number().optional(),
   /** Position in the home page "Selected places" grid; unset means not shown there. */
   featuredRank: z.number().optional(),
-  campaignTier: z.enum(["Editorial", "Feature", "Reach", "Campaign"]),
+  /** Commercial and internal: the public snapshot does not carry it, so the API leaves it unset. */
+  campaignTier: z.enum(["Editorial", "Feature", "Reach", "Campaign"]).optional(),
   /** ISO date the dossier was published. */
   publishedAt: z.string(),
-  source: z.enum(["Editorial", "Submission"]),
+  /** Internal like `campaignTier`: unset on the API. */
+  source: z.enum(["Editorial", "Submission"]).optional(),
   /** Slugs of hand-picked related properties, shown before automatic matches. */
   related: z.array(z.string()).optional(),
 });
 export type Property = z.infer<typeof propertySchema>;
+
+/**
+ * One row of the property list (PERF-06): exactly what a card, the filters and the matcher read, and the hero's
+ * `card` rendition. `features` stays because the feature filter and the matcher derive their names from it.
+ * Never the gallery, the video, the Open Graph image or the long text; `propertyCardSchema` of `contracts.ts` is
+ * its Zod twin.
+ */
+export type PropertyCard = Pick<
+  Property,
+  | "slug"
+  | "title"
+  | "market"
+  | "region"
+  | "city"
+  | "neighborhood"
+  | "state"
+  | "type"
+  | "style"
+  | "architect"
+  | "status"
+  | "price"
+  | "currency"
+  | "beds"
+  | "baths"
+  | "interiorSqFt"
+  | "publishedAt"
+  | "features"
+  | "heroRank"
+  | "featuredRank"
+  | "heroImage"
+> & { heroVariants?: Pick<ImageVariants, "card"> | undefined };

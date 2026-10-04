@@ -14,6 +14,9 @@ const PAGES = [
 ];
 const MEDIA_FILE = "/media/tiburon-waterline.mp4";
 const HOOK = "/api/hooks/sentry-test";
+const API_READ = "/api/public/properties";
+const API_BEACON = "/api/public/events";
+const SERVICES = /<body[^>]*\sdata-services="([^"]*)"/;
 const NOINDEX = "noindex, nofollow";
 const ASSET_SCRIPT = /["'](\/assets\/[^"'?#]+\.js)["']/;
 const USAGE = "usage: node scripts/smoke.mjs <baseUrl> [--expect-noindex|--expect-indexable]";
@@ -201,8 +204,37 @@ export async function runSmoke(baseUrl, options, fetchImpl) {
     report(hook.url, cacheControl === "no-store" ? [] : [`cache-control ${String(cacheControl)}`]);
   }
 
-  // B3 adds here: x-mop-cache must be hit or miss, a stale answer fails (DO-09), and
-  // x-catalog-version is present; its case goes into tests/unit/smoke.test.ts.
+  // The read path answers only on a live build. After the launch switch a preview and the dev Worker run the
+  // local adapter and hold no database key (H35 (7)); the production Worker is always live.
+  const services = SERVICES.exec(home)?.[1];
+  if (services === "local") print("api checks skipped (local adapter)");
+  else if (services !== "live")
+    report(new URL("/", base).href, [`data-services ${String(services)}`]);
+  else {
+    const properties = await call(API_READ);
+    if (typeof properties.answer === "string") report(properties.url, [properties.answer]);
+    else {
+      const headers = properties.answer.headers;
+      const cache = headers.get("x-mop-cache");
+      const problems = [];
+      if (properties.answer.status !== 200)
+        problems.push(`status ${String(properties.answer.status)}`);
+      // A stale answer after a deploy means the new Worker cannot read the database (DO-09).
+      if (cache !== "hit" && cache !== "miss")
+        problems.push(`x-mop-cache ${String(cache)}, expected hit or miss`);
+      if (headers.get("x-catalog-version") === null) problems.push("no x-catalog-version");
+      report(properties.url, problems);
+    }
+    const events = await call(API_BEACON, "POST");
+    if (typeof events.answer === "string") report(events.url, [events.answer]);
+    else {
+      const cache = events.answer.headers.get("x-mop-cache");
+      report(
+        events.url,
+        cache === "bypass" ? [] : [`x-mop-cache ${String(cache)}, expected bypass`],
+      );
+    }
+  }
 
   if (failed.length > 0) {
     print(`smoke: FAILED ${String(failed.length)}: ${failed.join(" ")}`);

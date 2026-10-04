@@ -1,6 +1,6 @@
 # Service boundary and API contract
 
-> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec. Slice B3 revises this page.
+> Sketch from the MVP phase. The approved spec is ../../../workspace/02-tech-stack/tech-stack.md and ../../../workspace/06-architecture/architecture.md: read this for intent, build from the spec. Slice B3 revised it: the base path, the error shape and the upload notes below are the built behaviour; the tables of rows and limits are `src/server/public/routes.ts` and `docs/runbooks/api.md`.
 
 `src/services/index.ts` exports one `services` object. Its shape is fixed by `src/services/types.ts`; two implementations exist.
 
@@ -13,22 +13,22 @@ The API below is what the `http` adapters already call. Implement it as a Cloudf
 
 ## Conventions
 
-- Base path: `VITE_API_BASE_URL`, e.g. `https://matterofplace.com/api`.
+- Base path: `VITE_API_BASE_URL`, which is `/api/public` in every deployed build. The site and the API are one origin, so the path is relative; during a server render the loaders call the API in-process and never open a connection to the Worker's own address.
 - JSON in and out, `content-type: application/json`.
-- Errors: `400`/`422` validation, `404` not found, `429` rate limited, `5xx` server. Body: `{ "error": { "code": string, "message": string, "issues"?: ZodIssue[] } }`. The client maps status to a `ServiceError.kind`; the message shown to visitors is always the calm copy in `lib/strings.ts`, never the raw error.
+- Errors: `400`/`422` validation, `404` not found, `429` rate limited, `5xx` server. Body: `{ "error": { "code": string, "message": string, "issues"?: ZodIssue[], "requestId": string } }`, and the same id in the `x-request-id` header (the cacheable catalog 404 omits both, because it is stored once for every visitor). The client maps status to a `ServiceError.kind`; the message shown to visitors is always the calm copy in `lib/strings.ts`, never the raw error.
 - Every write validates with the schema in `src/domain/contracts.ts` and returns a `Receipt`: `{ "id": uuid, "receivedAt": ISO-8601 }`.
-- Rate limits on writes (per IP, sliding window): inquiries 10/hour, submissions 3/hour, subscribers 5/hour, events 120/minute. Exceeding returns `429`.
+- Rate limits on writes: the table is in `docs/runbooks/api.md`. Exceeding one returns `429` with `Retry-After`.
 
 ## Catalog (read, cacheable)
 
-| Method and path         | Returns                                                      | Cache                                                |
-| ----------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `GET /properties`       | `Property[]` (published only, ordered by `publishedAt` desc) | `public, s-maxage=300, stale-while-revalidate=86400` |
-| `GET /properties/:slug` | `Property`                                                   | same                                                 |
-| `GET /markets`          | `Market[]` with regions, notes and guide                     | same                                                 |
-| `GET /markets/:slug`    | `Market`                                                     | same                                                 |
-| `GET /stories`          | `Story[]`                                                    | same                                                 |
-| `GET /stories/:slug`    | `Story`                                                      | same                                                 |
+| Method and path         | Returns                                                      | Cache                                |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------ |
+| `GET /properties`       | `Property[]` (published only, ordered by `publishedAt` desc) | versioned edge key, see `caching.md` |
+| `GET /properties/:slug` | `Property`                                                   | same                                 |
+| `GET /markets`          | `Market[]` with regions, notes and guide                     | same                                 |
+| `GET /markets/:slug`    | `Market`                                                     | same                                 |
+| `GET /stories`          | `Story[]`                                                    | same                                 |
+| `GET /stories/:slug`    | `Story`                                                      | same                                 |
 
 Response shapes are exactly the TypeScript types in `src/domain/`. Image fields (`heroImage`, `gallery[].src`, `image`, `video.src`, `video.poster`) are absolute URLs served through the image pipeline described in `caching.md`.
 
@@ -44,7 +44,7 @@ Response `201 Receipt`. Side effects: insert `inquiries`; notify the editorial i
 
 ### `POST /submissions`
 
-Body: `Submission` (`submissionSchema`). `media` is metadata only (`name`, `size`, `type`, max 20).
+Body: `Submission` (`submissionSchema`). `media` is metadata only (`name`, `size`, `type`, at most 40, listed in the order they were posted).
 
 Response `201`:
 
@@ -52,11 +52,14 @@ Response `201`:
 {
   "id": "…",
   "receivedAt": "…",
-  "uploads": [{ "name": "terrace.jpg", "url": "https://…signed…" }]
+  "upload_token": "…",
+  "uploads": [
+    { "media_id": "…", "index": 0, "url": "https://…signed…", "thumb_url": "https://…signed…" }
+  ]
 }
 ```
 
-One signed `PUT` URL per media entry (Supabase Storage `createSignedUploadUrl`, bucket `submissions`, path `<submission id>/<sanitised name>`, valid 15 minutes, max 25 MB, image types only). The browser uploads each file directly; the API never proxies binaries. Mark `submission_media.uploaded_at` from a Storage webhook or a scheduled reconciliation.
+One signed `PUT` URL per media entry, for at most the first ten (a full-size and a thumbnail address each, Supabase Storage `createSignedUploadUrl`, private bucket `submissions`, path `<submission id>/<media id>.<ext>`, valid for 7200 seconds, image types only); the response also carries an `upload_token`, and `POST /submissions/:id/uploads` with it signs the rest, at most 20 at a time. The browser uploads each file directly; the API never proxies binaries. Mark `submission_media.uploaded_at` from a Storage webhook or a scheduled reconciliation.
 
 ### `POST /subscribers`
 

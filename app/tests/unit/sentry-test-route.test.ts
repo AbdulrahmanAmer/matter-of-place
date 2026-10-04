@@ -42,6 +42,7 @@ function throughHandle(request: Request, token: string) {
     {
       render: (rendered, requestId) =>
         Promise.resolve(handleSentryTest(rendered, requestId, token)),
+      redirect: () => Promise.resolve(null),
       cache: (_request, render) => render(),
       getFlags: () => Promise.resolve({}),
       report,

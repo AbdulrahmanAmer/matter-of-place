@@ -1,0 +1,13 @@
+/* The Turnstile container of src/lib/turnstile.ts: empty and hidden unless Cloudflare asks for a challenge. */
+
+.turnstile-host {
+  position: fixed;
+  inset-block-end: 20px;
+  inset-inline-end: 20px;
+  z-index: 110;
+  background: var(--background);
+}
+
+.turnstile-host:empty {
+  display: none;
+}

@@ -2,8 +2,11 @@ import {
   acceptedStates,
   propertyTypes,
   submissionSchema,
+  submitterKinds,
+  uploadLimits,
   type exposurePackages,
   type Submission,
+  type SubmitterKind,
 } from "../../../domain/contracts";
 
 type AcceptedState = (typeof acceptedStates)[number];
@@ -30,10 +33,14 @@ export type SubmitDraft = {
   designer: string;
   yearBuilt: string;
   yearRenovated: string;
+  submitterKind: SubmitterKind | "";
+  submitterName: string;
+  submitterEmail: string;
+  submitterPhone: string;
   brokerage: string;
-  agentName: string;
-  agentEmail: string;
-  agentPhone: string;
+  listedWithAgent: boolean;
+  listingAgentName: string;
+  listingAgentBrokerage: string;
   photographyUrl: string;
   videoUrl: string;
   story: string;
@@ -44,7 +51,7 @@ export type SubmitDraft = {
   files: File[];
 };
 
-export const steps = ["Property", "The story", "Representation", "Exposure", "Review"] as const;
+export const steps = ["Property", "The story", "About you", "Exposure", "Review"] as const;
 export type StepIndex = 0 | 1 | 2 | 3 | 4;
 
 export const lastStep: StepIndex = 4;
@@ -53,7 +60,7 @@ const stepOrder: readonly StepIndex[] = [0, 1, 2, 3, 4];
 export const previousStep = (step: StepIndex): StepIndex => stepOrder[step - 1] ?? 0;
 export const nextStep = (step: StepIndex): StepIndex => stepOrder[step + 1] ?? lastStep;
 
-export const maxFiles = 20;
+export const maxFiles = uploadLimits.maxFiles;
 
 export const initialDraft: SubmitDraft = {
   address: "",
@@ -71,10 +78,14 @@ export const initialDraft: SubmitDraft = {
   designer: "",
   yearBuilt: "",
   yearRenovated: "",
+  submitterKind: "",
+  submitterName: "",
+  submitterEmail: "",
+  submitterPhone: "",
   brokerage: "",
-  agentName: "",
-  agentEmail: "",
-  agentPhone: "",
+  listedWithAgent: false,
+  listingAgentName: "",
+  listingAgentBrokerage: "",
   photographyUrl: "",
   videoUrl: "",
   story: "",
@@ -87,6 +98,7 @@ export const initialDraft: SubmitDraft = {
 
 const stateOptions: readonly SubmitDraft["state"][] = ["", ...acceptedStates, otherState];
 const typeOptions: readonly SubmitDraft["propertyType"][] = ["", ...propertyTypes];
+const kindOptions: readonly SubmitDraft["submitterKind"][] = ["", ...submitterKinds];
 
 /** The select value as a draft state; anything unknown reads as "not chosen". */
 export const toStateOption = (value: string): SubmitDraft["state"] =>
@@ -95,6 +107,10 @@ export const toStateOption = (value: string): SubmitDraft["state"] =>
 /** The select value as a draft property type; anything unknown reads as "not chosen". */
 export const toTypeOption = (value: string): SubmitDraft["propertyType"] =>
   typeOptions.find((option) => option === value) ?? "";
+
+/** The select value as a draft submitter kind; anything unknown reads as "not chosen". */
+export const toKindOption = (value: string): SubmitDraft["submitterKind"] =>
+  kindOptions.find((option) => option === value) ?? "";
 
 const filled = (value: string) => value.trim().length > 0;
 
@@ -115,12 +131,42 @@ export function canContinue(step: StepIndex, draft: SubmitDraft): boolean {
     case 1:
       return filled(draft.story) && filled(draft.significance);
     case 2:
-      return filled(draft.brokerage) && filled(draft.agentName) && filled(draft.agentEmail);
+      return (
+        draft.submitterKind !== "" &&
+        filled(draft.submitterName) &&
+        filled(draft.submitterEmail) &&
+        (draft.submitterKind !== "agent" || filled(draft.brokerage))
+      );
     case 3:
       return draft.package !== undefined && draft.rightsConfirmed;
     case 4:
       return true;
   }
+}
+
+/** The Review row "Submitted by": the name, the brokerage or "owner", and the listing agent an owner names. */
+export function submittedBy(draft: SubmitDraft): string {
+  if (draft.submitterKind === "") return "";
+  const listedWith =
+    draft.submitterKind === "owner" && draft.listedWithAgent && filled(draft.listingAgentName)
+      ? `listed with ${draft.listingAgentName.trim()}`
+      : "";
+  const role = draft.submitterKind === "agent" ? draft.brokerage.trim() : "owner";
+  return [draft.submitterName.trim(), role, listedWith].filter(Boolean).join(", ");
+}
+
+/** The fields of the chosen kind only, so a draft that switched kind sends nothing of the other (invariant 22). */
+function kindFields(draft: SubmitDraft) {
+  if (draft.submitterKind === "agent") {
+    return { brokerage: draft.brokerage, sourceUrl: draft.sourceUrl };
+  }
+  return {
+    listedWithAgent: draft.listedWithAgent,
+    ...(draft.listedWithAgent && {
+      listingAgentName: draft.listingAgentName,
+      listingAgentBrokerage: draft.listingAgentBrokerage,
+    }),
+  };
 }
 
 const optionalNumber = (value: string) => {
@@ -137,7 +183,6 @@ export function toSubmission(draft: SubmitDraft, sourcePath: string): Submission
     state: draft.state,
     zip: draft.zip,
     listingUrl: draft.listingUrl,
-    sourceUrl: draft.sourceUrl,
     price: optionalNumber(draft.price),
     currency: "USD",
     propertyType: draft.propertyType,
@@ -148,10 +193,11 @@ export function toSubmission(draft: SubmitDraft, sourcePath: string): Submission
     designer: draft.designer,
     yearBuilt: optionalNumber(draft.yearBuilt),
     yearRenovated: optionalNumber(draft.yearRenovated),
-    brokerage: draft.brokerage,
-    agentName: draft.agentName,
-    agentEmail: draft.agentEmail,
-    agentPhone: draft.agentPhone,
+    submitterKind: draft.submitterKind,
+    submitterName: draft.submitterName,
+    submitterEmail: draft.submitterEmail,
+    submitterPhone: draft.submitterPhone,
+    ...kindFields(draft),
     photographyUrl: draft.photographyUrl,
     videoUrl: draft.videoUrl,
     story: draft.story,

@@ -78,6 +78,13 @@ const en = {
     liveSent: "A person will reply within one working day.",
     error: "This did not go through. Please try once more.",
     invalid: "Please check the highlighted details.",
+    /** A received submission whose photographs are still going out (FE-04). */
+    uploading: (done: number, total: number) =>
+      `Received. Uploading ${String(done)} of ${String(total)} photographs.`,
+    uploadDone: "Received, with every photograph.",
+    uploadFailed: (count: number) =>
+      count === 1 ? "1 photograph did not upload." : `${String(count)} photographs did not upload.`,
+    uploadRetry: "Retry",
   },
   newsletter: {
     eyebrow: "A NOTE FROM US",

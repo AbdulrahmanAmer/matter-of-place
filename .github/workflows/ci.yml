@@ -60,8 +60,13 @@ jobs:
       - name: audit
         run: bun audit
         continue-on-error: true
-      # B3 adds the step named deno here (setup-deno pinned by SHA, then deno check of
-      # scripts/deno-portable.ts, CS-01); B8 points it at the job runner. A step, not a job (T-12).
+      # CS-01: the files the job runner loads must type-check under Deno. B8 points the check at the
+      # job runner. A step, not a job (T-12).
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+      - name: deno
+        run: deno check --config supabase/functions/job-runner/deno.json scripts/deno-portable.ts
 
   build:
     runs-on: ubuntu-24.04
@@ -92,7 +97,9 @@ jobs:
       - name: worker-name
         run: |
           node -e "const n=require('./.output/server/wrangler.json').name;if(n!=='matter-of-place'){console.error('worker name',n);process.exit(1)}"
-      # B3 adds the step named bundle-check here: node scripts/bundle-check.mjs (FE-03).
+      # The live artifact: every public route under the script budget, no bundled catalog (FE-03).
+      - name: bundle-check
+        run: node scripts/bundle-check.mjs
       # The glob skips every path whose name starts with a dot, `.output` itself included.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

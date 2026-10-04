@@ -32,8 +32,8 @@ export type EnumPairs = [
   Expect<Equal<(typeof exposurePackages)[number], Enums<"exposure_package">>>,
   Expect<Equal<InquiryIntent, Enums<"inquiry_intent">>>,
   Expect<Equal<Property["status"], Enums<"listing_status">>>,
-  Expect<Equal<Property["campaignTier"], Enums<"campaign_tier">>>,
-  Expect<Equal<Property["source"], Enums<"submission_source">>>,
+  Expect<Equal<NonNullable<Property["campaignTier"]>, Enums<"campaign_tier">>>,
+  Expect<Equal<NonNullable<Property["source"]>, Enums<"submission_source">>>,
   Expect<Equal<Story["category"], Enums<"story_category">>>,
   Expect<Equal<GalleryImage["orientation"], Enums<"media_orientation">>>,
 ];

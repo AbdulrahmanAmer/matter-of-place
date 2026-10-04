@@ -77,7 +77,7 @@ function RegionPage() {
   return (
     <main>
       <ImageHero
-        image={pool[0]?.heroImage ?? region.image}
+        image={region.image}
         alt={`Illustrative architecture in ${region.name}`}
         eyebrow={`${market.name.toUpperCase()}, ${market.country.toUpperCase()}`}
         title={region.name}

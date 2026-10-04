@@ -7,6 +7,7 @@ import {
   submissionReceiptSchema,
   submissionSchema,
   subscriberSchema,
+  uploadLimits,
 } from "../../src/domain/contracts";
 import { validInquiry, validSubmission, validSubscriber } from "../fixtures/builders";
 
@@ -105,12 +106,16 @@ describe("submissionSchema", () => {
     }
   });
 
-  it("rejects more than 20 media and accepts 20", () => {
+  it("rejects more than 40 media and accepts 40", () => {
     const photo = { name: "p.jpg", size: 1024, type: "image/jpeg" };
     expect(
-      submissionSchema.safeParse(validSubmission({ media: Array(20).fill(photo) })).success,
+      submissionSchema.safeParse(
+        validSubmission({ media: Array(uploadLimits.maxFiles).fill(photo) }),
+      ).success,
     ).toBe(true);
-    const result = submissionSchema.safeParse(validSubmission({ media: Array(21).fill(photo) }));
+    const result = submissionSchema.safeParse(
+      validSubmission({ media: Array(uploadLimits.maxFiles + 1).fill(photo) }),
+    );
     expect(issuePaths(result)).toEqual(["media"]);
   });
 
@@ -160,16 +165,23 @@ describe("the response schemas", () => {
     expect(issuePaths(receiptSchema.safeParse({ id: "r1" }))).toEqual(["receivedAt"]);
   });
 
-  it("submissionReceiptSchema carries one upload target per photograph", () => {
+  it("submissionReceiptSchema carries one entry per photograph, by index, and the upload token", () => {
     const receipt = {
       id: "r1",
       receivedAt: "2026-10-01T12:00:00Z",
-      uploads: [{ name: "p.jpg", url: "u" }],
+      upload_token: "1.sig",
+      uploads: [
+        { media_id: "m0", index: 0, url: "u", thumb_url: "t" },
+        { media_id: "m1", index: 1 },
+      ],
     };
     expect(submissionReceiptSchema.safeParse(receipt).success).toBe(true);
     expect(issuePaths(submissionReceiptSchema.safeParse({ id: "r1", receivedAt: "t" }))).toEqual([
+      "upload_token",
       "uploads",
     ]);
+    const unindexed = { ...receipt, uploads: [{ media_id: "m0", url: "u" }] };
+    expect(issuePaths(submissionReceiptSchema.safeParse(unindexed))).toEqual(["uploads.0.index"]);
   });
 
   it("conciergeAnswerSchema allows only the showing action", () => {

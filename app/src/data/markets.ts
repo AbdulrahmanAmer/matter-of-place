@@ -23,6 +23,7 @@ export const markets: Market[] = [
     country: "United States",
     currency: "USD",
     image: laguna,
+    comingSoon: false,
     intro:
       "California is terrain before it is anything else. Ridges, canyons and bluffs decide where a house can sit, and the light, fog-filtered in the north, hard and golden in the south, decides how it should open.",
     places: [
@@ -161,6 +162,7 @@ export const markets: Market[] = [
     country: "United States",
     currency: "USD",
     image: palmBeach,
+    comingSoon: false,
     intro:
       "Florida is water, shade and air. Houses here are built around the breeze and the storm season in equal measure: loggias, courtyards and deep roofs carrying as much weight as the rooms.",
     places: [
@@ -297,6 +299,7 @@ export const markets: Market[] = [
     country: "United States",
     currency: "USD",
     image: manhattan,
+    comingSoon: false,
     intro:
       "New York is history held in brick, brownstone and cast iron. Beyond the city: shingle, fieldstone and open field. Landmarks law, the block and the season shape everything.",
     places: ["Manhattan", "Brooklyn", "The Hamptons", "Hudson Valley", "Select Upstate properties"],

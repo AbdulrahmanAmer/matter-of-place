@@ -17,6 +17,7 @@ const profiles = new Map([
         "DEV_SUPABASE_PROJECT_REF",
         "DEV_SUPABASE_DB_PASSWORD",
         "DEV_SUPABASE_SERVICE_ROLE_KEY",
+        "PREVIEW_RATE_LIMIT_SALT",
         "OPS_HEALTH_TOKEN",
       ],
     },
