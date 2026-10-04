@@ -82,6 +82,11 @@ begin
   )
   returning s.id, s.received_at into v_submission_id, v_received_at;
 
+  -- G20: the event commits or rolls back with the row; the 10-minute repeat above returned before it.
+  perform public.emit_event(
+    'submission.received', 'submission', v_submission_id, jsonb_build_object('submission_id', v_submission_id), null
+  );
+
   -- FE-04: the browser matches each file by its position in the payload, never by its name.
   return query
   with entries as (
