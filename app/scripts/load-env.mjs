@@ -19,12 +19,22 @@ const profiles = new Map([
         "DEV_SUPABASE_SERVICE_ROLE_KEY",
         "PREVIEW_RATE_LIMIT_SALT",
         "OPS_HEALTH_TOKEN",
+        "OMNIKOM_MOCK_SECRET",
       ],
     },
   ],
   [
     "ops",
-    { file: ".env.ops", names: ["CLOUDFLARE_API_TOKEN", "CF_EDGE_TOKEN", "SUPABASE_ACCESS_TOKEN"] },
+    {
+      file: ".env.ops",
+      names: [
+        "CLOUDFLARE_API_TOKEN",
+        "CF_EDGE_TOKEN",
+        "SUPABASE_ACCESS_TOKEN",
+        "OMNIKOM_WEBHOOK_URL",
+        "OMNIKOM_WEBHOOK_SECRET",
+      ],
+    },
   ],
 ]);
 

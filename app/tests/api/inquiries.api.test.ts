@@ -144,6 +144,42 @@ describe("POST /api/public/inquiries", () => {
     ]);
   });
 
+  it("stores the posted attribution, and '{}' when the body has none (B15)", async () => {
+    const ip = nextIp();
+    const [withIt, without] = [nextEmail(), nextEmail()];
+    const { statuses, stored } = await run([ip], [withIt, without], async (pg) => {
+      const answers = [
+        await handlePublic(
+          post(inquiry(withIt, { attribution: { first_touch: { utm_source: "test" } } }), ip),
+          REQUEST_ID,
+        ),
+        await handlePublic(post(inquiry(without), ip), REQUEST_ID),
+      ];
+      const result = await pg.query(
+        `select email, attribution->'first_touch'->>'utm_source' as utm_source, attribution::text as attribution
+         from public.inquiries where email = any ($1) order by email = $2 desc`,
+        [[withIt, without], withIt],
+      );
+      return {
+        statuses: answers.map((answer) => answer.status),
+        stored: z
+          .array(
+            z.object({
+              email: z.string(),
+              utm_source: z.string().nullable(),
+              attribution: z.string(),
+            }),
+          )
+          .parse(result.rows),
+      };
+    });
+    expect(statuses).toEqual([201, 201]);
+    expect(stored).toEqual([
+      { email: withIt, utm_source: "test", attribution: '{"first_touch": {"utm_source": "test"}}' },
+      { email: without, utm_source: null, attribution: "{}" },
+    ]);
+  });
+
   it("refuses a request without a Turnstile token with 403 and writes nothing", async () => {
     const ip = nextIp();
     const email = nextEmail();

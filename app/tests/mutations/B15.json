@@ -268,5 +268,141 @@
     "replace": "Math.min(at, retryAfter.getTime())",
     "run": "bunx vitest run --project unit tests/unit/omnikom/ladder.test.ts",
     "expect": "× waits for a Retry-After later than the ladder"
+  },
+  {
+    "id": "b15-g2-referrer",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    referrer_host: referrerHost,",
+    "replace": "    referrer_host: undefined,",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*captures the utm parameters and an outside referrer on the first page"
+  },
+  {
+    "id": "b15-g2-first-touch",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    ...stored,\n",
+    "replace": "    ...stored,\n    first_touch: touch,\n",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*a second page overwrites neither the first touch nor the last touch"
+  },
+  {
+    "id": "b15-g2-referrer-once",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "  documentReferrer = undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*a second page overwrites neither the first touch nor the last touch"
+  },
+  {
+    "id": "b15-n",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "pages_viewed: (stored.pages_viewed ?? 0) + 1,",
+    "replace": "pages_viewed: stored.pages_viewed,",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*counts 3 pages after the first render and two navigations"
+  },
+  {
+    "id": "b15-g2-last-touch",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    ...(arrival && { last_touch: touch }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*a second landing with utm_source=other replaces last_touch and keeps first_touch"
+  },
+  {
+    "id": "b15-e",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));",
+    "replace": "    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));\n    document.cookie = \"mop_attribution=1\";",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*sets no cookie"
+  },
+  {
+    "id": "b15-g2-sent",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));",
+    "replace": "    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));\n    void fetch(\"/api/public/events\", { method: \"POST\", body: JSON.stringify({ attribution: next }) });",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*sends nothing until the inquiry is submitted, then only inside it"
+  },
+  {
+    "id": "b15-g2-blocked",
+    "kind": "file",
+    "test": "tests/unit/omnikom/attribution.test.ts",
+    "file": "src/lib/attribution.ts",
+    "find": "    return parsed.success ? parsed.data : undefined;\n  } catch {\n    return undefined;",
+    "replace": "    return parsed.success ? parsed.data : undefined;\n  } catch (error) {\n    throw error;",
+    "run": "bunx vitest run --project unit tests/unit/omnikom/attribution.test.ts",
+    "expect": "× .*gives undefined when storage is blocked, and the inquiry still parses"
+  },
+  {
+    "id": "b15-g2-mif-new",
+    "kind": "sql",
+    "test": "tests/db/inquiry-forwarded.db.test.ts",
+    "sql": "create or replace function public.mark_inquiry_forwarded(p_inquiry_id uuid, p_payload jsonb)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The job-step write of webhook_omnikom (B15, G43): a closed inquiry is never reopened, an anonymised one never refilled.\n  update public.inquiries\n  set forwarded_at = now(),\n    forwarded_payload = p_payload,\n    state = case when state in ('new', 'in_progress') then state else state end\n  where id = p_inquiry_id and anonymised_at is null;\n  return found;\nend;\n$$;\n\nrevoke execute on function public.mark_inquiry_forwarded(uuid, jsonb) from public, anon, authenticated;\ngrant execute on function public.mark_inquiry_forwarded(uuid, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/inquiry-forwarded.db.test.ts -t \"on a new inquiry returns true and sets forwarded, forwarded_at and forwarded_payload\"",
+    "expect": "× .*on a new inquiry returns true and sets forwarded, forwarded_at and forwarded_payload"
+  },
+  {
+    "id": "b15-g2-mif-closed",
+    "kind": "sql",
+    "test": "tests/db/inquiry-forwarded.db.test.ts",
+    "sql": "create or replace function public.mark_inquiry_forwarded(p_inquiry_id uuid, p_payload jsonb)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The job-step write of webhook_omnikom (B15, G43): a closed inquiry is never reopened, an anonymised one never refilled.\n  update public.inquiries\n  set forwarded_at = now(),\n    forwarded_payload = p_payload,\n    state = 'forwarded'::public.inquiry_state\n  where id = p_inquiry_id and anonymised_at is null;\n  return found;\nend;\n$$;\n\nrevoke execute on function public.mark_inquiry_forwarded(uuid, jsonb) from public, anon, authenticated;\ngrant execute on function public.mark_inquiry_forwarded(uuid, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/inquiry-forwarded.db.test.ts -t \"on a closed inquiry returns true, keeps closed and sets forwarded_at\"",
+    "expect": "× .*on a closed inquiry returns true, keeps closed and sets forwarded_at"
+  },
+  {
+    "id": "b15-o",
+    "kind": "sql",
+    "test": "tests/db/inquiry-forwarded.db.test.ts",
+    "sql": "create or replace function public.mark_inquiry_forwarded(p_inquiry_id uuid, p_payload jsonb)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- The job-step write of webhook_omnikom (B15, G43): a closed inquiry is never reopened, an anonymised one never refilled.\n  update public.inquiries\n  set forwarded_at = now(),\n    forwarded_payload = p_payload,\n    state = case when state in ('new', 'in_progress') then 'forwarded'::public.inquiry_state else state end\n  where id = p_inquiry_id;\n  return found;\nend;\n$$;\n\nrevoke execute on function public.mark_inquiry_forwarded(uuid, jsonb) from public, anon, authenticated;\ngrant execute on function public.mark_inquiry_forwarded(uuid, jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/inquiry-forwarded.db.test.ts -t \"on an anonymised inquiry or an unknown id returns false and changes nothing\"",
+    "expect": "× .*on an anonymised inquiry or an unknown id returns false and changes nothing"
+  },
+  {
+    "id": "b15-g2-mif-grant",
+    "kind": "sql",
+    "test": "tests/db/inquiry-forwarded.db.test.ts",
+    "sql": "grant execute on function public.mark_inquiry_forwarded(uuid, jsonb) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/inquiry-forwarded.db.test.ts -t \"only service_role may execute it\"",
+    "expect": "× .*only service_role may execute it"
+  },
+  {
+    "id": "b15-g2-m-db",
+    "kind": "sql",
+    "test": "tests/db/inquiry-forwarded.db.test.ts",
+    "sql": "create or replace function public.create_inquiry(p jsonb)\nreturns table (id uuid, received_at timestamptz)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.inquiries := jsonb_populate_record(null::public.inquiries, p);\n  v_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- `state` and `received_at` keep their defaults; the payload names only what the visitor and the request gave.\n  insert into public.inquiries as i (\n    intent, topic, subject_kind, subject_slug, subject_title, name, email, phone, location, message, details,\n    source_path, ip_hash, turnstile_ok\n  ) values (\n    v.intent, v.topic, v.subject_kind, v.subject_slug, v.subject_title, v.name, v.email, v.phone, v.location,\n    v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false)\n  )\n  returning i.id, i.received_at into v_id, v_received_at;\n  -- G49: the event commits or rolls back with the row.\n  perform public.emit_event('inquiry.received', 'inquiry', v_id, jsonb_build_object('inquiry_id', v_id), null);\n  return query select v_id, v_received_at;\nend;\n$$;\n\nrevoke execute on function public.create_inquiry(jsonb) from public, anon, authenticated;\ngrant execute on function public.create_inquiry(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/inquiry-forwarded.db.test.ts -t \"create_inquiry stores the attribution object of p\"",
+    "expect": "× .*create_inquiry stores the attribution object of p"
+  },
+  {
+    "id": "b15-m",
+    "kind": "manual",
+    "test": "tests/api/inquiries.api.test.ts",
+    "run": "bunx vitest run --project db tests/api/inquiries.api.test.ts",
+    "expect": "× .*stores the posted attribution",
+    "procedure": "Drop `attribution` from the insert of supabase/sql/functions/create_inquiry.sql. The API case reaches create_inquiry through supabase-js, which cannot see a rolled-back function (P-901), and only main changes mop-dev (R18); the same mutation is b15-g2-m-db, replayed in the rolled-back inquiry-forwarded.db.test.ts. UNPROVEN until main has pushed 20261004193550_inquiry_attribution.sql."
+  },
+  {
+    "id": "b15-q",
+    "kind": "sql",
+    "test": "tests/db/function-source.db.test.ts",
+    "sql": "create or replace function public.create_inquiry(p jsonb)\nreturns table (id uuid, received_at timestamptz)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.inquiries := jsonb_populate_record(null::public.inquiries, p);\n  v_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- `state` and `received_at` keep their defaults; the payload names only what the visitor and the request gave.\n  insert into public.inquiries as i (\n    intent, topic, subject_kind, subject_slug, subject_title, name, email, phone, location, message, details,\n    source_path, ip_hash, turnstile_ok, attribution\n  ) values (\n    v.intent, v.topic, v.subject_kind, v.subject_slug, v.subject_title, v.name, v.email, v.phone, v.location,\n    v.message, coalesce(v.details, '{}'::jsonb), v.source_path, v.ip_hash, coalesce(v.turnstile_ok, false),\n    coalesce(p->'attribution', '{}'::jsonb)\n  )\n  returning i.id, i.received_at into v_id, v_received_at;\n  -- G49: the event commits or rolls back with the row.\n  return query select v_id, v_received_at;\nend;\n$$;\n\nrevoke execute on function public.create_inquiry(jsonb) from public, anon, authenticated;\ngrant execute on function public.create_inquiry(jsonb) to service_role;",
+    "run": "bunx vitest run --project db tests/db/function-source.db.test.ts",
+    "expect": "× .*every function file's body equals pg_proc.prosrc[\\s\\S]*create_inquiry"
   }
 ]

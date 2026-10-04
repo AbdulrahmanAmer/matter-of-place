@@ -5,7 +5,7 @@ import type { PublicCtx } from "../public/routes";
 
 const UNAVAILABLE = "We could not send this just now. Please try again in a moment.";
 
-/** `POST /inquiries`: one row through `create_inquiry` (G49); the function emits nothing until B8 step 2a (G20). */
+/** `POST /inquiries`: one row and its `inquiry.received` event through `create_inquiry` (G49, G20). */
 export async function create(db: Db, input: Inquiry, ctx: PublicCtx): Promise<Receipt> {
   const { data, error } = await db.rpc("create_inquiry", {
     p: {
@@ -23,6 +23,7 @@ export async function create(db: Db, input: Inquiry, ctx: PublicCtx): Promise<Re
       source_path: input.sourcePath,
       ip_hash: ctx.ipHash,
       turnstile_ok: ctx.turnstileOk,
+      attribution: input.attribution,
     },
   });
   const row = data?.[0];

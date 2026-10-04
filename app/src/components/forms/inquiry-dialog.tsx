@@ -9,6 +9,7 @@ import {
 import { useAsyncAction } from "../../hooks/use-async-action";
 import { focusOnMount, useModal } from "../../hooks/use-modal";
 import { track, type AnalyticsEvent } from "../../lib/analytics";
+import { readAttribution } from "../../lib/attribution";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
@@ -163,6 +164,7 @@ export function InquiryDialog({
           subject,
           ...readForm(form, copy?.extra),
           sourcePath: window.location.pathname,
+          attribution: readAttribution(),
         }),
         formText(new FormData(form), honeypotFieldName),
       ),
