@@ -283,3 +283,48 @@ Proof 6, gates in `app/`: `bun run check` exit 0 (layout, typecheck, lint, knip,
 Bank: P-1306 to P-1310 added; P-008, P-094 and P-331 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 278 process entries)`.
 
 UNPROVEN: the e2e rows of watched-fails (e), (f), (k), (n) and `tests/e2e/consent.spec.ts` (steps 6 to 8, other groups); the overlap with the sticky action bar; `bun run db` of CI on this pull request (the db project was run here against `mop-dev`, which holds g3's migration through main).
+
+## g5 · steps 6,7
+
+Branch slice/b3b, main merged at the start (clean). Step text owns the files beyond the sizing list (P-513): `_site.stories.$slug.tsx`, `_site.property.$slug.tsx`, `property-card.tsx`, `image-hero.tsx`, `story-card.tsx`, `gallery.tsx`, `representation.tsx`, `strings.ts` (the unused `illustrativeImagery` string removed), the two test files and `tests/mutations/B3b.json`. Style files touched: `cards.css` (`.market-card` background, so a card without a photograph keeps its type), `coming-soon.css` (`.illustrative-notice`), `hero.css` (`.hero-text`, P-1314). Not touched: `vite.config.ts`, `trace.json`.
+
+Proof 1, empty-image and label tests (`bunx vitest run tests/unit/no-image.test.tsx tests/unit/illustrative-labels.test.tsx`):
+```
+ Test Files  2 passed (2)
+      Tests  15 passed (15)
+```
+
+Proof 2, watched-fail replay of the 16 new entries (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`, one call each): `WATCHED-FAIL OK B3b:` for b3b-bb, b3b-ni-story-img, b3b-ni-market, b3b-ni-market-alt, b3b-ni-market-soon, b3b-ni-badge, b3b-cc, b3b-il-card-tag, b3b-il-home-active, b3b-il-home-notice, b3b-il-prop-active, b3b-il-prop-tag, b3b-il-story, b3b-il-market, b3b-il-hero-tag, b3b-g. First replay: all 16 `BAD: wrong reason` (the `expect` began `× ` and vitest prints no suite on that line, P-066 hit again); rewritten as `FAIL .*<Suite> > <title>`. Plan letters: (bb) `b3b-bb`, (cc) `b3b-cc`, (g) `b3b-g` (the unit half; its production grep is Proof 4).
+
+Proof 3, step 6 live build (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=... bun run build` exit 0; the first build without the prefix baked `C:/Program Files/Git/api/public`, P-1311), preview on port 8878 after `env -u CLOUDFLARE_API_TOKEN node scripts/dev-vars.mjs` and `CATALOG_VERSION_TTL_MS=0`:
+```
+$ curl -s http://127.0.0.1:8878/ | grep -ao 'data-services="live"'
+data-services="live"
+$ bun scripts/with-coming-soon.ts --value true -- bash step6.sh   (the two greps of the plan, port 8878)
+1
+1
+coming_soon_global restored to false
+```
+
+Proof 4, step 7 on the same build, full seed on mop-dev (16 properties, 3 markets, `coming_soon_global` false, environment `development`):
+```
+MOP_ENV=local:
+  /            grep -c "What is real here"                          1
+  /california  grep -c "No property is listed in California yet."   0
+  /properties  grep -c "ILLUSTRATIVE PREVIEW"                       1
+  /california/guide  img tags inside <main>                         0
+MOP_ENV=production (wrangler restarted, page cache removed, P-1312):
+  /            grep -c "What is real here"                          0
+  /california  grep -c "No property is listed in California yet."   1
+  /properties  grep -c "No property is listed yet."                 1
+  /properties  grep -ci illustrative                                1   <- NOT the plan's 0
+```
+The one match is a chunk name, `<link rel="modulepreload" href="/assets/illustrative-notice-B7cqm258.js"/>` (P-1313). It is a plan defect: the file name is fixed by the plan and `trace.json`, and the same name will fail g7's `no-illustrative` check on every production page. NOT DONE until a ruling picks a chunk-name or assertion fix.
+
+Review evidence: headless Chrome 1440 screenshots under the global flag, `/` (text hero on Obsidian with the signup, nav legible; the first version on Bone left the nav unreadable, P-1314) and `/california` (type-only hero, intro, regions, signup). Phone width and the dark market cards below the fold were not looked at (NOT DONE).
+
+Proof 5, gates in `app/`: `bun run check` exit 0 twice (second run after the `.hero-text` change); the live build exits 0. A separate non-live `bun run build` was not run: the live build is the same command with two variables.
+
+UNPROVEN: the e2e rows (f), (r) (g6); the production `grep -ci illustrative` of step 7 (P-1313); a published open market with a photograph (no seed row has one under `--images skip`); `Gallery` and `Representation` status wording has no test of its own (the plan lists none).
+
+Bank: P-1311 to P-1314 added; P-066, P-094, P-008 hit again. `node workspace/05-plans/check-gotchas.mjs` -> `check-gotchas: OK (39 path entries, 282 process entries)`.

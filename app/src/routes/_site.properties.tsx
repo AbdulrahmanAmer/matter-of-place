@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { FilterBar } from "../components/filters/filter-bar";
 import { HomeFinder } from "../components/search/home-finder";
+import { ComingSoon } from "../components/site/coming-soon";
+import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { PageIntro } from "../components/site/page-intro";
 import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
@@ -10,6 +12,7 @@ import { track } from "../lib/analytics";
 import { pluralize } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { pageHead } from "../lib/seo";
+import { t } from "../lib/strings";
 
 const description =
   "A quiet selection of places with something to say: residences across California, Florida and New York, searchable by place, price, type and architecture.";
@@ -26,7 +29,15 @@ export const Route = createFileRoute("/_site/properties")({
     ]);
     return { properties, markets };
   },
-  head: () => pageHead({ title: "Properties", description, path: "/properties" }),
+  head: ({ loaderData }) =>
+    loaderData?.properties.length === 0
+      ? pageHead({
+          title: "Properties",
+          description: t.comingSoon.meta.properties,
+          path: "/properties",
+          noindex: true,
+        })
+      : pageHead({ title: "Properties", description, path: "/properties" }),
   component: PropertiesPage,
 });
 
@@ -50,13 +61,28 @@ function PropertiesPage() {
     market.regions.map((region) => ({ value: region.slug, label: region.name })),
   );
 
+  const illustrative = properties.some((property) => property.status === "Illustrative");
+  const intro = (
+    <PageIntro
+      eyebrow="A CONSIDERED COLLECTION"
+      title="Properties"
+      text={`A quiet selection of places with something to say.${illustrative ? " Every property shown is illustrative." : ""}`}
+    />
+  );
+
+  if (properties.length === 0) {
+    return (
+      <main>
+        {intro}
+        <ComingSoon scope="properties" />
+      </main>
+    );
+  }
+
   return (
     <main>
-      <PageIntro
-        eyebrow="A CONSIDERED COLLECTION"
-        title="Properties"
-        text="A quiet selection of places with something to say. Every property shown is illustrative."
-      />
+      {intro}
+      <IllustrativeNotice properties={properties} />
       <div className="section-wrap">
         <HomeFinder />
       </div>

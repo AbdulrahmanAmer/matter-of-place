@@ -1,8 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { FilteredCollection } from "../components/filters/collection";
+import { ComingSoon } from "../components/site/coming-soon";
 import { StoryGrid } from "../components/site/story-card";
 import { PropertyGrid } from "../components/site/property-card";
+import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { ImageHero } from "../components/site/image-hero";
+import { PageIntro } from "../components/site/page-intro";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { applyFilters, useFilters } from "../hooks/use-filters";
@@ -11,6 +14,7 @@ import { propertiesIn } from "../lib/catalog";
 import { pluralize } from "../lib/format";
 import { marketQuery, propertiesQuery, storiesQuery } from "../lib/queries";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { fill, t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/$market/")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -30,10 +34,19 @@ export const Route = createFileRoute("/_site/$market/")({
   },
   head: ({ loaderData }) => {
     if (!loaderData) return unavailableHead("Market");
-    const { market } = loaderData;
+    const { market, pool } = loaderData;
+    const intro = `${market.intro.split(".")[0] ?? market.intro}.`;
+    if (pool.length === 0) {
+      return pageHead({
+        title: market.name,
+        description: fill(t.comingSoon.meta.market, { intro, market: market.name }),
+        path: `/${market.slug}`,
+        noindex: true,
+      });
+    }
     return pageHead({
       title: market.name,
-      description: `${market.intro.split(".")[0] ?? market.intro}. Property stories across ${market.regions.map((region) => region.name).join(", ")}.`,
+      description: `${intro} Property stories across ${market.regions.map((region) => region.name).join(", ")}.`,
       path: `/${market.slug}`,
     });
   },
@@ -52,12 +65,17 @@ function MarketPage() {
 
   return (
     <main>
-      <ImageHero
-        image={market.image}
-        alt={`Illustrative property in ${market.name}`}
-        eyebrow="MATTER OF PLACE · EDITORIAL DESK"
-        title={market.name}
-      />
+      {market.comingSoon || market.image === undefined ? (
+        <PageIntro eyebrow="MATTER OF PLACE · EDITORIAL DESK" title={market.name} />
+      ) : (
+        <ImageHero
+          image={market.image}
+          alt={market.name}
+          eyebrow="MATTER OF PLACE · EDITORIAL DESK"
+          title={market.name}
+        />
+      )}
+      <IllustrativeNotice properties={pool} />
 
       <section className="section-wrap editorial-statement">
         <p className="eyebrow">THE PLACE</p>
@@ -109,31 +127,35 @@ function MarketPage() {
         </div>
       </section>
 
-      <FilteredCollection
-        eyebrow="EXPLORE THE MARKET"
-        title="Selected properties"
-        state={filterState}
-        pool={pool}
-        items={items}
-        locations={locations}
-        filtersId="market-filters"
-        tabs={
-          <>
-            <Link to="/$market" params={{ market: market.slug }} className="selected">
-              All
-            </Link>
-            {market.regions.map((region) => (
-              <Link
-                key={region.slug}
-                to="/$market/$region"
-                params={{ market: market.slug, region: region.slug }}
-              >
-                {region.name}
+      {pool.length === 0 ? (
+        <ComingSoon scope="market" market={market} />
+      ) : (
+        <FilteredCollection
+          eyebrow="EXPLORE THE MARKET"
+          title="Selected properties"
+          state={filterState}
+          pool={pool}
+          items={items}
+          locations={locations}
+          filtersId="market-filters"
+          tabs={
+            <>
+              <Link to="/$market" params={{ market: market.slug }} className="selected">
+                All
               </Link>
-            ))}
-          </>
-        }
-      />
+              {market.regions.map((region) => (
+                <Link
+                  key={region.slug}
+                  to="/$market/$region"
+                  params={{ market: market.slug, region: region.slug }}
+                >
+                  {region.name}
+                </Link>
+              ))}
+            </>
+          }
+        />
+      )}
 
       {recent.length > 0 && (
         <section className="section-wrap featured related-properties">

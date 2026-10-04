@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
-import type { GalleryImage, PropertyVideo } from "../../domain/property";
+import type { GalleryImage, Property, PropertyVideo } from "../../domain/property";
 import { track } from "../../lib/analytics";
 import { cx } from "../../lib/cx";
 
@@ -30,11 +30,13 @@ export function Gallery({
   video,
   city,
   slug,
+  status,
 }: {
   images: GalleryImage[];
   video?: PropertyVideo | undefined;
   city: string;
   slug: string;
+  status: Property["status"];
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -72,7 +74,7 @@ export function Gallery({
                 loading="lazy"
                 width={image.orientation === "portrait" ? 1024 : 1600}
                 height={image.orientation === "portrait" ? 1312 : 1104}
-                alt={`${image.alt}, illustrative`}
+                alt={status === "Illustrative" ? `${image.alt}, illustrative` : image.alt}
               />
               <figcaption>{image.alt}</figcaption>
             </figure>

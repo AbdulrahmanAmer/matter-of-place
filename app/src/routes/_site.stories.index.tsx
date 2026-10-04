@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ComingSoon } from "../components/site/coming-soon";
 import { Newsletter } from "../components/site/newsletter";
 import { PageIntro } from "../components/site/page-intro";
 import { StoryGrid } from "../components/site/story-card";
@@ -21,11 +22,15 @@ function StoriesPage() {
       <PageIntro
         eyebrow="ARCHITECTURE · INTERIORS · PLACES"
         title="Stories"
-        text="Original writing from three editorial desks. Sample stories, shown to set the format."
+        text="Original writing from three editorial desks."
       />
-      <section className="section-wrap collection">
-        <StoryGrid items={stories} />
-      </section>
+      {stories.length === 0 ? (
+        <ComingSoon scope="stories" />
+      ) : (
+        <section className="section-wrap collection">
+          <StoryGrid items={stories} />
+        </section>
+      )}
       <Newsletter source="stories" />
     </main>
   );

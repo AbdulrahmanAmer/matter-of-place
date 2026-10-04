@@ -139,3 +139,35 @@
     width: 100%;
   }
 }
+
+/* What is real on a preview: the same grid as the empty state, smaller type, one hairline above. */
+.illustrative-notice {
+  padding-block: clamp(48px, 5vw, 72px);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 40px;
+}
+
+.illustrative-notice h2 {
+  font-size: clamp(24px, 2.4vw, 32px);
+  margin-bottom: 16px;
+}
+
+.illustrative-notice p:not(.eyebrow) {
+  max-width: 530px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) {
+  .illustrative-notice {
+    display: block;
+  }
+
+  .illustrative-notice > div {
+    margin-top: 25px;
+  }
+}
