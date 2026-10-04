@@ -71,7 +71,7 @@ export function ContactForm() {
           <input required type="text" name="name" autoComplete="name" />
         </Field>
         <Field label="Email">
-          <input required type="email" name="mail" autoComplete="email" />
+          <input required type="email" name="email" autoComplete="email" />
         </Field>
         <Field label="Phone (optional)">
           <input type="tel" name="phone" autoComplete="tel" />
