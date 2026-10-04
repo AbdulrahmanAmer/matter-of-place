@@ -32,6 +32,7 @@ const DENO_FILES = [
   "src/server/reports/build.ts",
   "src/domain/**",
   "src/templates/**",
+  "supabase/functions/job-runner/index.ts",
 ];
 const DENO_UNSUFFIXED = "[source.value=/^([.]|@.(server|domain))/]:not([source.value=/[.]tsx?$/])";
 const DENO_MESSAGE = "Deno-loaded file: import with the .ts extension";
@@ -222,6 +223,12 @@ export default defineConfig(
       },
     },
     rules: typeAwareRules,
+  },
+  // Deno code: `deno check` is its type check (the app tsconfig has no Deno globals).
+  {
+    files: ["supabase/functions/**/*.ts"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { Deno: "readonly" }, parserOptions: { projectService: false } },
   },
   {
     files: [
