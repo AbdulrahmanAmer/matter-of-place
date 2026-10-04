@@ -3,6 +3,7 @@ import {
   analyticsBatchSchema,
   clientErrorSchema,
   conciergeQuestionSchema,
+  cspReportBatchSchema,
   inquirySchema,
   searchQuerySchema,
   slugSchema,
@@ -74,6 +75,8 @@ interface BaseRoute {
   turnstile: boolean;
   /** The four form writes also take a first memory check before any other work. */
   form?: boolean;
+  /** The body types a write accepts; `application/json` when absent. */
+  contentTypes?: readonly string[];
   cache?: RouteCache;
   status: number;
 }
@@ -193,6 +196,17 @@ export const routes: PublicRoute[] = [
     turnstile: false,
     status: 204,
     service: events.record,
+  },
+  {
+    // The browser sends the report itself, so there is no Turnstile check and no database limit.
+    path: "/api/public/csp-report",
+    method: "POST",
+    schema: cspReportBatchSchema,
+    contentTypes: ["application/reports+json", "application/csp-report"],
+    limits: [{ scope: "ip", store: "memory", limit: 60, windowSeconds: 60 }],
+    turnstile: false,
+    status: 204,
+    service: events.recordCspReports,
   },
   {
     path: "/api/public/search",

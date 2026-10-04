@@ -38,6 +38,7 @@ import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiPublicClientErrorRouteImport } from './routes/api/public/client-error'
 import { Route as ApiPublicConciergeRouteImport } from './routes/api/public/concierge'
+import { Route as ApiPublicCspReportRouteImport } from './routes/api/public/csp-report'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inquiries'
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
@@ -199,6 +200,11 @@ const ApiPublicConciergeRoute = ApiPublicConciergeRouteImport.update({
   path: '/api/public/concierge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCspReportRoute = ApiPublicCspReportRouteImport.update({
+  id: '/api/public/csp-report',
+  path: '/api/public/csp-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEventsRoute = ApiPublicEventsRouteImport.update({
   id: '/api/public/events',
   path: '/api/public/events',
@@ -309,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -448,6 +457,7 @@ export interface FileRouteTypes {
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -491,6 +501,7 @@ export interface FileRouteTypes {
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -567,6 +579,7 @@ export interface RootRouteChildren {
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiPublicClientErrorRoute: typeof ApiPublicClientErrorRoute
   ApiPublicConciergeRoute: typeof ApiPublicConciergeRoute
+  ApiPublicCspReportRoute: typeof ApiPublicCspReportRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiPublicInquiriesRoute: typeof ApiPublicInquiriesRoute
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
@@ -783,6 +796,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/concierge'
       fullPath: '/api/public/concierge'
       preLoaderRoute: typeof ApiPublicConciergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/csp-report': {
+      id: '/api/public/csp-report'
+      path: '/api/public/csp-report'
+      fullPath: '/api/public/csp-report'
+      preLoaderRoute: typeof ApiPublicCspReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/events': {
@@ -1045,6 +1065,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiPublicClientErrorRoute: ApiPublicClientErrorRoute,
   ApiPublicConciergeRoute: ApiPublicConciergeRoute,
+  ApiPublicCspReportRoute: ApiPublicCspReportRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiPublicInquiriesRoute: ApiPublicInquiriesRoute,
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,

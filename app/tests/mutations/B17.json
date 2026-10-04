@@ -1,0 +1,261 @@
+[
+  {
+    "id": "b17-flags-key",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "  \"csp_enforce\",\n  \"maintenance\",\n] as const;",
+    "replace": "  \"maintenance\",\n] as const;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*flags: mergeFlags gives csp_enforce and maintenance"
+  },
+  {
+    "id": "b17-hdr-nosniff",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"X-Content-Type-Options\": \"nosniff\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: carries the security table on a page"
+  },
+  {
+    "id": "b17-hdr-enforce-name",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  return flags[\"csp_enforce\"] === true\n    ? \"Content-Security-Policy\"\n    : \"Content-Security-Policy-Report-Only\";",
+    "replace": "  return \"Content-Security-Policy-Report-Only\";",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: names the enforcing header once csp_enforce"
+  },
+  {
+    "id": "b17-csp-nonce",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [\"'nonce-abc'\", ...hashSources(hashes.scripts ?? [])],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: puts every class .tsr inline script"
+  },
+  {
+    "id": "b17-csp-leave-out",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "replace": "    if ((marked && scripts.length === 0) || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: puts every class .tsr inline script"
+  },
+  {
+    "id": "b17-gtag-wildcard",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"https://www.googletagmanager.com/gtag/js\",",
+    "replace": "    \"https://*.googletagmanager.com\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: lets script-src name the gtag.js path only"
+  },
+  {
+    "id": "b17-img-media",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"frame-src\": framing === \"admin\" ? [\"'self'\"] : [],\n  };",
+    "replace": "    \"frame-src\": framing === \"admin\" ? [\"'self'\"] : [],\n    \"img-src\": [readVar(\"MEDIA_PUBLIC_BASE\") ?? \"\"],\n  };",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: gives img-src exactly self, data and the two GA4"
+  },
+  {
+    "id": "b17-link-media",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    `<${TURNSTILE}>; rel=preconnect`,",
+    "replace": "    `<${TURNSTILE}>; rel=preconnect`,\n    `<https://m.test>; rel=preconnect`,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: sends one Link header with the two fonts"
+  },
+  {
+    "id": "b17-cache-control",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    headers.set(\"cache-control\", \"no-store\");",
+    "replace": "    headers.set(\"cache-control\", \"public, max-age=60\");",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: keeps the Cache-Control of each route class"
+  },
+  {
+    "id": "b17-headers-file",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/_headers",
+    "find": "  Cache-Control: no-cache",
+    "replace": "  Cache-Control: public, max-age=31536000",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: gives static files their lifetime"
+  },
+  {
+    "id": "b17-hash-ldjson",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  const styles = [...html.matchAll(STYLE)].map(([, text = \"\"]) => text);",
+    "replace": "  const styles = [...html.matchAll(STYLE), ...html.matchAll(new RegExp('<script type=\"application/ld[+]json\">([^]*?)</script>', \"g\"))].map(([, text = \"\"]) => text);",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: hashes a class .tsr script"
+  },
+  {
+    "id": "b17-hash-all",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "replace": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text) || true) scripts.push(text);",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: leaves an unmarked executable script out"
+  },
+  {
+    "id": "b17-report-each",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      if (found.unexpected > 0) report(new Error(\"csp_unexpected_inline_script\"));",
+    "replace": "      for (let n = 0; n < found.unexpected; n += 1) report(new Error(\"csp_unexpected_inline_script\"));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: leaves an unmarked executable script out"
+  },
+  {
+    "id": "b17-hash-fail-silent",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      report(error instanceof Error ? error : new Error(\"csp_hashing_failed\"));",
+    "replace": "      void error;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: sends the page on with the default policy"
+  },
+  {
+    "id": "b17-tsr-unmarked",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "replace": "    if (CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: reports nothing for a page whose inline"
+  },
+  {
+    "id": "b17-allow-entry",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/csp-allowlist.ts",
+    "find": "document.currentScript.remove()",
+    "replace": "document.currentScript.remove();",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: still finds class .tsr on the bootstrap script"
+  },
+  {
+    "id": "b17-frame-self",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "framing === \"self\" ? [\"'self'\"] : sources",
+    "replace": "sources",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: lets a preview-token page"
+  },
+  {
+    "id": "b17-frame-xfo",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "framing === \"self\" ? \"SAMEORIGIN\" : \"DENY\"",
+    "replace": "\"DENY\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: lets a preview-token page"
+  },
+  {
+    "id": "b17-frame-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "framing === \"admin\" ? [\"'self'\"] : []",
+    "replace": "[]",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: adds its own origin to frame-src"
+  },
+  {
+    "id": "b17-stored-policy",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"content-security-policy-report-only\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-stored: reads the policy and the Link header back"
+  },
+  {
+    "id": "b17-stored-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"link\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-stored: reads the policy and the Link header back"
+  },
+  {
+    "id": "b17-report-dedupe",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "recentReports.has(key) || ",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: stores a burst of 100 identical reports"
+  },
+  {
+    "id": "b17-report-limit",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "replace": "    limits: [],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: stores a burst of 100 identical reports"
+  },
+  {
+    "id": "b17-report-limit-61st",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "replace": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 600, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: answers 429 for the 61st request"
+  },
+  {
+    "id": "b17-report-min",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  z.array(reportingApiViolation).min(1).max(20),",
+    "replace": "  z.array(reportingApiViolation).max(20),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: parses a Reporting API array"
+  },
+  {
+    "id": "b17-report-cut",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "  directive: cut(100)(directive),",
+    "replace": "  directive,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: keeps a row's data short"
+  },
+  {
+    "id": "b17-report-sentry",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  if (error !== null) {",
+    "replace": "  if (error === null) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: still answers 204 and tells Sentry once"
+  },
+  {
+    "id": "b17-events-ct",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!contentTypes.some((type) => sent.startsWith(type))) {",
+    "replace": "  if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: gives a reports body to /api/public/events a 400"
+  },
+  {
+    "id": "b17-csp-proof-stored",
+    "kind": "manual",
+    "test": "scripts/csp-proof.mjs",
+    "run": "node scripts/csp-proof.mjs http://127.0.0.1:8938",
+    "expect": "FAIL .* policy holds each inline script hash"
+  }
+]

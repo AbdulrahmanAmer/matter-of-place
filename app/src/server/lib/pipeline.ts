@@ -1,7 +1,7 @@
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
 import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
-import { securityHeaders, type Flags } from "./headers";
+import { securityHeaders, withPageCsp, type Flags, type Framing } from "./headers";
 import { logLine } from "./log";
 
 export interface PipelineContext {
@@ -96,6 +96,13 @@ export function neverCached(request: Request, pathname: string, response?: Respo
   );
 }
 
+/** A preview-token page is framed by B7's editor (`self`); an `/admin` document adds its own origin to `frame-src`. */
+function framingOf(request: Request, path: string): Framing {
+  const search = new URL(request.url).searchParams;
+  if (search.has("preview") || search.has("draft_token")) return "self";
+  return isAdmin(path) ? "admin" : "none";
+}
+
 function requestIdOf(request: Request): string {
   const inbound = request.headers.get("x-request-id");
   return inbound !== null && REQUEST_ID.test(inbound) ? inbound : crypto.randomUUID();
@@ -188,12 +195,13 @@ export async function handle(
   const path = routePath(pathname);
   const underApi = path.startsWith("/api/");
   const mopEnv = ctx.env.MOP_ENV ?? "production";
+  const framing = framingOf(request, path);
   let flags: Flags = {};
   let response: Response;
   let redirected = false;
   try {
     flags = await deps.getFlags();
-    const render = () => deps.render(request, requestId);
+    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);
     // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.
     const page = !neverCached(request, pathname) && isPageRequest(pathname);
     const redirect = page ? await deps.redirect(request) : null;
@@ -228,7 +236,7 @@ export async function handle(
   }
   const hasPolicy =
     headers.has("content-security-policy") || headers.has("content-security-policy-report-only");
-  for (const [name, value] of Object.entries(securityHeaders(mopEnv, flags))) {
+  for (const [name, value] of Object.entries(securityHeaders(mopEnv, flags, framing))) {
     if (!(hasPolicy && name.startsWith("Content-Security-Policy"))) headers.set(name, value);
   }
   if (!isIndexableHost(request.headers.get("host") ?? new URL(request.url).host, mopEnv)) {
