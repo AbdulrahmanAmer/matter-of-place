@@ -3534,8 +3534,8 @@
     "id": "hy-guard-rollback",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure() && steps.deploy.outcome == 'success'\n",
-    "replace": "answers noindex before and after the domain cut-over.\n      - name: smoke\n        if: steps.guard.outputs.superseded != 'true'\n        run: node scripts/smoke.mjs \"$URL\"\n      - name: rollback\n        if: failure()\n",
+    "find": "|| '' }}\n      - name: rollback\n        if: failure() && steps.deploy.outcome == 'success'\n",
+    "replace": "|| '' }}\n      - name: rollback\n        if: failure()\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× dev and production run the guard first"
   },

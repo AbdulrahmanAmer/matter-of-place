@@ -466,14 +466,47 @@ describe("X-Robots-Tag by host (G19)", () => {
 });
 
 describe("flags", () => {
-  it("passes an empty map by default and the fake's map to the security headers", async () => {
+  it("calls the reader once per page request and hands what it returns to the security headers", async () => {
     vi.mocked(securityHeaders).mockClear();
-    await setup({}).run(get("/"));
-    await setup({ getFlags: () => Promise.resolve({ x: true }) }).run(get("/"));
+    const getFlags = vi.fn<PipelineDeps["getFlags"]>(() => Promise.resolve({ csp_enforce: true }));
+    await setup({ getFlags }).run(get("/"));
+    expect(getFlags).toHaveBeenCalledTimes(1);
     expect(vi.mocked(securityHeaders).mock.calls.map(([, flags]) => flags)).toEqual([
-      {},
-      { x: true },
+      { csp_enforce: true },
     ]);
+  });
+
+  it("wires start.ts's flags dependency to getFlags(getDb())", async () => {
+    const db = { marker: "the one client" };
+    const getFlags = vi.fn(() => Promise.resolve({ csp_enforce: true }));
+    const handed: PipelineDeps[] = [];
+    vi.resetModules();
+    vi.doMock("../../src/router", () => ({ getRouter: () => ({}) }));
+    vi.doMock("../../src/server/lib/env", () => ({
+      env: {
+        SUPABASE_URL: "https://db.invalid",
+        SUPABASE_SERVICE_ROLE_KEY: "key",
+        MOP_ENV: "local",
+      },
+      sentryOptions: () => ({}),
+    }));
+    vi.doMock("../../src/server/lib/db", () => ({ getDb: () => db }));
+    vi.doMock("../../src/server/lib/flags", () => ({ getFlags }));
+    vi.doMock("../../src/server/lib/pipeline", () => ({
+      handle: (_request: Request, _ctx: PipelineContext, deps: PipelineDeps) => {
+        handed.push(deps);
+        return Promise.resolve(new Response("ok"));
+      },
+    }));
+    const { startInstance } = await import("../../src/start");
+    const options = await startInstance.getOptions();
+    const server: unknown = Reflect.get(options.requestMiddleware?.[0]?.options ?? {}, "server");
+    if (typeof server !== "function") throw new Error("start.ts registers no pipeline middleware");
+    await Reflect.apply(server, undefined, [{ request: get("/"), next: () => undefined }]);
+    const [deps] = handed;
+    expect(await deps?.getFlags()).toEqual({ csp_enforce: true });
+    expect(getFlags).toHaveBeenCalledTimes(1);
+    expect(getFlags).toHaveBeenCalledWith(db);
   });
 });
 

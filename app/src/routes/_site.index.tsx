@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ComingSoon } from "../components/site/coming-soon";
 import { ContentTag } from "../components/site/content-tag";
+import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { MarketGrid } from "../components/site/market-card";
 import { OfferCard } from "../components/site/offer-card";
 import { PropertyGrid } from "../components/site/property-card";
@@ -14,6 +16,7 @@ import { featuredProperties, heroProperties } from "../lib/catalog";
 import { padIndex } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { pageHead } from "../lib/seo";
+import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/")({
   loader: async ({ context: { queryClient } }) => {
@@ -24,6 +27,7 @@ export const Route = createFileRoute("/_site/")({
     return {
       hero: heroProperties(properties),
       featured: featuredProperties(properties).slice(0, 6),
+      preview: properties.filter((property) => property.status === "Illustrative").slice(0, 1),
       markets,
     };
   },
@@ -60,10 +64,24 @@ const howItWorks = [
 ];
 
 function HomePage() {
-  const { hero, featured, markets } = Route.useLoaderData();
+  const { hero, featured, preview, markets } = Route.useLoaderData();
   return (
     <main>
-      <Hero properties={hero} />
+      {hero.length > 0 ? (
+        <Hero properties={hero} />
+      ) : (
+        <>
+          <section className="hero-text">
+            <div className="section-wrap">
+              <p className="eyebrow">MATTER OF PLACE</p>
+              <h1>{siteConfig.tagline}</h1>
+              <p>{t.comingSoon.what}</p>
+            </div>
+          </section>
+          <ComingSoon scope="home" />
+        </>
+      )}
+      <IllustrativeNotice properties={preview} />
 
       <section className="section-wrap editorial-statement">
         <p className="eyebrow">MATTER OF PLACE</p>
@@ -81,14 +99,16 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="section-wrap featured">
-        <SectionHeading
-          eyebrow="THE CURRENT EDIT"
-          title="Selected properties"
-          action={<TextLink to="/properties">All properties</TextLink>}
-        />
-        <PropertyGrid items={featured} />
-      </section>
+      {featured.length > 0 && (
+        <section className="section-wrap featured">
+          <SectionHeading
+            eyebrow="THE CURRENT EDIT"
+            title="Selected properties"
+            action={<TextLink to="/properties">All properties</TextLink>}
+          />
+          <PropertyGrid items={featured} />
+        </section>
+      )}
 
       <section className="markets-feature">
         <div className="section-wrap">
@@ -178,6 +198,7 @@ function HomePage() {
 function Hero({ properties }: { properties: PropertyCard[] }) {
   const [index, setIndex] = useState(0);
   const property = properties[index];
+  const illustrative = property?.status === "Illustrative";
   const advance = (step: number) =>
     setIndex((current) => (current + step + properties.length) % properties.length);
 
@@ -191,9 +212,9 @@ function Hero({ properties }: { properties: PropertyCard[] }) {
         src={property.heroImage}
         width={1600}
         height={1104}
-        alt={`Illustrative residence in ${property.city}`}
+        alt={`${illustrative ? "Illustrative residence" : "Residence"} in ${property.city}`}
       />
-      <ContentTag label="ILLUSTRATIVE PROPERTY" />
+      {illustrative && <ContentTag label="ILLUSTRATIVE PROPERTY" />}
 
       <div className="hero-content">
         <p className="eyebrow">

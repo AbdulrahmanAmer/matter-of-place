@@ -1,0 +1,173 @@
+/* The empty state of a collection (B3b): eyebrow left, text and signup right, one hairline above, no box. */
+
+.coming-soon {
+  padding-block: clamp(83px, 9vw, 130px);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 40px;
+}
+
+.coming-soon h2 {
+  font-size: clamp(36px, 4.4vw, 64px);
+  line-height: 1.05;
+  max-width: 800px;
+  margin-bottom: 28px;
+}
+
+.coming-soon-body > p {
+  max-width: 530px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+  margin-bottom: 36px;
+}
+
+/* The field and the button share a row; the chooser sits beneath, and the DOM order is the focus order. */
+.interest-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "email submit"
+    "chooser chooser"
+    "note note"
+    "error error";
+  align-items: end;
+  gap: 20px 24px;
+  max-width: 640px;
+}
+
+.interest-email {
+  grid-area: email;
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--accent);
+  outline: none;
+  font-size: 1rem;
+}
+
+.interest-email:focus {
+  border-color: var(--foreground);
+  box-shadow: 0 1px 0 var(--foreground);
+}
+
+.interest-submit {
+  grid-area: submit;
+  min-height: 44px;
+  padding: 12px 28px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.interest-submit:disabled {
+  opacity: 0.5;
+}
+
+/* currentColor is the Ivory of the filled button, which the page also is. */
+.interest-submit:focus-visible {
+  outline-color: var(--foreground);
+}
+
+.interest-chooser {
+  grid-area: chooser;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.interest-chooser legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.interest-chooser .check {
+  align-items: center;
+  min-height: 44px;
+}
+
+.interest-form .form-note {
+  grid-area: note;
+}
+
+.interest-form .form-error {
+  grid-area: error;
+}
+
+.interest-sent {
+  max-width: 530px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--foreground);
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 700px) {
+  .coming-soon {
+    display: block;
+  }
+
+  .coming-soon-body {
+    margin-top: 25px;
+  }
+
+  .interest-form {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "email"
+      "chooser"
+      "submit"
+      "note"
+      "error";
+  }
+
+  .interest-chooser {
+    flex-direction: column;
+  }
+
+  .interest-submit {
+    width: 100%;
+  }
+}
+
+/* What is real on a preview: the same grid as the empty state, smaller type, one hairline above. */
+.illustrative-notice {
+  padding-block: clamp(48px, 5vw, 72px);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 40px;
+}
+
+.illustrative-notice h2 {
+  font-size: clamp(24px, 2.4vw, 32px);
+  margin-bottom: 16px;
+}
+
+.illustrative-notice p:not(.eyebrow) {
+  max-width: 530px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) {
+  .illustrative-notice {
+    display: block;
+  }
+
+  .illustrative-notice > div {
+    margin-top: 25px;
+  }
+}
