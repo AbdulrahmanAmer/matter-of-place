@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-04 14:40 (UTC+3)",
-  "now": "B3 closed; B8 at step 8a on main. Lanes: coming (B3b, all steps), tests (B4 steps 6 to 10), ops (B8 waits on B7 and B8b for 9 to 10a; 2a open). Next to open: B8b in a new lane, B9 steps 7 to 11 in the design lane, then B13 and B17 after B3b lands (they share files with it).",
+  "updated": "2026-10-05 00:35 (UTC+3)",
+  "now": "Five lanes: tests (B4 9 and 10 in review, then the slice merge), auto (B8b 4 to 5), handoff (B15 4 to 7), seo (B13), site (B17). B3b closed. Next by dependency: B5 after B8b step 4 merges email_templates; B7 after B8b step 5; B16 rest after B5 and B17; B14, B6, B10 to B12 after B7.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -61,16 +61,16 @@
         "2",
         "3",
         "4",
-        "5"
-      ],
-      "inReview": [
+        "5",
         "6",
         "7",
-        "8",
+        "8"
+      ],
+      "inReview": [
         "9",
         "10"
       ],
-      "note": "Steps 1 to 5 on main; 6 to 10 building in the tests lane since 2026-10-04 14:10 (B3 on main)."
+      "note": "Steps 6 to 8 accepted on slice/b4 (CI e2e and db jobs, factories); 9 and 10 in their second review; the slice merges when they pass. The CPU gate (T-11) waits on CF_ANALYTICS_TOKEN."
     },
     "B9": {
       "accepted": [
@@ -79,10 +79,13 @@
         "3",
         "4",
         "5",
-        "6"
+        "6",
+        "7",
+        "8",
+        "9"
       ],
       "inReview": [],
-      "note": "Steps 1 to 6 merged (PRs 92, 99); 7 to 11 wait on B8 and B7."
+      "note": "Steps 1 to 9 on main (PRs 92, 99, 117) with the seed image upload (c6u) and the assets migrations renamed past main's newest (c9m); 10 and 11 wait on B7."
     },
     "B3": {
       "accepted": [
@@ -112,6 +115,7 @@
       "accepted": [
         "1",
         "2",
+        "2a",
         "3",
         "4",
         "5",
@@ -122,7 +126,7 @@
         "8a"
       ],
       "inReview": [],
-      "note": "Steps 1 to 8a merged (PRs 101, 109, 113); the dev job deploys the runner after db-push (c5). After 61acd22's deploy: GITHUB_DISPATCH_TOKEN function secret (P-912) and the live render round trip are the orchestrator's. 2a waits on nothing now (B3 on main); 9 to 10a on B7 and B8b."
+      "note": "Steps 1 to 8a and 2a on main (PRs 101, 109, 113, 116, 123); the two B3 leftovers wired (c8w); the schedule_settings cases read the real table (c8db). 9 to 10a wait on B7 and B8b."
     },
     "B14": {
       "accepted": [
@@ -154,8 +158,7 @@
       "note": "Acceptance panel, added 2026-10-04 (S66): runs after the B slices close."
     },
     "B3b": {
-      "accepted": [],
-      "inReview": [
+      "accepted": [
         "1",
         "2",
         "3",
@@ -167,7 +170,46 @@
         "9",
         "10"
       ],
-      "note": "Started 2026-10-04 14:05 in the lane E:/mop-build/coming (branch slice/b3b, port 8878, bank numbers from P-1300 and G-550)."
+      "inReview": [],
+      "note": "Closed 2026-10-05 00:20 (PRs 118, 122, 128; 9529d0a): coming-soon mode, flags, consent, the deploy assertion, hash-only chunk names (H59). PRODUCTION_DEPLOY stays off until the production Worker has its secrets (B3 step 12 item 8) and the production Turnstile pair exists."
+    },
+    "B8b": {
+      "accepted": [
+        "1",
+        "2",
+        "3"
+      ],
+      "inReview": [
+        "4",
+        "4a",
+        "5"
+      ],
+      "note": "Step 1 on main (PR 115); 2 and 3 accepted on slice/b8b with the gate scanner fix (c2s); step 4 first half in re-review (c3r), 4a and 5 next; 6 to 10 wait on B7 and B5."
+    },
+    "B15": {
+      "accepted": [
+        "1",
+        "2",
+        "3"
+      ],
+      "inReview": [
+        "4"
+      ],
+      "note": "Started 2026-10-04 20:50 in the lane E:/mop-build/handoff (branch slice/b15, port 8918, bank numbers from P-1700 and G-750); step 3 on main (PR 127); 4 building; the contract note to Omnikom is the operator's (S59)."
+    },
+    "B13": {
+      "accepted": [],
+      "inReview": [
+        "1"
+      ],
+      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/seo (branch slice/b13, port 8928, bank numbers from P-1800 and G-800)."
+    },
+    "B17": {
+      "accepted": [],
+      "inReview": [
+        "1"
+      ],
+      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850)."
     }
   },
   "lanes": [

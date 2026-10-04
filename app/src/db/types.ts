@@ -814,7 +814,14 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "market_interest_counts": {
+                  Row: {
+                    "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "apply_media_variants":
@@ -1154,6 +1161,9 @@ isOneToOne: false
                            },
 "set_asset_text":
 { Args: { "p_alt_text"?: string,"p_asset": string,"p_caption"?: string,"p_meta"?: Json }; Returns: undefined
+                           },
+"set_environment":
+{ Args: { "p_value": string }; Returns: undefined
                            },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined

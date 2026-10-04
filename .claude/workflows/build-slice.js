@@ -320,7 +320,9 @@ const next = sized.groups.find((g) => !g.blocked && !out.some((o) => o.group ===
 // group was just accepted), one agent brings main in, marks the pull request ready, waits for CI and runs the
 // merge gate. The orchestrator re-runs its own probes after the merge, in batches, instead of stopping each lane.
 // A merge spends CI minutes on main and a dev deploy, so the default is one merge per slice.
-const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.needsOrchestrator)
+// P-518: an orchestrator item that reads "After the merge ..." waits for the merge, it does not replace it; B3b ended with every
+// step accepted and its pull request open because its last group carried such a note.
+const stoppedForOrchestrator = out.some((o) => o.status === 'accepted' && o.needsOrchestrator && !/^s*after the merge/i.test(String(o.needsOrchestrator)))
 // A group the sizing marked blocked (waiting on another slice) has no `built` and does not hold the merge back;
 // a group a builder returned blocked, or a rejected or failed one, does.
 const sliceDone = !next && out.some((o) => o.status === 'accepted') && out.every((o) => o.status === 'accepted' || (o.status === 'blocked' && !o.built))
