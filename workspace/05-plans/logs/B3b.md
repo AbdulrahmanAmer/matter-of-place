@@ -373,3 +373,75 @@ Proof 3, step 7, `MOP_ENV=local`: `/` "What is real here" 1; `/california` "No p
 UNPROVEN until step 9 lands (H59): the literal `grep -ci illustrative` printing 0 on `/properties` under production. Also UNPROVEN: e2e rows (f), (r) (g6); an open market with a photograph; `Gallery` and `Representation` status wording has no test of its own. Reviewer note, not changed (plan-literal): the home text hero with `ComingSoon scope="home"` shows whenever no property has a `heroRank`, even when one has a `featuredRank`; a ranking rule for B7.
 
 Bank: P-1318 added (shared flag), P-1313 carries the ruling, P-094 hit again. Preview stopped by its parent process id; `.dev.vars` back to `MOP_ENV=local`.
+
+## g7 · steps 9,10
+Start commit c9d0e98 (slice/b3b after merging main), started 2026-10-04 22:50 +0300. Main merged first (clean: GOTCHAS, PROJECT-STATE, ASSUMED, build-slice). Files: `app/scripts/assert-coming-soon.mjs`, `app/tests/unit/assert-coming-soon.test.ts`, `app/docs/coming-soon.md`, `.github/workflows/deploy.yml`; by step text (P-513): `app/vite.config.ts` (H59). Beyond the step text, because the deploy step breaks B1b's pins (P-1320): `app/tests/unit/hygiene.test.ts` (`smokeAt === steps.length - 2` became `SMOKE_FROM_END`, production 3), `app/tests/mutations/B1b.json` (`hy-guard-rollback` find moved to start at the new step's tail), `app/tests/mutations/B3b.json` (7 entries). H59 is written as `build.rolldownOptions`, not `rollupOptions`: Vite 8.1.5's types mark `rollupOptions` `@deprecated Use rolldownOptions instead`. The output names apply to the SSR build too (`.output/server/_ssr/<hash>.mjs`); preset and worker name unchanged.
+
+Proof 1, `bunx vitest run tests/unit/assert-coming-soon.test.ts`:
+```
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+```
+Proof 2, H59 after the live build (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`, exit 0; `grep -rl "Program Files/Git" .output/server .output/public | wc -l` 0):
+```
+$ grep -ci illustrative .output/public/index.html
+grep: .output/public/index.html: No such file or directory      <- the SSR build writes no index.html (P-1319)
+$ ls .output/public/assets | grep -c illustrative
+0
+$ node scripts/bundle-check.mjs
+bundle-check: OK 20 routes under 153600 gzip bytes                (exit 0)
+```
+The served HTML stands in for `index.html`, under `MOP_ENV=production` on port 8878: `/` 0, `/properties` 0 (`curl -s ... | grep -ci illustrative`; g5 measured 1 on `/properties` before H59). Watched-fail: with `rolldownOptions` renamed away, `ls .output/public/assets | grep -c illustrative` printed 1; restored, 0. The `inlineDynamicImports option is ignored` warning prints with and without the change.
+
+Proof 3, step 9 live (`settings` read first: `environment` "development", `coming_soon_global` false, 16 properties, 3 markets). `.dev.vars` `MOP_ENV=production`, copied, `wrangler dev ... --port 8878`:
+```
+$ bun scripts/with-coming-soon.ts --value true -- node scripts/assert-coming-soon.mjs http://127.0.0.1:8878
+ok   coming-soon checks on http://127.0.0.1:8878
+coming_soon_global restored to false
+exit=0
+$ node scripts/assert-coming-soon.mjs http://127.0.0.1:8878 --after-launch
+ok   coming-soon checks on http://127.0.0.1:8878                  (exit 0)
+$ node scripts/assert-coming-soon.mjs                            -> usage, exit 2; with --bogus -> usage, exit 2
+```
+Stopped by parent id (P-042), page cache removed (P-1312), `MOP_ENV=local`, restarted:
+```
+$ bun scripts/with-coming-soon.ts --value false -- node scripts/assert-coming-soon.mjs http://127.0.0.1:8878
+FAIL no-illustrative
+FAIL properties
+FAIL markets
+FAIL property-card
+FAIL california
+coming_soon_global restored to false
+exit=1
+```
+Preview stopped by parent id; `netstat -ano | grep -c ":8878.*LISTENING"` 0; `.dev.vars` back to `MOP_ENV=local`.
+
+Proof 4, watched-fail (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`, one call each, after the last edit of the script): `WATCHED-FAIL OK B3b:` b3b-aa (plan (aa): `--after-launch` keeps property-card), b3b-acs-markets, b3b-acs-properties, b3b-acs-case, b3b-acs-status, b3b-acs-error, b3b-deploy-assert (the deploy step deleted; hygiene red on `dev and production wait, smoke their own address`); `WATCHED-FAIL OK B1b:` hy-guard-rollback (moved find), bf, hy-rollback-name, hy-smoke-order, hy-wait-fails, hy-smoke-wait-dev, hy-rollback-no-id. `--only bf` also replays `B8:bf`, a db entry, `BAD: wrong reason` without the dev profile (P-418), not this group's.
+
+Proof 5, step 10 (from `app/`):
+```
+$ grep -n -B2 -A4 "assert-coming-soon" ../.github/workflows/deploy.yml
+437-      # (H35 (4)); after the domain cut-over MOP_LAUNCHED keeps only the illustrative check. A failure is
+438-      # rolled back below, never retried.
+439:      - name: assert-coming-soon
+440-        if: steps.guard.outputs.superseded != 'true' && vars.MOP_DB_PRODUCTION == 'true'
+441:        run: node scripts/assert-coming-soon.mjs "$URL" ${{ vars.MOP_LAUNCHED == 'true' && '--after-launch' || '' }}
+442-      - name: rollback
+443-        if: failure() && steps.deploy.outcome == 'success'
+444-        env:
+445-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+$ grep -rn "#[0-9a-fA-F]\{6\}" src/styles/components/coming-soon.css src/styles/components/consent.css   -> nothing
+$ node -e "...matchAll(/.../g)..."      (the plan's line)
+roots 0, bad 0                                                    (exit 1)  <- plan defect, P-1319
+$ the same with /gm
+roots 3, bad 0                                                    (exit 0)
+$ GQ-05 flag-reader grep                                          -> nothing
+$ grep -rn "googletagmanager\|google-analytics" src ... | grep -v "src/lib/ga4.ts\|src/server/lib/headers.ts"   -> nothing
+$ scratch/actionlint/actionlint.exe -shellcheck= .github/workflows/deploy.yml   -> exit 0, no output (P-139)
+```
+No temporary flag found (`grep -rn "STUB(B3b\|TODO\|FIXME" src scripts tests` prints nothing). Docs: the two "Step 5's consent spec" lines now say step 8 and what it asserts (keyboard close lands on `#consent-change`; the pointer case is not asserted); launch checklist item 5 matches the script (check names, any-case illustrative, auto rollback, H59); new section on the `interest:` audience rule for B5 and B11.
+
+Proof 6, gates in `app/`: `bun run check` exit 0 (`quiet: ok (48 lines)`); `bun run build` exit 0, `ls .output/public/assets | grep -c illustrative` 0, preset `cloudflare-module`, worker `matter-of-place`.
+
+UNPROVEN: the deploy step itself runs only on a production deploy after L1's launch switch sets `MOP_DB_PRODUCTION` (H35 (4)); nothing pins its `if:` or the `MOP_LAUNCHED` switch except the grep above (the hygiene pin covers its place and its guard).
+Bank: P-1319 (two proofs that cannot pass as written), P-1320 (deploy step vs B1b pins); P-1102, P-042, P-1312, P-1318 followed.

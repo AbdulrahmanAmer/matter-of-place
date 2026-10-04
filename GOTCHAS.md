@@ -2687,6 +2687,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `psql "$DEV_DB_URL" -At -c "select value::text from settings where key='coming_soon_global'"` → `false` before step 6's `with-coming-soon.ts --value true` run, which then ends `coming_soon_global restored to false` (measured 2026-10-04 22:47 +0300, B3b g5 repair).
 - added: 2026-10-04
 
+## P-1319 · Two B3b close-out proofs cannot pass as written: the root-padding one-liner finds no root, and H59's grep names a file the SSR build never writes
+- symptom: B3b g7 ran step 10's `node -e "...matchAll(/(^|\})\s*(\.coming-soon|\.consent-notice)\s*\{([^}]*)\}/g)..."` and it printed `roots 0, bad 0` and exited 1 on CSS that keeps the invariant. Step 9's H59 proof `grep -ci illustrative .output/public/index.html` printed `grep: .output/public/index.html: No such file or directory`.
+- cause: without the `m` flag `^` matches only the start of the file, and both CSS files open with a comment, so neither root follows `^` or `}`. TanStack Start renders every page on the server and nitro writes no `index.html` into `.output/public`.
+- rule: run the root check with the flags `gm` (it then prints `roots 3, bad 0`: `.coming-soon` is matched again inside its media query) and read the result, never the exit code of the literal line; prove "no module name in a page" on the served HTML (`curl -s http://127.0.0.1:<port>/properties | grep -ci illustrative` under `MOP_ENV=production`) plus `ls .output/public/assets | grep -c illustrative`. A plan proof that names a build file checks `ls` first.
+- proof: `cd app && ls .output/public/index.html` → `No such file or directory` after `bun run build`; the step 10 one-liner with `/gm` → `roots 3, bad 0`, with `/g` → `roots 0, bad 0` (measured 2026-10-04 23:08 +0300, B3b g7).
+- added: 2026-10-04
+
+## P-1320 · A step after the production smoke breaks B1b's hygiene pin and one registry find: the step's Files line names neither
+- symptom: B3b step 10 appends `assert-coming-soon` after the production smoke; `hygiene.test.ts` pins `smokeAt === steps.length - 2` (smoke, then only the rollback) and registry entry `hy-guard-rollback` finds the smoke and rollback text as one block, so both would break while the plan names only `deploy.yml`.
+- cause: B1b pinned the step order of each deploy job exactly; a later slice that adds a step in that job inherits the pin.
+- rule: before adding a step to a job of `deploy.yml`, grep `hygiene.test.ts` for the job's order assertions and `tests/mutations/*.json` for finds that span the insertion point; change the pin to name the new step (`SMOKE_FROM_END`), move the find to text that survives, replay the moved entry and add one entry that deletes the new step.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b3b-deploy-assert` → `WATCHED-FAIL OK B3b:b3b-deploy-assert`; `--only hy-guard-rollback` → `WATCHED-FAIL OK B1b:hy-guard-rollback` (2026-10-04, B3b g7).
+- added: 2026-10-04
+
 ## P-517 · Most fix rounds were false sentences, not bad code: the builder never re-read its own claims against the file
 - symptom: 2026-10-04, eleven rejections across B3, B3b, B4, B8b, B9, B15: seven on runbook or log sentences that stated something false about a cache key, a header, a focus ring or a start commit (B3 step 13 alone took five reviews); two on registry entries the formatter made stale; two on code (a token in a network error, a fan-out that stopped on a bad event).
 - cause: the brief asked for proofs and a log, never for a re-read of written facts; "only" and "never" sentences were written from intent, not from the code; prettier ran after the watched-fail was recorded.

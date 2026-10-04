@@ -1,6 +1,6 @@
 # Coming-soon mode
 
-Production shows no illustrative property, ever. Every empty collection becomes a per-market interest signup. This page is the runbook for the mode and the reviewed design decisions behind it (B3b step 1, mop-designer). The code it describes arrives in steps 2 to 10 of the slice; until a step lands, its paragraph here is the contract.
+Production shows no illustrative property, ever. Every empty collection becomes a per-market interest signup. This page is the runbook for the mode and the reviewed design decisions behind it (B3b step 1, mop-designer). The code it describes is steps 2 to 10 of the slice.
 
 ## How the mode works
 
@@ -48,6 +48,15 @@ The local adapter serves the bundled illustrative data, so it cannot show an emp
 - From the laptop, before the launch switch only: `bun scripts/with-coming-soon.ts --value true -- <command>`. It takes the advisory lock `mop-dev-tests`, sets `coming_soon_global`, runs the command and restores the value it read, so it cannot collide with a committed test run on the same database (G34). It is the one way this slice flips the value from the laptop; do not run a bare `update` through `db:psql`, which takes no lock and has no production check.
 - After the launch switch `with-coming-soon.ts` refuses (`refusing: production database`), as does every destructive or test command. Preview Workers then build with the local adapter and show the bundled seed.
 
+## Who an interest signup may receive mail from (for B5 and B11)
+
+A signup through `ComingSoon` is stored with `source` `interest:<scope>` (`interest:home`, `interest:properties`, `interest:stories`, `interest:<market>`, `interest:<market>/<region>`) and the chosen `markets`. It is a separate consent from Place Notes (G15).
+
+- A confirmed `interest:` subscriber receives one mail when a chosen market opens: the system job `market_open_notice` (B11, template `market_open`, key `market_open:<market>`, so it sends once), enqueued in the transaction that opens the market. Nothing else.
+- Campaign standalones and Place Notes go only to confirmed subscribers whose `source` does not start with `interest:` (B5's `standalone` audience, B11's sending).
+- A confirmed interest-only address that signs up for Place Notes keeps its `interest:` source until it clicks the new confirmation; the Place Notes source waits in `pending_source` (DL-06), so nobody can enrol another person by typing their address.
+- B5 words the confirmation mail for an interest signup accordingly. This slice writes `source` and `markets` and sends nothing.
+
 ## Launch checklist
 
 The launch switch is L1 step 1, letters 1b to 1g, run once from `main` in letter order (ruling H35 (4); `workspace/05-plans/L1.md` holds the full text). This page names the parts that touch coming-soon mode.
@@ -56,7 +65,7 @@ The launch switch is L1 step 1, letters 1b to 1g, run once from `main` in letter
 2. 1e: B2's production seed, `bun run seed -- --target dev --mode reference --images upload` (markets, regions, notes and guide, all editorial, none illustrative). The `upload` mode needs B9's media store and refuses until B9 has landed.
 3. 1f: the first admin user.
 4. 1g: `bun run set-env -- --target dev --value production`, then `gh variable set MOP_DB_PRODUCTION --body true`. Without the variable the deploy-time assertion below is skipped, silently.
-5. `deploy.yml` then runs `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` after every production deploy, only while `vars.MOP_DB_PRODUCTION` is `true`. It exits 0 only when the properties list is empty, all three markets are coming soon, neither `/` nor `/properties` carries `ILLUSTRATIVE` or a property card, and `/california` carries the California `market.title` sentence. A failure fails the job after the deploy; the remedy is `bunx wrangler rollback`, not a retry. Run it by hand the same way for a first proof.
+5. `deploy.yml` then runs `node scripts/assert-coming-soon.mjs https://matter-of-place.holy-meadow-4327.workers.dev` after every production deploy (the `assert-coming-soon` step after the smoke), only while `vars.MOP_DB_PRODUCTION` is `true`. It exits 0 only when `/api/public/properties` is empty, `/api/public/markets` holds three markets and all are coming soon, neither `/` nor `/properties` carries the word illustrative (in any case) or a property card (`class="property-card"`), and `/california` carries the California `market.title` sentence. Otherwise it prints `FAIL <check>` for each failed check (`no-illustrative`, `properties`, `markets`, `property-card`, `california`) and exits 1; a fetch error or a non-200 answer is a failed check, and nothing is retried. A failure fails the job, and the job's rollback step rolls the Worker back to its previous version; never re-run it to get a green. Run it by hand the same way for a first proof. Built file names are hashes only (H59), so a module name such as `illustrative-notice` never reaches a page and trips the check.
 6. L1 step 6 changes that URL in `deploy.yml` to `https://matterofplace.com`, and from then on the assertion and any by-hand run use the custom domain. L1 step 4e attaches the domain and sets `gh variable set MOP_LAUNCHED --body true`. From then on `deploy.yml` adds `--after-launch`, which runs one check, that neither `/` nor `/properties` carries `ILLUSTRATIVE`, because a published property and an open market are then expected (L1 step 7).
 
 ## Design decisions
@@ -160,9 +169,9 @@ Where each string appears: `eyebrow`, `*.title`, `*.text` and the `form.*` strin
 - It takes no focus on load and announces nothing on load.
 - The two buttons are native `button` elements whose accessible names are their visible text (`Allow`, `No, thank you`). The privacy link is a real link.
 - DOM order is the sentence, `Allow`, `No, thank you`, then the link, which is the phone order. On desktop the link is set under the sentence on the left, so Tab runs Allow, No thank you, then back to the link. A one-line bend, taken to keep a single DOM for both widths.
-- Closing by keyboard moves focus to the footer's `Cookie settings` button (`id="consent-change"`). Closing by pointer removes the clicked button with the row, so the browser returns focus to the page; nothing is announced and no ring shows. Step 5's consent spec records where focus lands, and this line changes if it does not hold.
+- Closing by keyboard moves focus to the footer's `Cookie settings` button (`id="consent-change"`). Closing by pointer removes the clicked button with the row, so the browser returns focus to the page; nothing is announced and no ring shows. Step 8's consent spec (`tests/e2e/consent.spec.ts`) asserts that a keyboard close leaves focus on `#consent-change`; the pointer case is not asserted.
 - Pressing `Cookie settings` reopens the row and moves focus to the region (`tabindex="-1"`), so a keyboard user hears its name and reaches `Allow` with the next Tab. This is user initiated, not on load.
-- The site's focus ring is `:focus-visible { outline: 1px solid currentColor; outline-offset: 4px }` (`src/styles/base.css`). On a filled `.button` the text colour is Ivory (`color: var(--background)`), so `currentColor` is Ivory and the ring would be Ivory on the Ivory footer, invisible. The notice's filled `Allow` button therefore sets `outline-color: var(--foreground)` on its own `:focus-visible` rule in `consent.css` (step 5), and the unfilled `No, thank you` and the privacy link keep the site ring. Step 5's consent spec asserts that the focused `Allow` has a non-transparent outline whose colour differs from the footer background. The same invisible ring exists on every other filled `.button` on the site; that is a base style, outside this slice, and is left for the owner of `base.css`.
+- The site's focus ring is `:focus-visible { outline: 1px solid currentColor; outline-offset: 4px }` (`src/styles/base.css`). On a filled `.button` the text colour is Ivory (`color: var(--background)`), so `currentColor` is Ivory and the ring would be Ivory on the Ivory footer, invisible. The notice's filled `Allow` button therefore sets `outline-color: var(--foreground)` on its own `:focus-visible` rule in `consent.css` (step 5), and the unfilled `No, thank you` and the privacy link keep the site ring. Step 8's consent spec asserts that the focused `Allow` has a non-transparent outline whose colour differs from the footer background. The same invisible ring exists on every other filled `.button` on the site; that is a base style, outside this slice, and is left for the owner of `base.css`.
 
 ## Review notes
 

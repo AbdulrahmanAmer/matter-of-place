@@ -1198,5 +1198,75 @@
     "replace": "",
     "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
     "expect": "the focused Allow has a visible outline[\\s\\S]*Expected: not \"rgb\\(245, 242, 235\\)\""
+  },
+  {
+    "id": "b3b-aa",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "const checks = [[\"no-illustrative\", () => pagesAre((html) => !ILLUSTRATIVE.test(html))]];",
+    "replace": "const checks = [[\"no-illustrative\", () => pagesAre((html) => !ILLUSTRATIVE.test(html))], [\"property-card\", () => pagesAre((html) => !html.includes(CARD))]];",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > after launch, a published property and an open market pass"
+  },
+  {
+    "id": "b3b-acs-markets",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "z.object({ comingSoon: z.literal(true) })",
+    "replace": "z.object({ comingSoon: z.literal(false) })",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > passes the coming-soon payload with and without --after-launch"
+  },
+  {
+    "id": "b3b-acs-properties",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "z.array(z.unknown()).length(0)",
+    "replace": "z.array(z.unknown())",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > before launch, a published property and an open market fail by name"
+  },
+  {
+    "id": "b3b-acs-case",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "const ILLUSTRATIVE = /illustrative/i;",
+    "replace": "const ILLUSTRATIVE = /illustrative/;",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > an ILLUSTRATIVE label on / fails no-illustrative in both modes"
+  },
+  {
+    "id": "b3b-acs-status",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "(answer) => (answer.status === 200 ? answer.text() : undefined),",
+    "replace": "(answer) => answer.text(),",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > a fetch error or a non-200 answer fails its check"
+  },
+  {
+    "id": "b3b-acs-error",
+    "kind": "file",
+    "test": "tests/unit/assert-coming-soon.test.ts",
+    "file": "scripts/assert-coming-soon.mjs",
+    "find": "        () => undefined,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
+    "expect": "FAIL .*assert-coming-soon > a fetch error or a non-200 answer fails its check"
+  },
+  {
+    "id": "b3b-deploy-assert",
+    "kind": "file",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "      - name: assert-coming-soon\n        if: steps.guard.outputs.superseded != 'true' && vars.MOP_DB_PRODUCTION == 'true'\n        run: node scripts/assert-coming-soon.mjs \"$URL\" ${{ vars.MOP_LAUNCHED == 'true' && '--after-launch' || '' }}\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "× dev and production wait, smoke their own address"
   }
 ]
