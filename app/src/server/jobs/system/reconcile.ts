@@ -51,7 +51,7 @@ export function reconcileJob(reconcileUploads: ReconcileUploads): SystemJobDefin
   };
 }
 
-// STUB(B3 step 8): `reconcileUploads` of src/server/submissions/reconcile.ts replaces this stand-in, which reads nothing.
+// STUB(B8 step 2a): `reconcileUploads` of src/server/submissions/reconcile.ts (B3, on main) replaces this stand-in, which reads nothing.
 const uploadsNotBuilt: ReconcileUploads = () =>
   Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 });
 
