@@ -189,6 +189,7 @@ Entry template
 - hit again: 2026-10-04, B5 g1: a heredoc turned a backslash-s in a regex template literal into a plain s, so `tokenOf` returned undefined and four theme cases went red for the wrong reason; fixed with the Edit tool. The same call style failed again on the P-1200 rewrite (`eval: syntax error near unexpected token`).
 - hit again: 2026-10-04, B5 g1 review: quoting the heredoc delimiter (`<<'EOF'`) does not protect backslashes in this harness. A scratch watchfail registry written that way lost the backslashes on some lines (a find holding two backslashes before a brace arrived with one) while another line of the same heredoc kept its doubles, and watchfail died with `Bad escaped character in JSON at position 463`. Choose find and replace strings with no backslash, or write the registry with the Write tool. Proof: the entry's own proof reproduces it, a quoted heredoc writing a run of backslashes into a file, then `od -c` on that file shows fewer backslashes than were typed.
 - merged: P-070, P-111, P-115, P-309, P-406
+- hit again: 2026-10-04, B8b g1: `sed -i 's/to be 0"/to be \\\\+0"/'` on the scratch registry generator wrote `\+0` (one backslash), so the JSON `expect` became `to be +0`, a regex that cannot match the literal `+0` vitest prints, and the replay said BAD for a mutation that was red for the right reason; the Edit tool fixed it in one step.
 - hit again: 2026-10-03, B3 g1: a `node -e` patch of the mutation-registry generator lost its backslashes (`
 ` became a real newline inside a string literal) and the script died with `SyntaxError: Invalid or unexpected token`; the two lines were fixed with the Edit tool.
 - hit again: 2026-10-03, B3 g2: a `node -e` that patched two registry entries of a scratch generator searched for text with `\n` escapes, which arrived as real newlines, so its count check threw `x sql("b3-zz", ...` and nothing was written; the two lines were changed with the Edit tool.
@@ -1270,6 +1271,22 @@ Entry template
 - rule: one `ENOTFOUND` on the pooler host is not a code failure: rerun once and quote both runs (P-322 and P-329 say the same of timeouts and worker starts); a lookup that fails twice with `nslookup aws-0-us-east-1.pooler.supabase.com` also failing is a network fault, so report BLOCKED with that output, not a test result.
 - proof: `grep -n "ENOTFOUND" GOTCHAS.md` finds this entry; `nslookup aws-0-us-east-1.pooler.supabase.com` prints the pooler's addresses when the resolver is healthy (measured 2026-10-03, B2 g10 review).
 - added: 2026-10-03
+
+## G-700 · A `timestamptz` read into a JS `Date` and passed back loses its microseconds, so an equality guard never matches
+- paths: app/tests/db/**
+- severity: warn
+- symptom: B8b g1's first `claim_schedule` case passed the fixture's `last_run_at` (read by `pg` as a `Date`) back as `p_old_last_run_at`; the guarded claim returned `false` (`"first": false, "nextMinutes": 1440`) although nothing else had touched the row.
+- cause: Postgres stores microseconds (`now()` has them), a JS `Date` holds milliseconds, and `last_run_at is not distinct from $1` compares the full value; the round trip truncates it.
+- rule: a test that hands a stored time back to SQL for an exact comparison reads it as text (`returning last_run_at::text`) and passes `$1::timestamptz`, or keeps the comparison in SQL; never a `Date`.
+- proof: `cd app && bun run db:psql -- -Atc "select now() = date_trunc('milliseconds', now())"` prints `f` (unless the clock lands on a whole millisecond); the case `a guarded claim moves both columns` in `tests/db/automation.db.test.ts` passes with the text form (measured 2026-10-04, B8b g1).
+- added: 2026-10-04
+
+## P-1600 · `scripts/stubs.ts` matches only `// STUB(`, so a SQL marker `-- STUB(...)` is invisible to the stubs gate
+- symptom: B8b g1 wrote `-- STUB(B8b step 6): unconditional write_audit` into seven function files as the plan words it (CS-11); `bun run stubs` still printed `stubs: 13 markers, 0 on closed slices` and `bun run stubs | grep -c automation_` printed `0`.
+- cause: the marker regex is `/\/\/ STUB\(([A-Za-z0-9-]+)(?: step [0-9a-z]+)?\): (.+)$/`; it scans `.sql` files but a SQL comment starts with `--`, so the line never matches. When B8b closes with step 6 undone, the gate would stay green.
+- rule: until `scripts/stubs.ts` accepts `-- STUB(`, a SQL stub is tracked by hand: the slice log names each file that carries it, and step 6 greps `git grep -n "STUB(B8b step 6)" -- app/supabase` to confirm none is left. The owner of `scripts/stubs.ts` (B1b) widens the regex to `(?:\/\/|--) STUB\(`.
+- proof: `cd app && git grep -c "STUB(B8b step 6)" -- supabase/sql/functions | wc -l` prints `7` while `bun run stubs | grep -c automation_` prints `0` (measured 2026-10-04, B8b g1).
+- added: 2026-10-04
 
 ## Retired, enforced
 
