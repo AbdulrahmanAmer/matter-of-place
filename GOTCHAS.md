@@ -2720,3 +2720,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a lane proves `--images upload` with the real `runSeed` and the real uploader against a `Bun.serve` fake of `POST /storage/v1/object/media/<key>` (it can check `x-upsert: false` and the immutable `cache-control`), counts that every key the rows name was stored, and says UNPROVEN for the 200 on `/media/<key>` until the CI e2e job on main runs the seed against its own stack. Never run the seed on mop-dev to satisfy a review line; say that the line conflicts with H57.
 - proof: `cd app && bunx vitest run --project unit tests/unit/rows.test.ts tests/unit/assets/variants-upload.test.ts` passes (the upload cases), and `git grep -n "STUB(B9" -- scripts` prints nothing (measured 2026-10-04, B9 c6u; the fake-Storage run printed 92 keys named, 558 objects stored, 0 named but not stored, 84 s).
 - added: 2026-10-04
+
+## P-517 · Most fix rounds were false sentences, not bad code: the builder never re-read its own claims against the file
+- symptom: 2026-10-04, eleven rejections across B3, B3b, B4, B8b, B9, B15: seven on runbook or log sentences that stated something false about a cache key, a header, a focus ring or a start commit (B3 step 13 alone took five reviews); two on registry entries the formatter made stale; two on code (a token in a network error, a fan-out that stopped on a bad event).
+- cause: the brief asked for proofs and a log, never for a re-read of written facts; "only" and "never" sentences were written from intent, not from the code; prettier ran after the watched-fail was recorded.
+- rule: ruling H60: the brief ends with the builder's own pass (facts checked against files or runs, absolutes given a second case, registry replayed after formatting, start and hand-in commits named, stand-in proofs labelled). The reviewer does not soften.
+- proof: `grep -c "the reviewer's own pass (ruling H60" .claude/workflows/build-slice.js` → 1; the measure is the fix-round count per accepted group in the journals of the next day against today's 11 of 24.
+- enforced-by: .claude/workflows/build-slice.js (the builder brief)
+- added: 2026-10-04
