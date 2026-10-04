@@ -48,10 +48,10 @@
     "id": "z",
     "test": "tests/unit/mutation-registry.test.ts",
     "file": "tests/mutations/B4.json",
-    "find": "\"test\": \"tests/unit/seo.test.ts\",",
-    "replace": "\"test\": \"tests/unit/seo-gone.test.ts\",",
+    "find": "\"test\": \"tests/unit/clock.test.ts\",",
+    "replace": "\"test\": \"tests/unit/clock-gone.test.ts\",",
     "run": "bunx vitest run --project unit tests/unit/mutation-registry.test.ts",
-    "expect": "FAIL .*> name every test file as the test of at least one entry[\\s\\S]*tests/unit/seo\\.test\\.ts"
+    "expect": "FAIL .*> name every test file as the test of at least one entry[\\s\\S]*tests/unit/clock\\.test\\.ts"
   },
   {
     "id": "mr-malformed",
