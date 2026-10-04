@@ -259,6 +259,7 @@ Entry template
 - rule: prefix the command with `MSYS_NO_PATHCONV=1` and pass a script by its drive path (`D:/...`), or write the argument without the leading slash (`gh api repos/...`) or with a doubled one (`//CN=...`), or run it from PowerShell. A failed first run can leave a half-written file: check its outputs before trusting them. The `gh` billing endpoints also need the `user` scope this login lacks (`gh auth refresh -s user` is interactive, the operator's): measure Actions minutes from `gh api repos/AbdulrahmanAmer/matter-of-place/actions/runs --paginate` and sum the run durations (ruling DO-08).
 - proof: `MSYS_NO_PATHCONV=1 node "D:/Omincom/website work and agents output/V2 Pipeline/tools/render-gate.mjs" http://localhost:8080 / /properties` → `"pass": true`, exit 0; `MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k -out /tmp/c -subj "/CN=x" -days 1` exits 0 and `openssl x509 -in /tmp/c -noout -subject` prints `subject=CN=x`; without the slash the billing call answered HTTP 404 "This API operation needs the user scope" (2026-10-02).
 - merged: P-048, P-502
+- hit again: 2026-10-04, B3 c12: an environment value that starts with a slash (`VITE_API_BASE_URL=/api/public`) is converted the same way for the child process and a live build baked `C:/Program Files/Git/api/public`; the env-var case and its fix are in P-831 (prefix the command with `MSYS_NO_PATHCONV=1`).
 - added: 2026-09-30
 
 ## P-023 · `git worktree add <path> main` fails while `main` is checked out in the workspace
@@ -2258,4 +2259,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: B8's step 6 added `OPS_HEALTH_TOKEN` to the dev allow-list of `scripts/load-env.mjs`; the git-ignored `.env` of this tree does not carry it (the owner supplies it) and the loader exits at the first missing name.
 - rule: in a lane without that name export the five names the group needs (`DEV_DB_URL`, `DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_DB_PASSWORD`, `DEV_SUPABASE_SERVICE_ROLE_KEY`, `PREVIEW_RATE_LIMIT_SALT`) from `.env` in the same shell, then `unset CLOUDFLARE_API_TOKEN` before any script that calls `guardEnv()`; never source the whole `.env` (it holds ops names). The owner adds `OPS_HEALTH_TOKEN` to `.env` to restore the loader.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; echo $?` → in this tree prints `load-env: .env has no OPS_HEALTH_TOKEN` and `0` from the eval; `grep -c '^OPS_HEALTH_TOKEN=' ../.env` → `0`.
+- added: 2026-10-04
+
+## P-838 · `git diff origin/main...slice/b3` in a review brief mixes in the next group's work once the lane has moved past the frozen commit
+- symptom: the c12 reviewer diffed `origin/main...slice/b3` as the brief said and saw P-837, 40 runbook lines and a log block that c12 never wrote: `git rev-parse slice/b3` was `0b524d7` (the g10 commit) while the group under review froze at `8c878a5`.
+- cause: lanes keep committing while an earlier group is reviewed, and the review brief names the branch, not the commit the group froze at; a three-dot diff against a branch tip includes every commit after the frozen one.
+- rule: a reviewer diffs `origin/main...<frozen commit>` (the commit the brief gives as HEAD of the snapshot), never the branch name; a brief names the commit.
+- proof: `git log --oneline 8c878a5..0b524d7` → prints `0b524d7 B3 g10 step 13 ...; P-837`, and `git diff --stat origin/main...0b524d7 -- workspace/05-plans/logs/B3.md` differs from the same diff to `8c878a5` by the g10 block (measured 2026-10-04, B3 c12 review).
 - added: 2026-10-04

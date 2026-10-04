@@ -189,3 +189,27 @@ A sixth g7 follow-up concerned `GOTCHAS.md` and is banked there, not here: the w
    - evidence: git diff 48580ee..bc4bf84 -- workspace/05-plans/logs/B3.md has no cost statement
 
 Two further g8 follow-ups concerned `GOTCHAS.md` and are banked there, not here: the db proofs of the review brief lacking the `env -u` prefix (hit-again line in P-310) and the `taskkill //IM python.exe` that stops every lane's python (new entry P-830).
+
+## c12 · steps 12
+
+1. `app/src/lib/api-fetch.functions.ts` (not blocking)
+   - what: Follow-up. No test covers the waitUntilOf(page) argument passed to handlePublic on line 25. If someone removes it, handlePublic falls back to waitUntilOf(the synthetic Request), which has no waitUntil. Sentry reports for a stale read during a server render would then be dropped without notice. All 7 b3-af-* mutations leave this argument alone.
+   - evidence: From reading the code: handlePublic(request, requestId, db?, wait = waitUntilOf(request)) at src/server/public/pipeline.ts:339-343. waitUntilOf returns a no-op for a plain Request (src/server/lib/wait-until.ts:12-19). tests/unit/api-fetch.test.ts never asserts the 4th argument.
+
+2. `app/docs/architecture/services.md` (not blocking)
+   - what: Follow-up. The author edited the GET /properties row (the Cache column) but left its Returns column as `Property[]`. The route returns PropertyCard[] (invariant 8, PERF-06).
+   - evidence: git show 8c878a5 -- app/docs/architecture/services.md: -/+ line 45/53 keeps `Property[]`. src/services/http/index.ts: listProperties uses api.get("/properties", z.array(propertyCardSchema)).
+
+3. `app/.env.example` (not blocking)
+   - what: Follow-up. The existing SENTRY_DSN comment says 'Leave empty to send nothing'. env.ts requires SENTRY_DSN for every MOP_ENV except local (REQUIRED_OUTSIDE_LOCAL). The new runbook table states this correctly; .env.example now contradicts it beside the server names this group added.
+   - evidence: From reading: src/server/lib/env.ts REQUIRED_OUTSIDE_LOCAL = ["TURNSTILE_SECRET", "SENTRY_DSN"] versus the .env.example SENTRY_DSN comment.
+
+4. `app/scripts/bundle-check.mjs` (not blocking)
+   - what: Follow-up. The script prints `ok   <route> <bytes>` for every route, even one that is over budget. The FAIL line comes later, so a reader of CI output sees 'ok' for a failing route. Exit code and FAIL lines are still right.
+   - evidence: Confirmed by running: local build output has `ok   _site.submit 156448 gzip bytes` and later `FAIL _site.submit loads 156448 gzip bytes, over the budget of 153600`.
+
+5. `app/scripts/bundle-check.mjs` (not blocking; for B4 or a later slice)
+   - what: Follow-up for B4 or a later slice. The FORBIDDEN module rule (src/admin/, src/domain/admin-, src/data/) only sees manifest chunk keys. A src/admin or src/data module bundled inside a public chunk is never flagged. In the local build, properties.ts sits inside index-*.js and only the seed-title grep caught it. This is banked (P-835) and the runbook words it honestly ('is the entry of'). Still, FE-03 (2)'s admin-module guard is effectively absent, and catching it would need module ids from the bundler.
+   - evidence: Confirmed by running: the local build's bundle-check FAILED 9 = 7 budget + 2 seed-title lines, with no 'a chunk a public route can reach holds src/data/...' line, although the seed data is bundled in the entry.
+
+The two c12 follow-ups that concerned `GOTCHAS.md` are banked there, not here: P-831 as a recurrence of P-015 (cross-linked by a hit-again line in P-015) and the review diff against a moved branch (new entry P-838).
