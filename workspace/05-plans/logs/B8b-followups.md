@@ -27,3 +27,43 @@ Recorded from the g1 review (no blocking defect). None is blocking.
 - what: UNPROVEN, outside this group. The seven `-- STUB(B8b step 6)` markers are invisible to scripts/stubs.ts (banked as P-1600), so the stubs gate cannot stop B8b from closing with the write_audit guard still in place. Separately, the plan's CI db job does not exist and src/db/types.ts is hand-written. Both are disclosed by the author and stay UNPROVEN until B4 lands the db job and main pushes the migration and runs gen:types --db with git diff --exit-code. B1b owns the stubs regex.
 - evidence: P-1600 proof: git grep -c 'STUB(B8b step 6)' -- supabase/sql/functions | wc -l gives 7 while bun run stubs | grep -c automation_ gives 0. ci.yml jobs: run, check, build, merge-gate (no db).
 - blocking: false
+
+## g2 · steps 2-3
+
+Recorded from the g2 review (no blocking defect). None is blocking. A seventh follow-up, a costTime line mapped to the wrong gotcha entry, is banked in GOTCHAS.md (P-076 "hit again"), not listed here.
+
+### 1. app/src/domain/events.ts
+
+- what: Line 123: the digest.due schema is `scheduled_for: z.string().datetime()`, which accepts only a `Z` suffix. It refuses the `+00:00` form that Postgres timestamptz and supabase-js return. scheduleSettingsSchema in the same diff uses `{ offset: true }`. If g4's runDueSchedules passes `next_run_at` straight through, every digest.due event fails eventPayloadSchemas. Fan-out would then log `fanout_payload_invalid` on every digest and plan with the raw payload. The producer is not built yet, so nothing breaks today.
+- evidence: Confirmed by running a bun probe in the snapshot: safeParse({scheduled_for:'2026-10-27T14:00:00Z'}) gives true and safeParse({scheduled_for:'2026-10-27T14:00:00+00:00'}) gives false.
+- blocking: false
+
+### 2. app/src/domain/events.ts
+
+- what: Optional payload fields are `.optional()` only: `decline_reason_id`, `note` (submission.declined) and `submission_id` (property.published). A SQL producer that builds its payload with jsonb_build_object from a null column writes JSON null, and these schemas refuse null. That gives a spurious fanout_payload_invalid warning per event. Suspected by reading only; the B7 producers are not on main.
+- evidence: Read only: events.ts lines 61-62 and 105 use `id.optional()` and `z.string().optional()`. submissions.decline_reason_id is nullable (`on delete set null`, migration 20261001090400_intake.sql:83).
+- blocking: false
+
+### 3. workspace/05-plans/B8.md
+
+- what: This group made `sideEffect` a required field of SystemJobDefinition (app/src/server/jobs/types.ts). B8.md line 68 still documents `SystemJobDefinition { type, maxAttempts?, timeoutMs?, run }`. The plans that add system jobs (B5, B6, B10, B11, B14, B16 and others) do not mention `sideEffect`, so their builders hit a typecheck failure when they merge. These are stale plan lines in files outside this group, for the orchestrator to fold.
+- evidence: `grep -ln "src/server/jobs/system/" workspace/05-plans/B*.md` lists B10, B11, B14, B16, B1b, B3, B3b, B5, B6, B7 and B8b. `grep -l sideEffect workspace/05-plans/B*.md` lists only B8b.
+- blocking: false
+
+### 4. app/tests/unit/automation/step-specs.test.ts
+
+- what: The R28 run-twice title check (missingRunTwiceTests) iterates step specs only, never system types. meta_token_refresh is registered with sideEffect 'idempotency_key', calls graph.facebook.com and has no 'meta_token_refresh runs twice without a second outside effect' test, and the check does not see it. The plan's wording ('every type whose sideEffect is not none and whose isImplemented is true') is ambiguous, and R28 says 'step', so this is not a contract break. Later system types with outside effects (invoice_pdf, market_open_notice, newsletter_send) will also bypass the check.
+- evidence: Read: step-specs.test.ts lines 57-62 filter listStepSpecs() only. `grep -rn "runs twice without a second outside effect" tests` finds only the helper strings in step-specs.test.ts.
+- blocking: false
+
+### 5. workspace/05-plans/STANDARDS.md
+
+- what: R27 (line 208) says every step-specs entry declares timeoutMs and maxAttempts. The B8b Contract leaves both absent for the light steps and timeoutMs absent everywhere. The builder followed the Contract and banked the divergence as P-1605. R27 or the Contract needs one edit so the two agree.
+- evidence: STANDARDS.md:208 compared with step-specs.ts: no spec sets timeoutMs, and 4 specs omit maxAttempts.
+- blocking: false
+
+### 6. app/tests/unit/automation/catalog.test.ts
+
+- what: UNPROVEN, and stated as such by the author: `isImplemented("bump_catalog_version")` against the real registry is not asserted (the registry is empty on main), and the R28 real-registry case is vacuous until a step with an outside effect is implemented. Both must be tightened in g4. Also, the Plan type returned by planEvent carries no `warnings`, which the dry-run result in the Contract requires. That belongs to the later dry-run group and should be checked there.
+- evidence: Read: catalog.test.ts lines 141-148 use stub registries only. src/server/jobs/steps/index.ts has `const catalog: readonly StepDefinition[] = [];`. plan.ts lines 46-51 have no warnings field.
+- blocking: false

@@ -179,3 +179,7 @@ exit=0
 ```
 
 UNPROVEN: the `isImplemented` real-registry case for `bump_catalog_version` (g4); the R28 real-registry case for a real external step (it needs one implemented).
+
+## g2 · follow-ups recorded
+
+The g2 review found no blocking defect. Seven follow-ups: one is a cost mapped to the wrong gotcha entry and is banked as a "hit again" line in P-076 (no new entry; P-1604 covers only knip). The other six are recorded in `workspace/05-plans/logs/B8b-followups.md` under "## g2 · steps 2-3" for the orchestrator to fold or assign. No code changed.
