@@ -1205,6 +1205,15 @@
     "expect": "cumulative-layout-shift: level warn, not error"
   },
   {
+    "id": "p-level-warn",
+    "test": "tests/unit/perf-budget.test.ts",
+    "file": "lighthouserc.json",
+    "find": "\"largest-contentful-paint\": [\n          \"warn\"",
+    "replace": "\"largest-contentful-paint\": [\n          \"error\"",
+    "run": "bunx vitest run tests/unit/perf-budget.test.ts",
+    "expect": "largest-contentful-paint: level error, not warn"
+  },
+  {
     "id": "p-budget-script",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "budget.json",

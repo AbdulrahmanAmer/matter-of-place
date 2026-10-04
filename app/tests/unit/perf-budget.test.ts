@@ -5,7 +5,8 @@ import { SCRIPT_BUDGET_BYTES } from "../../scripts/bundle-check.mjs";
 import { lighthouseRoutes } from "../e2e/fixtures/routes";
 
 // GQ-01, invariant 11: `budget.json` holds the limits, `lighthouserc.json` may assert no looser one, and the six pages
-// are listed once.
+// are listed once. Ruling H61: until H1 tunes the pages, LCP and script size are asserted at warn, the rest at
+// error; H1 empties WARN_UNTIL_H1.
 
 const read = (file: string): unknown =>
   JSON.parse(readFileSync(new URL(`../../${file}`, import.meta.url), "utf8"));
@@ -31,6 +32,10 @@ const rc = z
   })
   .parse(read("lighthouserc.json")).ci;
 
+const WARN_UNTIL_H1 = ["largest-contentful-paint", "resource-summary:script:size"];
+
+const wanted = (audit: string): string => (WARN_UNTIL_H1.includes(audit) ? "warn" : "error");
+
 const LIMITS: [audit: string, budgeted: number][] = [
   ["largest-contentful-paint", budget.lcpMs],
   ["cumulative-layout-shift", budget.cls],
@@ -39,13 +44,13 @@ const LIMITS: [audit: string, budgeted: number][] = [
 ];
 
 describe("lighthouserc.json against budget.json", () => {
-  it("asserts every hard limit at error, and none looser than the budget", () => {
+  it("asserts each limit at its level, and none looser than the budget", () => {
     const problems = LIMITS.flatMap(([audit, budgeted]) => {
       const entry = rc.assert.assertions[audit];
       if (entry === undefined) return [`${audit}: not asserted`];
       const [level, { maxNumericValue }] = entry;
       return [
-        ...(level === "error" ? [] : [`${audit}: level ${level}, not error`]),
+        ...(level === wanted(audit) ? [] : [`${audit}: level ${level}, not ${wanted(audit)}`]),
         ...(maxNumericValue <= budgeted
           ? []
           : [

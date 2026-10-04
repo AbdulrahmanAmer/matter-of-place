@@ -269,12 +269,18 @@ jobs:
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "MOP_ENV=local"
           } >> "$GITHUB_ENV"
+      # The seed stores the photographs the catalogue names in this stack's Storage (P-422); the step fails first, and by
+      # name, if the media bucket that migration storage creates is missing.
+      - name: media bucket
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          curl -fsS -o /dev/null -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/bucket/media"
       - name: seed
         if: steps.fe.outputs.changed == 'true'
         run: |
           stack=$(bunx supabase status -o env)
           set -a; eval "$stack"; set +a
-          bun run seed -- --target local --mode full --images skip
+          bun run seed -- --target local --mode full --images upload
       # The Worker's values: this job's stack, Cloudflare's always-pass Turnstile secret, fixed CI
       # values. No SENTRY_DSN, which env.ts allows with MOP_ENV=local (the built target's --var).
       - name: dev vars

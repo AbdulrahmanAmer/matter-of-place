@@ -11,14 +11,14 @@
     "assert": {
       "assertions": {
         "largest-contentful-paint": [
-          "error",
+          "warn",
           { "maxNumericValue": 2500, "aggregationMethod": "median" }
         ],
         "cumulative-layout-shift": [
           "error",
           { "maxNumericValue": 0.1, "aggregationMethod": "median" }
         ],
-        "resource-summary:script:size": ["error", { "maxNumericValue": 153600 }],
+        "resource-summary:script:size": ["warn", { "maxNumericValue": 153600 }],
         "resource-summary:document:size": ["error", { "maxNumericValue": 61440 }]
       }
     }

@@ -828,6 +828,7 @@ Entry template
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
 - merged: P-400
+- hit again: 2026-10-05, B4 c7l: a `python - <<EOF || true` opened a patch chain by habit and hung 120 seconds; the node half ran after `taskkill`, `git status` showed it, no edit was repeated.
 - hit again: 2026-10-04, B4 g7 review fix: a `python - <<'EOF' || true` line ahead of a `node` patch hung 120 seconds, the `node` half ran late and the Edit tool then added the same line a second time; the process was stopped by its id after `Get-CimInstance Win32_Process` showed `python.exe -`, the duplicate was removed.
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
@@ -2549,6 +2550,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: the first ready run of CI's `e2e` job (run 37214655312, PR 120) ended `88 failed, 52 passed (13.0m)`: every failure is `sweep.spec.ts` on a route with a photograph, and its only errors are `404 http://127.0.0.1:8788/media/o/<slug>/0-<sha8>.webp` and the matching console line (711 of each). Forms, redirects and the nine photograph-free sweep routes passed. The same key on the dev project answers 400 from Storage.
 - cause: B4's plan says "the seed runs with `--images skip`, the sweep reads bundled images", but a live build reads the catalog from the API, whose media keys point at Storage objects nobody uploaded. The seed's upload mode is `STUB(B9 step 6)` and throws (`seed: --images upload needs the media-store of B9`).
 - rule: the `e2e` job (and any live sweep on the laptop) stays red until B9 step 6 gives the seed an upload mode and the job seeds with it; never filter `/media` 404s out of the sweep. Because `e2e` is a required check (`REQUIRED_PR_CHECKS`), `ci.yml` with the `e2e` job must not reach `main` before that, or every pull request is refused; the orchestrator decides the order (hold the group, or `CI_HEAVY=off`).
+- resolved: 2026-10-05, B4 c7l: the seed has had its upload mode since B9 c6u (16fa0c7); `ci.yml` now seeds the e2e stack with `--images upload` after a check that the media bucket exists. UNPROVEN until the e2e job of the pull request logs 0 such 404 lines.
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<e2e job id of run 37214655312>/logs | grep -c "404 http://127.0.0.1:8788/media/o/"` → `711`; `cd app && git grep -n "STUB(B9 step 6)" -- scripts/seed.ts` → line 89.
 - added: 2026-10-04
 
@@ -2911,4 +2913,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a note that starts with "After the merge" does not stop the final merge (the regex in `build-slice.js`); the orchestrator acts once main holds the slice. Any other orchestrator note still stops the run before the merge.
 - proof: `grep -c "after the merge/i" .claude/workflows/build-slice.js` → 1; PR 128 merged by hand through the gate at 9529d0a on 2026-10-05 00:15.
 - enforced-by: .claude/workflows/build-slice.js (stoppedForOrchestrator)
+- added: 2026-10-05
+
+## P-435 · A workflow `run:` written as a one-line plain scalar breaks the whole file when the command holds `: `, and only the hygiene test says so
+- symptom: B4 c7l wrote `run: curl -fsS -H "Authorization: Bearer $KEY" ...` for the media-bucket step of `ci.yml`; `bun run check` failed in `tests/unit/hygiene.test.ts` with `YAMLParseError: Nested mappings are not allowed in compact mappings at line 276` while the typecheck, lint and format gates were green. Pushed, the file would not have parsed, and no job of `ci.yml` would have started.
+- cause: in a plain YAML scalar the text `Authorization: Bearer` reads as a nested mapping; prettier accepted the file as written and no other local gate parses workflows.
+- rule: a `run:` whose command holds `: ` or ` #` is a block scalar (`run: |`); parse the workflow before the push (`bun run check` runs it through the hygiene test).
+- proof: `cd app && bunx vitest run --project unit tests/unit/hygiene.test.ts` → `Tests 63 passed`; with `run: curl -H "Authorization: Bearer x" y` on one line in `ci.yml` it fails with `YAMLParseError` (measured 2026-10-05).
 - added: 2026-10-05
