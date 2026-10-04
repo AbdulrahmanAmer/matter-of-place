@@ -2444,3 +2444,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
+
+## P-516 · The sizing agent returned two of ten plan steps; the run built them, merged, and ended as if the slice were done
+- symptom: B3b's run `wf_215f7901-b3a` sized g1 (step 1) and g2 (step 2) only; after both were accepted the final merge ran (`merge:B3b:all:1,2`, PR 118) and the workflow completed with steps 3 to 10 untouched and no error.
+- cause: the sizing prompt said "split the plan's ordered steps into groups" and nothing checked that every step landed in one; the schema (`groups[]`) accepts any count.
+- rule: the orchestrator passes `steps` (the plan's step ids) with every launch; `build-slice.js` refuses a sizing that omits one before any build. The sizing prompt says every step goes in exactly one group, blocked ones included.
+- proof: `grep -c "omits plan step" .claude/workflows/build-slice.js` → 1; a launch with `steps` naming a step no group covers throws `sizing of <slice> omits plan step ... (P-516)` before the first builder.
+- enforced-by: .claude/workflows/build-slice.js (the steps check after sizing)
+- added: 2026-10-04
