@@ -37,3 +37,27 @@
    Evidence: git show --stat 67b42e9 lists workspace/05-plans/check-gotchas.mjs | 7 ++++++-. git log -- workspace/05-plans/check-gotchas.mjs shows the previous writers were orchestrator commits 187218b and ad17a24.
 
 Recorded in the bank, not here: two follow-ups whose file is GOTCHAS.md became hit-again lines of P-713 (the 120 s foreground timeout of a by-hand replay) and P-015 (the `-g "/markets$"` path conversion), plus one on P-1805 (the four property-page sweep timeouts under load), because the bank holds those lessons already and a repeat gets a dated line, not a new entry.
+
+## g2 · steps 2-3
+
+1. File `app/tests/e2e/essentials.spec.ts` (not blocking).
+   What: Two assertions in the e2e 'fonts' case cannot fail for the thing its title claims ('draws Jost from its own files'). First, document.fonts.check('16px "Jost"') returns true when no Jost face is declared at all. Second, the same-origin .woff2 requests are made anyway by the Link preload header that withPageCsp sends. So with the fonts.css import removed, this e2e case would still pass. The unit mutation b17-fonts-import covers the import, so nothing is unguarded today; the e2e case simply proves less than its title says. A real check would compare document.fonts entries with status 'loaded' and family 'Jost', or the computed font of a Jost element.
+   Evidence: A Playwright page with no @font-face printed 'no @font-face for Jost, check() = true'. Live: curl -D - / shows 'Link: </fonts/jost-latin-wght-normal.woff2>; rel=preload; as=font ...', which makes the woff2 request without any CSS.
+
+2. File `app/public/site.webmanifest` (not blocking).
+   What: This departs from Contract invariant 17 ('theme and background in Bone/Obsidian'). theme_color is #F5F2EB (Warm Ivory), set to match the existing theme-color meta. The manifest test was widened to accept Warm Ivory in its palette list (essentials.test.ts line 715). The log discloses it, and with display: browser it has no visible effect. The orchestrator should fold the plan line, or the operator should choose.
+   Evidence: site.webmanifest has "theme_color": "#F5F2EB". essentials.test.ts:715 has const palette = ["#11110F", "#EEEAE1", "#F5F2EB"].
+
+3. File `workspace/05-plans/B17.md` (not blocking).
+   What: Plan lines that no longer match what was built, for the orchestrator to fold: (a) the step 3 and Files text names @resvg/resvg-js, but icons.mjs uses sharp and no resvg dependency was added (P-1906). (b) The identity logic lives in a new src/server/public/identity.ts, which the Files list does not name. (c) src/styles/tokens.css was edited outside the group's file list; that is a one-writer risk with later lanes. (d) The __root.tsx 'font preloads' are delivered by the Link header, not head links. (e) The 'public/' row of STANDARDS.md still says 'favicons', while check-layout.mjs now also allows site.webmanifest, browserconfig.xml and the four PNGs.
+   Evidence: git show f791cbb --stat lists app/src/server/public/identity.ts and app/src/styles/tokens.css. app/package.json has no @resvg/resvg-js. STANDARDS.md 1.3 public row reads '_headers, robots.txt, favicons, sw.js ...'.
+
+4. File `app/src/routes/__root.tsx` (not blocking).
+   What: The RSS and JSON Feed autodiscovery links point at /feed.xml and /feed.json, which another B17 group has not built yet. If this group reaches main before that group, every page advertises two 404 feeds. The author flagged it as UNPROVEN.
+   Evidence: __root.tsx links include href "/feed.xml" and "/feed.json". There is no src/routes/feed[.]xml.ts in the 3d66bcc tree.
+
+5. File `app/src/server/public/identity.ts` (not blocking).
+   What: Open question for the operator, not a code defect: on mop-dev, security.txt reads 'Contact: mailto:hello@matterofplace.com', because settings.site.contact.email is set there. The security@ alias of E19 appears only when the setting is unset, as the plan specifies.
+   Evidence: curl http://127.0.0.1:8939/.well-known/security.txt printed 'Contact: mailto:hello@matterofplace.com'.
+
+Recorded in the bank, not here: one follow-up whose file is GOTCHAS.md (a literal NUL byte at line 622 of the bank on 3d66bcc, from group c1's commit 6f81b8a) is already entry P-1910, which this branch's head fixes and enforces in check-gotchas.mjs; it got a dated hit-again line.
