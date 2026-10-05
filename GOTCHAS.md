@@ -3425,3 +3425,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node workspace/05-plans/bank-merge.mjs --base b --ours o --theirs t --out x` on the B7 fixtures → "427 entries, 4 resolved both-sides, 0 lost" and 9 hit-again lines carried through that the hand merge had dropped; `bun run migrations:restamp` on a scratch repository with an older stamp → both branch files re-stamped in order, the contract-of header and a registry line rewritten, the second run "nothing to do"; `bunx eslint` and `tsc -p tsconfig.scripts.json` → clean.
 - enforced-by: workspace/05-plans/bank-merge.mjs, app/scripts/restamp-migrations.ts, app/scripts/types-from-ci.ts
 - added: 2026-10-05
+
+## P-527 · Three prompt hooks timed out on every prompt and monitor event under five lanes, each discarding its output and holding the turn up to its limit
+- symptom: every UserPromptSubmit printed three red lines: hookify `userpromptsubmit.py` "timed out after 10s", the harness `user-prompt-submit.sh` "after 20s", security-guidance `sg-python.sh security_reminder_hook.py` "after 30s", output discarded. Timed by hand under the load: 4.6 s, 10.2 s and 11.7 s; bare `python3 -c pass` through the Windows Store launcher takes 1.2 s.
+- cause: the plugins' default timeouts assume an idle machine; with five lanes at 100 percent CPU every process start is five to ten times slower, and hookify had no rule file in this project to begin with.
+- rule: on the build machine the three prompt hooks run with `timeout: 60` (edited in the plugin cache `hooks/hooks.json`, backups `*.bak-2026-10-05`; a plugin update resets them, re-apply); hookify is off for this project (`.claude/settings.json` enabledPlugins) until it has a rule file. A hook that times out is worse than one that is slow: its advice is lost and the wait is paid anyway.
+- proof: `node -e` over the three hooks.json → "1 prompt hook(s) set to 60 s" each; `ls .claude/hookify.* ~/.claude/hookify.*` → none.
+- added: 2026-10-05
