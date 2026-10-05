@@ -1822,8 +1822,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `scripts/stubs.ts` reads the slice status table of PLAN.md and refuses a marker whose slice is closed; the status change and the marker live in different files, so the docs-only shortcut let main go red without a check.
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
-- added: 2026-10-03
+- hit again 2026-10-05 (orchestrator, PR 136): B15 marked closed with `STUB(B15)` still on `src/server/lib/crypto.ts:47`, a marker already filled (payload.ts imports `sha1Bytes`); the gate stayed green because the records PR carried no app code, and B5's merge (PR 137) paid: `stubs: 8 markers, 1 on closed slices`. Marker removed; the rule stands: run `bun run stubs` with the row edited before committing `closed`.
 - hit again: 2026-10-05, B5 g1 (step 2): main at 0f5d678 marks B15 `closed` (PLAN.md, commit d68b75c) while `app/src/server/lib/crypto.ts:47` still reads `// STUB(B15): ...`; after merging main, the lane's `bun run check` stopped at `stubs` with `src/server/lib/crypto.ts:47 STUB(B15) slice is closed` and `stubs: 8 markers, 1 on closed slices`. The file belongs to neither the lane nor its group; the re-label is the orchestrator's.
+- added: 2026-10-03
 
 ## G-302 · Supabase Storage answers a missing object with HTTP 400 and the status in the body, so a route that waits for a 404 reports an outage
 - paths: app/src/server/public/media.ts, app/src/server/lib/media-store.ts
@@ -3145,4 +3146,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `app/tests/mutations/B2.json` entry `g11-rls-own-row` runs `bun run seed -- --target dev --mode full --images skip` before its test; the CI `db` job has the local stack and no `DEV_SUPABASE_PROJECT_REF`, and `--changed origin/main` replays every entry whose file the pull request touches.
 - rule: a registry `run` replayed in CI seeds `--target local`, never `dev`; until the entry is fixed on main, a group that edits `tests/db/rls.db.test.ts` cannot pass the `db` job, so say so in the brief and fix the entry first (an owner of B2's registry, not the merge step).
 - proof: `grep -n '"run"' app/tests/mutations/B2.json | grep "target dev"` → `2836:    "run": "bun run seed -- --target dev --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts",`
+- added: 2026-10-05
+
+## P-523 · A fresh lane worktree has no git-ignored media, so a proof that captures the launch film ran against a stand-in and the group came back partial
+- symptom: B12 step 1 (engine portability) proves `capture.mjs` and `audio.mjs` against `launch/film/index.html`; the scene loads its photographs from `launch/film/media/`, which `launch/.gitignore` ignores, so the worktree `E:/mop-build/video` had the tracked mp4 but no media and the builder proved against a stand-in scene and reported partial.
+- cause: `git worktree add` checks out tracked files only; the lane-opening command (worktree add, `.env` copy, `bun install`) copies nothing ignored.
+- rule: when a slice's proofs read ignored media (`launch/film/media/`, `launch/film/audio*.wav`, later `launch/reel/.tmp`), the orchestrator copies the folder from `E:/Matter Of Place` into the lane before launching, and the lane-opening command names it. Check with `git check-ignore -v <path>` when a proof's input is missing from a lane.
+- proof: `cp -r "/e/Matter Of Place/launch/film/media" /e/mop-build/video/launch/film/media` → `du -sh` 24M, `git status --short | wc -l` → 0 (ignored, no noise); B12 g1's review or fix round reruns the real proof.
 - added: 2026-10-05
