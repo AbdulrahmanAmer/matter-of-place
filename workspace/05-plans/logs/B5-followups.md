@@ -55,3 +55,33 @@
 9. File: `app/supabase/migrations/20261005013009_email_templates_seed.sql`. Not blocking.
    - Follow-up: "The `inquiry_forward` row follows the plan's seed copy, which has no `{{submitter_name}}` greeting, while the S55 kind check says every submitter template greets it. `submitter_name` is listed in its variables but unused. Disclosed in the log; for g2 or the orchestrator to settle."
    - Evidence: "Read: seed lines 86-97"
+
+## g1 · steps 3
+
+1. File: `app/tests/unit/assert-not-production.test.ts`. Not blocking.
+   - Follow-up: "scripts/email-test.ts was created by this group and its send mode writes to mop-dev, but it is not in the guardedScripts list. Plan watched-fail (ao) says that deleting the assertNotProduction call from email-test.ts must turn this test red naming the script. As things stand that deletion stays green, so the production guard of ruling H35 (5) on this script is untested. The test file is not this group's, so this is for step 4a (where the send mode is proved) or the orchestrator."
+   - Evidence: "Found by reading, not by mutation: sed -n 13,28p tests/unit/assert-not-production.test.ts lists 14 scripts and no email-test.ts. git grep -n email-test -- tests scripts/lib prints nothing."
+
+2. File: `workspace/05-plans/logs/B5.md`. Not blocking.
+   - Follow-up: "Log line 165, from the first g1 round, reads 'mop-designer approval of the shell: ... Approved as the shell'. The author's own unproven list and log line 282 say no independent mop-designer review happened, only the builder's own look. The appended block corrects it and the log is append-only, but step 3's 'mop-designer approves the shell once' is NOT DONE. The orchestrator must not count line 165 as that approval."
+   - Evidence: "grep -n -i 'mop-designer' workspace/05-plans/logs/B5.md: line 165 says 'Approved as the shell'; line 282 says 'an independent mop-designer review is UNPROVEN'."
+
+3. File: `app/tests/unit/email/preview.test.ts`. Not blocking.
+   - Follow-up: "The case 'is unavailable, not not_found, when the read of the row fails' builds its own mock query chain ({ from, select, eq, limit } cast to Db). The plan's Files list says email unit tests use fakeDb and never a hand-rolled chain mock (CS-12). fakeDb can answer an error only for an rpc, not for a table read (tests/fixtures/fake-db.ts:54). The case does go red under its mutation, so it measures something. Follow-up: give fakeDb a per-table error answer, then replace the stand-in."
+   - Evidence: "preview.test.ts lines 97-105; grep -n error tests/fixtures/fake-db.ts shows only the rpc branch returning { data: null, error }"
+
+4. File: `app/package.json`. Not blocking.
+   - Follow-up: "There are two React Email renderers in the dependency tree. @react-email/render 1.4.0 is the direct dependency; @react-email/components 1.0.12 pulls in render 2.0.6, and both depend on prettier and html-to-text. Bundle size in the Worker and the job runner is still unmeasured. The author already noted this, and step 4a's bundle measurement decides it."
+   - Evidence: "bun.lock lines 448, 470 and 1862"
+
+5. File: `app/docs/runbooks/email.md`. Not blocking.
+   - Follow-up: "Two follow-ups for later steps or the orchestrator. (1) The plan's Files list says the runbook records the three Resend domains and their records, which identity sends what, and the key scope. Lines 5-6 instead send the reader to ASSUMED.md ('not repeated here'). (2) Several single keys measure above the Worker's 10 ms CPU limit on a loaded laptop (awaiting_assets 15.33, repermission 14.86, admin_notify 11.87 in the runbook's own run), while the 8 ms gate looks only at the overall p95. B8b's preview endpoint should re-measure per key on a quiet machine, as the runbook already says."
+   - Evidence: "docs/runbooks/email.md lines 3-6 and 94-102; my email-cpu run printed the per-key figures above, with p95 6.51 overall"
+
+6. File: `app/src/templates/email/declined.tsx`. Not blocking.
+   - Follow-up: "The S55 Kind check (a submitter template greets {{submitter_name}} and talks about 'your property') is not met by declined, accepted, awaiting_assets and invoice. Example: declined opens 'Thank you for submitting {{property_address}}.' The definitions must equal the seed migration on main, and the seed-parity test enforces that. So the fix belongs in a new seed migration plus the definitions, which is the orchestrator's to fold. The author named it. The 'owner wording' test checks only the banned words, which pass."
+   - Evidence: "render.test.ts 'equals the row the seed migration inserts, key by key' passes; declined.tsx heading text quoted above"
+
+7. File: `app/src/server/email/variables.ts`. Not blocking.
+   - Follow-up: "When previewTemplate is called with an entity, a failed read in a resolver (rowsOf throws plain Error 'email_read_failed:<table>') or in settings (readSettings throws Error 'settings_read_failed') escapes as a bare Error, not AppError 'unavailable'. A Worker route would answer that with 500, not the 503 that R09 asks for on a dependency outage. The runbook says the calling route translates render and variable errors, but it names only the NonRetryableError codes. B8b's preview route should map these too. Suspected by reading only."
+   - Evidence: "variables.ts line 76 and context.ts line 23; docs/runbooks/email.md lines 32-36"
