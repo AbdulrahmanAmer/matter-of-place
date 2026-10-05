@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-05 05:00 (UTC+3)",
-  "now": "Six lanes: seo (B13 4 to 13), auto (B8b 5), site (B17 1), admin (B7), email (B5 2 to 9), video (B12 1 to 5). Closed: B2, B3, B3b, B4. Next by dependency: B16 rest after B5 and B17; B14 after B13 and B7 steps 1 to 3; B6, B10, B11 after B7; H1 after the B slices, then H2, then L1.",
+  "updated": "2026-10-05 08:35 (UTC+3)",
+  "now": "CHECKPOINT 2026-10-05 08:35 for an account switch: five runs live (B13, B8b, B17, B7, B12) and B5 waiting on PR 137; every run's resume call is in workspace/05-plans/lanes/<slice>.json. Lane-count experiment pending: run five, then four, one hour each, keep the faster. Next by dependency unchanged.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -146,12 +146,11 @@
     },
     "B5": {
       "accepted": [
-        "1"
-      ],
-      "inReview": [
+        "1",
         "2"
       ],
-      "note": "Step 1 merged (PR 108); relaunched 2026-10-05 04:00 in the lane E:/mop-build/email (branch slice/b5, port 8868, bank numbers from P-1200 and G-500) for steps 2 to 9."
+      "inReview": [],
+      "note": "Step 1 merged (PR 108); step 2 (email migrations, write and GG-05 functions, settings_email_share trigger) accepted 2026-10-05 07:40 and merging in PR 137; the run ended on two main breaks (fixed in PR 139 and a98edc8). Relaunch steps 3 to 9 in the email lane after PR 137 merges."
     },
     "H2": {
       "accepted": [],
@@ -185,7 +184,7 @@
       "inReview": [
         "5"
       ],
-      "note": "Step 1 on main (PR 115); 2 to 4a accepted on slice/b8b (PR 133 carries 4 and 4a: bump_catalog_version, purge_cache, keep-warm tick, purge token); step 5 building; 6 to 10 wait on B7 and B5."
+      "note": "Step 1 on main (PR 115); 2 to 4a accepted on slice/b8b (PR 133 draft carries 4 and 4a); step 5 in its second review after one fix round (smoke script lock and a null assertion); 6 to 10 wait on B7 and B5."
     },
     "B15": {
       "accepted": [
@@ -209,28 +208,33 @@
       "inReview": [
         "4"
       ],
-      "note": "Relaunched 2026-10-05 03:30 after the first run died (P-509): steps 1 to 3 accepted through their close-outs on slice/b13; 4 to 13 building."
+      "note": "Relaunched 2026-10-05 03:30 after the first run died (P-509): steps 1 to 3 accepted through their close-outs on slice/b13; step 4 building."
     },
     "B17": {
       "accepted": [],
       "inReview": [
         "1"
       ],
-      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850); step 1 in its fix round."
+      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850); step 1 in its second fix round (CSP hash for the TanStack bootstrap script, then six bank lines dropped by the merge driver)."
     },
     "B7": {
       "accepted": [],
       "inReview": [
         "1"
       ],
-      "note": "Started 2026-10-05 04:00 in the lane E:/mop-build/admin (branch slice/b7, port 8948, bank numbers from P-2000 and G-900); 19 groups, 20 steps."
+      "note": "Started 2026-10-05 04:00 in the lane E:/mop-build/admin (branch slice/b7, port 8948, bank numbers from P-2000 and G-900); 19 groups; step 1 (authz core) in its first fix round (the admin_audit migration makes B8b's guarded write_audit calls live with actions the matrix lacks)."
     },
     "B12": {
-      "accepted": [],
-      "inReview": [
-        "1"
+      "accepted": [
+        "1",
+        "2",
+        "3"
       ],
-      "note": "Started 2026-10-05 04:50 in the lane E:/mop-build/video (branch slice/b12, port 8958, bank numbers from P-2100 and G-950) for steps 1 to 5; 6 to 9 wait on B8b, B7 and the function secret."
+      "inReview": [
+        "4",
+        "5"
+      ],
+      "note": "Started 2026-10-05 04:50 in the lane E:/mop-build/video (branch slice/b12, port 8958, bank numbers from P-2100 and G-950): steps 1 to 3 accepted (engine portability, storyboard, scene and reel-spec), 4 and 5 (full render, review loop) building; 6 to 9 wait on B8b, B7 and the function secret."
     }
   },
   "lanes": [
