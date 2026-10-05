@@ -407,5 +407,680 @@
     "sql": "grant insert on public.email_messages to authenticated;\ncreate policy email_messages_insert_test on public.email_messages for insert to authenticated with check (true);",
     "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"no authenticated role may insert into the email tables\"",
     "expect": "× .*no authenticated role may insert into the email tables"
+  },
+  {
+    "id": "b5-r-files",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/index.ts",
+    "find": "  subjectAckFile,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*has one file for every key"
+  },
+  {
+    "id": "b5-r-declared",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/received.tsx",
+    "find": ", {{city}}, {{state}}. We will review it",
+    "replace": ", {{town}}, {{state}}. We will review it",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*received declares its variables and uses no other"
+  },
+  {
+    "id": "b5-r-seed",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/received.tsx",
+    "find": "subject: \"We have your submission\",",
+    "replace": "subject: \"We have your submissions\",",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*equals the row the seed migration inserts"
+  },
+  {
+    "id": "b5-r-colour",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "borderTop: `1px solid ${themeHex.accent}`,",
+    "replace": "borderTop: \"1px solid #ff0000\",",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*received renders with its sample variables"
+  },
+  {
+    "id": "b5-r-empty",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "const blank = (text: string): boolean => text.trim() === \"\";",
+    "replace": "const blank = (text: string): boolean => text === undefined;",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*drops a block whose text comes out empty"
+  },
+  {
+    "id": "b5-r-offsite",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "target.origin !== new URL(site.siteUrl).origin",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*refuses a link variable that leaves the site"
+  },
+  {
+    "id": "b5-r-missing",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "if (value === undefined) throw new NonRetryableError(`missing_variable:${name}`);",
+    "replace": "if (value === undefined) return \"\";",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*names a variable it was not given"
+  },
+  {
+    "id": "b5-r-oneline",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "text.replace(/\\s+/g, \" \").trim();",
+    "replace": "text.trim();",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*keeps a subject on one line"
+  },
+  {
+    "id": "b5-r-text",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "return `${block.label}: ${block.url}`;",
+    "replace": "return block.label;",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*writes a plain-text part"
+  },
+  {
+    "id": "b5-r-footer",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "[PRODUCT_LINE, site.entity, site.address]",
+    "replace": "[PRODUCT_LINE, site.address]",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*draws the identity lines of the footer"
+  },
+  {
+    "id": "b5-r-nodef",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": ")?.Email ?? Message;",
+    "replace": ")?.Email ?? (() => { throw new Error(\"no definition\"); })();",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*renders a row whose key has no definition"
+  },
+  {
+    "id": "b5-r-pick",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "definitions.find((file) => file.definition.key === row.key)?.Email ?? Message",
+    "replace": "Message",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*inside the Email of its key"
+  },
+  {
+    "id": "b5-r-owner",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/received.tsx",
+    "find": "{ type: \"heading\", text: \"Thank you, {{submitter_name}}.\" },",
+    "replace": "{ type: \"heading\", text: \"Thank you, {{submitter_name}}.\" },\n    { type: \"paragraph\", text: \"Your listing has been received.\" },",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*received says nothing that depends on who submitted"
+  },
+  {
+    "id": "b5-l-script",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "<meta name=\"color-scheme\" content=\"light\" />",
+    "replace": "<meta name=\"color-scheme\" content=\"light\" />\n        <script>1</script>",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× .*received has no finding"
+  },
+  {
+    "id": "b5-l-forbidden",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": ".filter((tag) => FORBIDDEN_TAGS.includes(tag.name))",
+    "replace": ".filter((tag) => tag.name === 'nothing')",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires forbidden-tag on script"
+  },
+  {
+    "id": "b5-l-iframe",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "[\"script\", \"iframe\", \"form\", \"video\", \"object\"]",
+    "replace": "[\"script\", \"form\", \"video\", \"object\"]",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires forbidden-tag on iframe"
+  },
+  {
+    "id": "b5-l-link-css",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/stylesheet/i.test(tag.attrs.get(\"rel\") ?? \"\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires stylesheet on linked stylesheet"
+  },
+  {
+    "id": "b5-l-import",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/@import/.test(html)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires stylesheet on @import"
+  },
+  {
+    "id": "b5-l-alt",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "tag.attrs.has(\"alt\")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires img-alt on image without alt"
+  },
+  {
+    "id": "b5-l-src",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/^https:\\/\\//.test(src)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires img-src on image with relative src"
+  },
+  {
+    "id": "b5-l-width",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/^\\d+$/.test(tag.attrs.get(\"width\") ?? \"\")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires img-width on image with no width"
+  },
+  {
+    "id": "b5-l-href",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "...(hrefAllowed(href, key)",
+    "replace": "...(true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires link-href on http link"
+  },
+  {
+    "id": "b5-l-js",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/^(?:https:\\/\\/|mailto:)/.test(href) ||",
+    "replace": "/^(?:https?:\\/\\/|mailto:|javascript:)/.test(href) ||",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires link-href on javascript link"
+  },
+  {
+    "id": "b5-l-text",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "visibleText(anchor[2] ?? \"\") === \"\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires link-text on link with no text"
+  },
+  {
+    "id": "b5-l-lang",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/<html\\b[^>]*\\blang=\"en\"/.test(html)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires lang on no language"
+  },
+  {
+    "id": "b5-l-title",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/<title[^>]*>\\s*[^<\\s][^<]*<\\/title>/.test(html)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires title on empty title"
+  },
+  {
+    "id": "b5-l-container",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/max-width:\\s*600px/.test(html)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires container-width on container 700 px"
+  },
+  {
+    "id": "b5-l-table",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "!table.presentation && !table.header",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires table-role on table with no role"
+  },
+  {
+    "id": "b5-l-hex",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": ".filter((hex) => !THEME_HEX.has(hex.toLowerCase()))",
+    "replace": ".filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires hex on colour outside the theme"
+  },
+  {
+    "id": "b5-l-placeholder",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/\\{\\{|\\bundefined\\b|\\bnull\\b|\\[object Object\\]/.test(value)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires placeholder-text on unreplaced variable"
+  },
+  {
+    "id": "b5-l-undefined",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "|\\bundefined\\b",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires placeholder-text on undefined in the text"
+  },
+  {
+    "id": "b5-l-dash",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "`${html}${text}`.includes(\"—\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires em-dash on em dash"
+  },
+  {
+    "id": "b5-l-preheader",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "length > MAX_PREHEADER",
+    "replace": "length < 0",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires preheader on long preheader"
+  },
+  {
+    "id": "b5-l-size",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "new TextEncoder().encode(html).length > MAX_BYTES",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires size on over 102,000 bytes"
+  },
+  {
+    "id": "b5-l-text-empty",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "text.trim() === \"\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires text-empty on empty text part"
+  },
+  {
+    "id": "b5-l-text-tags",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "/<[a-zA-Z/!][^>]*>/.test(text)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires text-tags on tags in the text part"
+  },
+  {
+    "id": "b5-l-text-url",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": ".filter((href) => !text.includes(href))",
+    "replace": ".filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× fires text-url on button address missing from text"
+  },
+  {
+    "id": "b5-l-standalone",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "(key === \"standalone\" && href === RESEND_PLACEHOLDER) ||",
+    "replace": "href === RESEND_PLACEHOLDER ||",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× lets only standalone carry the Resend placeholder"
+  },
+  {
+    "id": "b5-l-auth",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "scripts/lib/email-lint.ts",
+    "find": "(isAuth(key) && href.startsWith(AUTH_HREF))",
+    "replace": "href.startsWith(AUTH_HREF)",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "× lets only the two auth templates carry"
+  },
+  {
+    "id": "b5-v-format",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/format.ts",
+    "find": "style: \"currency\"",
+    "replace": "style: \"decimal\"",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*writes dollars with a thousands separator"
+  },
+  {
+    "id": "b5-v-package",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "name === \"Not sure yet\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*received and accepted give the submission"
+  },
+  {
+    "id": "b5-v-note",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "text(data, \"note\") ?? submission.decline_note ?? \"\"",
+    "replace": "submission.decline_note ?? \"\"",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*declined reads the reason from the payload"
+  },
+  {
+    "id": "b5-v-assets",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "assets_note: text(data, \"note\") ?? \"\"",
+    "replace": "assets_note: \"\"",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*awaiting_assets carries the note"
+  },
+  {
+    "id": "b5-v-amount",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "    amount: formatUsd(payment.amount),",
+    "replace": "    amount: String(payment.amount),",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "b5-v-fallback",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": ": described.map((method) => `${method.label}: ${method.instructions}`).join(\"\\n\"),",
+    "replace": ": \"\",",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice falls back to every method"
+  },
+  {
+    "id": "b5-v-ack",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "\"inquiry\").name };",
+    "replace": "\"inquiry\").email };",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*inquiry_ack names the inquirer"
+  },
+  {
+    "id": "b5-v-contact",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "inquirer_contact: inquiry.phone === null ? inquiry.email : `${inquiry.email}, ${inquiry.phone}`,",
+    "replace": "inquirer_contact: inquiry.email,",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*inquiry_forward names the submitter"
+  },
+  {
+    "id": "b5-v-due",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "due_date: formatDate(request.due_at)",
+    "replace": "due_date: request.due_at",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*subject_ack for a deletion request"
+  },
+  {
+    "id": "b5-v-markets",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (names.length === 0) throw new NonRetryableError(\"missing_variable:market_names\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*the confirmation keys need a sealed token"
+  },
+  {
+    "id": "b5-v-standalone",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "standalone: () => Promise.resolve({}),",
+    "replace": "standalone: () => Promise.resolve({ x: \"1\" }),",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*standalone has no variables"
+  },
+  {
+    "id": "b5-v-entity",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  submission: \"submission_id\",",
+    "replace": "  submission: \"id\",",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*builds the data of an entity"
+  },
+  {
+    "id": "b5-v-link",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const link_url = path === \"\" ? \"\" : `${(await site()).siteUrl}${path}`;",
+    "replace": "const link_url = path === \"\" ? \"\" : path;",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*gives a summary and a link_url on SITE_URL"
+  },
+  {
+    "id": "b5-v-headline",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const headline = given ?? alert?.headline;",
+    "replace": "const headline = given ?? \"Notice\";",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*with no params.headline gives its default headline"
+  },
+  {
+    "id": "b5-v-interpolate",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "return { headline: interpolate(headline, { summary, link_url }), summary, link_url };",
+    "replace": "return { headline, summary, link_url };",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*a system job brings its own summary"
+  },
+  {
+    "id": "b5-v-nosummary",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (supplied === null && alert === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*an unknown source without data.summary"
+  },
+  {
+    "id": "b5-v-asks",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (headline === undefined) throw new NonRetryableError(\"missing_variable:headline\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*asks for the headline"
+  },
+  {
+    "id": "b5-v-path",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (path !== \"\" && !/^\\/(?!\\/)/.test(path)) throw new NonRetryableError(\"link_path_invalid\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*refuses a link_path that does not stay on the site"
+  },
+  {
+    "id": "b5-v-override",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "switch (params.to ?? defaultRecipient[key] ?? \"\") {",
+    "replace": "switch (defaultRecipient[key] ?? \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*params.to overrides the default of the key"
+  },
+  {
+    "id": "b5-v-test",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (data[\"test\"] === true) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*a test job goes to its actor alone"
+  },
+  {
+    "id": "b5-v-subscriber",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (subscriber === undefined) throw recipientMissing();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*a missing row, a missing id and a key with no default"
+  },
+  {
+    "id": "b5-v-inquirer",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "entity: \"inquiry\", entityId: id",
+    "replace": "entity: \"submission\", entityId: id",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*gives each other kind its address, entity and id"
+  },
+  {
+    "id": "b5-v-requester",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const request = await subjectRequestById(db, id);\n      if (request === undefined) throw recipientMissing();\n      return { to: [request.email], entity: \"subject_request\", entityId: id };",
+    "replace": "const result = await db.from(\"subscribers\").select(\"email\").eq(\"id\", id).limit(1);\n      const request = rowsOf(result, \"subscribers\")[0];\n      if (request === undefined) throw recipientMissing();\n      return { to: [request.email], entity: \"subject_request\", entityId: id };",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*requester reads the subject request"
+  },
+  {
+    "id": "b5-v-agent",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (submission === undefined) throw recipientMissing();\n    return { to: [submission.submitter_email], entity: \"submission\", entityId: submission.id };",
+    "replace": "if (submission === undefined) throw recipientMissing();\n    return { to: [submission.submitter_email], entity: \"inquiry\", entityId: submission.id };",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*submitter reads the submission's address for an"
+  },
+  {
+    "id": "b5-v-admins",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "const fallback = siteOf(settings).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "replace": "const fallback = readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*admins fall back to the contact address"
+  },
+  {
+    "id": "b5-v-chain",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const submissionId = property?.submission_id ?? null;",
+    "replace": "const submissionId = null;",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*reaches the submission behind the inquiry"
+  },
+  {
+    "id": "b5-v-slug",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "slug === null\n      ? undefined",
+    "replace": "false\n      ? undefined",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*has no one to tell for an inquiry with no subject_slug"
+  },
+  {
+    "id": "b5-v-nosub",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (submission === undefined) return { to: [], entity: null, entityId: null };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*has no one to tell for a property no submission made"
+  },
+  {
+    "id": "b5-v-nochain",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (chain === undefined) throw recipientMissing();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*is recipient_missing for an inquiry that does not exist"
+  },
+  {
+    "id": "b5-v-siteurl",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "siteUrl: origin.replace(/\\/+$/, \"\"),",
+    "replace": "siteUrl: origin,",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*takes the site from the argument"
+  },
+  {
+    "id": "b5-v-malformed",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "siteSettingsSchema.safeParse(settings.get(\"site\")).data ?? emptySiteSettings",
+    "replace": "siteSettingsSchema.parse(settings.get(\"site\"))",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*reads the identity lines of settings.site"
+  },
+  {
+    "id": "b5-p-entity",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": ": await resolveVariables(db, key, entityData(entity.kind, entity.id), undefined, site);",
+    "replace": ": sampleVariables(key, site.siteUrl);",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*with an entity returns what renderTemplate returns"
+  },
+  {
+    "id": "b5-p-override",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "{ ...base, ...variables }",
+    "replace": "{ ...variables, ...base }",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*without an entity uses the sample variables"
+  },
+  {
+    "id": "b5-p-notfound",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "if (result.error !== null || row === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*is not_found for a key with no row"
+  },
+  {
+    "id": "b5-p-client",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "import { siteConfig } from \"../../config/site.ts\";",
+    "replace": "// resend-client\nimport { siteConfig } from \"../../config/site.ts\";",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*imports nothing that sends"
+  },
+  {
+    "id": "b5-r-button",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "if (blank(label) || blank(url)) return null;",
+    "replace": "if (blank(label)) return null;",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*drops a button whose link comes out empty"
   }
 ]

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { describe, expect, it, vi } from "vitest";
 import {
   emailBlockSchema,
   emailClasses,
@@ -9,7 +11,12 @@ import {
   usedVariables,
   variablesByKey,
   type EmailBlock,
+  type EmailTemplateKey,
 } from "../../../src/domain/email";
+import type { SiteContext } from "../../../src/server/email/context";
+import { interpolate, renderTemplate, type RenderRow } from "../../../src/server/email/render";
+import { definitionRow, definitions } from "../../../src/templates/email/index";
+import { themeHex } from "../../../src/templates/theme.gen";
 
 const accepted = (value: unknown): boolean => emailBlockSchema.safeParse(value).success;
 
@@ -137,5 +144,229 @@ describe("sample variables", () => {
         expect(value).not.toMatch(/—|\{\{/);
       }
     }
+  });
+});
+
+const site: SiteContext = {
+  siteUrl: "https://matterofplace.com",
+  entity: null,
+  address: null,
+  contact: { email: null },
+};
+
+const fileOf = (key: EmailTemplateKey) => {
+  const file = definitions.find((entry) => entry.definition.key === key);
+  if (file === undefined) throw new Error(`no template file for ${key}`);
+  return file.definition;
+};
+
+const renderSample = (key: EmailTemplateKey) =>
+  renderTemplate(definitionRow(fileOf(key)), sampleVariables(key), site);
+
+const row = (overrides: Partial<RenderRow>, body: EmailBlock[]): RenderRow => ({
+  key: "received",
+  subject: "Subject",
+  preheader: "",
+  body,
+  ...overrides,
+});
+
+describe("template files", () => {
+  it("has one file for every key of emailTemplateKeys", () => {
+    const keys = definitions.map((entry) => entry.definition.key);
+    expect([...keys].sort()).toEqual([...emailTemplateKeys].sort());
+  });
+
+  it.each(emailTemplateKeys)("%s declares its variables and uses no other", (key) => {
+    const { subject, preheader, blocks, variables } = fileOf(key);
+    expect(variables).toEqual(variablesByKey[key]);
+    expect(blocks.map((block) => emailBlockSchema.safeParse(block).success)).not.toContain(false);
+    const used = usedVariables([
+      { type: "paragraph", text: `${subject} ${preheader}`.trim() },
+      ...blocks,
+    ]);
+    expect(used.filter((name) => !variables.includes(name))).toEqual([]);
+  });
+
+  it("equals the row the seed migration inserts, key by key", () => {
+    const sql = readFileSync(
+      new URL(
+        "../../../supabase/migrations/20261005013009_email_templates_seed.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const sqlRow =
+      /\(\s*'(\w+)', '(\w+)', '((?:[^']|'')*)', '((?:[^']|'')*)',\s*'(\[[\s\S]*?\])',\s*'\{([^}]*)\}',\s*(?:true|false)\s*\)/g;
+    const unquote = (value: string | undefined): string => (value ?? "").replaceAll("''", "'");
+    const seeded = [...sql.matchAll(sqlRow)].map(
+      ([, key, kind, subject, preheader, body, variables]) => ({
+        key: emailTemplateSchema.shape.key.parse(key),
+        class: kind,
+        subject: unquote(subject),
+        preheader: unquote(preheader),
+        blocks: emailTemplateSchema.shape.body.parse(JSON.parse(unquote(body))),
+        variables: (variables ?? "").split(",").filter((name) => name !== ""),
+      }),
+    );
+    // This migration seeds B5's thirteen keys; a later slice seeds its own keys in its own migration.
+    expect(seeded).toHaveLength(13);
+    for (const entry of seeded) {
+      const { key, class: kind, subject, preheader, blocks, variables } = fileOf(entry.key);
+      expect({ key, class: kind, subject, preheader, blocks, variables: [...variables] }).toEqual(
+        entry,
+      );
+    }
+  });
+});
+
+describe("renderTemplate", () => {
+  it.each(emailTemplateKeys)(
+    "%s renders with its sample variables, with nothing unreplaced and no stray colour",
+    async (key) => {
+      const { subject, preheader, html, text } = await renderSample(key);
+      for (const value of [subject, preheader, html, text]) expect(value).not.toMatch(/\{\{|—/);
+      const colours = (html.match(/#[0-9a-fA-F]{6}\b/g) ?? []).map((hex) => hex.toLowerCase());
+      expect(colours.filter((hex) => !Object.values<string>(themeHex).includes(hex))).toEqual([]);
+      expect(text).not.toMatch(/<[a-z/]/);
+    },
+  );
+
+  it("drops a block whose text comes out empty, and a fact with no value", async () => {
+    const body: EmailBlock[] = [
+      { type: "paragraph", text: "Kept" },
+      { type: "paragraph", text: "{{note}}" },
+      {
+        type: "facts",
+        rows: [
+          { label: "Shown", value: "yes" },
+          { label: "Hidden", value: "{{note}}" },
+        ],
+      },
+      { type: "facts", rows: [{ label: "Alone", value: "{{note}}" }] },
+    ];
+    const { html, text } = await renderTemplate(row({}, body), { note: "" }, site);
+    expect(html).toContain("Kept");
+    expect(html).not.toMatch(/<p[^>]*><\/p>/);
+    expect(html).toContain("Shown");
+    expect(html).not.toMatch(/Hidden|Alone/);
+    expect(text).not.toMatch(/Hidden|Alone/);
+  });
+
+  it("drops a button whose link comes out empty", async () => {
+    const body: EmailBlock[] = [
+      { type: "paragraph", text: "Kept" },
+      { type: "button", label: "Open", url: "{{link}}" },
+    ];
+    const { html, text } = await renderTemplate(row({}, body), { link: "" }, site);
+    expect(html).toContain("Kept");
+    expect(html).not.toContain("Open");
+    expect(text).not.toContain("Open");
+  });
+
+  it("refuses a link variable that leaves the site", async () => {
+    const body: EmailBlock[] = [{ type: "button", label: "Go", url: "{{link}}" }];
+    for (const link of [
+      "https://evil.example/confirm",
+      "http://matterofplace.com/confirm",
+      "https://matterofplace.com.evil.example/confirm",
+      "not a url",
+    ]) {
+      await expect(renderTemplate(row({}, body), { link }, site)).rejects.toThrow("url_off_site");
+    }
+    const sameSite = await renderTemplate(
+      row({}, body),
+      { link: "https://matterofplace.com/ok" },
+      site,
+    );
+    expect(sameSite.html).toContain('href="https://matterofplace.com/ok"');
+  });
+
+  it("names a variable it was not given", async () => {
+    expect(() => interpolate("Hello {{name}}", {})).toThrow("missing_variable:name");
+    await expect(
+      renderTemplate(row({ subject: "Hello {{name}}" }, [{ type: "signature" }]), {}, site),
+    ).rejects.toThrow("missing_variable:name");
+  });
+
+  it("keeps a subject on one line and refuses a body that is not blocks", async () => {
+    const one = await renderTemplate(
+      row({ subject: "About {{address}}" }, [{ type: "signature" }]),
+      { address: "412 Alder\r\nBcc: someone@example.com" },
+      site,
+    );
+    expect(one.subject).toBe("About 412 Alder Bcc: someone@example.com");
+    await expect(
+      renderTemplate({ ...row({}, []), body: [{ type: "image" }] }, {}, site),
+    ).rejects.toThrow("template_body_invalid");
+  });
+
+  it("writes a plain-text part with every button address and the footer", async () => {
+    const { text } = await renderSample("newsletter_confirm");
+    expect(text).toContain(
+      "Confirm: https://matterofplace.com/api/public/subscribers/confirm?token=sample-token",
+    );
+    expect(text).toContain("Exceptional property. Properly considered.");
+  });
+
+  it("draws the identity lines of the footer only when the site settings hold them", async () => {
+    const named = { ...site, entity: "Omnikom Media LLC", address: "1 Example Plaza, Pasadena" };
+    const { html, text } = await renderTemplate(row({}, [{ type: "signature" }]), {}, named);
+    expect(html).toContain("Omnikom Media LLC");
+    expect(text).toContain("1 Example Plaza, Pasadena");
+    const bare = await renderTemplate(row({}, [{ type: "signature" }]), {}, site);
+    expect(bare.html).not.toContain("Omnikom");
+  });
+
+  it("renders a row whose key has no definition inside the plain layout", async () => {
+    const { html } = await renderTemplate(
+      row({ key: "no_such_key" }, [{ type: "paragraph", text: "Row text" }]),
+      {},
+      site,
+    );
+    expect(html).toContain("Row text");
+    expect(html).toContain("apple-touch-icon.png");
+  });
+
+  it("renders the blocks of a row that differs from its definition inside the Email of its key", async () => {
+    vi.resetModules();
+    vi.doMock("../../../src/templates/email/index", () => ({
+      definitions: [
+        {
+          definition: { key: "received" },
+          Email: ({ blocks }: { blocks: EmailBlock[] }) =>
+            createElement(
+              "main",
+              { id: "received-email" },
+              blocks.map((block) => (block.type === "paragraph" ? block.text : "")),
+            ),
+        },
+      ],
+    }));
+    const { renderTemplate: render } = await import("../../../src/server/email/render");
+    const body: EmailBlock[] = [{ type: "paragraph", text: "Edited by the admin" }];
+    const own = await render(row({ key: "received" }, body), {}, site);
+    expect(own.html).toContain('id="received-email"');
+    expect(own.html).toContain("Edited by the admin");
+    const other = await render(row({ key: "declined" }, body), {}, site);
+    expect(other.html).not.toContain("received-email");
+    vi.doUnmock("../../../src/templates/email/index");
+    vi.resetModules();
+  });
+});
+
+describe("owner wording", () => {
+  const submitterKeys = [
+    "received",
+    "declined",
+    "accepted",
+    "awaiting_assets",
+    "invoice",
+    "inquiry_forward",
+  ] as const;
+
+  it.each(submitterKeys)("%s says nothing that depends on who submitted", async (key) => {
+    const { subject, text } = await renderSample(key);
+    expect(`${subject} ${text}`).not.toMatch(/\b(agent|listing|brokerage|client)s?\b/i);
   });
 });
