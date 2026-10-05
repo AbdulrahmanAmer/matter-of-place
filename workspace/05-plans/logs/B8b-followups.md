@@ -175,3 +175,25 @@ Recorded from the g4 review (no blocking defect). None is blocking. Three furthe
 - what: UNPROVEN, carried rather than defective. runKeepWarm has only run against fakeDb with a stub fetch. Its real wiring (Worker scheduled(), the keepwarm plugin, the wrangler.toml trigger) is step 5. The CI db job does not exist in ci.yml, so the plan's CI db line is UNPROVEN. The dev-job deploy after the merge has not been seen. Whether a tag purge reaches the cache.mop.internal entries is measured only after L1. My curl reached the currently deployed job-runner, which is not proven to be this branch's code.
 - evidence: The author's unproven list. The curl returned http=200 with "claimed":0 but cannot identify which deployed code answered.
 - blocking: false
+
+## g5 · steps 5
+
+Recorded from the g5 review (no blocking defect). Two further items concerned GOTCHAS.md and are banked there, not listed here: the merge-driver cost (a hit-again line on P-072) and the worker-start timeout of the review (a hit-again line on P-712).
+
+### 1. app/scripts/automation-smoke.ts
+
+- what: Follow-up, not blocking. Until a notify_admin module is registered, the smoke prints 'UNPROVEN: real run, ...' but still exits 0 (lines 176-185 and main). H1-31 in workspace/05-plans/H1.md:74 reads only the exit code of `bun run scripts/automation-smoke.ts`, so before B5 registers notify_admin that gate goes green without the real-run half of the exit. The author disclosed this. The orchestrator should decide whether H1-31 greps for the 'jobs for step: 0' line or the script exits non-zero on the UNPROVEN branch. One more thing for the same lane: once B5 registers send_email, the real event plans a queued send_received job. The deployed runner can claim it before cancelOpenJobs runs, which means a real email to the submitter of the newest mop-dev submission. That risk is already listed in the B8b log follow-ups.
+- evidence: Seen by reading: src/server/jobs/steps/index.ts on 87198b8 registers no send_email and no notify_admin. Line 74 of workspace/05-plans/H1.md chains `&& bun run scripts/automation-smoke.ts &&` and checks no output. I did not re-run the smoke against mop-dev: it was not among this rework's proofs, and each run appends an event row to the one database.
+- blocking: false
+
+### 2. workspace/05-plans/H1.md
+
+- what: Follow-up, not blocking, the orchestrator's file. H1.md line 114 and B8b.md step 5 still name the `/__scheduled` URL for the local scheduled test, and on the installed wrangler it answers 404. P-1622 banks this.
+- evidence: Confirmed by running: with wrangler dev --test-scheduled on 8909, `curl -s -o /dev/null -w %{http_code} http://127.0.0.1:8909/__scheduled?cron=*%2F10+*+*+*+*` printed 404, and `/cdn-cgi/handler/scheduled?cron=...` printed 200 with a keepwarm_tick line.
+- blocking: false
+
+### 3. app/docs/runbooks/delivery.md
+
+- what: Follow-up, not blocking. The deploy and clock paths changed but no runbook did. The 'Worker configuration' section (around line 106) does not say that wrangler.toml now holds `[triggers] crons = ["*/10 * * * *"]` or that matter-of-place and matter-of-place-dev carry it. The `preview` bullet (around line 225) does not say that pr-<n> is deployed from `.output/server/wrangler.preview.json` with no cron (scripts/preview-no-cron.mjs). STANDARDS C23 asks for a runbook update on a deploy or clock change, but step 5 names no runbook, so the orchestrator should fold this or assign it.
+- evidence: Seen by reading: `grep -rn "keepwarm\|crons\|preview-no-cron\|wrangler.preview" app/docs/runbooks/delivery.md` gives no match, and the only keepwarm runbook lines are jobs.md:45 and :48 (heartbeat only).
+- blocking: false
