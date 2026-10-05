@@ -7,7 +7,7 @@
     "feature-dev@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
+    "hookify@claude-plugins-official": false,
     "cloudflare@claude-plugins-official": true,
     "resend@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
