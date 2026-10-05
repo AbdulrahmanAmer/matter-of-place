@@ -25,6 +25,7 @@ const guardedScripts = [
   "tests/fixtures/catalog-version.ts",
   "scripts/omnikom-run-local.ts",
   "scripts/automation-smoke.ts",
+  "scripts/email-chain.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {

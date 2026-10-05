@@ -151,6 +151,7 @@ describe("call sites (R26, R38, API-01)", () => {
     const allowed = (file: string) =>
       under(file, "src/server/subscribers") ||
       file === "src/server/newsletter/audience.ts" ||
+      file === "src/server/email/variables.ts" ||
       file === "src/server/jobs/system/market-open-notice.ts";
     expect(matches(/from\(\s*["'`]subscribers["'`]\s*\)/, allowed)).toEqual([]);
   });
