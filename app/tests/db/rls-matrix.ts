@@ -76,6 +76,9 @@ export const rlsMatrix: Record<string, Access> = {
   // service role reaches the fan-out retry rows (JOB-07). decline_reasons keeps B2's row above.
   automation_recipes: { select: staffRoles, update: automation },
   email_templates: { select: staffRoles, insert: automation, update: automation },
+  email_messages: staffRead,
+  email_suppressions: staffRead,
+  email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },
   schedule_settings: { select: staffRoles, insert: automation, update: automation },
   automation_revisions: staffRead,
