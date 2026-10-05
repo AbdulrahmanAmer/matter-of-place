@@ -2833,7 +2833,7 @@
     "file": "tests/db/rls.db.test.ts",
     "find": "pg_current_xact_id()::xid::text desc limit 1",
     "replace": "pg_current_xact_id()::xid::text asc limit 1",
-    "run": "bun run seed -- --target dev --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts",
+    "run": "bash -c 'API_URL=$SUPABASE_URL SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY bun run seed -- --target local --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts'",
     "expect": "\\+\\s+\"properties insert: P0001\""
   }
 ]

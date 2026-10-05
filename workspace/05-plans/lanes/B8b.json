@@ -1,0 +1,83 @@
+{
+  "slice": "B8b",
+  "runId": "wf_08968c1a-329",
+  "resume": {
+    "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
+    "resumeFromRunId": "wf_08968c1a-329",
+    "args": {
+      "slice": "B8b",
+      "root": "E:/mop-build/auto",
+      "previewPort": 8908,
+      "bankBase": {
+        "P": 1600,
+        "G": 700
+      },
+      "steps": [
+        "4",
+        "4a",
+        "5"
+      ],
+      "closeOut": [
+        {
+          "id": "c2s",
+          "steps": "2",
+          "critical": false,
+          "title": "B8b close-out c2s: the R28 run-twice gate in tests/unit/automation/step-specs.test.ts reads only literal it(...)/test(...) titles, so it misses B9's four render cases written as an it.each table and bun run check is red on the branch (run 37227263805). Make the scanner read what vitest runs",
+          "defects": [
+            {
+              "file": "app/tests/unit/automation/step-specs.test.ts",
+              "blocking": true,
+              "what": "testTitles() uses /\\b(?:it|test)\\(\\s*([\"'`])(.+?)\\1/ and never sees `it.each([...])(\"$type runs twice without a second outside effect\", ...)` at app/tests/unit/assets/steps.test.ts:323, whose four rows (render_cover, render_carousel, render_story, render_variants) all run and pass. Make the gate read the titles vitest actually runs: either expand .each templates (the $type placeholder over the table's `type:` literals in the same file) or, better, run vitest with the json reporter on the step test files and read the test names from its output. Do not duplicate B9's cases as literal titles and do not weaken the gate: a type with no run-twice case must still fail it (watched-fail: remove one row from B9's table in a scratch copy, the gate goes red). bun run check green on the branch is the proof.",
+              "evidence": "The second fix agent's report: `vitest -t \"runs twice\"` lists the four render types as passing; the regex in testTitles() matches literal titles only; CI run 37227263805 check job red on 'finds a run-twice test for every implemented type with an outside effect'."
+            }
+          ]
+        },
+        {
+          "id": "c3r",
+          "steps": "4",
+          "critical": true,
+          "title": "B8b close-out c3r: step 4 (first half: fan-out, scheduler, cron, seed and schedules migrations) is built on the branch (commits edaac8d, 8f1c94b, f509620) through two fix rounds; its only open defect was the gate above. Re-run every proof of the first half of step 4 on the current tree, confirm bun run check is green after c2s, update the log block, and hand it in for review; change code only where a proof fails",
+          "defects": [
+            {
+              "file": "app/src/server/automation/fanout.ts",
+              "blocking": true,
+              "what": "Re-prove the first half of step 4 as the plan writes it (the fan-out where one bad event never blocks the others, the scheduler, the cron rows, the seed and the schedules migration proven in rolled-back transactions, the registry replays) and paste the proofs; the earlier review's accepted parts stand.",
+              "evidence": "Journal of run wf_99b25b0e-d43: review2 of g3 had one blocking defect, the red gate, now closed by c2s."
+            }
+          ]
+        }
+      ],
+      "sizing": {
+        "unmetDependencies": [],
+        "groups": [
+          {
+            "id": "g4",
+            "steps": "4,4a",
+            "title": "Step 4, second half, and step 4a as the plan writes them (the first half is built and reviewed in c3r)",
+            "files": [],
+            "proof": "The second half of step 4 and step 4a as the plan writes them.",
+            "blocked": false,
+            "blockedOn": "",
+            "critical": false,
+            "needsOrchestrator": "",
+            "designer": false,
+            "needsPullRequest": true
+          },
+          {
+            "id": "g5",
+            "steps": "5",
+            "title": "Step 5 as the plan writes it",
+            "files": [],
+            "proof": "Step 5 as the plan writes it.",
+            "blocked": false,
+            "blockedOn": "",
+            "critical": false,
+            "needsOrchestrator": "",
+            "designer": false,
+            "needsPullRequest": true
+          }
+        ]
+      }
+    }
+  }
+}

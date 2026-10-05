@@ -87,7 +87,12 @@ begin
   );
   -- B8b: the seed may already hold these keys; each insert also writes an automation_revisions row.
   insert into public.automation_recipes (trigger, name) values ('health.failed', 'Test') on conflict (trigger) do nothing;
-  insert into public.email_templates (key, subject, body) values ('test_rls_' || v_user, 'Test', '[]');
+  insert into public.email_templates (key, class, subject, body)
+  values ('test_rls_' || v_user, 'transactional', 'Test', '[]');
+  insert into public.email_messages (template_key, kind, to_email)
+  values ('received', 'transactional', 'test-rls-' || v_user || '@example.test');
+  insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
+  insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
   insert into public.channel_settings (channel, posting_window) values ('youtube', '{"tz": "UTC"}')
   on conflict (channel) do nothing;
   insert into public.schedule_settings (key, cron) values ('backup', '0 3 * * *') on conflict (key) do nothing;

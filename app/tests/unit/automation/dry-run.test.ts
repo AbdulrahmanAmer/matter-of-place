@@ -70,6 +70,7 @@ function template(key: string, enabled = true): Tables<"email_templates"> {
     subject: "Subject",
     preheader: "",
     body: [],
+    class: "transactional",
     variables: [],
     enabled,
     version: 1,

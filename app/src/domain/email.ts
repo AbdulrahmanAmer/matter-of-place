@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Tables } from "../db/index.ts";
 
 // Transactional and notification email (B5). A template is a row of `email_templates`: its columns, this schema and
 // the API JSON are the same names (G-004). The React files under `src/templates/email` supply layout and the seed
@@ -77,6 +78,9 @@ export const emailTemplateSchema = z.object({
   version: z.number().int().min(1),
   class: z.enum(emailClasses),
 });
+
+/** A row of `email_templates` as the database returns it (G-004). */
+export type EmailTemplateRow = Tables<"email_templates">;
 
 const devPattern = z
   .string()

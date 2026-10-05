@@ -96,6 +96,7 @@ const standaloneTemplate: RecipeTemplate = {
   subject: "Subject",
   preheader: "",
   body: [],
+  class: "bulk",
   variables: [],
   enabled: true,
   version: 1,

@@ -1070,3 +1070,30 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   `bun run check` in a lane now fails on 5,000 ms test timeouts under that load (seven in B15's lane), so CI is the gate
   and a local red made only of timeouts is not a defect.
 - NEXT: B16 rest after B5 and B17; B14 after B13 and B7 steps 1 to 3; B6, B10, B11 after B7; H1 after the B slices.
+
+## 2026-10-05 08:35 · CHECKPOINT for an account switch (operator at 86 percent of the weekly limit, resets Wednesday 19:00)
+- HOW TO COME BACK: in a terminal, `cd "E:\Matter Of Place"` then `claude --resume bdd9245b-a217-4a62-859d-18b11075b310`.
+  Leaving this session kills the in-process workflow runs; nothing on disk or on GitHub is lost. On resume, the orchestrator
+  relaunches every lane with its saved call (`workspace/05-plans/lanes/<slice>.json`, field `resume`: scriptPath,
+  resumeFromRunId, args). Completed groups replay from the run's cache; the group that was mid-build restarts from the
+  lane branch (its commits stay; the builder brief reads the log tail and leaves finished groups out).
+- Runs at the checkpoint (all alive 08:30): B13 wf_b449fffc-88b (seo, step 4 building; c1 and c3 close-outs accepted);
+  B8b wf_08968c1a-329 (auto, step 5 in review2 after fix1; PR 133 draft holds 4 and 4a); B17 wf_50ea9b3c-5a4 (site,
+  step 1 fix2); B7 wf_5d9f0509-be2 (admin, step 1 fix1: the admin_audit migration makes B8b's guarded write_audit calls
+  live with actions the matrix lacks); B12 wf_49694593-fac (video, steps 1 to 3 accepted, 4 and 5 building; the film
+  media folder was copied into the lane, P-523). B5's run wf_c014765b-d6a ENDED: step 2 accepted, PR 137 MERGED 08:45 (7e5ebca); relaunch B5 FRESH (not resume) with steps 3 to 9 once 137 is on main.
+- Merged this morning: PR 131 (P-519, P-520, brief cap), 135 (B15 steps 6 and 7; B15 closed), 136 (H61, P-522, records),
+  139 (stale STUB(B15) marker, B2 registry seeds local). Board 110 of 259 at 08:00 (42.5 percent); closed B2, B3,
+  B3b, B4, B15. Open PRs: 133 (B8b draft, its run merges it), 137 (B5 step 2), 138 (B7 draft).
+- LANE-COUNT EXPERIMENT (operator, 08:20, "I will trust you on getting the numbers"): measured 3.3 steps an hour at four
+  lanes (00:00 to 04:00) and 2.3 at five to six (04:00 to 08:00) with concrete contention (`bun run check` 30 minutes in a
+  lane against 4 to 5 unloaded; 5,000 ms test timeouts; P-712 worker loss). Plan: run FIVE lanes for one hour and count
+  accepted steps from the board, then FOUR for one hour, keep whichever is faster; log both numbers here. Do not refill
+  B8b's slot when it closes. The sixth lane (B12) stays because it is mid-render; B5 relaunch makes five once B8b ends.
+- Processor: the `ccusage` status line is off (P-522). OmniSkipX's 15 scheduled tasks (about 3 percent) and a second
+  Claude Code session from 2 October are the operator's; left running, offered to pause.
+- Usage read from the operator's browser at 08:30: this week 86 percent, Fable weekly 61 percent, "at this pace you'll run
+  out tonight". The operator switches to his other account; the resume command above is the same on either account.
+- NEXT after resume: relaunch the five runs (resume) and B5 (fresh, steps 3 to 9); gate PR 137 if still open; B10
+  steps 0, 3, 4, 5, 5a may open only when a slot is free and B8b's PR 133 is on main; B16 rest after B5 and B17; B14
+  after B13 and B7 steps 1 to 3; B6, B10 rest, B11 after B7; H1 after the B slices.
