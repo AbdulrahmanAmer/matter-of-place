@@ -124,8 +124,8 @@
     "kind": "file",
     "test": "tests/unit/consent.test.ts",
     "file": "src/lib/consent.ts",
-    "find": "  } catch {\n    return undefined;\n  }",
-    "replace": "  } catch {\n    return { version: CONSENT_VERSION, analytics: true };\n  }",
+    "find": "undefined;\n  } catch {\n    return undefined;\n  }\n}\n\nfunction readCookie",
+    "replace": "undefined;\n  } catch {\n    return { version: CONSENT_VERSION, analytics: true };\n  }\n}\n\nfunction readCookie",
     "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
     "expect": "× .*reads corrupt JSON"
   },
