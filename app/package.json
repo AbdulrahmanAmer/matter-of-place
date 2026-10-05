@@ -49,7 +49,9 @@
     "captions": "bun scripts/captions-runner.ts",
     "omnikom:mock": "bun run scripts/omnikom-mock.ts",
     "omnikom:run-local": "bun run scripts/omnikom-run-local.ts",
-    "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
+    "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788",
+    "migrations:restamp": "bun run scripts/restamp-migrations.ts",
+    "types:from-ci": "bun run scripts/types-from-ci.ts"
   },
   "trustedDependencies": [
     "supabase",

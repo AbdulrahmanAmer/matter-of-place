@@ -6,15 +6,15 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 **Where we are:** the build is running. The website shell, the deploy pipeline, the database (33 tables, policies, functions, seeded with illustrative properties), the public write functions, the job system (runner, cron, health) and the creative render scripts are on `main` and deploy themselves to a dev address on every merge. The public API, the admin portal, email, social posting, the newsletter and the audit robot are being built now, one proven step at a time; every step is reviewed by a fresh agent and merged through a gate. Production shows nothing until the launch switch. The numbers below come from the build board and are rewritten with every update.
 
 <!-- progress:start -->
-**Progress (updated 2026-10-05, from the build board):** 114 of 259 planned steps accepted (44%), 5 of 22 slices closed, 4 steps in work.
+**Progress (updated 2026-10-05, from the build board):** 121 of 259 planned steps accepted (46.7%), 5 of 22 slices closed, 7 steps in work.
 
 | Arm | To launch | What it covers |
 |---|---|---|
-| Website | 53.3% | pages, forms, the public API they call, SEO, legal pages |
-| Admin portal | 45.6% | screens, actions, roles and permissions |
-| Backend logic and automation | 50.3% | jobs, recipes, cross-wiring, content pipelines, email |
-| Database | 53.9% | tables, functions, triggers, policies, migrations |
-| Deployment and operations | 60% | CI, deploys, backups, monitoring, the launch switch |
+| Website | 56.6% | pages, forms, the public API they call, SEO, legal pages |
+| Admin portal | 48.8% | screens, actions, roles and permissions |
+| Backend logic and automation | 53.5% | jobs, recipes, cross-wiring, content pipelines, email |
+| Database | 55.8% | tables, functions, triggers, policies, migrations |
+| Deployment and operations | 61.6% | CI, deploys, backups, monitoring, the launch switch |
 
 | Slice | What | Accepted | |
 |---|---|---|---|
@@ -24,16 +24,16 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 | B4 | Tests | 10 of 10 | 100% |
 | B15 | Omnikom handoff | 7 of 7 | 100% |
 | B1b | Repo and delivery | 14 of 16 | 87.5% |
-| B5 | Email | 2 of 10 | 20% |
-| B7 | Admin workspace | 0 of 20 | 0% |
+| B5 | Email | 5 of 10 | 50% |
+| B7 | Admin workspace | 1 of 20 | 5% |
 | B8 | Job system | 11 of 14 | 78.6% |
 | B8b | Automation console | 6 of 11 | 54.5% |
 | B9 | Creative system | 9 of 11 | 81.8% |
 | B12 | Reel | 3 of 9 | 33.3% |
-| B13 | SEO, AEO, GEO | 3 of 13 | 23.1% |
+| B13 | SEO, AEO, GEO | 4 of 13 | 30.8% |
 | B14 | Audit robot | 3 of 9 | 33.3% |
 | B16 | Legal identity | 2 of 8 | 25% |
-| B17 | Website essentials and compliance (the must-haves of any professional site) | 1 of 12 | 8.3% |
+| B17 | Website essentials and compliance (the must-haves of any professional site) | 3 of 12 | 25% |
 
 Not started yet: B6 (Money box), B10 (Social publishing), B11 (Newsletter), H1 (HARDEN checklist), H2 (Acceptance panel: the whole site walked through by three senior agents), L1 (LAUNCH).
 <!-- progress:end -->
