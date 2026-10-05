@@ -111,3 +111,21 @@
 6. File: `app/src/db/types.ts`. Not blocking.
    - Follow-up: "UNPROVEN. The hand-entered optional Args (P-910) may not match the CI db job's gen:types byte for byte, and the type-drift step runs git diff --exit-code. A live Resend idempotency answer, the deno.json import map under functions deploy, and the CI db job are also proven only against the author's own fake fetch, deno check, and a rolled-back mop-dev prelude."
    - Evidence: "author's unproven list; the fake Resend in tests/fixtures/email-send.ts models the 409/replay behaviour that the tests assert"
+
+## g3 · steps 4a
+
+1. File: `app/scripts/email-chain.ts`. Not blocking.
+   - Follow-up: "Follow-up. Cleanup deletes only the submission. create_submission (supabase/sql/functions/create_submission.sql:61-67) also upserts a contacts row 'Email Chain Test' <delivered@resend.dev>, and the event, jobs and email_messages rows also stay. Under H35 this database becomes production at the launch switch, so every pre-switch chain run leaves a test contact in production data. This is a gap in the plan (it says to delete the submission only), not a broken contract."
+   - Evidence: "Found by reading, not by running: create_submission.sql lines 61-67 insert into public.contacts on conflict (lower(email)), and removeSubmission in email-chain.ts deletes only from public.submissions."
+
+2. File: `app/scripts/email-chain.ts`. Not blocking.
+   - Follow-up: "Follow-up. judge() fails fast only on a dead job or a bad 'received' row. An admin_notify message that ends 'failed', or 'skipped' with a reason other than dry_run (for example not_allow_listed when settings.site.contact.email is outside dev_recipients), is never judged. The script polls the full 180 s and then exits 1 with the job list instead of the message error. The exit code is still correct, but the diagnosis is slow and indirect."
+   - Evidence: "Found by reading: judge() only throws on `received` rows in FINAL that are not reached; admin_notify rows are only tested with reached()."
+
+3. File: `app/docs/runbooks/email.md`. Not blocking.
+   - Follow-up: "Follow-up. The digest command says to run it 'with .env loaded', but it needs both CONFIRM_TOKEN_SECRET and SUPABASE_ACCESS_TOKEN in the environment. The project's loader `load-env.mjs --profile dev` exports neither, so the command fails: secrets list returns 403 under the stored CLI login, and createHash().update(undefined) throws. It only works with the raw `set -a; . <(tr -d '\\r' < .env ...)` load. The runbook should name that loader."
+   - Evidence: "Confirmed by running: with only the dev profile loaded, `bunx supabase secrets list` exit=1 'unexpected list secrets status 403'; with SUPABASE_ACCESS_TOKEN and CONFIRM_TOKEN_SECRET sourced from .env it exits 0 and prints 'same'. scripts/load-env.mjs dev profile names: DEV_DB_URL, DEV_SUPABASE_PROJECT_REF, DEV_SUPABASE_DB_PASSWORD, DEV_SUPABASE_SERVICE_ROLE_KEY, PREVIEW_RATE_LIMIT_SALT, OPS_HEALTH_TOKEN, OMNIKOM_MOCK_SECRET."
+
+4. File: `app/docs/runbooks/email.md`. Not blocking.
+   - Follow-up: "Follow-up, UNPROVEN (stated honestly by the author, recorded here so it is not dropped). The job-runner deploy with the email steps, its bundle size and cold start, `email-chain.ts` on mop-dev, `email-test.ts all <address>`, and CONFIRM_TOKEN_SECRET on matter-of-place-dev and matter-of-place (BLOCKED: the production Worker's latest version is not deployed after the 'smoke failed f2b24b0' rollback) all remain open until B5 steps 3 and 4 are on main. JOB_RUNNER_SECRET is missing from the lane .env, and the orchestrator must copy CONFIRM_TOKEN_SECRET from the lane .env to the root .env and to PREVIEW_WORKER_SECRETS_JSON."
+   - Evidence: "Confirmed by running: wrangler secret list shows 0 CONFIRM_TOKEN_SECRET on both Workers; deployments status shows 'smoke failed f2b24b0...'. email-chain was reproduced only against a throwaway PG18 cluster, where it fails at the missing create_submission."
