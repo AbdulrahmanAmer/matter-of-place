@@ -3417,3 +3417,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c '^## P-010' GOTCHAS.md` → 1 and `grep '^## [PG]-[0-9]*' GOTCHAS.md | sort | uniq -d | wc -l` → 0 after the rebuild from base, lane and main; set difference of ids against main and against the lane's last own commit → 0 missing on either side.
 - enforced-by: scratchpad resolve-bank-both.mjs (function replacer); bank-merge.sh runs the lane's check-gotchas
 - added: 2026-10-05
+
+## P-528 · The Claude Code cloud sandbox cannot run a lane: its network lets only web traffic out, so the Postgres connection every database test uses is closed even with network access set to "Full"
+- symptom: probes on 2026-10-05 and 06 (sessions 015Bu81v, 01Dd4ysh): `/dev/tcp/aws-0-eu-central-1.pooler.supabase.com/6543` → blocked under "Trusted" and under "Full"; a `pg` handshake → "timeout expired" (not an authentication error). HTTPS to Supabase REST, GitHub and Cloudflare answered normally.
+- cause: the sandbox egresses through a web proxy; raw TCP is not routed whatever the access level. The test harness (`tests/fixtures/db.ts`, `withRollback`, the SQL mutation replays, P-312) speaks the Postgres protocol to the pooler.
+- rule: no lane runs in the cloud sandbox while the harness needs the pooler; the second machine for lanes is a laptop that reaches it. What the sandbox is good for: a 4-core, 15 GB machine of its own where `bun run check` takes 2m06s alone and 2m39s beside a second check and a build, so HTTP-only work (docs, pure unit groups) could run there. A probe prompt there must not look like credential probing: a port check with a made-up database login tripped the safety classifier ("[cyber]") and switched the session's model; ask for the TCP route to "our own database host" only.
+- proof: probe output `pooler-6543-blocked`, `server answered: timeout expired`; `nproc` 4, `free -g` 15; check `real 2m06.0s`, two checks plus build `real 2m38.7s` (user 7m51s).
+- added: 2026-10-06
