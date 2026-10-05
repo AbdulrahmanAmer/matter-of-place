@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as DotwellKnownChangePasswordRouteImport } from './routes/[.]well-known.change-password'
+import { Route as DotwellKnownMtaStsDottxtRouteImport } from './routes/[.]well-known.mta-sts[.]txt'
+import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well-known.security[.]txt'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
@@ -65,6 +68,24 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownChangePasswordRoute =
+  DotwellKnownChangePasswordRouteImport.update({
+    id: '/.well-known/change-password',
+    path: '/.well-known/change-password',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownMtaStsDottxtRoute =
+  DotwellKnownMtaStsDottxtRouteImport.update({
+    id: '/.well-known/mta-sts.txt',
+    path: '/.well-known/mta-sts.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownSecurityDottxtRoute =
+  DotwellKnownSecurityDottxtRouteImport.update({
+    id: '/.well-known/security.txt',
+    path: '/.well-known/security.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -292,6 +313,9 @@ const ApiPublicSubmissionsIdUploadsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
@@ -338,6 +362,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
@@ -384,6 +411,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_site': typeof SiteRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
   '/_site/contact': typeof SiteContactRoute
@@ -434,6 +464,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/$market'
     | '/about'
     | '/contact'
@@ -480,6 +513,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/about'
     | '/contact'
     | '/editorial-standard'
@@ -525,6 +561,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_site'
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/_site/$market'
     | '/_site/about'
     | '/_site/contact'
@@ -574,6 +613,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  DotwellKnownChangePasswordRoute: typeof DotwellKnownChangePasswordRoute
+  DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
+  DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
@@ -607,6 +649,27 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/change-password': {
+      id: '/.well-known/change-password'
+      path: '/.well-known/change-password'
+      fullPath: '/.well-known/change-password'
+      preLoaderRoute: typeof DotwellKnownChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/mta-sts.txt': {
+      id: '/.well-known/mta-sts.txt'
+      path: '/.well-known/mta-sts.txt'
+      fullPath: '/.well-known/mta-sts.txt'
+      preLoaderRoute: typeof DotwellKnownMtaStsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/security.txt': {
+      id: '/.well-known/security.txt'
+      path: '/.well-known/security.txt'
+      fullPath: '/.well-known/security.txt'
+      preLoaderRoute: typeof DotwellKnownSecurityDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_site/': {
@@ -1060,6 +1123,9 @@ const ApiPublicSubscribersRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  DotwellKnownChangePasswordRoute: DotwellKnownChangePasswordRoute,
+  DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
+  DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,

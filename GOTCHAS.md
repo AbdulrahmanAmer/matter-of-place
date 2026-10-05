@@ -215,6 +215,7 @@ Entry template
 - hit again: 2026-10-05, B17 g1: a `node -e` edit of `scripts/csp-proof.mjs` lost the backslashes of a regular expression (`\b` became a backspace character, `\s` became `s`), so the file no longer parsed and an Edit of it said `String to replace not found` for text that looked right; the line was rewritten with `String.fromCharCode(92)` and checked with `node --check`. A regular expression goes in with Edit or Write.
 - hit again: 2026-10-05, B17 g1 round 2: an Edit of `src/server/lib/headers.ts` that carried the replacement character U+FFFD in its new text wrote it as a literal character, where the code needs the escape `�`; `grep -c $'ï¿½' src/server/lib/headers.ts` found it. A character that no keyboard types goes in as an escape in source, and the file is checked for the literal after the edit.
 - hit again: 2026-10-05, B8b g5: a `node -e "..."` patch whose JavaScript template literal used backticks inside the double quotes had the shell run them as command substitution (`STEP: No such file or directory`), and the comments it wrote came out with the names missing; the file was read back and fixed with Edit. Write a patch that holds a backtick with the Write tool.
+- hit again: 2026-10-05, B17 g2: a heredoc that appended 200 lines of new test cases to `tests/unit/essentials.test.ts` ended `unexpected EOF while looking for matching` and wrote nothing; the cases went into a scratch file with Write and were appended with `cat`.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -434,6 +435,7 @@ Entry template
 - hit again: 2026-10-04, B3b g6: `taskkill /IM workerd.exe` stopped one workerd by image name, which the lane rules forbid (another lane's preview could have been the target); the server stayed up anyway because its `node` parent respawned it. Find the lane's own `bunx.exe` with `Get-CimInstance Win32_Process | Where CommandLine -match '<port>'` and `taskkill /F /T /PID <bunx pid>`.
 - hit again: 2026-10-05, B15 g4: `wrangler dev -c scripts/omnikom-mock.wrangler.toml --port 8918` left `workerd` listening after its pid was killed; the fix was the parent `node.exe` that runs `wrangler-dist/cli.js dev`, found with `Get-CimInstance Win32_Process`. The g4 author banked this inside P-1706; the review moved it here.
 - hit again: 2026-10-05, B17 g1: `bun run build` ran while `wrangler dev` still served `.output` and failed with `EBUSY: resource busy or locked, rmdir '.output\public'`; the next `wrangler dev` then served the old build and a watched-fail proof passed on it. Stop the server by its parent process, build, then start it again, and print the build's own exit line before trusting a proof.
+- hit again: 2026-10-05, B17 g2: stopping `wrangler dev` on port 8938 by the id of the process that listened (`workerd.exe`) left the port in Listen, because the parent respawned it; the ids of the `bunx`, two `node` and `workerd` processes whose command line held `8938` were stopped together, and the port was free.
 
 ## P-043 · "Is it documented" and "are we ready" were answered from memory and from a gate that measured the wrong things
 - symptom: asked whether the plans say in code terms what makes each automation work, an audit of the 17 step types found no plan naming the step module of `render_variants` or `render_og_static`, and two more owners ambiguous, after the project had been declared ready. On 2026-10-01 the readiness gate printed `READY TO BUILD: yes`; the operator did not believe it, and a full audit found 1,152 gaps in its first round: 299 contradictions between documents, 219 mechanisms described without the code that performs them, 104 things used and created by nobody, 96 with two owners, 88 with no proof, 67 with no code file.
@@ -680,6 +682,7 @@ Entry template
 - hit again: 2026-10-05, B17 g1 round 2: a review found six lines of main (B4 g5, g6, g7 and c7l hit-again lines under P-008, P-072 and P-094) missing from the branch after earlier merges, because the driver's `ours kept` message was read as a success; `check-gotchas.mjs` printed OK throughout. After each merge run `diff <(sort -u <(git show origin/main:GOTCHAS.md)) <(sort -u GOTCHAS.md) | grep -c '^<'`; it must print 0, and a number means the lines it lists go back in by hand.
 - hit again: 2026-10-05, B17 g1 round 2 (second merge in the same round): the driver again printed `ours kept` for P-072 and P-094 and dropped three more lines of main (B5 g1's); the same sorted diff printed 3 and was repaired the same way. Run the sorted diff after every merge of main, not only the first.
 - hit again: 2026-10-05, B8b g5 rework: `git merge origin/main` merged GOTCHAS.md with `ours kept` for P-066 and P-094, so main's B5 g1 hit-again lines were copied in by hand (the rework log first cited P-066, the registry entry, for this cost; the merge-driver entry is this one). Proof: `grep -c "hit again: 2026-10-05, B8b g5 rework: .git merge" GOTCHAS.md` prints 1 and `node workspace/05-plans/check-gotchas.mjs` prints OK.
+- hit again: 2026-10-05, B17 g2: `git merge origin/main` printed `both sides changed P-008, P-066, P-072, P-094, P-310; ours kept, compare by hand`; the driver output had no conflict markers and had dropped nine lines of main. They were added back with a script that appends each missing line to its own entry; the proof is the sorted diff of this entry, which printed 0 afterwards.
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
 - paths: app/src/start.ts
@@ -1301,6 +1304,7 @@ Entry template
 - rule: through `quiet.mjs`, write a test-name filter without spaces (`-t "as.admin.plus"`, a regex dot matches the space), or run the command without `quiet.mjs` when an argument must keep a space.
 - proof: from the tree root, `node workspace/05-plans/quiet.mjs -- node -p process.argv.length "a b"` prints `3`, and with `"a.b"` prints `2` (measured 2026-10-03, B2 g9).
 - added: 2026-10-03
+- hit again: 2026-10-05, B17 g2: `quiet.mjs -- bunx vitest run <file> -t "csp|fonts|icons"` failed with `'fonts' is not recognized as an internal or external command`, because the shell the runner uses read the `|` inside the quoted argument as a pipe; a regular expression with `|` goes to the command without the runner.
 
 ## G-105 · In `format()`, a bare `%s` or `%L` after a numbered `%2$s` takes the argument after that one, not the next unused one
 - paths: app/tests/db/**, app/supabase/sql/functions/**
@@ -3314,4 +3318,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the repository is private, so CI, previews and the db job run on the account's included Actions minutes (2,000 a month on the free plan); six lanes merging several pull requests a day, each with six jobs, used them up on 2026-10-05; the Actions spending limit is zero by ruling H55 (1), so GitHub starts nothing more.
 - rule: the operator raises the Actions spending limit or adds a payment method at github.com, Settings, Billing and plans (or makes the repository public, which removes the cap: a decision, not a default). Until then builders and reviewers keep working on the lanes and merges queue; the orchestrator re-runs each blocked gate with `gh run rerun <id> --failed` then `merge-gate.mjs <pr>` once a job starts. Watch for it early: `gh run list --limit 5` showing failures with no steps, or the annotation text above. Cut the burn: previews only on ready pull requests (already so), and no pushes of records-only commits to lane branches.
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/check-runs/<job>/annotations` → the billing sentence; `gh api repos/.../matter-of-place --jq .private` → true.
+- added: 2026-10-05
+
+## P-1906 · The plan's icon step names @resvg/resvg-js, but only sharp reproduces the two icons that already exist
+- symptom: B17 step 3 says `bun add -d @resvg/resvg-js` and also that `node scripts/icons.mjs` shows no change to `favicon.ico` and `apple-touch-icon.png`. A first `icons.mjs` on resvg-js rewrote both (`apple-touch-icon.png` 1294 to 1635 bytes, `favicon.ico` 1043 to 1151); decoded, the pixels differed by up to 16 of 255.
+- cause: the two files were made with sharp (libvips and librsvg): pixel for pixel the same as `sharp(svg).resize(180, 180)`, and byte for byte the same with `{ density: 4.5 * size }` and `.png({ compressionLevel: 9 })` (the `pHYs` chunk of each image in the ico reads `72 * size / 16` dpi). resvg-js anti-aliases differently.
+- rule: `scripts/icons.mjs` uses sharp, which B2 already installed, and the plan's resvg-js line is not built (R04: an unused dependency fails knip). Before a plan asks a generator to reproduce a committed binary, render it with the candidate tool and compare the bytes.
+- proof: `cd app && node scripts/icons.mjs && git diff --stat public/favicon.ico public/apple-touch-icon.png` prints nothing.
+- added: 2026-10-05
+
+## P-1907 · A new file in `public/` can fail `bun run layout` although the plan and the folder map name it
+- symptom: after step 3 the first `bun run check` ended `layout: app/public/site.webmanifest: outside the folder map`.
+- cause: the `public` row of `scripts/check-layout.mjs` lists favicons, `*.txt`, fonts and media by pattern, and `site.webmanifest`, `browserconfig.xml`, `icon-192.png`, `icon-512.png`, `maskable-512.png` and `mstile-150.png` matched none of them; the STANDARDS row says "favicons" and the plan names every file.
+- rule: a step that adds a static file runs `node scripts/check-layout.mjs` before its first `check`; when the file is named by the plan and fits the row of the folder map, the smallest pattern naming it goes into the gate (ruling H46) and the log says so.
+- proof: `cd app && node scripts/check-layout.mjs` → exit 0, and `grep -c "site.webmanifest" scripts/check-layout.mjs` → 1.
+- added: 2026-10-05
+
+## P-1908 · A watched-fail of an end-to-end test needs the built Worker, a leading env assignment and a rebuild per mutation
+- symptom: `node scripts/watchfail.mjs --registry <dir>` with `run` set to `E2E_PORT=8938 bunx playwright test ...` (target `dev`) came back `BAD: wrong reason` with `Process from config.webServer was not able to start. Exit code: 143`; run by hand, `bun run dev` answered `503 unavailable` because `public_state` could not be read without `.dev.vars`. Moving the assignment inside the command (`bun run build && E2E_TARGET=built ...`) failed with `'E2E_TARGET' is not recognized`, because the replay runs the command through cmd.exe and only leading assignments are applied.
+- cause: the dev server of this tree has no database variables; the built Worker gets them from `--env-file .dev.vars` (playwright.config.ts, target `built`); the mutated source reaches the browser only through a build.
+- rule: an e2e entry's `run` is `E2E_TARGET=built E2E_PORT=<lane port> bun run build && bunx playwright test <file> --project=desktop -g "<name>" --reporter=line`, all assignments first; it is `kind: "manual"` in the registry (CI replays unit and sql kinds only) and is replayed once from a scratch registry before it is recorded. The build output left behind is stale after the restore: rebuild before the next proof.
+- proof: `cd app && E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g meta-theme-color --reporter=line` → `1 passed`.
+- added: 2026-10-05
+
+## P-1909 · Node reads `/tmp` as `E:\tmp` while Git Bash's `/tmp` is the user's Temp folder
+- symptom: `cp public/favicon.ico /tmp/old.ico` in the shell worked, and `readFileSync("/tmp/old-apple.png")` in a Node script failed with `ENOENT ... open 'E:\tmp\old-apple.png'`.
+- cause: Git Bash maps `/tmp` to the user's Temp folder (`C:/Users/DELL/AppData/Local/Temp`); Node on Windows resolves a rooted path against the current drive.
+- rule: a file that a shell command writes and a Node script reads goes into the session's scratchpad folder by its full Windows-style path (`C:/Users/...`), never into `/tmp`; `git show <rev>:<path> > <scratchpad>/name` is the way to keep an old copy of a committed binary.
+- proof: `node -e "console.log(require('path').resolve('/tmp/x'))"` → `E:\tmp\x` (on the E: drive); `bash -c 'cd /tmp && pwd -W'` → `C:/Users/DELL/AppData/Local/Temp`.
 - added: 2026-10-05

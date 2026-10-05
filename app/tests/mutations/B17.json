@@ -311,5 +311,279 @@
     "find": "directive !== \"upgrade-insecure-requests\" || flags[\"csp_enforce\"] === true",
     "replace": "true",
     "expect": "× .*headers: sends upgrade-insecure-requests only in the enforced policy"
+  },
+  {
+    "id": "b17-csp-fonts-style",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"style-src\": [\"'self'\"],",
+    "replace": "  \"style-src\": [\"'self'\", \"https://fonts.googleapis.com\"],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp: names no Google Fonts host"
+  },
+  {
+    "id": "b17-csp-fonts-font",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"font-src\": [\"'self'\"],",
+    "replace": "  \"font-src\": [\"'self'\", \"https://fonts.gstatic.com\"],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp: names no Google Fonts host"
+  },
+  {
+    "id": "b17-fonts-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n",
+    "replace": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n      { rel: \"stylesheet\", href: \"https://fonts.googleapis.com/css2?family=Jost\" },\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: the home page links no Google Fonts"
+  },
+  {
+    "id": "b17-fonts-import",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles.css",
+    "find": "@import \"./styles/fonts.css\";\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: the home page links no Google Fonts"
+  },
+  {
+    "id": "b17-fonts-swap",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "  font-family: \"Epilogue\";\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: swap;",
+    "replace": "  font-family: \"Epilogue\";\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: block;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every face of fonts.css names a file"
+  },
+  {
+    "id": "b17-fonts-file",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "url(\"/fonts/epilogue-latin-wght-normal.woff2\")",
+    "replace": "url(\"/fonts/epilogue-latin-wght-missing.woff2\")",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every face of fonts.css names a file"
+  },
+  {
+    "id": "b17-fonts-size-adjust",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "  size-adjust: 113.02%;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every family has a fallback face"
+  },
+  {
+    "id": "b17-fonts-token",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/tokens.css",
+    "find": "\"Epilogue\", \"Epilogue Fallback\", sans-serif",
+    "replace": "\"Epilogue\", sans-serif",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every family has a fallback face"
+  },
+  {
+    "id": "b17-icons-manifest-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"manifest\", href: \"/site.webmanifest\" },\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*icons: the head links the svg"
+  },
+  {
+    "id": "b17-icons-ico-sizes",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/icons.mjs",
+    "find": "ico(await Promise.all([16, 32, 48].map(",
+    "replace": "ico(await Promise.all([16, 32].map(",
+    "run": "node scripts/icons.mjs && bun run test tests/unit/essentials.test.ts",
+    "after": "node scripts/icons.mjs",
+    "expect": "× .*icons: favicon.ico holds 16, 32 and 48"
+  },
+  {
+    "id": "b17-icons-mstile",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/icons.mjs",
+    "find": "[\"mstile-150.png\", await png(emblem, 150)]",
+    "replace": "[\"mstile-150.png\", await png(emblem, 151)]",
+    "run": "node scripts/icons.mjs && bun run test tests/unit/essentials.test.ts",
+    "after": "node scripts/icons.mjs",
+    "expect": "× .*icons: favicon.ico holds 16, 32 and 48"
+  },
+  {
+    "id": "b17-icons-dark-block",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/favicon.svg",
+    "find": "@media (prefers-color-scheme: dark)",
+    "replace": "@media (min-width: 1px)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*icons: favicon.svg carries its colours"
+  },
+  {
+    "id": "b17-manifest-display",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"display\": \"browser\"",
+    "replace": "\"display\": \"standalone\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: names the site"
+  },
+  {
+    "id": "b17-manifest-theme",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"theme_color\": \"#F5F2EB\"",
+    "replace": "\"theme_color\": \"#F5F2EC\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: names the site"
+  },
+  {
+    "id": "b17-manifest-size",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"sizes\": \"192x192\"",
+    "replace": "\"sizes\": \"193x193\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: lists an icon file"
+  },
+  {
+    "id": "b17-manifest-maskable",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"purpose\": \"maskable\"",
+    "replace": "\"purpose\": \"any\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: lists an icon file"
+  },
+  {
+    "id": "b17-identity-browserconfig",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/browserconfig.xml",
+    "find": "      <square150x150logo src=\"/mstile-150.png\" />\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: browserconfig.xml names mstile-150.png"
+  },
+  {
+    "id": "b17-identity-expires-days",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "const SECURITY_VALID_DAYS = 180;",
+    "replace": "const SECURITY_VALID_DAYS = 400;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-expires-fixed",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "Date.now() + SECURITY_VALID_DAYS * DAY_MS",
+    "replace": "Date.parse(\"2027-01-01T00:00:00Z\")",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-languages",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    \"Preferred-Languages: en\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-contact",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "mailto:${contact ?? SECURITY_CONTACT}",
+    "replace": "mailto:${SECURITY_CONTACT}",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the contact email"
+  },
+  {
+    "id": "b17-identity-doc-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "\"cache-control\": browserCacheControl(\"doc\"),",
+    "replace": "\"cache-control\": \"no-store\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-redirect",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "location: \"/admin/sign-in\"",
+    "replace": "location: \"/admin\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: change-password sends a visitor"
+  },
+  {
+    "id": "b17-identity-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    refuseWrite(request, requestId) ??\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: change-password sends a visitor"
+  },
+  {
+    "id": "b17-mta-sts-host",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "  if (host?.toLowerCase() !== MTA_STS_HOST) return toErrorResponse(notFound, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers 404 on any other host"
+  },
+  {
+    "id": "b17-mta-sts-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "export function mtaStsTxt(request: Request, requestId: string): Response {\n  const refused = refuseWrite(request, requestId);\n  if (refused !== undefined) return refused;\n",
+    "replace": "export function mtaStsTxt(request: Request, requestId: string): Response {\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers 404 on any other host"
+  },
+  {
+    "id": "b17-mta-sts-mode",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    \"mode: testing\",",
+    "replace": "    \"mode: enforce\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers the policy"
+  },
+  {
+    "id": "b17-mta-sts-mx",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "const MTA_STS_MX = [\"mx.zoho.com\", \"mx2.zoho.com\", \"mx3.zoho.com\"];",
+    "replace": "const MTA_STS_MX = [\"mx.zoho.com\", \"mx2.zoho.com\"];",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers the policy"
+  },
+  {
+    "id": "b17-e2e-theme-color",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { name: \"theme-color\", content: \"#F5F2EB\" },\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g meta-theme-color --reporter=line",
+    "expect": "meta-theme-color[\\s\\S]*theme-color"
+  },
+  {
+    "id": "b17-e2e-fonts-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n",
+    "replace": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n      { rel: \"stylesheet\", href: \"https://fonts.googleapis.com/css2?family=Jost\" },\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"fonts:\" --reporter=line",
+    "expect": "fonts\\.googleapis\\.com"
   }
 ]

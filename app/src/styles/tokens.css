@@ -24,10 +24,10 @@
   --primary: var(--foreground);
   --primary-foreground: var(--background);
 
-  --font-sans: "Jost", sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-ui: "Urbanist", sans-serif;
-  --font-ui-alt: "Epilogue", sans-serif;
+  --font-sans: "Jost", "Jost Fallback", sans-serif;
+  --font-serif: "Cormorant Garamond", "Cormorant Garamond Fallback", Georgia, serif;
+  --font-ui: "Urbanist", "Urbanist Fallback", sans-serif;
+  --font-ui-alt: "Epilogue", "Epilogue Fallback", sans-serif;
 
   /* Page grid: every section, the header and the footer share these two. */
   --container: 1500px;

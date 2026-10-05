@@ -46,6 +46,7 @@
     "lhci": "lhci autorun --config=lighthouserc.json",
     "variants": "bun scripts/variants.ts",
     "fonts": "node scripts/fonts.mjs",
+    "icons": "node scripts/icons.mjs",
     "captions": "bun scripts/captions-runner.ts",
     "omnikom:mock": "bun run scripts/omnikom-mock.ts",
     "omnikom:run-local": "bun run scripts/omnikom-run-local.ts",

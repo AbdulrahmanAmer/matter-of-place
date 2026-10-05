@@ -39,20 +39,14 @@ const POLICY: Readonly<Record<string, readonly string[]>> = {
     // The exact path, never a wildcard host (SEC-03 (3)): B13's Ga4Loader injects gtag.js after consent.
     "https://www.googletagmanager.com/gtag/js",
   ],
-  "style-src": [
-    "'self'",
-    "https://fonts.googleapis.com", // B17 removes it with the self-hosted fonts (G-014)
-  ],
+  "style-src": ["'self'"],
   "img-src": [
     "'self'",
     "data:",
     "https://*.google-analytics.com",
     "https://*.googletagmanager.com",
   ],
-  "font-src": [
-    "'self'",
-    "https://fonts.gstatic.com", // B17 removes it with the self-hosted fonts (G-014)
-  ],
+  "font-src": ["'self'"],
   "media-src": ["'self'"],
   "connect-src": [
     "'self'",

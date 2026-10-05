@@ -12,6 +12,7 @@ import {
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import type { Json } from "../../src/db";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
 import { getRouter } from "../../src/router";
@@ -116,6 +117,23 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(captureException).mockReset();
 });
+
+const renderHome = async () => {
+  const router = getRouter();
+  router.update({
+    history: createMemoryHistory({ initialEntries: ["/"] }),
+    context: router.options.context,
+  });
+  attachRouterServerSsrUtils({ router, manifest: undefined });
+  await router.load();
+  await router.serverSsr?.dehydrate();
+  const rendered = await renderRouterToString({
+    router,
+    responseHeaders: new Headers(),
+    children: createElement(RouterServer, { router }),
+  });
+  return rendered.text();
+};
 
 describe("flags", () => {
   it("flags: mergeFlags gives csp_enforce and maintenance under those names, false when missing or malformed", () => {
@@ -311,23 +329,6 @@ describe("csp-inline-rules", () => {
     await setup().run(get("/"));
     expect(captureException).not.toHaveBeenCalled();
   });
-
-  const renderHome = async () => {
-    const router = getRouter();
-    router.update({
-      history: createMemoryHistory({ initialEntries: ["/"] }),
-      context: router.options.context,
-    });
-    attachRouterServerSsrUtils({ router, manifest: undefined });
-    await router.load();
-    await router.serverSsr?.dehydrate();
-    const rendered = await renderRouterToString({
-      router,
-      responseHeaders: new Headers(),
-      children: createElement(RouterServer, { router }),
-    });
-    return rendered.text();
-  };
 
   it("csp-inline-rules: still finds class $tsr on the bootstrap script of a real render of /, and every allowlist entry in it", async () => {
     const page = await renderHome();
@@ -602,5 +603,229 @@ describe("csp-report", () => {
     );
     expect(response.status).toBe(400);
     expect(db.calls).toHaveLength(0);
+  });
+});
+
+const PUBLIC = "public";
+const publicFile = (name: string): Buffer => readFileSync(`${PUBLIC}/${name}`);
+const pngEdge = (bytes: Buffer): [number, number] => [
+  bytes.readUInt32BE(16),
+  bytes.readUInt32BE(20),
+];
+
+describe("csp", () => {
+  it("csp: names no Google Fonts host in any policy and lets font-src and style-src name only our own origin", () => {
+    for (const flags of [{}, { csp_enforce: true }]) {
+      for (const framing of ["none", "self", "admin"] as const) {
+        const policy = cspFor("production", flags, {}, { framing });
+        expect(policy).not.toContain("fonts.googleapis.com");
+        expect(policy).not.toContain("fonts.gstatic.com");
+      }
+    }
+    const policy = cspFor("production", {});
+    expect(directive(policy, "font-src")).toBe("font-src 'self'");
+    expect(directive(policy, "style-src")).toBe("style-src 'self'");
+  });
+});
+
+describe("fonts", () => {
+  const css = readFileSync("src/styles/fonts.css", "utf8");
+  const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body = ""]) => body);
+  const webFaces = faces.filter((face) => face.includes("/fonts/"));
+  const family = (face: string) => /font-family:\s*"([^"]+)"/.exec(face)?.[1];
+
+  it("fonts: the home page links no Google Fonts stylesheet or preconnect, and the public stylesheet imports fonts.css", async () => {
+    const page = await renderHome();
+    expect(page).not.toContain("fonts.googleapis.com");
+    expect(page).not.toContain("fonts.gstatic.com");
+    expect(readFileSync("src/styles.css", "utf8")).toContain('@import "./styles/fonts.css";');
+  });
+
+  it("fonts: every face of fonts.css names a file that exists in public/fonts and swaps while loading, for the four families", () => {
+    expect(webFaces).toHaveLength(5);
+    for (const face of webFaces) {
+      const file = /url\("\/fonts\/([^"]+)"\)/.exec(face)?.[1] ?? "";
+      expect(publicFile(`fonts/${file}`).byteLength).toBeGreaterThan(0);
+      expect(face).toContain("font-display: swap");
+    }
+    expect(new Set(webFaces.map(family))).toEqual(
+      new Set(["Jost", "Cormorant Garamond", "Urbanist", "Epilogue"]),
+    );
+  });
+
+  it("fonts: every family has a fallback face scaled to it, and each font token lists the family and then its fallback", () => {
+    const tokens = readFileSync("src/styles/tokens.css", "utf8");
+    for (const name of new Set(webFaces.map(family))) {
+      const fallback = faces.find((face) => family(face) === `${name ?? ""} Fallback`) ?? "";
+      expect(fallback).toMatch(/size-adjust:\s*\d+(\.\d+)?%/);
+      expect(fallback).toMatch(/ascent-override:\s*\d+(\.\d+)?%/);
+      expect(tokens).toContain(`"${name ?? ""}", "${name ?? ""} Fallback"`);
+    }
+  });
+});
+
+describe("icons", () => {
+  it("icons: the head links the svg and ico icons, the apple touch icon and the manifest, and each file exists", async () => {
+    const page = await renderHome();
+    for (const href of [
+      "/favicon.svg",
+      "/favicon.ico",
+      "/apple-touch-icon.png",
+      "/site.webmanifest",
+    ]) {
+      expect(page).toContain(`href="${href}"`);
+      expect(publicFile(href.slice(1)).byteLength).toBeGreaterThan(0);
+    }
+  });
+
+  it("icons: favicon.ico holds 16, 32 and 48 pixel images and the touch icon, tile and maskable icon have their sizes", () => {
+    const ico = publicFile("favicon.ico");
+    const count = ico.readUInt16LE(4);
+    expect(Array.from({ length: count }, (_, index) => ico[6 + 16 * index])).toEqual([16, 32, 48]);
+    expect(pngEdge(publicFile("apple-touch-icon.png"))).toEqual([180, 180]);
+    expect(pngEdge(publicFile("mstile-150.png"))).toEqual([150, 150]);
+    expect(pngEdge(publicFile("maskable-512.png"))).toEqual([512, 512]);
+  });
+
+  it("icons: favicon.svg carries its colours as classes with one prefers-color-scheme dark block", () => {
+    const svg = publicFile("favicon.svg").toString("utf8");
+    expect(svg.split("\n").filter((line) => line.includes("prefers-color-scheme"))).toHaveLength(1);
+    expect(svg).toMatch(/<rect class="bg"/);
+    expect(svg).toMatch(/<g class="fg"/);
+  });
+});
+
+describe("manifest", () => {
+  const manifest = z
+    .object({
+      name: z.string(),
+      short_name: z.string(),
+      display: z.string(),
+      theme_color: z.string(),
+      background_color: z.string(),
+      icons: z.array(
+        z.object({ src: z.string(), sizes: z.string(), type: z.string(), purpose: z.string() }),
+      ),
+    })
+    .parse(JSON.parse(publicFile("site.webmanifest").toString("utf8")));
+
+  it("manifest: names the site, shows it in the browser and takes its colours from the palette", async () => {
+    expect(manifest).toMatchObject({ name: "Matter of Place", display: "browser" });
+    expect(manifest.short_name).not.toBe("");
+    const palette = ["#11110F", "#EEEAE1", "#F5F2EB"];
+    expect(palette).toContain(manifest.theme_color);
+    expect(palette).toContain(manifest.background_color);
+    expect(await renderHome()).toContain(
+      `<meta name="theme-color" content="${manifest.theme_color}"`,
+    );
+  });
+
+  it("manifest: lists an icon file that exists at the size it names, and one maskable icon", () => {
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(3);
+    for (const icon of manifest.icons) {
+      const [edge = 0] = icon.sizes.split("x").map(Number);
+      expect(icon.type).toBe("image/png");
+      expect(pngEdge(publicFile(icon.src.slice(1)))).toEqual([edge, edge]);
+    }
+    expect(manifest.icons.filter((icon) => icon.purpose === "maskable")).toHaveLength(1);
+  });
+});
+
+describe("identity", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const loadIdentity = async (site: Json = null) => {
+    vi.resetModules();
+    const identity = await import("../../src/server/public/identity");
+    const { setDbForTests } = await import("../../src/server/lib/db");
+    setDbForTests(fakeDb({ rpc: { public_state: () => stateJson(7, { site }) } }));
+    return identity;
+  };
+  const fieldsOf = (text: string) =>
+    Object.fromEntries(
+      text
+        .trim()
+        .split("\n")
+        .map((line) => [line.slice(0, line.indexOf(":")), line.slice(line.indexOf(":") + 2)]),
+    );
+
+  it("identity: browserconfig.xml names mstile-150.png, which is 150 by 150", () => {
+    const xml = publicFile("browserconfig.xml").toString("utf8");
+    const src = /<square150x150logo\s+src="([^"]+)"/.exec(xml)?.[1];
+    expect(src).toBe("/mstile-150.png");
+    expect(pngEdge(publicFile((src ?? "").slice(1)))).toEqual([150, 150]);
+    expect(xml).toMatch(/<TileColor>#[0-9A-Fa-f]{6}<\/TileColor>/);
+  });
+
+  it("identity: security.txt gives the fallback contact when none is set, and an Expires under a year that moves with the clock", async () => {
+    const { securityTxt } = await loadIdentity();
+    const response = await securityTxt(get("/.well-known/security.txt"), "req-12345678");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
+    expect(response.headers.get("cache-control")).toBe("public, max-age=3600");
+    const fields = fieldsOf(await response.text());
+    expect(fields).toMatchObject({
+      Contact: "mailto:security@matterofplace.com",
+      "Preferred-Languages": "en",
+      Canonical: "https://matterofplace.com/.well-known/security.txt",
+      Policy: "https://matterofplace.com/legal",
+    });
+    const ahead = (Date.parse(fields["Expires"] ?? "") - Date.now()) / DAY;
+    expect(ahead).toBeGreaterThan(1);
+    expect(ahead).toBeLessThan(365);
+    vi.useFakeTimers({ now: Date.now() + 400 * DAY, toFake: ["Date"] });
+    const later = fieldsOf(await (await securityTxt(get("/x"), "req-12345678")).text());
+    vi.useRealTimers();
+    expect(
+      Date.parse(later["Expires"] ?? "") - Date.parse(fields["Expires"] ?? ""),
+    ).toBeGreaterThan(390 * DAY);
+  });
+
+  it("identity: security.txt gives the contact email of the site settings when one is set", async () => {
+    const { securityTxt } = await loadIdentity({
+      contact: { email: "press@example.test", phone: null, privacy_email: null },
+    });
+    const text = await (await securityTxt(get("/.well-known/security.txt"), "req-12345678")).text();
+    expect(fieldsOf(text)["Contact"]).toBe("mailto:press@example.test");
+  });
+
+  it("identity: change-password sends a visitor to the admin sign-in page and keeps nothing", async () => {
+    const { changePassword } = await loadIdentity();
+    const response = changePassword(get("/.well-known/change-password"), "req-12345678");
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/admin/sign-in");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(changePassword(get("/x", { method: "POST" }), "req-12345678").status).toBe(405);
+  });
+});
+
+describe("mta-sts", () => {
+  const ask = async (host: string, method = "GET") => {
+    const { mtaStsTxt } = await import("../../src/server/public/identity");
+    return mtaStsTxt(
+      new Request(`${BASE}/.well-known/mta-sts.txt`, { method, headers: { host } }),
+      "req-12345678",
+    );
+  };
+
+  it("mta-sts: answers the policy on the mta-sts host, with the three Zoho mx lines and a one-day max_age", async () => {
+    const response = await ask("mta-sts.matterofplace.com");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect((await response.text()).trim().split("\n")).toEqual([
+      "version: STSv1",
+      "mode: testing",
+      "mx: mx.zoho.com",
+      "mx: mx2.zoho.com",
+      "mx: mx3.zoho.com",
+      "max_age: 86400",
+    ]);
+    expect((await ask("MTA-STS.matterofplace.com:8938")).status).toBe(200);
+  });
+
+  it("mta-sts: answers 404 on any other host and 405 to a write", async () => {
+    for (const host of ["matterofplace.com", "www.matterofplace.com", "mta-sts.example.test"]) {
+      expect((await ask(host)).status).toBe(404);
+    }
+    expect((await ask("mta-sts.matterofplace.com", "POST")).status).toBe(405);
   });
 });
