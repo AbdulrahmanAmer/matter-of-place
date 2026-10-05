@@ -1,6 +1,6 @@
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { errorCodes, type ErrorCode } from "./error-codes.ts";
-import { AppError, fromZod } from "./errors.ts";
+import { AppError } from "./errors.ts";
 
 // API-03: the one translator from a raised SQL error, a PostgREST error or a failed fetch to the HTTP
 // error an admin route answers with. Every code comes from `errorCodes`.
@@ -51,11 +51,11 @@ function thrownOutage(error: unknown): boolean {
 /**
  * Maps, in this order: a message that is a key of `errorCodes` (renamed for the stale lock and the
  * slug lock), a SQLSTATE, a PostgREST or fetch outage (503), and anything else to 500 `server`,
- * which the caller reports. An `AppError` passes through; a `ZodError` is 422 `validation`.
+ * which the caller reports. An `AppError` passes through. A `ZodError` is 500 `server` here: only
+ * `defineAdminRoute`'s own input parse answers 422, so a schema that fails deeper is the server's fault.
  */
 export function fromRpcError(error: unknown): AppError {
   if (error instanceof AppError) return error;
-  if (error instanceof ZodError) return fromZod(error);
   if (thrownOutage(error)) return outage();
   const parsed = postgrestError.safeParse(error);
   if (!parsed.success) return new AppError("server", undefined, SERVER_MESSAGE);

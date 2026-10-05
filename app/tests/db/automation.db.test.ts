@@ -46,6 +46,13 @@ async function revisions(db: Db, rowId: string): Promise<Revision[]> {
 
 const updates = (rows: Revision[]) => rows.filter((row) => row.before !== null);
 
+/** An admin of `kind`: B7's `write_audit` refuses an actor with no `user_roles` row of that kind (DB-04, P-2000). */
+async function staff(db: Db, kind: "human" | "agent"): Promise<string> {
+  const id = await createStaffUser(db, ["admin"]);
+  await db.query("update public.user_roles set actor_kind = $2 where user_id = $1", [id, kind]);
+  return id;
+}
+
 async function recipe(db: Db, trigger: string): Promise<{ id: string; version: number }> {
   return one(
     db,
@@ -304,8 +311,8 @@ describe("templates, reasons and channels", () => {
     const result = await withRollback(async (db) => {
       const row = await template(db);
       await db.query(
-        `select public.automation_put_template($1, '{"subject": "New subject"}', gen_random_uuid(), 'human', 'req-1')`,
-        [row.key],
+        `select public.automation_put_template($1, '{"subject": "New subject"}', $2, 'human', 'req-1')`,
+        [row.key, await staff(db, "human")],
       );
       return {
         updates: updates(await revisions(db, row.id)).map((r) => r.after?.["subject"]),
@@ -321,11 +328,11 @@ describe("templates, reasons and channels", () => {
   it("an agent's automation_put_template creates one notify_admin job keyed by its request id, a human's none", async () => {
     const jobs = await withRollback(async (db) => {
       const row = await template(db);
-      const count = async (kind: string) => {
+      const count = async (kind: "human" | "agent") => {
         const requestId = `req-${randomUUID()}`;
         await db.query(
-          `select public.automation_put_template($1, '{"enabled": false}', gen_random_uuid(), $2, $3)`,
-          [row.key, kind, requestId],
+          `select public.automation_put_template($1, '{"enabled": false}', $2, $3, $4)`,
+          [row.key, await staff(db, kind), kind, requestId],
         );
         return (
           await db.query<{ type: string }>(
@@ -347,7 +354,8 @@ describe("templates, reasons and channels", () => {
       const { id } = await one<{ id: string }>(
         db,
         `select public.automation_put_reason(null, '{"code": "test_reason", "label": "Test", "email_paragraph": "x"}',
-           gen_random_uuid(), 'human', 'req-1') ->> 'id' as id`,
+           $1, 'human', 'req-1') ->> 'id' as id`,
+        [await staff(db, "human")],
       );
       const { last } = await one<{ last: string }>(
         db,
@@ -369,10 +377,10 @@ describe("templates, reasons and channels", () => {
       const ids = (
         await db.query<{ id: string }>("select id from public.decline_reasons order by sort, code")
       ).rows.map((row) => row.id);
-      await db.query(
-        "select public.automation_reorder_reasons($1, gen_random_uuid(), 'human', 'req-1')",
-        [ids],
-      );
+      await db.query("select public.automation_reorder_reasons($1, $2, 'human', 'req-1')", [
+        ids,
+        await staff(db, "human"),
+      ]);
       // Swap the last two: exactly two rows change position.
       const swapped = [...ids.slice(0, -2), ...ids.slice(-2).reverse()];
       const actor = await createStaffUser(db, ["admin"]);
@@ -448,11 +456,10 @@ describe("automation_restore_revision", () => {
       );
       const edit = (await revisions(db, id)).find((r) => r.actor_id === human);
       if (edit === undefined) throw new Error("the edit wrote no revision");
-      return attempt(
-        db,
-        "select public.automation_restore_revision($1, gen_random_uuid(), 'agent', 'req-2')",
-        [edit.id],
-      );
+      return attempt(db, "select public.automation_restore_revision($1, $2, 'agent', 'req-2')", [
+        edit.id,
+        await staff(db, "agent"),
+      ]);
     });
     expect(outcome).toBe("42501 human_only");
   });

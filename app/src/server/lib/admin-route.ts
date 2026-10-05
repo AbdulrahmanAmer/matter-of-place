@@ -3,7 +3,7 @@ import { fromRpcError } from "./admin-errors.ts";
 import { authorize, permission, type ActionId, type Principal } from "./authz.ts";
 import { getDb, type Db } from "./db.ts";
 import { env, sentryOptions } from "./env.ts";
-import { AppError, toErrorResponse } from "./errors.ts";
+import { AppError, fromZod, toErrorResponse } from "./errors.ts";
 import { logLine } from "./log.ts";
 import { captureException } from "./sentry.ts";
 import { waitUntilOf } from "./wait-until.ts";
@@ -116,6 +116,13 @@ function adminJson(body: unknown, requestId: string): Response {
 const tooLarge = () =>
   new AppError("payload_too_large", undefined, "This request is larger than allowed.");
 
+/** Only the caller's input is answered 422; a `ZodError` from deeper in the handler is a server fault. */
+function parseInput<I>(schema: ZodType<I, ZodTypeDef, unknown>, raw: unknown): I {
+  const parsed = schema.safeParse(raw);
+  if (!parsed.success) throw fromZod(parsed.error);
+  return parsed.data;
+}
+
 /** The raw input: the query of a read, or the JSON object of a write; path parameters win. */
 async function readInput(
   request: Request,
@@ -169,7 +176,7 @@ export function defineAdminRoute<I>(
       const base: OpenContext = { db, request, env, requestId };
       let result: unknown;
       if (def.auth === "none") {
-        result = await def.handler(base, def.input.parse(raw));
+        result = await def.handler(base, parseInput(def.input, raw));
       } else {
         const actor: AdminActor = { ...(await deps.requireActor(request, db)), requestId };
         if (WRITES.includes(request.method)) await deps.verifyCsrf(request, actor);
@@ -177,14 +184,14 @@ export function defineAdminRoute<I>(
         deps.assertSessionFresh(actor, now);
         authorize(actor, def.action);
         if (permission(def.action).recentAuth) deps.requireRecentAuth(actor, now);
-        result = await def.handler({ ...base, actor }, def.input.parse(raw));
+        result = await def.handler({ ...base, actor }, parseInput(def.input, raw));
       }
       if (result instanceof Response) return result;
       if (!def.output) return adminJson(result, requestId);
       // A handler that answers outside its own schema is a server fault (500), not the caller's (422).
       const shaped = def.output.safeParse(result);
       if (!shaped.success) {
-        throw new AppError("server", undefined, `${def.action} answered outside its output schema`);
+        throw new Error(`${def.action} answered outside its output schema`);
       }
       return adminJson(shaped.data, requestId);
     } catch (error) {

@@ -82,6 +82,17 @@ audit.subject_export               AD | H R
 audit.subject_delete               AD | H R
 audit.subject_opt_out              AD | H R
 audit.subject_status               AD | H R
+automation.get                     CE ME VE MO CO AD
+automation.recipes_put             CE MO AD
+automation.templates_put           CE MO AD
+automation.channels_put            CE MO AD
+automation.schedules_put           CE MO AD
+automation.dry_run                 CE MO AD
+automation.reasons_put             CE ME AD
+automation.revisions_restore       CE AD
+automation.flags_put               AD | H
+automation.templates_preview       CE ME MO AD
+automation.templates_send_test     CE MO AD
 dashboard.get                      CE ME VE MO CO AD
 me                                 CE ME VE MO CO AD | S
 `;

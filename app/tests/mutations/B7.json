@@ -201,7 +201,7 @@
     "id": "b7-g1-parse-first",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "src/server/lib/admin-route.ts",
-    "find": "result = await def.handler({ ...base, actor }, def.input.parse(raw));",
+    "find": "result = await def.handler({ ...base, actor }, parseInput(def.input, raw));",
     "replace": "result = await def.handler({ ...base, actor }, raw as never);",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*422 on a bad body before the handler"
@@ -232,6 +232,33 @@
     "replace": "const shaped = { success: true as const, data: result };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*answers 500 server when the result breaks it"
+  },
+  {
+    "id": "b7-g1-output-message",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "throw new Error(`${def.action} answered outside its output schema`);",
+    "replace": "throw new AppError(\"server\", undefined, `${def.action} answered outside its output schema`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*answers 500 server when the result breaks it"
+  },
+  {
+    "id": "b7-g1-inner-zod-route",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  if (thrownOutage(error)) return outage();",
+    "replace": "  if (error instanceof z.ZodError) return new AppError(\"validation\", undefined, REFUSED_MESSAGE);\n  if (thrownOutage(error)) return outage();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*answers 500 server, not 422, when a schema inside the handler fails"
+  },
+  {
+    "id": "b7-g1-inner-zod-errors",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  if (thrownOutage(error)) return outage();",
+    "replace": "  if (error instanceof z.ZodError) return new AppError(\"validation\", undefined, REFUSED_MESSAGE);\n  if (thrownOutage(error)) return outage();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*makes a ZodError 500 server"
   },
   {
     "id": "b7-g1-path-index",

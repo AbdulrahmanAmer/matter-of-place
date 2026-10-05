@@ -15,8 +15,8 @@ import { fakeDb } from "../fixtures/fake-db";
 // every matrix action has a route. The wrapper cases use stand-in guards: the real `requireActor`, `verifyCsrf`,
 // `assertSessionFresh` and `requireRecentAuth` arrive with step 2 and are tested there.
 
-// B7 actions whose route files later steps of this plan add; each step removes its entries, and the list is empty
-// after step 15a.
+// B7 actions whose route files later steps of this plan add, and B8b's `automation.*`, whose routes B8b step 6 adds;
+// each step removes its entries, and the B7 part is empty after step 15a.
 const routesPending: readonly ActionId[] = matrix.map((entry) => entry.action);
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");
@@ -258,6 +258,24 @@ describe("defineAdminRoute", () => {
     const broken = await call(route({ name: "no id" }));
     expect(await bodyOf(kept)).toEqual({ id: "a" });
     expect(broken.status).toBe(500);
-    expect(await bodyOf(broken)).toMatchObject({ error: { code: "server" } });
+    const body = await bodyOf(broken);
+    expect(body).toMatchObject({ error: { code: "server" } });
+    expect(JSON.stringify(body)).not.toContain("output schema");
+  });
+
+  it("answers 500 server, not 422, when a schema inside the handler fails", async () => {
+    vi.useFakeTimers();
+    const route = defineAdminRoute(
+      {
+        method: "GET",
+        action: "submissions.get",
+        input: z.object({}),
+        handler: () => Promise.resolve(z.object({ id: z.string() }).parse({})),
+      },
+      guards(1),
+    );
+    const response = await call(route);
+    expect(response.status).toBe(500);
+    expect(await bodyOf(response)).toMatchObject({ error: { code: "server" } });
   });
 });

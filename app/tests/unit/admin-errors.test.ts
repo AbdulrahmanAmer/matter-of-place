@@ -91,10 +91,10 @@ describe("fromRpcError", () => {
     expect(answer("a string")).toEqual({ code: "server", status: 500 });
   });
 
-  it("passes an AppError through and makes a ZodError 422 validation", () => {
+  it("passes an AppError through and makes a ZodError 500 server", () => {
     const own = new AppError("csrf", undefined, "x");
     expect(fromRpcError(own)).toBe(own);
     const zod = z.object({ id: z.string().uuid() }).safeParse({ id: "x" });
-    expect(zod.success ? null : answer(zod.error)).toEqual({ code: "validation", status: 422 });
+    expect(zod.success ? null : answer(zod.error)).toEqual({ code: "server", status: 500 });
   });
 });
