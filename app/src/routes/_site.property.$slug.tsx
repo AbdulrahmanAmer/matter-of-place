@@ -8,6 +8,7 @@ import { Gallery } from "../components/property/gallery";
 import { Representation } from "../components/property/representation";
 import { ShareCover } from "../components/property/share-cover";
 import { StickyActions } from "../components/property/sticky-actions";
+import { ArchiveLink } from "../components/site/archive-link";
 import { Breadcrumb } from "../components/site/breadcrumb";
 import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { ImageHero } from "../components/site/image-hero";
@@ -22,7 +23,7 @@ import { track } from "../lib/analytics";
 import { formatPrice, marketOf, regionOf, relatedProperties } from "../lib/catalog";
 import { cx } from "../lib/cx";
 import { formatNumber } from "../lib/format";
-import { marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
+import { archiveFacetsQuery, marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
 import { breadcrumbLd, propertyListingLd, videoLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { propertyDescription } from "../lib/seo-copy";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       queryClient.ensureQueryData(propertyQuery(params.slug)),
       queryClient.ensureQueryData(propertiesQuery()),
       queryClient.ensureQueryData(marketsQuery()),
+      queryClient.ensureQueryData(archiveFacetsQuery()),
     ]);
     if (!property) throw notFound();
     const market = marketOf(markets, property.market);
@@ -201,7 +203,23 @@ function PropertyPage() {
             </div>
             <div>
               <dt>Architecture</dt>
-              <dd>{property.style}</dd>
+              <dd>
+                <ArchiveLink kind="style" label={property.style} />
+              </dd>
+            </div>
+            {property.architect !== undefined && (
+              <div>
+                <dt>Architect</dt>
+                <dd>
+                  <ArchiveLink kind="architect" label={property.architect} />
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>City</dt>
+              <dd>
+                <ArchiveLink kind="city" label={`${property.city}, ${property.state}`} />
+              </dd>
             </div>
             <div>
               <dt>Year</dt>

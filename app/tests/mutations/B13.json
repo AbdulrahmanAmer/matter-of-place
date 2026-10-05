@@ -421,5 +421,213 @@
     "find": "const end = text.search(SENTENCE_END);",
     "replace": "const end = text.indexOf(\".\");",
     "expect": "FAIL .*keeps an abbreviation inside the first sentence"
+  },
+  {
+    "id": "b13-s4-view-threshold",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 2; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > lists a facet of three published properties, not one of two"
+  },
+  {
+    "id": "b13-s4-view-threshold-def",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 2; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > states the threshold that MIN_ARCHIVE holds"
+  },
+  {
+    "id": "b13-s4-view-draft",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > lists a facet of three published properties, not one of two, and ignores a draft"
+  },
+  {
+    "id": "b13-s4-view-state",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'california' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > holds the rows that listFacets derives from the snapshot"
+  },
+  {
+    "id": "b13-s4-view-grant",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role; grant select on public.archive_facets to anon;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > answers the service role and refuses anon and authenticated"
+  },
+  {
+    "id": "b13-s4-fac-style",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    style: `Fixture Style ${String(n)}`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > inserts a row the publish gate and the constraints accept"
+  },
+  {
+    "id": "b13-s4-fac-overrides",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    ...overrides,\n  } satisfies PropertyInsert;",
+    "replace": "  } satisfies PropertyInsert;",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > raises publish_incomplete for the same row with style null"
+  },
+  {
+    "id": "b13-s4-fac-market",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "values ('california', 'California', 'United States', 'x')\n     on conflict (slug) do nothing",
+    "replace": "values ('california', 'California', 'United States', 'x')",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > gives a second property another id and slug[\\s\\S]*markets_pkey"
+  },
+  {
+    "id": "b13-s4-ufac-gate",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    hero_image: `fixtures/property-${String(n)}/hero.webp`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "FAIL .*publishedPropertyRow > is a properties insert that fills every column the publish gate requires"
+  },
+  {
+    "id": "b13-s4-ufac-id",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "id: deterministicUuid(\"fixtures:property\", n),",
+    "replace": "id: deterministicUuid(\"fixtures:property\", 1),",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "FAIL .*publishedPropertyRow > gives the same row for the same n"
+  },
+  {
+    "id": "b13-s4-arch-threshold",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "count >= MIN_ARCHIVE",
+    "replace": "count >= 2",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > lists a facet of three published properties and not one of two"
+  },
+  {
+    "id": "b13-s4-arch-view",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "export const MIN_ARCHIVE = 3;",
+    "replace": "export const MIN_ARCHIVE = 4;",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > agrees with the threshold of the view in its migration"
+  },
+  {
+    "id": "b13-s4-arch-flag",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true",
+    "replace": "state.flags[\"archive_pages\"] !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > lists nothing, finds nothing and links nothing while the flag is off"
+  },
+  {
+    "id": "b13-s4-arch-flag-missing",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true",
+    "replace": "state.flags[\"archive_pages\"] !== false",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > treats a flag that is missing like a flag that is off"
+  },
+  {
+    "id": "b13-s4-arch-city",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "`${property.city} ${state}`",
+    "replace": "property.city",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > map each kind to its labels and slugs, a city by city and state"
+  },
+  {
+    "id": "b13-s4-arch-label",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "current.label = label < current.label ? label : current.label;",
+    "replace": "current.label = current.label;",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > folds accents and apostrophes into the slug and keeps the label that sorts first"
+  },
+  {
+    "id": "b13-s4-arch-blank",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "if (slug === \"\") return;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > skips an architect that is blank"
+  },
+  {
+    "id": "b13-s4-arch-kind",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "candidate.kind === kind && candidate.slug === slug",
+    "replace": "candidate.slug === slug",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > find a page by kind and slug, and answer null for anything else"
+  },
+  {
+    "id": "b13-s4-arch-href",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "`/archive/${kind}/${slug}`",
+    "replace": "`/archive/${slug}`",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > make the address of an archive page from a label, null when it has none"
+  },
+  {
+    "id": "b13-s4-arch-cards",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "found.slugs.flatMap((property) => cards.get(property) ?? [])",
+    "replace": "found.slugs.flatMap((property) => source.properties.filter((full) => full.slug === property))",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*getFacet items > are list cards: the keys of a PropertyCard, never the gallery"
+  },
+  {
+    "id": "b13-s4-e2e-threshold",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "count >= MIN_ARCHIVE",
+    "replace": "count >= 2",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 404[\\s\\S]*Received: 200",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-s4-e2e-link",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/components/site/archive-link.tsx",
+    "find": "  if (slug === undefined) return label;\n",
+    "replace": "  if (slug === undefined)\n    return (\n      <Link to=\"/archive/$kind/$slug\" params={{ kind, slug: \"fixture-architect\" }}>\n        {label}\n      </Link>\n    );\n",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 0[\\s\\S]*Received: 1",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-s4-e2e-beacon",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/routes/_site.archive.$kind.$slug.tsx",
+    "find": "  useTrackView(\"archive_view\", `${kind}/${slug}`, { kind, slug, count });\n",
+    "replace": "",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 1[\\s\\S]*Received: 0",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
   }
 ]

@@ -70,7 +70,7 @@ export const jsonLdExpectations: Record<RouteClass, string[]> = {
   property: ["RealEstateListing", "BreadcrumbList"],
   story: ["Article"],
   faq: ["FAQPage"],
-  archive: ["CollectionPage", "ItemList"],
+  archive: ["CollectionPage"],
   exposure: ["FAQPage"],
   notFound: [],
 };
@@ -106,6 +106,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.$market.$region.tsx": "/$market/$region",
   "_site.property.$slug.tsx": "/property/$slug",
   "_site.stories.$slug.tsx": "/stories/$slug",
+  "_site.archive.$kind.$slug.tsx": "/archive/$kind/$slug",
   "_site.markets.$.tsx": "redirect",
   "_site.place-notes.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
@@ -136,6 +137,7 @@ export const dynamicPatterns = {
   region: "/$market/$region",
   property: "/property/$slug",
   story: "/stories/$slug",
+  archive: "/archive/$kind/$slug",
 } as const;
 
 type Params = {

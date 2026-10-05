@@ -1,5 +1,6 @@
 // Only an illustrative property carries the word: a published one, a story, a market and a plain hero never do (G70, S43).
 import type { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import {
   createMemoryHistory,
@@ -66,7 +67,12 @@ function renderProperty(status: "Active" | "Illustrative") {
   });
   const Page = PropertyRoute.options.component;
   if (Page === undefined) throw new Error("property route has no component");
-  return renderInRouter(<Page />);
+  // The archive links of the property page read their facets through a query.
+  return renderInRouter(
+    <QueryClientProvider client={new QueryClient()}>
+      <Page />
+    </QueryClientProvider>,
+  );
 }
 
 afterEach(() => {
