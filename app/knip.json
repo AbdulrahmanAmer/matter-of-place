@@ -12,5 +12,8 @@
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql"],
-  "ignoreDependencies": ["@fontsource-variable/*"]
+  "ignoreDependencies": ["@fontsource-variable/*"],
+  "ignoreIssues": {
+    "src/templates/email/!(layout|blocks).tsx": ["exports"]
+  }
 }
