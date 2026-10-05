@@ -1081,8 +1081,7 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   B8b wf_08968c1a-329 (auto, step 5 in review2 after fix1; PR 133 draft holds 4 and 4a); B17 wf_50ea9b3c-5a4 (site,
   step 1 fix2); B7 wf_5d9f0509-be2 (admin, step 1 fix1: the admin_audit migration makes B8b's guarded write_audit calls
   live with actions the matrix lacks); B12 wf_49694593-fac (video, steps 1 to 3 accepted, 4 and 5 building; the film
-  media folder was copied into the lane, P-523). B5's run wf_c014765b-d6a ENDED: step 2 accepted, PR 137 merging (db
-  green after a98edc8, e2e pending at 08:35); relaunch B5 FRESH (not resume) with steps 3 to 9 once 137 is on main.
+  media folder was copied into the lane, P-523). B5's run wf_c014765b-d6a ENDED: step 2 accepted, PR 137 MERGED 08:45 (7e5ebca); relaunch B5 FRESH (not resume) with steps 3 to 9 once 137 is on main.
 - Merged this morning: PR 131 (P-519, P-520, brief cap), 135 (B15 steps 6 and 7; B15 closed), 136 (H61, P-522, records),
   139 (stale STUB(B15) marker, B2 registry seeds local). Board 110 of 259 at 08:00 (42.5 percent); closed B2, B3,
   B3b, B4, B15. Open PRs: 133 (B8b draft, its run merges it), 137 (B5 step 2), 138 (B7 draft).
