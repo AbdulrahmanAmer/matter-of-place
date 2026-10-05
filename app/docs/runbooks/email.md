@@ -91,6 +91,7 @@ Measured on 2026-10-05 on the build laptop with its CPU at 100 percent from othe
 per key (p95, ms): `received` 7.97, `declined` 5.00, `accepted` 3.41, `awaiting_assets` 3.56, `invoice` 7.71,
 `inquiry_ack` 3.07, `inquiry_forward` 2.46, `interest_confirm` 3.09, `newsletter_confirm` 9.40, `admin_notify` 11.87,
 `standalone` 7.92, `repermission` 9.09, `subject_ack` 4.36. A single key moved between 2 and 17 ms from run to run, so
-only the overall figure is the gate. UNPROVEN as a Worker figure: no Worker has run this code yet (nothing in the Worker
+only the overall figure is the gate. Three runs later the same day, with the load at 80 percent, printed overall p95
+2.43, 2.30 and 2.91 ms. UNPROVEN as a Worker figure: no Worker has run this code yet (nothing in the Worker
 imports `preview.ts` until B8b's preview endpoint does), so repeat the command on a quiet laptop and again from the
 endpoint before relying on the margin.
