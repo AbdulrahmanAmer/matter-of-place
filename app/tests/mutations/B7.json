@@ -245,7 +245,7 @@
   {
     "id": "b7-g1-no-store",
     "test": "tests/unit/admin-routes-parity.test.ts",
-    "file": "src/server/lib/admin-route.ts",
+    "file": "src/server/lib/admin-response.ts",
     "find": "\"cache-control\": \"private, no-store\"",
     "replace": "\"cache-control\": \"private\"",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
