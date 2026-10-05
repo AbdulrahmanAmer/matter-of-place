@@ -39,3 +39,31 @@ Source: the fresh reviewer of group c3, none blocking. The GOTCHAS.md items of t
 4. File `workspace/05-plans/logs/B13.md` (not blocking).
    What: The plan names localhost:8080 for the validator proof. The author ran it on the built Worker instead, saying the dev server answered 503 (P-331). The same session's watched-fail ran the dev server successfully with `env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY`, the fix P-331 already gives. So the plan's own proof could have run as written. My built-Worker rerun gave the same result, so the substitution hid nothing.
    Evidence: Log c3, Proof 2 ("answered 503 in this shell, P-331") compared with Proof 4 ("run with env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY" on E2E_TARGET=dev, which worked).
+
+## c3 · steps 3
+
+Source: the second fresh reviewer of group c3 (the first review's items are in the section above; entries that repeat one of them are kept as the reviewer wrote them). None blocking. The three GOTCHAS.md items went into the bank (P-1812 new, hit-again lines on P-1805 and P-712) and are not repeated here.
+
+1. File `app/tests/e2e/fixtures/routes.ts` (not blocking).
+   What: Confirmed by running: `jsonLdExpectations.archive` is ["CollectionPage", "ItemList"], and no archive page can currently satisfy it. `collectionLd` puts the ItemList inside `mainEntity` as a nested object, but both the sweep's `typesOf` (tests/e2e/fixtures/jsonld.ts) and `validateHtml` read only the top-level `@type` of each graph member. Once step 4 builds the archive route with `collectionLd` and the archive_pages flag is on, every archive URL in the sweep will fail with 'ld+json types of a archive page ... ItemList'. Nothing is broken today because no archive route exists. The fix belongs in step 4: either the archive head emits a separate top-level ItemList node, or the expectation or fixture is changed to accept the nested one. The plan text prescribes both halves, so the orchestrator should settle which.
+   Evidence: A scratch bun script ran collectionLd("city",...) through pageHead and then validateHtml. It printed `top-level types: [ "CollectionPage" ] archive expects: [ "CollectionPage", "ItemList" ] missing: [ "ItemList" ]`.
+
+2. File `workspace/01-site-index/pages-and-wording.md` (not blocking).
+   What: Stale prose that this group did not touch. Row 20 still says the property page emits 'JSON-LD SingleFamilyResidence'; it now emits RealEstateListing, BreadcrumbList and, when there is a film, VideoObject. Row 18 says home emits Organization only; it now also emits WebSite. None of the market, region, stories, markets, properties, about, contact, submit, legal or editorial-standard rows mention their new CollectionPage or BreadcrumbList blocks.
+   Evidence: `git grep -n SingleFamilyResidence` matches only workspace/01-site-index/pages-and-wording.md:20. `grep -o 'JSON-LD[^|]*'` on that file gives lines 18, 20, 31 and 35 only.
+
+3. File `app/scripts/validate-jsonld.ts` (not blocking).
+   What: In bare-base mode the script reads only `<base>/sitemap.xml` and hard-codes `/` and `/faq`. The plan says it also reads `staticSitemapPaths`, but that constant does not exist until step 5's sitemap.ts. The result is the same today. Step 5 should switch the validator to read the constant, or the plan line should be folded. The B13 c3 log does not list this deviation.
+   Evidence: Reading `pagesOf` and `pageTypes` in app/scripts/validate-jsonld.ts. `git grep staticSitemapPaths` finds only plan text.
+
+4. File `workspace/05-plans/B13.md` (not blocking).
+   What: The code departs from the plan's Files line in two documented ways that the plan does not reflect. `propertyListingLd(property)` takes no `assets` argument, because the variants are on the property. `faqJsonLd` is not re-exported from jsonld.ts, because a re-export nothing imports would fail knip and R04. Both choices are sound. The orchestrator should fold them into the plan so that step 13 and B17 line 36 do not look for those names.
+   Evidence: app/src/lib/jsonld.ts signatures. B13 c3 log, NOT DONE bullet 3.
+
+5. File `app/src/routes/_site.index.tsx` (not blocking).
+   What: Still to do when B16 lands (the author recorded this as NOT DONE, P-1804). Home keeps an inline Organization node built from siteConfig (name, url, parentOrganization), with no logo, sameAs or contactPoint. Step 3's organizationJsonLd extension, organization-jsonld.test.ts and plan watched-fail (q) are UNPROVEN until B16's organizationJsonLd is on main. After that, the inline node must be replaced by the re-exported builder.
+   Evidence: `git grep -c organizationJsonLd origin/main -- app` exits 1, with origin/main = remote main 446ff04.
+
+6. File `app/tests/e2e/fixtures/routes.ts` (not blocking).
+   What: Still to do in steps 4, 6 and 7 (NOT DONE, P-1804). The routeFileCoverage entries for robots[.]txt.ts, llms[.]txt.ts, llms-full[.]txt.ts and _site.archive.$kind.$slug.tsx are missing, because routes-covered.test.ts fails on an entry whose file is absent. Step 3's proof 'routes-covered passes with the four new route files' is NOT DONE until those steps land.
+   Evidence: `ls app/src/routes | grep -E 'robots|llms|archive'` printed nothing. Only sitemap[.]xml.ts exists.
