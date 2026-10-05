@@ -74,6 +74,7 @@ export default defineConfig({
       testMatch: ["**/live-forms.spec.ts", "**/hydration.spec.ts", "**/client-error.spec.ts"],
       use: desktop,
     },
+    { name: "inquiry-forward", testMatch: "**/inquiry-forward.spec.ts", use: desktop },
     { name: "edge", testMatch: "**/edge-cache.spec.ts", use: desktop },
     { name: "coming-soon-desktop", testMatch: "**/coming-soon.spec.ts", use: desktop },
     { name: "coming-soon-phone", testMatch: "**/coming-soon.spec.ts", use: phone },
