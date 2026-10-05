@@ -70,10 +70,10 @@ describe("buildCues", () => {
     expect([steps("wind"), steps("water"), steps("room"), steps("city")]).toEqual([0, 0, 1, 1]);
   });
 
-  it("ends the reel on the lock: one impact, nothing after 18 s", () => {
+  it("puts one impact on the wordmark lock and nothing after 18 s", () => {
     const { duration, cues } = buildCues(fixture);
     expect(duration).toBe(18);
-    expect(cues.filter((cue) => cue.type === "impact").map((cue) => cue.t)).toEqual([16.75]);
+    expect(cues.filter((cue) => cue.type === "impact").map((cue) => cue.t)).toEqual([15.4]);
     expect(cues.every((cue) => cue.t >= 0 && (cue.end ?? cue.t) <= 18)).toBe(true);
   });
 });

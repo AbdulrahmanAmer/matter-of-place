@@ -3113,6 +3113,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a proof written against `launch/film/index.html` runs in a lane only with a stand-in scene (a page under `.tmp/` that calls `film()` from `/launch/engine/runtime/film.js`) and the log line says so; install the launch dependencies first; run a capture as a background job with a bounded poll loop of 5-second sleeps, never as one foreground call, and read a slow close as load before reading it as a hang (check `Get-CimInstance Win32_Processor` LoadPercentage).
 - proof: `ls launch/film/media 2>&1` → `ls: cannot access 'launch/film/media': No such file or directory` in a fresh lane tree; `ls launch/node_modules 2>&1` → `No such file or directory` until `bun install --cwd launch --frozen-lockfile` prints `64 packages installed`. The stand-in was a short page that calls `film({ duration: 3 })` and prints `innerWidth x innerHeight`; its 1080x1920 still took 251 s (measured 2026-10-05, B12 g1).
 - added: 2026-10-05
+- hit again: 2026-10-05, B12 g3: the same full reel capture (540 frames, 4 workers) took 85 s on an idle laptop and 836 s while other lanes ran `bun run check`; its first attempt under load died with `Error: net::ERR_ABORTED at http://127.0.0.1:<port>/launch/reel/scene.html?...` and the second, started the same way, finished. A render proof waits on its log with a bounded loop, never on a guessed time, and an `ERR_ABORTED` on the first navigation is a retry, not a scene defect (check the scene by capturing one still first).
 
 ## P-522 · The terminal status line (`ccusage statusline`) took about two of the eight cores all day and leaked sixteen idle copies; the lanes were being measured against a processor a quarter spent
 - symptom: the processor read 99 to 100 percent at five lanes and five was called the cap. A per-process sample over five seconds showed `ccusage.exe` at 24 percent of the machine (about 25 CPU-seconds per status-line refresh, refreshing continuously, parsing every session transcript each time) and sixteen `node ... ccusage/src/cli.js statusline` wrappers from 02:05 to 21:20 of earlier days, idle, 42 MB each.
@@ -3161,4 +3162,46 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: B15 was recorded closed on main (d68b75c, "B15 closed") while its marker stayed; `git diff origin/main --stat -- src/server/lib/crypto.ts` is empty in the lane, so the red is main's.
 - rule: when `check` stops at `stubs` on a marker no lane file touches, run the rest of the chain by hand (`bun run format:check`, `bun run test`, `bun run build`), say in the log that the stubs gate is red on main, and leave the marker to the slice that owns `crypto.ts`.
 - proof: `cd app && bun run scripts/stubs.ts | tail -2` → `stubs: 8 markers, 1 on closed slices` (measured 2026-10-05, branch slice/b12 at 94402d3 plus B12 g2).
+- added: 2026-10-05
+
+## P-2105 · A headless reviewer that writes "gate passed" has its answer replaced by the agent-os stop hook
+- symptom: B12 round 1's `round-1.json` held `result: "No stage gate is met, and I am not writing to PROJECT-STATE.md..."` and nothing of the review; `num_turns` 23, the review itself was an earlier assistant message in the session transcript (`~/.claude/projects/<project>/<session_id>.jsonl`).
+- cause: the reviewer's brief asked for the gate's final line, which is the text `GATE PASSED`; the plugin hook `agent-os/hooks/stop.sh` reads "gate passed" in a final message as a build stage closing, rejects it for a missing `PROJECT-STATE.md` write, and the reviewer's reply to that rejection became the `result`.
+- rule: a headless reviewer's brief forbids the words "gate passed" and "gate met" and says its final message is the review and nothing else; the designer adds the line `Gate at review time: GATE PASSED (...)` to `ROUND-<n>.md` from `gate.txt` itself. A `result` that does not start with the review is not the round: read the transcript to see what happened, then rerun the round.
+- proof: `grep -n "gate passed" launch/reel/review/brief.md` → the line of the brief that forbids the words.
+- added: 2026-10-05
+
+## P-2106 · `launch/engine/sheet.mjs` squashes vertical frames into 16:9 tiles, so a reviewer cannot judge a reel from its sheet
+- symptom: the first review sheet of the 1080x1920 reel showed every frame as a wide 300x169 tile, trees stretched and type squashed; a fresh reviewer scoring from that sheet would score the distortion. A replacement script that put `C\:/Windows/Fonts/arial.ttf` into the ffmpeg filter through a Bash heredoc lost the backslash and failed with `No option name near '/Windows/Fonts/arial.ttf'` (P-008 again), and printed the whole 4 KB filter graph.
+- cause: `sheet.mjs` sets the tile height to `w * 9 / 16` for every input; the film it was written for is 16:9.
+- rule: for a vertical reel make the sheet with tiles at `w * 16 / 9` (a scratch script under `.tmp/`, written with Write, labels from the frame number divided by 30), nine tiles to a row, and print only the last lines of ffmpeg's error. Read the sheet yourself before the reviewer does.
+- proof: `grep -n "w \* 9" launch/engine/sheet.mjs` → `const cols = Number(colsArg), w = Number(widthArg), h = Math.round((w * 9) / 16);`
+- added: 2026-10-05
+
+## P-2107 · The reel's gate counts a cut only where a frame differs by more than 0.30: split slides and the growing tile are not cuts
+- symptom: the first full render of the B12 fixture failed `cuts 3-8` with 2 and `avg shot 2.0-5.5s` with 6.00 s while looking edited: the three M9 split slides and the M10 growth are continuous motion; the two counted cuts were frame 1 of the file and the hard cut to black (the return from black onto the dark grid scores under 0.30). A later render failed `motion coverage` (83.8 percent) and `longest static run` (1.33 s) because the end card held its finished lock under a camera that moves 2 percent per second (P-025 again).
+- cause: `launch/tools/motion-gate.mjs` counts `select='gt(scene,0.30)'` on a 480 px copy; a split slide changes a small part of the frame per frame, so it never reaches the threshold.
+- rule: a reel needs at least one more real hard cut between two photographs (M13) besides the cut to black, with the whoosh just before it; the end card keeps a camera at 3 percent per second or more, and the light sweep is timed over the hold, not before it. Run `node launch/engine/probe.mjs motion <mp4>` to read the static runs with timecodes.
+- proof: `grep -n "gt(scene,0.30)" launch/tools/motion-gate.mjs` → `37:const cutsRun = run("ffmpeg", [..."select='gt(scene,0.30)'..."`
+- added: 2026-10-05
+
+## P-2108 · B12 step 5 names `ROUND-3.md` as the SHIP round, but a fresh reviewer needed twelve rounds, and each round scores the same reel differently
+- symptom: rounds 1 to 11 of the fixture reel all ended `Verdict: ANOTHER ROUND`, each with one to six axes at 3 (round 6 Depth, 7 Typography, 8 Motion Depth Rhythm, 9 five axes, 10 Depth Rhythm, 11 six axes); round 12 scored 4 on all seven and said SHIP. The plan's proof (`grep -c "Verdict: SHIP" launch/reel/review/ROUND-3.md` prints 1) can never hold in that case.
+- cause: the plan assumed the third round is the last. A new Opus session reads the reel again from nothing, so its score of a shot moves by a point between rounds (Depth was 3 in rounds 8 to 11 and 4 in round 12, with the grid hold still the first worst shot of round 12 as it was of round 11), and advice of one round contradicts the next (round 9: shorten the hold after the lock; round 10: bring the lock forward; round 11: end on Obsidian).
+- rule: a review-loop proof names the last round, never a fixed number; run the loop until a round says SHIP and keep every round's file (`ROUND-<n>.md`, `round-<n>.json`) so the history is honest. Act on a complaint that two rounds repeat or a number can show (a frame difference, a cut count, a seam), not on every sentence; price a round at 10 to 30 minutes on an idle laptop (render 85 s, review 5 to 8 min). Never renumber rounds to make the file name fit.
+- proof: `grep -m1 -o "Verdict: [A-Z ]*" launch/reel/review/ROUND-3.md launch/reel/review/ROUND-12.md` → `Verdict: ANOTHER ROUND` for round 3 and `Verdict: SHIP` for round 12 (measured 2026-10-05, branch slice/b12).
+- added: 2026-10-05
+
+## P-2109 · `shot(tl, el, 0, ...)` leaves frame 0 black: the first still of a reel, and a platform thumbnail, is an Obsidian frame
+- symptom: round 9's reviewer wrote "Frame 0 is a single Obsidian frame, then the oak photograph pops in on frame 1"; `ls -l .tmp/reel/frames/0000{0,1}.png` showed 37843 and 2306543 bytes. The gate had counted that false cut as one of its three (`cuts 3-8` was 3), so showing frame 0 correctly dropped the count to 2 and the gate failed until a real hard cut between photographs was added.
+- cause: `shot()` of `film.js` sets the shot hidden at time 0 and visible at `tin`; with `tin` equal to 0 the second set does not run on the first seek, so the shot stays hidden. `.shot { visibility: hidden }` in the page is the other half.
+- rule: the opening shot is visible from the page (`#s1 { visibility: visible; }` after `.shot`) and the scene only hides it with `tl.set(..., { autoAlpha: 0 }, <end>)`. After any change to the first frame, count `cuts` again: a cut the gate counted may have been the artefact.
+- proof: `grep -n "#s1 { visibility: visible; }" launch/reel/scene.html` → one line; `ls -l .tmp/reel/frames/00000.png` after a render is over 1 MB.
+- added: 2026-10-05
+
+## P-2110 · A blurred legibility pool drawn in one half of a split photograph leaves a hard edge at the seam, and a wider parallax factor doubles hard edges
+- symptom: the local pool behind photograph 2's headline (`scrim(parent, opacity, box)`, a solid Obsidian box softened by `filter: blur(90px)`) drew a straight dark edge across the whole frame at y 960 in frame 130, where the two clipped halves meet. Raising the parallax factors of photograph 2 from `[1, 1.15, 1.3]` to `[1, 1.25, 1.5]` showed a second sofa cushion at the left edge (still at 5.35 s).
+- cause: each half is a full-frame element clipped to 50 percent, so a pool that exists in only one half is cut at 960 px; the front plane of `depth` is the same photograph shifted by `(k - 1) * camera travel`, so a large factor against an object with a hard edge shows two copies.
+- rule: draw the pool in both halves with the same box (`pool2`), and look at a still of each camera's end position before a review when a factor or a travel grows. Photograph 3 (foliage and haze) takes `[1, 1.25, 1.5]` with 180 px of travel, photograph 2 keeps `[1, 1.15, 1.3]`.
+- proof: `grep -n "pool2" launch/reel/scene.mjs` → the definition and its use in both `scrim` calls; `grep -n "PAR_ROOM = " launch/reel/scene.mjs` → `[1, 1.15, 1.3]`.
 - added: 2026-10-05

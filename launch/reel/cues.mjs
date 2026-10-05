@@ -21,18 +21,18 @@ export function buildCues(spec) {
 
   // The air floor never drops to digital silence (P-024); in the two silence beats it is the only sound.
   const floor = [
-    [0, 11.25, -43, 0, 0.05, 20, "air floor"],
-    [11.2, 11.75, -58, 0.05, 0.05, 21, "silence beat after the cut to black"],
-    [11.7, 17.35, -43, 0.05, 0.05, 22, "air floor"],
-    [17.3, DURATION, -58, 0.05, 0, 23, "silence beat after the lock"],
+    [0, 8.35, -40, 0, 0.05, 20, "air floor"],
+    [8.3, 8.8, -58, 0.05, 0.05, 21, "silence beat in the black"],
+    [8.75, 16.15, -40, 0.05, 0.05, 22, "air floor"],
+    [16.1, DURATION, -58, 0.05, 0, 23, "silence beat after the lock"],
   ];
   for (const [t, end, db, fadeIn, fadeOut, s, label] of floor) {
     cues.push({ t, end, type: "air", db, fadeIn, fadeOut, seed: s, label });
   }
 
   // Room tone under everything except the silence beats; it goes out after the lock.
-  cues.push({ t: 0, end: 11.2, type: "room", db: -20, fadeIn: 1, fadeOut: 0.1, label: "room tone" });
-  cues.push({ t: 11.7, end: 17.3, type: "room", db: -20, fadeIn: 0.4, fadeOut: 0.5, label: "room tone returns, then out after the lock" });
+  cues.push({ t: 0, end: 8.3, type: "room", db: -24, fadeIn: 1, fadeOut: 0.1, label: "room tone" });
+  cues.push({ t: 8.75, end: 15.95, type: "room", db: -24, fadeIn: 0.4, fadeOut: 0.5, label: "room tone returns, then out after the lock" });
 
   const beds = {
     wind: [
@@ -45,20 +45,21 @@ export function buildCues(spec) {
   };
   const [first, second] = beds[bed];
   if (first && second) {
-    cues.push({ t: 0, end: 11.2, type: bed, fadeIn: 1.4, fadeOut: 0.1, seed: phase, ...(bed === "wind" ? { gusts: [7.0] } : {}), ...first, label: `${bed} bed` });
-    cues.push({ t: 11.7, end: 16.8, type: bed, fadeIn: 0.8, fadeOut: 0.4, seed: phase + 1, ...second, label: `${bed} bed returns` });
+    cues.push({ t: 0, end: 8.3, type: bed, fadeIn: 1.4, fadeOut: 0.1, seed: phase, ...(bed === "wind" ? { gusts: [5.4] } : {}), ...first, label: `${bed} bed` });
+    cues.push({ t: 8.75, end: 15.5, type: bed, fadeIn: 0.8, fadeOut: 0.4, seed: phase + 1, ...second, label: `${bed} bed returns` });
   }
 
   const shots = [
-    [2.9, "whoosh", -16, { dur: 0.2 }, "M9 split, photograph 1 to 2"],
-    [6.9, "whoosh", -16, { dur: 0.2 }, "M9 split, photograph 2 to 3"],
-    [8.2, "paper", -20, { dur: 0.6 }, "the facts row arrives"],
-    [10.95, "whoosh", -14, { dur: 0.2 }, "M13 cut to black"],
-    [11.7, "fabric", -19, { dur: 0.6 }, "M10 the tiles assemble"],
-    [12.65, "whoosh", -17, { dur: 0.5, pan: 0 }, "one tile grows to the frame"],
-    [14.6, "whoosh", -17, { dur: 0.25, pan: [0.5, -0.5] }, "M9 split to the last photograph"],
-    [16.75, "impact", -6, {}, "the wordmark locks"],
-    ...(interior ? [[3.85, "step", -12, { pan: 0.1 }, "one stone step in the interior"]] : []),
+    [1.9, "whoosh", -13, { dur: 0.2 }, "M9 split, photograph 1 to 2"],
+    [5.2, "whoosh", -13, { dur: 0.25 }, "hard cut, photograph 2 to 3"],
+    [5.7, "paper", -22, { dur: 0.6 }, "the price and the facts row arrive"],
+    [8.1, "whoosh", -12, { dur: 0.2 }, "M13 cut to black"],
+    [8.75, "fabric", -17, { dur: 0.6 }, "M10 the tiles assemble"],
+    [10.45, "fabric", -19, { dur: 0.5 }, "one tile grows to the frame"],
+    [12.3, "whoosh", -14, { dur: 0.25 }, "hard cut to the last photograph"],
+    [14.85, "door", -16, {}, "M5 the emblem planes close"],
+    [15.4, "impact", -8, {}, "the wordmark locks"],
+    ...(interior ? [[2.65, "step", -12, { pan: 0.1 }, "one stone step in the interior"]] : []),
   ];
   for (const [t, type, db, extra, label] of shots) cues.push({ t, type, db, ...extra, label });
 

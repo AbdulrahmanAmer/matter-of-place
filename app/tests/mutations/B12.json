@@ -30,8 +30,8 @@
     "id": "b12g2-c-types",
     "test": "tests/unit/reel/cues.test.ts",
     "file": "../launch/reel/cues.mjs",
-    "find": "[10.95, \"whoosh\", -14, { dur: 0.2 }, \"M13 cut to black\"]",
-    "replace": "[10.95, \"sweep\", -14, { dur: 0.2 }, \"M13 cut to black\"]",
+    "find": "[8.1, \"whoosh\", -12, { dur: 0.2 }, \"M13 cut to black\"]",
+    "replace": "[8.1, \"sweep\", -14, { dur: 0.2 }, \"M13 cut to black\"]",
     "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
     "expect": "FAIL .*uses only cue types"
   },
@@ -39,8 +39,8 @@
     "id": "b12g2-c-silence",
     "test": "tests/unit/reel/cues.test.ts",
     "file": "../launch/reel/cues.mjs",
-    "find": "[11.7, \"fabric\", -19, { dur: 0.6 }, \"M10 the tiles assemble\"]",
-    "replace": "[11.4, \"fabric\", -19, { dur: 0.6 }, \"M10 the tiles assemble\"]",
+    "find": "[8.75, \"fabric\", -17, { dur: 0.6 }, \"M10 the tiles assemble\"]",
+    "replace": "[8.5, \"fabric\", -19, { dur: 0.6 }, \"M10 the tiles assemble\"]",
     "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
     "expect": "FAIL .*keeps two silence beats"
   },
@@ -48,8 +48,8 @@
     "id": "b12g2-c-floor",
     "test": "tests/unit/reel/cues.test.ts",
     "file": "../launch/reel/cues.mjs",
-    "find": "[11.2, 11.75, -58, 0.05, 0.05, 21, \"silence beat after the cut to black\"]",
-    "replace": "[11.2, 11.75, -70, 0.05, 0.05, 21, \"silence beat after the cut to black\"]",
+    "find": "[8.3, 8.8, -58, 0.05, 0.05, 21, \"silence beat in the black\"]",
+    "replace": "[8.3, 8.8, -70, 0.05, 0.05, 21, \"silence beat in the black\"]",
     "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
     "expect": "FAIL .*air floor fall to digital silence"
   },
@@ -84,10 +84,10 @@
     "id": "b12g2-c-impact",
     "test": "tests/unit/reel/cues.test.ts",
     "file": "../launch/reel/cues.mjs",
-    "find": "[16.75, \"impact\", -6,",
-    "replace": "[17.5, \"impact\", -6,",
+    "find": "[15.4, \"impact\", -8,",
+    "replace": "[17.5, \"impact\", -8,",
     "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
-    "expect": "FAIL .*ends the reel on the lock"
+    "expect": "FAIL .*puts one impact on the wordmark lock"
   },
   {
     "id": "b12g2-n-engine",
@@ -111,8 +111,8 @@
     "id": "b12g2-m-ease",
     "test": "tests/unit/reel/moves.test.ts",
     "file": "../launch/reel/scene.mjs",
-    "find": "ease: \"power1.out\", immediateRender: true }, 15.4);",
-    "replace": "ease: \"elastic.out\", immediateRender: true }, 15.4);",
+    "find": "ease: \"power1.out\", immediateRender: true }, 13.6);",
+    "replace": "ease: \"elastic.out\", immediateRender: true }, 13.6);",
     "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
     "expect": "FAIL .*eases only with the approved set"
   },
@@ -129,8 +129,8 @@
     "id": "b12g2-m-spring-out",
     "test": "tests/unit/reel/moves.test.ts",
     "file": "../launch/reel/scene.mjs",
-    "find": "{ yPercent: -52, duration: 0.7, ease: \"power3.inOut\"",
-    "replace": "{ yPercent: -52, duration: 0.7, ease: \"back.out(1.2)\"",
+    "find": "{ yPercent: -58, duration: 0.55, ease: \"power3.inOut\"",
+    "replace": "{ yPercent: -58, duration: 0.55, ease: \"back.out(1.2)\"",
     "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
     "expect": "FAIL .*springs only on the grid"
   },
