@@ -50,3 +50,20 @@
 
 7. `.github/workflows/README.md` (not blocking). The README still says 'These three exist' and has no row for render.yml. The file now carries B8's render job and B12's reel job. The row is B8's to add (this group did not touch the README), so it goes to the orchestrator.
    Evidence: Read: README line 11, 'Later slices add `render.yml` (B8 ...; B9 and B12 add to it) ... each lands with its owner and gets its row here'. The table lists only ci.yml, deploy.yml and backup.yml.
+
+## g3 · steps 4-5
+
+1. `workspace/05-plans/B12.md` (not blocking). The step 5 proof names ROUND-3.md, which fails as written (5 axes at 4 or 5, 0 SHIP). The real SHIP round is ROUND-15.md (7, 1, 1). The plan line is stale, the author disclosed it and P-2108 banks it. The orchestrator has to fold the proof and the Files line to ROUND-15.md, or the merge gate will read this step as red.
+   Evidence: Confirmed by running: ROUND-3.md -> 5 0 1; ROUND-15.md -> 7 1 1.
+
+2. `launch/engine/chrome.mjs` (not blocking). This group edited a g1 file outside its named list, against the one-writer-per-file lane rule. It added the P-052 GPU-off flags to CHROME_ARGS. The change is right and needed for invariant 6, it is disclosed, and no current launch scene uses WebGL. Still, --use-gl=disabled now applies to every engine capture (capture, audio, still, product), and CLAUDE.md names Three.js as part of the motion engine, so any future WebGL scene would get no GL context. The author's watched-fail (8 captures with the old args) is UNPROVEN by me, because a read-only reviewer cannot revert the file.
+   Evidence: git show 5b6c12a -- launch/engine/chrome.mjs (+ --disable-gpu --disable-gpu-rasterization --disable-accelerated-2d-canvas --use-gl=disabled); launch/package.json lists three ^0.186.1; grep finds no WebGL use in launch/ outside a comment in film.js:10.
+
+3. `launch/reel/STORYBOARD.md` (not blocking). g2's file was edited at d63fd26 by this group, and g2's review of it is older than the edit. The author disclosed this as UNPROVEN. It needs a re-read by g2's owner or the orchestrator.
+   Evidence: git log --oneline origin/main..slice/b12 -- launch/reel/STORYBOARD.md lists d63fd26 (g3).
+
+4. `workspace/05-plans/logs/B12.md` (not blocking). The edge-scan proof (item 5, 'worst dark edge run (px): l 0, r 0, t 0, b 0') names no command and no committed script, so nobody else can re-run it (P-088 spirit).
+   Evidence: Read: log item 5 gives only the output line; no edge-scan script exists under launch/ or app/scripts.
+
+5. `launch/reel/review/ROUND-15.md` (not blocking). Invariant 6 'same MP4 bytes' is still UNPROVEN, and the author says so honestly. My two full captures differ in 1 frame (00506, 6 samples, 1 level); the author saw 14 frames. With putIfMissing keyed on the spec hash, a re-render cannot overwrite a stored reel, so nothing breaks for the product. The orchestrator should either relax the Contract's wording to 'stills byte-identical, MP4 within pixel noise' or assign the cause hunt (P-2119).
+   Evidence: Confirmed by running: diff of the two sha256sum lists -> 1 line (00506.png); cmp -> 6 samples max 1.
