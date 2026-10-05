@@ -9,6 +9,7 @@ import {
   renderRouterToString,
   RouterServer,
 } from "@tanstack/react-router/ssr/server";
+import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
@@ -56,6 +57,24 @@ const withUnmarked = (count: number) =>
     "</body>",
     `${Array.from({ length: count }, (_, index) => `<script>unmarked(${String(index)});</script>`).join("")}</body>`,
   );
+
+/** The text a browser's parser (parse5, the one jsdom uses) reads from each inline script or style: what a CSP hash covers. */
+function parsedInline(page: string, tag: "script" | "style", marked = false): string[] {
+  const found: string[] = [];
+  const walk = (node: DefaultTreeAdapterMap["node"]): void => {
+    if (
+      "tagName" in node &&
+      node.tagName === tag &&
+      (!marked ||
+        node.attrs.some(({ name, value }) => name === "class" && value.split(" ").includes("$tsr")))
+    ) {
+      found.push(node.childNodes.map((child) => ("value" in child ? child.value : "")).join(""));
+    }
+    if ("childNodes" in node) node.childNodes.forEach(walk);
+  };
+  walk(parse(page));
+  return found;
+}
 
 const html = (body: string, headers: Record<string, string> = {}) =>
   new Response(body, { headers: { "content-type": "text/html; charset=utf-8", ...headers } });
@@ -280,7 +299,7 @@ describe("csp-inline-rules", () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
-  it("csp-inline-rules: still finds class $tsr on the bootstrap script of a real render of /, and every allowlist entry in it", async () => {
+  const renderHome = async () => {
     const router = getRouter();
     router.update({
       history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -294,10 +313,41 @@ describe("csp-inline-rules", () => {
       responseHeaders: new Headers(),
       children: createElement(RouterServer, { router }),
     });
-    const page = await rendered.text();
+    return rendered.text();
+  };
+
+  it("csp-inline-rules: still finds class $tsr on the bootstrap script of a real render of /, and every allowlist entry in it", async () => {
+    const page = await renderHome();
     expect(page).toContain('<script class="$tsr"');
     for (const entry of CSP_INLINE_ALLOWLIST) expect(page).toContain(entry);
     expect((await inlineHashes(page)).unexpected).toBe(0);
+  });
+
+  it("csp-inline-rules: hashes the text a parser reads, not the bytes sent (NUL becomes U+FFFD, CRLF becomes LF)", async () => {
+    const char = (code: number) => String.fromCharCode(code);
+    const [NUL, CR, LF, REPLACEMENT] = [char(0), char(13), char(10), char(0xfffd)];
+    const fixture = [
+      "<!DOCTYPE html><html><head>",
+      `<script class="$tsr">a="${NUL}_site${NUL}";${CR}${LF}b();${CR}c();</script>`,
+      `<style>.a{content:"${NUL}"}${CR}${LF}.b{}</style>`,
+      "</head><body></body></html>",
+    ].join("");
+    const [script = ""] = parsedInline(fixture, "script");
+    const [style = ""] = parsedInline(fixture, "style");
+    expect(script).toBe(`a="${REPLACEMENT}_site${REPLACEMENT}";${LF}b();${LF}c();`);
+    const found = await inlineHashes(fixture);
+    expect(found.scripts).toEqual([sha256(script)]);
+    expect(found.styles).toEqual([sha256(style)]);
+  });
+
+  it("csp-inline-rules: admits every class $tsr script of a real render of / as a parser reads it", async () => {
+    const page = await renderHome();
+    const marked = parsedInline(page, "script", true);
+    expect(marked.length).toBeGreaterThan(0);
+    expect(page).toContain(String.fromCharCode(0));
+    const found = await inlineHashes(page);
+    for (const text of marked) expect(found.scripts).toContain(sha256(text));
+    for (const text of parsedInline(page, "style")) expect(found.styles).toContain(sha256(text));
   });
 });
 

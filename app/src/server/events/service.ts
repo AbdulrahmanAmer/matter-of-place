@@ -59,6 +59,11 @@ export async function record(db: Db, input: AnalyticsBatch, ctx: PublicCtx): Pro
  * `POST /csp-report`: a report whose directive and blocked address were stored in the last 60 seconds is dropped,
  * and the rest become one `record_analytics_events` call. A browser never retries a report, so a lost one is
  * acceptable: a database error is logged and sent to Sentry, and the answer is still 204.
+ *
+ * Unit cost of one batch (C22, the Workers and Supabase lines of P-009): one Worker request, and one Supabase RPC
+ * subrequest holding at most 20 rows of under 1 KB each, or none when every report is a duplicate. The per-IP limit
+ * of 60 requests a minute and the 60-second duplicate window are per isolate; the rows a report-only week adds to
+ * `analytics_events` are UNPROVEN until step 10 reads them.
  */
 export async function recordCspReports(
   db: Db,

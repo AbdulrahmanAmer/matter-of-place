@@ -39,8 +39,8 @@
     "id": "b17-csp-leave-out",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
-    "replace": "    if ((marked && scripts.length === 0) || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if ((marked && scripts.length === 0) || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*headers: puts every class .tsr inline script"
   },
@@ -93,8 +93,8 @@
     "id": "b17-hash-ldjson",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "  const styles = [...html.matchAll(STYLE)].map(([, text = \"\"]) => text);",
-    "replace": "  const styles = [...html.matchAll(STYLE), ...html.matchAll(new RegExp('<script type=\"application/ld[+]json\">([^]*?)</script>', \"g\"))].map(([, text = \"\"]) => text);",
+    "find": "  const styles = [...html.matchAll(STYLE)].map(([, text = \"\"]) => parsedText(text));",
+    "replace": "  const styles = [...html.matchAll(STYLE), ...html.matchAll(new RegExp('<script type=\"application/ld[+]json\">([^]*?)</script>', \"g\"))].map(([, text = \"\"]) => parsedText(text));",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*csp-inline-rules: hashes a class .tsr script"
   },
@@ -102,8 +102,8 @@
     "id": "b17-hash-all",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
-    "replace": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text) || true) scripts.push(text);",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text) || true) scripts.push(parsedText(text));",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*csp-inline-rules: leaves an unmarked executable script out"
   },
@@ -129,8 +129,8 @@
     "id": "b17-tsr-unmarked",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
-    "replace": "    if (CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if (CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*csp-inline-rules: reports nothing for a page whose inline"
   },
@@ -147,7 +147,7 @@
     "id": "b17-frame-self",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "framing === \"self\" ? [\"'self'\"] : sources",
+    "find": "directive === \"frame-ancestors\" && framing === \"self\" ? [\"'self'\"] : sources",
     "replace": "sources",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*framing: lets a preview-token page"
@@ -257,5 +257,50 @@
     "test": "scripts/csp-proof.mjs",
     "run": "node scripts/csp-proof.mjs http://127.0.0.1:8938",
     "expect": "FAIL .* policy holds each inline script hash"
+  },
+  {
+    "id": "b17-parsed-script",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "scripts.push(parsedText(text));",
+    "replace": "scripts.push(text);",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-render",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "scripts.push(parsedText(text));",
+    "replace": "scripts.push(text);",
+    "expect": "× .*csp-inline-rules: admits every class .tsr script of a real render"
+  },
+  {
+    "id": "b17-parsed-style",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".map(([, text = \"\"]) => parsedText(text));",
+    "replace": ".map(([, text = \"\"]) => text);",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-nul",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".replace(/\\0/g, \"\\uFFFD\")",
+    "replace": "",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-lf",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".replace(/\\r\\n?/g, \"\\n\")",
+    "replace": "",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
   }
 ]

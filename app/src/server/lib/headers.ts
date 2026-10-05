@@ -141,6 +141,13 @@ const STYLE = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
 const LINK = /<link\b[^>]*>/gi;
 const EXECUTABLE_TYPE = /^(?:module|(?:text|application)\/(?:x-)?(?:java|ecma)script)$/i;
 
+/**
+ * The text a browser hashes is the text its parser produced, not the bytes sent: input preprocessing turns CR and
+ * CRLF into LF, and the tokenizer turns each NUL in script or style data into U+FFFD. TanStack writes NUL into its
+ * bootstrap script (match ids such as `\u0000_site\u0000`), so the raw bytes would never match.
+ */
+const parsedText = (text: string): string => text.replace(/\r\n?/g, "\n").replace(/\0/g, "\uFFFD");
+
 const attribute = (tag: string, name: string): string | undefined => {
   const match = new RegExp(`\\s${name}=(?:"([^"]*)"|'([^']*)')`, "i").exec(tag);
   return match?.[1] ?? match?.[2];
@@ -165,10 +172,10 @@ export async function inlineHashes(html: string): Promise<PageHashes & { unexpec
       continue;
     }
     const marked = attribute(attrs, "class")?.split(/\s+/).includes("$tsr") === true;
-    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(text);
+    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));
     else unexpected += 1;
   }
-  const styles = [...html.matchAll(STYLE)].map(([, text = ""]) => text);
+  const styles = [...html.matchAll(STYLE)].map(([, text = ""]) => parsedText(text));
   const hashed = await Promise.all([...scripts, ...styles].map(sha256Base64));
   return {
     scripts: [...new Set(hashed.slice(0, scripts.length))],

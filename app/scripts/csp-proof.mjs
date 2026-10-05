@@ -4,6 +4,7 @@
 // usage: node scripts/csp-proof.mjs <baseUrl>
 
 import { createHash } from "node:crypto";
+import { parse } from "parse5";
 
 const USAGE = "usage: node scripts/csp-proof.mjs <baseUrl>";
 const TIMEOUT_MS = 20_000;
@@ -12,7 +13,28 @@ const POLICY_HEADERS = ["content-security-policy", "content-security-policy-repo
 /** @typedef {{ status: number, headers: Headers, text: string }} Answer */
 
 // TanStack marks the scripts of its own bootstrap with `class="$tsr"`; the policy must hold each one's hash (SEC-03).
-const MARKED_SCRIPT = /<script\b[^>]*\bclass="\$tsr"[^>]*>([\s\S]*?)<\/script>/g;
+// A hash covers the text a parser reads (NUL becomes U+FFFD, CRLF becomes LF), so the text comes from parse5 (P-1903).
+/**
+ * @param {string} page
+ * @returns {string[]}
+ */
+function markedScripts(page) {
+  /** @type {string[]} */
+  const found = [];
+  /** @param {import("parse5").DefaultTreeAdapterMap["node"]} node */
+  const walk = (node) => {
+    if (
+      "tagName" in node &&
+      node.tagName === "script" &&
+      node.attrs.some(({ name, value }) => name === "class" && value.split(" ").includes("$tsr"))
+    ) {
+      found.push(node.childNodes.map((child) => ("value" in child ? child.value : "")).join(""));
+    }
+    if ("childNodes" in node) node.childNodes.forEach(walk);
+  };
+  walk(parse(page));
+  return found;
+}
 
 /**
  * @param {URL} base
@@ -68,8 +90,8 @@ function sameHeaders(failures, name, miss, answer) {
       ? "missing on the miss"
       : `${built.name} ${read === undefined ? "missing" : "equal"}`,
   );
-  const hashes = [...answer.text.matchAll(MARKED_SCRIPT)].map(
-    ([, code = ""]) => `'sha256-${createHash("sha256").update(code).digest("base64")}'`,
+  const hashes = markedScripts(answer.text).map(
+    (code) => `'sha256-${createHash("sha256").update(code).digest("base64")}'`,
   );
   const unlisted = hashes.filter((hash) => read?.value.includes(hash) !== true);
   check(
