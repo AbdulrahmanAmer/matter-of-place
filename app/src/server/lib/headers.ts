@@ -80,13 +80,14 @@ const hashSources = (hashes: readonly string[]): string[] =>
 
 /**
  * The Content-Security-Policy value. Inline scripts and styles are allowed by hash only, never by a nonce,
- * because HTML is cached (architecture 13 rule 5). The policy does not vary with `env` or `flags`; the flag only
- * decides the header's name (`policyHeaderName`). `connect-src` carries the origin of this deployment's
+ * because HTML is cached (architecture 13 rule 5). The policy does not vary with `env`; the `csp_enforce` flag decides
+ * the header's name (`policyHeaderName`) and whether `upgrade-insecure-requests` is sent, a directive a browser
+ * ignores, with a console error, in a report-only policy. `connect-src` carries the origin of this deployment's
  * SUPABASE_URL (none when the variable is absent). Photographs come from our own origin, so `img-src` names no media host.
  */
 export function cspFor(
   _env: string,
-  _flags: Flags,
+  flags: Flags,
   hashes: Partial<PageHashes> = {},
   options: { framing?: Framing } = {},
 ): string {
@@ -98,6 +99,9 @@ export function cspFor(
     "frame-src": framing === "admin" ? ["'self'"] : [],
   };
   return Object.entries(POLICY)
+    .filter(
+      ([directive]) => directive !== "upgrade-insecure-requests" || flags["csp_enforce"] === true,
+    )
     .map(([directive, sources]) => {
       const own = directive === "frame-ancestors" && framing === "self" ? ["'self'"] : sources;
       return [directive, ...own, ...(extra[directive] ?? [])].join(" ");

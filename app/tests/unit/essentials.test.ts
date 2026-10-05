@@ -165,6 +165,19 @@ describe("headers", () => {
     );
   });
 
+  it("headers: sends upgrade-insecure-requests only in the enforced policy, never in the report-only one", () => {
+    const reporting = securityHeaders("production", { csp_enforce: false });
+    expect(reporting["Content-Security-Policy-Report-Only"]).not.toContain(
+      "upgrade-insecure-requests",
+    );
+    expect(securityHeaders("production", {})["Content-Security-Policy-Report-Only"]).not.toContain(
+      "upgrade-insecure-requests",
+    );
+    expect(
+      securityHeaders("production", { csp_enforce: true })["Content-Security-Policy"],
+    ).toContain("upgrade-insecure-requests");
+  });
+
   it("headers: puts every class $tsr inline script of the page into script-src by its hash, and never a nonce", async () => {
     const response = await setup().run(get("/"));
     const policy = response.headers.get(REPORT_ONLY) ?? "";

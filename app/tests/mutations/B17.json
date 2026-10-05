@@ -302,5 +302,14 @@
     "find": ".replace(/\\r\\n?/g, \"\\n\")",
     "replace": "",
     "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-csp-upgrade-report-only",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "directive !== \"upgrade-insecure-requests\" || flags[\"csp_enforce\"] === true",
+    "replace": "true",
+    "expect": "× .*headers: sends upgrade-insecure-requests only in the enforced policy"
   }
 ]
