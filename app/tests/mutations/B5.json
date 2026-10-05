@@ -1631,5 +1631,33 @@
     "replace": "    kind: row.class,",
     "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
     "expect": "× .*is sent only to actor_email, with the \\[Test\\] prefix and kind test"
+  },
+  {
+    "id": "b5-env-confirm-refuse",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "    .regex(/^[A-Za-z0-9+/]{43}=$/, \"must be base64 of 32 bytes\")",
+    "replace": "    .regex(/^[A-Za-z0-9+/=]+$/, \"must be base64 of 32 bytes\")",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*names CONFIRM_TOKEN_SECRET when it is not base64 of 32 bytes"
+  },
+  {
+    "id": "b5-env-confirm-accept",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "    .regex(/^[A-Za-z0-9+/]{43}=$/, \"must be base64 of 32 bytes\")",
+    "replace": "    .regex(/^[A-Za-z0-9+/]{42}=$/, \"must be base64 of 32 bytes\")",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*accepts a CONFIRM_TOKEN_SECRET that is base64 of 32 bytes"
+  },
+  {
+    "id": "b5-ao-email-chain",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/email-chain.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "expected \\[ 'scripts/email-chain.ts' \\] to deeply equal \\[\\]"
   }
 ]

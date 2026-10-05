@@ -83,6 +83,64 @@ bun run db:psql -- -c "select template_key, status, error, to_email, sent_at fro
 `status` moves forward only: `sent`, `delivered`, then `bounced` or `complained`; `skipped` and `failed` are written by
 the send step. The columns are those of `src/db/types.ts`; the query itself was not run by this step.
 
+## The job runner's email settings (step 4a)
+
+`send_email` and `notify_admin` run in the job runner, so the email settings are Supabase function secrets of the one
+project. Set on 2026-10-05 and checked by name and by SHA-256 digest against the intended value (`supabase secrets list
+-o json` shows the digest, never the value):
+
+| Name                   | Value on `mop-dev` before the launch switch                                        |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| `RESEND_FROM`          | `Matter of Place <hello@notify.matterofplace.com>`                                 |
+| `RESEND_FROM_BULK`     | `Place Notes <hello@notes.matterofplace.com>`                                      |
+| `ADMIN_NOTIFY_EMAIL`   | `admin@matterofplace.com`                                                          |
+| `SITE_URL`             | `https://matter-of-place-dev.holy-meadow-4327.workers.dev` (the dev Worker)        |
+| `MOP_ENV`              | `preview`                                                                          |
+| `CONFIRM_TOKEN_SECRET` | base64 of 32 random bytes, generated once with `openssl rand -base64 32` in `.env` |
+
+`EMAIL_LIVE` and `RESEND_API_KEY` are not set, so no send reaches Resend: `sendOne` writes the row `skipped` with a
+`dry_` id and the error `dry_run` (invariant 16). Step 5 sets both. An address outside `settings.email.dev_recipients`
+is `skipped` `not_allow_listed` whatever the flags say, unless `MOP_ENV` is `production`.
+
+`CONFIRM_TOKEN_SECRET` must be the same value wherever it is set: from step 7 on, the Worker seals the confirm token with
+it and the runner opens it, so a token sealed with another key cannot be opened (`token_unreadable`; today both ends are
+the `STUB(B5 step 7)` bodies of `confirmation.ts` and `variables.ts`). It is also a Worker secret: a key of the
+GitHub secret `PREVIEW_WORKER_SECRETS_JSON` for `matter-of-place-dev` and the previews, and
+`bunx wrangler secret put CONFIRM_TOKEN_SECRET --name matter-of-place` for production. To check a copy without printing
+it, compare digests from `app/` with `.env` loaded:
+
+```
+bunx supabase secrets list --project-ref "$DEV_SUPABASE_PROJECT_REF" -o json \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const h=require("crypto").createHash("sha256").update(process.env.CONFIRM_TOKEN_SECRET).digest("hex");console.log(JSON.parse(s).find(r=>r.name==="CONFIRM_TOKEN_SECRET")?.value===h?"same":"different")})'
+```
+
+`env.ts` refuses a Worker value that is not base64 of 32 bytes, naming the key. `node scripts/dev-vars.mjs` copies the
+value from `.env` into `.dev.vars`, which `wrangler dev` reads, when `.env` holds it.
+
+On 2026-10-05 neither Worker held it yet: `matter-of-place-dev` waits for the key in `PREVIEW_WORKER_SECRETS_JSON` and
+the next deploy from `main`, and `wrangler secret put` on `matter-of-place` refused with `Secret edit failed ... the
+latest version of your Worker isn't currently deployed` (`wrangler deployments status` showed a deployment whose message reads `smoke failed f2b24b0...`).
+
+Not done yet, UNPROVEN: the deploy of the runner with the email steps (`bunx supabase functions deploy job-runner
+--use-api --project-ref $DEV_SUPABASE_PROJECT_REF`), its bundle size and its cold start. They run from `main` once B5
+steps 3 and 4 are merged (ruling H1), and their figures go here.
+
+## The chain proof
+
+```
+cd app
+eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bun run scripts/email-chain.ts
+```
+
+It refuses with `refusing: production database` once `settings.environment` is `production`, then takes the writer
+lock, creates one submission from `delivered@resend.dev` through `create_submission`, waits up to 180 seconds for the
+runner, prints `<template_key> <status> <resend_id>` for every message of that event and deletes the submission. It exits
+0 when there is one `received` message and at least one `admin_notify` message, each `sent`, `delivered` or (dry run)
+`skipped` with a `dry_` id; it exits 1 on a dead job, a timeout, a second `submission.received` event or a second
+`received` message. UNPROVEN on `mop-dev` until the runner deploy above. Against a throwaway PostgreSQL 18 cluster it
+printed `refusing: production database` and exit 1 with `settings.environment` set to `production`, and with `preview`
+it took the lock, failed on the missing `create_submission` and exited 1 without hanging.
+
 ## Render cost
 
 A Worker request has 10 ms of CPU on the free plan (P-009) and `previewTemplate` renders inside one, so
