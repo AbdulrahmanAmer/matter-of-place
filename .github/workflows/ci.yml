@@ -139,3 +139,194 @@ jobs:
   # needs the built site downloads build-output and never builds again. No job touches the shared
   # dev project, its secrets or a database concurrency group (invariant 13). Every new pull request
   # job name goes into REQUIRED_PR_CHECKS of scripts/merge-gate.mjs in the same commit (6b).
+
+  # B4 step 8 (H1 (b), T-01): the database tests on a Supabase stack started for this job from the
+  # branch's own migrations; no shared database, no secret. The stack's key is its own, not a secret.
+  db:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # The mutation replay diffs against origin/main, so the whole history is fetched.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+      - name: supabase start
+        run: bunx supabase start -x studio,imgproxy,realtime,logflare,vector,supavisor,mailpit,edge-runtime
+      # An assignment carries the status of its substitution; eval of a failed one would not (G-040).
+      - name: stack env
+        run: |
+          stack=$(bunx supabase status -o env)
+          set -a; eval "$stack"; set +a
+          test -n "${SERVICE_ROLE_KEY:-}"
+          {
+            echo "DEV_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+            echo "SUPABASE_URL=http://127.0.0.1:54321"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "RATE_LIMIT_SALT=ci-only-salt"
+            echo "MOP_ENV=local"
+          } >> "$GITHUB_ENV"
+      - name: re-apply
+        run: bun run db:reset -- --local
+      - name: type drift
+        run: |
+          bun run gen:types -- --local
+          git diff --exit-code src/db/types.ts
+      # A lane commits the generated file: gh run download <id> -n db-types.
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: db-types
+          path: app/src/db/types.ts
+          retention-days: 1
+      - name: seed
+        run: |
+          stack=$(bunx supabase status -o env)
+          set -a; eval "$stack"; set +a
+          bun run seed -- --target local --mode full --images skip
+      - run: bun run test:db
+      # T-07: every unit or SQL mutation whose file or test this branch touches goes red again.
+      - name: mutation replay
+        run: node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit,sql
+
+  # B4 step 7 (T-04, T-05, T-12): the specs on the live artifact of build, served by wrangler dev and
+  # pointed at a Supabase stack of its own, seeded here. This job never builds.
+  e2e:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # T-04, the one allowed cut (step 10 of B4, measured in tests/README.md): a push that touches none of these paths
+      # builds and checks as before and skips this job's work. Nothing narrower; the filter keeps src/.
+      - name: change test
+        id: fe
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- 'src/**' 'supabase/**' package.json bun.lock | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "e2e specs skipped: no change under src/, supabase/, package.json or bun.lock (T-04)"
+          fi
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.fe.outputs.changed == 'true'
+        with:
+          bun-version: 1.3.13
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.fe.outputs.changed == 'true'
+        with:
+          node-version: 24
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.fe.outputs.changed == 'true'
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.fe.outputs.changed == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
+      - run: bun install --frozen-lockfile
+        if: steps.fe.outputs.changed == 'true'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.fe.outputs.changed == 'true'
+        with:
+          name: build-output
+          path: app/.output
+      - name: supabase start
+        if: steps.fe.outputs.changed == 'true'
+        run: bunx supabase start -x studio,imgproxy,realtime,logflare,vector,supavisor,mailpit,edge-runtime
+      - name: stack env
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          stack=$(bunx supabase status -o env)
+          set -a; eval "$stack"; set +a
+          test -n "${SERVICE_ROLE_KEY:-}"
+          {
+            echo "DEV_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+            echo "SUPABASE_URL=http://127.0.0.1:54321"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "RATE_LIMIT_SALT=ci-only-salt"
+            echo "MOP_ENV=local"
+          } >> "$GITHUB_ENV"
+      # The seed stores the photographs the catalogue names in this stack's Storage (P-422); the step fails first, and by
+      # name, if the media bucket that migration storage creates is missing.
+      - name: media bucket
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          curl -fsS -o /dev/null -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/bucket/media"
+      - name: seed
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          stack=$(bunx supabase status -o env)
+          set -a; eval "$stack"; set +a
+          bun run seed -- --target local --mode full --images upload
+      # The Worker's values: this job's stack, Cloudflare's always-pass Turnstile secret, fixed CI
+      # values. No SENTRY_DSN, which env.ts allows with MOP_ENV=local (the built target's --var).
+      - name: dev vars
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          {
+            echo "SUPABASE_URL=$SUPABASE_URL"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY"
+            echo "TURNSTILE_SECRET=1x0000000000000000000000000000000AA"
+            echo "RATE_LIMIT_SALT=ci-only-salt"
+            echo "CATALOG_VERSION_TTL_MS=0"
+          } > .dev.vars
+      - run: bun run test:e2e:install
+        if: steps.fe.outputs.changed == 'true'
+      - name: specs
+        if: steps.fe.outputs.changed == 'true'
+        env:
+          E2E_TARGET: built
+          E2E_MODE: live
+        run: bunx playwright test --project=desktop --project=phone --project=live-desktop --project=edge
+      # The coming-soon toggle runs on this job's own stack (T-04). Its spec is B3b's.
+      - name: coming-soon
+        if: steps.fe.outputs.changed == 'true'
+        env:
+          E2E_TARGET: built
+          E2E_MODE: live
+        run: |
+          if bunx playwright test --list --project=coming-soon-desktop > /dev/null; then
+            bun run test:e2e:coming-soon
+          else
+            echo "coming-soon spec absent (B3b not landed)"
+          fi
+      - name: admin
+        if: steps.fe.outputs.changed == 'true'
+        env:
+          E2E_TARGET: built
+          E2E_MODE: live
+        run: |
+          if bunx playwright test --list --project=admin > /dev/null; then
+            E2E_DATASET=1 bunx playwright test --project=admin
+          else
+            echo "admin project absent (B7 not landed)"
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: app/playwright-report/
+          retention-days: 3

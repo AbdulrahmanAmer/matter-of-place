@@ -18,6 +18,7 @@ async function deleteRows(db: Db, key: string, dryRun: boolean): Promise<number>
 
 export const prune: SystemJobDefinition = {
   type: "prune",
+  sideEffect: "none",
   async run(ctx, params) {
     const dryRun = isDryRun(params);
     const policies = await readPolicies(ctx.db, ["jobs_done"]);

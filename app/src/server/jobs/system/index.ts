@@ -15,6 +15,10 @@ const systemJobs: readonly SystemJobDefinition[] = [
   metaTokenRefresh,
 ];
 
+export function listSystemJobs(): readonly SystemJobDefinition[] {
+  return systemJobs;
+}
+
 export function getSystemJob(type: string): SystemJobDefinition | undefined {
   return systemJobs.find((job) => job.type === type);
 }

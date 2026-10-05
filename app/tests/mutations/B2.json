@@ -2350,8 +2350,8 @@
     "kind": "file",
     "test": "src/domain/enums.check.ts",
     "file": "src/db/types.ts",
-    "find": "        | \"Withdrawn\"\n",
-    "replace": "        | \"Withdrawn\"\n        | \"Probe\"\n",
+    "find": "\"Completed\"|\"Withdrawn\"",
+    "replace": "\"Completed\"|\"Withdrawn\"|\"Probe\"",
     "run": "bun run typecheck",
     "expect": "enums.check.ts.*does not satisfy the constraint 'true'"
   },

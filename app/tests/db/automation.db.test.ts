@@ -1,6 +1,7 @@
 // B8b step 1: the automation migration (invariants 7, 8, 11 and 12, SEC-11, JOB-07's schedule claim). Every case runs
 // in one rolled-back transaction (F22); fixture rows are upserted, so a seeded row changes no outcome.
 import { randomUUID } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, createStaffUser, withRollback, type Db } from "../fixtures/db";
@@ -471,5 +472,152 @@ describe("decline_reasons", () => {
       "decline_reasons_select_staff",
       "decline_reasons_update_editors",
     ]);
+  });
+});
+
+const MIGRATIONS = new URL("../../supabase/migrations/", import.meta.url);
+
+/** The text of the one migration whose name ends in `suffix`; a test runs it again inside its transaction. */
+function migration(suffix: string): string {
+  const names = readdirSync(MIGRATIONS).filter((name) => name.endsWith(suffix));
+  if (names.length !== 1 || names[0] === undefined)
+    throw new Error(`one *${suffix}, found ${String(names.length)}`);
+  return readFileSync(new URL(names[0], MIGRATIONS), "utf8");
+}
+
+const seed = () => migration("_automation_seed.sql");
+
+describe("seed (step 4)", () => {
+  it("holds one recipe per event type with the plan's step counts", async () => {
+    const rows = await withRollback(async (db) => {
+      await db.query(seed());
+      return (
+        await db.query<{ trigger: string; steps: number }>(
+          "select trigger, jsonb_array_length(steps) as steps from public.automation_recipes order by trigger",
+        )
+      ).rows;
+    });
+    expect(Object.fromEntries(rows.map((row) => [row.trigger, row.steps]))).toEqual({
+      "asset.approved": 4,
+      "asset.rejected": 0,
+      "digest.due": 2,
+      "health.failed": 1,
+      "inquiry.received": 4,
+      "invoice.issued": 1,
+      "invoice.voided": 1,
+      "payment.marked": 1,
+      "property.published": 10,
+      "property.unpublished": 2,
+      "subject_request.received": 2,
+      "submission.accepted": 1,
+      "submission.activated": 0,
+      "submission.awaiting_assets": 1,
+      "submission.declined": 1,
+      "submission.received": 2,
+      "subscriber.confirmed": 0,
+      "subscriber.created": 1,
+    });
+  });
+
+  it("seeds the eight schedule rows with their UTC cron and switches", async () => {
+    const rows = await withRollback(async (db) => {
+      await db.query(seed());
+      return (
+        await db.query<{
+          key: string;
+          cron: string;
+          interval_days: number | null;
+          enabled: boolean;
+        }>("select key, cron, interval_days, enabled from public.schedule_settings order by key")
+      ).rows;
+    });
+    expect(rows).toEqual([
+      { key: "audit", cron: "0 12 * * 6", interval_days: null, enabled: false },
+      { key: "backup", cron: "17 3 * * *", interval_days: null, enabled: false },
+      { key: "digest", cron: "0 14 * * 2", interval_days: 14, enabled: false },
+      { key: "keepwarm", cron: "*/10 * * * *", interval_days: null, enabled: true },
+      { key: "kpi_weekly", cron: "0 15 * * 6", interval_days: null, enabled: true },
+      { key: "newsletter_hygiene", cron: "0 16 * * *", interval_days: null, enabled: true },
+      { key: "prune", cron: "30 3 * * *", interval_days: null, enabled: true },
+      { key: "reconcile", cron: "*/15 * * * *", interval_days: null, enabled: true },
+    ]);
+  });
+
+  it("gives every channel a zone, and an insert without tz is refused", async () => {
+    const result = await withRollback(async (db) => {
+      await db.query(seed());
+      const channels = (
+        await db.query<{ channel: string; tz: string | null }>(
+          "select channel, posting_window ->> 'tz' as tz from public.channel_settings order by channel",
+        )
+      ).rows;
+      await db.query("delete from public.channel_settings where channel = 'youtube'");
+      const refused = await attempt(
+        db,
+        `insert into public.channel_settings (channel, posting_window) values ('youtube', '{"days": [1]}')`,
+      );
+      return { channels, refused };
+    });
+    expect(result.channels.map((row) => row.channel)).toEqual([
+      "facebook",
+      "instagram",
+      "linkedin",
+      "newsletter",
+      "x",
+      "youtube",
+    ]);
+    expect(result.channels.filter((row) => row.tz === null || row.tz === "")).toEqual([]);
+    expect(result.refused).toMatch(/^23514 /);
+  });
+
+  it("seeds six decline reasons in order, other with no paragraph and no em dash", async () => {
+    const rows = await withRollback(async (db) => {
+      await db.query(seed());
+      return (
+        await db.query<{ code: string; email_paragraph: string }>(
+          "select code, email_paragraph from public.decline_reasons order by sort, code",
+        )
+      ).rows;
+    });
+    expect(rows.map((row) => row.code)).toEqual([
+      "not_a_fit",
+      "outside_markets",
+      "new_development",
+      "insufficient_material",
+      "rights_unclear",
+      "other",
+    ]);
+    expect(rows.find((row) => row.code === "other")?.email_paragraph).toBe("");
+    expect(rows.filter((row) => row.email_paragraph.includes("\u2014"))).toEqual([]);
+  });
+
+  it("run twice in one transaction, the seed adds no revision the second time", async () => {
+    const counts = await withRollback(async (db) => {
+      const count = async () =>
+        (await one<{ n: number }>(db, "select count(*)::int as n from public.automation_revisions"))
+          .n;
+      await db.query(seed());
+      const first = await count();
+      await db.query(seed());
+      return { first, second: await count() };
+    });
+    expect(counts.second).toBe(counts.first);
+  });
+});
+
+describe("schedules migration (step 4)", () => {
+  it("removes B8's prune pg_cron job and keeps the runner's own jobs", async () => {
+    const jobs = await withRollback(async (db) => {
+      // B8's job as its migration schedules it, so the case holds before and after mop-dev runs this file.
+      await db.query("select cron.schedule('prune', '30 3 * * *', 'select 1')");
+      await db.query(migration("_automation_schedules.sql"));
+      return (await db.query<{ jobname: string }>("select jobname from cron.job order by 1")).rows;
+    });
+    const names = jobs.map((job) => job.jobname);
+    expect(names).not.toContain("prune");
+    expect(names).not.toContain("reconcile_uploads");
+    expect(names).toEqual(
+      expect.arrayContaining(["health", "job-runner", "meta_token_refresh", "retention"]),
+    );
   });
 });

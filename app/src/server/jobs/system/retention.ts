@@ -159,6 +159,7 @@ async function rollupRecentDays(ctx: StepContext): Promise<number> {
 
 export const retention: SystemJobDefinition = {
   type: "retention",
+  sideEffect: "none",
   timeoutMs: 40_000,
   async run(ctx, params) {
     const { db } = ctx;
