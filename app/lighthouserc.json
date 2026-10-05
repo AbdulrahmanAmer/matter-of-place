@@ -1,0 +1,26 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "onlyCategories": ["performance"],
+        "chromeFlags": "--no-sandbox"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "largest-contentful-paint": [
+          "warn",
+          { "maxNumericValue": 2500, "aggregationMethod": "median" }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+        ],
+        "resource-summary:script:size": ["warn", { "maxNumericValue": 153600 }],
+        "resource-summary:document:size": ["error", { "maxNumericValue": 61440 }]
+      }
+    }
+  }
+}
