@@ -23,7 +23,7 @@ the other needs, except the worktree it is working in.
 4. GPU: if the machine has two graphics chips, pin Playwright's and puppeteer's browsers to the fast one as P-522's
    neighbour entry describes (per-executable `GpuPreference=2` under `HKCU\Software\Microsoft\DirectX\UserGpuPreferences`).
 5. Status line and prompt hooks: none on a build machine (P-522, P-527).
-6. Open a terminal in the clone and start Claude Code. Say: "You are the lane runner. Read workspace/05-plans/LANE-RUNNER.md
+6. Open a terminal in the clone and start Claude Code. Say: "You are the lane runner. Read workspace/05-plans/lane-runner.md
    and run the lanes it assigns to this machine."
 
 ## What the lane runner does
