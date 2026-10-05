@@ -20,6 +20,7 @@ type Source = Pick<ServedCatalog, "properties" | "cards">;
 
 interface Group extends FacetSummary {
   slugs: string[];
+  labels: Set<string>;
 }
 
 interface Grouped {
@@ -40,8 +41,9 @@ function group(source: Source): Grouped {
     const slug = slugify(text);
     if (slug === "") return;
     const key = `${kind}/${slug}`;
-    const current = found.get(key) ?? { kind, slug, label, count: 0, slugs: [] };
+    const current = found.get(key) ?? { kind, slug, label, count: 0, slugs: [], labels: new Set() };
     current.label = label < current.label ? label : current.label;
+    current.labels.add(label);
     current.count += 1;
     current.slugs.push(property);
     found.set(key, current);
@@ -95,10 +97,15 @@ export function getFacet(
   };
 }
 
-/** `{ <kind>: { <label>: <slug> } }` for the facets that exist: what a property page needs to link to an archive. */
+/**
+ * `{ <kind>: { <label>: <slug> } }` for the facets that exist: what a property page needs to link to an archive. Every
+ * spelling that folds into a facet is a key, so a property whose label differs only in case or accents still links.
+ */
 export function facetMap(source: Source, state: PublicState): FacetMap {
   const map: FacetMap = { city: {}, architect: {}, style: {} };
-  for (const { kind, label, slug } of listFacets(source, state)) map[kind][label] = slug;
+  if (!enabled(state)) return map;
+  for (const { kind, slug, labels } of group(source).groups)
+    for (const label of labels) map[kind][label] = slug;
   return map;
 }
 

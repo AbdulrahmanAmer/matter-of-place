@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { ArchiveKind } from "../domain/archive";
 import { isLive, services } from "../services";
-import { getArchiveFacetsFn, getArchiveFn } from "./archive.functions";
 
 /**
  * Query definitions for catalog reads. Route loaders call
@@ -56,7 +55,11 @@ export const storyQuery = (slug: string) =>
 export const archiveQuery = (kind: ArchiveKind, slug: string) =>
   queryOptions({
     queryKey: ["archive", kind, slug],
-    queryFn: () => (isLive ? getArchiveFn({ data: { kind, slug } }) : null),
+    queryFn: async () => {
+      if (!isLive) return null;
+      const { getArchiveFn } = await import("./archive.functions");
+      return getArchiveFn({ data: { kind, slug } });
+    },
     staleTime: catalogStaleTime,
   });
 
@@ -64,6 +67,10 @@ export const archiveQuery = (kind: ArchiveKind, slug: string) =>
 export const archiveFacetsQuery = () =>
   queryOptions({
     queryKey: ["archive-facets"],
-    queryFn: () => (isLive ? getArchiveFacetsFn() : null),
+    queryFn: async () => {
+      if (!isLive) return null;
+      const { getArchiveFacetsFn } = await import("./archive.functions");
+      return getArchiveFacetsFn();
+    },
     staleTime: catalogStaleTime,
   });

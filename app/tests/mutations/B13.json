@@ -562,6 +562,15 @@
     "expect": "FAIL .*facets > folds accents and apostrophes into the slug and keeps the label that sorts first"
   },
   {
+    "id": "b13-s4-arch-spellings",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "current.labels.add(label);",
+    "replace": "current.labels.add(current.label);",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > links every spelling of a label to its facet"
+  },
+  {
     "id": "b13-s4-arch-blank",
     "test": "tests/unit/archive.test.ts",
     "file": "src/server/seo/archive.ts",

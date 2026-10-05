@@ -30,7 +30,7 @@ import { propertyDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/property/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
-    const [property, properties, markets] = await Promise.all([
+    const [property, properties, markets, archive] = await Promise.all([
       queryClient.ensureQueryData(propertyQuery(params.slug)),
       queryClient.ensureQueryData(propertiesQuery()),
       queryClient.ensureQueryData(marketsQuery()),
@@ -40,7 +40,13 @@ export const Route = createFileRoute("/_site/property/$slug")({
     const market = marketOf(markets, property.market);
     const region = regionOf(markets, property.market, property.region);
     if (!market || !region) throw notFound();
-    return { property, market, region, related: relatedProperties(properties, property, 3) };
+    return {
+      property,
+      market,
+      region,
+      related: relatedProperties(properties, property, 3),
+      facets: archive?.facets ?? null,
+    };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return unavailableHead("Property");
@@ -67,7 +73,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
 });
 
 function PropertyPage() {
-  const { property, market, region, related } = Route.useLoaderData();
+  const { property, market, region, related, facets } = Route.useLoaderData();
   const [intent, setIntent] = useState<Intent | null>(null);
   const [askOpen, setAskOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -204,21 +210,25 @@ function PropertyPage() {
             <div>
               <dt>Architecture</dt>
               <dd>
-                <ArchiveLink kind="style" label={property.style} />
+                <ArchiveLink kind="style" label={property.style} facets={facets} />
               </dd>
             </div>
             {property.architect !== undefined && (
               <div>
                 <dt>Architect</dt>
                 <dd>
-                  <ArchiveLink kind="architect" label={property.architect} />
+                  <ArchiveLink kind="architect" label={property.architect} facets={facets} />
                 </dd>
               </div>
             )}
             <div>
               <dt>City</dt>
               <dd>
-                <ArchiveLink kind="city" label={`${property.city}, ${property.state}`} />
+                <ArchiveLink
+                  kind="city"
+                  label={`${property.city}, ${property.state}`}
+                  facets={facets}
+                />
               </dd>
             </div>
             <div>

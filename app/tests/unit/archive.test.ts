@@ -125,7 +125,21 @@ describe("facets", () => {
         { architect: "Zürich O’Brien" },
       ]),
     );
-    expect(facetMap(catalog, on).architect).toEqual({ "Zurich OBrien": "zurich-obrien" });
+    expect(getFacet(catalog, on, "architect", "zurich-obrien")?.label).toBe("Zurich OBrien");
+  });
+
+  it("links every spelling of a label to its facet", () => {
+    const catalog = catalogOf(
+      withOwn([
+        { architect: "Richard Neutra" },
+        { architect: "Richard Neutra" },
+        { architect: "Richard Neutra " },
+      ]),
+    );
+    expect(facetMap(catalog, on).architect).toEqual({
+      "Richard Neutra": "richard-neutra",
+      "Richard Neutra ": "richard-neutra",
+    });
   });
 
   it("skips an architect that is blank", () => {
