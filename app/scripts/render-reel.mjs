@@ -1,8 +1,8 @@
 // Job type `render_reel` (B12): the `reel` job of render.yml runs this script; `render-job.mjs` never sees the type.
 // Everything runs in the foreground (P-017): the scene of `launch/reel` is captured, mixed, encoded and gated, both
-// files are named by content and uploaded to bucket `media`, and only then is `result.json` overwritten, which the
-// workflow's `post-callback.mjs` step posts. By hand: `bun scripts/render-reel.mjs --fixture --out <dir>` renders the
-// fixture property and touches no network.
+// files are named by content and uploaded to bucket `media` (a fixture job or `--out` uploads nothing), and only then
+// is `result.json` overwritten, which the workflow's `post-callback.mjs` step posts. By hand:
+// `bun scripts/render-reel.mjs --fixture --out <dir>` renders the fixture property and touches no network.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
