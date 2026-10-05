@@ -59,10 +59,12 @@
     "rolldown": "1.2.1"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "1.170.18",
     "@tanstack/react-start": "1.168.32",
     "cron-parser": "5.10.1",
+    "jose": "^6.2.12",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

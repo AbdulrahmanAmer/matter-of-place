@@ -166,6 +166,7 @@ additional_redirect_urls = [
   "https://pr-*.holy-meadow-4327.workers.dev/**",
   "https://matter-of-place.holy-meadow-4327.workers.dev/**",
   "https://matter-of-place-dev.holy-meadow-4327.workers.dev/**",
+  "http://localhost:8788/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

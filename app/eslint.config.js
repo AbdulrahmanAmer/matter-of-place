@@ -133,7 +133,7 @@ function syntaxBlocks() {
 }
 
 const ADAPTER_FILES = [
-  "src/server/lib/{db,sentry,turnstile,media-store}.ts",
+  "src/server/lib/{db,sentry,turnstile,media-store,session}.ts",
   "src/server/email/resend-client.ts",
   "src/server/channels/{meta,meta-token,meta-metrics,x,linkedin,youtube,oauth-tokens,resend}.ts",
   "src/server/omnikom/client.ts",

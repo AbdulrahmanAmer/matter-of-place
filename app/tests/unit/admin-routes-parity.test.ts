@@ -90,7 +90,6 @@ const routesPending: readonly ActionId[] = [
   "audit.subject_opt_out",
   "audit.subject_status",
   "dashboard.get",
-  "me",
   "automation.get",
   "automation.recipes_put",
   "automation.templates_put",

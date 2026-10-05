@@ -23,6 +23,10 @@ const shape = z.object({
   SENTRY_TEST_TOKEN: text.optional(),
   // Key of the render callback signature; unset, the render hook answers 503 (B8 Contract).
   RENDER_CALLBACK_SECRET: text.optional(),
+  // Key of the draft preview links; unset, signing answers 503 and a preview link is 404 (B7 Contract).
+  PREVIEW_TOKEN_SECRET: text.optional(),
+  // HMAC key of the admin's signed double-submit token; unset, every session write answers 503 (API-05).
+  CSRF_SECRET: text.optional(),
   CATALOG_VERSION_TTL_MS: z.coerce.number().int().nonnegative().optional(),
 });
 

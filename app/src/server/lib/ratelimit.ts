@@ -45,6 +45,18 @@ const windows = new Map<string, MemoryWindow>();
 const expired = (window: MemoryWindow, now: number): boolean =>
   now - window.start >= window.windowMs;
 
+/** Whether `key` has already used `limit` hits of its current window, without counting one (a limit on failures only). */
+export function memoryExhausted(
+  bucket: string,
+  key: string,
+  limit: number,
+  now = Date.now(),
+): LimitResult {
+  const current = windows.get(`${bucket}:${key}`);
+  if (current === undefined || expired(current, now) || current.count < limit) return { ok: true };
+  return { ok: false, retryAfter: Math.ceil((current.start + current.windowMs - now) / 1000) };
+}
+
 /** A fixed-window counter in the isolate's memory, the cheap first line before any database call. */
 export function checkMemory(
   bucket: string,

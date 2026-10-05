@@ -56,6 +56,9 @@ export const errorCodes = {
   bad_content_type: 400,
   session_expired: 401,
   reauth_required: 401,
+  account_disabled: 401,
+  auth_unavailable: 503,
+  csrf_secret_missing: 503,
   // B5: `email_message_finish` takes sent, failed or skipped only.
   invalid_status: 422,
 } as const;

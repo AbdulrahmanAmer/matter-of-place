@@ -215,6 +215,7 @@ Entry template
 - hit again: 2026-10-04, B3b g4: three heredocs that held an apostrophe in a comment or a string (`unexpected EOF while looking for matching`) wrote nothing; the files went in with Write.
 - hit again: 2026-10-04, B3b g3: a 90-line `cat >> logs/B3b.md <<'EOF'` holding `\"` and backticks ended in `unexpected EOF while looking for matching` and wrote nothing; the block went into the scratchpad with Write and was appended with `cat <file> >> logs/B3b.md`. A log block longer than a few lines always goes that way.
 - hit again: 2026-10-05, B13 c1 review: a read-only `node -e` check with a regex escape for U+2028 in it reached node as the raw character and died with `SyntaxError: Unterminated regexp literal`; the reviewer then used `grep` with the byte pattern of U+2028 written as hex escapes in `$'...'` quoting, which worked. The rule covers read-only checks too: a check that holds a backslash goes in as a file written with Write, or as a `grep` on bytes. The c1 costTime line filed the author's own case under P-1800, which covers only the character in a written file; this entry covers the escape in a command.
+- hit again: 2026-10-05, B7 g2: two `node -e` and `node - <<EOF` patches with a regular expression in them (`/^application\/x-www-form-urlencoded\s*/` in `admin-route.ts`, `/\/api\/admin\//` in `auth-verify.test.ts`) reached node without their backslashes; the first broke the regex silently and was only seen on reading the file back, the second made a test file unparsable. Both were redone with Edit. A patch whose text holds a backslash goes through Write or Edit, never through the shell.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -883,6 +884,7 @@ Entry template
 - hit again: 2026-10-04, B3b g5 repair round: an empty `python3 - <<'EOF'` typed after a bank append hung 120 seconds in the background; the append itself had run; it was ended with `taskkill //IM python3.exe` instead of by its id, which the rule above forbids.
 - hit again: 2026-10-04, B3b g4: an empty `python - <<EOF` at the end of a file-writing command held the call until the 120 s timeout and moved it to the background; kill it with `taskkill //F //IM python.exe`, and never type `python` here.
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
+- hit again: 2026-10-05, B7 g2: an empty `python3 - <<'EOF'` typed as a no-op hung its call to the 120 s ceiling and went to the background; nothing depended on it.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -1425,6 +1427,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run a single-file proof as `bun run test <file>` (bun passes the path on and the script's flags apply) or add `--testTimeout=60000 --hookTimeout=60000` to a bare `bunx vitest run`. A `Test timed out in 5000ms` from a bare run is the default limit, not a fault: re-run it through the script before reading it as red. Whether the limit should move into `vitest.config.ts`, where every runner reads it, is the orchestrator's call (logged as a follow-up).
 - proof: `cd app && for i in 1 2 3 4; do bunx vitest run tests/unit/deploy-guard.test.ts 2>&1 | grep -E "Tests |timed out"; done` → at least one `Test timed out in 5000ms` while two lanes build (measured 2026-10-03); `for i in 1 2 3; do bun run test tests/unit/deploy-guard.test.ts 2>&1 | grep "Tests "; done` → three `Tests  6 passed (6)`.
 - added: 2026-10-03
+- hit again: 2026-10-05, B7 g2: `bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts tests/unit/admin-authz-sweep.test.ts` failed two cases with `Test timed out in 5000ms` once the admin route files imported `@supabase/ssr` and `jose` (the registry imports every route file); with `--testTimeout=60000` all 54 passed. Every B7 proof and registry `run` carries the flag.
 
 ## P-141 · A job's text slice in `hygiene.test.ts` holds the comment above the next job, so a "not in this job" check reads another job's words
 - symptom: B1b c7's first case for H49 (1) asserted `has("dev", "PRODUCTION_DEPLOY")` is false (dev is not gated); it went red on a correct workflow, because the comment written above `production:` names `PRODUCTION_DEPLOY`. The same case first read `deployJob("production")?.if?.split(...)` and `tsc` refused it: `Property 'split' does not exist on type 'string | boolean'`. Two reworks before the case was right.
@@ -3426,4 +3429,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `String.replace` with text that was not written by hand takes a function replacer, `s.replace(a, () => b)`, never the string; and a check run from a helper names the file it checks (run `node workspace/05-plans/check-gotchas.mjs` from the lane's own root), never a script in another checkout.
 - proof: `grep -c '^## P-010' GOTCHAS.md` → 1 and `grep '^## [PG]-[0-9]*' GOTCHAS.md | sort | uniq -d | wc -l` → 0 after the rebuild from base, lane and main; set difference of ids against main and against the lane's last own commit → 0 missing on either side.
 - enforced-by: scratchpad resolve-bank-both.mjs (function replacer); bank-merge.sh runs the lane's check-gotchas
+- added: 2026-10-05
+
+## P-2004 · `bunx playwright test --project admin <spec>` reads the spec as a second project name
+- symptom: B7 step 2's proof, run as written (`bunx playwright test --project admin tests/e2e/admin-signin.spec.ts`), ended at once with `Error: Project(s) "tests/e2e/admin-signin.spec.ts" not found. Available projects: "desktop", ..., "admin"`.
+- cause: Playwright's `--project` takes several values, so a separate word after it is another project, not a test file.
+- rule: write the project with an equals sign, `--project=admin`, in every Playwright command, as the B4 and B13 proofs already do.
+- proof: `cd app && bunx playwright test --project admin tests/e2e/admin-signin.spec.ts --list` → `Project(s) "tests/e2e/admin-signin.spec.ts" not found`; `bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts --list` → `Total: 4 tests in 1 file` (measured 2026-10-05, B7 g2).
+- added: 2026-10-05
+
+## P-2005 · Playwright's `page.request` does not send a `Secure` cookie to `http://127.0.0.1`, which the browser does
+- symptom: the admin sign-in spec landed on `/admin` after the confirm POST, and `page.request.get("/api/admin/me")` answered 401 while `fetch("/api/admin/me")` inside the page answered 200; `context.cookies()` held `mop_csrf` and the session cookie, both `secure=true`, domain `127.0.0.1`.
+- cause: Chromium treats a loopback origin as potentially trustworthy and keeps and sends `Secure` cookies over plain HTTP there; Playwright's own API request context applies the plain rule and leaves a `Secure` cookie off an `http:` request. The admin cookies are `Secure` by contract (invariant 11).
+- rule: an e2e check that the admin session holds runs in the page (`page.evaluate(() => fetch("/api/admin/me"))`, `meStatus` of `tests/e2e/helpers/session.ts`), never through `page.request` or the `request` fixture, until a spec runs on an `https` origin.
+- proof: in `tests/e2e/helpers/session.ts` make `meStatus` return `(await page.request.get("/api/admin/me")).status()`; with the dev server warm on the lane port, `E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8948 bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts` fails the invite case at that line with `Expected: 200 Received: 401` (measured 2026-10-05, B7 g2, the spec as first written); with `meStatus` as committed, `4 passed`.
+- added: 2026-10-05
+
+## P-2006 · `E2E_TARGET=dev` on a loaded laptop: `vite dev` outlives the 120 s web-server wait, and its first admin pages outlive a 5 s expect
+- symptom: `E2E_TARGET=dev E2E_PORT=8948 bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts` ended with `Error: Timed out waiting 120000ms from config.webServer.` and `script "dev" exited with code 1`; with the server started by hand the first run still failed four cases at `toBeVisible` (5000 ms) while vite printed `optimizer bundling dependencies` and reloaded the page. The CPU stood at 100 % with other lanes running.
+- cause: the admin pages render in the browser only (`ssr: false`), so the first paint waits for vite to compile and optimise every module the page asks for; a cold `vite dev` took about 60 s to answer at all.
+- rule: on this laptop run the dev leg against a dev server started with the Bash tool's `run_in_background` (`bun run dev -- --port <lane port> --strictPort`, the `.dev.vars` values exported first), wait for `/api/admin/me` to answer, then run the spec with `E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:<lane port>`; the admin project carries `timeout: 120_000` and `expect: { timeout: 30_000 }`. Stop the server by its own `bun.exe` id (P-830).
+- proof: with the dev server warm, `E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8948 bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts` → `4 passed (3.3m)` (measured 2026-10-05, B7 g2); the same with `E2E_TARGET=built` → `4 passed (1.5m)`.
+- added: 2026-10-05
+
+## P-2007 · A file under `tests/fixtures/` may not read the clock, even when every test that calls it fakes `Date`
+- symptom: B7 g2's `tests/fixtures/supabase-auth.ts` minted tokens with `Date.now()`; the nine step 2 test files passed under `vi.useFakeTimers({ toFake: ["Date"] })`, and the full `bun run test` failed `tests/unit/clock.test.ts > the fixture files > read no wall clock, no Math.random and no random uuid` with `expected [ 'supabase-auth.ts' ] to deeply equal []`.
+- cause: `clock.test.ts` reads the text of every fixture file and refuses `Date.now()`, `new Date()`, `Math.random` and `randomUUID` (R51); it does not know which callers fake the clock.
+- rule: a fixture takes `now` from its caller (`key.token({ now: Date.now() })`, `sessionCookie(token, now)`), and a fixed row stamp is a literal ISO string; run `bunx vitest run tests/unit/clock.test.ts` after adding any file under `tests/fixtures/`.
+- proof: `cd app && bunx vitest run tests/unit/clock.test.ts` passes; with `Date.now()` back in the `token` default of `tests/fixtures/supabase-auth.ts` it fails naming `supabase-auth.ts` (measured 2026-10-05, B7 g2).
 - added: 2026-10-05

@@ -32,6 +32,9 @@ export const LogEvent = [
   "keepwarm_liveness_rpc_failed",
   "keepwarm_tick",
   "keepwarm_env_missing",
+  "send_link_limited",
+  "auth_send_failed",
+  "jwks_fetch_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

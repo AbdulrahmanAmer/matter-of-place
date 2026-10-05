@@ -368,5 +368,447 @@
     "sql": "create or replace function public.staff_can_sign_in(p_email text)\nreturns boolean\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Invariant 19: a sign-in link goes only to an address that holds an enabled role.\n  select exists (\n    select 1\n    from auth.users u\n    join public.user_roles r on r.user_id = u.id\n    where lower(u.email) = lower(p_email)\n  );\n$$;\n\nrevoke execute on function public.staff_can_sign_in(text) from public, anon, authenticated;\ngrant execute on function public.staff_can_sign_in(text) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"is true for an enabled staff address\"",
     "expect": "× .*is true for an enabled staff address"
+  },
+  {
+    "id": "b7-g2-session-get-user",
+    "file": "src/server/lib/session.ts",
+    "find": "  const { data, error } = await authClient(request).auth.getSession();",
+    "replace": "  await authClient(request).auth.getUser();\n  const { data, error } = await authClient(request).auth.getSession();",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*serves 1,000 requests"
+  },
+  {
+    "id": "b7-g2-session-jwks-cache",
+    "file": "src/server/lib/session.ts",
+    "find": "    const known = keySet ?? (await fetchKeys(url, now));",
+    "replace": "    const known = await fetchKeys(url, now);",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*serves 1,000 requests"
+  },
+  {
+    "id": "b7-g2-session-kid-refetch",
+    "file": "src/server/lib/session.ts",
+    "find": "      if (!stale) throw error;",
+    "replace": "      throw error;",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*refetches the key set once for an unknown kid"
+  },
+  {
+    "id": "b7-g2-session-kid-cooldown",
+    "file": "src/server/lib/session.ts",
+    "find": "now - fetchedAt >= REFETCH_AFTER_MS",
+    "replace": "now - fetchedAt >= 0",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*refetches the key set once for an unknown kid"
+  },
+  {
+    "id": "b7-g2-session-bad-signature",
+    "file": "src/server/lib/session.ts",
+    "find": "    if (error instanceof AppError) throw error;\n    return null;\n  }",
+    "replace": "    if (error instanceof AppError) throw error;\n    payload = decodeJwt(token);\n  }",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*answers a token with a bad signature 401"
+  },
+  {
+    "id": "b7-g2-session-jwks-503",
+    "file": "src/server/lib/session.ts",
+    "find": "    if (error instanceof AppError) throw error;",
+    "replace": "    if (error instanceof AppError) return null;",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*answers 503 auth_unavailable"
+  },
+  {
+    "id": "b7-g2-keys-raw-at-rest",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "  return sha256Hex(key);",
+    "replace": "  return Promise.resolve(key);",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*makes keys that start with mopk_"
+  },
+  {
+    "id": "b7-g2-keys-prefix",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "const PREFIX = \"mopk_\";",
+    "replace": "const PREFIX = \"mop_\";",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*makes keys that start with mopk_"
+  },
+  {
+    "id": "b7-g2-keys-revoked",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "row.revoked_at !== null || ",
+    "replace": "",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*refuses a revoked key"
+  },
+  {
+    "id": "b7-g2-keys-disabled",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": " || row.roles.length === 0",
+    "replace": "",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*refuses a revoked key"
+  },
+  {
+    "id": "b7-g2-keys-touch",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "  if (now - lastUsed > TOUCH_AFTER_MS) {",
+    "replace": "  if (now - lastUsed >= 0) {",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*writes last_used_at at most once a minute"
+  },
+  {
+    "id": "b7-g2-keys-per-minute",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "  if (!verdict.ok) throw limited(verdict.retryAfter);",
+    "replace": "",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*answers the 61st call of one key"
+  },
+  {
+    "id": "b7-g2-keys-retry-after",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "        refused.headers.set(\"retry-after\", String(known.retryAfter));",
+    "replace": "",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*answers the 61st call of one key"
+  },
+  {
+    "id": "b7-g2-keys-fail-ip",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "  if (!blocked.ok) throw limited(blocked.retryAfter);",
+    "replace": "",
+    "test": "tests/unit/agent-keys.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-keys.test.ts",
+    "expect": "× .*refuses an address after 20 failed lookups"
+  },
+  {
+    "id": "b7-g2-policy-12h",
+    "file": "src/server/lib/session-policy.ts",
+    "find": "SESSION_HOURS * 3_600_000",
+    "replace": "SESSION_HOURS * 3_600_000 * 2",
+    "test": "tests/unit/session-policy.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-policy.test.ts",
+    "expect": "× .*answers a session signed in 13 hours ago"
+  },
+  {
+    "id": "b7-g2-policy-recent",
+    "file": "src/server/lib/session-policy.ts",
+    "find": "minutes * 60_000",
+    "replace": "minutes * 60_000 * 2",
+    "test": "tests/unit/session-policy.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-policy.test.ts",
+    "expect": "× .*answers a team call 20 minutes after sign-in"
+  },
+  {
+    "id": "b7-g2-csrf-header",
+    "file": "src/server/lib/csrf.ts",
+    "find": "  if (sent === null) throw refused();",
+    "replace": "  if (sent === null) return;",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*answers a POST without X-MOP-CSRF"
+  },
+  {
+    "id": "b7-g2-csrf-other-session",
+    "file": "src/server/lib/csrf.ts",
+    "find": "  const expected = await csrfTokenFor(actor.session.id, key);",
+    "replace": "  const expected = sent;",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*answers a header computed for another session_id"
+  },
+  {
+    "id": "b7-g2-csrf-refresh",
+    "file": "src/server/lib/session.ts",
+    "find": "    userId: sub,\n    sessionId,",
+    "replace": "    userId: sub,\n    sessionId: `${sessionId}:${token.slice(-8)}`,",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*passes a refreshed access token"
+  },
+  {
+    "id": "b7-g2-csrf-origin",
+    "file": "src/server/lib/csrf.ts",
+    "find": "  if (!sameOrigin(request)) throw refused();",
+    "replace": "",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*answers a foreign Origin 403"
+  },
+  {
+    "id": "b7-g2-csrf-bearer",
+    "file": "src/server/lib/csrf.ts",
+    "find": "  if (actor.session === undefined) return;\n  if (key === undefined) {",
+    "replace": "  if (key === undefined) {",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*lets a bearer key write"
+  },
+  {
+    "id": "b7-g2-csrf-secret-missing",
+    "file": "src/server/lib/csrf.ts",
+    "find": "      \"csrf_secret_missing\",",
+    "replace": "      \"csrf\",",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*answers a session write 503 csrf_secret_missing"
+  },
+  {
+    "id": "b7-g2-csrf-me-cookie",
+    "file": "src/server/team/service.ts",
+    "find": "    if (current !== token) headers.append(\"set-cookie\", csrfCookie(token));",
+    "replace": "",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*sets mop_csrf to the session"
+  },
+  {
+    "id": "b7-g2-csrf-safe-next",
+    "file": "src/server/lib/csrf.ts",
+    "find": "const UNSAFE = /\\/\\/|\\\\|:|[^\\x20-\\x7e]/;",
+    "replace": "const UNSAFE = /\\\\|:|[^\\x20-\\x7e]/;",
+    "test": "tests/unit/csrf.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/csrf.test.ts",
+    "expect": "× .*keeps a path under /admin and refuses"
+  },
+  {
+    "id": "b7-g2-response-no-store",
+    "file": "src/server/lib/admin-response.ts",
+    "find": "  \"cache-control\": \"private, no-store\",",
+    "replace": "  \"cache-control\": \"private\",",
+    "test": "tests/unit/admin-response.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/admin-response.test.ts",
+    "expect": "× .*adminJson answers JSON with the admin transport headers"
+  },
+  {
+    "id": "b7-g2-response-every-answer",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "      withAdminHeaders(response).headers.set(\"x-request-id\", requestId);",
+    "replace": "      response.headers.set(\"x-request-id\", requestId);",
+    "test": "tests/unit/admin-response.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/admin-response.test.ts",
+    "expect": "× .*puts them on every answer of an admin route"
+  },
+  {
+    "id": "b7-g2-time-market",
+    "file": "src/domain/market-time.ts",
+    "find": "marketSlug === \"california\" ? PACIFIC : EASTERN",
+    "replace": "marketSlug === \"florida\" ? PACIFIC : EASTERN",
+    "test": "tests/unit/market-time.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/market-time.test.ts",
+    "expect": "× .*maps california to Pacific"
+  },
+  {
+    "id": "b7-g2-time-zone",
+    "file": "src/domain/market-time.ts",
+    "find": "{ ...STYLES[style], timeZone: zone }",
+    "replace": "{ ...STYLES[style], timeZone: \"UTC\" }",
+    "test": "tests/unit/market-time.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/market-time.test.ts",
+    "expect": "× .*renders the right Pacific and Eastern wall time"
+  },
+  {
+    "id": "b7-g2-time-suffix",
+    "file": "src/domain/market-time.ts",
+    "find": "[EASTERN]: \"ET\"",
+    "replace": "[EASTERN]: \"EST\"",
+    "test": "tests/unit/market-time.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/market-time.test.ts",
+    "expect": "× .*renders the right wall time on the day daylight saving ends"
+  },
+  {
+    "id": "b7-g2-time-to-utc",
+    "file": "src/domain/market-time.ts",
+    "find": "Math.min(...candidates)",
+    "replace": "Math.max(...candidates)",
+    "test": "tests/unit/market-time.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/market-time.test.ts",
+    "expect": "× .*converts a typed wall time to UTC"
+  },
+  {
+    "id": "b7-g2-actor-disabled-row",
+    "file": "src/server/lib/actor.ts",
+    "find": ".filter((row) => row.disabled_at === null)",
+    "replace": ".filter(() => true)",
+    "test": "tests/unit/actor.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/actor.test.ts",
+    "expect": "× .*keeps only the enabled role"
+  },
+  {
+    "id": "b7-g2-actor-account-disabled",
+    "file": "src/server/lib/actor.ts",
+    "find": "\"account_disabled\", undefined",
+    "replace": "\"unauthorized\", undefined",
+    "test": "tests/unit/actor.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/actor.test.ts",
+    "expect": "× .*answers a user whose rows are all disabled"
+  },
+  {
+    "id": "b7-g2-actor-no-credential",
+    "file": "src/server/lib/actor.ts",
+    "find": "  if (key === undefined) throw signIn();",
+    "replace": "  if (key === undefined) return { userId: \"\", kind: \"human\", roles: [], scopes: [] };",
+    "test": "tests/unit/actor.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/actor.test.ts",
+    "expect": "× .*answers a request with neither a session nor a key"
+  },
+  {
+    "id": "b7-g2-actor-me-environment",
+    "file": "src/server/team/service.ts",
+    "find": "    environment: environment.MOP_ENV,",
+    "replace": "    environment: \"local\",",
+    "test": "tests/unit/actor.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/actor.test.ts",
+    "expect": "× .*answers the actor, its actions and the environment"
+  },
+  {
+    "id": "b7-g2-verify-confirm-form",
+    "file": "src/admin/team/ConfirmForm.tsx",
+    "find": "method=\"post\"",
+    "replace": "method=\"get\"",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*renders one button in a form that posts to verify"
+  },
+  {
+    "id": "b7-g2-verify-csrf-cookie",
+    "file": "src/server/team/service.ts",
+    "find": "    response.headers.append(\"set-cookie\", csrfCookie(token));",
+    "replace": "",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*sets the session cookies and mop_csrf"
+  },
+  {
+    "id": "b7-g2-verify-http-only",
+    "file": "src/server/lib/session.ts",
+    "find": "httpOnly: true, secure: true",
+    "replace": "httpOnly: false, secure: true",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*sets the session cookies and mop_csrf"
+  },
+  {
+    "id": "b7-g2-verify-safe-next",
+    "file": "src/server/lib/csrf.ts",
+    "find": "  return UNDER_ADMIN.test(next) ? next : \"/admin\";",
+    "replace": "  return next;",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*redirects //evil.example"
+  },
+  {
+    "id": "b7-g2-verify-origin",
+    "file": "src/server/team/service.ts",
+    "find": "  if (!sameOrigin(request)) {",
+    "replace": "  if (sameOrigin(request) && false) {",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*answers a foreign Origin 403 csrf"
+  },
+  {
+    "id": "b7-g2-verify-disabled",
+    "file": "src/server/team/service.ts",
+    "find": "    takeIssuedCookies(request);\n",
+    "replace": "",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*sends a user whose rows are all disabled"
+  },
+  {
+    "id": "b7-g2-sign-out-csrf",
+    "file": "src/server/team/service.ts",
+    "find": "  response.headers.append(\"set-cookie\", expireCsrfCookie());",
+    "replace": "",
+    "test": "tests/unit/auth-verify.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*ends the session and expires"
+  },
+  {
+    "id": "b7-g2-send-redirect-to",
+    "file": "src/server/team/service.ts",
+    "find": "    options: { shouldCreateUser: false },",
+    "replace": "    options: { shouldCreateUser: false, emailRedirectTo: \"https://evil.example\" },",
+    "test": "tests/unit/auth-send-link.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
+    "expect": "× .*sends one link to a staff address"
+  },
+  {
+    "id": "b7-g2-send-unknown",
+    "file": "src/server/team/service.ts",
+    "find": "  if (!staff.data) return SENT;",
+    "replace": "",
+    "test": "tests/unit/auth-send-link.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
+    "expect": "× .*answers sent and sends nothing to an unknown"
+  },
+  {
+    "id": "b7-g2-send-no-token",
+    "file": "src/server/team/service.ts",
+    "find": "  if (turnstile === \"fail\") return \"turnstile\";",
+    "replace": "",
+    "test": "tests/unit/auth-send-link.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
+    "expect": "× .*answers sent and sends nothing without a Turnstile token"
+  },
+  {
+    "id": "b7-g2-send-turnstile-fail",
+    "file": "src/server/team/service.ts",
+    "find": "  if (turnstile === \"fail\") return \"turnstile\";",
+    "replace": "",
+    "test": "tests/unit/auth-send-link.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
+    "expect": "× .*answers sent and sends nothing when Turnstile fails"
+  },
+  {
+    "id": "b7-g2-send-email-limit",
+    "file": "src/server/team/service.ts",
+    "find": "  return limits.ok ? null : \"limit\";",
+    "replace": "  return null;",
+    "test": "tests/unit/auth-send-link.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
+    "expect": "× .*sends nothing for the 4th request"
+  },
+  {
+    "id": "b7-g2-guard-seed",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/seed-admin-users.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
+    "expect": "scripts/seed-admin-users\\.ts"
+  },
+  {
+    "id": "b7-g2-guard-probe",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/probe-amr.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
+    "expect": "scripts/probe-amr\\.ts"
+  },
+  {
+    "id": "b7-g2-signin-confirm-open",
+    "test": "tests/e2e/admin-signin.spec.ts",
+    "file": "src/routes/admin.tsx",
+    "find": "const OPEN_PATHS = new Set([\"/admin/sign-in\", \"/admin/auth/confirm\"]);",
+    "replace": "const OPEN_PATHS = new Set([\"/admin/sign-in\"]);",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8948 bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts --grep \"spends nothing\"",
+    "expect": "getByRole\\(.button., \\{ name: .Continue to Matter of Place. \\}\\)",
+    "kind": "manual"
   }
 ]
