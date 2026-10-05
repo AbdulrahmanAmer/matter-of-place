@@ -7,7 +7,20 @@ export type Database = {
   
   "public": {
           Tables: {
-            "agent_keys": {
+            "action_roles": {
+                  Row: {
+                    "action": string,"human_only": boolean,"roles": (Database["public"]['Enums']["app_role"])[]
+                  }
+                  Insert: {
+                    "action": string,"human_only": boolean,"roles": (Database["public"]['Enums']["app_role"])[]
+                  }
+                  Update: {
+                    "action"?: string,"human_only"?: boolean,"roles"?: (Database["public"]['Enums']["app_role"])[]
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"agent_keys": {
                   Row: {
                     "created_at": string,"id": string,"key_hash": string,"label": string,"last_used_at": string | null,"revoked_at": string | null,"scopes": (string)[],"user_id": string
                   }
@@ -876,7 +889,12 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "apply_email_event":
+            "agent_key_by_hash":
+{ Args: { "p_hash": string }; Returns: {
+              "key_id": string,"last_used_at": string,"revoked_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"scopes": (string)[],"user_id": string
+            }[]
+                           },
+"apply_email_event":
 { Args: { "p": Json }; Returns: boolean
                            },
 "apply_media_variants":
@@ -1257,6 +1275,9 @@ isOneToOne: false
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },
+"staff_can_sign_in":
+{ Args: { "p_email": string }; Returns: boolean
+                           },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean
                            },
@@ -1264,6 +1285,9 @@ isOneToOne: false
 { Args: { "p_media_ids": (string)[],"p_submission_id": string }; Returns: {
               "media_id": string,"storage_path": string
             }[]
+                           },
+"touch_agent_key":
+{ Args: { "p_key_id": string }; Returns: undefined
                            },
 "unsubscribe_email":
 { Args: { "p_email": string }; Returns: boolean
@@ -1295,6 +1319,9 @@ isOneToOne: false
       } },
 "upsert_subscriber":
 { Args: { "p": Json }; Returns: string
+                           },
+"write_audit":
+{ Args: { "p_action": string,"p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_after": Json,"p_before": Json,"p_entity": string,"p_entity_id": string,"p_note"?: string,"p_request_id": string }; Returns: number
                            }
           }
           Enums: {

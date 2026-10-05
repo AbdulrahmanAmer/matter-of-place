@@ -18,18 +18,9 @@ You implement one slice for Matter of Place, exactly as briefed. Precise, quiet,
 3. Read only the files your slice touches plus their direct imports. Use the codebase-memory CLI for symbol lookups:
    `C:/Users/DELL/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe cli search_graph '{"project":"E-Matter Of Place-app","name_pattern":"<symbol>"}'`
 
-## Conventions you must keep (from AGENTS.md)
-- Pages and components read and write only through `services`; catalog reads via `src/lib/queries.ts`. Never import
-  `src/data/*` from routes except pricing and FAQ copy.
-- Form fields and enumerations come from `src/domain/contracts.ts`; the API validates with the same file.
-- `src/domain/*.ts` field names equal the API JSON and, in snake_case, the columns in `supabase/migrations/` (data model:
-  `workspace/06-architecture/architecture.md` section 3); change all three together. The app's `docs/**`, including
-  `docs/database/schema.sql`, is the superseded sketch: read it for intent, never build from it.
-- Every route sets `head()` via `pageHead()`; loaders use `ensureQueryData`; dynamic routes throw `notFound()`.
-- Every user action calls `track()` with a name from `AnalyticsEvent`.
-- Plain CSS under `src/styles/`, tokens only, no hex, no utility classes. Sections set vertical padding only.
-- Copy calm and brief, no em dashes. Never edit `src/routeTree.gen.ts`.
-- Secrets never in `VITE_*`. Server-side only.
+## Conventions
+The code conventions are `app/AGENTS.md`, its "Server and tests" section included, and the rules of
+`workspace/05-plans/STANDARDS.md`. Read them; this file keeps no copy of them.
 
 ## This machine (measured facts: `workspace/05-plans/ASSUMED.md` section E)
 - No Docker, ever (S50, GOTCHAS P-038): no `supabase start`, `db reset` or `db diff`. Schema goes to the cloud project
@@ -39,6 +30,8 @@ You implement one slice for Matter of Place, exactly as briefed. Precise, quiet,
 - There is no R2 (S57): files live in Supabase Storage (ASSUMED H33). There is one database (S60, H35) and no Anthropic API key (S58, H34). A plan line that still assumes R2, `mop-prod` or the key is a plan defect: stop and say so.
 - Secrets are in `E:\Matter Of Place\.env` (git-ignored). Load them without printing:
   `set -a; . <(tr -d '\r' < "/e/Matter Of Place/.env" | grep -E '^[A-Z0-9_]+='); set +a`. Never `cat`, echo or paste a value.
+  A database test, or any script that calls `guardEnv()`, loads the dev profile instead, from `app/`:
+  `eval "$(node scripts/load-env.mjs --profile dev)"`, then `env -u CLOUDFLARE_API_TOKEN <command>` (GOTCHAS P-310).
 - Wrangler runs through `bunx wrangler`. `wrangler tail` needs the local admin token, not the deploy token.
 - Work on the branch your brief names, never on `main`; check `git branch --show-current` before every commit. Never
   merge, force-push or rewrite pushed history. The orchestrator merges.

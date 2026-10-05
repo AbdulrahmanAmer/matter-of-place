@@ -1,0 +1,372 @@
+[
+  {
+    "id": "b7-g1-commercial-decline",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/submissions.ts",
+    "find": "{ action: \"submissions.decline\", group: \"submissions\", roles: editors },",
+    "replace": "{ action: \"submissions.decline\", group: \"submissions\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*equals the hand-typed fixture"
+  },
+  {
+    "id": "b7-g1-commercial-decline-sync",
+    "test": "tests/unit/action-roles.sync.test.ts",
+    "file": "src/server/lib/permissions/submissions.ts",
+    "find": "{ action: \"submissions.decline\", group: \"submissions\", roles: editors },",
+    "replace": "{ action: \"submissions.decline\", group: \"submissions\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/action-roles.sync.test.ts",
+    "expect": "× .*holds one row per matrix action"
+  },
+  {
+    "id": "b7-g1-team-human-only",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/team.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*refuses an agent on every team and settings action"
+  },
+  {
+    "id": "b7-g1-subject-delete-human-only",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "{ action: \"audit.subject_delete\", group: \"audit\", ...guarded },",
+    "replace": "{ action: \"audit.subject_delete\", group: \"audit\", roles: [\"admin\"], recentAuth: true },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*humanOnly refuses an agent admin"
+  },
+  {
+    "id": "b7-g1-scope-check",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "if (!entry.scopeFree && !actor.scopes.includes(entry.group)) return \"out_of_scope\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*out_of_scope on a publish"
+  },
+  {
+    "id": "b7-g1-me-scope-free",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/dashboard.ts",
+    "find": "{ action: \"me\", group: \"dashboard\", roles: appRoles, scopeFree: true },",
+    "replace": "{ action: \"me\", group: \"dashboard\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*lets an agent scoped to submissions read me"
+  },
+  {
+    "id": "b7-g1-role-check",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*refuses a roleless actor everywhere"
+  },
+  {
+    "id": "b7-g1-sweep-probe",
+    "test": "tests/unit/admin-authz-sweep.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-authz-sweep.test.ts",
+    "expect": "× .*the probe tells a guarded service"
+  },
+  {
+    "id": "b7-g1-can",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "return entry !== undefined && refusal(actor, entry) === null;",
+    "replace": "return entry !== undefined;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*can\\(\\) answers"
+  },
+  {
+    "id": "b7-g1-slug-locked",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  slug_immutable: \"slug_locked\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*slug_immutable as 422 slug_locked"
+  },
+  {
+    "id": "b7-g1-stale",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  version_conflict: \"stale\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*version_conflict as 409 stale"
+  },
+  {
+    "id": "b7-g1-sqlstate-42501",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  \"42501\": \"forbidden\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*maps SQLSTATE 42501"
+  },
+  {
+    "id": "b7-g1-failed-fetch",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "const FAILED_FETCH = /^(?:TypeError|AbortError|FetchError):/;",
+    "replace": "const FAILED_FETCH = /^$/;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*rpc whose fetch rejected"
+  },
+  {
+    "id": "b7-g1-pgrst003",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "const POSTGREST_OUTAGE = /^PGRST00[0-3]$/;",
+    "replace": "const POSTGREST_OUTAGE = /^PGRST00[0-2]$/;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*PostgREST PGRST003"
+  },
+  {
+    "id": "b7-g1-thrown-outage",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  if (error instanceof TypeError) return FETCH_TYPE_ERROR.test(error.message);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*thrown fetch TypeError"
+  },
+  {
+    "id": "b7-g1-bug-typeerror",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "return FETCH_TYPE_ERROR.test(error.message);",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*TypeError that no fetch threw"
+  },
+  {
+    "id": "b7-g1-routes-pending-literal",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "tests/unit/admin-routes-parity.test.ts",
+    "find": "  \"properties.rank\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*gives every matrix action a route"
+  },
+  {
+    "id": "b7-g1-raise-detail",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "details || REFUSED_MESSAGE",
+    "replace": "REFUSED_MESSAGE",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*carries the raise"
+  },
+  {
+    "id": "b7-g1-csrf",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "if (WRITES.includes(request.method)) await deps.verifyCsrf(request, actor);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*403 csrf"
+  },
+  {
+    "id": "b7-g1-request-id",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "const { requestId } = context;",
+    "replace": "const requestId = crypto.randomUUID();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*request id r1"
+  },
+  {
+    "id": "b7-g1-allow",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "refused.headers.set(\"allow\", def.method);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*405 method_not_allowed"
+  },
+  {
+    "id": "b7-g1-recent-auth",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "if (permission(def.action).recentAuth) deps.requireRecentAuth(actor, now);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*reauth_required on a recentAuth action"
+  },
+  {
+    "id": "b7-g1-size-header",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "if (Number(request.headers.get(\"content-length\") ?? 0) > limit) throw tooLarge();",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*413 payload_too_large"
+  },
+  {
+    "id": "b7-g1-content-type",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "throw new AppError(\"bad_content_type\", undefined, \"Send this request as JSON.\");",
+    "replace": "return { ...params };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*400 bad_content_type"
+  },
+  {
+    "id": "b7-g1-empty-typed-write",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "if ((text !== \"\" || type !== null) && ",
+    "replace": "if (text !== \"\" && ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*empty write that declares a type"
+  },
+  {
+    "id": "b7-g1-parse-first",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "result = await def.handler({ ...base, actor }, parseInput(def.input, raw));",
+    "replace": "result = await def.handler({ ...base, actor }, raw as never);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*422 on a bad body before the handler"
+  },
+  {
+    "id": "b7-g1-wrapper-authorize",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "authorize(actor, def.action);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*403 forbidden before the handler"
+  },
+  {
+    "id": "b7-g1-no-store",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "\"cache-control\": \"private, no-store\"",
+    "replace": "\"cache-control\": \"private\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*no store keeps"
+  },
+  {
+    "id": "b7-g1-output-500",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "const shaped = def.output.safeParse(result);",
+    "replace": "const shaped = { success: true as const, data: result };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*answers 500 server when the result breaks it"
+  },
+  {
+    "id": "b7-g1-output-message",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "throw new Error(`${def.action} answered outside its output schema`);",
+    "replace": "throw new AppError(\"server\", undefined, `${def.action} answered outside its output schema`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*answers 500 server when the result breaks it"
+  },
+  {
+    "id": "b7-g1-inner-zod-route",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  if (thrownOutage(error)) return outage();",
+    "replace": "  if (error instanceof z.ZodError) return new AppError(\"validation\", undefined, REFUSED_MESSAGE);\n  if (thrownOutage(error)) return outage();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*answers 500 server, not 422, when a schema inside the handler fails"
+  },
+  {
+    "id": "b7-g1-inner-zod-errors",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  if (thrownOutage(error)) return outage();",
+    "replace": "  if (error instanceof z.ZodError) return new AppError(\"validation\", undefined, REFUSED_MESSAGE);\n  if (thrownOutage(error)) return outage();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*makes a ZodError 500 server"
+  },
+  {
+    "id": "b7-g1-path-index",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "tests/fixtures/admin-routes.ts",
+    "find": ".filter((segment, index, all) => !(segment === \"index\" && index === all.length - 1))",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*derives each path from the file name"
+  },
+  {
+    "id": "b7-g1-audit-request-id",
+    "test": "tests/unit/audit-context.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "p_request_id: actor.requestId",
+    "replace": "p_request_id: actor.userId",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit-context.test.ts",
+    "expect": "× .*hands write functions"
+  },
+  {
+    "id": "b7-g1-stored-kind",
+    "kind": "sql",
+    "test": "tests/db/actor.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if not found then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    if v_rule.human_only and p_actor_kind = 'agent' then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where k.key = 'id' or (p_before -> k.key) is distinct from (p_after -> k.key);\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/actor.db.test.ts -t \"raises 42501 for an agent passed as human\"",
+    "expect": "× .*raises 42501 for an agent passed as human"
+  },
+  {
+    "id": "b7-g1-human-only-sql",
+    "kind": "sql",
+    "test": "tests/db/actor.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null or v_kinds is distinct from array[p_actor_kind] then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if not found then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    if false then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where k.key = 'id' or (p_before -> k.key) is distinct from (p_after -> k.key);\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/actor.db.test.ts -t \"raises human_only for an agent\"",
+    "expect": "× .*raises human_only for an agent"
+  },
+  {
+    "id": "b7-g1-action-row",
+    "kind": "sql",
+    "test": "tests/db/actor.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null or v_kinds is distinct from array[p_actor_kind] then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if v_rule.human_only and p_actor_kind = 'agent' then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where k.key = 'id' or (p_before -> k.key) is distinct from (p_after -> k.key);\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/actor.db.test.ts -t \"raises forbidden for a disabled user\"",
+    "expect": "× .*raises forbidden for a disabled user"
+  },
+  {
+    "id": "b7-g1-redaction",
+    "kind": "sql",
+    "test": "tests/db/audit-pii.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null or v_kinds is distinct from array[p_actor_kind] then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if not found then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    if v_rule.human_only and p_actor_kind = 'agent' then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where k.key = 'id' or (p_before -> k.key) is distinct from (p_after -> k.key);\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, e.value), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, e.value), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/audit-pii.db.test.ts -t \"stores no plaintext value\"",
+    "expect": "× .*stores no plaintext value"
+  },
+  {
+    "id": "b7-g1-changed-keys",
+    "kind": "sql",
+    "test": "tests/db/audit-pii.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null or v_kinds is distinct from array[p_actor_kind] then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if not found then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    if v_rule.human_only and p_actor_kind = 'agent' then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where true;\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/audit-pii.db.test.ts -t \"keeps only the changed keys\"",
+    "expect": "× .*keeps only the changed keys"
+  },
+  {
+    "id": "b7-g1-touch-minute",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.touch_agent_key(p_key_id uuid)\nreturns void\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- At most one write a minute per key, however many requests the key makes.\n  update public.agent_keys\n  set last_used_at = now()\n  where id = p_key_id;\n$$;\n\nrevoke execute on function public.touch_agent_key(uuid) from public, anon, authenticated;\ngrant execute on function public.touch_agent_key(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"two touch_agent_key calls\"",
+    "expect": "× .*two touch_agent_key calls"
+  },
+  {
+    "id": "b7-g1-key-enabled-roles",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.agent_key_by_hash(p_hash text)\nreturns table (\n  key_id uuid,\n  user_id uuid,\n  scopes text[],\n  revoked_at timestamptz,\n  last_used_at timestamptz,\n  roles public.app_role[]\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- The one indexed lookup of `verifyKey` (agent_keys_key_hash_key); only the key's enabled roles.\n  select k.id, k.user_id, k.scopes, k.revoked_at, k.last_used_at,\n    coalesce(\n      (select array_agg(r.role order by r.role)\n       from public.user_roles r\n       where r.user_id = k.user_id),\n      '{}'\n    )\n  from public.agent_keys k\n  where k.key_hash = p_hash;\n$$;\n\nrevoke execute on function public.agent_key_by_hash(text) from public, anon, authenticated;\ngrant execute on function public.agent_key_by_hash(text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"agent_key_by_hash returns\"",
+    "expect": "× .*agent_key_by_hash returns"
+  },
+  {
+    "id": "b7-g1-sign-in-disabled",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.staff_can_sign_in(p_email text)\nreturns boolean\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Invariant 19: a sign-in link goes only to an address that holds an enabled role.\n  select exists (\n    select 1\n    from auth.users u\n    join public.user_roles r on r.user_id = u.id\n    where lower(u.email) = lower(p_email)\n  );\n$$;\n\nrevoke execute on function public.staff_can_sign_in(text) from public, anon, authenticated;\ngrant execute on function public.staff_can_sign_in(text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"is true for an enabled staff address\"",
+    "expect": "× .*is true for an enabled staff address"
+  }
+]
