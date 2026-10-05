@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { absoluteUrl, siteConfig } from "../../src/config/site";
-import { pageHead, serializeJsonForScript, unavailableHead } from "../../src/lib/seo";
+import type { Json } from "../../src/db";
+import { indexable, pageHead, serializeJsonForScript, unavailableHead } from "../../src/lib/seo";
+import { Route as MarketRoute } from "../../src/routes/_site.$market.index";
+import { Route as RegionRoute } from "../../src/routes/_site.$market.$region";
+import { Route as PropertiesRoute } from "../../src/routes/_site.properties";
+import { mapSnapshot, parseSnapshot } from "../../src/server/public/mappers";
+import { snapshotJson } from "../fixtures/snapshot";
 
 const brand = siteConfig.name;
 const countBrand = (value: string) => value.split(brand).length - 1;
@@ -181,5 +188,100 @@ describe("pageHead jsonLd", () => {
       "@context": "https://schema.org",
       "@graph": [a, b],
     });
+  });
+});
+
+describe("indexable", () => {
+  it("gives noindex, follow for no published property and nothing for any other count", () => {
+    expect(indexable(0)).toEqual({ robots: "noindex, follow" });
+    expect(indexable(1)).toEqual({});
+    expect(indexable(40)).toEqual({});
+  });
+
+  it("is what pageHead writes as the robots meta, and noindex still wins", () => {
+    expect(metaContent(pageHead({ ...base, ...indexable(0) }), "robots")).toEqual([
+      "noindex, follow",
+    ]);
+    expect(metaContent(pageHead({ ...base, ...indexable(1) }), "robots")).toEqual([]);
+    expect(metaContent(pageHead({ ...base, ...indexable(0), noindex: true }), "robots")).toEqual([
+      "noindex, nofollow",
+    ]);
+  });
+});
+
+describe("the head of a page that lists properties", () => {
+  const catalogRows: Record<string, Json> = {
+    markets: [
+      {
+        slug: "california",
+        name: "California",
+        country: "United States",
+        currency: "USD",
+        intro: "An intro.",
+        places: [],
+        image: null,
+        interest_copy: null,
+      },
+    ],
+    regions: [
+      {
+        slug: "bay-area",
+        market_slug: "california",
+        name: "Bay Area",
+        intro: "An intro.",
+        places: [],
+        image: null,
+      },
+    ],
+  };
+  const catalog = mapSnapshot(parseSnapshot(snapshotJson(7, catalogRows)), {
+    comingSoonGlobal: false,
+    comingSoonMarkets: {},
+  });
+  const [market] = catalog.markets;
+  const region = market?.regions[0];
+  const published = catalog.properties;
+  if (market === undefined || region === undefined || published.length !== 1) {
+    throw new Error("the fixture catalog is not what the cases below expect");
+  }
+  const headShape = z.object({ meta: z.array(z.record(z.string(), z.unknown())) });
+
+  // The route's own `head()`, called as the router calls it, with a loader result and the params.
+  function robotsMeta(head: unknown, loaderData: unknown, params: Record<string, string>) {
+    if (typeof head !== "function") throw new Error("the route has no head()");
+    const result: unknown = Reflect.apply(head, undefined, [{ loaderData, params }]);
+    return headShape
+      .parse(result)
+      .meta.filter((tag) => tag["name"] === "robots")
+      .map((tag) => tag["content"]);
+  }
+
+  const cases = [
+    {
+      name: "/properties",
+      head: PropertiesRoute.options.head,
+      params: {},
+      data: (pool: typeof published) => ({ properties: pool, markets: catalog.markets }),
+    },
+    {
+      name: "a market page",
+      head: MarketRoute.options.head,
+      params: { market: "california" },
+      data: (pool: typeof published) => ({ market, pool, recent: pool, stories: [] }),
+    },
+    {
+      name: "a region page",
+      head: RegionRoute.options.head,
+      params: { market: "california", region: "bay-area" },
+      data: (pool: typeof published) => ({ market, region, pool, elsewhere: [] }),
+    },
+  ];
+
+  it.each(cases)("$name is noindex, follow with no published property", (route) => {
+    expect(robotsMeta(route.head, route.data([]), route.params)).toEqual(["noindex, follow"]);
+  });
+
+  it.each(cases)("$name has no robots meta with one published property", (route) => {
+    expect(robotsMeta(route.head, route.data(published), route.params)).toEqual([]);
   });
 });

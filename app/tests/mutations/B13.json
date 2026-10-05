@@ -638,5 +638,311 @@
     "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
     "expect": "Expected: 1[\\s\\S]*Received: 0",
     "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-s5-sm-static-privacy",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "  \"/privacy\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*staticSitemapPaths > lists the public pages"
+  },
+  {
+    "id": "b13-s5-sm-property-path",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "path: `/property/${property.slug}`,",
+    "replace": "path: `/properties/${property.slug}`,",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > lists a published property"
+  },
+  {
+    "id": "b13-s5-sm-thin-pages",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const listed = (count: number): boolean => indexable(count).robots === undefined;",
+    "replace": "const listed = (count: number): boolean => count >= 0;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > leaves out a market and a region"
+  },
+  {
+    "id": "b13-s5-sm-guide",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "      { path: `/${market.slug}/guide` },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > lists /<market>/guide"
+  },
+  {
+    "id": "b13-s5-sm-hidden",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "!state.comingSoonGlobal && state.comingSoonMarkets[market] !== true",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > leaves out a property the catalog hides"
+  },
+  {
+    "id": "b13-s5-sm-taken",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const properties = source.properties.filter(({ slug }) => !taken.has(slug));",
+    "replace": "const properties = source.properties;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > leaves out a taken-down property"
+  },
+  {
+    "id": "b13-s5-sm-story",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "...source.stories.map((story) => ({",
+    "replace": "...source.stories.slice(0, 0).map((story) => ({",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap pages > lists a story"
+  },
+  {
+    "id": "b13-s5-sm-archive-listed",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "    ...listFacets(source, state).map(({ kind, slug }) => ({ path: `/archive/${kind}/${slug}` })),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap archive pages > lists the facets of three properties"
+  },
+  {
+    "id": "b13-s5-sm-archive-two",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "export const MIN_ARCHIVE = 3;",
+    "replace": "export const MIN_ARCHIVE = 2;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap archive pages > leaves out a facet of two properties"
+  },
+  {
+    "id": "b13-s5-sm-archive-flag",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true;",
+    "replace": "state.flags[\"archive_pages\"] !== 0;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap archive pages > leaves out every facet while the archive flag is off"
+  },
+  {
+    "id": "b13-s5-sm-history",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const redirected = loadRedirectMap(source);",
+    "replace": "const redirected = loadRedirectMap({ ...source, slugHistory: [] });",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap redirects > leaves out a slug that slug_history moved"
+  },
+  {
+    "id": "b13-s5-sm-history-own",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "if (now !== undefined && now !== slug) {",
+    "replace": "if (now !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap redirects > keeps a slug that is the current one"
+  },
+  {
+    "id": "b13-s5-sm-redirect",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const redirected = loadRedirectMap(source);",
+    "replace": "const redirected = loadRedirectMap({ ...source, redirects: [] });",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap redirects > leaves out a path that an active redirect answers"
+  },
+  {
+    "id": "b13-s5-sm-redirect-archived",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": ".filter(({ path }) => !redirected.has(path))",
+    "replace": ".filter(({ path }) => !redirected.has(path) && path !== \"/about\")",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap redirects > keeps a path whose redirect row is archived"
+  },
+  {
+    "id": "b13-s5-sm-lastmod-updated",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "(updatedAt ?? publishedAt).slice(0, 10)",
+    "replace": "publishedAt.slice(0, 10)",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap lastmod > takes updatedAt"
+  },
+  {
+    "id": "b13-s5-sm-lastmod-published",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "(updatedAt ?? publishedAt).slice(0, 10)",
+    "replace": "(updatedAt ?? \"\").slice(0, 10)",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap lastmod > falls back to publishedAt"
+  },
+  {
+    "id": "b13-s5-sm-lastmod-clamp",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "return day > today ? today : day;",
+    "replace": "return day;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap lastmod > never dates a page after the day of the build"
+  },
+  {
+    "id": "b13-s5-sm-image-absolute",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "escapeXml(absoluteUrl(address))",
+    "replace": "escapeXml(address)",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap images > writes the hero variant as an absolute image:loc"
+  },
+  {
+    "id": "b13-s5-sm-image-escape",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "<image:caption>${escapeXml(caption)}</image:caption>",
+    "replace": "<image:caption>${caption}</image:caption>",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap images > writes the hero variant as an absolute image:loc"
+  },
+  {
+    "id": "b13-s5-sm-image-cap",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": ".slice(0, MAX_IMAGES)",
+    "replace": ".slice(0, MAX_IMAGES + 10)",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap images > lists no more than 20 images"
+  },
+  {
+    "id": "b13-s5-sm-image-unrendered",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const VARIANT_PREFIX = \"/media/v/\";",
+    "replace": "const VARIANT_PREFIX = \"/media/\";",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap images > gives a photograph that is not rendered no image entry"
+  },
+  {
+    "id": "b13-s5-sm-image-bundled",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "const VARIANT_PREFIX = \"/media/v/\";",
+    "replace": "const VARIANT_PREFIX = \"\";",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap images > gives a bundled /assets/ hero no image entry"
+  },
+  {
+    "id": "b13-s5-mp-property-updated",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    updatedAt: row.updated_at,\n    ...(row.related",
+    "replace": "    ...(row.related",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "FAIL .*updatedAt > maps a property row"
+  },
+  {
+    "id": "b13-s5-mp-story-updated",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    updatedAt: row.updated_at,\n  };\n}\n\ninterface MarketChildren",
+    "replace": "  };\n}\n\ninterface MarketChildren",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "FAIL .*updatedAt > maps a story row"
+  },
+  {
+    "id": "b13-s5-mp-gone",
+    "test": "tests/unit/mappers.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "    gone: snapshot.gone,\n",
+    "replace": "    gone: [],\n",
+    "run": "bunx vitest run --project unit tests/unit/mappers.test.ts",
+    "expect": "FAIL .*mapSnapshot > carries the taken-down slugs"
+  },
+  {
+    "id": "b13-s5-seo-indexable",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "return count === 0 ?",
+    "replace": "return count === 1 ?",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*indexable > gives noindex, follow"
+  },
+  {
+    "id": "b13-s5-seo-robots-meta",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "          : [{ name: \"robots\", content: robots }]),",
+    "replace": "          : []),",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*indexable > is what pageHead writes"
+  },
+  {
+    "id": "b13-s5-seo-noindex-wins",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "      ...(noindex\n        ? [{ name: \"robots\", content: \"noindex, nofollow\" }]\n        : robots === undefined\n          ? []\n          : [{ name: \"robots\", content: robots }]),",
+    "replace": "      ...(robots !== undefined\n        ? [{ name: \"robots\", content: robots }]\n        : noindex\n          ? [{ name: \"robots\", content: \"noindex, nofollow\" }]\n          : []),",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*indexable > is what pageHead writes"
+  },
+  {
+    "id": "b13-s5-seo-head-properties-empty",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "...indexable(loaderData.properties.length),",
+    "replace": "noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > /properties is noindex, follow"
+  },
+  {
+    "id": "b13-s5-seo-head-properties-listed",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "description: pageDescription(\"properties\"),",
+    "replace": "description: pageDescription(\"properties\"),\n      noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > /properties has no robots meta"
+  },
+  {
+    "id": "b13-s5-seo-head-market-empty",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.$market.index.tsx",
+    "find": "...indexable(pool.length),",
+    "replace": "noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > a market page is noindex, follow"
+  },
+  {
+    "id": "b13-s5-seo-head-market-listed",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.$market.index.tsx",
+    "find": "description: marketDescription(market),",
+    "replace": "description: marketDescription(market),\n      noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > a market page has no robots meta"
+  },
+  {
+    "id": "b13-s5-seo-head-region-empty",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.$market.$region.tsx",
+    "find": "...indexable(pool.length),",
+    "replace": "noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > a region page is noindex, follow"
+  },
+  {
+    "id": "b13-s5-seo-head-region-listed",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/routes/_site.$market.$region.tsx",
+    "find": "description: regionDescription(region),",
+    "replace": "description: regionDescription(region),\n      noindex: true,",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*the head of a page that lists properties > a region page has no robots meta"
   }
 ]

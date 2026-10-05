@@ -21,5 +21,7 @@ export const storySchema = z.object({
   properties: z.array(z.string()),
   /** ISO date. */
   publishedAt: z.string(),
+  /** ISO timestamp of the last change; unset on the bundled data. */
+  updatedAt: z.string().optional(),
 });
 export type Story = z.infer<typeof storySchema>;

@@ -12,7 +12,7 @@ import { track } from "../lib/analytics";
 import { pluralize } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
-import { pageHead } from "../lib/seo";
+import { indexable, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_site/properties")({
           title: "Properties",
           description: t.comingSoon.meta.properties,
           path: "/properties",
-          noindex: true,
+          ...indexable(loaderData.properties.length),
         })
       : pageHead({
           title: "Properties",

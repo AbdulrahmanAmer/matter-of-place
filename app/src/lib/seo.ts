@@ -27,6 +27,8 @@ export type PageHeadInput = {
   /** One object, or an array that becomes one `@graph`. */
   jsonLd?: JsonLdObject | JsonLdObject[];
   noindex?: boolean;
+  /** From `indexable(count)`: a page that stays out of the index but lets crawlers follow its links. */
+  robots?: "noindex, follow";
 };
 
 const suffix = ` | ${siteConfig.name}`;
@@ -74,6 +76,7 @@ export function pageHead({
   modified,
   jsonLd,
   noindex,
+  robots,
 }: PageHeadInput) {
   // The brand appears exactly once. Routes pass bare titles; the home route passes a title
   // that starts with the brand, and the root passes the brand alone (GOTCHAS G-003).
@@ -115,13 +118,26 @@ export function pageHead({
       ...(type === "article" && modified
         ? [{ property: "article:modified_time", content: modified }]
         : []),
-      ...(noindex ? [{ name: "robots", content: "noindex, nofollow" }] : []),
+      ...(noindex
+        ? [{ name: "robots", content: "noindex, nofollow" }]
+        : robots === undefined
+          ? []
+          : [{ name: "robots", content: robots }]),
     ],
     links: [{ rel: "canonical", href: canonical }],
     scripts: graph
       ? [{ type: "application/ld+json", children: serializeJsonForScript(graph) }]
       : [],
   };
+}
+
+/**
+ * A market, region or `/properties` page with no published property is a thin page: `noindex, follow` and
+ * absent from the sitemap while empty, indexed once the first property is published (invariant 3). The head
+ * and `buildSitemap` both read the answer, so the two cannot disagree.
+ */
+export function indexable(count: number): { robots?: "noindex, follow" } {
+  return count === 0 ? { robots: "noindex, follow" } : {};
 }
 
 /** Head for a dynamic route whose loader did not resolve (not found or failed). */

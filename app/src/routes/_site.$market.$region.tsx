@@ -12,7 +12,7 @@ import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { marketQuery, propertiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
-import { pageHead, unavailableHead } from "../lib/seo";
+import { indexable, pageHead, unavailableHead } from "../lib/seo";
 import { regionDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
 
@@ -58,7 +58,7 @@ export const Route = createFileRoute("/_site/$market/$region")({
         title,
         description: fill(t.comingSoon.meta.market, { intro: region.intro, market: region.name }),
         path,
-        noindex: true,
+        ...indexable(pool.length),
       });
     }
     return pageHead({
