@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-05 00:35 (UTC+3)",
-  "now": "Five lanes: tests (B4 9 and 10 in review, then the slice merge), auto (B8b 4 to 5), handoff (B15 4 to 7), seo (B13), site (B17). B3b closed. Next by dependency: B5 after B8b step 4 merges email_templates; B7 after B8b step 5; B16 rest after B5 and B17; B14, B6, B10 to B12 after B7.",
+  "updated": "2026-10-05 05:00 (UTC+3)",
+  "now": "Six lanes: seo (B13 4 to 13), auto (B8b 5), site (B17 1), admin (B7), email (B5 2 to 9), video (B12 1 to 5). Closed: B2, B3, B3b, B4. Next by dependency: B16 rest after B5 and B17; B14 after B13 and B7 steps 1 to 3; B6, B10, B11 after B7; H1 after the B slices, then H2, then L1.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -64,13 +64,12 @@
         "5",
         "6",
         "7",
-        "8"
-      ],
-      "inReview": [
+        "8",
         "9",
         "10"
       ],
-      "note": "Steps 6 to 8 accepted on slice/b4 (CI e2e and db jobs, factories); 9 and 10 in their second review; the slice merges when they pass. The CPU gate (T-11) waits on CF_ANALYTICS_TOKEN."
+      "inReview": [],
+      "note": "Closed 2026-10-05 02:30 (PRs 97, 105, 119; 50e14b8): the e2e and db CI jobs, factories, Lighthouse budgets (LCP and script size at warn until H1, ruling H61), the CPU gate T-11 (CF_ANALYTICS_TOKEN exists in .env since 03:00; wiring is a B4 follow-up)."
     },
     "B9": {
       "accepted": [
@@ -149,8 +148,10 @@
       "accepted": [
         "1"
       ],
-      "inReview": [],
-      "note": "Step 1 merged (PR 108); step 2 waits on B8b (email_templates), 4 onward on B8."
+      "inReview": [
+        "2"
+      ],
+      "note": "Step 1 merged (PR 108); relaunched 2026-10-05 04:00 in the lane E:/mop-build/email (branch slice/b5, port 8868, bank numbers from P-1200 and G-500) for steps 2 to 9."
     },
     "H2": {
       "accepted": [],
@@ -177,16 +178,29 @@
       "accepted": [
         "1",
         "2",
-        "3"
+        "3",
+        "4",
+        "4a"
       ],
       "inReview": [
-        "4",
-        "4a",
         "5"
       ],
-      "note": "Step 1 on main (PR 115); 2 and 3 accepted on slice/b8b with the gate scanner fix (c2s); step 4 first half in re-review (c3r), 4a and 5 next; 6 to 10 wait on B7 and B5."
+      "note": "Step 1 on main (PR 115); 2 to 4a accepted on slice/b8b (PR 133 carries 4 and 4a: bump_catalog_version, purge_cache, keep-warm tick, purge token); step 5 building; 6 to 10 wait on B7 and B5."
     },
     "B15": {
+      "accepted": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "inReview": [],
+      "note": "Closed 2026-10-05 05:40 (PRs 127, 132, 135; 0f5d678). Step 6 admin half waits on B7 steps 2 and 11 (B15-followups.md); the real Omnikom endpoint and the contract note are the operator's (S59)."
+    },
+    "B13": {
       "accepted": [
         "1",
         "2",
@@ -195,21 +209,28 @@
       "inReview": [
         "4"
       ],
-      "note": "Started 2026-10-04 20:50 in the lane E:/mop-build/handoff (branch slice/b15, port 8918, bank numbers from P-1700 and G-750); step 3 on main (PR 127); 4 building; the contract note to Omnikom is the operator's (S59)."
-    },
-    "B13": {
-      "accepted": [],
-      "inReview": [
-        "1"
-      ],
-      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/seo (branch slice/b13, port 8928, bank numbers from P-1800 and G-800)."
+      "note": "Relaunched 2026-10-05 03:30 after the first run died (P-509): steps 1 to 3 accepted through their close-outs on slice/b13; 4 to 13 building."
     },
     "B17": {
       "accepted": [],
       "inReview": [
         "1"
       ],
-      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850)."
+      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850); step 1 in its fix round."
+    },
+    "B7": {
+      "accepted": [],
+      "inReview": [
+        "1"
+      ],
+      "note": "Started 2026-10-05 04:00 in the lane E:/mop-build/admin (branch slice/b7, port 8948, bank numbers from P-2000 and G-900); 19 groups, 20 steps."
+    },
+    "B12": {
+      "accepted": [],
+      "inReview": [
+        "1"
+      ],
+      "note": "Started 2026-10-05 04:50 in the lane E:/mop-build/video (branch slice/b12, port 8958, bank numbers from P-2100 and G-950) for steps 1 to 5; 6 to 9 wait on B8b, B7 and the function secret."
     }
   },
   "lanes": [
