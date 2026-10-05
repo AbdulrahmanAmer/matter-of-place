@@ -19,3 +19,23 @@ Source: the fresh reviewer of group c1, none blocking. Two reviewer items (the G
 4. File `workspace/05-plans/logs/B13.md` (not blocking).
    What: Wording: the c1 block's Proof 4 heading says check and build ran 'after the last edit', and the next paragraph says the build ran before the last test-only edit. The fact holds (I re-ran the build on d42c09f and it exits 0), but the heading overstates it.
    Evidence: logs/B13.md c1 block, Proof 4 heading compared with the paragraph after it.
+
+## c3 · steps 3
+
+Source: the fresh reviewer of group c3, none blocking. The GOTCHAS.md items of the review (the false rule line of P-1804, the missing hit-again of P-015, the reviewer's own hit of P-712) went into the bank and are not repeated here.
+
+1. File `app/tests/e2e/fixtures/routes.ts` (not blocking).
+   What: jsonLdExpectations.archive is ["CollectionPage", "ItemList"], but collectionLd (app/src/lib/jsonld.ts) puts the ItemList inside CollectionPage.mainEntity. typesOf in tests/e2e/fixtures/jsonld.ts reads only top-level @graph nodes, so no page built with collectionLd can ever show "ItemList". When step 4's archive route uses collectionLd and the archive_pages flag is on, the sweep goes red on `ld+json types of a archive page`. The log says this expectation is done; it cannot be met by the group's own builder. Follow-up for step 4: either flatten the ItemList into its own graph node or expect only CollectionPage.
+   Evidence: Confirmed by reading and by the group's own test: tests/unit/jsonld.test.ts lines 169-171 assert validateHtml(pageHtml([collectionLd(...)])) toEqual ["CollectionPage"]. On the built Worker, /markets and /stories validate as `CollectionPage, BreadcrumbList` with no ItemList node.
+
+2. File `app/scripts/validate-jsonld.ts` (not blocking).
+   What: The validator checks the required fields of each node it finds, but not that a page carries the types its page type expects. A property page that lost its RealEstateListing node and kept only BreadcrumbList would still print `ok` and exit 0. This script is the CI seo step for structured data (invariant 12). Today the e2e sweep is the only gate on per-page types. Follow-up: in bare-base mode, check each picked page against the expected types.
+   Evidence: Suspected by reading: validateHtml (lines 75-102) returns whatever types are present, and main() (line 150) prints ok without comparing them to anything. Nothing in jsonld.test.ts covers a page that is missing an expected type.
+
+3. File `app/src/lib/seo.ts` (not blocking).
+   What: Step 3 is still NOT DONE / UNPROVEN on two counts. First, the organizationJsonLd extension (logo, contactPoint) and organization-jsonld.test.ts wait on B16, which I confirmed is absent from origin/main a74a75f. Second, the four routeFileCoverage entries wait on steps 4, 6 and 7. Until then the home route keeps an inline Organization node. pageHead's jsonLd type is loosened to `object`, so that inline node is not typed with schema-dts. These are to be recorded, not dropped. The step-3 proof command also exits 0 while the second test file is missing, so it cannot show the Organization cases.
+   Evidence: `git grep -l organizationJsonLd origin/main -- app` prints nothing. `bunx vitest run tests/unit/jsonld.test.ts tests/unit/organization-jsonld.test.ts` prints Test Files 1 passed, exit 0.
+
+4. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: The plan names localhost:8080 for the validator proof. The author ran it on the built Worker instead, saying the dev server answered 503 (P-331). The same session's watched-fail ran the dev server successfully with `env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY`, the fix P-331 already gives. So the plan's own proof could have run as written. My built-Worker rerun gave the same result, so the substitution hid nothing.
+   Evidence: Log c3, Proof 2 ("answered 503 in this shell, P-331") compared with Proof 4 ("run with env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY" on E2E_TARGET=dev, which worked).
