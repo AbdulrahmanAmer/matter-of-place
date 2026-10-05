@@ -1054,3 +1054,19 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - The older GitHub token "mop-render-dispatch" (no expiry) in the operator's account is not ours to use; delete it.
 - NEXT: H61 into ASSUMED.md (B4 cites it); B14 can open when B7 steps 1 to 3 land (its credentials exist now);
   B5 after B8b step 4 merges; B7 after B8b step 5.
+
+## 2026-10-05 05:45 · B15 closed; six lanes; the status line was a quarter of the processor
+- Merged: PR 131 (P-519, P-520, the sizing brief cap; 91f3470), PR 135 (B15 steps 6 and 7; 0f5d678, B15 closed: the
+  step 6 admin half waits on B7 steps 2 and 11, the real Omnikom endpoint is the operator's). Board 108 of 259 (41.7
+  percent); closed: B2, B3, B3b, B4, B15.
+- Rulings recorded: H61 (Lighthouse LCP and script size at warn until H1) in ASSUMED.md. Bank: P-522 (the `ccusage`
+  status line took about two cores all day and leaked sixteen idle copies; switched off in ~/.claude/settings.json,
+  key kept as statusLine_disabled_2026_10_05, backup settings.json.bak-statusline-2026-10-05).
+- Lanes (six, operator asked for a sixth 05:00): seo B13 steps 4 to 13 (wf_b449fffc-88b; the first run wf_5748a66c-dea
+  died at 01:46 and its task record wd4nx0q08 is killed), auto B8b step 5 (wf_08968c1a-329; PR 133 draft carries 4 and
+  4a), site B17 step 1 second review (wf_50ea9b3c-5a4), admin B7 group 1 of 19 (wf_5d9f0509-be2), email B5 steps 2 to 9
+  (wf_c014765b-d6a), video B12 steps 1 to 5 (wf_49694593-fac; lane E:/mop-build/video, branch slice/b12, port 8958,
+  bank P-2100 and G-950; steps 6 to 9 wait on B8b, B7 and the function secret). CPU 100 percent at six lanes; local
+  `bun run check` in a lane now fails on 5,000 ms test timeouts under that load (seven in B15's lane), so CI is the gate
+  and a local red made only of timeouts is not a defect.
+- NEXT: B16 rest after B5 and B17; B14 after B13 and B7 steps 1 to 3; B6, B10, B11 after B7; H1 after the B slices.

@@ -3099,3 +3099,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: in Google consoles set inputs with `form_input` (sets the value directly) and reserve `type` for short strings right after a confirmed focus; confirm the field's value with a screenshot before pressing a submit.
 - proof: the second attempt with `form_input` on the three fields created `mop-audit@matter-of-place.iam.gserviceaccount.com` (service accounts list shows it).
 - added: 2026-10-05
+
+## P-522 · The terminal status line (`ccusage statusline`) took about two of the eight cores all day and leaked sixteen idle copies; the lanes were being measured against a processor a quarter spent
+- symptom: the processor read 99 to 100 percent at five lanes and five was called the cap. A per-process sample over five seconds showed `ccusage.exe` at 24 percent of the machine (about 25 CPU-seconds per status-line refresh, refreshing continuously, parsing every session transcript each time) and sixteen `node ... ccusage/src/cli.js statusline` wrappers from 02:05 to 21:20 of earlier days, idle, 42 MB each.
+- cause: `~/.claude/settings.json` had `"statusLine": {"type": "command", "command": "ccusage statusline"}`; the tool re-reads all transcripts on each refresh, and this project's transcripts are hundreds of megabytes. The wrappers never exited when their child was replaced.
+- rule: no status-line command on the build machine while lanes run (the key is kept under `statusLine_disabled_2026_10_05` in settings.json, backup `settings.json.bak-statusline-2026-10-05`). Before calling the processor the ceiling, sample per process: `Get-Process` CPU deltas over five seconds, top ten with their command lines. A total of 100 percent names no culprit.
+- proof: `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'ccusage' } | Measure-Object` → Count 0 after the change (was 19); the five-second sample afterwards showed this session's `claude.exe` and the lanes' `vitest` runs at the top.
+- added: 2026-10-05
