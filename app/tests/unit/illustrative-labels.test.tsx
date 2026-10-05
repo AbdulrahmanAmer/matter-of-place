@@ -63,6 +63,7 @@ function renderProperty(status: "Active" | "Illustrative") {
     market: open,
     region,
     related: [],
+    facets: null,
   });
   const Page = PropertyRoute.options.component;
   if (Page === undefined) throw new Error("property route has no component");

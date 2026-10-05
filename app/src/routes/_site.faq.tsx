@@ -2,12 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { faq } from "../data/faq";
 import { faqJsonLd, pageHead } from "../lib/seo";
-
-const description =
-  "Short answers about Matter of Place: what we feature, what it costs, who receives inquiries.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/faq")({
-  head: () => pageHead({ title: "FAQ", description, path: "/faq", jsonLd: faqJsonLd(faq) }),
+  head: () =>
+    pageHead({
+      title: "FAQ",
+      description: pageDescription("faq"),
+      path: "/faq",
+      jsonLd: faqJsonLd(faq),
+    }),
   component: FaqPage,
 });
 

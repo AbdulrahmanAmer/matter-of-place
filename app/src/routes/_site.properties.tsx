@@ -11,11 +11,10 @@ import { applyFilters, useFilters } from "../hooks/use-filters";
 import { track } from "../lib/analytics";
 import { pluralize } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
+import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
+import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
-
-const description =
-  "A quiet selection of places with something to say: residences across California, Florida and New York, searchable by place, price, type and architecture.";
 
 export const Route = createFileRoute("/_site/properties")({
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
@@ -37,7 +36,23 @@ export const Route = createFileRoute("/_site/properties")({
           path: "/properties",
           noindex: true,
         })
-      : pageHead({ title: "Properties", description, path: "/properties" }),
+      : pageHead({
+          title: "Properties",
+          description: pageDescription("properties"),
+          path: "/properties",
+          jsonLd: [
+            collectionLd(
+              "properties",
+              "Properties",
+              "/properties",
+              (loaderData?.properties ?? []).map((property) => ({
+                name: property.title,
+                path: `/property/${property.slug}`,
+              })),
+            ),
+            breadcrumbLd([{ name: "Properties", path: "/properties" }]),
+          ],
+        }),
   component: PropertiesPage,
 });
 
