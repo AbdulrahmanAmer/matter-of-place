@@ -664,6 +664,7 @@ Entry template
 - hit again: 2026-10-05, B15 g6: `git merge origin/main` printed `merge-gotchas: both sides changed P-712; ours kept, compare by hand` and left GOTCHAS.md unmerged with no markers; both sides had appended one `hit again` line to P-712, so the fix was to keep ours and insert theirs' line after it. Proof: `grep -c "hit again: 2026-10-05, B15 g6" GOTCHAS.md` prints 1 and `node workspace/05-plans/check-gotchas.mjs` prints OK.
 - added: 2026-10-02
 - hit again: 2026-10-04, B3 g8: `git merge origin/main` printed `merge-gotchas: both sides changed P-094, P-310, P-706, P-1001; ours kept, compare by hand`; the four theirs-only `hit again` lines were copied in by a script that diffed each entry against the base, and `check-gotchas.mjs` printed OK.
+- hit again: 2026-10-05, B5 g1 (step 2): the merge of origin/main left GOTCHAS.md unmerged with no markers because both sides had appended a `hit again` line to P-712; main's line was copied in by a script, and a line-by-line check printed `main lines missing from merged: 0` before the merge was committed.
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
 - paths: app/src/start.ts
@@ -1817,6 +1818,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
+- hit again: 2026-10-05, B5 g1 (step 2): main at 0f5d678 marks B15 `closed` (PLAN.md, commit d68b75c) while `app/src/server/lib/crypto.ts:47` still reads `// STUB(B15): ...`; after merging main, the lane's `bun run check` stopped at `stubs` with `src/server/lib/crypto.ts:47 STUB(B15) slice is closed` and `stubs: 8 markers, 1 on closed slices`. The file belongs to neither the lane nor its group; the re-label is the orchestrator's.
 
 ## G-302 · Supabase Storage answers a missing object with HTTP 400 and the status in the body, so a route that waits for a 404 reports an outage
 - paths: app/src/server/public/media.ts, app/src/server/lib/media-store.ts
