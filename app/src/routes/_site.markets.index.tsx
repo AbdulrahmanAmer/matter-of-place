@@ -2,13 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketGrid } from "../components/site/market-card";
 import { PageIntro } from "../components/site/page-intro";
 import { marketsQuery } from "../lib/queries";
+import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description = "California, New York and Florida. Three markets, one editorial point of view.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/markets/")({
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(marketsQuery()),
-  head: () => pageHead({ title: "Markets", description, path: "/markets" }),
+  head: ({ loaderData }) =>
+    pageHead({
+      title: "Markets",
+      description: pageDescription("markets.index"),
+      path: "/markets",
+      jsonLd: [
+        collectionLd(
+          "markets",
+          "Markets",
+          "/markets",
+          (loaderData ?? []).map((market) => ({ name: market.name, path: `/${market.slug}` })),
+        ),
+        breadcrumbLd([{ name: "Markets", path: "/markets" }]),
+      ],
+    }),
   component: MarketsPage,
 });
 

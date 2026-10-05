@@ -3,13 +3,18 @@ import { ContactForm } from "../components/forms/contact-form";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "Write to Matter of Place about a property, a market, or presenting a residence.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/contact")({
-  head: () => pageHead({ title: "Contact", description, path: "/contact" }),
+  head: () =>
+    pageHead({
+      title: "Contact",
+      description: pageDescription("contact"),
+      path: "/contact",
+      jsonLd: [breadcrumbLd([{ name: "Contact", path: "/contact" }])],
+    }),
   component: ContactPage,
 });
 

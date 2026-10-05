@@ -4,14 +4,30 @@ import { Newsletter } from "../components/site/newsletter";
 import { PageIntro } from "../components/site/page-intro";
 import { StoryGrid } from "../components/site/story-card";
 import { storiesQuery } from "../lib/queries";
+import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "Architecture, interiors and places across California, New York and Florida, from the Matter of Place editorial desks.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/stories/")({
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(storiesQuery()),
-  head: () => pageHead({ title: "Stories", description, path: "/stories" }),
+  head: ({ loaderData }) =>
+    pageHead({
+      title: "Stories",
+      description: pageDescription("stories.index"),
+      path: "/stories",
+      jsonLd: [
+        collectionLd(
+          "stories",
+          "Stories",
+          "/stories",
+          (loaderData ?? []).map((story) => ({
+            name: story.title,
+            path: `/stories/${story.slug}`,
+          })),
+        ),
+        breadcrumbLd([{ name: "Stories", path: "/stories" }]),
+      ],
+    }),
   component: StoriesPage,
 });
 

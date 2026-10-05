@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { services } from "../services";
+import type { ArchiveKind } from "../domain/archive";
+import { isLive, services } from "../services";
 
 /**
  * Query definitions for catalog reads. Route loaders call
@@ -47,5 +48,29 @@ export const storyQuery = (slug: string) =>
   queryOptions({
     queryKey: ["story", slug],
     queryFn: () => services.catalog.getStory(slug),
+    staleTime: catalogStaleTime,
+  });
+
+/** The archive page of one facet, null below the threshold or with the flag off; the local adapter has no archives. */
+export const archiveQuery = (kind: ArchiveKind, slug: string) =>
+  queryOptions({
+    queryKey: ["archive", kind, slug],
+    queryFn: async () => {
+      if (!isLive) return null;
+      const { getArchiveFn } = await import("./archive.functions");
+      return getArchiveFn({ data: { kind, slug } });
+    },
+    staleTime: catalogStaleTime,
+  });
+
+/** The facets that exist, for the links of a property page. */
+export const archiveFacetsQuery = () =>
+  queryOptions({
+    queryKey: ["archive-facets"],
+    queryFn: async () => {
+      if (!isLive) return null;
+      const { getArchiveFacetsFn } = await import("./archive.functions");
+      return getArchiveFacetsFn();
+    },
     staleTime: catalogStaleTime,
   });

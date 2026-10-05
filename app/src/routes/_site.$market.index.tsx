@@ -13,7 +13,9 @@ import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { pluralize } from "../lib/format";
 import { marketQuery, propertiesQuery, storiesQuery } from "../lib/queries";
+import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { marketDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/$market/")({
@@ -46,8 +48,20 @@ export const Route = createFileRoute("/_site/$market/")({
     }
     return pageHead({
       title: market.name,
-      description: `${intro} Property stories across ${market.regions.map((region) => region.name).join(", ")}.`,
+      description: marketDescription(market),
       path: `/${market.slug}`,
+      jsonLd: [
+        collectionLd(
+          "market",
+          market.name,
+          `/${market.slug}`,
+          pool.map((property) => ({ name: property.title, path: `/property/${property.slug}` })),
+        ),
+        breadcrumbLd([
+          { name: "Markets", path: "/markets" },
+          { name: market.name, path: `/${market.slug}` },
+        ]),
+      ],
     });
   },
   component: MarketPage,
