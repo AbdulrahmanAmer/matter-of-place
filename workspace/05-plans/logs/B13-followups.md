@@ -67,3 +67,27 @@ Source: the second fresh reviewer of group c3 (the first review's items are in t
 6. File `app/tests/e2e/fixtures/routes.ts` (not blocking).
    What: Still to do in steps 4, 6 and 7 (NOT DONE, P-1804). The routeFileCoverage entries for robots[.]txt.ts, llms[.]txt.ts, llms-full[.]txt.ts and _site.archive.$kind.$slug.tsx are missing, because routes-covered.test.ts fails on an entry whose file is absent. Step 3's proof 'routes-covered passes with the four new route files' is NOT DONE until those steps land.
    Evidence: `ls app/src/routes | grep -E 'robots|llms|archive'` printed nothing. Only sitemap[.]xml.ts exists.
+
+## g1 · steps 4
+
+Source: the fresh reviewer of group g1 (second run), none blocking. The two GOTCHAS.md items (the GitHub Actions billing refusal that leaves the CI db proof BLOCKED, and the missing hit-again of P-310) went into the bank as hit-again lines of P-524 and P-310 and are not repeated here. The U+0300 to U+036F range is written in words below, because the tools turn the escape into the raw characters (P-008).
+
+1. File `app/src/server/seo/archive.ts` (not blocking).
+   What: archiveHref is exported, but only tests/unit/archive.test.ts calls it. The property page links through facetMap and ArchiveLink instead. The plan names archiveHref, so building it was asked for, but no production consumer is planned (listFacets at least feeds the later sitemap step). R04/C04: either give it a consumer or drop it from the plan.
+   Evidence: grep -rn "archiveHref\|listFacets" src --include=*.ts --include=*.tsx | grep -v src/server/seo/archive.ts prints nothing
+
+2. File `app/supabase/migrations/20261005034629_archive_facets.sql` (not blocking).
+   What: Suspected by reading, not run: the view's slug only mirrors slugify for ordinary labels. The SQL strips only U+0300-U+036F and splits on locale-dependent [:alnum:]. slugify strips every \p{M} and splits on \p{L}\p{N}. A label with a combining mark outside that block, or a letter that the database locale's [:alnum:] does not class as a letter, would give a different slug in the view than in memory. archive.db.test.ts would then report a mismatch that the Worker never shows. The Worker reads only the in-memory side, so pages are not affected.
+   Evidence: src/lib/slug.ts: .replace(/\p{M}/gu, "") and /[^\p{L}\p{N}]+/gu; migration: regexp_replace(normalize(f.source, nfkd), '[<U+0300>-<U+036F>]', '', 'g') and '[^[:alnum:]]+'
+
+3. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: C22 is not answered. The new public archive route, and the extra getArchiveFacetsFn server-function call that every property-page load now makes, state no unit cost. On client navigation that call goes to /_serverfn/, which the pipeline never stores at the edge (NOT_PAGE_PREFIXES), so every client navigation to a property page, once its 5-minute staleTime has run out, is one more Worker request answered from memory. The cost is likely small, but it is not recorded.
+   Evidence: src/server/lib/pipeline.ts:35 NOT_PAGE_PREFIXES includes "/_serverfn/"; src/routes/_site.property.$slug.tsx loader adds queryClient.ensureQueryData(archiveFacetsQuery()); grep -n 'P-009\|unit cost' workspace/05-plans/logs/B13.md finds nothing for step 4
+
+4. File `workspace/05-plans/B13.md` (not blocking).
+   What: The plan's Files list should be folded to match the tree: src/domain/archive.ts (new; it fits the src/domain folder-map row) and the edits to tests/e2e/fixtures/routes.ts, tests/unit/analytics.test.ts and tests/mutations/B3.json fall outside the group's file list. They are logged as deviations, as are the loader-fed ArchiveLink (no useQuery, no slugify), getArchiveFacetsFn returning { catalog_version, facets }, jsonLdExpectations.archive = ["CollectionPage"], the beacon flushed by visibilitychange instead of page.close, and watched-fail (t) done on style instead of year_built.
+   Evidence: git show --stat 01b336d lists app/src/domain/archive.ts, app/tests/unit/analytics.test.ts and app/tests/e2e/fixtures/routes.ts; 2d1b81c changes app/tests/mutations/B3.json; log lines 180-189 and 266-268
+
+5. File `app/tests/mutations/B3.json` (not blocking).
+   What: b3-g4-an-unique is re-anchored on "archive_view" being the last name in analyticsEvents. The next lane that appends an event will make it STALE again, the same way B3b and this group already broke it.
+   Evidence: git show 2d1b81c: find changed from '"home_finder",\n] as const;' to '"archive_view",\n] as const;'; the log's Proof 7 records the earlier 'STALE B3:b3-g4-an-unique: find occurs 0 times'
