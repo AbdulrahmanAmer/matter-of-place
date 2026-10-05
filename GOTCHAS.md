@@ -3139,3 +3139,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bunx tsc --noEmit -p tsconfig.scripts.json` before the first proof of a new script, and start a long gate with the Bash tool's own `run_in_background` (then wait on its output file for the `quiet:` line), never with `( ... ) &` inside a foreground call.
 - proof: `cd app && bunx tsc --noEmit -p tsconfig.scripts.json` → exit 0 on a script with no unused import; the same command on a script with one prints `error TS6133` (measured 2026-10-05, B15 g6).
 - added: 2026-10-05
+
+## P-1203 · A pull request that touches `tests/db/rls.db.test.ts` replays `B2:g11-rls-own-row` in CI, whose `run` seeds `--target dev` and fails without the dev profile
+- symptom: PR 137 (B5 step 2, which edits `rls.db.test.ts`) failed its `db` job at the mutation replay with `WATCHED-FAIL BAD: wrong reason (B2:g11-rls-own-row)`, `DEV_SUPABASE_PROJECT_REF is not set`, `error: script "seed" exited with code 1`, while PR 135 and PR 131 (which did not touch that file) passed `db` (2026-10-05).
+- cause: `app/tests/mutations/B2.json` entry `g11-rls-own-row` runs `bun run seed -- --target dev --mode full --images skip` before its test; the CI `db` job has the local stack and no `DEV_SUPABASE_PROJECT_REF`, and `--changed origin/main` replays every entry whose file the pull request touches.
+- rule: a registry `run` replayed in CI seeds `--target local`, never `dev`; until the entry is fixed on main, a group that edits `tests/db/rls.db.test.ts` cannot pass the `db` job, so say so in the brief and fix the entry first (an owner of B2's registry, not the merge step).
+- proof: `grep -n '"run"' app/tests/mutations/B2.json | grep "target dev"` → `2836:    "run": "bun run seed -- --target dev --mode full --images skip && bunx vitest run --project db tests/db/rls.db.test.ts",`
+- added: 2026-10-05
