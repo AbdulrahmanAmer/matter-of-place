@@ -944,5 +944,148 @@
     "replace": "description: regionDescription(region),\n      noindex: true,",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*the head of a page that lists properties > a region page has no robots meta"
+  },
+  {
+    "id": "b13-s6-robots-host-workers",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "return !name.endsWith(\".workers.dev\");",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*isIndexableHost > answers for matter-of-place"
+  },
+  {
+    "id": "b13-s6-robots-host-env",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "if (mopEnv !== \"production\") return false;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*isIndexableHost > answers for matterofplace.com under MOP_ENV preview"
+  },
+  {
+    "id": "b13-s6-robots-host-port",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": ".replace(/:\\d+$/, \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*isIndexableHost > answers for Pr-1"
+  },
+  {
+    "id": "b13-s6-robots-host-case",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "host.toLowerCase().replace",
+    "replace": "host.replace",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*isIndexableHost > answers for Pr-1"
+  },
+  {
+    "id": "b13-s6-robots-body-admin",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "Disallow: /admin\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > gives the real domain one allow block"
+  },
+  {
+    "id": "b13-s6-robots-body-api",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "Disallow: /api\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > gives the real domain one allow block"
+  },
+  {
+    "id": "b13-s6-robots-body-sitemap",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "const SITEMAP = \"https://matterofplace.com/sitemap.xml\";",
+    "replace": "const SITEMAP = \"https://matterofplace.invalid/sitemap.xml\";",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > gives the real domain one allow block"
+  },
+  {
+    "id": "b13-s6-robots-body-ai-rule",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "Allow: /\nDisallow: /admin",
+    "replace": "Allow: /\n\nUser-agent: GPTBot\nDisallow: /\nDisallow: /admin",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > names no crawler but the wildcard"
+  },
+  {
+    "id": "b13-s6-robots-body-closed",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "const CLOSED_BODY = \"User-agent: *\\nDisallow: /\\n\";",
+    "replace": "const CLOSED_BODY = \"User-agent: *\\nAllow: /\\n\";",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > closes the whole site on"
+  },
+  {
+    "id": "b13-s6-robots-body-type",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "\"content-type\": \"text/plain; charset=utf-8\"",
+    "replace": "\"content-type\": \"text/html; charset=utf-8\"",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > answers as plain text"
+  },
+  {
+    "id": "b13-s6-robots-pipeline-header",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "headers.set(\"x-robots-tag\", \"noindex, nofollow\");",
+    "replace": "headers.set(\"x-robots-tag\", \"index\");",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*X-Robots-Tag by host in the pipeline \\(G19\\) > sets the header for matter-of-place"
+  },
+  {
+    "id": "b13-s6-robots-route-bypass",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "closed.headers.set(\"x-mop-cache\", \"bypass\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*the robots route > closes"
+  },
+  {
+    "id": "b13-s6-robots-route-cache-closed",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "if (!isIndexableHost(host, env.MOP_ENV)) {",
+    "replace": "if (host === \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*the robots route > closes"
+  },
+  {
+    "id": "b13-s6-robots-route-kind",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "\"doc\",",
+    "replace": "\"json\",",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*the robots route > stores the indexable body as a doc"
+  },
+  {
+    "id": "b13-s6-robots-route-host",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "request.headers.get(\"host\") ?? new URL(request.url).host",
+    "replace": "new URL(request.url).host",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*the robots route > closes matter-of-place"
+  },
+  {
+    "id": "b13-s6-robots-static-file",
+    "kind": "manual",
+    "test": "tests/unit/robots.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*the static file > is gone",
+    "procedure": "Restore app/public/robots.txt (git show HEAD~:app/public/robots.txt or any one-line file), run the command, expect the failure, then delete the file again (plan watched-fail (d))."
   }
 ]

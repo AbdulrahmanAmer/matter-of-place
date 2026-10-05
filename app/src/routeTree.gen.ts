@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SiteRouteImport } from './routes/_site'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
@@ -58,6 +59,11 @@ import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -291,6 +297,7 @@ const ApiPublicSubmissionsIdUploadsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
@@ -337,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesByTo {
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
@@ -383,6 +391,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_site': typeof SiteRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/$market'
     | '/about'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/api/public/submissions/$id/uploads'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/about'
     | '/contact'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_site'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/_site/$market'
     | '/_site/about'
@@ -573,6 +585,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiHooksResendRoute: typeof ApiHooksResendRoute
@@ -599,6 +612,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1060,6 +1080,7 @@ const ApiPublicSubscribersRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiHooksResendRoute: ApiHooksResendRoute,
