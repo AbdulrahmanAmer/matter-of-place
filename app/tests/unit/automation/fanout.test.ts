@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Database, Json } from "../../../src/db";
 import { stepSchema } from "../../../src/domain/automation";
+import { dryRun } from "../../../src/server/automation/dry-run";
 import { fanoutEvent, fanoutPendingEvents } from "../../../src/server/automation/fanout";
 import { planEvent } from "../../../src/server/automation/plan";
 import type { StepDefinition } from "../../../src/server/jobs/types";
@@ -34,6 +35,7 @@ vi.mock(import("../../../src/server/jobs/steps/index.ts"), () => ({
 
 type EventRow = Database["public"]["Functions"]["fanout_pending_events"]["Returns"][number];
 type RecipeRow = Database["public"]["Tables"]["automation_recipes"]["Row"];
+type RecipeTemplate = Database["public"]["Tables"]["email_templates"]["Row"];
 type InsertArgs = Database["public"]["Functions"]["fanout_insert_jobs"]["Args"];
 
 const HOUR = 3_600_000;
@@ -87,6 +89,19 @@ const published = recipe("property.published", [
     requires_approval: true,
   }),
 ]);
+
+const standaloneTemplate: RecipeTemplate = {
+  id: "7a1b2c3d-0000-4000-8000-0000000000dd",
+  key: "standalone",
+  subject: "Subject",
+  preheader: "",
+  body: [],
+  variables: [],
+  enabled: true,
+  version: 1,
+  created_at: "2026-10-01T00:00:00.000Z",
+  updated_at: "2026-10-01T00:00:00.000Z",
+};
 
 const received = recipe("submission.received", [
   step("send_received", "send_email", { params: { template: "received" } }),
@@ -210,6 +225,45 @@ describe("fanoutEvent (invariants 3 to 5)", () => {
       "send_standalone",
     ]);
     expect(inserts[0]?.p_jobs).toEqual(JSON.parse(JSON.stringify(plan.planned)));
+  });
+
+  it("dry-run plans the same jobs as the real run, a disabled step and a condition included", async () => {
+    const payload = { property_id: PROPERTY, tier: "Feature", market: "california" };
+    const row = event("property.published", payload);
+    const { db, inserts } = setup([row], [published]);
+    await fanoutEvent(db, row.id);
+    const reads = fakeDb({
+      tables: { automation_recipes: [published], email_templates: [standaloneTemplate] },
+    });
+    const dry = await dryRun(reads, { trigger: "property.published", payload });
+    const real = plannedJobs(inserts[0]).map(({ job }) => ({
+      step_id: job["step_id"],
+      type: job["type"],
+      heavy: job["heavy"],
+      run_local: job["run_local"],
+      status: job["status"],
+      max_attempts: job["max_attempts"],
+    }));
+    expect(real.map((job) => job.step_id)).toEqual([
+      "bump_catalog_version",
+      "write_captions",
+      "send_standalone",
+    ]);
+    expect(
+      dry.planned.map(({ step_id, type, heavy, run_local, status, max_attempts }) => ({
+        step_id,
+        type,
+        heavy,
+        run_local,
+        status,
+        max_attempts,
+      })),
+    ).toEqual(real);
+    expect(dry.skipped.map((skip) => [skip.step_id, skip.reason])).toEqual([
+      ["purge_cache", "step_disabled"],
+      ["render_variants", "not_implemented"],
+      ["render_reel", "condition"],
+    ]);
   });
 
   it("makes exactly one fanout_insert_jobs RPC", async () => {

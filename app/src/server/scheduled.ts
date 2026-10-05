@@ -56,7 +56,7 @@ function stalled(value: unknown, now: Date): boolean {
 
 async function pageStatus(input: KeepWarmInput): Promise<{ status: number; cache: string }> {
   try {
-    const response = await input.fetch(new Request(new URL("/", input.origin)));
+    const response = await input.fetch(new Request(new URL("/", input.origin).href));
     return { status: response.status, cache: response.headers.get("x-mop-cache") ?? "none" };
   } catch {
     return { status: 0, cache: "none" };

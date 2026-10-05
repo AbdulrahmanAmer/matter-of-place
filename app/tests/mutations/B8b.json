@@ -1444,5 +1444,282 @@
     "sql": "drop trigger settings_bump_catalog_version on public.settings;",
     "run": "bunx vitest run --project db tests/db/bump-catalog-version.db.test.ts -t \"an update of the flags row raises it\"",
     "expect": "× .*an update of the flags row raises it"
+  },
+  {
+    "id": "b8b-g5-dry-params",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "      params: job.payload.params,",
+    "replace": "      params: {},",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*lists the planned job with its params"
+  },
+  {
+    "id": "b8b-g5-dry-writes",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "  const warnings: DryRunWarning[] = [];\n",
+    "replace": "  await db.rpc(\"fanout_insert_jobs\", { p_event_id: DRY_RUN_EVENT, p_jobs: [] });\n  const warnings: DryRunWarning[] = [];\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*writes nothing"
+  },
+  {
+    "id": "b8b-g5-dry-entity",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "input.payload ?? (await samplePayloadFor(db, input.trigger, input.entity_id, new Date()))",
+    "replace": "input.payload ?? {}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*builds the payload from the row named by entity_id"
+  },
+  {
+    "id": "b8b-g5-dry-recipe-off",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "  if (!recipe.enabled) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*warns once when the recipe is off"
+  },
+  {
+    "id": "b8b-g5-dry-not-built",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "    if (step.reason === \"not_implemented\") {",
+    "replace": "    if (step.reason === \"invalid_params\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*warns once for a step that has no module yet"
+  },
+  {
+    "id": "b8b-g5-dry-tpl-missing",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "    if (state === undefined) {",
+    "replace": "    if (state === null) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*warns once when a planned step names a template that does not exist"
+  },
+  {
+    "id": "b8b-g5-dry-tpl-off",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "    return state\n      ? []\n      : [{ code: \"template_disabled\", step_id, message: `The email template ${key} is off.` }];",
+    "replace": "    return [];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*warns once when a planned step names a template that is off"
+  },
+  {
+    "id": "b8b-g5-dry-tpl-read",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "  if (named.length === 0) return [];",
+    "replace": "  if (false) return [];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*does not look for the template of a step that is switched off"
+  },
+  {
+    "id": "b8b-g5-dry-payload",
+    "test": "tests/unit/automation/dry-run.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "  if (!payloadIsValid(input.trigger, payload)) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/dry-run.test.ts",
+    "expect": "× .*warns once when the payload does not match"
+  },
+  {
+    "id": "b8b-g5-dry-equals-real",
+    "test": "tests/unit/automation/fanout.test.ts",
+    "file": "src/server/automation/dry-run.ts",
+    "find": "const plan = planEvent(recipe, { id: DRY_RUN_EVENT, payload }, { registry: getStep });",
+    "replace": "const plan = planEvent({ ...recipe, steps: recipe.steps.map((s) => ({ ...s, enabled: true })) }, { id: DRY_RUN_EVENT, payload }, { registry: getStep });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/fanout.test.ts",
+    "expect": "× .*dry-run plans the same jobs as the real run"
+  },
+  {
+    "id": "b8b-g5-sam-schema",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "return { request_id: row.id, kind: row.kind };",
+    "replace": "return { request_id: row.id, kind: undefined };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*builds a payload for each of the 18 triggers"
+  },
+  {
+    "id": "b8b-g5-sam-tier",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "\"The Campaign\": \"Campaign\",",
+    "replace": "\"The Campaign\": \"Reach\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*takes tier from the package and market"
+  },
+  {
+    "id": "b8b-g5-sam-no-tier",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "\"Not sure yet\": undefined,",
+    "replace": "\"Not sure yet\": \"Feature\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*leaves tier out for a package with none"
+  },
+  {
+    "id": "b8b-g5-sam-no-property",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "      property_id: row.property_id ?? undefined,",
+    "replace": "      property_id: row.property_id ?? \"none\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*leaves property_id out for a submission"
+  },
+  {
+    "id": "b8b-g5-sam-declined",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "      note: row.decline_note ?? undefined,",
+    "replace": "      note: undefined,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*carries the decline reason and note"
+  },
+  {
+    "id": "b8b-g5-sam-waived",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "      status: row.status === \"waived\" ? \"waived\" : \"paid\",",
+    "replace": "      status: \"paid\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*marks a waived payment waived"
+  },
+  {
+    "id": "b8b-g5-sam-takedown",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "      takedown: row.taken_down_at !== null,",
+    "replace": "      takedown: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*gives an unpublished property its reason"
+  },
+  {
+    "id": "b8b-g5-sam-rejected-note",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "    return { ...payload, note: rejectionNote ?? \"\" };",
+    "replace": "    return payload;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*gives a rejected asset its note"
+  },
+  {
+    "id": "b8b-g5-sam-system",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "(_db, _id, now) => Promise.resolve({ scheduled_for: now.toISOString() })",
+    "replace": "(_db, _id) => Promise.resolve({ scheduled_for: \"now\" })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*builds the two system events without a row"
+  },
+  {
+    "id": "b8b-g5-sam-refuses",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "  if (entityId === undefined && !systemEvents.includes(type)) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*refuses an unknown trigger"
+  },
+  {
+    "id": "b8b-g5-db-processed-check",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"returns 0 and inserts nothing once processed_at is set\"",
+    "expect": "× .*returns 0 and inserts nothing once processed_at is set"
+  },
+  {
+    "id": "b8b-g5-db-processed-set",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"sets processed_at, which takes the event out of the sweep\"",
+    "expect": "× .*sets processed_at, which takes the event out of the sweep"
+  },
+  {
+    "id": "b8b-g5-db-key",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      (v_job ->> 'idempotency_key') || gen_random_uuid()::text,\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"called twice with the same planned jobs inserts them once\"",
+    "expect": "× .*called twice with the same planned jobs inserts them once"
+  },
+  {
+    "id": "b8b-g5-db-status",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      'queued'::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"gives a queued job a message and a waiting_approval job none\"",
+    "expect": "× .*gives a queued job a message and a waiting_approval job none"
+  },
+  {
+    "id": "b8b-g5-db-local",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => false\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"makes a run_local element a queued job that has no message\"",
+    "expect": "× .*makes a run_local element a queued job that has no message"
+  },
+  {
+    "id": "b8b-g5-db-max-attempts",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => 5,\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"carries each element's max_attempts to its job\"",
+    "expect": "× .*carries each element's max_attempts to its job"
+  },
+  {
+    "id": "b8b-g5-db-job-events",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n      insert into public.job_events (job_id, kind, to_status, attempt)\n      select j.id, 'created', 'queued', 0 from public.jobs j where j.idempotency_key = v_job ->> 'idempotency_key';\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  delete from public.event_fanout_failures where event_id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"writes the job_events of a direct enqueue_job call\"",
+    "expect": "× .*writes the job_events of a direct enqueue_job call"
+  },
+  {
+    "id": "b8b-g5-db-failure-row",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_insert_jobs(p_event_id uuid, p_jobs jsonb)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_processed_at timestamptz;\n  v_job jsonb;\n  v_count int := 0;\nbegin\n  -- JOB-07: the event row is the lock, so two sweeps of one event insert its jobs once.\n  select e.processed_at into v_processed_at from public.events e where e.id = p_event_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_processed_at is not null then\n    return 0;\n  end if;\n  -- B8's enqueue_job is the only writer of jobs and job_events (architecture 3.6); a key that exists returns null.\n  for v_job in select j.value from jsonb_array_elements(p_jobs) as j loop\n    if public.enqueue_job(\n      v_job ->> 'type',\n      v_job -> 'payload',\n      v_job ->> 'idempotency_key',\n      coalesce((v_job ->> 'heavy')::boolean, false),\n      (v_job ->> 'status')::public.job_status,\n      now(),\n      p_event_id,\n      (v_job ->> 'recipe_id')::uuid,\n      v_job ->> 'step_id',\n      p_max_attempts => coalesce((v_job ->> 'max_attempts')::int, 5),\n      p_local => coalesce((v_job ->> 'run_local')::boolean, false)\n    ) is not null then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  update public.events set processed_at = now() where id = p_event_id;\n  return v_count;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"deletes the failure row when the event is planned\"",
+    "expect": "× .*deletes the failure row when the event is planned"
+  },
+  {
+    "id": "b8b-g5-db-backoff",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.record_fanout_failure(p_event_id uuid, p_error text)\nreturns void\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-07: the sweep waits 2, 4, 8 ... minutes before it plans the event again, at most an hour.\n  insert into public.event_fanout_failures as f (event_id, attempts, next_at, last_error)\n  values (p_event_id, 1, now() + least(interval '60 seconds' * 2 ^ 1, interval '1 hour'), p_error)\n  on conflict (event_id) do update\n  set attempts = f.attempts + 1,\n    next_at = now() + least(interval '60 seconds' * 2 ^ 1, interval '1 hour'),\n    last_error = excluded.last_error;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"backs off to about four minutes on the second failure\"",
+    "expect": "× .*backs off to about four minutes on the second failure"
+  },
+  {
+    "id": "b8b-g5-db-pending-leaves-out",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.fanout_pending_events(p_limit int)\nreturns setof public.events\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- JOB-07: the one read of the sweep; an event that failed waits for its next_at.\n  select e.*\n  from public.events e\n  where e.processed_at is null\n  order by e.at\n  limit p_limit;\n$$;",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"backs off to about four minutes on the second failure\"",
+    "expect": "× .*backs off to about four minutes on the second failure"
+  },
+  {
+    "id": "b8b-g5-db-params-frozen",
+    "kind": "sql",
+    "test": "tests/db/fanout.db.test.ts",
+    "sql": "create or replace function public.smoke_thaw() returns trigger language plpgsql as $f$ begin update public.jobs set payload = jsonb_set(payload, '{params}', new.steps -> 0 -> 'params') where recipe_id = new.id; return new; end; $f$; create trigger smoke_thaw after update on public.automation_recipes for each row execute function public.smoke_thaw();",
+    "run": "bunx vitest run --project db tests/db/fanout.db.test.ts -t \"leaves the job's payload.params as inserted\"",
+    "expect": "× .*leaves the job's payload.params as inserted"
+  },
+  {
+    "id": "b8b-g5-smoke-guard",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/automation-smoke.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
+    "expect": "\\+\\s+\"scripts/automation-smoke.ts\""
   }
 ]

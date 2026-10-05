@@ -77,6 +77,7 @@ export default defineConfig(({ command, mode }) => {
             nitro({
               preset: "cloudflare-module",
               cloudflare: { wrangler: { name: "matter-of-place" } },
+              plugins: ["./src/server/nitro/keepwarm.ts"],
             }),
           ]
         : []),

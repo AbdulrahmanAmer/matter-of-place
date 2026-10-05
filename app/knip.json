@@ -7,7 +7,8 @@
     "tests/**/*.{ts,tsx}",
     "src/domain/index.ts",
     "src/db/index.ts",
-    "docs/verify-example.mjs"
+    "docs/verify-example.mjs",
+    "src/server/nitro/*.ts"
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql"],

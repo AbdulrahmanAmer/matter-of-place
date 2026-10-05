@@ -146,6 +146,7 @@ Entry template
 - Resend free: 3,000 emails/month, 100/day, 1,000 marketing contacts, 3 domains (all three used: root, `notify`, `notes`), 30-day data retention (pricing page read 2026-10-02, ASSUMED E20).
 - GitHub Actions on a private repo: 2,000 minutes/month (a reel render is ~3 minutes). Once B9 step 10 runs, the billed minutes of one 40-photograph `render_variants` run are written here (JOB-08); until then UNPROVEN.
 - Sentry free: 5k errors/month. GA4, Search Console, Bing, Cloudflare zone HTTP analytics (no beacon, ASSUMED G31): free.
+- Workers free: 5 Cron Triggers per account and 10 ms of CPU per Cron Trigger run (Cloudflare Workers limits page, read 2026-10-05 for B8b step 5; the CPU of one keep-warm tick is not measured, UNPROVEN). `matter-of-place` and `matter-of-place-dev` carry one trigger each; `pr-<n>` previews carry none (`scripts/preview-no-cron.mjs`); the other cron users on the account are not counted here.
 - rule: the audit robot reports usage against each line monthly; the first line to cross 70% triggers a decision, not a surprise invoice.
 - proof: the vendors' pricing pages on the dates named; for the measured ones, ASSUMED section E (E1 to E20) holds the command and its output. `node workspace/05-plans/ready.mjs` prints the lines that are switched on.
 - added: 2026-09-30
@@ -185,6 +186,7 @@ Entry template
 - proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON; a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` → `E ' a \ \ '` (two backslashes where four were typed, 2026-10-02); `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the row written with the Edit tool keeps its escapes).
 - hit again: 2026-10-04, B4 g5: a multi-line `node -e` patch with escaped quotes and backslash-s sequences printed nothing and changed nothing, twice (a spec still held `{ exact: true }` on a select label; a scratch registry kept its wrong `expect`), and each cost a full run before the file was read again. Patch with the Edit tool and check with `grep -n` that the new text is there.
 - hit again: 2026-10-03, B9 g4: backslashes were dropped from text written through a heredoc, so the file had to be rewritten with the Write tool; the author listed it as a cost but the entry was not extended (recorded by the g4 review follow-up).
+- hit again: 2026-10-05, B8b g5: a `node -e "..."` patch whose JavaScript template literal used backticks inside the double quotes had the shell run them as command substitution (`STEP: No such file or directory`), and the comments it wrote came out with the names missing; the file was read back and fixed with Edit. Write a patch that holds a backtick with the Write tool.
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
 - hit again: 2026-10-03, B2 g11 (second attempt cost): a heredoc whose text held an apostrophe ended in `unexpected EOF` and wrote nothing, and a patch script that ran a `rm` of a path it had just made was refused by the safety check; the file went in with the Write tool instead.
 - hit again: 2026-10-04, B8 c8w: a `node -e '...'` patch whose text held an apostrophe (`B3's`) ended in `unexpected EOF` and wrote nothing, and a registry `expect` with `\\[\\]` typed through `node -e` arrived as `[]` (the replay printed `WATCHED-FAIL BAD: wrong reason`); the entry was fixed with the Edit tool.
@@ -3092,4 +3094,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the proof pointed at the cause (a `STUB(...)` marker) instead of at the symptom, and the `resolved:` line added later covered the meaning but left the old proof and rule text in place.
 - rule: when an entry gets a `resolved:` line, rewrite its proof in the same edit to a command that reproduces the resolved state (here the `e2e` job logging 0 `404 .../media/o/` lines), or retire the entry once that is observed; a proof never rests on a marker a later slice deletes.
 - proof: `git grep -n "STUB(B9 step 6)" -- app/scripts/seed.ts; echo $?` → `1` (no match); `grep -n "^- resolved:" GOTCHAS.md | grep -c "B4 c7l"` → `1`.
+- added: 2026-10-05
+
+## P-1618 · A Nitro hook whose payload type names a package the project does not install resolves to an error type, and lint refuses every use of it
+- symptom: B8b g5's `src/server/nitro/keepwarm.ts` typechecked, but `bun run lint` failed on `({ controller }) => ... controller.cron` with `Unsafe member access .cron on a type that cannot be resolved` and `Unsafe assignment of an error typed value`.
+- cause: nitro's `cloudflare:scheduled` hook types `controller` as `ScheduledController` from `@cloudflare/workers-types`, which is not installed here; `tsc` runs with `skipLibCheck`, so the unresolved name is silent there and only the type-aware lint sees it.
+- rule: annotate the hook callback's parameter with the structural type the code reads (`({ controller }: { controller: { cron: string } })`) and say why in one comment; do not install the package for one field.
+- proof: `cd app && bunx eslint src/server/nitro/keepwarm.ts --max-warnings 0` → no output; with the annotation removed → the two errors above (measured 2026-10-05, B8b g5).
+- added: 2026-10-05
+
+## P-1619 · A script that imports `src/server` code is typechecked a second time with `tsconfig.scripts.json`, where `new Request(new URL(...))` is an error
+- symptom: B8b g5's `scripts/automation-smoke.ts` imports `runKeepWarm`, and `bun run typecheck` failed in `src/server/scheduled.ts` (`Argument of type 'URL' is not assignable to parameter of type 'string'`) although the Worker build and every unit test passed.
+- cause: `tsconfig.scripts.json` has `lib: ["ES2022"]` and the `bun` types, whose `Request` constructor takes a string, a Request or an init, not a `URL`; the DOM lib of `tsconfig.json` accepts it.
+- rule: server code that a script may import builds a `Request` from a string (`new URL(path, origin).href`), and any file a script imports is checked with both configs before its group reports.
+- proof: `cd app && bun run typecheck` → exit 0; with `.href` removed from `pageStatus` in `src/server/scheduled.ts` → `TS2769` from `tsconfig.scripts.json` (measured 2026-10-05, B8b g5).
+- added: 2026-10-05
+
+## P-1620 · The plan's double fan-out case cannot run on one event: `events` lets `processed_at` change once, and a processed event returns 0 before any key is looked at
+- symptom: a first draft of the "called twice with the same planned jobs inserts them once" case called `fanout_insert_jobs` twice on one event; it would have stayed green with the mutation `idempotency_key || gen_random_uuid()` because the second call returns 0 on `processed_at` (JOB-07) and never reaches the key. `events_append_only` refuses setting `processed_at` back to null, so the case cannot reset the event either.
+- cause: the plan states the case as one call twice, and two guards (the processed check and the unique key) give the same answer 0.
+- rule: a test of the idempotency key uses two events and the same planned key, so only the key can stop the second insert; the processed check has its own case.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g5-db-key` → `WATCHED-FAIL OK B8b:b8b-g5-db-key` (the mutation turns `called twice with the same planned jobs inserts them once` red) (measured 2026-10-05, B8b g5).
+- added: 2026-10-05
+
+## P-1621 · A sample payload for a subscriber event cannot read `subscribers` from `src/server/automation`: the boundaries test refuses `from("subscribers")` outside the consent-aware modules
+- symptom: B8b g5's first full `bun run check` failed `tests/unit/boundaries.test.ts > selects subscribers only in the consent-aware modules (R38)` on `sample-payloads.ts`, which read the subscriber row to confirm it exists.
+- cause: R38 allows the table only under `src/server/subscribers/`, `newsletter/audience.ts` and `jobs/system/market-open-notice.ts`; the plan says the payload is built "from a real row (... subscriber ...)" and names no such module.
+- rule: a read of `subscribers` outside those modules goes through a function in `src/server/subscribers/` that selects `id` and nothing else (`lookup.ts`); the automation code imports it.
+- proof: `cd app && bunx vitest run tests/unit/boundaries.test.ts` → passes; with `subscriberIdQuery` inlined as `db.from("subscribers")` in `sample-payloads.ts` → the R38 case fails (measured 2026-10-05, B8b g5).
 - added: 2026-10-05
