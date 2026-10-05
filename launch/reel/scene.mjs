@@ -108,7 +108,7 @@ tl.set($("#s1"), { autoAlpha: 0 }, 2.6);
 const cam1 = rigs(halvesOf("s1"), imageOf(0), { subject: [50, 58, 36, 42], front: "bottom", par: PAR_SOFT, align: 0.2 });
 cam1.blurBack = 2;
 cam1.blurFront = 2;
-dolly(cam1, 0, 2.6, { z: 0, x: 70, y: 16 }, { z: 0.11, x: -70, y: -16 });
+dolly(cam1, 0, 2.6, { z: 0, x: 24, y: 10 }, { z: 0.09, x: -24, y: -10 });
 tl.fromTo(cam1, { blurSubject: 8 }, { blurSubject: 0, duration: 1, ease: "power2.out", immediateRender: true }, 0);
 scrim($("#s1-t"), 0.2);
 scrim($("#s1-b"), 0.2);
@@ -153,7 +153,7 @@ maskOut(tl, $("#title"), 4.65, { dur: 0.5 });
 // ---------------------------------------------------------------- beat 5 · 5.4 to 8.2 · M6 push, M4 rule, M1 facts
 shot(tl, $("#s3"), 5.4, 8.2);
 const cam3 = rigs([$("#s3-rig")], imageOf(2), { subject: [50, 58, 36, 42], front: "bottom", par: PAR, align: 0.3 });
-dolly(cam3, 5.4, 8.2, { z: 0, x: 90, y: 18 }, { z: 0.11, x: -90, y: -14 });
+dolly(cam3, 5.4, 8.2, { z: 0, x: 30, y: 14 }, { z: 0.09, x: -30, y: -10 });
 // M8: the foreground deck pulls into focus while the camera is already moving
 tl.fromTo(cam3, { blurFront: 7 }, { blurFront: 0, duration: 1.1, ease: "power2.out", immediateRender: true }, 5.4);
 scrim($("#s3"), 0.1);
@@ -197,18 +197,17 @@ tl.fromTo(last.el, { x: last.x, y: last.y, width: 468, height: 366 }, { x: 540 +
 
 shot(tl, $("#s7b"), 11.3, 12.4);
 const cam7 = rigs([$("#s7b-rig")], imageOf(9), { subject: [50, 55, 36, 42], front: "bottom", par: PAR_SOFT, align: 0 });
-dolly(cam7, 11.3, 12.4, { z: 0, x: 0, y: 0 }, { z: 0.12, x: -70, y: -12 });
+dolly(cam7, 11.3, 12.4, { z: 0, x: 0, y: 0 }, { z: 0.09, x: -20, y: -8 });
 
 // ---------------------------------------------------------------- beat 8 · 12.4 to 18.0 · M5 lock, M1 site, M2 credit, M11
 shot(tl, $("#s8"), 12.4);
 const cam8 = rigs([$("#s8-rig")], imageOf(3), { subject: [50, 58, 36, 42], front: "bottom", par: PAR_SOFT, align: 0 });
-dolly(cam8, 12.4, 18, { z: 0, x: 160, y: 24 }, { z: 0.4, x: -160, y: -24 });
-// the picture softens as the lock arrives, so the type reads on a calm ground
-for (const plane of ["blurBack", "blurSubject", "blurFront"]) tl.fromTo(cam8, { [plane]: 0 }, { [plane]: 1.5, duration: 1.2, ease: "power2.out", immediateRender: true }, 13.4);
+// the last shot runs 5.6 s, so its 9 percent push is slow: M7 crane (80 px each way, 0.8 degrees) and a 30 px drift keep the picture moving to the last frame
+dolly(cam8, 12.4, 18, { z: 0, x: 30, y: 80, r: -0.8 }, { z: 0.09, x: -30, y: -80, r: 0.8 });
 const endScrim = scrim($("#s8"), 0.1);
 const endPool = scrim($("#s8"), 0.5, { x: 100, y: 900, w: 880, h: 580, blur: 100 });
 tl.fromTo([endScrim, endPool], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: "power1.out", immediateRender: true }, 13.6);
-lightSweep($("#s8"), 13.0);
+lightSweep($("#s8"), 15.9);
 
 $("#site .ln > span").textContent = copy.site;
 $("#credit").textContent = copy.credit;

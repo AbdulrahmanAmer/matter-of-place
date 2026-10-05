@@ -12,6 +12,8 @@ message.
 3. The material of this round, all under `.tmp/reel-review/`:
    - `sheet-a.jpg` and `sheet-b.jpg`: one frame every half second, 18 frames each, nine to a row, left to right and top to bottom.
      `sheet-a.jpg` shows 0.25 s to 8.75 s, `sheet-b.jpg` 9.25 s to 17.75 s. Look at both with the image reader.
+   - `sheet-c.jpg`: the first half second after each hard cut between photographs, one frame every 0.1 s: the top row is
+     5.40 s to 5.90 s, the bottom row 12.40 s to 12.90 s. A seam, a bar or an edge that shows for a few frames is only visible here.
    - `gate.txt`: the output of the motion gate on the MP4. You may run its command again (the first line of the file).
    - `cues.json`: the sound design as a cue list (time, type, level, label). You cannot listen, so judge the sound from
      this list, from the gate's loudness and flatness numbers and from how each cue lands on a cut or an event on the
