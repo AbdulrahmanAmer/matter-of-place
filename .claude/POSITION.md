@@ -1123,3 +1123,21 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - LANE-COUNT EXPERIMENT still pending (see 08:35 block): five lanes an hour, then four, keep the faster.
 - Order after resume: (1) gate PR 133; (2) resume B13, B7, B12; (3) relaunch B17 with c1; (4) launch B5 steps 3 to 9
   (that is five lanes: B13, B7, B12, B17, B5); (5) measure; B10 steps 0, 3, 4, 5, 5a only when a slot frees after PR 133.
+
+## 2026-10-05 18:45 · BLOCKED on GitHub Actions billing (operator); lanes keep building; B7 step 1 accepted
+- Resumed 16:28 on the second account (B13, B7, B12 from cache; B17 with close-out c1; B5 fresh on steps 3 to 9).
+  Since then accepted: B12 steps 2 and 3 (first review), B7 step 1 (third review). B8b steps 2 to 5 merged (PR 133,
+  446ff04) before the resume. Board 113 of 259 (the count re-weighs close-outs; no step lost).
+- BLOCKED, OPERATOR: GitHub Actions starts no job on the private repository: "recent account payments have failed or your
+  spending limit needs to be increased" (runs 37332760433, 37333292439). The month's free minutes are spent, the spending
+  limit is zero (H55 (1)). Every merge waits on it: PR 138 (B7 step 1, ready, mergeable) first, then whatever the lanes
+  hand in. Unblock: Settings, Billing and plans, raise the Actions spending limit or add payment; or make the repository
+  public (operator decision). Then `gh run rerun <run> --failed` and `node workspace/05-plans/merge-gate.mjs <pr>`.
+  Banked as P-524. Records-only pull requests still merge (the gate's documents-only path).
+- Lanes now: seo B13 step 4 in review; video B12 steps 4 and 5 (render) building; site B17 close-out c1 building;
+  email B5 step 3 building. B7's run ended at the failed merge; resume it after the billing fix with
+  `workspace/05-plans/lanes/B7.json` (group 1 replays from cache; its migration 20261005014724 is on the branch).
+- LANE-COUNT MEASUREMENT: five lanes 16:28 to 18:40 gave 3 accepted steps, but every lane spent the first hour redoing
+  the group the pause interrupted, so that window is not a fair rate. Four lanes from 18:32 (B7 out at a clean boundary)
+  until about 19:40; count then. The pre-pause data stands: 3.3 steps an hour at four lanes, 2.3 at five to six.
+- The board artifact moved with the account: https://claude.ai/artifact/Juq2yvB6WZZbEEGM8XXaxy (the old link is gone).
