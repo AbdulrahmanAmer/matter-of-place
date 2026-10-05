@@ -17,8 +17,12 @@ const guardedScripts = [
   "scripts/e2e-coming-soon.ts",
   "scripts/seed.ts",
   "scripts/job-selftest.ts",
+  "scripts/load-fixtures.ts",
+  "tests/e2e/global-setup.ts",
   "scripts/set-environment.ts",
   "scripts/with-coming-soon.ts",
+  "tests/e2e/live-forms.spec.ts",
+  "tests/fixtures/catalog-version.ts",
   "scripts/omnikom-run-local.ts",
 ];
 
