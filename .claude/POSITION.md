@@ -1141,3 +1141,27 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   the group the pause interrupted, so that window is not a fair rate. Four lanes from 18:32 (B7 out at a clean boundary)
   until about 19:40; count then. The pre-pause data stands: 3.3 steps an hour at four lanes, 2.3 at five to six.
 - The board artifact moved with the account: https://claude.ai/artifact/Juq2yvB6WZZbEEGM8XXaxy (the old link is gone).
+
+## 2026-10-06 01:40 · night block: tooling that removes the day's three stalls; B5 3 to 4a merging; cloud retired
+- Operator decisions tonight: five lanes stay (no cutting a mid-group run to measure four); the cloud sandbox is
+  retired (P-528: no Postgres route from the sandbox under any network setting); the Dell Precision (i5 8th gen H,
+  4 cores) is set up tomorrow as the second machine with `workspace/05-plans/lane-runner.md` (merged, PR 153).
+- Tooling on main: `bank-merge.mjs`, `bun run migrations:restamp`, `bun run types:from-ci -- <pr>` (P-526, PR 150;
+  the merge and builder briefs call them); `stall-watch.mjs` every five minutes over the live runs (P-529, PR 154):
+  a STALL line = TaskStop, `review-snapshot remove`, fresh run with a close-out for the interrupted group; hookify off
+  and the three prompt hooks at 60 s (P-527, PR 151).
+- Secrets (values never printed): CONFIRM_TOKEN_SECRET generated and in `.env` and every lane copy; preview bundle
+  11 keys (PREVIEW_WORKER_SECRETS_JSON); dev Worker 11 secrets; production Worker 7 (CONFIRM_TOKEN_SECRET and
+  RESEND_WEBHOOK_SECRET added). P-530: a bare wrangler call used the Windows user token of the personal Cloudflare
+  account and made a stray Worker there; deleted; every wrangler call now takes the project's token from `.env`.
+- Merged tonight: PR 133 (B8b 2 to 5), 138 (B7 step 1), 141 (B13 step 4), 143, 149, 150, 151, 152, 153, 154.
+  Open: 155 (B5 steps 3, 4, 4a; e2e flake on the first `/` request re-run once by the gate task, P-531 candidate),
+  142 (B17 step 1, close-out c1 in a fix round).
+- Lanes: B13 run wf_dbe24ed5-4c9 (c5 fix round, c6 review; 7 to 13 after), B12 wf_49694593-fac (4 and 5 fix2, 6 review),
+  B17 wf_df526cfb-c3b (step 4 building), B7 wf_606b966f-c84 (step 2 fix1). B5 relaunch: steps 5 to 9 after PR 155
+  merges and CI's main deploy puts the runner on mop-dev (`lanes/B5.json` carries the call; set steps to 5 to 9).
+- GitHub Actions had "job not acquired by a runner" cancellations around 20:00 to 21:00 (status page: degraded); re-run
+  with `gh run rerun <id> --failed`. Recurring e2e flake: sweep.spec.ts on `/` first request, "elements wider than
+  the viewport", passes on retry, exits 1 (PRs 138, 150, 155): a follow-up for the site lane, not loosened.
+- Pace: board 114 at 17:45, 115 at 01:30 with eight groups in review or fix rounds at once; the evening's
+  rejections (B5 step 3, B17 c1, B12 render, B13 c5, B7 step 2) each cost a round. Morning summary follows.
