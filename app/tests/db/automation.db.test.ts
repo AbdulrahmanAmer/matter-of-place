@@ -59,7 +59,8 @@ async function recipe(db: Db, trigger: string): Promise<{ id: string; version: n
 async function template(db: Db): Promise<{ id: string; key: string }> {
   return one(
     db,
-    `insert into public.email_templates (key, subject, body) values ($1, 'Subject', '[]') returning id, key`,
+    `insert into public.email_templates (key, class, subject, body) values ($1, 'transactional', 'Subject', '[]')
+     returning id, key`,
     [`test_${randomUUID()}`],
   );
 }

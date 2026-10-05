@@ -27,10 +27,15 @@ function unavailable(fn: string): AppError {
 const errorCode = (failure: unknown): string =>
   failure instanceof AppError ? failure.code : "server";
 
+/** Whether a payload parses with its event type's schema; a type with no schema never does. */
+export const payloadIsValid = (type: string, payload: Json): boolean =>
+  payloadSchemas[type]?.safeParse(payload).success === true;
+
 const isObject = (value: Json): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-async function readRecipe(db: Db, trigger: string): Promise<PlanRecipe> {
+/** The recipe of a trigger as the planner takes it; shared with dry-run, so both read it the same way. */
+export async function readRecipe(db: Db, trigger: string): Promise<PlanRecipe> {
   const { data, error } = await db
     .from("automation_recipes")
     .select("id, trigger, enabled, steps")
@@ -55,7 +60,7 @@ async function readRecipe(db: Db, trigger: string): Promise<PlanRecipe> {
 async function fanout(db: Db, event: EventRow): Promise<number> {
   const recipe = await readRecipe(db, event.type);
   // An invalid payload is still planned: a step that needs a missing field fails on its first run (invariant 9).
-  if (payloadSchemas[event.type]?.safeParse(event.payload).success !== true) {
+  if (!payloadIsValid(event.type, event.payload)) {
     logLine("warn", "fanout_payload_invalid", { eventId: event.id });
   }
   const payload = isObject(event.payload) ? event.payload : {};
