@@ -145,6 +145,23 @@ const en = {
     link: "Read our privacy policy",
     change: "Cookie settings",
   },
+  privacyChoices: {
+    title: "Privacy choices",
+    on: "Analytics are on.",
+    off: "Analytics are off.",
+    none: "You have not chosen yet.",
+  },
+  cookies: {
+    title: "Cookies",
+    intro:
+      "These are the cookies this site can set. Analytics cookies are set only after you allow them.",
+  },
+  errors: {
+    reference: "Reference",
+  },
+  notFound: {
+    searchLabel: "Search properties",
+  },
 } as const;
 
 export type Strings = typeof en;

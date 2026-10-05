@@ -11,7 +11,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Footer } from "../../src/components/layout/footer";
 import { track } from "../../src/lib/analytics";
-import { CONSENT_VERSION, readConsent } from "../../src/lib/consent";
+import { CONSENT_VERSION, consentGranted, readConsent } from "../../src/lib/consent";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
@@ -23,11 +23,12 @@ async function renderFooter() {
     history: createMemoryHistory(),
   });
   render(<RouterProvider router={router} />);
-  await screen.findByRole("button", { name: "Cookie settings" });
+  await screen.findByRole("link", { name: "Cookie settings" });
+  return router;
 }
 
 const notice = () => screen.queryByRole("region", { name: "Cookie notice" });
-const control = () => document.querySelector<HTMLButtonElement>("#consent-change");
+const control = () => document.querySelector<HTMLAnchorElement>("#consent-change");
 
 function store(version: number, analytics: boolean) {
   localStorage.setItem("mop_consent", JSON.stringify({ version, analytics }));
@@ -35,10 +36,12 @@ function store(version: number, analytics: boolean) {
 
 beforeEach(() => {
   localStorage.clear();
+  document.cookie = "mop_consent=; Max-Age=0; Path=/";
   vi.mocked(track).mockClear();
 });
 
 afterEach(() => {
+  Reflect.deleteProperty(navigator, "globalPrivacyControl");
   document.head.querySelectorAll("style").forEach((style) => {
     style.remove();
   });
@@ -70,14 +73,21 @@ describe("ConsentNotice", () => {
     expect(notice()).toBeNull();
   });
 
-  it("stays closed once decided, and Cookie settings in the footer opens it again", async () => {
+  it("stays closed once decided, and Cookie settings in the footer opens it again without leaving the page", async () => {
     store(CONSENT_VERSION, false);
-    await renderFooter();
+    const router = await renderFooter();
     expect(notice()).toBeNull();
     act(() => {
       control()?.click();
     });
     expect(await screen.findByRole("region", { name: "Cookie notice" })).toBeTruthy();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("stays closed once decided in a cookie alone, as a choice made without JavaScript leaves it", async () => {
+    document.cookie = `mop_consent=${String(CONSENT_VERSION)}.0`;
+    await renderFooter();
+    expect(notice()).toBeNull();
   });
 
   it("asks again when the stored choice is from an older version", async () => {
@@ -95,6 +105,16 @@ describe("ConsentNotice", () => {
     });
     fireEvent.click(await screen.findByRole("button", { name: "No, thank you" }), { detail: 0 });
     expect(document.activeElement).toBe(control());
+    expect(document.activeElement?.id).toBe("consent-change");
+    expect(control()?.getAttribute("href")).toBe("/privacy-choices");
+  });
+
+  it("with Global Privacy Control on, Allow is stored and consent is still not granted", async () => {
+    Object.defineProperty(navigator, "globalPrivacyControl", { value: true, configurable: true });
+    await renderFooter();
+    fireEvent.click(await screen.findByRole("button", { name: "Allow" }));
+    expect(readConsent()).toMatchObject({ version: CONSENT_VERSION, analytics: true });
+    expect(consentGranted()).toBe(false);
   });
 
   it("is never fixed or sticky", async () => {

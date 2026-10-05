@@ -595,5 +595,308 @@
     "replace": "",
     "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"meta:\" --reporter=line",
     "expect": "twitter:card"
+  },
+  {
+    "id": "b17-ck-write",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    document.cookie = consentCookie(analytics);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(false\\) sets mop_consent=1.0"
+  },
+  {
+    "id": "b17-ck-write-true",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    document.cookie = consentCookie(analytics);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(true\\) sets mop_consent=1.1"
+  },
+  {
+    "id": "b17-ck-secure",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "SameSite=Lax; Secure`;",
+    "replace": "SameSite=Lax`;",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(false\\) sets mop_consent=1.0 with Path"
+  },
+  {
+    "id": "b17-ck-order",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    localStorage.setItem(KEY, JSON.stringify(record));\n    document.cookie = consentCookie(analytics);\n",
+    "replace": "    document.cookie = consentCookie(analytics);\n    localStorage.setItem(KEY, JSON.stringify(record));\n",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writes no cookie when the storage refused the record"
+  },
+  {
+    "id": "b17-ck-fallback",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readRecord() ?? readCookie();",
+    "replace": "  return readRecord();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*readConsent returns the cookie's choice when localStorage is empty"
+  },
+  {
+    "id": "b17-ck-prefer",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readRecord() ?? readCookie();",
+    "replace": "  return readCookie() ?? readRecord();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*readConsent prefers the record"
+  },
+  {
+    "id": "b17-ck-malformed",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "match === null ? undefined :",
+    "replace": "match === null ? { version: CONSENT_VERSION, analytics: false } :",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads a malformed cookie as no decision"
+  },
+  {
+    "id": "b17-ck-version",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "version: Number(match[1])",
+    "replace": "version: CONSENT_VERSION",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads the cookie of an older version as that version"
+  },
+  {
+    "id": "b17-ck-gpc",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n    !globalPrivacyControl()",
+    "replace": "    record.analytics",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*is not granted by a cookie that says yes while Global Privacy Control"
+  },
+  {
+    "id": "b17-ck-throwing",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readRecord() ?? readCookie();",
+    "replace": "  return localStorage.getItem(KEY) === null ? readCookie() : readRecord();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads a throwing localStorage as the cookie"
+  },
+  {
+    "id": "b17-cn-cookie-only",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/lib/consent.ts",
+    "find": "  return readRecord() ?? readCookie();",
+    "replace": "  return readRecord();",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*stays closed once decided in a cookie alone"
+  },
+  {
+    "id": "b17-cn-reopen",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "  event.preventDefault();\n  openConsentNotice();",
+    "replace": "  openConsentNotice();",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*opens it again without leaving the page"
+  },
+  {
+    "id": "b17-cn-gpc",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n    !globalPrivacyControl()",
+    "replace": "    record.analytics",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*with Global Privacy Control on, Allow is stored"
+  },
+  {
+    "id": "b17-cn-link",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/privacy-choices\" id=\"consent-change\"",
+    "replace": "<Link to=\"/legal\" id=\"consent-change\"",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*moves focus to Cookie settings after a keyboard choice"
+  },
+  {
+    "id": "b17-cv-hash",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/config/cookies.ts",
+    "find": "    duration: \"12 months\",",
+    "replace": "    duration: \"11 months\",",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-version",
+    "expect": "× .*consent-version: COOKIE_INVENTORY_HASH is the SHA-256"
+  },
+  {
+    "id": "b17-cv-rows",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/config/cookies.ts",
+    "find": "    name: \"_ga_<id>\",",
+    "replace": "    name: \"_gb_<id>\",",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-version",
+    "expect": "× .*consent-version: lists mop_consent as the first necessary cookie"
+  },
+  {
+    "id": "b17-ca-status",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "    status: 303,",
+    "replace": "    status: 302,",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: accept answers 303"
+  },
+  {
+    "id": "b17-ca-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "\"cache-control\": \"private, no-store\"",
+    "replace": "\"cache-control\": \"private, max-age=60\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: accept answers 303"
+  },
+  {
+    "id": "b17-ca-gpc",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && request.headers.get(\"sec-gpc\") !== \"1\"",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: decline writes 1.0, and Sec-GPC: 1 turns accept into decline"
+  },
+  {
+    "id": "b17-ca-slashes",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && !pathname.startsWith(\"//\")",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: goes back to /"
+  },
+  {
+    "id": "b17-ca-same-origin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "origin === new URL(request.url).origin && ",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: goes back to /"
+  },
+  {
+    "id": "b17-ca-400",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (choice !== \"accept\" && choice !== \"decline\") return toErrorResponse(badChoice, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 400 with no cookie"
+  },
+  {
+    "id": "b17-cp-noscript",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "href=\"/api/consent?set=decline\"",
+    "replace": "href=\"/api/consent?set=nope\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: every page carries the same noscript notice"
+  },
+  {
+    "id": "b17-cp-footer-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/privacy-choices\" id=\"consent-change\"",
+    "replace": "<Link to=\"/legal\" id=\"consent-change\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: every page carries the same noscript notice"
+  },
+  {
+    "id": "b17-cp-state",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "const noState = () => undefined;",
+    "replace": "const noState = () => \"none\" as const;",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-cp-noindex",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "      noindex: true,\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-cp-rows",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.cookies.tsx",
+    "find": "{cookieInventory.map(",
+    "replace": "{cookieInventory.slice(0, 1).map(",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-e2e-consent-gpc",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    writeConsent(analytics);\n",
+    "replace": "    writeConsent(analytics);\n    void fetch(\"https://www.googletagmanager.com/gtag/js?id=G-X\", { mode: \"no-cors\" });\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-gpc:\" --reporter=line",
+    "expect": "consent-gpc: with Global Privacy Control[\\s\\S]*www\\.googletagmanager\\.com"
+  },
+  {
+    "id": "b17-e2e-consent-gpc-header",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && request.headers.get(\"sec-gpc\") !== \"1\"",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-gpc-header\" --reporter=line",
+    "expect": "consent-gpc-header[\\s\\S]*mop_consent=1\\.0"
+  },
+  {
+    "id": "b17-e2e-consent-reopen",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "  event.preventDefault();\n  openConsentNotice();",
+    "replace": "  openConsentNotice();",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-reopen\" --reporter=line",
+    "expect": "consent-reopen[\\s\\S]*privacy-choices"
+  },
+  {
+    "id": "b17-e2e-consent-choices",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": " onClick={choose(false)}",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-privacy-choices\" --reporter=line",
+    "expect": "consent-privacy-choices[\\s\\S]*Analytics are off"
+  },
+  {
+    "id": "b17-e2e-consent-html",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
+    "replace": "  response = apiShellGuard(underApi, response, requestId);\n  if (request.headers.get(\"cookie\")?.includes(\"mop_consent\")) response = new Response(`${await response.text()} `, response);\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-html\" --reporter=line",
+    "expect": "consent-html[\\s\\S]*toBe"
+  },
+  {
+    "id": "b17-e2e-consent-noscript",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "      \"set-cookie\": consentCookie(analytics),\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-noscript\" --reporter=line",
+    "expect": "consent-noscript[\\s\\S]*Expected: \"1\\.0\""
   }
 ]

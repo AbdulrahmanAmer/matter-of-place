@@ -13,14 +13,17 @@ import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Json } from "../../src/db";
+import { cookieInventory } from "../../src/config/cookies";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
+import { COOKIE_INVENTORY_HASH } from "../../src/lib/consent";
 import { getRouter } from "../../src/router";
 import { CSP_INLINE_ALLOWLIST } from "../../src/server/lib/csp-allowlist";
 import { mergeFlags } from "../../src/server/lib/flags";
 import { cspFor, inlineHashes, securityHeaders } from "../../src/server/lib/headers";
 import { handle, type PipelineContext, type PipelineDeps } from "../../src/server/lib/pipeline";
 import { captureException } from "../../src/server/lib/sentry";
+import { setConsent } from "../../src/server/public/consent";
 import { fakeDb } from "../fixtures/fake-db";
 import { stateJson } from "../fixtures/snapshot";
 
@@ -118,10 +121,10 @@ afterEach(() => {
   vi.mocked(captureException).mockReset();
 });
 
-const renderHome = async () => {
+const renderPage = async (path: string) => {
   const router = getRouter();
   router.update({
-    history: createMemoryHistory({ initialEntries: ["/"] }),
+    history: createMemoryHistory({ initialEntries: [path] }),
     context: router.options.context,
   });
   attachRouterServerSsrUtils({ router, manifest: undefined });
@@ -134,6 +137,7 @@ const renderHome = async () => {
   });
   return rendered.text();
 };
+const renderHome = () => renderPage("/");
 
 describe("flags", () => {
   it("flags: mergeFlags gives csp_enforce and maintenance under those names, false when missing or malformed", () => {
@@ -827,5 +831,92 @@ describe("mta-sts", () => {
       expect((await ask(host)).status).toBe(404);
     }
     expect((await ask("mta-sts.matterofplace.com", "POST")).status).toBe(405);
+  });
+});
+
+describe("consent-version", () => {
+  it("consent-version: COOKIE_INVENTORY_HASH is the SHA-256 of the serialised cookie inventory", () => {
+    const hash = createHash("sha256").update(JSON.stringify(cookieInventory)).digest("hex");
+    expect(
+      COOKIE_INVENTORY_HASH === hash ? "" : `bump CONSENT_VERSION and update the hash to ${hash}`,
+    ).toBe("");
+  });
+
+  it("consent-version: lists mop_consent as the first necessary cookie and every analytics cookie as Google's", () => {
+    expect(cookieInventory[0]).toMatchObject({ name: "mop_consent", category: "necessary" });
+    const analytics = cookieInventory.filter((cookie) => cookie.category === "analytics");
+    expect(analytics.map((cookie) => cookie.name)).toEqual(["_ga", "_ga_<id>"]);
+    expect(new Set(analytics.map((cookie) => cookie.provider))).toEqual(
+      new Set(["Google Analytics"]),
+    );
+  });
+});
+
+describe("consent-api", () => {
+  const ask = (query: string, headers: Record<string, string> = {}) =>
+    setConsent(get(`/api/consent${query}`, { headers }), "req-12345678");
+
+  it("consent-api: accept answers 303 with mop_consent=1.1 and its four attributes, and is never stored", () => {
+    const response = ask("?set=accept", { referer: `${BASE}/properties` });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("/properties");
+    expect(response.headers.get("set-cookie")).toBe(
+      "mop_consent=1.1; Path=/; Max-Age=31536000; SameSite=Lax; Secure",
+    );
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("consent-api: decline writes 1.0, and Sec-GPC: 1 turns accept into decline", () => {
+    expect(ask("?set=decline").headers.get("set-cookie")).toContain("mop_consent=1.0;");
+    expect(ask("?set=accept", { "sec-gpc": "1" }).headers.get("set-cookie")).toContain(
+      "mop_consent=1.0;",
+    );
+    expect(ask("?set=accept", { "sec-gpc": "0" }).headers.get("set-cookie")).toContain(
+      "mop_consent=1.1;",
+    );
+  });
+
+  it("consent-api: goes back to / for no Referer, another origin, a protocol-relative path or junk", () => {
+    expect(ask("?set=accept").headers.get("location")).toBe("/");
+    expect(
+      ask("?set=accept", { referer: "https://elsewhere.test/properties" }).headers.get("location"),
+    ).toBe("/");
+    expect(
+      ask("?set=accept", { referer: `${BASE}//elsewhere.test/x` }).headers.get("location"),
+    ).toBe("/");
+    expect(ask("?set=accept", { referer: "not a url" }).headers.get("location")).toBe("/");
+  });
+
+  it("consent-api: answers 400 with no cookie for any other value of set, or none", () => {
+    for (const query of ["", "?set=", "?set=ACCEPT", "?set=accept%20", "?choice=accept"]) {
+      const response = ask(query);
+      expect(response.status).toBe(400);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    }
+  });
+});
+
+describe("consent-pages", () => {
+  it("consent-pages: every page carries the same noscript notice with two real links, and the footer link to /privacy-choices", async () => {
+    const page = await renderHome();
+    const noscript = page.slice(page.indexOf("<noscript>"), page.indexOf("</noscript>"));
+    expect(noscript).toContain('href="/api/consent?set=accept"');
+    expect(noscript).toContain('href="/api/consent?set=decline"');
+    expect(noscript).toContain("We would like to count which pages are read");
+    expect(/<a [^>]*id="consent-change"[^>]*>/.exec(page)?.[0]).toContain(
+      'href="/privacy-choices"',
+    );
+  });
+
+  it("consent-pages: /cookies lists every cookie of the inventory and /privacy-choices names no choice before the browser has read it", async () => {
+    const cookies = await renderPage("/cookies");
+    for (const cookie of cookieInventory) expect(cookies).toContain(cookie.provider);
+    expect(cookies).toContain("mop_consent");
+    const choices = await renderPage("/privacy-choices");
+    expect(choices).toContain('content="noindex, nofollow"');
+    expect(choices).not.toContain("Analytics are on.");
+    expect(choices).not.toContain("Analytics are off.");
+    expect(choices).not.toContain("You have not chosen yet.");
   });
 });
