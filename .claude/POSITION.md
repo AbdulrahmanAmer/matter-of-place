@@ -1023,3 +1023,34 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   site (B17). Idle: coming, api, db, design, ops, legal, audit, email, spine.
 - NEXT: B5 after B8b step 4 merges email_templates (email lane); B7 after B8b step 5 (new lane, 20 steps, the
   biggest); B16 rest after B5 and B17; B14, B6, B10 to B12 after B7; H1 after the B slices; then H2, then L1.
+
+## 2026-10-05 01:25 · production Worker live in coming-soon mode; Turnstile pair banked; B4 merging
+- Operator logged the browser into Cloudflare (01:00). The Turnstile widget "matterofplace.com forms" (site key already the
+  repository variable VITE_TURNSTILE_SITE_KEY) gained the hostname matter-of-place.holy-meadow-4327.workers.dev; its secret
+  and site key are in `.env` as PROD_TURNSTILE_SECRET and PROD_TURNSTILE_SITE_KEY (values never printed).
+- The production Worker `matter-of-place` holds SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TURNSTILE_SECRET, RATE_LIMIT_SALT,
+  SENTRY_DSN (B3 step 12 item 8 done; `wrangler secret list --name matter-of-place` lists the five). PRODUCTION_DEPLOY=on
+  (H49 (1)). First production deploy: run 37235569634 failed its smoke on an edge race and rolled back to the placeholder
+  (P-520); the re-run succeeded: home 200, API 200, data-services live, 0 illustrative mentions, x-robots-tag noindex.
+- Database types regenerated after B3b's migration (PR 130); B4's merge waited on that and is going through the gate now
+  (PR 119, with its own new e2e and db jobs).
+- Open operator items now: GITHUB_DISPATCH_TOKEN (heavy render jobs), CF_ANALYTICS_TOKEN (CPU gate), the Omnikom note.
+
+## 2026-10-05 03:40 · tokens, Google side, B4 and B15 merged, B13 relaunched
+- Operator created the Google account admin@matterofplace.com (entry in creds/accounts.txt) and accepted the Cloud
+  and Analytics terms; the orchestrator did the rest in the browser (S59). In `.env`, values never printed:
+  CF_ANALYTICS_TOKEN (Cloudflare, Account Analytics Read, "mop-analytics-read"); GITHUB_DISPATCH_TOKEN (fine-grained,
+  this repository, Actions read and write, "mop-render-dispatch-1005", EXPIRES 2027-01-03: renew before; also set as
+  the mop-dev function secret, P-912 done); GOOGLE_CLOUD_PROJECT=matter-of-place (number 1065893175635; PageSpeed,
+  Search Console and Analytics Data APIs enabled; no billing); PSI_API_KEY ("mop-pagespeed", PageSpeed only; proven,
+  mobile performance 87 on the dev site); GOOGLE_SA_EMAIL=mop-audit@matter-of-place.iam.gserviceaccount.com and
+  GOOGLE_SA_JSON_B64 (key c66979..., the downloaded file deleted); GA4_ACCOUNT_ID=410679455, GA4_PROPERTY_ID=557342710,
+  GA4_MEASUREMENT_ID=G-8LMCQ8GEWM (stream 16042398964; the service account is Viewer); Search Console domain property
+  sc-domain:matterofplace.com verified by the TXT record b5273c36 on the zone (never remove it); the service account
+  is a restricted user. Proof: scratchpad google-proof.mjs → token 200, sites 200 (siteRestrictedUser), GA4 runReport 200.
+- Merged: B15 steps 4 and 5 (PR 132, 3e7ddeb), B4 whole slice (PR 119, 50e14b8; its e2e and db jobs green after the
+  seed upload and the H61 warn levels). B15 steps 6 built (admin half waits on B7); B13 run died (P-509) and was
+  relaunched with its two close-outs (wf_b449fffc-88b); B8b on step 4 second half and 4a; B17 on step 1.
+- The older GitHub token "mop-render-dispatch" (no expiry) in the operator's account is not ours to use; delete it.
+- NEXT: H61 into ASSUMED.md (B4 cites it); B14 can open when B7 steps 1 to 3 land (its credentials exist now);
+  B5 after B8b step 4 merges; B7 after B8b step 5.
