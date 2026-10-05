@@ -678,6 +678,7 @@ Entry template
 - hit again: 2026-10-04, B3 g8: `git merge origin/main` printed `merge-gotchas: both sides changed P-094, P-310, P-706, P-1001; ours kept, compare by hand`; the four theirs-only `hit again` lines were copied in by a script that diffed each entry against the base, and `check-gotchas.mjs` printed OK.
 - hit again: 2026-10-05, B5 g1 (step 2): the merge of origin/main left GOTCHAS.md unmerged with no markers because both sides had appended a `hit again` line to P-712; main's line was copied in by a script, and a line-by-line check printed `main lines missing from merged: 0` before the merge was committed.
 - hit again: 2026-10-05, B8b g5 rework: `git merge origin/main` merged GOTCHAS.md with `ours kept` for P-066 and P-094, so main's B5 g1 hit-again lines were copied in by hand (the rework log first cited P-066, the registry entry, for this cost; the merge-driver entry is this one). Proof: `grep -c "hit again: 2026-10-05, B8b g5 rework: .git merge" GOTCHAS.md` prints 1 and `node workspace/05-plans/check-gotchas.mjs` prints OK.
+- hit again: 2026-10-05, B12 g4: `git merge origin/main` printed `CONFLICT (content): Merge conflict in GOTCHAS.md` with no markers; rerunning the driver on the three stages (`git show :1:GOTCHAS.md`, `:2:`, `:3:` into `.tmp`) named `both sides changed P-008, P-015, P-712`. Main had rewritten and pruned those entries' hit-again lines, so a script took main's entry and appended the four B12 lines only the branch held; the result held 435 entries (main 423 plus the branch's 12) and `check-gotchas.mjs` printed `OK (39 path entries, 395 process entries)`.
 
 ## G-018 · `cloudflare:workers` cannot be imported from a file Vite bundles
 - paths: app/src/start.ts
@@ -1015,6 +1016,7 @@ Entry template
 - proof: `cd app && git show fe027f4:app/knip.json > knip.nokey.tmp.json && bunx knip --config knip.nokey.tmp.json; rm knip.nokey.tmp.json` → `Unlisted binaries (1)  psql  scripts/psql-dev.mjs`, exit 1, and with `"ignoreBinaries": ["psql"]` → exit 0 (B2 c1); `grep -c "ruling H46" .claude/workflows/build-slice.js` prints 1.
 - merged: P-500
 - hit again: 2026-10-03, B9 g3: `bun add -d @fontsource-variable/*` (copied by `scripts/fonts.mjs` through a path, never imported) and a template component no script imports yet gave `Unused devDependencies (4)` and `Unused files (1)`; the entries are `ignoreDependencies: ["@fontsource-variable/*"]` and `src/templates/social/SocialFrame.tsx` in `entry`.
+- hit again: 2026-10-05, B12 g4: the first `bun run check` stopped at knip with `Unlisted binaries (2)  ffmpeg  scripts/reel-poster.mjs  ffprobe  scripts/render-reel.mjs` after typecheck and lint had passed on the two files alone; `"ignoreBinaries": ["psql", "ffmpeg", "ffprobe"]` cleared it. Run `bunx knip` with the first spawn of a new binary, before the full check.
 - added: 2026-10-02
 
 ## P-301 · A pull request that conflicts with main gets no CI run at all, and `gh pr checks` only says "no checks reported"
@@ -3240,6 +3242,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a difference between two inputs proves a field matters only when that field is the one thing that differs; `buildReelSpec(property, rows)` carries the property into several fields of the spec, so a change at the property alters more than the bed.
 - rule: build the second input from the first with a spread that replaces the single field under test (`{ ...spec, sound: { ...spec.sound, bed: "water" } }`), assert the same-input case equal and the changed-field case different, then watched-fail by making the hash ignore exactly that field and see the assertion red.
 - proof: `grep -n "otherBed" app/tests/unit/reel/reel-spec.test.ts` → the spread of `spec.sound.bed` and the two `specHash` expectations; `cd app && bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts -t "same spec hash"` → `Tests  2 passed | 40 skipped (42)` (measured 2026-10-05); the watched-fail `b12g2-s-hash-bed` is red in that file.
+- added: 2026-10-05
+
+## P-2112 · A second job in `render.yml` cannot repeat the `render` job's env lines, and the plan's reel job step list has no node 22
+- symptom: B12 step 6 says the `reel` job takes "the two upload values of B8's `render` job with the same expressions". Copied as lines, `MOP_ENV: ...`, `SUPABASE_URL: ...` and `SUPABASE_SERVICE_ROLE_KEY: ...` would occur twice, and `render-job.test.ts` "gives the scripts MOP_ENV and the one project's Storage keys" counts each exactly once; B8's registry entries `bl` and `z` find those lines and would go stale (a find must occur once, P-066). The same step lists checkout, setup-bun and upload-artifact only, but `launch/node_modules/puppeteer-core/package.json` says `"node": ">=22.12.0"`, which the engine scripts need.
+- cause: B8 wrote its tests and registry for a file with one job; the plan was written before the engine's puppeteer-core 25 was installed.
+- rule: share the job env with a YAML anchor (`env: &job-env` on `render`, `env: *job-env` on `reel`; GitHub Actions and actionlint 1.7.12 both read anchors, merge keys `<<` are not supported, so a job-only value such as `CHROME_PATH` goes on its step); a job that runs `launch/engine` scripts adds `actions/setup-node` at node 24 with the pin already in the file. Before adding any job to a workflow, run the find-count one-liner of P-1100 over the registry entries of that file.
+- proof: `grep -c "SUPABASE_SERVICE_ROLE_KEY: " .github/workflows/render.yml` → `1`; `cd app && bunx vitest run --project unit tests/unit/jobs/render-job.test.ts` passes; `.tmp/actionlint/actionlint.exe -shellcheck= .github/workflows/render.yml` → exit 0, and on a copy with `*job-envx` → `unknown anchor 'job-envx' referenced` (measured 2026-10-05, B12 g4).
 - added: 2026-10-05
 
 ## P-1616 · The plan names Cloudflare's `/user/tokens` endpoints, but `mop-admin` is an account-owned token and only `/accounts/<id>/tokens` answers

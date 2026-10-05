@@ -339,5 +339,84 @@
     "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
     "expect": "FAIL .*starts the credit of B16's footer line",
     "what": "skipped while strings.ts reads An Omnikom company. (P-2101); replayed by hand with footer.line set to A product of Omnikom. and the credit changed"
+  },
+  {
+    "id": "b12g4-gate-first",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "const failed = report.checks.find((check) => !check.ok);",
+    "replace": "const failed = report.checks.find((check) => check.ok);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*makes the first failed gate check a final gate_failed error"
+  },
+  {
+    "id": "b12g4-spec-data",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "    spec: data.data.spec,",
+    "replace": "    spec: { ...data.data.spec, shots: [] },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*reads the spec from job.payload.data.spec"
+  },
+  {
+    "id": "b12g4-x-storage",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "retryable: /^(storage_unavailable$|media-store: )/.test(message),",
+    "replace": "retryable: /^(media-store: )/.test(message),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*retries a Storage outage and a failed download"
+  },
+  {
+    "id": "b12g4-probe-size",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "if (probe.bytes > MAX_BYTES)",
+    "replace": "if (probe.bytes >= MAX_BYTES)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*refuses a file over 12,000,000 bytes"
+  },
+  {
+    "id": "b12g4-provisional",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "error: \"reel_timeout\", retryable: false",
+    "replace": "error: \"reel_timeout\", retryable: true",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*leaves a final reel_timeout as the provisional result"
+  },
+  {
+    "id": "b12g4-names",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "key(\"poster\", poster, \"jpg\")",
+    "replace": "key(\"poster\", poster, \"png\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/reel/render-reel-script.test.ts",
+    "expect": "FAIL .*names the files reel"
+  },
+  {
+    "id": "b12g4-v-pin",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+    "replace": "uses: actions/upload-artifact@v4",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"every uses: is pinned\"",
+    "expect": "× .*every uses: is pinned to a 40-character commit SHA"
+  },
+  {
+    "id": "b12g4-b-format",
+    "kind": "manual",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/render-reel.mjs --find '\"--h\", String(H), \"--out\"' --replace '\"--h\", \"1080\", \"--out\"' --run 'bun scripts/render-reel.mjs --fixture --out ../.tmp/reel-wf' --expect 'gate_failed: format 1080x1080'",
+    "expect": "render-reel: failed gate_failed: format 1080x1080",
+    "what": "by hand (a full render, about 3 minutes idle): the capture height becomes 1080, so the motion gate's format check fails before ffprobe runs; needs Chrome and ffmpeg"
+  },
+  {
+    "id": "b12g4-w-size",
+    "kind": "manual",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "run": "node scripts/watchfail.mjs --file scripts/render-reel.mjs --find 'export const MAX_BYTES = 12_000_000;' --replace 'export const MAX_BYTES = 1_000_000;' --run 'bun scripts/render-reel.mjs --fixture --out ../.tmp/reel-wf' --expect 'gate_failed: probe size [0-9]+'",
+    "expect": "render-reel: failed gate_failed: probe size <bytes>",
+    "what": "by hand (a full render, about 3 minutes idle): the probe's size limit becomes 1,000,000 bytes, so the fixture reel is refused after the gate passes; needs Chrome and ffmpeg"
   }
 ]
