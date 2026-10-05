@@ -2,7 +2,7 @@ import "../../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { getStep } from "../../../src/server/jobs/steps/index";
-import { purgeCache, purgeUrls } from "../../../src/server/jobs/steps/purge-cache";
+import { purgeBody, purgeCache, purgeUrls } from "../../../src/server/jobs/steps/purge-cache";
 import { NonRetryableError, type StepContext } from "../../../src/server/jobs/types";
 import { context, NOW } from "../../fixtures/asset-rows";
 import { fakeDb } from "../../fixtures/fake-db";
@@ -86,6 +86,11 @@ describe("purge_cache step", () => {
     await run("property");
     await run("all");
     expect(sent.map((call) => call.body)).toEqual([
+      { tags: ["catalog"] },
+      { purge_everything: true },
+    ]);
+    expect((["catalog", "property", "all"] as const).map((scope) => purgeBody(scope))).toEqual([
+      { tags: ["catalog"] },
       { tags: ["catalog"] },
       { purge_everything: true },
     ]);

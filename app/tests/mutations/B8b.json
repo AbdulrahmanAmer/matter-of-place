@@ -1089,7 +1089,7 @@
     "find": "  bumpCatalogVersion,\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
-    "expect": "× .*bump_catalog_version step > is in the registry"
+    "expect": "× .*is in the registry"
   },
   {
     "id": "b8b-g4-bump-flip-ignored",
@@ -1161,7 +1161,7 @@
     "find": "  purgeCache,\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
-    "expect": "× .*purge_cache step > is in the registry"
+    "expect": "× .*is in the registry"
   },
   {
     "id": "b8b-g4-purge-tag",
@@ -1260,7 +1260,7 @@
     "find": "const { status, cache } = await pageStatus(input);",
     "replace": "const { status, cache } = { status: 200, cache: \"hit\" };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+    "expect": "× .*in production makes one clock claim, one state RPC"
   },
   {
     "id": "b8b-g4-kw-state",
@@ -1269,7 +1269,7 @@
     "find": "data: await getPublicState(db),",
     "replace": "data: null,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+    "expect": "× .*in production makes one clock claim, one state RPC"
   },
   {
     "id": "b8b-g4-kw-beat",
@@ -1278,7 +1278,7 @@
     "find": "db.rpc(\"beat\", { p_name: \"keepwarm\", p_detail: { cron } })",
     "replace": "Promise.resolve({ data: null, error: null })",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+    "expect": "× .*in production makes one clock claim, one state RPC"
   },
   {
     "id": "b8b-g4-kw-claim-guard",
@@ -1287,7 +1287,7 @@
     "find": "p_guard: false,",
     "replace": "p_guard: true,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+    "expect": "× .*in production makes one clock claim, one state RPC"
   },
   {
     "id": "b8b-g4-kw-next",
@@ -1296,7 +1296,7 @@
     "find": "p_next_run_at: nextRun(cron, now).toISOString(),",
     "replace": "p_next_run_at: now.toISOString(),",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*runKeepWarm in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request"
+    "expect": "× .*in production makes one clock claim, one state RPC"
   },
   {
     "id": "b8b-g4-kw-liveness-always",
