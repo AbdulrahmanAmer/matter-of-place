@@ -8,7 +8,8 @@ compatibility_flags = ["nodejs_compat"]
 #   { pattern = "www.matterofplace.com", custom_domain = true },
 # ]
 
-# B8b adds the [triggers] crons line here.
+[triggers]
+crons = ["*/10 * * * *"]
 
 [vars]
 MOP_ENV = "production"

@@ -1,0 +1,39 @@
+{
+  "slice": "B7",
+  "runId": "wf_5d9f0509-be2",
+  "resume": {
+    "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
+    "resumeFromRunId": "wf_5d9f0509-be2",
+    "args": {
+      "slice": "B7",
+      "root": "E:/mop-build/admin",
+      "previewPort": 8948,
+      "bankBase": {
+        "P": 2000,
+        "G": 900
+      },
+      "steps": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "5a",
+        "6",
+        "7",
+        "7a",
+        "8",
+        "9",
+        "10",
+        "11",
+        "11a",
+        "12",
+        "13",
+        "14",
+        "15",
+        "15a",
+        "16"
+      ]
+    }
+  }
+}

@@ -251,15 +251,60 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"email_templates": {
+                },"email_events": {
                   Row: {
-                    "body": NonNullable<Json>,"created_at": string,"enabled": boolean,"id": string,"key": string,"preheader": string,"subject": string,"updated_at": string,"variables": (string)[],"version": number
+                    "at": string,"broadcast_id": string | null,"data": NonNullable<Json>,"id": number,"provider_event_id": string,"resend_email_id": string | null,"to_email": string | null,"type": string
                   }
                   Insert: {
-                    "body": NonNullable<Json>,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key": string,"preheader"?: string,"subject": string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
+                    "at": string,"broadcast_id"?: string | null,"data"?: NonNullable<Json>,"id"?: never,"provider_event_id": string,"resend_email_id"?: string | null,"to_email"?: string | null,"type": string
                   }
                   Update: {
-                    "body"?: NonNullable<Json>,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key"?: string,"preheader"?: string,"subject"?: string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
+                    "at"?: string,"broadcast_id"?: string | null,"data"?: NonNullable<Json>,"id"?: never,"provider_event_id"?: string,"resend_email_id"?: string | null,"to_email"?: string | null,"type"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"email_messages": {
+                  Row: {
+                    "content_hash": string | null,"created_at": string,"delivered_at": string | null,"entity": string | null,"entity_id": string | null,"error": string | null,"id": string,"job_id": string | null,"kind": string,"resend_id": string | null,"sent_at": string | null,"status": string,"subject": string | null,"template_key": string,"to_email": string | null
+                  }
+                  Insert: {
+                    "content_hash"?: string | null,"created_at"?: string,"delivered_at"?: string | null,"entity"?: string | null,"entity_id"?: string | null,"error"?: string | null,"id"?: string,"job_id"?: string | null,"kind": string,"resend_id"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"template_key": string,"to_email"?: string | null
+                  }
+                  Update: {
+                    "content_hash"?: string | null,"created_at"?: string,"delivered_at"?: string | null,"entity"?: string | null,"entity_id"?: string | null,"error"?: string | null,"id"?: string,"job_id"?: string | null,"kind"?: string,"resend_id"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"template_key"?: string,"to_email"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "email_messages_job_id_fkey"
+      columns: ["job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"email_suppressions": {
+                  Row: {
+                    "at": string,"email": string,"reason": string
+                  }
+                  Insert: {
+                    "at"?: string,"email": string,"reason": string
+                  }
+                  Update: {
+                    "at"?: string,"email"?: string,"reason"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"email_templates": {
+                  Row: {
+                    "body": NonNullable<Json>,"class": string,"created_at": string,"enabled": boolean,"id": string,"key": string,"preheader": string,"subject": string,"updated_at": string,"variables": (string)[],"version": number
+                  }
+                  Insert: {
+                    "body": NonNullable<Json>,"class": string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key": string,"preheader"?: string,"subject": string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
+                  }
+                  Update: {
+                    "body"?: NonNullable<Json>,"class"?: string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key"?: string,"preheader"?: string,"subject"?: string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
                   }
                   Relationships: [
                     
@@ -774,13 +819,13 @@ isOneToOne: false
                   ]
                 },"subscribers": {
                   Row: {
-                    "archived_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"markets": (string)[],"pending_source": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
+                    "archived_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
                   }
                   Insert: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"markets"?: (string)[],"pending_source"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"markets"?: (string)[],"pending_source"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -831,7 +876,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "apply_media_variants":
+            "apply_email_event":
+{ Args: { "p": Json }; Returns: boolean
+                           },
+"apply_media_variants":
 { Args: { "p_items": Json }; Returns: Json
                            },
 "approve_asset":
@@ -950,6 +998,20 @@ isOneToOne: false
 "editorial_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["editorial_state"],"p_to": Database["public"]['Enums']["editorial_state"] }; Returns: boolean
                            },
+"email_message_begin":
+{ Args: { "p_content_hash": string,"p_entity": string,"p_entity_id": string,"p_job_id": string,"p_kind": string,"p_subject": string,"p_template_key": string,"p_to_email": string }; Returns: {
+              "content_hash": string,"id": string,"status": string
+            }[]
+                           },
+"email_message_finish":
+{ Args: { "p_error": string,"p_id": string,"p_resend_id": string,"p_status": string }; Returns: undefined
+                           },
+"email_sent_month":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"email_sent_today":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "emit_event":
 { Args: { "p_actor_id"?: string,"p_entity": string,"p_entity_id"?: string,"p_payload"?: Json,"p_type": string }; Returns: string
                            },
@@ -1000,6 +1062,9 @@ isOneToOne: false
 "health_cron_failures":
 { Args: { "p_since": string }; Returns: number
                            },
+"issue_repermission":
+{ Args: { "p_subscriber_id": string,"p_token_hash": string }; Returns: boolean
+                           },
 "job_event_entity_id":
 { Args: { "j": Database["public"]['Tables']["jobs"]['Row'] }; Returns: string
                            },
@@ -1016,6 +1081,9 @@ isOneToOne: false
                            },
 "jobs_liveness":
 { Args: { "p_now"?: string }; Returns: Json
+                           },
+"lapse_subscribers":
+{ Args: { "p_grace"?: string }; Returns: number
                            },
 "mark_inquiry_forwarded":
 { Args: { "p_inquiry_id": string,"p_payload": Json }; Returns: boolean
@@ -1060,6 +1128,11 @@ isOneToOne: false
                            },
 "reject_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_note": string,"p_request_id"?: string }; Returns: string
+                           },
+"repermission_candidates":
+{ Args: { "p_limit"?: number }; Returns: {
+              "id": string
+            }[]
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean
