@@ -26,12 +26,12 @@ is `shots[0]`, 2 is `shots[1]`, 3 is `shots[2]`, the last photograph is `shots[3
 - The wordmark and the emblem are brand artwork, not copy: the wordmark is the outline file `brand/logo/wordmark/wordmark-horizontal-bone.svg`
   (a lambda is drawn into it, so no machine font stands in), the emblem is its two planes as paths, the back plane at 40
   percent and the front plane at 90 percent.
-- Type sits at 80 px from the left edge and inside the safe band between 300 px and 1500 px from the top, clear of the
-  Instagram interface at the top and the bottom.
+- Type sits at 80 px from the left edge and between 985 px and 1490 px from the top, away from the top and bottom edges where
+  an app draws its own interface (ASSUMED band, UNPROVEN against Meta's current overlay sizes).
 
 ## Camera and depth
 - Every photograph is three planes (back, subject under a soft mask, front under an edge mask) from `film.js` `depth`,
-  with parallax 1.0 / 1.45 / 2.1 and a frame 10 percent larger than the photograph's cover, so a landscape photograph in
+  with parallax factors of 1.0, 1.4 to 1.45 and 2.0 to 2.1 (`film.js` units, as the launch film) and a frame 10 percent larger than the photograph's cover, so a landscape photograph in
   9:16 is scaled to about 1.2 times cover and centred. Horizontal pan is not in the vocabulary and is not used.
 - Camera moves on photographs run at constant speed (`ease: "none"`) so the gate does not read eased-out moves as static
   (GOTCHAS P-025). A hold on a flat field never exceeds about 0.8 s and the end card has a moving photograph under it.
