@@ -20,7 +20,8 @@ export function findChrome() {
 }
 
 export const CHROME_ARGS = ["--hide-scrollbars", "--force-color-profile=srgb", "--font-render-hinting=none", "--force-device-scale-factor=1",
-  "--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows", "--autoplay-policy=no-user-gesture-required"];
+  "--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows", "--autoplay-policy=no-user-gesture-required",
+  "--disable-gpu", "--disable-gpu-rasterization", "--disable-accelerated-2d-canvas", "--use-gl=disabled"];
 
 // The E: drive sometimes refuses an open() for a moment (errno -4094 UNKNOWN); retry.
 export async function writeRetry(path, data) {

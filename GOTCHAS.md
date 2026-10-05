@@ -497,6 +497,7 @@ Entry template
 - cause: Chrome's default GPU rasteriser is not deterministic. With software rendering all 40 renders were identical.
 - rule: every script that screenshots or captures frames for a file we commit, compare or hash (brand assets, B9 social templates and OG images, B12 reel frames, email shots, visual baselines) launches Chrome with `--disable-gpu --disable-gpu-rasterization --disable-accelerated-2d-canvas --use-gl=disabled`. A generator counts as deterministic only after three runs in a row change nothing.
 - proof: `node launch/tools/brand-build.mjs` three times → `brand-build: 98 files, 0 written or changed` each time.
+- hit again: 2026-10-06, B12 g3 third pass: `launch/engine/chrome.mjs` `CHROME_ARGS` carried none of these flags, the reel engine captured with the GPU on, and the step 4 determinism proof (two captures of 1.5, 9 and 17 s) passed once on luck: a reviewer's five further captures of 1.5 s gave `e592307d` four times and `738225ab` once (max pixel delta 12). With the four flags in `CHROME_ARGS`, three captures in a row gave `574fb9a2`, `f60ad7d2` and `534b988e` for the three stills every time. A determinism proof is three runs, never two.
 - added: 2026-10-02
 
 ## P-053 · A gap between two shapes can be real geometry, not antialiasing
@@ -1612,6 +1613,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the script runs `bun install --frozen-lockfile` with `cwd: join(snap, "app")` and nowhere else.
 - rule: before reviewing anything under `launch/`, run `bun install --frozen-lockfile` in the snapshot's `launch` folder (64 packages, 18 s); the script should install there too, and until it does the reviewer brief says so.
 - proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → one line, `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...`.
+- hit again: 2026-10-05, B12 g3 review: a reviewer's first `capture.mjs` in the snapshot died with `ERR_MODULE_NOT_FOUND` for `puppeteer-core`; `bun install --frozen-lockfile` in the snapshot's `launch` folder fixes it.
 - added: 2026-10-03
 
 ## P-704 · `public/fonts/LICENSES.md` is required by two plans and refused by three gates: layout, prettier and the folder map
@@ -1652,6 +1654,8 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a compound command (`&&`, `;`, pipes, quotes) through `quiet.mjs`; change into the folder first and run it from there: `cd app && node ../workspace/05-plans/quiet.mjs -- bun run <script>`.
 - proof: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run layout"` → `error: Script not found "layout"`, `quiet: exit 1`; `cd app && node ../workspace/05-plans/quiet.mjs -- bun run layout` → `layout: OK (772 files)`, `quiet: ok` (measured 2026-10-03).
 - hit again: 2026-10-04, B3 g10 rework: `quiet.mjs -- bash -c "cd app && ..."` printed `Script not found "build"` (P-708 was in the bank; the author did not open it).
+- hit again: 2026-10-05, B12 g3 (merged P-2113): `quiet.mjs -- node launch/engine/capture.mjs ... --query "spec=...&cues=..."` was cut at the `&` by cmd.exe and ended after 598 s with `'cues' is not recognized as an internal or external command`; the capture had run with no `out` and no `cues` (6 workers, 540 frames) into `launch/reel/frames`. Never pass an argument that holds `&` through `quiet.mjs` (other `cmd.exe` characters are UNPROVEN); run `capture.mjs` and `audio.mjs` directly with the output redirected to a log and read the `scene http://...` and `-> <folder>` lines first.
+- merged: P-2113
 - added: 2026-10-03
 
 ## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
@@ -3520,13 +3524,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: scratchpad resolve-bank-both.mjs (function replacer); bank-merge.sh runs the lane's check-gotchas
 - added: 2026-10-05
 
-## P-2113 · `quiet.mjs` runs its command through `cmd.exe`, so a query with `&` is cut at the `&`: a 10-minute capture rendered the wrong scene into the wrong folder
-- symptom: `node workspace/05-plans/quiet.mjs -- node launch/engine/capture.mjs launch/reel/scene.html --query "spec=/launch/reel/fixture-spec.json&cues=/.tmp/reel/cues.json" ... --out .tmp/reel/frames` ended after 598 s with `'cues' is not recognized as an internal or external command`; the capture had run with no `out` and no `cues` (6 workers, 540 frames) into `launch/reel/frames`, and the frames of the real run did not exist.
-- cause: `quiet.mjs` calls `spawnSync(argv[0], argv.slice(1), { shell: true })`, so the arguments are joined and parsed again by `cmd.exe`, which ends the command at `&` and runs the rest as a second command; the quotes around the query do not survive.
-- rule: never pass an argument that holds `&` through `quiet.mjs` (other `cmd.exe` characters are UNPROVEN); run the engine's `capture.mjs` and `audio.mjs` directly with the output redirected to a log, in the background, and read the first lines of the log: the `scene http://...` line must show `cues=` and the `-> <folder>` line the folder you asked for.
-- proof: `grep -n "shell: true" workspace/05-plans/quiet.mjs` → `15:const run = spawnSync(argv[0], argv.slice(1), { encoding: "utf8", shell: true, maxBuffer: 1 << 28 });` (measured 2026-10-05, B12 g3); the failed log's line was `scene http://127.0.0.1:49522/launch/reel/scene.html?spec=/launch/reel/fixture-spec.json`.
-- added: 2026-10-05
-
 ## P-2114 · A camera move larger than the bible's passed twelve reviews because the gate's static limit asked for it, and a 5.6 s end shot at the bible's size is static to the gate
 - symptom: the reel handed in by B12 g3's first pass pushed 11 percent (photographs 1 and 3), 12 percent (the colonnade) and 40 percent on the last shot (`z` 0 to 0.4), with 140 to 320 px of sideways travel; the last shot opened with a 52 px Obsidian bar down its left edge that shrank to 0 over 15 frames (12.40 to 12.87 s), because the planes extend only 10 percent (108 px) past the frame and the travel started at `x: 160` with `align: 0`. MOTION-BIBLE M6 says 6 to 9 percent. Restoring the sizes alone failed the gate: `motion coverage 77.7%`, `longest static run 2.07s` (15.90 to 17.97 s).
 - cause: a 9 percent push over 5.6 s is 1.6 percent a second, below what the gate reads as motion (P-2107 asks for 3), and the first pass met the gate by enlarging the push and the travel instead of adding a move of the vocabulary; `moves.test.ts` checks ease literals and banned words, not the size of a move, and no reviewer sheet showed the first 15 frames of a shot (P-2116).
@@ -3547,3 +3544,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before every round the designer scans every frame: from each edge count the consecutive columns (rows) whose mean luma is under 22 (Obsidian is luma 17, so 15 misses it) and treat any run above 0 outside the cut to black, the empty field and the grid (frames 246 to 340), whose Obsidian is by design, as a defect; and each round's material holds `sheet-c.jpg`, six frames 0.1 s apart after each hard cut. The scan is a scratch script (a `sharp` read of each frame); with the old geometry (`x: 160`) it printed `"l":52` on frame 372, with the fixed scene `0` on all 540 frames except the black ones.
 - proof: `grep -c "sheet-c.jpg" launch/reel/review/brief.md` → `1` (the brief names the cut sheet); the scan's result is in the log block of `workspace/05-plans/logs/B12.md` (measured 2026-10-05, B12 g3).
 - added: 2026-10-05
+
+## P-2117 · A `( ... ) &` subshell in the Bash tool keeps running after the call returns, and a second start writes into the same folder
+- symptom: a reviewer started a reel capture as `( node launch/engine/capture.mjs ... > .tmp/reel-capture.log ) &`, saw no log, started a second capture into the same `frames` folder, and both wrote it at once: the shared log ended `done: 287 frames in done: 540 frames in 150s`. Every PNG had to be validated before the encode, because a frame can be half written by one process while the other reads it.
+- cause: the Bash tool returns while a backgrounded subshell is still alive, and its output file is only visible after the first flush; "no log yet" was read as "not running".
+- rule: start a long job with the tool's `run_in_background` (it names an output file and notifies on exit), or check `.tmp/<name>.log` and the process list before a second start; never start a second writer into a folder the first may still own (P-011), and clear the folder (`rm -rf`) only after the first process is known to have ended.
+- proof: `tail -c 120 .tmp/reel-capture.log` in the reviewer's tree ended `done: 287 frames in done: 540 frames in 150s` (measured 2026-10-05, B12 g3 review; the log is a scratch file, so the line is quoted from the review report).
+- added: 2026-10-06
+
+## P-2118 · `will-change` on a layer fixes its raster scale at the first paint, so a frame of a full capture differs from a still of the same time by up to 48 levels
+- symptom: with the GPU off (P-052), frame 00510 of a full 4-worker capture of the reel differed from the `--at 17` still by up to 48 levels over 1.2 million samples (box 0,36 to 1079,1722), and frame 00045 from the 1.5 s still by 2 levels over 205 thousand; frame 00270 matched. A reviewer had measured the same difference with the GPU on (max 47) and suspected the layers.
+- cause: `scene.html` carried `will-change: transform, filter` on `.plane` and `will-change: transform` on `.half`, `.tile`, `.tile > div` and the title spans. Chrome rasterises such a layer once, at the scale it has when it is first painted, and keeps that raster while the transform animates, so a capture that seeks forward through a push paints the first scale and a fresh seek paints the target scale. Without the property: 510 differs from the still in 6 samples by 1 level, 45 by 0.
+- rule: a scene captured frame by frame carries no `will-change`: the capture seeks, so no layer is promoted for an animation Chrome has to predict, and each frame is painted at its own transform. Compare a range capture and a still of the same frame before trusting a fixed scale.
+- proof: `grep -c "will-change" launch/reel/scene.html` → `0`; `node launch/engine/capture.mjs launch/reel/scene.html --query "spec=/launch/reel/fixture-spec.json&cues=/.tmp/reel/cues.json" --w 1080 --h 1920 --workers 1 --from 16.5 --to 17.1 --out .tmp/t-range`, then the same with `--at 17 --out .tmp/t-still`, a pixel compare of `00510.png` and `t017.00.png` → 6 differing samples, max 1 (measured 2026-10-06, B12 g3 third pass, GPU off).
+- added: 2026-10-06
+
+## P-2119 · Two full captures of the reel with the GPU off still differ in 14 frames by one level on 6 samples, so byte equality of the MP4 is UNPROVEN
+- symptom: after P-052's flags and P-2118, two full 4-worker captures of the same spec gave `diff` of the two `sha256sum *.png` lists = 14 of 540 frames (473 to 478, 480, 484, 486, 490, 494, 496, 501, 507, 15.77 to 16.90 s), each differing in 4 to 6 samples by 1 level in one column near x=494, y=1015. Stills at 1.5, 9 and 17 s are byte-identical over three runs.
+- cause: UNPROVEN. The frames sit in the last shot with the 80 px crane and the 30 px drift; frames before the sweep starts (15.9 s) differ too, so the sweep alone is not it, and a frame differs between two runs that have the same seek history, so it is not only history.
+- rule: invariant 6 holds for stills (same spec, same SHA-256), not for the full MP4: never assert MP4 byte equality, compare a render by the gate and by pixel difference with a margin (1 level on a few samples is noise). Anyone who finds the cause records it here.
+- proof: `cd .tmp/reel/frames && sha256sum *.png > ../hash-a.txt`, the same for a second capture, `diff hash-a.txt hash-b.txt | grep -c '^<'` → `14` (measured 2026-10-06, B12 g3 third pass).
+- added: 2026-10-06

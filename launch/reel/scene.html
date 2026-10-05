@@ -14,9 +14,9 @@
 
   .shot { position: absolute; inset: 0; overflow: hidden; visibility: hidden; }
   .rig { position: absolute; inset: 0; overflow: hidden; }
-  .plane { position: absolute; inset: -10%; background-size: cover; background-position: center; will-change: transform, filter; }
+  .plane { position: absolute; inset: -10%; background-size: cover; background-position: center; }
   #s2 .plane { background-size: auto 115%; background-position: 50% 100%; }
-  .half { position: absolute; inset: 0; will-change: transform; }
+  .half { position: absolute; inset: 0; }
   .half.top { clip-path: inset(0 0 50% 0); }
   .half.bottom { clip-path: inset(50% 0 0 0); }
   .obsidian { background: var(--foreground); }
@@ -29,7 +29,7 @@
   .caps { font-family: var(--font-sans); font-weight: 400; text-transform: uppercase; white-space: nowrap; }
   .serif { font-family: var(--font-serif); font-weight: 400; }
   .m1 .ln { display: block; overflow: hidden; padding: 0.04em 0.06em 0.16em; margin-bottom: -0.16em; }
-  .m1 .ln > span { display: inline-block; white-space: nowrap; will-change: transform; }
+  .m1 .ln > span { display: inline-block; white-space: nowrap; }
   .w { position: relative; display: inline-block; }
   .w .w5 { position: absolute; left: 0; top: 0; font-weight: 500; opacity: 0; }
 
@@ -42,8 +42,8 @@
   #price { left: 80px; top: 1236px; font-family: var(--font-sans); font-weight: 400; font-size: 76px; letter-spacing: 0.02em; }
 
   #grid { position: absolute; inset: 0; transform-origin: 50% 50%; }
-  .tile { position: absolute; left: 0; top: 0; width: 468px; height: 366px; overflow: hidden; will-change: transform; }
-  .tile > div { position: absolute; inset: 0; background-size: cover; background-position: center; will-change: transform; }
+  .tile { position: absolute; left: 0; top: 0; width: 468px; height: 366px; overflow: hidden; }
+  .tile > div { position: absolute; inset: 0; background-size: cover; background-position: center; }
 
   .endcard { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 1920px; color: var(--secondary); text-align: center; }
   .endcard > * { position: absolute; left: 0; right: 0; }
