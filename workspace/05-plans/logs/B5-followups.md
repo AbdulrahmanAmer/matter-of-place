@@ -85,3 +85,29 @@
 7. File: `app/src/server/email/variables.ts`. Not blocking.
    - Follow-up: "When previewTemplate is called with an entity, a failed read in a resolver (rowsOf throws plain Error 'email_read_failed:<table>') or in settings (readSettings throws Error 'settings_read_failed') escapes as a bare Error, not AppError 'unavailable'. A Worker route would answer that with 500, not the 503 that R09 asks for on a dependency outage. The runbook says the calling route translates render and variable errors, but it names only the NonRetryableError codes. B8b's preview route should map these too. Suspected by reading only."
    - Evidence: "variables.ts line 76 and context.ts line 23; docs/runbooks/email.md lines 32-36"
+
+## g2 · steps 4
+
+1. File: `app/src/server/jobs/steps/send-email.ts`. Not blocking.
+   - Follow-up: "The `alert_report_failed` branch of reportAlert (lines 78-82) cannot be reached with the runner's real reporter. captureException in src/server/lib/sentry.ts catches its own fetch failures and logs `sentry_send_failed` instead of rejecting. The notify-admin case 'logs a failed Sentry report and still sends' proves the branch only with a stub reporter that rejects. A Sentry failure is still logged, but under a different event name than invariant 14 says. Suspected by reading, not run against a failing DSN."
+   - Evidence: "sentry.ts captureException ends in try { await fetch(...) } catch { ... } and never rethrows; supabase/functions/job-runner/index.ts wires report to captureException"
+
+2. File: `app/tests/unit/lib/live-side-effects.test.ts`. Not blocking.
+   - Follow-up: "No case covers MOP_ENV unset together with EMAIL_LIVE=1. Today the allow-list holds because the check is `!== \"production\"`. But a mutation to `=== \"preview\" || === \"development\"` would let an unconfigured runner with EMAIL_LIVE=1 mail any address, and no test would go red. The reserved-domain case also has no near-miss address such as owner@house.testing.com, so dropping the `$` anchor would stay green. The code is correct by reading."
+   - Evidence: "send-email.ts:134 `readVar(\"MOP_ENV\") !== \"production\"`; every allow-list test sets MOP_ENV to preview or development"
+
+3. File: `app/src/server/jobs/steps/send-email.ts`. Not blocking.
+   - Follow-up: "The ceiling check (line 245) runs before email_message_begin's already-sent check (line 249). This is the plan's order. Suppose a job is retried after its message went out, and that send was the one that filled the cap. The retry then answers retry_at until the next day instead of done. No second email goes out, only the job finishes late."
+   - Evidence: "sendOne: ceiling() at line 245 before begin()/OUT.has at lines 248-249"
+
+4. File: `workspace/05-plans/B5.md`. Not blocking.
+   - Follow-up: "Stale plan text for the orchestrator to fold in. Line 153 still gives the old email_message_begin argument order (p_entity, p_entity_id, p_content_hash); migration 20261005161634 changed it. The Files lines say a disabled template writes a skipped row (the code writes none) and that the Sentry requestId is the job id (the runner's reporter uses its own request id). The author logged all of these under P-1209."
+   - Evidence: "grep -n 'email_message_begin(' workspace/05-plans/B5.md -> line 153 with the old order"
+
+5. File: `app/src/server/jobs/steps/notify-admin.ts`. Not blocking.
+   - Follow-up: "The Sentry message is the rendered headline, as invariant 14 asks. Default headlines are static. But an admin who edits a recipe headline to include {{summary}} for inquiry.received would send the inquirer's name to Sentry. scrubText masks emails, not names (R37). Suspected by reading."
+   - Evidence: "notify-admin.ts:59 `new AlertRaised(variables[\"headline\"] ?? ...)`; sentry.ts scrubText = maskEmails only"
+
+6. File: `app/src/db/types.ts`. Not blocking.
+   - Follow-up: "UNPROVEN. The hand-entered optional Args (P-910) may not match the CI db job's gen:types byte for byte, and the type-drift step runs git diff --exit-code. A live Resend idempotency answer, the deno.json import map under functions deploy, and the CI db job are also proven only against the author's own fake fetch, deno check, and a rolled-back mop-dev prelude."
+   - Evidence: "author's unproven list; the fake Resend in tests/fixtures/email-send.ts models the 409/replay behaviour that the tests assert"
