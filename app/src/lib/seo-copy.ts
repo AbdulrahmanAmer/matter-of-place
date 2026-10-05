@@ -7,12 +7,12 @@ import { formatNumber, pluralize } from "./format";
 /**
  * Meta descriptions, written from data by pure functions (no model, S20). Each is 70 to 155 characters:
  * whole sentences are added while they fit, a first sentence that is too long is cut at a word, and a
- * description that is too short is completed with the platform line.
+ * description that is too short is completed with the platform line, always whole: it is 80 characters, so it
+ * fits after any text under 70 and never gets cut.
  */
 const MIN = 70;
 const MAX = 155;
-const PLATFORM =
-  "Matter of Place is an editorial real-estate media platform for residential property in California, New York and Florida.";
+const PLATFORM = "Matter of Place covers residential property in California, New York and Florida.";
 
 function cutAtWord(text: string): string {
   if (text.length <= MAX) return text;
@@ -29,7 +29,7 @@ function compose(sentences: string[]): string {
     text = next;
   }
   if (text === "") return cutAtWord(sentences[0] ?? "");
-  return text.length < MIN ? cutAtWord(`${text} ${PLATFORM}`) : text;
+  return text.length < MIN ? `${text} ${PLATFORM}` : text;
 }
 
 export function propertyDescription(
@@ -45,7 +45,11 @@ export function storyDescription(story: Pick<Story, "deck">): string {
   return compose([story.deck]);
 }
 
-const firstSentence = (text: string) => `${text.split(".")[0] ?? text}.`;
+const SENTENCE_END = /(?<!\b(?:St|Mt|Ft|Dr))\.(?=\s|$)/;
+function firstSentence(text: string): string {
+  const end = text.search(SENTENCE_END);
+  return `${end === -1 ? text : text.slice(0, end)}.`;
+}
 type Named = { name: string }[];
 const names = (items: Named) => items.map((item) => item.name).join(", ");
 

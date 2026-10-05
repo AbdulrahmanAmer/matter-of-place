@@ -2781,3 +2781,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never type a `\uXXXX` escape in a Write, Edit or heredoc payload; patch the file with a node script (a file written by Write, run by `node`) that builds the characters with `String.fromCharCode(0x2028)` and the backslash with `String.fromCharCode(92)`, checks that its search text occurs exactly once, and read the line back with `cat -A`. A test file may hold the same escape written that way.
 - proof: `cd app && sed -n 41p src/lib/seo.ts | cat -A` → `    /[<>&\u2028\u2029]/g,$` (plain ASCII, no `M-` bytes), and `bunx vitest run --project unit tests/unit/seo.test.ts` passes (2026-10-05).
 - added: 2026-10-05
+- hit again: 2026-10-05, B13 c1 log: the Costs line of `workspace/05-plans/logs/B13.md` kept the raw U+2028 character the tools had made from the escape; write "U+2028" in words in prose and check a file with `cat -A <file> | grep -c "M-bM-^@M-("` (prints 0; the pattern is how `cat -A` shows U+2028).
+
+## P-1801 · An SSR harness test in this repo fails `tsc` on `router.update` and `setQueryData`, and `vitest/expect-expect` refuses an assertion helper
+- symptom: B13 g1's first `bun run check` failed in `tests/unit/csp-inline.test.ts`: `router.update({ history })` was refused because `update` takes the whole options object, `setQueryData(propertyQuery(slug).queryKey, data)` was refused because the key from `queryOptions` is a tagged key, and `vitest/expect-expect` reported a test with no assertion because the `expect` calls sat in a helper.
+- cause: `router.update` takes the whole options object, not a partial one; `setQueryData` wants a plain key and `queryOptions(...).queryKey` is tagged; `vitest/expect-expect` did not see the assertions that lived in a helper function (the exact internals are UNPROVEN, the three fixes are what the log records).
+- rule: update a router with `router.update({ ...router.options, history })`, seed a query with `setQueryData([...query.queryKey], data)`, and keep every `expect` in the `it` body (a helper returns the value, the test asserts on it).
+- proof: `cd app && bun run typecheck && bunx eslint tests/unit/csp-inline.test.ts --max-warnings 0` exits 0 (2026-10-05).
+- added: 2026-10-05
+
+## P-1802 · A hostile fixture that corrupts a structural field makes SSR fall back to client rendering and the assertions pass for the wrong reason
+- symptom: B13 g1's hostile story and property fixture put `</script><script>window.__x=1</script>` into `currency`; `Intl.NumberFormat` threw `RangeError: Invalid currency code`, the server render errored, and TanStack Start wrote `Switched to client rendering because the server rendering errored` into the HTML, so the page held no listing text and "no `<script>window.__x`" held for the wrong reason.
+- cause: the fixture replaced every string, including `slug`, `market`, `region`, `currency`, `publishedAt` and `status`, which code parses or hands to `Intl`.
+- rule: a hostile fixture keeps the fields the code parses (the `structural` set of `tests/unit/csp-inline.test.ts`), and the test first asserts that the render did not switch to client rendering and that the escaped payload `&lt;/script&gt;` is present.
+- proof: `cd app && bunx vitest run --project unit tests/unit/csp-inline.test.ts` passes; with `"currency"` taken out of `structural` the first case fails with `not to contain 'Switched to client rendering'` (watched 2026-10-05).
+- added: 2026-10-05
+
+## P-1803 · A description padded with a sentence and then cut at 155 characters ends inside the sentence
+- symptom: B13 c1 review: `storyDescription` for a deck of 34 to 69 characters returned `... Matter of Place is an editorial real-estate media platform for residential property in.` (or `... California, New York and.`), a meta description that stops mid-sentence and names one market (R46 names three).
+- cause: `compose` padded a short text with the 121-character platform line and then ran `cutAtWord` on the sum; the cut fell inside the padding.
+- rule: a copy builder appends a sentence whole or not at all and is sized so that it always fits (the platform line is 80 characters, after a text under 70); never cut text you added. A length test sweeps every input length, not the bundled data alone.
+- proof: `cd app && bunx vitest run --project unit tests/unit/seo-copy.test.ts` passes; registry entry `b13-c1-copy-pad-whole` (old padding put back) goes red on `pads a short text with the whole platform line` (2026-10-05).
+- added: 2026-10-05

@@ -17,6 +17,8 @@ import { slugify } from "../../src/lib/slug";
 const BANNED =
   /exclusive|guarantee|stunning|luxury|unlock|buyers?\b|leads?\b|dream|world-class|once in a lifetime/i;
 
+const PLATFORM = "Matter of Place covers residential property in California, New York and Florida.";
+
 const copyRules: Record<string, (text: string) => boolean> = {
   "at least 70 characters": (text) => text.length >= 70,
   "at most 155 characters": (text) => text.length <= 155,
@@ -30,6 +32,16 @@ const copyRuleBreaks = (text: string) =>
   Object.entries(copyRules)
     .filter(([, holds]) => !holds(text))
     .map(([rule]) => `${rule}: ${text}`);
+
+const dataTexts = () => [
+  ...properties.map((property) => propertyDescription(property)),
+  ...stories.map((story) => storyDescription(story)),
+  ...markets.flatMap((market) => [
+    marketDescription(market),
+    marketGuideDescription(market),
+    ...market.regions.map((region) => regionDescription(region)),
+  ]),
+];
 
 const sample = {
   city: "Ojai",
@@ -53,15 +65,7 @@ describe("page descriptions", () => {
 
 describe("descriptions written from data", () => {
   it("keep to the copy rules for every bundled property, story, market and region", () => {
-    const texts = [
-      ...properties.map((property) => propertyDescription(property)),
-      ...stories.map((story) => storyDescription(story)),
-      ...markets.flatMap((market) => [
-        marketDescription(market),
-        marketGuideDescription(market),
-        ...market.regions.map((region) => regionDescription(region)),
-      ]),
-    ];
+    const texts = dataTexts();
     expect(texts.length).toBeGreaterThan(30);
     for (const text of texts) expect(copyRuleBreaks(text)).toEqual([]);
   });
@@ -83,7 +87,34 @@ describe("descriptions written from data", () => {
   it("completes a short story deck with the platform line", () => {
     const text = storyDescription({ deck: "A short deck." });
     expect(copyRuleBreaks(text)).toEqual([]);
-    expect(text.startsWith("A short deck. Matter of Place is")).toBe(true);
+    expect(text).toBe(`A short deck. ${PLATFORM}`);
+  });
+
+  it("pads a short text with the whole platform line, whatever its length", () => {
+    for (let length = 1; length < 70; length += 1) {
+      const text = storyDescription({ deck: `${"a".repeat(length - 1)}.` });
+      expect(text.endsWith(` ${PLATFORM}`)).toBe(true);
+      expect(copyRuleBreaks(text)).toEqual([]);
+    }
+  });
+
+  it("never ends mid-sentence and names all three markets wherever it pads", () => {
+    const texts = dataTexts();
+    for (const text of texts) {
+      expect(text).toMatch(/[.!?]$/);
+      expect(text).not.toMatch(/\b(in|and|or|of|the|to|for|by)\.$/);
+    }
+    const named = texts.filter((text) => text.includes("Matter of Place"));
+    expect(named.filter((text) => !text.endsWith(PLATFORM))).toEqual([]);
+    expect(texts.filter((text) => text.endsWith(PLATFORM)).length).toBeGreaterThan(0);
+  });
+
+  it("keeps an abbreviation inside the first sentence of a market intro", () => {
+    const intro =
+      "St. Helena and Mt. Kisco sit far apart but share a long habit of quiet houses. More.";
+    expect(marketDescription({ intro, regions: [{ name: "Napa" }] })).toBe(
+      "St. Helena and Mt. Kisco sit far apart but share a long habit of quiet houses. Property stories across Napa.",
+    );
   });
 
   it("cuts a long story deck at a word and ends it with a full stop", () => {

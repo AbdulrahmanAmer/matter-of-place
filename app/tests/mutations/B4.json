@@ -697,7 +697,7 @@
     "id": "seo-jsonld",
     "test": "tests/unit/seo.test.ts",
     "file": "src/lib/seo.ts",
-    "find": "    scripts: jsonLd ? [{ type: \"application/ld+json\", children: JSON.stringify(jsonLd) }] : [],",
+    "find": "    scripts: graph\n      ? [{ type: \"application/ld+json\", children: serializeJsonForScript(graph) }]\n      : [],",
     "replace": "    scripts: [],",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > adds an application/ld\\+json script only when jsonLd is given"
@@ -706,7 +706,7 @@
     "id": "seo-canonical",
     "test": "tests/unit/seo.test.ts",
     "file": "src/lib/seo.ts",
-    "find": "    links: [{ rel: \"canonical\", href: absoluteUrl(path) }],",
+    "find": "    links: [{ rel: \"canonical\", href: canonical }],",
     "replace": "    links: [{ rel: \"canonical\", href: absoluteUrl(\"/\") }],",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > sets the canonical link and og:url to the absolute url of the path"

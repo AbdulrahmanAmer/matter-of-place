@@ -174,7 +174,7 @@
     "id": "b13-g1-copy-pad",
     "test": "tests/unit/seo-copy.test.ts",
     "file": "src/lib/seo-copy.ts",
-    "find": "return text.length < MIN ? cutAtWord(`${text} ${PLATFORM}`) : text;",
+    "find": "return text.length < MIN ? `${text} ${PLATFORM}` : text;",
     "replace": "return text;",
     "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
     "expect": "FAIL .*descriptions written from data > completes a short story deck"
@@ -403,5 +403,23 @@
     "replace": "checked.data[\"@graph\"] ?? []",
     "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
     "expect": "FAIL .*validateHtml > reads a single block and a graph alike"
+  },
+  {
+    "id": "b13-c1-copy-pad-whole",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "find": "? `${text} ${PLATFORM}` : text;",
+    "replace": "? cutAtWord(`${text} Matter of Place is an editorial real-estate media platform for residential property in California, New York and Florida.`) : text;",
+    "expect": "FAIL .*pads a short text with the whole platform line"
+  },
+  {
+    "id": "b13-c1-copy-abbreviation",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "find": "const end = text.search(SENTENCE_END);",
+    "replace": "const end = text.indexOf(\".\");",
+    "expect": "FAIL .*keeps an abbreviation inside the first sentence"
   }
 ]
