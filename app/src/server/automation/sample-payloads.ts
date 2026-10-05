@@ -7,8 +7,8 @@ import { AppError } from "../lib/errors.ts";
 import { subscriberIdQuery } from "../subscribers/lookup.ts";
 
 // The payload a real event would carry, built from a real row, so a dry-run shows what the planner would do with it
-// (B8b step 5). A field the row cannot give is left out: the planner then skips on its condition and the dry-run
-// warns that the payload fails its schema, which is what a real event with that row would do.
+// (B8b step 5). A field the row cannot give is left out: a condition on it does not match (invariant 9) and the
+// dry-run warns that the payload fails its schema, as the real fan-out would log it.
 
 type Builder = (db: Db, id: string, now: Date) => Promise<JsonObject>;
 

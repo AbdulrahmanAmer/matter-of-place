@@ -1,6 +1,6 @@
 // B8b step 5: the fan-out functions (invariants 4 and 5, JOB-07, DL-10, G58, ruling H34 (2)). Every case runs in one
-// rolled-back transaction (F22). An event is written with `at` in the year 2000, so it is the oldest unprocessed one
-// and `fanout_pending_events(50)` returns it whatever else mop-dev holds.
+// rolled-back transaction (F22). An event is written with `at` in the year 2000, so it sorts before any real event
+// and `fanout_pending_events(50)` returns it while it is unprocessed and not waiting.
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { withRollback, type Db } from "../fixtures/db";

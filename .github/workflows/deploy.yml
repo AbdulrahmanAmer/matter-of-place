@@ -112,7 +112,7 @@ jobs:
           VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}
           VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
         run: bun run build
-      # A preview carries no cron trigger: each open pull request would add one more against the one database.
+      # A preview carries no cron trigger: each open pull request would add one more cron trigger.
       - run: node scripts/preview-no-cron.mjs .output/server/wrangler.json .output/server/wrangler.preview.json
       # On a pull request github.sha is the merge commit, which is what was built (invariant 11).
       - name: deploy
