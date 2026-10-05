@@ -55,10 +55,21 @@ for (const run of runs) {
       }
     })
     .filter(Boolean);
+  // An agent is live when it started and no result followed. A run resumed after a kill re-runs the interrupted
+  // group with a new agent: the old "started" entry never gets a result, so a later result under the same label
+  // (from any agent) also closes it.
+  const labelOf = new Map();
   const started = new Map();
   for (const e of entries) {
-    if (e.type === "started" && e.agentId) started.set(e.agentId, e.label ?? "");
-    if (e.type === "result" && e.agentId) started.delete(e.agentId);
+    if (e.type === "started" && e.agentId) {
+      labelOf.set(e.agentId, e.label ?? "");
+      started.set(e.agentId, e.label ?? "");
+    }
+    if (e.type === "result" && e.agentId) {
+      started.delete(e.agentId);
+      const label = labelOf.get(e.agentId);
+      for (const [id, l] of [...started]) if (label && l === label) started.delete(id);
+    }
   }
   const journalAge = ageMin(journalPath);
   if (started.size === 0) {
