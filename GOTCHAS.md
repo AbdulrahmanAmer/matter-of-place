@@ -3424,3 +3424,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: on the build machine the three prompt hooks run with `timeout: 60` (edited in the plugin cache `hooks/hooks.json`, backups `*.bak-2026-10-05`; a plugin update resets them, re-apply); hookify is off for this project (`.claude/settings.json` enabledPlugins) until it has a rule file. A hook that times out is worse than one that is slow: its advice is lost and the wait is paid anyway.
 - proof: `node -e` over the three hooks.json → "1 prompt hook(s) set to 60 s" each; `ls .claude/hookify.* ~/.claude/hookify.*` → none.
 - added: 2026-10-05
+
+## P-529 · A reviewer hung for two hours and nothing noticed: every agent of a live run is now watched for silence, and a silent one is stopped and relaunched, never waited for
+- symptom: in run wf_b449fffc-88b the reviewer of B13 step 5 made its last call at 21:00 (a loop of eight `watchfail --only` replays under full load) and never returned; the step 6 build finished at 22:17 and the run waited; a human noticed at 23:10. Two hours of a lane lost. The same shape killed run wf_5748a66c-dea on 2026-10-05 01:46 (P-509).
+- cause: an agent whose shell never returns writes nothing and never ends; the run's loop waits for it without limit, and the orchestrator's monitors watched for new results, which a hang never produces.
+- rule: `node workspace/05-plans/stall-watch.mjs --minutes 20 --runs <live run ids>` runs every five minutes as a Monitor for as long as any run is live (the orchestrator re-arms it with the current ids whenever a run starts or ends). A STALL line means: stop the run (TaskStop), check `review-snapshot remove` for a stuck snapshot, relaunch from the lane branch with a close-out for the interrupted group (P-510); a resume is refused while the old loop lives, so the relaunch is a fresh run. Twenty minutes is the threshold because a healthy agent writes a tool call at least every few minutes; a long test run still produces a tool result inside that window.
+- proof: `node workspace/05-plans/stall-watch.mjs --minutes 1 --runs wf_b449fffc-88b` → `STALL wf_b449fffc-88b review:B13:g2:5 (aef338f7b9f5675c1): transcript silent …`; on the live runs with 20 minutes → nothing.
+- enforced-by: workspace/05-plans/stall-watch.mjs (the Monitor is the orchestrator's standing duty)
+- added: 2026-10-06
