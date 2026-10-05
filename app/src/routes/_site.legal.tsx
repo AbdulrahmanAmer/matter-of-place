@@ -3,13 +3,18 @@ import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
 import { isLive } from "../services";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "Illustrative-content notice, representation, editorial independence, privacy and terms for Matter of Place.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/legal")({
-  head: () => pageHead({ title: "Legal", description, path: "/legal" }),
+  head: () =>
+    pageHead({
+      title: "Legal",
+      description: pageDescription("legal"),
+      path: "/legal",
+      jsonLd: [breadcrumbLd([{ name: "Legal", path: "/legal" }])],
+    }),
   component: LegalPage,
 });
 

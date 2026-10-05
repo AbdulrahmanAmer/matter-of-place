@@ -6,7 +6,9 @@ import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { useTrackView } from "../hooks/use-track-view";
 import { propertiesQuery, storyQuery } from "../lib/queries";
+import { articleLd, breadcrumbLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { storyDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/stories/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -25,9 +27,17 @@ export const Route = createFileRoute("/_site/stories/$slug")({
     const { story } = loaderData;
     return pageHead({
       title: story.title.replace(/\.$/, ""),
-      description: story.deck,
+      description: storyDescription(story),
       path: `/stories/${story.slug}`,
       type: "article",
+      published: story.publishedAt,
+      jsonLd: [
+        articleLd(story),
+        breadcrumbLd([
+          { name: "Stories", path: "/stories" },
+          { name: story.title.replace(/\.$/, ""), path: `/stories/${story.slug}` },
+        ]),
+      ],
     });
   },
   component: StoryPage,

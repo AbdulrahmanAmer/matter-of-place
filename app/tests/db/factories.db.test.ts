@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { deterministicUuid } from "../fixtures/clock";
 import { dbNow, withRollback, type Db } from "../fixtures/db";
 import { fixtureDataset, loadDataset } from "../fixtures/dataset";
-import { createSubmission, removeFixtureRows } from "../fixtures/factories";
+import { createSubmission, publishedProperty, removeFixtureRows } from "../fixtures/factories";
 
 // GQ-03: every case runs inside one rolled-back transaction (invariant 4); none is committed.
 const FIXTURE_IDS =
@@ -197,5 +197,58 @@ describe("withRollback (the harness proof)", () => {
       ),
     );
     expect(after).toEqual({ count: 0 });
+  });
+});
+
+describe("publishedProperty", () => {
+  it("inserts a row the publish gate and the constraints accept, with no gate column empty", async () => {
+    const seen = await withRollback(async (db) => {
+      const property = await publishedProperty(db, { n: 901 });
+      return one(
+        db,
+        `select editorial_state::text, published_at is not null as published,
+           (region_slug is null or neighborhood is null or country is null or price is null or beds is null
+             or baths is null or interior_sq_ft is null or lot_acres is null or year_built is null or style is null
+             or hero_image is null or place is null) as incomplete, price > 0 as priced
+         from public.properties where id = $1`,
+        [property.id],
+      );
+    });
+    expect(seen).toEqual({
+      editorial_state: "published",
+      published: true,
+      incomplete: false,
+      priced: true,
+    });
+  });
+
+  it("raises publish_incomplete for the same row with style null (G62)", async () => {
+    const failure = await withRollback(async (db) => {
+      await db.query("savepoint attempt");
+      try {
+        await publishedProperty(db, { n: 902, style: null });
+        return "inserted";
+      } catch (error) {
+        return error instanceof Error ? error.message : "unknown error";
+      } finally {
+        await db.query("rollback to savepoint attempt");
+      }
+    });
+    expect(failure).toBe("publish_incomplete");
+  });
+
+  it("gives a second property another id and slug and leaves the market it found", async () => {
+    const seen = await withRollback(async (db) => {
+      const first = await publishedProperty(db, { n: 903 });
+      const second = await publishedProperty(db, { n: 904 });
+      return {
+        distinct: first.id !== second.id && first.slug !== second.slug,
+        markets: await one<{ count: number }>(
+          db,
+          "select count(*)::int as count from public.markets where slug = 'california'",
+        ),
+      };
+    });
+    expect(seen).toEqual({ distinct: true, markets: { count: 1 } });
   });
 });
