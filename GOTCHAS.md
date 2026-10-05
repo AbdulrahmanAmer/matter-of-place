@@ -3287,3 +3287,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: nothing that runs at Worker startup (a Nitro plugin, a scheduled hook's module) imports `env.ts` or `db.ts` statically; load them inside the hook with `await import(...)`. Proof that a file is clean: the scratch walker `env-chain.mjs <file>` prints "no static chain to env.ts" (it follows relative non-type imports).
 - proof: `node env-chain.mjs src/server/nitro/keepwarm.ts` → `no static chain to env.ts`; `bunx tsc --noEmit -p tsconfig.json` → exit 0; `bunx vitest run tests/unit/scheduled.test.ts` → 11 passed; PR 133's preview job after the fix is the live proof.
 - added: 2026-10-05
+
+## P-2003 · Every CI job fails in 3 seconds with no steps: the account's Actions billing is blocked
+- symptom: PR 138 checks `check`, `build` and `preview-db` went red in 3 to 4 seconds, `gh run view <id> --log-failed` answered `log not found`, the job had `steps: []` and an empty runner name, and `gh run rerun <id> --failed` failed the same way
+- cause: not code. The annotation of the check run reads "The job was not started because recent account payments have failed or your spending limit needs to be increased" (ruling H55 (1) keeps the spending limit at zero, so either the 2,000 included minutes are used up or a payment failed); only the account owner can change that
+- rule: a job that fails in under 10 seconds with no steps is read through `gh api repos/AbdulrahmanAmer/matter-of-place/check-runs/<job id>/annotations --jq '.[].message'` before any log hunt; a billing message is a BLOCKED merge gate for the operator (the Actions billing page), never a reason to touch code, and a rerun is not a second approach
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/check-runs/111839742353/annotations --jq '.[].message'` → `The job was not started because recent account payments have failed or your spending limit needs to be increased. ...`
+- added: 2026-10-05
