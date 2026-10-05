@@ -91,3 +91,23 @@ Source: the fresh reviewer of group g1 (second run), none blocking. The two GOTC
 5. File `app/tests/mutations/B3.json` (not blocking).
    What: b3-g4-an-unique is re-anchored on "archive_view" being the last name in analyticsEvents. The next lane that appends an event will make it STALE again, the same way B3b and this group already broke it.
    Evidence: git show 2d1b81c: find changed from '"home_finder",\n] as const;' to '"archive_view",\n] as const;'; the log's Proof 7 records the earlier 'STALE B3:b3-g4-an-unique: find occurs 0 times'
+
+## c5 · steps 5
+
+Source: the fresh reviewer of group c5, none blocking. Three reviewer items about GOTCHAS.md (the proof of P-1814 that cannot fail, the sed cost with no entry, the P-712 hit) and the unreadable bank diff went into the bank (P-1814 proof fixed, P-1817 new, hit-again lines on P-064, P-072 and P-712) and are not repeated here.
+
+1. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: UNPROVEN, not a defect of this group's code. The step 5 live proof 'every sitemap URL answers 200 without a redirect' fails on this tree, and I reproduced the author's result exactly. /privacy, /terms, /accessibility and /cookies return 404 because B16 and B17 are not merged. /place-notes returns a 301 to /stories. The plan dictates this staticSitemapPaths list, and P-1814 rightly forbids dropping paths to turn the check green. One correction: the author's report says 'B5 merged' and suggests the orchestrator 'drop /place-notes'. B5 is not finished. B5.md lines 119 and 168 give step 7 the job of replacing the 301 with the page, and POSITION shows B5 steps 5 to 9 still to run. B13 has to land after B16, B17 and B5 step 7, or step 9's check-seo stays red. The orchestrator owns that ordering.
+   Evidence: curl loop on the live build at port 8929 over the 24 <loc>: 'ok 19 bad 5' (404 /privacy, 404 /terms, 404 /accessibility, 404 /cookies, 301 /place-notes); app/src/routes/_site.place-notes.tsx throws redirect({ to: "/stories", statusCode: 301 }); workspace/05-plans/B5.md:119 'src/routes/place-notes.tsx — replaces the 301 to /stories with a page'
+
+2. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: Taken-down properties still count toward archive facets. buildSitemap removes gone slugs from its own property list but passes the unfiltered `source` to listFacets(source, state). A property that is still editorial_state='published' with taken_down_at set appears in both the snapshot's properties and its gone list, because no constraint forbids that state (catalog_version.sql:274 and :321). Such a property still counts toward the 3-property threshold, so the archive page is listed with only 2 live properties. Contract 10 says taken-down properties are absent from archive counts, and the archive page itself (step 4's archive.ts) counts the same way. The plan gives that exclusion to step 11's gone.ts, so this is a follow-up for step 11. By reading only: the head() of the three list pages also counts the pool without removing gone slugs, so a head and the sitemap could disagree in the same case.
+   Evidence: Confirmed by running: a bun probe of buildSitemap over three Modernist properties with gone: ["c"] and archive_pages on printed /archive/style/modernist next to /property/a and /property/b only
+
+3. File `app/tests/unit/sitemap.test.ts` (not blocking).
+   What: Known follow-up, still open. The test 'keeps a path whose redirect row is archived, because the snapshot never carries it' only runs with redirects: [], so it cannot show an archived row. Its mutation b13-s5-sm-redirect-archived adds a special case for /about to make it fail. The real behaviour lives in SQL (where rd.enabled) and is covered by tests/db/public-reads.db.test.ts.
+   Evidence: tests/mutations/B13.json b13-s5-sm-redirect-archived replaces `!redirected.has(path)` with `!redirected.has(path) && path !== "/about"`
+
+4. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: Known follow-up. The hero's image:caption is the property title, not alt text as the plan says, because Property exposes no hero alt.
+   Evidence: imagesOf: { address: property.heroImage, caption: property.title }
