@@ -1315,6 +1315,7 @@ Entry template
 - added: 2026-10-03
 - hit again: 2026-10-04, B3b g4: `bunx vite dev` answered 503 on every page because the agent shell held `SUPABASE_URL` and the service key of another project and `getFlags` read the public state through them; a local preview of the bundled adapter starts with `env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY`.
 - hit again: 2026-10-04, B3b g6: `bun run test:e2e:coming-soon` died on its first line with `error: reading coming_soon_global: Could not find the table 'public.settings' in the schema cache` because the agent shell held another project's `SUPABASE_URL`; `serviceClient()` in `scripts/e2e-coming-soon.ts` prefers it to the dev profile. Run every e2e and `with-coming-soon` command as `env -u CLOUDFLARE_API_TOKEN -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY ...`. Proof: `env | grep -oE '^SUPABASE_[A-Z_]*='` prints both names in the agent shell.
+- hit again: 2026-10-05, B13 c3: `bun run dev -- --port 8928` answered 503 on `/`, `/faq` and `/sitemap.xml` in a shell that held a foreign `SUPABASE_URL`; `public_read_stale` was in its log. The built Worker started with `--env-file .dev.vars` answered 200, so the `validate-jsonld.ts` proof ran against it, not against the dev server of the plan line.
 
 ## P-332 · The seed's two small gate costs: `guardedScripts` needs the literal call `assertNotProduction(`, and an untyped supabase-js client cannot be named as a type
 - symptom: `bunx vitest run --project unit tests/unit/assert-not-production.test.ts` failed with `expected [ 'scripts/seed.ts' ] to deeply equal []` although `seed.ts` imported the guard and defaulted its `guard` parameter to it; then `bun run lint` printed `no-unsafe-return` on a function typed `SupabaseClient`, and `ReturnType<typeof createClient>` made `.upsert` take `never[]`.
@@ -3112,4 +3113,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: Google consoles bind single keys (`/`, `.`, `g` sequences) at the page level; a long typed string that is not inside a focused input runs them.
 - rule: in Google consoles set inputs with `form_input` (sets the value directly) and reserve `type` for short strings right after a confirmed focus; confirm the field's value with a screenshot before pressing a submit.
 - proof: the second attempt with `form_input` on the three fields created `mop-audit@matter-of-place.iam.gserviceaccount.com` (service accounts list shows it).
+- added: 2026-10-05
+
+## P-1804 · B13 step 3 names work that needs files an earlier merge or a later step owns
+- symptom: step 3 asks for the `organizationJsonLd` extension, `organization-jsonld.test.ts` and `routes.ts` entries for `robots[.]txt.ts`, `llms[.]txt.ts`, `llms-full[.]txt.ts` and the archive route, and a proof that "passes with the four new route files". On slice/b13 none of the four files exists (steps 4, 6 and 7 create them) and `git grep organizationJsonLd` finds nothing, because B16 is not on main.
+- cause: the plan orders step 3 before the steps that create those files and lists B16 as a dependency that had not merged when the lane ran. `tests/unit/routes-covered.test.ts` fails on an entry whose file is missing ("are all still on disk when the map names them"), so the entries cannot go in early.
+- rule: the Organization extension and its test land when B16 is on main (UNPROVEN until then, say so in the log); each `routeFileCoverage` entry lands in the step that creates its file; `seoFileRoutes` already picks up the three text routes by name, so only the archive entry needs a line.
+- proof: `cd app && git grep -c "organizationJsonLd" -- src tests` → no output on slice/b13 at b13 c3 (2026-10-05); `bunx vitest run tests/unit/routes-covered.test.ts` → 6 passed with the map as it stands.
+- added: 2026-10-05
+
+## P-1805 · The full sweep with the default four workers timed out on six property pages while other lanes were running
+- symptom: `E2E_TARGET=built E2E_PORT=8928 bun run test:e2e -- sweep.spec.ts` ended `6 failed, 100 passed (12.8m)`: six `/property/<slug>` tests hit `Test timeout of 30000ms exceeded`, the server log carried `ProxyWorker: GET .../assets/<hash>.js recovered on attempt 2 after a dropped connection to the UserWorker`. No assertion had failed. The earlier unloaded run of the same build took 7.2 minutes.
+- cause: four browser workers against one `wrangler dev` while other lanes use the CPU; the property pages are the heaviest and miss the 30 s test limit first.
+- rule: on a shared laptop run the sweep with `--workers=2` (same 106 tests); `--last-failed` re-runs only the timed-out ones, and a timeout with no assertion text is load, not a defect in the page. Say in the log which run is the proof.
+- proof: `cd app && E2E_TARGET=built E2E_PORT=8928 bun run test:e2e -- sweep.spec.ts --workers=2` → `106 passed (7.5m)` (2026-10-05, B13 c3), after `--last-failed --workers=2` had printed `6 passed (2.4m)`.
 - added: 2026-10-05
