@@ -49,6 +49,7 @@ export async function sha256Base64(input: string | Uint8Array): Promise<string> 
   return btoa(String.fromCharCode(...digest));
 }
 
+/** @public */
 export async function sha1Bytes(input: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-1", bytesOf(input)));
 }

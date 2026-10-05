@@ -650,19 +650,30 @@ describe("retention anonymise", () => {
     expect([result.open.name, result.open.archived]).toEqual(["Test Person", false]);
   });
 
-  it("retention_anonymise_email answers 0 while B5's email tables are absent (skipped: email_messages absent)", async () => {
+  it("retention_anonymise_email clears to_email of a 91-day-old email_messages row and keeps an 89-day-old one", async () => {
     const result = await withRollback(async (db) => {
-      const { absent } = await one<{ absent: boolean }>(
-        db,
-        "select to_regclass('public.email_messages') is null as absent",
-      );
-      const { count } = await one<{ count: number }>(
-        db,
-        "select public.retention_anonymise_email() as count",
-      );
-      return { absent, count };
+      const insert = (days: number) =>
+        one<{ id: string }>(
+          db,
+          `insert into public.email_messages (template_key, kind, to_email, created_at)
+           values ('received', 'transactional', $1, now() - make_interval(days => $2::int))
+           returning id`,
+          [email(), days],
+        );
+      const old = await insert(91);
+      const young = await insert(89);
+      await db.query("select public.retention_anonymise_email()");
+      const read = async (id: string) =>
+        (
+          await one<{ cleared: boolean }>(
+            db,
+            "select to_email is null as cleared from public.email_messages where id = $1",
+            [id],
+          )
+        ).cleared;
+      return { old: await read(old.id), young: await read(young.id) };
     });
-    expect(result).toEqual({ absent: true, count: 0 });
+    expect(result).toEqual({ old: true, young: false });
   });
 });
 

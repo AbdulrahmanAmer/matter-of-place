@@ -360,6 +360,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     pending_source: "text?",
     created_at: "timestamptz",
     updated_at: "timestamptz",
+    last_engaged_at: "timestamptz?",
+    repermission_sent_at: "timestamptz?",
   },
   // The parent of the monthly partitions (migration 6); the partitions themselves are not tables of the manifest.
   analytics_events: {
@@ -552,6 +554,40 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     version: "integer",
     created_at: "timestamptz",
     updated_at: "timestamptz",
+    class: "text",
+  },
+  // B5 `<ts>_email.sql`: the send path (invariants 4 and 9).
+  email_messages: {
+    id: "uuid",
+    template_key: "text",
+    kind: "text",
+    to_email: "text?",
+    subject: "text?",
+    content_hash: "text?",
+    resend_id: "text?",
+    status: "text",
+    job_id: "uuid?",
+    entity: "text?",
+    entity_id: "uuid?",
+    error: "text?",
+    created_at: "timestamptz",
+    sent_at: "timestamptz?",
+    delivered_at: "timestamptz?",
+  },
+  email_suppressions: {
+    email: "text",
+    reason: "text",
+    at: "timestamptz",
+  },
+  email_events: {
+    id: "bigint",
+    provider_event_id: "text",
+    type: "text",
+    resend_email_id: "text?",
+    broadcast_id: "text?",
+    to_email: "text?",
+    at: "timestamptz",
+    data: "jsonb",
   },
   channel_settings: {
     id: "uuid",
@@ -722,4 +758,5 @@ export const notPii = [
   "ops_heartbeats.name",
   "automation_recipes.name",
   "automation_revisions.table_name",
+  "email_events.resend_email_id",
 ];
