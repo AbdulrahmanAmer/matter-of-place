@@ -3245,3 +3245,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a slice's proofs read ignored media (`launch/film/media/`, `launch/film/audio*.wav`, later `launch/reel/.tmp`), the orchestrator copies the folder from `E:/Matter Of Place` into the lane before launching, and the lane-opening command names it. Check with `git check-ignore -v <path>` when a proof's input is missing from a lane.
 - proof: `cp -r "/e/Matter Of Place/launch/film/media" /e/mop-build/video/launch/film/media` → `du -sh` 24M, `git status --short | wc -l` → 0 (ignored, no noise); B12 g1's review or fix round reruns the real proof.
 - added: 2026-10-05
+
+## P-1626 · A Nitro plugin that imports `env.ts` statically parses the environment at Worker startup, and a new preview Worker is deployed before its secrets exist, so every first preview deploy of the branch failed
+- symptom: PR 133's preview run 37278563351 failed at `wrangler deploy` with `Invalid environment: RATE_LIMIT_SALT Required ... in parseEnv [code: 10021]`; the bindings list held only ASSETS, MOP_ENV, MEDIA_PUBLIC_BASE and SENTRY_RELEASE. The same build deploys fine to `matter-of-place-dev`, whose secrets already exist.
+- cause: `src/server/nitro/keepwarm.ts` (B8b step 5) imported `env` and `getDb` at the top; a plugin runs at startup, `env.ts` runs `parseEnv(process.env)` at module load, and deploy.yml puts a preview's secrets with `wrangler secret bulk` only after the first deploy of that Worker name. Route modules never hit this because Nitro loads them per request.
+- rule: nothing that runs at Worker startup (a Nitro plugin, a scheduled hook's module) imports `env.ts` or `db.ts` statically; load them inside the hook with `await import(...)`. Proof that a file is clean: the scratch walker `env-chain.mjs <file>` prints "no static chain to env.ts" (it follows relative non-type imports).
+- proof: `node env-chain.mjs src/server/nitro/keepwarm.ts` → `no static chain to env.ts`; `bunx tsc --noEmit -p tsconfig.json` → exit 0; `bunx vitest run tests/unit/scheduled.test.ts` → 11 passed; PR 133's preview job after the fix is the live proof.
+- added: 2026-10-05
