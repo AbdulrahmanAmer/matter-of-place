@@ -46,6 +46,12 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     table_name: "text",
     column_name: "text",
   },
+  // B7 step 1 (invariant 18): the roles of each admin action, from scripts/gen-action-roles.mjs.
+  action_roles: {
+    action: "text",
+    roles: "app_role[]",
+    human_only: "boolean",
+  },
   markets: {
     slug: "text",
     name: "text",

@@ -48,6 +48,14 @@ export const errorCodes = {
   // B3b: the illustrative guard and `set_environment` (invariant 1, ruling H35).
   illustrative_in_production: 409,
   invalid_environment: 422,
+  // B7: the admin wrapper, the matrix and `fromRpcError` (invariants 1, 3, 7, 8 and 11).
+  stale: 409,
+  slug_locked: 422,
+  out_of_scope: 403,
+  csrf: 403,
+  bad_content_type: 400,
+  session_expired: 401,
+  reauth_required: 401,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

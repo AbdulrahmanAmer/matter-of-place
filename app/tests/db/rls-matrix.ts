@@ -24,6 +24,7 @@ const automation = ["chief_editor", "media_ops", "admin"] as const;
 export const rlsMatrix: Record<string, Access> = {
   migration_checksums: {},
   pii_columns: {},
+  action_roles: {},
   user_roles: { select: staffRoles, insert: admin, update: admin },
   agent_keys: { select: staffRoles, insert: admin, update: admin, delete: admin },
   audit_log: staffRead,

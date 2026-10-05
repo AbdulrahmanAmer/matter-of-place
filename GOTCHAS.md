@@ -697,6 +697,7 @@ Entry template
 - hit again: 2026-10-04, B3b g2 (step 2): the plan has `flags.test.ts` (step 2) test `mergeFlags`, which it files under `src/server/lib/flags.ts` (step 4), and says "keep mergeFlags where step 4 will place it". The file did not exist, so step 2 created it with `mergeFlags` alone and step 4 adds `getFlags` to it. A step that tests a function owns the file that holds it, even when a later step names the file.
 - hit again: 2026-10-04, B4 g6: step 7's hydration drill (watched-fail (s)) needs `tests/e2e/hydration.spec.ts`, which step 9 writes; the drill is NOT DONE in g6 and moves to g7.
 - added: 2026-10-02
+- hit again: 2026-10-05, B7 g1: step 1 builds `defineAdminRoute`, whose fixed order calls `requireActor`, `verifyCsrf`, `assertSessionFresh`, `requireRecentAuth` and `adminJson`, and step 2 creates the files that hold them (`actor.ts`, `csrf.ts`, `session-policy.ts`, `admin-response.ts`). The wrapper takes them as the injected `AdminDeps` with refusing stand-ins under `STUB(B7 step 2)`, and its proof cases run against fake guards. Proof: `git grep -n "STUB(B7 step 2)" -- app/src/server/lib/admin-route.ts` prints the two markers until step 2 replaces them.
 
 ## P-075 · A test case from a plan cannot always be built: `Headers` rejects a newline in a value
 - symptom: the plan's inbound request id case `abc\nSet-Cookie: x` throws before the test runs: `TypeError: Headers.append: "abc` newline `Set-Cookie: x" is an invalid header value.`
@@ -1192,6 +1193,20 @@ Entry template
 - rule: before a cause or rule line goes into the bank, run the smallest probe that shows it (a one-line `safeParse`, a failing test) and put that probe in the proof; a gotcha's cause is a claim and gets the same watched-fail as a test.
 - proof: from `app/`, `printf 'import { submissionSchema } from "./src/domain/contracts";\nimport { validSubmission } from "./tests/fixtures/builders";\nconsole.log(submissionSchema.safeParse({ ...validSubmission(), agentEmail: "bad" }).success);\n' > zz-probe.ts && bun zz-probe.ts; rm zz-probe.ts` prints `true`: the stale field is stripped and accepted, so the row `toEqual(["agentEmail"])` sees `[]` and fails (measured 2026-10-03, B4 c2 review).
 - added: 2026-10-03
+
+## P-2000 · `write_audit` arrives after slices that already audit: B8b's guarded calls go live and refuse their own tests, and B9 and B16 write `audit_log` directly
+- symptom: B7 g1 created `write_audit` with the DB-04 actor check. Proved on mop-dev with the two new migrations as the prelude, `tests/db/automation.db.test.ts` went from `28 passed` to `Tests  8 failed | 20 passed (28)`, every failure `error: forbidden`; and the plan's actor case "every function with a `p_actor` argument calls `write_audit(`" listed `approve_asset`, `reject_asset`, `rerender_asset`, `set_asset_caption` (B9) and `settings_put_site` (B16), which insert into `audit_log` themselves.
+- cause: B8b step 1 calls `write_audit` only `if to_regproc('public.write_audit') is not null` (`STUB(B8b step 6)`), so the call starts running the moment B7's migration lands, and its tests pass actors with no `user_roles` row (`gen_random_uuid()`) and actions (`automation.*`) that no `action_roles` row holds until B8b step 6 adds `permissions/automation.ts`. The landing order puts B8b step 6 after B7 steps 1 to 10. B9 and B16 wrote their audit rows before `write_audit` existed.
+- rule: before merging the group that creates `write_audit` (or any check every writer passes through), run every db test file of the slices whose functions call it, with the migration as prelude; a refusal that is the check working is fixed by the owning slice (real staff actors in its tests, its matrix group file and a regenerated `action_roles`) in the same merge, never by weakening the check. Direct `audit_log` writers stay named in `notThroughWriteAudit` of `tests/db/actor.db.test.ts` until their owner moves them to `write_audit`.
+- proof: from `app/` on slice/b7 at B7 g1, `eval "$(node scripts/load-env.mjs --profile dev)"; export MOP_MUTATION_SQL="$(cat supabase/migrations/20261005014724_admin_audit.sql supabase/migrations/20261005015358_action_roles.sql)"; env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/automation.db.test.ts` → `Tests  8 failed | 20 passed (28)` with `error: forbidden`; with `unset MOP_MUTATION_SQL` the same file passes 28 (measured 2026-10-05).
+- added: 2026-10-05
+
+## P-2001 · The CI `db` job skips a draft pull request, and a lane is told to open its pull request as a draft
+- symptom: B7 g1's proof needs "the CI `db` job is green on the branch", and the lane brief says to open a draft pull request and never mark it ready.
+- cause: `.github/workflows/ci.yml` runs `db` only `if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'`, so a draft pull request never starts it; it starts on `ready_for_review`.
+- rule: a lane that may not mark its pull request ready reports the CI `db` proof as UNPROVEN and proves the migration inside rolled-back transactions on mop-dev (P-312); the orchestrator, who may mark it ready, reads the `db` job before merging.
+- proof: `git -C E:/mop-build/admin grep -n "draft == false" origin/main -- .github/workflows/ci.yml` → line 146 (the `db` job) and line 209 (the e2e job) (measured 2026-10-05).
+- added: 2026-10-05
 
 ## Retired, enforced
 
