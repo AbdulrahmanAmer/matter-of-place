@@ -1,0 +1,343 @@
+[
+  {
+    "id": "b12g2-c-same",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "const phase = (seed % 997) + 1;",
+    "replace": "const phase = (seed % 997) + 1 + Math.random();",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*gives the same cue list"
+  },
+  {
+    "id": "b12g2-c-seed",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "const phase = (seed % 997) + 1;",
+    "replace": "const phase = 1;",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*changes the bed phase"
+  },
+  {
+    "id": "b12g2-c-osc",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "export const DURATION = 18;",
+    "replace": "export const DURATION = 18; // createOscillator()",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*holds no oscillator or Tone"
+  },
+  {
+    "id": "b12g2-c-types",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "[10.95, \"whoosh\", -14, { dur: 0.2 }, \"M13 cut to black\"]",
+    "replace": "[10.95, \"sweep\", -14, { dur: 0.2 }, \"M13 cut to black\"]",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*uses only cue types"
+  },
+  {
+    "id": "b12g2-c-silence",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "[11.7, \"fabric\", -19, { dur: 0.6 }, \"M10 the tiles assemble\"]",
+    "replace": "[11.4, \"fabric\", -19, { dur: 0.6 }, \"M10 the tiles assemble\"]",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*keeps two silence beats"
+  },
+  {
+    "id": "b12g2-c-floor",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "[11.2, 11.75, -58, 0.05, 0.05, 21, \"silence beat after the cut to black\"]",
+    "replace": "[11.2, 11.75, -70, 0.05, 0.05, 21, \"silence beat after the cut to black\"]",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*air floor fall to digital silence"
+  },
+  {
+    "id": "b12g2-c-bed",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "type: bed, fadeIn: 1.4",
+    "replace": "type: \"water\", fadeIn: 1.4",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*plays the wind bed"
+  },
+  {
+    "id": "b12g2-c-bed-other",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "type: bed, fadeIn: 1.4",
+    "replace": "type: \"wind\", fadeIn: 1.4",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*plays the water bed"
+  },
+  {
+    "id": "b12g2-c-step",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "const interior = bed === \"room\" || bed === \"city\";",
+    "replace": "const interior = bed === \"room\";",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*puts the stone step in interiors only"
+  },
+  {
+    "id": "b12g2-c-impact",
+    "test": "tests/unit/reel/cues.test.ts",
+    "file": "../launch/reel/cues.mjs",
+    "find": "[16.75, \"impact\", -6,",
+    "replace": "[17.5, \"impact\", -6,",
+    "run": "bunx vitest run --project unit tests/unit/reel/cues.test.ts",
+    "expect": "FAIL .*ends the reel on the lock"
+  },
+  {
+    "id": "b12g2-n-engine",
+    "test": "tests/unit/reel/no-music.test.ts",
+    "file": "../launch/engine/runtime/audio.js",
+    "find": "  return ctx.startRendering();",
+    "replace": "  ctx.createOscillator();\n  return ctx.startRendering();",
+    "run": "bunx vitest run --project unit tests/unit/reel/no-music.test.ts",
+    "expect": "FAIL .*keeps oscillators out of the sound engine"
+  },
+  {
+    "id": "b12g2-n-reel",
+    "test": "tests/unit/reel/no-music.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "const tl = F.tl;",
+    "replace": "const tl = F.tl; // import Tone from \"tone\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/no-music.test.ts",
+    "expect": "FAIL .*keeps oscillators and Tone out of every file"
+  },
+  {
+    "id": "b12g2-m-ease",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "ease: \"power1.out\", immediateRender: true }, 15.4);",
+    "replace": "ease: \"elastic.out\", immediateRender: true }, 15.4);",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*eases only with the approved set"
+  },
+  {
+    "id": "b12g2-m-literal",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "ease: \"power2.out\", immediateRender: true }, start);",
+    "replace": "ease: tileEase, immediateRender: true }, start);",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*writes every ease as a literal"
+  },
+  {
+    "id": "b12g2-m-spring-out",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "{ yPercent: -52, duration: 0.7, ease: \"power3.inOut\"",
+    "replace": "{ yPercent: -52, duration: 0.7, ease: \"back.out(1.2)\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*springs only on the grid"
+  },
+  {
+    "id": "b12g2-m-spring-strength",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "ease: \"back.out(1.2)\"",
+    "replace": "ease: \"back.out(1.8)\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*springs only on the grid"
+  },
+  {
+    "id": "b12g2-m-gradient",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.html",
+    "find": ".obsidian { background: var(--foreground); }",
+    "replace": ".obsidian { background: linear-gradient(var(--foreground), var(--foreground)); }",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*names none of the banned motions"
+  },
+  {
+    "id": "b12g2-m-sweep",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "filter: \"blur(60px)\"",
+    "replace": "filter: \"blur(20px)\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*draws M11 in lightSweep"
+  },
+  {
+    "id": "b12g2-m-scrim",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/reel/scene.mjs",
+    "find": "layer.style.opacity = String(opacity);",
+    "replace": "layer.style.opacity = String(opacity);\n  tl.set(layer, { opacity: 1 }, 0);",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*draws the legibility layer in scrim"
+  },
+  {
+    "id": "b12g2-m-film",
+    "test": "tests/unit/reel/moves.test.ts",
+    "file": "../launch/engine/runtime/film.js",
+    "find": "{ opacity: 1, duration: dur, ease: \"power1.inOut\"",
+    "replace": "{ opacity: 1, duration: dur, ease: \"elastic.out\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/moves.test.ts",
+    "expect": "FAIL .*ease only with the approved set, defaults included"
+  },
+  {
+    "id": "b12g2-p-facts",
+    "test": "tests/unit/reel/copy.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "${number(property.interiorSqFt)} SF",
+    "replace": "${number(property.interiorSqFt)} sq ft",
+    "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
+    "expect": "FAIL .*writes location, facts, price"
+  },
+  {
+    "id": "b12g2-p-voice",
+    "test": "tests/unit/reel/copy.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "title: property.title,\n    facts",
+    "replace": "title: `${property.title}!`,\n    facts",
+    "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
+    "expect": "FAIL .*passes the caption lint and the voice rules"
+  },
+  {
+    "id": "b12g2-p-block",
+    "test": "tests/unit/reel/copy.test.ts",
+    "file": "../launch/reel/fixture-spec.json",
+    "find": "\"price\": \"$8,950,000\",",
+    "replace": "\"price\": \"$8,900,000\",",
+    "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
+    "expect": "FAIL .*gives the fixture file the same copy block"
+  },
+  {
+    "id": "b12g2-p-fixture",
+    "test": "tests/unit/reel/copy.test.ts",
+    "file": "../launch/reel/fixture-spec.json",
+    "find": "\"site\": \"matterofplace.com\",",
+    "replace": "\"site\": \"matterofplace.com!\",",
+    "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
+    "expect": "FAIL .*the fixture copy block"
+  },
+  {
+    "id": "b12g2-s-bed",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "Apartment: INDOORS,",
+    "replace": "Apartment: OUTDOORS,",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*gives every type in every market"
+  },
+  {
+    "id": "b12g2-s-seed",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "Number.parseInt(seed, 16)",
+    "replace": "Number.parseInt(seed, 10)",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*takes the seed from the first 8 hex"
+  },
+  {
+    "id": "b12g2-s-key",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "key: row.media_key,",
+    "replace": "key: `v/${row.media_key}/hero.jpg`,",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*uses each row's media_key"
+  },
+  {
+    "id": "b12g2-s-tiles",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": ".slice(0, GRID_TILES)",
+    "replace": ".slice(0, GRID_TILES - 1)",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*four camera shots and six tiles"
+  },
+  {
+    "id": "b12g2-s-reuse",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "[...photos.slice(CAMERA_SHOTS), ...camera, ...camera]",
+    "replace": "[...camera, ...photos.slice(CAMERA_SHOTS), ...camera]",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*reuses the shots in order"
+  },
+  {
+    "id": "b12g2-s-sort",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": ".sort((a, b) => a.sort_order - b.sort_order)",
+    "replace": ".sort((a, b) => b.sort_order - a.sort_order)",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*orders the photographs by sort_order"
+  },
+  {
+    "id": "b12g2-s-copy",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "location: `${property.city}, ${property.state}`.toUpperCase(),",
+    "replace": "location: `${property.city}, ${property.state}`,",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*fills the copy block from the property"
+  },
+  {
+    "id": "b12g2-s-few",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "if (photos.length < CAMERA_SHOTS)",
+    "replace": "if (photos.length < CAMERA_SHOTS - 1)",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*refuses fewer than four photographs"
+  },
+  {
+    "id": "b12g2-s-null-key",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "if (row.media_key === null) throw",
+    "replace": "if (row.media_key === undefined) throw",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*refuses a photograph with no stripped copy"
+  },
+  {
+    "id": "b12g2-s-incomplete",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "if (price === null || beds === null",
+    "replace": "if (beds === null",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*refuses a row that bypassed the publish gate"
+  },
+  {
+    "id": "b12g2-s-market",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "if (!isMarket(property.market_slug))",
+    "replace": "if (!isMarket(property.market_slug) && false)",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*refuses a market outside"
+  },
+  {
+    "id": "b12g2-s-hash-bed",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/spec.ts",
+    "find": "return sha256Hex(JSON.stringify(spec));",
+    "replace": "return sha256Hex(JSON.stringify({ ...spec, sound: undefined }));",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*gives the same spec hash for the same rows"
+  },
+  {
+    "id": "b12g2-s-hash-same",
+    "test": "tests/unit/reel/reel-spec.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "Number.parseInt(seed, 16) }",
+    "replace": "Number.parseInt(seed, 16) + Math.random() }",
+    "run": "bunx vitest run --project unit tests/unit/reel/reel-spec.test.ts",
+    "expect": "FAIL .*gives the same spec hash for the same rows"
+  },
+  {
+    "id": "b12g2-p-credit",
+    "kind": "manual",
+    "test": "tests/unit/reel/copy.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
+    "expect": "FAIL .*starts the credit of B16's footer line",
+    "what": "skipped while strings.ts reads An Omnikom company. (P-2101); replayed by hand with footer.line set to A product of Omnikom. and the credit changed"
+  }
+]
