@@ -48,6 +48,8 @@ export const errorCodes = {
   // B3b: the illustrative guard and `set_environment` (invariant 1, ruling H35).
   illustrative_in_production: 409,
   invalid_environment: 422,
+  // B5: `email_message_finish` takes sent, failed or skipped only.
+  invalid_status: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
