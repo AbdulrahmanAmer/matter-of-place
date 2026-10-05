@@ -112,12 +112,14 @@ jobs:
           VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}
           VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
         run: bun run build
+      # A preview carries no cron trigger: each open pull request would add one more cron trigger.
+      - run: node scripts/preview-no-cron.mjs .output/server/wrangler.json .output/server/wrangler.preview.json
       # On a pull request github.sha is the merge commit, which is what was built (invariant 11).
       - name: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler deploy --config .output/server/wrangler.json --name pr-${{ github.event.number }} --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:${{ github.sha }} --var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media
+        run: bunx wrangler deploy --config .output/server/wrangler.preview.json --name pr-${{ github.event.number }} --var MOP_ENV:${{ env.HAS_DB == 'true' && 'preview' || 'local' }} --var SENTRY_RELEASE:${{ github.sha }} --var MEDIA_PUBLIC_BASE:https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev/media
       # The one definition of PREVIEW_URL; B4's and B17's appended steps read it.
       - run: echo "PREVIEW_URL=https://pr-${{ github.event.number }}.holy-meadow-4327.workers.dev" >> "$GITHUB_ENV"
       # The whole bundle, so a later slice adds a preview secret by adding a key to it (F12). The

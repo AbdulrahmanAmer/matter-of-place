@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-05 08:35 (UTC+3)",
-  "now": "CHECKPOINT 2026-10-05 08:35 for an account switch: five runs live (B13, B8b, B17, B7, B12) and B5 waiting on PR 137; every run's resume call is in workspace/05-plans/lanes/<slice>.json. Lane-count experiment pending: run five, then four, one hour each, keep the faster. Next by dependency unchanged.",
+  "updated": "2026-10-05 11:10 (UTC+3)",
+  "now": "PAUSED 2026-10-05 11:07 at 92 percent of the weekly limit (operator instruction). Every run stopped; resume calls in workspace/05-plans/lanes/<slice>.json. First after resume: gate PR 133 (B8b), B17 close-out c1 (PR 142), resume B13, B7, B12, relaunch B5 fresh on steps 3 to 9, then the lane-count measurement (five, then four).",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -179,12 +179,11 @@
         "2",
         "3",
         "4",
-        "4a"
-      ],
-      "inReview": [
+        "4a",
         "5"
       ],
-      "note": "Step 1 on main (PR 115); 2 to 4a accepted on slice/b8b (PR 133 draft carries 4 and 4a); step 5 in its second review after one fix round (smoke script lock and a null assertion); 6 to 10 wait on B7 and B5."
+      "inReview": [],
+      "note": "Steps 1 to 5 accepted (step 5 on its third review, 2026-10-05 10:40); PR 133 carries 2 to 5 and merges through the gate once CI is green after the keep-warm plugin fix (P-1626) and deno in the db job (57e71b9). 6 to 10 wait on B7 and B5."
     },
     "B15": {
       "accepted": [
@@ -208,21 +207,21 @@
       "inReview": [
         "4"
       ],
-      "note": "Relaunched 2026-10-05 03:30 after the first run died (P-509): steps 1 to 3 accepted through their close-outs on slice/b13; step 4 building."
+      "note": "Steps 1 to 3 accepted; step 4 was in its first fix round when the run was paused at 11:07 (lane commits up to 1eb241e, 7 files dirty). PR 141 draft."
     },
     "B17": {
-      "accepted": [],
-      "inReview": [
+      "accepted": [
         "1"
       ],
-      "note": "Started 2026-10-05 00:30 in the lane E:/mop-build/site (branch slice/b17, port 8938, bank numbers from P-1900 and G-850); step 1 in its second fix round (CSP hash for the TanStack bootstrap script, then six bank lines dropped by the merge driver)."
+      "inReview": [],
+      "note": "Step 1 accepted on its third review (2026-10-05 10:25); PR 142 is red on the e2e sweep (the report-only CSP carries upgrade-insecure-requests, which Chromium logs as an error): close-out c1 after the pause. Steps 2 to 12 follow."
     },
     "B7": {
       "accepted": [],
       "inReview": [
         "1"
       ],
-      "note": "Started 2026-10-05 04:00 in the lane E:/mop-build/admin (branch slice/b7, port 8948, bank numbers from P-2000 and G-900); 19 groups; step 1 (authz core) in its first fix round (the admin_audit migration makes B8b's guarded write_audit calls live with actions the matrix lacks)."
+      "note": "Step 1 (authz core) was in its second fix round when the run was paused at 11:07 (lane commits up to 43bb6be, 6 files dirty). PR 138 draft."
     },
     "B12": {
       "accepted": [
@@ -234,7 +233,7 @@
         "4",
         "5"
       ],
-      "note": "Started 2026-10-05 04:50 in the lane E:/mop-build/video (branch slice/b12, port 8958, bank numbers from P-2100 and G-950): steps 1 to 3 accepted (engine portability, storyboard, scene and reel-spec), 4 and 5 (full render, review loop) building; 6 to 9 wait on B8b, B7 and the function secret."
+      "note": "Steps 1 to 3 accepted; steps 4 and 5 (full render, review loop) were building when the run was paused at 11:07 (lane commits up to 2f1c78b, 8 files dirty)."
     }
   },
   "lanes": [
