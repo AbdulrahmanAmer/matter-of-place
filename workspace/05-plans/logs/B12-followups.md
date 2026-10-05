@@ -1,0 +1,9 @@
+# B12 follow-ups: the orchestrator folds or assigns each before the slice closes
+
+## g1 · steps 1
+
+1. `launch/engine/audio.mjs` (not blocking). audio.mjs reads the output path only from argv[3]. A call that puts --query before the output path (audio.mjs scene.html --query qs out.wav) drops out.wav without any message and writes audio.wav beside the scene. The author's claim says the run 'with --query before out' passed, but the log line for that run gives no output path, so this case was never tested. When the later render-reel.mjs is written with that argument order, the WAV lands in launch/reel/audio.wav (git-ignored) instead of .tmp/reel/audio.wav. encode then fails loudly on a missing file, or quietly encodes a stale WAV if one is left over. The plan does not fix the argument order, and the usage comment documents [out.wav] before [--query], so this is a follow-up for the group that writes render-reel.mjs: put the output before --query, or have audio.mjs reject a positional argument it does not use.
+   Evidence: Confirmed by running: `MSYS_NO_PATHCONV=1 node launch/engine/audio.mjs .tmp/standin/index.html --query "k=v" .tmp/aud/before.wav` -> rc 0, .tmp/aud/before.wav MISSING, .tmp/standin/audio.wav contains ?k=v&audio=1. Code: `const named = process.argv[3]; const out = resolve(named && !named.startsWith("--") ? named : join(dirname(scene), "audio.wav"));`
+
+2. `launch/engine/encode.mjs` (not blocking). A --maxrate value that is not a number, or one with no value after it, gives Number() = NaN, which is falsy. The cap is then left out with no message, so the reel would be encoded without the 12 MB bitrate cap. Step 6's probe size check (H33 (8)) is the second layer that would refuse the oversized file, so nothing breaks for this step. The fix is to refuse a non-numeric value.
+   Evidence: Suspected by reading, not run: `const maxrate = rate >= 0 ? Number(args[rate + 1]) : 0; ...(maxrate ? ["-maxrate", ...] : [])`
