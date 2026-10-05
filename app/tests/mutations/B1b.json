@@ -408,8 +408,8 @@
     "id": "aa-nonpage",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  } else if (isPageRequest(pathname)) {",
-    "replace": "  } else {",
+    "find": "  } else if (!redirected && isPageRequest(pathname)) {",
+    "replace": "  } else if (!redirected) {",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "leaves the Cache-Control of /sitemap\\.xml alone, because it is not a page"
   },
@@ -426,8 +426,8 @@
     "id": "x-redirect",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  return response;\n}",
-    "replace": "  return new Response(response.body, response);\n}",
+    "find": "    headers.set(\"x-robots-tag\", \"noindex, nofollow\");\n  }\n  return response;\n}",
+    "replace": "    headers.set(\"x-robots-tag\", \"noindex, nofollow\");\n  }\n  return new Response(response.body, response);\n}",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
     "expect": "is the one the render produced, so a router redirect keeps its options"
   },

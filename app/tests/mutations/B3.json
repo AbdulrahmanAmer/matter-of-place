@@ -1560,8 +1560,8 @@
     "kind": "file",
     "test": "tests/unit/analytics-allowlist.test.ts",
     "file": "src/lib/analytics.ts",
-    "find": "  \"home_finder\",\n] as const;",
-    "replace": "  \"home_finder\",\n  \"Home_Finder\",\n] as const;",
+    "find": "  \"home_finder\",\n  \"interest_signup\",",
+    "replace": "  \"home_finder\",\n  \"Home_Finder\",\n  \"interest_signup\",",
     "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
     "expect": "× .*holds each name once, in snake_case"
   },
