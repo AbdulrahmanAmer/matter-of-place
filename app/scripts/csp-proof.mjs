@@ -12,21 +12,28 @@ const POLICY_HEADERS = ["content-security-policy", "content-security-policy-repo
 
 /** @typedef {{ status: number, headers: Headers, text: string }} Answer */
 
-// TanStack marks the scripts of its own bootstrap with `class="$tsr"`; the policy must hold each one's hash (SEC-03).
-// A hash covers the text a parser reads (NUL becomes U+FFFD, CRLF becomes LF), so the text comes from parse5 (P-1903).
+// The policy must hold the hash of every inline style and every inline script that runs: TanStack's `class="$tsr"`
+// bootstrap and the allow-listed scroll-restoration script (SEC-03). A hash covers the text a parser reads (NUL becomes
+// U+FFFD, CRLF becomes LF), so the text comes from parse5 (P-1903).
+const EXECUTABLE_TYPES = ["", "module", "text/javascript", "application/javascript"];
+
 /**
  * @param {string} page
  * @returns {string[]}
  */
-function markedScripts(page) {
+function inlineSources(page) {
   /** @type {string[]} */
   const found = [];
   /** @param {import("parse5").DefaultTreeAdapterMap["node"]} node */
   const walk = (node) => {
     if (
       "tagName" in node &&
-      node.tagName === "script" &&
-      node.attrs.some(({ name, value }) => name === "class" && value.split(" ").includes("$tsr"))
+      (node.tagName === "style" ||
+        (node.tagName === "script" &&
+          !node.attrs.some(({ name }) => name === "src") &&
+          EXECUTABLE_TYPES.includes(
+            node.attrs.find(({ name }) => name === "type")?.value.toLowerCase() ?? "",
+          )))
     ) {
       found.push(node.childNodes.map((child) => ("value" in child ? child.value : "")).join(""));
     }
@@ -90,13 +97,13 @@ function sameHeaders(failures, name, miss, answer) {
       ? "missing on the miss"
       : `${built.name} ${read === undefined ? "missing" : "equal"}`,
   );
-  const hashes = markedScripts(answer.text).map(
+  const hashes = inlineSources(answer.text).map(
     (code) => `'sha256-${createHash("sha256").update(code).digest("base64")}'`,
   );
   const unlisted = hashes.filter((hash) => read?.value.includes(hash) !== true);
   check(
     failures,
-    `${name} policy holds each inline script hash`,
+    `${name} policy holds each inline script and style hash`,
     hashes.length > 0 && unlisted.length === 0,
     `${String(hashes.length - unlisted.length)} of ${String(hashes.length)}`,
   );

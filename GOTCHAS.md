@@ -3168,3 +3168,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bunx tsc --noEmit -p tsconfig.scripts.json` before the first proof of a new script, and start a long gate with the Bash tool's own `run_in_background` (then wait on its output file for the `quiet:` line), never with `( ... ) &` inside a foreground call.
 - proof: `cd app && bunx tsc --noEmit -p tsconfig.scripts.json` → exit 0 on a script with no unused import; the same command on a script with one prints `error TS6133` (measured 2026-10-05, B15 g6).
 - added: 2026-10-05
+
+## P-1905 · A STUB marker outlives its slice: `bun run check` fails on `stubs` once the slice that owns it closes, on a line nobody in the failing lane wrote
+- symptom: after B17 g1 merged main (B15 closed), `bun run check` ended `error: script "stubs" exited with code 1`, and `bun run scripts/stubs.ts` printed `stubs: 8 markers, 1 on closed slices`, the one being `// STUB(B15)` above `sha1Bytes` in `src/server/lib/crypto.ts`, which `src/server/omnikom/payload.ts` imports.
+- cause: `scripts/stubs.ts` fails any marker whose slice reads `closed` in PLAN.md; B15's closing commit did not remove the marker its last file made obsolete.
+- rule: a slice that closes removes its own STUB markers (and the `@public` knip tag the marker justified) in the closing commit; a lane that meets the failure on a merge removes the one stale marker, says so in its log (ruling H46) and does not wait.
+- proof: `cd app && bun run scripts/stubs.ts | tail -1` → `stubs: 7 markers, 0 on closed slices`.
+- added: 2026-10-05

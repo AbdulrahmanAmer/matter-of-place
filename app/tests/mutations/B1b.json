@@ -393,7 +393,7 @@
     "find": "export function isPageRequest(pathname: string): boolean {",
     "replace": "export function isPageRequest(pathname: string): boolean {\n  return pathname !== \"\";",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
-    "expect": "keeps /robots\\.txt away from the cache hook and still adds the headers"
+    "expect": "which requests reach the cache hook > reads a path as the router matches it"
   },
   {
     "id": "aa",
