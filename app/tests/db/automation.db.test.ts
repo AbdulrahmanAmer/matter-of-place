@@ -286,9 +286,11 @@ describe("automation_put_schedule (invariants 11 and 12)", () => {
   it("a key outside the four raises unknown_field", async () => {
     const outcome = await withRollback(async (db) => {
       await schedule(db, "digest");
+      const actor = await createStaffUser(db, ["admin"]);
       return attempt(
         db,
-        `select public.automation_put_schedule('digest', '{"next_run_at": "2026-10-07T00:00:00Z"}', gen_random_uuid(), 'human', 'req-1')`,
+        `select public.automation_put_schedule('digest', '{"next_run_at": "2026-10-07T00:00:00Z"}', $1, 'human', 'req-1')`,
+        [actor],
       );
     });
     expect(outcome).toBe("22023 unknown_field");
@@ -297,9 +299,11 @@ describe("automation_put_schedule (invariants 11 and 12)", () => {
   it("a cron change of keepwarm raises external_clock", async () => {
     const outcome = await withRollback(async (db) => {
       await schedule(db, "keepwarm");
+      const actor = await createStaffUser(db, ["admin"]);
       return attempt(
         db,
-        `select public.automation_put_schedule('keepwarm', '{"cron": "*/5 * * * *"}', gen_random_uuid(), 'human', 'req-1')`,
+        `select public.automation_put_schedule('keepwarm', '{"cron": "*/5 * * * *"}', $1, 'human', 'req-1')`,
+        [actor],
       );
     });
     expect(outcome).toBe("22023 external_clock");
@@ -430,11 +434,11 @@ describe("automation_restore_revision", () => {
       const row = await template(db);
       const insert = (await revisions(db, row.id)).find((r) => r.before === null);
       if (insert === undefined) throw new Error("the insert wrote no revision");
-      return attempt(
-        db,
-        "select public.automation_restore_revision($1, gen_random_uuid(), 'human', 'req-1')",
-        [insert.id],
-      );
+      const actor = await createStaffUser(db, ["admin"]);
+      return attempt(db, "select public.automation_restore_revision($1, $2, 'human', 'req-1')", [
+        insert.id,
+        actor,
+      ]);
     });
     expect(outcome).toBe("22023 nothing_to_restore");
   });
