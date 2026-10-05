@@ -11,7 +11,9 @@ import { applyFilters, useFilters } from "../hooks/use-filters";
 import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { marketQuery, propertiesQuery } from "../lib/queries";
+import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { regionDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
 
 /** Region slugs renamed to match their display names. */
@@ -61,8 +63,21 @@ export const Route = createFileRoute("/_site/$market/$region")({
     }
     return pageHead({
       title,
-      description: `${region.intro} Properties in ${region.places.join(", ")}.`,
+      description: regionDescription(region),
       path,
+      jsonLd: [
+        collectionLd(
+          "region",
+          title,
+          path,
+          pool.map((property) => ({ name: property.title, path: `/property/${property.slug}` })),
+        ),
+        breadcrumbLd([
+          { name: "Markets", path: "/markets" },
+          { name: market.name, path: `/${market.slug}` },
+          { name: region.name, path },
+        ]),
+      ],
     });
   },
   component: RegionPage,

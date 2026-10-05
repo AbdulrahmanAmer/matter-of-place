@@ -872,7 +872,14 @@ isOneToOne: false
                 }
           }
           Views: {
-            "market_interest_counts": {
+            "archive_facets": {
+                  Row: {
+                    "kind": string | null,"label": string | null,"property_count": number | null,"slug": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"market_interest_counts": {
                   Row: {
                     "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
                   }

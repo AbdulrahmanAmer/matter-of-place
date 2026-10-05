@@ -1,0 +1,12 @@
+/* Archive pages (a city, an architect or a style) and the links to them from a property page. */
+
+.archive-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+.archive-link:hover {
+  text-decoration-color: var(--foreground);
+}
