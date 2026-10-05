@@ -6,7 +6,7 @@ import type { LogEvent } from "./lib/log-events.ts";
 import { getPublicState } from "./public/state.ts";
 
 // The keep-warm tick of the Worker's `scheduled()` (B8b invariant 15 c): it touches the database even when the page is
-// a cache hit, so the free project does not pause, and it reports a stalled job runner. The clock row changes only
+// a cache hit (F26 b), and it reports a stalled job runner (JOB-04). The clock row changes only
 // through `claim_schedule` (G43). The tick never throws.
 
 const STALE_BEAT_MS = 300_000;
