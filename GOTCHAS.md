@@ -1760,6 +1760,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `scripts/stubs.ts` reads the slice status table of PLAN.md and refuses a marker whose slice is closed; the status change and the marker live in different files, so the docs-only shortcut let main go red without a check.
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
+- hit again 2026-10-05 (orchestrator, PR 136): B15 marked closed with `STUB(B15)` still on `src/server/lib/crypto.ts:47`, a marker already filled (payload.ts imports `sha1Bytes`); the gate stayed green because the records PR carried no app code, and B5's merge (PR 137) paid: `stubs: 8 markers, 1 on closed slices`. Marker removed; the rule stands: run `bun run stubs` with the row edited before committing `closed`.
 - added: 2026-10-03
 
 ## P-713 · `watchfail.mjs --registry tests/mutations` replays every registry of the repository, and `--changed` sees only committed work
@@ -3122,4 +3123,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: bun strips types without checking them, so a script's proofs cannot show a type error; and the Bash tool's move to the background ends the whole call, including its own `&` children.
 - rule: run `bunx tsc --noEmit -p tsconfig.scripts.json` before the first proof of a new script, and start a long gate with the Bash tool's own `run_in_background` (then wait on its output file for the `quiet:` line), never with `( ... ) &` inside a foreground call.
 - proof: `cd app && bunx tsc --noEmit -p tsconfig.scripts.json` → exit 0 on a script with no unused import; the same command on a script with one prints `error TS6133` (measured 2026-10-05, B15 g6).
+- added: 2026-10-05
+
+## P-523 · A fresh lane worktree has no git-ignored media, so a proof that captures the launch film ran against a stand-in and the group came back partial
+- symptom: B12 step 1 (engine portability) proves `capture.mjs` and `audio.mjs` against `launch/film/index.html`; the scene loads its photographs from `launch/film/media/`, which `launch/.gitignore` ignores, so the worktree `E:/mop-build/video` had the tracked mp4 but no media and the builder proved against a stand-in scene and reported partial.
+- cause: `git worktree add` checks out tracked files only; the lane-opening command (worktree add, `.env` copy, `bun install`) copies nothing ignored.
+- rule: when a slice's proofs read ignored media (`launch/film/media/`, `launch/film/audio*.wav`, later `launch/reel/.tmp`), the orchestrator copies the folder from `E:/Matter Of Place` into the lane before launching, and the lane-opening command names it. Check with `git check-ignore -v <path>` when a proof's input is missing from a lane.
+- proof: `cp -r "/e/Matter Of Place/launch/film/media" /e/mop-build/video/launch/film/media` → `du -sh` 24M, `git status --short | wc -l` → 0 (ignored, no noise); B12 g1's review or fix round reruns the real proof.
 - added: 2026-10-05
