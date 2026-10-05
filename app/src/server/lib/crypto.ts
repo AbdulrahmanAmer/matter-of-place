@@ -44,7 +44,6 @@ export async function sha256Hex(input: string | Uint8Array): Promise<string> {
 }
 
 /** @public */
-// STUB(B15): first used by src/server/omnikom/payload.ts (UUID v5 delivery id), its only user
 export async function sha1Bytes(input: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-1", bytesOf(input)));
 }
