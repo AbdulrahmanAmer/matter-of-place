@@ -3077,3 +3077,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a proof that runs the step on a row names it with `--id <uuid>` and the uuid of the row it just inserted, never `--latest`; a lane takes its port from its brief and says in its log which it used, until the orchestrator settles one value in ASSUMED section E.
 - proof: `cd app && bun run db:psql -- -c "select name, state from inquiries order by received_at desc limit 1"` → the newest row of any lane or reviewer (`B15 g4 review | new` when measured 2026-10-05, B15 g4 review); `grep -n "latest" app/scripts/omnikom-run-local.ts` shows `--latest` taking the newest inquiry with no filter on name.
 - added: 2026-10-05
+
+## P-521 · Typing a long text into a Google console page can fire its single-key shortcuts and navigate away; set field values directly
+- symptom: typing a service-account description with the `type` action on the Cloud console left the create form (the page jumped to the welcome page); the field had lost focus and the keys acted as shortcuts.
+- cause: Google consoles bind single keys (`/`, `.`, `g` sequences) at the page level; a long typed string that is not inside a focused input runs them.
+- rule: in Google consoles set inputs with `form_input` (sets the value directly) and reserve `type` for short strings right after a confirmed focus; confirm the field's value with a screenshot before pressing a submit.
+- proof: the second attempt with `form_input` on the three fields created `mop-audit@matter-of-place.iam.gserviceaccount.com` (service accounts list shows it).
+- added: 2026-10-05
