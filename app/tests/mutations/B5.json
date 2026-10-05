@@ -188,7 +188,7 @@
     "id": "b5-begin-retry-sent",
     "kind": "sql",
     "test": "tests/db/email.db.test.ts",
-    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text, p_error text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = case when p_status = 'sent' then now() else sent_at end\n  where id = p_id and status not in ('sent', 'delivered', 'bounced', 'complained');\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
+    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text default null, p_error text default null)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = case when p_status = 'sent' then now() else sent_at end\n  where id = p_id and status not in ('sent', 'delivered', 'bounced', 'complained');\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"email_message_begin keeps one row per job and recipient\"",
     "expect": "× .*email_message_begin keeps one row per job and recipient"
   },
@@ -196,7 +196,7 @@
     "id": "b5-begin-first-hash",
     "kind": "sql",
     "test": "tests/db/email.db.test.ts",
-    "sql": "create or replace function public.email_message_begin(\n  p_job_id uuid,\n  p_to_email text,\n  p_template_key text,\n  p_kind text,\n  p_subject text,\n  p_entity text,\n  p_entity_id uuid,\n  p_content_hash text\n)\nreturns table (id uuid, status text, content_hash text)\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- G43, invariant 4: one row per job and recipient. A retry finds the row of its first attempt, with that attempt's\n  -- content_hash and its status, so a message already sent is never sent again.\n  insert into public.email_messages (\n    job_id, to_email, template_key, kind, subject, entity, entity_id, content_hash, status\n  )\n  values (\n    p_job_id, p_to_email, p_template_key, p_kind, p_subject, p_entity, p_entity_id, p_content_hash, 'queued'\n  )\n  on conflict (job_id, to_email) do update set content_hash = excluded.content_hash;\n\n  select m.id, m.status, m.content_hash\n  from public.email_messages m\n  where m.job_id = p_job_id and m.to_email = p_to_email;\n$$;\n\nrevoke execute on function public.email_message_begin(uuid, text, text, text, text, text, uuid, text)\n  from public, anon, authenticated;\ngrant execute on function public.email_message_begin(uuid, text, text, text, text, text, uuid, text) to service_role;\n",
+    "sql": "create or replace function public.email_message_begin(\n  p_job_id uuid,\n  p_to_email text,\n  p_template_key text,\n  p_kind text,\n  p_subject text,\n  p_content_hash text,\n  p_entity text default null,\n  p_entity_id uuid default null\n)\nreturns table (id uuid, status text, content_hash text)\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- G43, invariant 4: one row per job and recipient. A retry finds the row of its first attempt, with that attempt's\n  -- content_hash and its status, so a message already sent is never sent again.\n  insert into public.email_messages (\n    job_id, to_email, template_key, kind, subject, entity, entity_id, content_hash, status\n  )\n  values (\n    p_job_id, p_to_email, p_template_key, p_kind, p_subject, p_entity, p_entity_id, p_content_hash, 'queued'\n  )\n  on conflict (job_id, to_email) do update set content_hash = excluded.content_hash;\n\n  select m.id, m.status, m.content_hash\n  from public.email_messages m\n  where m.job_id = p_job_id and m.to_email = p_to_email;\n$$;\n\nrevoke execute on function public.email_message_begin(uuid, text, text, text, text, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.email_message_begin(uuid, text, text, text, text, text, text, uuid) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"a second email_message_begin with another content hash\"",
     "expect": "× .*a second email_message_begin with another content hash"
   },
@@ -204,7 +204,7 @@
     "id": "b5-finish-skipped",
     "kind": "sql",
     "test": "tests/db/email.db.test.ts",
-    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text, p_error text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = p_status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = now()\n  where id = p_id and status not in ('sent', 'delivered', 'bounced', 'complained');\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
+    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text default null, p_error text default null)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = p_status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = now()\n  where id = p_id and status not in ('sent', 'delivered', 'bounced', 'complained');\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"email_message_finish: skipped leaves sent_at null\"",
     "expect": "× .*email_message_finish: skipped leaves sent_at null"
   },
@@ -212,7 +212,7 @@
     "id": "b5-finish-sent-stays",
     "kind": "sql",
     "test": "tests/db/email.db.test.ts",
-    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text, p_error text)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = p_status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = case when p_status = 'sent' then now() else sent_at end\n  where id = p_id;\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
+    "sql": "create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text default null, p_error text default null)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  if p_status is null or p_status not in ('sent', 'failed', 'skipped') then\n    raise exception 'invalid_status';\n  end if;\n  -- A row that is sent, or moved further by a provider event, stays where it is; only `sent` counts against the caps.\n  update public.email_messages\n  set status = p_status,\n    resend_id = p_resend_id,\n    error = p_error,\n    sent_at = case when p_status = 'sent' then now() else sent_at end\n  where id = p_id;\nend;\n$$;\n\nrevoke execute on function public.email_message_finish(uuid, text, text, text) from public, anon, authenticated;\ngrant execute on function public.email_message_finish(uuid, text, text, text) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"email_message_finish: skipped leaves sent_at null\"",
     "expect": "× .*email_message_finish: skipped leaves sent_at null"
   },
@@ -1082,5 +1082,527 @@
     "replace": "if (blank(label)) return null;",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*drops a button whose link comes out empty"
+  },
+  {
+    "id": "b5-e-table",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "  application_error: () => ({ kind: \"retry\" }),",
+    "replace": "  application_error: () => ({ kind: \"retry\" }),\n  internal_server_error: () => ({ kind: \"retry\" }),",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*has one table row for every name of RESEND_ERRORS"
+  },
+  {
+    "id": "b5-ab",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "    return { kind: \"retry_at\", at: nextUtcMidnight(now), reason: \"daily_quota_exceeded\" };",
+    "replace": "    return { kind: \"retry\" };",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*daily_quota_exceeded gives its outcome and time"
+  },
+  {
+    "id": "b5-e-already-sent",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "  invalid_idempotent_request: () => ({ kind: \"already_sent\" }),",
+    "replace": "  invalid_idempotent_request: () => ({ kind: \"retry\" }),",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*invalid_idempotent_request gives its outcome and time"
+  },
+  {
+    "id": "b5-e-status",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "const UNKNOWN_429_WAIT_S = 60;",
+    "replace": "const UNKNOWN_429_WAIT_S = 30;",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*an unknown name at 429 falls back to its status"
+  },
+  {
+    "id": "b5-e-nobody",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "  return errorBody.safeParse(body).data?.name ?? null;",
+    "replace": "  return errorBody.parse(body).name;",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*reads the status when the body is not a Resend error"
+  },
+  {
+    "id": "b5-e-min-wait",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "    const wait = Math.max(Number(headers.get(\"retry-after\")) || 0, MIN_WAIT_S);",
+    "replace": "    const wait = Number(headers.get(\"retry-after\")) || 0;",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*waits two seconds when a rate limit names no Retry-After"
+  },
+  {
+    "id": "b5-e-quota-log",
+    "test": "tests/unit/email/resend-errors.test.ts",
+    "file": "src/server/email/resend-errors.ts",
+    "find": "    logLine(\"warn\", \"resend_quota_daily\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-errors.test.ts",
+    "expect": "× .*logs resend_quota_daily for the daily quota"
+  },
+  {
+    "id": "b5-aa",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (kind === \"bulk\") {",
+    "replace": "  if (kind !== kind) {",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 50 a bulk send waits until 01:00 UTC"
+  },
+  {
+    "id": "b5-aa-priority",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (kind === \"bulk\") {",
+    "replace": "  if (kind !== kind) {",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*priority: a bulk send at bulk_cap waits"
+  },
+  {
+    "id": "b5-c-bulk-49",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "    return today >= share.bulk_cap ? { at: nextUtcBulkHour(now), reason: \"daily_cap_bulk\" } : null;",
+    "replace": "    return today >= share.bulk_cap - 1 ? { at: nextUtcBulkHour(now), reason: \"daily_cap_bulk\" } : null;",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 49 a bulk send still goes out"
+  },
+  {
+    "id": "b5-c-invoice",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  return today >= share.daily_cap ? { at: nextUtcMidnight(now), reason: \"daily_cap\" } : null;",
+    "replace": "  return today >= share.bulk_cap ? { at: nextUtcMidnight(now), reason: \"daily_cap\" } : null;",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 50 an invoice send goes out"
+  },
+  {
+    "id": "b5-c",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  return today >= share.daily_cap ? { at: nextUtcMidnight(now), reason: \"daily_cap\" } : null;",
+    "replace": "  return null;",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 75 an inquiry_ack waits until 00:01 UTC"
+  },
+  {
+    "id": "b5-c-test",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (kind === \"alert\") return null;",
+    "replace": "  if (kind === \"alert\" || kind === \"test\") return null;",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 75 a test send waits like a transactional one"
+  },
+  {
+    "id": "b5-c-alert",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (kind === \"alert\") return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at 75 a notify_admin alert still calls Resend"
+  },
+  {
+    "id": "b5-c-monthly",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if ((await sentCount(db, \"email_sent_month\")) >= share.monthly_cap) {",
+    "replace": "  if ((await sentCount(db, \"email_sent_month\")) > share.monthly_cap) {",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at monthly_cap a transactional send waits"
+  },
+  {
+    "id": "b5-c-monthly-alert",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (kind === \"alert\") return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "× .*at monthly_cap an alert still calls Resend"
+  },
+  {
+    "id": "b5-t-unit",
+    "test": "tests/unit/email/cap-classes.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const today = await sentCount(db, \"email_sent_today\");",
+    "replace": "  const today = (await db.from(\"email_messages\").select(\"id\").eq(\"status\", \"sent\")).data?.length ?? 0;",
+    "run": "bunx vitest run --project unit tests/unit/email/cap-classes.test.ts",
+    "expect": "unexpected table email_messages"
+  },
+  {
+    "id": "b5-ls-dev",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "  if (!liveSideEffects(\"email\")) return { id: `dry_${crypto.randomUUID()}`, dryRun: true };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*makes no Resend call with MOP_ENV development"
+  },
+  {
+    "id": "b5-ae",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/lib/runtime-env.ts",
+    "find": "  return readVar(\"MOP_ENV\") === \"production\" || readVar(flags.live) === \"1\";",
+    "replace": "  const mopEnv = readVar(\"MOP_ENV\");\n  return mopEnv === undefined || mopEnv === \"production\" || readVar(flags.live) === \"1\";",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*makes no Resend call with MOP_ENV unset"
+  },
+  {
+    "id": "b5-af",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (readVar(\"MOP_ENV\") !== \"production\" && !allowListed(address, devRecipients)) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*with EMAIL_LIVE=1 sends only to an allow-listed address"
+  },
+  {
+    "id": "b5-ls-dry",
+    "test": "tests/unit/lib/live-side-effects.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "  if (!liveSideEffects(\"email\")) return { id: `dry_${crypto.randomUUID()}`, dryRun: true };",
+    "replace": "  if (readVar(\"MOP_ENV\") !== \"production\" && readVar(\"EMAIL_LIVE\") !== \"1\") return { id: `dry_${crypto.randomUUID()}`, dryRun: true };",
+    "run": "bunx vitest run --project unit tests/unit/lib/live-side-effects.test.ts",
+    "expect": "× .*sends nothing with MOP_ENV production and EMAIL_DRY_RUN=1"
+  },
+  {
+    "id": "b5-s-sent",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  await finish(db, message.id, \"sent\", answer.id, null);",
+    "replace": "  await finish(db, message.id, \"sent\", null, null);",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sends the received email to the submitter and records it sent"
+  },
+  {
+    "id": "b5-d",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (await isSuppressed(db, address)) return \"suppressed\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*skips a suppressed address"
+  },
+  {
+    "id": "b5-s-disabled",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (!row.enabled) return skipped(\"template_disabled\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*skips a disabled template"
+  },
+  {
+    "id": "b5-s-missing",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "    if (value === undefined) throw new NonRetryableError(`missing_variable:${name}`);",
+    "replace": "    if (value === undefined) return \"\";",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*is dead when a variable of the row has no value"
+  },
+  {
+    "id": "b5-s-cap-row",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const capped = await ceiling(db, input.kind, share.data, ctx.now);",
+    "replace": "  await begin(ctx, input, contentHash);\n  const capped = await ceiling(db, input.kind, share.data, ctx.now);",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*at daily_cap returns retry_at and writes no row"
+  },
+  {
+    "id": "b5-s-fatal",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (outcome.kind === \"fatal\") throw new NonRetryableError(outcome.code);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*handles validation_error as classifyResendError says"
+  },
+  {
+    "id": "b5-s-monthly-report",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "      await reportAlert(ctx, error, [\"alert\", \"resend_monthly_quota\"]);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*handles monthly_quota_exceeded as classifyResendError says"
+  },
+  {
+    "id": "b5-s-key-stable",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const idempotencyKey = `${await jobIdempotencyKey(ctx)}:${(await sha256Hex(address)).slice(0, 12)}`;",
+    "replace": "  const idempotencyKey = `${await jobIdempotencyKey(ctx)}:${contentHash.slice(0, 4)}:${(await sha256Hex(address)).slice(0, 12)}`;",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*a retry with changed content keeps the stored content_hash"
+  },
+  {
+    "id": "b5-s-conflict",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "    await finish(ctx.db, id, \"sent\", null, \"idempotent_conflict\");",
+    "replace": "    await finish(ctx.db, id, \"failed\", null, \"idempotent_conflict\");",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*a 409 invalid_idempotent_request after a delivered first attempt"
+  },
+  {
+    "id": "b5-h",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "      \"idempotency-key\": email.idempotencyKey,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*a retry after a crash past Resend's answer sends no second email"
+  },
+  {
+    "id": "b5-s-twice",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (OUT.has(message.status)) return { status: \"already_sent\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*send_email runs twice without a second outside effect"
+  },
+  {
+    "id": "b5-s-tags",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "      tags: [{ name: \"env\", value: readVar(\"MOP_ENV\") ?? \"unset\" }],",
+    "replace": "      tags: [{ name: \"env\", value: \"unset\" }],",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*tags every send with env and the MOP_ENV"
+  },
+  {
+    "id": "b5-af-preview",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (readVar(\"MOP_ENV\") !== \"production\" && !allowListed(address, devRecipients)) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*records not_allow_listed with no fetch"
+  },
+  {
+    "id": "b5-o-send",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const rendered = await renderTemplate(row, variables, site);",
+    "replace": "  const rendered = await renderTemplate((await import(\"../../../templates/email/index.ts\")).definitions.map(({ definition }) => ({ ...definition, body: definition.blocks })).find((file) => file.key === key) ?? row, variables, site);",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sends the row's subject and body when they differ"
+  },
+  {
+    "id": "b5-s",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (RESERVED.test(address.split(\"@\").at(-1) ?? \"\")) return \"reserved_domain\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*reserved domain: e2e\\+1@fixtures\\.invalid gets a skipped row"
+  },
+  {
+    "id": "b5-s-prerendered",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const address = input.to.toLowerCase();",
+    "replace": "  await templateRow(db, \"received\");\n  const address = input.to.toLowerCase();",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sendOne with pre-rendered content and no template row"
+  },
+  {
+    "id": "b5-s-reply-to",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const replyTo = siteOf(settings).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "replace": "  const replyTo = readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*reply to: the contact address when set"
+  },
+  {
+    "id": "b5-s-dry-run",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "    await finish(db, message.id, \"skipped\", answer.id, \"dry_run\");",
+    "replace": "    await finish(db, message.id, \"sent\", answer.id, null);",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*with EMAIL_DRY_RUN=1 makes no fetch and records skipped"
+  },
+  {
+    "id": "b5-s-not-configured",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "  if (!key || !from) throw new NonRetryableError(\"resend_not_configured\");",
+    "replace": "  if (!from) throw new NonRetryableError(\"resend_not_configured\");",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*is dead with resend_not_configured"
+  },
+  {
+    "id": "b5-ak",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "  const from = readVar(email.kind === \"bulk\" ? \"RESEND_FROM_BULK\" : \"RESEND_FROM\");",
+    "replace": "  const from = readVar(\"RESEND_FROM\");",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sender: RESEND_FROM for transactional"
+  },
+  {
+    "id": "b5-al",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (submission === undefined) return { to: [], entity: null, entityId: null };",
+    "replace": "  if (submission === undefined) throw new NonRetryableError(\"recipient_missing\");",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*ends an inquiry_forward with no submitter as no_submitter"
+  },
+  {
+    "id": "b5-s-getstep",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/index.ts",
+    "find": "  sendEmail,\n  notifyAdmin,\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*is reached through B8's getStep"
+  },
+  {
+    "id": "b5-ag",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  return subscriber.markets.length > 0 && subscriber.pending_source === null",
+    "replace": "  return subscriber.markets.length > 0",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sends newsletter_confirm for interest_confirm when pending_source is set"
+  },
+  {
+    "id": "b5-s-confirm-markets",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  return subscriber.markets.length > 0 && subscriber.pending_source === null",
+    "replace": "  return subscriber.pending_source === null",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sends newsletter_confirm for interest_confirm when markets is empty"
+  },
+  {
+    "id": "b5-s-confirm-both",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  key === \"interest_confirm\" || key === \"newsletter_confirm\";",
+    "replace": "  key === \"interest_confirm\";",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*sends interest_confirm for newsletter_confirm"
+  },
+  {
+    "id": "b5-z",
+    "test": "tests/unit/readpath.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const { error } = await db.rpc(\"email_message_finish\", {",
+    "replace": "  await db.from(\"email_messages\").update({ status }).eq(\"id\", id);\n  const { error } = await db.rpc(\"email_message_finish\", {",
+    "run": "bunx vitest run --project unit tests/unit/readpath.test.ts",
+    "expect": "send-email\\.ts"
+  },
+  {
+    "id": "b5-ac",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "  await reportAlert(\n    ctx,\n    new AlertRaised(variables[\"headline\"] ?? fingerprint.join(\":\")),\n    fingerprint,\n  );\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*makes one Sentry report with the alert fingerprint"
+  },
+  {
+    "id": "b5-n-key",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "  return (await jobIdempotencyKey(ctx)).split(\":\").slice(0, 2).join(\":\");",
+    "replace": "  return (await jobIdempotencyKey(ctx)).split(\":\").slice(0, 1).join(\":\");",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*reports a job no event made under its key"
+  },
+  {
+    "id": "b5-p",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  const idempotencyKey = `${await jobIdempotencyKey(ctx)}:${(await sha256Hex(address)).slice(0, 12)}`;",
+    "replace": "  const idempotencyKey = await jobIdempotencyKey(ctx);",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*writes one alert row and one distinct Idempotency-Key"
+  },
+  {
+    "id": "b5-n-kind",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "    kind: \"alert\",",
+    "replace": "    kind: \"transactional\",",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*writes one alert row and one distinct Idempotency-Key"
+  },
+  {
+    "id": "b5-n-fallback",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "  const fallback = siteOf(settings).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "replace": "  const fallback = readVar(\"ADMIN_NOTIFY_EMAIL\") ?? siteOf(settings).contact.email;",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*sends to then the contact address"
+  },
+  {
+    "id": "b5-n-headline",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "    typeof headline === \"string\" ? headline : undefined,",
+    "replace": "    undefined,",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*replaces the variables of a headline given as a parameter"
+  },
+  {
+    "id": "b5-n-twice",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (OUT.has(message.status)) return { status: \"already_sent\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*notify_admin runs twice without a second outside effect"
+  },
+  {
+    "id": "b5-n-report-fails",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "    ctx.log(\"warn\", \"alert_report_failed\", { jobId: ctx.job.id });",
+    "replace": "    throw new Error(\"report failed\");",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*logs a failed Sentry report and still sends"
+  },
+  {
+    "id": "b5-p-test-key",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "    idempotencyKey: `send_email:${actor.id}:test:${key}:${String(minute)}`,",
+    "replace": "    idempotencyKey: `send_email:${actor.id}:${key}:${String(minute)}`,",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*inserts one send_email job keyed by actor"
+  },
+  {
+    "id": "b5-p-test-minute",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "  const minute = Math.floor(Date.now() / 60_000);",
+    "replace": "  const minute = Math.floor(Date.now() / 1000);",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*inserts none for a second call in the same minute"
+  },
+  {
+    "id": "b5-p-test-kind",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "    kind: test ? \"test\" : row.class,",
+    "replace": "    kind: row.class,",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*is sent only to actor_email, with the \\[Test\\] prefix and kind test"
   }
 ]

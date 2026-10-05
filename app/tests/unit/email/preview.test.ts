@@ -1,12 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { siteConfig } from "../../../src/config/site";
-import type { Tables } from "../../../src/db";
+import type { Json, Tables } from "../../../src/db";
 import { sampleVariables, type EmailBlock } from "../../../src/domain/email";
 import type { SiteContext } from "../../../src/server/email/context";
-import { previewTemplate } from "../../../src/server/email/preview";
+import { previewTemplate, sendTestEmail } from "../../../src/server/email/preview";
 import { renderTemplate } from "../../../src/server/email/render";
 import { entityData, resolveVariables } from "../../../src/server/email/variables";
+import { sendEmail } from "../../../src/server/jobs/steps/send-email";
+import { emailEnv, emailWorld, fakeFetch, NOW, stepCtx } from "../../fixtures/email-send";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
 
 const SUBMISSION = "11111111-1111-4111-8111-111111111111";
@@ -105,5 +108,85 @@ describe("previewTemplate", () => {
       readFileSync(new URL(file, root), "utf8").includes("resend-client"),
     );
     expect(naming).toEqual([]);
+  });
+});
+
+describe("sendTestEmail", () => {
+  const ACTOR = {
+    id: "77777777-7777-4777-8777-777777777777",
+    email: "admin+test@matterofplace.com",
+  };
+  const MINUTE = Math.floor(NOW.getTime() / 60_000);
+
+  // One job per idempotency key, as `enqueue_job` keeps them.
+  function jobStore() {
+    const jobs = new Map<string, { type: string; payload: Json }>();
+    const db = fakeDb({
+      rpc: {
+        enqueue_job: (args) => {
+          if (!jobs.has(args.p_idempotency_key)) {
+            jobs.set(args.p_idempotency_key, { type: args.p_type, payload: args.p_payload });
+          }
+          return `job-${String(jobs.size)}`;
+        },
+      },
+    });
+    return { db, jobs };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("inserts one send_email job keyed by actor, key and minute", async () => {
+    const { db, jobs } = jobStore();
+    expect(await sendTestEmail(db, ACTOR, "received")).toBe("job-1");
+    expect([...jobs]).toEqual([
+      [
+        `send_email:${ACTOR.id}:test:received:${String(MINUTE)}`,
+        {
+          type: "send_email",
+          payload: {
+            params: { template: "received" },
+            data: { test: true, actor_email: ACTOR.email },
+          },
+        },
+      ],
+    ]);
+  });
+
+  it("inserts none for a second call in the same minute", async () => {
+    const { db, jobs } = jobStore();
+    await sendTestEmail(db, ACTOR, "received");
+    vi.setSystemTime(new Date(NOW.getTime() + 20_000));
+    await sendTestEmail(db, ACTOR, "received");
+    expect(jobs.size).toBe(1);
+  });
+
+  it("is sent only to actor_email, with the [Test] prefix and kind test", async () => {
+    const { db: queue, jobs } = jobStore();
+    await sendTestEmail(queue, ACTOR, "received");
+    const job = [...jobs.values()][0];
+    const payload = z
+      .object({
+        params: z.object({ template: z.string() }),
+        data: z.object({ test: z.literal(true), actor_email: z.string() }),
+      })
+      .parse(job?.payload);
+    emailEnv();
+    const fetch = fakeFetch();
+    const { db, messages } = emailWorld();
+    await sendEmail.run(stepCtx(db), payload.params, payload.data);
+    expect(fetch.requests.map(({ body }) => [body.to, body.subject])).toEqual([
+      [[ACTOR.email], "[Test] We have your submission"],
+    ]);
+    expect(messages.map((row) => [row.to_email, row.kind])).toEqual([[ACTOR.email, "test"]]);
   });
 });

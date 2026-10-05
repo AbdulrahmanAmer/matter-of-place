@@ -42,6 +42,8 @@ const idField = {
 
 export type EntityKind = keyof typeof idField;
 
+export const isEntityKind = (value: string): value is EntityKind => Object.hasOwn(idField, value);
+
 /** The payload a row stands in for, so a preview or a test send reads the same row an event would name. */
 export const entityData = (entity: EntityKind, id: string): JsonObject => ({
   [idField[entity]]: id,
@@ -343,6 +345,26 @@ async function confirmUrl({ data, site }: Resolve): Promise<string> {
   if (sealed === null) throw new NonRetryableError("missing_variable:confirm_url");
   const token = await openSealedToken(sealed);
   return `${(await site()).siteUrl}/api/public/subscribers/confirm?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * The confirmation a subscriber is sent, whichever of the two keys the job names (invariant 7, DL-06): the interest one
+ * while they follow markets and ask for nothing more, the Place Notes one when they follow none or ask for it now.
+ */
+export async function confirmTemplateKey(
+  db: Db,
+  data: JsonObject,
+): Promise<"interest_confirm" | "newsletter_confirm"> {
+  const id = need(data, "subscriber_id");
+  const result = await db
+    .from("subscribers")
+    .select("markets, pending_source")
+    .eq("id", id)
+    .limit(1);
+  const subscriber = found(rowsOf(result, "subscribers")[0], "subscriber");
+  return subscriber.markets.length > 0 && subscriber.pending_source === null
+    ? "interest_confirm"
+    : "newsletter_confirm";
 }
 
 async function interestConfirm(resolve: Resolve): Promise<Variables> {

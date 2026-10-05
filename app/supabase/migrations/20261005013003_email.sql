@@ -2,7 +2,7 @@
 --   drop function public.lapse_subscribers(interval), public.issue_repermission(uuid, text),
 --     public.repermission_candidates(int), public.apply_email_event(jsonb),
 --     public.email_message_finish(uuid, text, text, text),
---     public.email_message_begin(uuid, text, text, text, text, text, uuid, text), public.email_sent_month(),
+--     public.email_message_begin(uuid, text, text, text, text, text, text, uuid), public.email_sent_month(),
 --     public.email_sent_today();
 --   drop trigger subscribers_engagement on public.subscribers; drop function public.subscribers_engagement();
 --   alter table public.subscribers drop column last_engaged_at, drop column repermission_sent_at;
@@ -159,9 +159,9 @@ create or replace function public.email_message_begin(
   p_template_key text,
   p_kind text,
   p_subject text,
-  p_entity text,
-  p_entity_id uuid,
-  p_content_hash text
+  p_content_hash text,
+  p_entity text default null,
+  p_entity_id uuid default null
 )
 returns table (id uuid, status text, content_hash text)
 language sql
@@ -183,11 +183,11 @@ as $$
   where m.job_id = p_job_id and m.to_email = p_to_email;
 $$;
 
-revoke execute on function public.email_message_begin(uuid, text, text, text, text, text, uuid, text)
+revoke execute on function public.email_message_begin(uuid, text, text, text, text, text, text, uuid)
   from public, anon, authenticated;
-grant execute on function public.email_message_begin(uuid, text, text, text, text, text, uuid, text) to service_role;
+grant execute on function public.email_message_begin(uuid, text, text, text, text, text, text, uuid) to service_role;
 
-create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text, p_error text)
+create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text default null, p_error text default null)
 returns void
 language plpgsql
 security definer

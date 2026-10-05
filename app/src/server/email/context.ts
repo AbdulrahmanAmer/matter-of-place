@@ -25,7 +25,7 @@ export async function readSettings(db: Db, keys: string[]): Promise<Map<string, 
 }
 
 // A malformed `settings.site` reads as unset: an email still goes out, only without its identity lines.
-const siteOf = (settings: Map<string, unknown>): SiteSettings =>
+export const siteOf = (settings: Map<string, unknown>): SiteSettings =>
   siteSettingsSchema.safeParse(settings.get("site")).data ?? emptySiteSettings;
 
 /** `siteUrl` is the argument when given (the Worker passes its public origin), else the function secret `SITE_URL`. */

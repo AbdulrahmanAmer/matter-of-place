@@ -11,6 +11,8 @@ import { renderVariants } from "./render-variants.ts";
 import { selftestSteps } from "./selftest.ts";
 import { webhookOmnikom } from "./webhook-omnikom.ts";
 import { writeCaptionsStep } from "./write-captions.ts";
+import { sendEmail } from "./send-email.ts";
+import { notifyAdmin } from "./notify-admin.ts";
 
 // The step catalog: each slice that implements a step type appends one import and one entry here.
 const catalog: readonly StepDefinition[] = [
@@ -24,6 +26,8 @@ const catalog: readonly StepDefinition[] = [
   webhookOmnikom,
   bumpCatalogVersion,
   purgeCache,
+  sendEmail,
+  notifyAdmin,
 ];
 
 // Fails closed: only an explicit development or preview runner knows the self-test steps.

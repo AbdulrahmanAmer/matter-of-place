@@ -58,7 +58,7 @@ interface Begun {
 async function begin(db: Db, jobId: string, to: string, hash: string): Promise<Begun> {
   return one<Begun>(
     db,
-    "select * from public.email_message_begin($1, $2, 'received', 'transactional', 'Subject', 'submission', null, $3)",
+    "select * from public.email_message_begin($1, $2, 'received', 'transactional', 'Subject', $3, 'submission', null)",
     [jobId, to, hash],
   );
 }

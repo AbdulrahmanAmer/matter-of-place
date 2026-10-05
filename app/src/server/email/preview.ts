@@ -2,6 +2,7 @@ import { siteConfig } from "../../config/site.ts";
 import { sampleVariables, type EmailTemplateKey } from "../../domain/email.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
+import { enqueueJob } from "../lib/jobs.ts";
 import { loadSiteContext } from "./context.ts";
 import { renderTemplate, type RenderedEmail } from "./render.ts";
 import { entityData, resolveVariables, type EntityKind } from "./variables.ts";
@@ -39,4 +40,27 @@ export async function previewTemplate(
       ? sampleVariables(key, site.siteUrl)
       : await resolveVariables(db, key, entityData(entity.kind, entity.id), undefined, site);
   return renderTemplate(row, { ...base, ...variables }, site);
+}
+
+/**
+ * Queues one test send of the row `key` to the admin who asked, with the variables of `entity` when one is given. The
+ * key holds the minute, so a double click makes one job; the new job id, or null when this minute already has one.
+ */
+export function sendTestEmail(
+  db: Db,
+  actor: { id: string; email: string },
+  key: EmailTemplateKey,
+  entity?: { kind: EntityKind; id: string },
+): Promise<string | null> {
+  const minute = Math.floor(Date.now() / 60_000);
+  return enqueueJob(db, {
+    type: "send_email",
+    idempotencyKey: `send_email:${actor.id}:test:${key}:${String(minute)}`,
+    params: { template: key },
+    data: {
+      test: true,
+      actor_email: actor.email,
+      ...(entity === undefined ? {} : { entity: entity.kind, entity_id: entity.id }),
+    },
+  });
 }
