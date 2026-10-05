@@ -135,3 +135,65 @@ Recorded from the c3r review (no blocking defect). None is blocking. The GOTCHAS
 - what: Follow-up. origin/main has moved to 3e7ddeb (B15 merged, including the webhook_omnikom step in steps/index.ts). The snapshot commit 7c7c42e is no longer up to date with main, so the merge gate will want main merged first. git merge-tree reports a clean merge and migrations:check still shows 28 on main. After the merge, re-run the step-specs and plan tests, because webhook_omnikom becomes an implemented step.
 - evidence: git merge-base --is-ancestor origin/main HEAD → exit 1; git log HEAD..origin/main lists 3e7ddeb Merge pull request #132 (slice/b15); git merge-tree --write-tree → 0.
 - blocking: false
+
+## g4 · steps 4,4a
+
+Recorded from the g4 review (no blocking defect). None is blocking. Three further items concerned GOTCHAS.md and are banked there, not listed here: the P-094 hit-again line (the double application, rule extended), the P-310 hit-again line (the reviewer brief's loader), the new P-1711 (the review snapshot shares refs, `origin/main` moved mid-review), and the B9 g6 line of P-154 that main lost, restored.
+
+### 1. app/src/server/lib/log-events.ts
+
+- what: All seven new LogEvent names went in twice (lines 27-33 and again 34-40). The duplicates are dead entries (STANDARDS C04). No test catches it, because log.test.ts compares the emitted list against [...LogEvent], duplicates included. The likely cause is the P-094 incident: the python/node patch that went to the background still applied, and the Edit tool then added the same lines again. Nothing breaks at runtime.
+- evidence: Confirmed by running `git show 36d3271 -- app/src/server/lib/log-events.ts`: 14 '+' lines with the 7 names repeated. `git show 50e14b8:app/src/server/lib/log-events.ts | grep keepwarm` prints nothing, so the duplication comes from this group's commit and not from a merge.
+- blocking: false
+
+### 2. app/scripts/cf-purge-token.mjs
+
+- what: Line 97 treats any failure of the verify call as 'refused': `verify(stored).catch(() => "refused")`. A network error, a Cloudflare 5xx or a zod parse error therefore falls through to line 126, which rolls mop-cache-purge to a new value. The same happens on every run in a checkout whose .env lacks the token, such as the orchestrator's E:/Matter Of Place. A roll silently invalidates the CF_PURGE_TOKEN already stored in the Supabase function secrets. Every later purge_cache job then gets 403, becomes a NonRetryableError and shows as a dead job on screen 16, until someone re-runs `supabase secrets set`. The script only prints 'written to .env', with no 'rolled, re-set the function secret' notice. The plan line says 'reused'. The impact is housekeeping only (architecture 13 rule 4), so this is not blocking.
+- evidence: Found by reading cf-purge-token.mjs lines 95-127. The author's own unproven list says another checkout 'rolls the token and invalidates these'. Neither P-1616 nor the script's output warns about it.
+- blocking: false
+
+### 3. app/src/server/automation/step-specs.ts
+
+- what: purge_cache now calls Cloudflare (this group made it an outside call), but its spec has no maxAttempts, so it falls to the default 5. R27 asks every type that calls an outside provider to have maxAttempts >= 10 and survive a 60-minute outage. The spec file belongs to step 2, not this group. step-specs.test.ts does not catch this, because purge_cache has sideEffect 'none'.
+- evidence: Read step-specs.ts: the purge_cache entry (lines ~155-180) has no maxAttempts line; providerMaxAttempts = 12 is used only by other types.
+- blocking: false
+
+### 4. app/src/server/jobs/steps/purge-cache.ts
+
+- what: This file is now an R32 adapter, but it classifies Cloudflare errors inline (429 / >=500 / other 4xx / success:false) and does not export an error table as R34 asks of each adapter. Behaviour matches the plan's outcomes.
+- evidence: Read purge-cache.ts lines 40-50 and STANDARDS R34.
+- blocking: false
+
+### 5. workspace/05-plans/B8b.md
+
+- what: Plan lines are stale against the code, and the orchestrator should fold them. Line 129 and step 4a still name /client/v4/user/tokens*, which P-1616 shows refuses the account-owned mop-admin, and still say an existing token is 'reused', where the script rolls it. The bump_catalog_version Files line says getStep("market_open_notice"), but the code uses getSystemJob, which is correct because B11's job is a system job.
+- evidence: `sed -n 129p workspace/05-plans/B8b.md` against cf-purge-token.mjs lines 81, 103-126 and bump-catalog-version.ts line 15.
+- blocking: false
+
+### 6. app/src/server/scheduled.ts
+
+- what: UNPROVEN, carried rather than defective. runKeepWarm has only run against fakeDb with a stub fetch. Its real wiring (Worker scheduled(), the keepwarm plugin, the wrangler.toml trigger) is step 5. The CI db job does not exist in ci.yml, so the plan's CI db line is UNPROVEN. The dev-job deploy after the merge has not been seen. Whether a tag purge reaches the cache.mop.internal entries is measured only after L1. My curl reached the currently deployed job-runner, which is not proven to be this branch's code.
+- evidence: The author's unproven list. The curl returned http=200 with "claimed":0 but cannot identify which deployed code answered.
+- blocking: false
+
+## g5 · steps 5
+
+Recorded from the g5 review (no blocking defect). Two further items concerned GOTCHAS.md and are banked there, not listed here: the merge-driver cost (a hit-again line on P-072) and the worker-start timeout of the review (a hit-again line on P-712).
+
+### 1. app/scripts/automation-smoke.ts
+
+- what: Follow-up, not blocking. Until a notify_admin module is registered, the smoke prints 'UNPROVEN: real run, ...' but still exits 0 (lines 176-185 and main). H1-31 in workspace/05-plans/H1.md:74 reads only the exit code of `bun run scripts/automation-smoke.ts`, so before B5 registers notify_admin that gate goes green without the real-run half of the exit. The author disclosed this. The orchestrator should decide whether H1-31 greps for the 'jobs for step: 0' line or the script exits non-zero on the UNPROVEN branch. One more thing for the same lane: once B5 registers send_email, the real event plans a queued send_received job. The deployed runner can claim it before cancelOpenJobs runs, which means a real email to the submitter of the newest mop-dev submission. That risk is already listed in the B8b log follow-ups.
+- evidence: Seen by reading: src/server/jobs/steps/index.ts on 87198b8 registers no send_email and no notify_admin. Line 74 of workspace/05-plans/H1.md chains `&& bun run scripts/automation-smoke.ts &&` and checks no output. I did not re-run the smoke against mop-dev: it was not among this rework's proofs, and each run appends an event row to the one database.
+- blocking: false
+
+### 2. workspace/05-plans/H1.md
+
+- what: Follow-up, not blocking, the orchestrator's file. H1.md line 114 and B8b.md step 5 still name the `/__scheduled` URL for the local scheduled test, and on the installed wrangler it answers 404. P-1622 banks this.
+- evidence: Confirmed by running: with wrangler dev --test-scheduled on 8909, `curl -s -o /dev/null -w %{http_code} http://127.0.0.1:8909/__scheduled?cron=*%2F10+*+*+*+*` printed 404, and `/cdn-cgi/handler/scheduled?cron=...` printed 200 with a keepwarm_tick line.
+- blocking: false
+
+### 3. app/docs/runbooks/delivery.md
+
+- what: Follow-up, not blocking. The deploy and clock paths changed but no runbook did. The 'Worker configuration' section (around line 106) does not say that wrangler.toml now holds `[triggers] crons = ["*/10 * * * *"]` or that matter-of-place and matter-of-place-dev carry it. The `preview` bullet (around line 225) does not say that pr-<n> is deployed from `.output/server/wrangler.preview.json` with no cron (scripts/preview-no-cron.mjs). STANDARDS C23 asks for a runbook update on a deploy or clock change, but step 5 names no runbook, so the orchestrator should fold this or assign it.
+- evidence: Seen by reading: `grep -rn "keepwarm\|crons\|preview-no-cron\|wrangler.preview" app/docs/runbooks/delivery.md` gives no match, and the only keepwarm runbook lines are jobs.md:45 and :48 (heartbeat only).
+- blocking: false

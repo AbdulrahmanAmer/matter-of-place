@@ -24,6 +24,14 @@ export const LogEvent = [
   "schedule_not_implemented",
   "schedule_failed",
   "schedule_rollback_missed",
+  "market_open_notice_not_implemented",
+  "keepwarm_disabled",
+  "keepwarm_last_run_update_failed",
+  "keepwarm_state_rpc_failed",
+  "keepwarm_beat_failed",
+  "keepwarm_liveness_rpc_failed",
+  "keepwarm_tick",
+  "keepwarm_env_missing",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];
