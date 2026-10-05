@@ -135,10 +135,12 @@ async function readInput(
   if (Number(request.headers.get("content-length") ?? 0) > limit) throw tooLarge();
   const text = await request.text();
   if (new TextEncoder().encode(text).byteLength > limit) throw tooLarge();
-  if (text === "") return { ...params };
-  if (!JSON_TYPE.test(request.headers.get("content-type") ?? "")) {
+  const type = request.headers.get("content-type");
+  // A write with no body and no type carries only its path parameters; any declared type must be JSON.
+  if ((text !== "" || type !== null) && !JSON_TYPE.test(type ?? "")) {
     throw new AppError("bad_content_type", undefined, "Send this request as JSON.");
   }
+  if (text === "") return { ...params };
   let body: unknown;
   try {
     body = JSON.parse(text);

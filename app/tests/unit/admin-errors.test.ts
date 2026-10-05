@@ -85,6 +85,16 @@ describe("fromRpcError", () => {
     expect(answer(error)).toEqual({ code: "unavailable", status: 503 });
   });
 
+  it("answers a TypeError that no fetch threw with 500 server, so the route reports it", () => {
+    for (const message of [
+      "Cannot read properties of undefined (reading 'id')",
+      "undefined is not an object (evaluating 'data[0].id')",
+      "db.rpc is not a function",
+    ]) {
+      expect(answer(new TypeError(message))).toEqual({ code: "server", status: 500 });
+    }
+  });
+
   it("answers anything else with 500 server", () => {
     expect(answer(pg("XX000", "internal error"))).toEqual({ code: "server", status: 500 });
     expect(answer(new Error("boom"))).toEqual({ code: "server", status: 500 });

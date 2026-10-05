@@ -17,7 +17,92 @@ import { fakeDb } from "../fixtures/fake-db";
 
 // B7 actions whose route files later steps of this plan add, and B8b's `automation.*`, whose routes B8b step 6 adds;
 // each step removes its entries, and the B7 part is empty after step 15a.
-const routesPending: readonly ActionId[] = matrix.map((entry) => entry.action);
+// A literal list, so an action a later slice adds to the matrix without its route turns this test red.
+const routesPending: readonly ActionId[] = [
+  "submissions.list",
+  "submissions.get",
+  "submissions.timeline",
+  "submissions.start_review",
+  "submissions.decline",
+  "submissions.accept",
+  "submissions.request_assets",
+  "submissions.assets_received",
+  "submissions.email_preview",
+  "submissions.decline_reasons",
+  "submissions.note",
+  "properties.list",
+  "properties.get",
+  "properties.timeline",
+  "properties.representatives",
+  "properties.create_from_submission",
+  "properties.update",
+  "properties.representative_put",
+  "properties.preview_token",
+  "properties.agent_preview",
+  "properties.revoke_previews",
+  "properties.publish",
+  "properties.unpublish",
+  "properties.rank",
+  "media.list",
+  "media.variants_status",
+  "media.upload_url",
+  "media.attach",
+  "media.reorder",
+  "media.alt",
+  "media.replace",
+  "media.delete",
+  "inquiries.list",
+  "inquiries.get",
+  "inquiries.assignees",
+  "inquiries.assign",
+  "inquiries.forward",
+  "inquiries.close",
+  "stories.list",
+  "stories.get",
+  "stories.write",
+  "stories.publish",
+  "stories.unpublish",
+  "markets.list",
+  "markets.get",
+  "markets.edit",
+  "markets.coming_soon",
+  "team.users_list",
+  "team.invite",
+  "team.role_grant",
+  "team.role_revoke",
+  "team.user_disable",
+  "team.agent_create",
+  "team.agent_key_create",
+  "team.agent_key_revoke",
+  "team.revoke_all_keys",
+  "team.limits_put",
+  "settings.get",
+  "settings.site_put",
+  "settings.invoice_put",
+  "settings.coming_soon_put",
+  "settings.notifications_put",
+  "settings.redirects_get",
+  "settings.redirects_put",
+  "audit.list",
+  "audit.subject_requests",
+  "audit.subject_export",
+  "audit.subject_delete",
+  "audit.subject_opt_out",
+  "audit.subject_status",
+  "dashboard.get",
+  "me",
+  "automation.get",
+  "automation.recipes_put",
+  "automation.templates_put",
+  "automation.channels_put",
+  "automation.schedules_put",
+  "automation.dry_run",
+  "automation.reasons_put",
+  "automation.revisions_restore",
+  "automation.flags_put",
+  "automation.templates_preview",
+  "automation.templates_send_test",
+];
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");
 const RECENT_MS = 15 * 60_000;
@@ -143,6 +228,23 @@ describe("defineAdminRoute", () => {
     expect(response.status).toBe(400);
     expect(await bodyOf(response)).toMatchObject({ error: { code: "bad_content_type" } });
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("answers 400 bad_content_type on an empty write that declares a type other than JSON", async () => {
+    vi.useFakeTimers();
+    const handler = vi.fn(() => Promise.resolve({ ok: true }));
+    const route = defineAdminRoute(
+      { method: "POST", action: "submissions.start_review", input: z.object({}), handler },
+      guards(1),
+    );
+    const typed = await call(route, {
+      method: "POST",
+      headers: { "content-type": "text/plain", "x-mop-csrf": "token" },
+    });
+    expect(typed.status).toBe(400);
+    expect(handler).not.toHaveBeenCalled();
+    const bare = await call(route, { method: "POST", headers: { "x-mop-csrf": "token" } });
+    expect(bare.status).toBe(200);
   });
 
   it("answers 403 csrf to a session POST without X-MOP-CSRF and never reaches the handler", async () => {

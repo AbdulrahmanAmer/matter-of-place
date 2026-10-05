@@ -129,10 +129,28 @@
     "id": "b7-g1-thrown-outage",
     "test": "tests/unit/admin-errors.test.ts",
     "file": "src/server/lib/admin-errors.ts",
-    "find": "return error instanceof TypeError || (error instanceof Error && error.name === \"AbortError\");",
-    "replace": "return false;",
+    "find": "  if (error instanceof TypeError) return FETCH_TYPE_ERROR.test(error.message);\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
     "expect": "× .*thrown fetch TypeError"
+  },
+  {
+    "id": "b7-g1-bug-typeerror",
+    "test": "tests/unit/admin-errors.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "return FETCH_TYPE_ERROR.test(error.message);",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-errors.test.ts",
+    "expect": "× .*TypeError that no fetch threw"
+  },
+  {
+    "id": "b7-g1-routes-pending-literal",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "tests/unit/admin-routes-parity.test.ts",
+    "find": "  \"properties.rank\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*gives every matrix action a route"
   },
   {
     "id": "b7-g1-raise-detail",
@@ -196,6 +214,15 @@
     "replace": "return { ...params };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*400 bad_content_type"
+  },
+  {
+    "id": "b7-g1-empty-typed-write",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "if ((text !== \"\" || type !== null) && ",
+    "replace": "if (text !== \"\" && ",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*empty write that declares a type"
   },
   {
     "id": "b7-g1-parse-first",

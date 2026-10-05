@@ -32,6 +32,8 @@ const BY_SQLSTATE: Readonly<Record<string, ErrorCode>> = {
 const POSTGREST_OUTAGE = /^PGRST00[0-3]$/;
 // supabase-js answers a rejected fetch with `{ code: "", message: "<name>: <text>" }` instead of throwing.
 const FAILED_FETCH = /^(?:TypeError|AbortError|FetchError):/;
+// What a thrown fetch TypeError says in undici, workerd and browsers. Any other TypeError is a bug: 500, reported.
+const FETCH_TYPE_ERROR = /^(?:fetch failed|Network connection lost|Failed to fetch|NetworkError)/;
 
 // The fields of a PostgREST error this module reads (R33).
 const postgrestError = z.object({
@@ -45,7 +47,8 @@ const isCode = (value: string): value is ErrorCode => Object.hasOwn(errorCodes, 
 const outage = () => new AppError("unavailable", undefined, OUTAGE_MESSAGE);
 
 function thrownOutage(error: unknown): boolean {
-  return error instanceof TypeError || (error instanceof Error && error.name === "AbortError");
+  if (error instanceof TypeError) return FETCH_TYPE_ERROR.test(error.message);
+  return error instanceof Error && error.name === "AbortError";
 }
 
 /**
