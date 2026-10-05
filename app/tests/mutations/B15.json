@@ -644,5 +644,35 @@
     "expect": "× .*every listed file exists, imports the guard and calls assertNotProd",
     "find": "import { assertNotProduction } from \"./lib/assert-not-production.mjs\";",
     "replace": "const { assertNotProduction } = await import(\"./lib/\" + \"assert-not-production.mjs\");"
+  },
+  {
+    "id": "b15-g5-attribution",
+    "kind": "manual",
+    "test": "tests/e2e/inquiry-forward.spec.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "      attribution: input.attribution,\n",
+    "replace": "",
+    "run": "E2E_PORT=8918 bunx playwright test tests/e2e/inquiry-forward.spec.ts --reporter=line",
+    "expect": "ZodError[\\s\\S]*first_touch"
+  },
+  {
+    "id": "b15-g5-blocking",
+    "kind": "manual",
+    "test": "tests/e2e/inquiry-forward.spec.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "  const { data, error } = await db.rpc(\"create_inquiry\", {",
+    "replace": "  await fetch(\"http://127.0.0.1:8787/\");\n  const { data, error } = await db.rpc(\"create_inquiry\", {",
+    "run": "E2E_PORT=8918 bunx playwright test tests/e2e/inquiry-forward.spec.ts --reporter=line",
+    "expect": "Expected: 201[\\s\\S]*Received: 500"
+  },
+  {
+    "id": "b15-g5-sent",
+    "kind": "manual",
+    "test": "tests/e2e/inquiry-forward.spec.ts",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": "  if (state.status === \"success\") {",
+    "replace": "  if (state.status === \"never\") {",
+    "run": "E2E_PORT=8918 bunx playwright test tests/e2e/inquiry-forward.spec.ts --reporter=line",
+    "expect": "Locator: getByRole\\('status'\\)"
   }
 ]
