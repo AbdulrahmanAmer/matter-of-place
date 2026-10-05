@@ -4,6 +4,11 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export function findChrome() {
+  const fromEnv = process.env.CHROME_PATH;
+  if (fromEnv) {
+    if (!existsSync(fromEnv)) throw new Error("CHROME_PATH not found: " + fromEnv);
+    return fromEnv;
+  }
   const root = "C:/Users/DELL/.cache/puppeteer/chrome";
   const preferred = join(root, "win64-154.0.8037.57/chrome-win64/chrome.exe");
   if (existsSync(preferred)) return preferred;

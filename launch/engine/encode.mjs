@@ -1,5 +1,5 @@
 // Encode frames + sound into the film, and build the contact sheet.
-// Usage: node launch/engine/encode.mjs <dir> [--name out.mp4] [--audio-only]   (expects <dir>/frames/%05d.png and <dir>/audio.wav)
+// Usage: node launch/engine/encode.mjs <dir> [--name out.mp4] [--audio-only] [--maxrate <kbps>]   (expects <dir>/frames/%05d.png and <dir>/audio.wav)
 //
 // Loudness is set in two explicit passes instead of single-pass `loudnorm` in the mux: single-pass loudnorm is
 // dynamic (it compresses toward LRA and lifts quiet passages), which would pump the silence beats up. Here the whole
@@ -12,6 +12,8 @@ const args = process.argv.slice(2);
 const dir = resolve(args[0]);
 const i = args.indexOf("--name");
 const name = i >= 0 ? args[i + 1] : "film.mp4";
+const rate = args.indexOf("--maxrate");
+const maxrate = rate >= 0 ? Number(args[rate + 1]) : 0;
 const run = (a) => { const r = spawnSync("ffmpeg", a, { encoding: "utf8", maxBuffer: 1 << 28 }); if (r.status) { console.error(r.stderr); process.exit(1); } return r; };
 const measure = (f) => JSON.parse(run(["-v", "info", "-i", f, "-af", "loudnorm=I=-18:TP=-1:print_format=json", "-f", "null", "-"]).stderr.match(/\{[\s\S]*\}/)[0]);
 
@@ -30,7 +32,7 @@ if (args.includes("--audio-only")) process.exit(0);
 
 const out = join(dir, name);
 const frames = readdirSync(join(dir, "frames")).filter((f) => f.endsWith(".png")).length;
-run(["-v", "error", "-y", "-framerate", "30", "-i", join(dir, "frames", "%05d.png"), "-i", norm, "-c:v", "libx264", "-crf", "18", "-preset", "slow",
+run(["-v", "error", "-y", "-framerate", "30", "-i", join(dir, "frames", "%05d.png"), "-i", norm, "-c:v", "libx264", "-crf", "18", ...(maxrate ? ["-maxrate", `${maxrate}k`, "-bufsize", `${2 * maxrate}k`] : []), "-preset", "slow",
   "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", out]);
 const rows = Math.ceil(frames / 30 / 2 / 8);
 run(["-v", "error", "-y", "-i", out, "-vf", `fps=1/2,scale=320:-1,tile=8x${rows}`, "-frames:v", "1", join(dir, "contact-sheet.png")]);

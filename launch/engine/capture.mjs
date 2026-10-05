@@ -1,6 +1,6 @@
 // Frame capture for a scene that implements window.__film (see runtime/film.js).
 // Usage:
-//   node launch/engine/capture.mjs <scene.html> [--out frames] [--from 0 --to 76] [--workers 6] [--fps 30]
+//   node launch/engine/capture.mjs <scene.html> [--out frames] [--from 0 --to 76] [--workers 6] [--fps 30] [--w 1920 --h 1080] [--query a=b&c=d]
 //   node launch/engine/capture.mjs <scene.html> --at 3.2,10.5,40 --out stills     (review stills, named by timecode)
 // Frames are frames/%05d.png by absolute frame number. Resume-safe: existing non-empty frames are skipped.
 import puppeteer from "puppeteer-core";
@@ -16,10 +16,13 @@ const fps = Number(opt("fps", 30));
 const workers = Number(opt("workers", 6));
 const out = resolve(opt("out", join(scene, "..", "frames")));
 const at = opt("at", null)?.split(",").map(Number);
+const width = Number(opt("w", 1920));
+const height = Number(opt("h", 1080));
+const query = opt("query", "");
 
 mkdirSync(out, { recursive: true });
 const server = await serve();
-const url = `${server.url}/${relative(ROOT, scene).split("\\").join("/").split("/").map(encodeURIComponent).join("/")}`;
+const url = `${server.url}/${relative(ROOT, scene).split("\\").join("/").split("/").map(encodeURIComponent).join("/")}${query ? `?${query}` : ""}`;
 const chrome = findChrome();
 const browsers = [];
 
@@ -32,7 +35,7 @@ async function openPage() {
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
   page.on("response", (r) => { if (r.status() >= 400 && !r.url().endsWith("/favicon.ico")) errors.push(`HTTP ${r.status()} ${r.url()}`); });
   page.on("requestfailed", (r) => errors.push("request failed: " + r.url()));
-  await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
+  await page.setViewport({ width, height, deviceScaleFactor: 1 });
   await page.goto(url, { waitUntil: "load", timeout: 180000 });
   await page.waitForFunction(() => window.__film, { timeout: 60000 });
   await page.evaluate(() => window.__film.ready);
