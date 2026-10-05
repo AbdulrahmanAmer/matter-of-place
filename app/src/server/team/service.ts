@@ -120,7 +120,7 @@ export async function sendSignInLink(
   const staff = await db.rpc("staff_can_sign_in", { p_email: input.email });
   if (staff.error !== null) throw fromRpcError(staff.error);
   if (!staff.data) return SENT;
-  // No `emailRedirectTo`: B5's template builds the token-hash link to the confirm page itself.
+  // No redirect option: B5's template builds the token-hash link to the confirm page itself.
   const { error } = await authClient(request).auth.signInWithOtp({
     email: input.email,
     options: { shouldCreateUser: false },

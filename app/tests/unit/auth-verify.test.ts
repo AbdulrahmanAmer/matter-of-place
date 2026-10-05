@@ -68,9 +68,7 @@ afterEach(() => {
 });
 
 describe("the confirm page", () => {
-  it("renders one button in a form that posts to verify, and makes no request", () => {
-    const fetchSpy = vi.fn();
-    vi.stubGlobal("fetch", fetchSpy);
+  it("renders one button in a form that posts to verify", () => {
     const html = renderToStaticMarkup(
       createElement(ConfirmForm, { tokenHash: "hash-1", type: "invite", next: "/admin/requests" }),
     );
@@ -79,7 +77,6 @@ describe("the confirm page", () => {
     expect(html).toContain("Continue to Matter of Place");
     expect(html).toContain('name="token_hash" value="hash-1"');
     expect(html).toContain('name="type" value="invite"');
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

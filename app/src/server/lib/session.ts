@@ -21,6 +21,8 @@ import { logLine } from "./log.ts";
 // a sign-in, a sign-out or that refresh writes cookies.
 
 const JWKS_TIMEOUT_MS = 2000;
+// Each call to Supabase Auth (refresh, verify, send, sign-out) is aborted after this long (R32, API-03).
+const AUTH_TIMEOUT_MS = 5000;
 // An unknown `kid` refetches the key set, at most this often, so a forged header cannot drive a fetch per request.
 const REFETCH_AFTER_MS = 30_000;
 const COOKIE_OPTIONS = { path: "/", httpOnly: true, secure: true, sameSite: "lax" } as const;
@@ -135,6 +137,13 @@ export function takeIssuedCookies(request: Request): string[] {
   return cookies;
 }
 
+// `typeof fetch` also lists Bun's `preconnect`; the Worker never calls it.
+const authFetch: typeof fetch = Object.assign(
+  (input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> =>
+    fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(AUTH_TIMEOUT_MS) }),
+  { preconnect: () => undefined },
+);
+
 /**
  * The `@supabase/ssr` client of one request: it reads the session cookies of `request` and records the
  * cookies it writes (sign-in, refresh, sign-out) for `takeIssuedCookies`.
@@ -143,6 +152,7 @@ export function authClient(request: Request) {
   const { url, key } = project();
   return createServerClient<Database>(url, key, {
     cookieOptions: COOKIE_OPTIONS,
+    global: { fetch: authFetch },
     cookies: {
       encode: "tokens-only",
       getAll: () => parseCookieHeader(request.headers.get("cookie") ?? ""),

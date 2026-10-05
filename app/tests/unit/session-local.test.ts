@@ -106,4 +106,19 @@ describe("the admin session", () => {
     expect(response.status).toBe(503);
     expect(await codeOf(response)).toBe("auth_unavailable");
   });
+
+  it("gives every call to Supabase Auth an abort signal (R32)", async () => {
+    const auth = fakeAuth([], (url) =>
+      url.pathname === "/auth/v1/otp" ? Response.json({}) : undefined,
+    );
+    stubAuthEnv();
+    vi.resetModules();
+    const { authClient } = await import("../../src/server/lib/session");
+    await authClient(new Request(`${SITE}/admin/sign-in`)).auth.signInWithOtp({
+      email: "editor@example.test",
+    });
+    expect(authApiCalls(auth).map((call) => call.init?.signal instanceof AbortSignal)).toEqual([
+      true,
+    ]);
+  });
 });

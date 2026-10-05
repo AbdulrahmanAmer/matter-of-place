@@ -424,6 +424,15 @@
     "expect": "× .*answers 503 auth_unavailable"
   },
   {
+    "id": "b7-g2-session-auth-signal",
+    "file": "src/server/lib/session.ts",
+    "find": "    global: { fetch: authFetch },\n",
+    "replace": "",
+    "test": "tests/unit/session-local.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
+    "expect": "× .*gives every call to Supabase Auth an abort signal"
+  },
+  {
     "id": "b7-g2-keys-raw-at-rest",
     "file": "src/server/lib/agent-keys.ts",
     "find": "  return sha256Hex(key);",

@@ -27,7 +27,7 @@ export interface AgentKey {
   scopes: string[];
 }
 
-/** The sha256 hex stored in `agent_keys.key_hash` (CS-04: no `hashKey` here, which is B3's salted hash). */
+/** The unsalted sha256 hex stored in `agent_keys.key_hash` (CS-04: B3's salted hash is not used here). */
 export function hashAgentKey(key: string): Promise<string> {
   return sha256Hex(key);
 }
