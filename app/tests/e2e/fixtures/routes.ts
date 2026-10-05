@@ -1,6 +1,6 @@
 // The route list of the sweep (B4 step 5) and the map that makes "a page route has a Playwright test" mechanical:
 // `tests/unit/routes-covered.test.ts` reads `src/routes` and fails on a file this map does not name.
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { register } from "node:module";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -233,4 +233,29 @@ export async function getDynamicRoutes(
       routeClass: "story" as const,
     })),
   ];
+}
+
+const budgetPaths = z
+  .object({ paths: z.array(z.string()).length(6) })
+  .parse(JSON.parse(readFileSync(new URL("../../../budget.json", import.meta.url), "utf8"))).paths;
+
+/**
+ * The six pages Lighthouse measures (GQ-01): the `paths` of `budget.json`, with `property:first` and `market:first`
+ * resolved to the first of the mode's parameters.
+ */
+export async function lighthouseRoutes(
+  mode: RouteMode = process.env["E2E_MODE"] === "live" ? "live" : "local",
+): Promise<string[]> {
+  const dynamic = await getDynamicRoutes(mode);
+  const first = (routeClass: RouteClass): string => {
+    const path = dynamic.find((route) => route.routeClass === routeClass)?.path;
+    if (path === undefined)
+      throw new Error(`budget.json names ${routeClass}:first, but ${mode} mode has none`);
+    return path;
+  };
+  return budgetPaths.map((template) => {
+    if (template === "property:first") return first("property");
+    if (template === "market:first") return first("market");
+    return template;
+  });
 }
