@@ -3417,3 +3417,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c '^## P-010' GOTCHAS.md` → 1 and `grep '^## [PG]-[0-9]*' GOTCHAS.md | sort | uniq -d | wc -l` → 0 after the rebuild from base, lane and main; set difference of ids against main and against the lane's last own commit → 0 missing on either side.
 - enforced-by: scratchpad resolve-bank-both.mjs (function replacer); bank-merge.sh runs the lane's check-gotchas
 - added: 2026-10-05
+
+## P-527 · Three prompt hooks timed out on every prompt and monitor event under five lanes, each discarding its output and holding the turn up to its limit
+- symptom: every UserPromptSubmit printed three red lines: hookify `userpromptsubmit.py` "timed out after 10s", the harness `user-prompt-submit.sh` "after 20s", security-guidance `sg-python.sh security_reminder_hook.py` "after 30s", output discarded. Timed by hand under the load: 4.6 s, 10.2 s and 11.7 s; bare `python3 -c pass` through the Windows Store launcher takes 1.2 s.
+- cause: the plugins' default timeouts assume an idle machine; with five lanes at 100 percent CPU every process start is five to ten times slower, and hookify had no rule file in this project to begin with.
+- rule: on the build machine the three prompt hooks run with `timeout: 60` (edited in the plugin cache `hooks/hooks.json`, backups `*.bak-2026-10-05`; a plugin update resets them, re-apply); hookify is off for this project (`.claude/settings.json` enabledPlugins) until it has a rule file. A hook that times out is worse than one that is slow: its advice is lost and the wait is paid anyway.
+- proof: `node -e` over the three hooks.json → "1 prompt hook(s) set to 60 s" each; `ls .claude/hookify.* ~/.claude/hookify.*` → none.
+- added: 2026-10-05
