@@ -3418,6 +3418,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: scratchpad resolve-bank-both.mjs (function replacer); bank-merge.sh runs the lane's check-gotchas
 - added: 2026-10-05
 
+## P-526 · Three merge chores were done by hand each time and each hand pass lost something; they are scripts now
+- symptom: on 2026-10-05 the bank merge dropped hit-again lines three times (B17 g1 twice, B7 g1 once) and multiplied a file once (P-525); the migration re-stamp missed a reference twice (B9 c9m, B7 g1); the regenerated `src/db/types.ts` was fetched by hand from CI's artifact (B7 g1). Each cost an orchestrator or builder turn and sometimes a fix round.
+- cause: the merge brief described the chores in prose and left the doing to judgment under load.
+- rule: `node workspace/05-plans/bank-merge.mjs` (from the repository root, during a conflicted merge) resolves GOTCHAS.md by entry and refuses when any entry or hit-again line would be lost; `bun run migrations:restamp` (app folder) moves every branch migration past main's newest in its order and rewrites every reference, `--dry-run` to look first; `bun run types:from-ci -- <pr>` copies the db-types artifact of the pull request's latest CI run. The merge agent's and the builder's briefs name them; a hand resolution of any of the three is a prompt defect.
+- proof: `node workspace/05-plans/bank-merge.mjs --base b --ours o --theirs t --out x` on the B7 fixtures → "427 entries, 4 resolved both-sides, 0 lost" and 9 hit-again lines carried through that the hand merge had dropped; `bun run migrations:restamp` on a scratch repository with an older stamp → both branch files re-stamped in order, the contract-of header and a registry line rewritten, the second run "nothing to do"; `bunx eslint` and `tsc -p tsconfig.scripts.json` → clean.
+- enforced-by: workspace/05-plans/bank-merge.mjs, app/scripts/restamp-migrations.ts, app/scripts/types-from-ci.ts
+- added: 2026-10-05
+
 ## P-527 · Three prompt hooks timed out on every prompt and monitor event under five lanes, each discarding its output and holding the turn up to its limit
 - symptom: every UserPromptSubmit printed three red lines: hookify `userpromptsubmit.py` "timed out after 10s", the harness `user-prompt-submit.sh` "after 20s", security-guidance `sg-python.sh security_reminder_hook.py` "after 30s", output discarded. Timed by hand under the load: 4.6 s, 10.2 s and 11.7 s; bare `python3 -c pass` through the Windows Store launcher takes 1.2 s.
 - cause: the plugins' default timeouts assume an idle machine; with five lanes at 100 percent CPU every process start is five to ten times slower, and hookify had no rule file in this project to begin with.
