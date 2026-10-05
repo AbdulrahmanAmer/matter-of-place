@@ -27,3 +27,111 @@ Recorded from the g1 review (no blocking defect). None is blocking.
 - what: UNPROVEN, outside this group. The seven `-- STUB(B8b step 6)` markers are invisible to scripts/stubs.ts (banked as P-1600), so the stubs gate cannot stop B8b from closing with the write_audit guard still in place. Separately, the plan's CI db job does not exist and src/db/types.ts is hand-written. Both are disclosed by the author and stay UNPROVEN until B4 lands the db job and main pushes the migration and runs gen:types --db with git diff --exit-code. B1b owns the stubs regex.
 - evidence: P-1600 proof: git grep -c 'STUB(B8b step 6)' -- supabase/sql/functions | wc -l gives 7 while bun run stubs | grep -c automation_ gives 0. ci.yml jobs: run, check, build, merge-gate (no db).
 - blocking: false
+
+## g2 · steps 2-3
+
+Recorded from the g2 review (no blocking defect). None is blocking. A seventh follow-up, a costTime line mapped to the wrong gotcha entry, is banked in GOTCHAS.md (P-076 "hit again"), not listed here.
+
+### 1. app/src/domain/events.ts
+
+- what: Line 123: the digest.due schema is `scheduled_for: z.string().datetime()`, which accepts only a `Z` suffix. It refuses the `+00:00` form that Postgres timestamptz and supabase-js return. scheduleSettingsSchema in the same diff uses `{ offset: true }`. If g4's runDueSchedules passes `next_run_at` straight through, every digest.due event fails eventPayloadSchemas. Fan-out would then log `fanout_payload_invalid` on every digest and plan with the raw payload. The producer is not built yet, so nothing breaks today.
+- evidence: Confirmed by running a bun probe in the snapshot: safeParse({scheduled_for:'2026-10-27T14:00:00Z'}) gives true and safeParse({scheduled_for:'2026-10-27T14:00:00+00:00'}) gives false.
+- blocking: false
+
+### 2. app/src/domain/events.ts
+
+- what: Optional payload fields are `.optional()` only: `decline_reason_id`, `note` (submission.declined) and `submission_id` (property.published). A SQL producer that builds its payload with jsonb_build_object from a null column writes JSON null, and these schemas refuse null. That gives a spurious fanout_payload_invalid warning per event. Suspected by reading only; the B7 producers are not on main.
+- evidence: Read only: events.ts lines 61-62 and 105 use `id.optional()` and `z.string().optional()`. submissions.decline_reason_id is nullable (`on delete set null`, migration 20261001090400_intake.sql:83).
+- blocking: false
+
+### 3. workspace/05-plans/B8.md
+
+- what: This group made `sideEffect` a required field of SystemJobDefinition (app/src/server/jobs/types.ts). B8.md line 68 still documents `SystemJobDefinition { type, maxAttempts?, timeoutMs?, run }`. The plans that add system jobs (B5, B6, B10, B11, B14, B16 and others) do not mention `sideEffect`, so their builders hit a typecheck failure when they merge. These are stale plan lines in files outside this group, for the orchestrator to fold.
+- evidence: `grep -ln "src/server/jobs/system/" workspace/05-plans/B*.md` lists B10, B11, B14, B16, B1b, B3, B3b, B5, B6, B7 and B8b. `grep -l sideEffect workspace/05-plans/B*.md` lists only B8b.
+- blocking: false
+
+### 4. app/tests/unit/automation/step-specs.test.ts
+
+- what: The R28 run-twice title check (missingRunTwiceTests) iterates step specs only, never system types. meta_token_refresh is registered with sideEffect 'idempotency_key', calls graph.facebook.com and has no 'meta_token_refresh runs twice without a second outside effect' test, and the check does not see it. The plan's wording ('every type whose sideEffect is not none and whose isImplemented is true') is ambiguous, and R28 says 'step', so this is not a contract break. Later system types with outside effects (invoice_pdf, market_open_notice, newsletter_send) will also bypass the check.
+- evidence: Read: step-specs.test.ts lines 57-62 filter listStepSpecs() only. `grep -rn "runs twice without a second outside effect" tests` finds only the helper strings in step-specs.test.ts.
+- blocking: false
+
+### 5. workspace/05-plans/STANDARDS.md
+
+- what: R27 (line 208) says every step-specs entry declares timeoutMs and maxAttempts. The B8b Contract leaves both absent for the light steps and timeoutMs absent everywhere. The builder followed the Contract and banked the divergence as P-1605. R27 or the Contract needs one edit so the two agree.
+- evidence: STANDARDS.md:208 compared with step-specs.ts: no spec sets timeoutMs, and 4 specs omit maxAttempts.
+- blocking: false
+
+### 6. app/tests/unit/automation/catalog.test.ts
+
+- what: UNPROVEN, and stated as such by the author: `isImplemented("bump_catalog_version")` against the real registry is not asserted (the registry is empty on main), and the R28 real-registry case is vacuous until a step with an outside effect is implemented. Both must be tightened in g4. Also, the Plan type returned by planEvent carries no `warnings`, which the dry-run result in the Contract requires. That belongs to the later dry-run group and should be checked there.
+- evidence: Read: catalog.test.ts lines 141-148 use stub registries only. src/server/jobs/steps/index.ts has `const catalog: readonly StepDefinition[] = [];`. plan.ts lines 46-51 have no warnings field.
+- blocking: false
+
+## c2s · steps 2
+
+Recorded from the c2s review (no blocking defect). None is blocking. A fourth follow-up, about GOTCHAS.md, is banked as P-1614.
+
+### 1. workspace/05-plans/B8b.md
+
+- what: The plan's Files-list line for step-specs.test.ts still says the gate passes when 'some file under tests/ contains a test titled <type> runs twice ...'. The gate now asks vitest's unit and component projects only, which cover tests/unit/**, src/**/*.test.ts(x). A run-twice test placed in tests/db, tests/api or tests/e2e (a later B10 or B11 builder could reasonably put a post_* run-twice test in tests/api) will not be found, and the gate goes red. This fails closed, not open, and the author disclosed it as UNPROVEN. The plan text should be folded to match.
+- evidence: Read app/vitest.config.ts: unit includes tests/unit/**/*.test.ts and src/**/*.test.ts, component includes *.test.tsx, and db includes tests/db and tests/api. testTitles() passes --project=unit --project=component over tests/unit and src only.
+- blocking: false
+
+### 2. app/tests/unit/automation/step-specs.test.ts
+
+- what: Suspected by reading, not run. If spawnSync itself fails (for example node_modules/vitest/vitest.mjs is missing or execPath cannot start), child.stderr is null and child.error is dropped. The test still goes red, but the message reads 'vitest json report unreadable: null', and the cause it carries is the ENOENT on report.json, not the spawn error. That makes a CI failure of this kind slow to diagnose.
+- evidence: Lines in testTitles(): spawnSync(...) result is used only as child.stderr in `throw new Error(`vitest json report unreadable: ${child.stderr}`, { cause: error })`; child.error and child.status are never read.
+- blocking: false
+
+### 3. app/.gitignore
+
+- what: P-1613 records that vitest 5's json reporter writes .vitest/json/output.json into the app when no --outputFile is given, and that the folder is not ignored. Its rule leaves a person to remove it by hand before committing. The gate itself always passes --outputFile, so it is safe today. A one-line .vitest/ ignore would make the rule mechanical (H46-size change).
+- evidence: grep -n vitest app/.gitignore .gitignore printed no ignore line. P-1613 cause text: 'that folder is not in .gitignore'.
+- blocking: false
+
+## c3r · steps 4
+
+Recorded from the c3r review (no blocking defect). None is blocking. The GOTCHAS.md follow-up went to the bank (P-712 hit again), not here.
+
+### 1. app/docs/runbooks/jobs.md
+
+- what: Follow-up (STANDARDS C23; outside this group's files; the author recorded it). Line 96 still says pg_cron enqueues prune at 03:30 UTC. The schedules migration unschedules that job, and the runner drives prune from schedule_settings. Once main pushes the migration, the runbook is false.
+- evidence: grep -rn prune docs/runbooks/*.md prints docs/runbooks/jobs.md:96 'pg_cron enqueues four system jobs ... `prune` at 03:30 UTC'. supabase/migrations/20261005000101_automation_schedules.sql: select cron.unschedule('prune').
+- blocking: false
+
+### 2. app/src/server/jobs/README.md
+
+- what: Follow-up (not this group's file). The author named line 18 ('scheduler.ts ... a stub until B8b step 4'). Line 26 is stale in the same way: it still calls fanoutPendingEvents 'a stub until B8b step 4'.
+- evidence: grep -n 'stub until B8b step 4' src/server/jobs/README.md matches lines 18 and 26.
+- blocking: false
+
+### 3. app/src/server/jobs/scheduler.ts
+
+- what: Follow-up (plan risk; the author recorded it). If a row has neither last_run_at nor next_run_at, dueAt is nextRun(cron, now - 1 min), so the row is due only in the minute after its slot. A runner tick missed at 03:30 on the first day skips that day's prune, and a missed kpi_weekly tick skips the whole week. The code follows the plan's formula exactly. The fix belongs in the plan or the seed, for example by seeding next_run_at.
+- evidence: Read src/server/automation/cron.ts:35-39. The author's probe in logs/B8b.md:466 shows 03:30:20 true and 03:31:05 false.
+- blocking: false
+
+### 4. app/src/server/jobs/scheduler.ts
+
+- what: Follow-up (plan and code disagree; the author recorded it). Invariant 11 says the scheduler asks getStep(<key>). The code asks getSystemJob(key) at line 97, because steps/index.ts getStep does not merge the system types. The plan line needs folding.
+- evidence: scheduler.ts:97 `getSystemJob(key) === undefined`; plan-brief invariant 11 'asks getStep(<key>) (B8's registry, which merges the system types)'.
+- blocking: false
+
+### 5. app/src/server/automation/fanout.ts
+
+- what: Follow-up (STANDARDS C04, convention). fanoutEvent is a new export with no caller in src; per the plan, its callers are B6, B7 and B9. It carries neither the @public tag nor a STUB marker, which C04 asks of a later-slice export. knip passes only because the unit test imports it. The plan does name the function in this step.
+- evidence: grep -rn 'fanoutEvent\b' src --include=*.ts finds nothing outside automation/fanout.ts; git show origin/main:app/src/server/automation/fanout.ts had only fanoutPendingEvents.
+- blocking: false
+
+### 6. app/supabase/migrations/20261005000100_automation_seed.sql
+
+- what: Follow-up (a comment that is not true yet). The comment above the schedule_settings insert says keepwarm equals the wrangler.toml trigger and backup equals the schedule line of backup.yml. Neither exists yet: wrangler.toml has only the marker '# B8b adds the [triggers] crons line here.' (second half of step 4), and backup.yml has no schedule: cron line (B1b step 8). Both rows are harmless now (backup is disabled, and nothing fires keepwarm until the trigger lands).
+- evidence: grep -n 'crons\|triggers' app/wrangler.toml prints only line 11, the marker; grep -n 'cron' .github/workflows/backup.yml finds no schedule cron.
+- blocking: false
+
+### 7. slice/b8b (branch)
+
+- what: Follow-up. origin/main has moved to 3e7ddeb (B15 merged, including the webhook_omnikom step in steps/index.ts). The snapshot commit 7c7c42e is no longer up to date with main, so the merge gate will want main merged first. git merge-tree reports a clean merge and migrations:check still shows 28 on main. After the merge, re-run the step-specs and plan tests, because webhook_omnikom becomes an implemented step.
+- evidence: git merge-base --is-ancestor origin/main HEAD → exit 1; git log HEAD..origin/main lists 3e7ddeb Merge pull request #132 (slice/b15); git merge-tree --write-tree → 0.
+- blocking: false

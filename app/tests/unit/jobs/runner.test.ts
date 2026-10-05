@@ -26,8 +26,9 @@ vi.mock(import("../../../src/server/jobs/steps/index.ts"), async (importOriginal
   const actual = await importOriginal();
   return { getStep: (type: string) => registry.get(type) ?? actual.getStep(type) };
 });
-vi.mock(import("../../../src/server/automation/fanout.ts"), { spy: true });
-vi.mock(import("../../../src/server/jobs/scheduler.ts"), { spy: true });
+// The sweep and the scheduler have their own tests (B8b); here only their calls are counted.
+vi.mock(import("../../../src/server/automation/fanout.ts"));
+vi.mock(import("../../../src/server/jobs/scheduler.ts"));
 
 type JobRow = Database["public"]["Functions"]["claim_job"]["Returns"][number];
 
