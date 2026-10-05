@@ -4,6 +4,16 @@
     "@/domain/": "../../../src/domain/",
     "zod": "npm:zod@3.25.76",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.117.2",
-    "cron-parser": "npm:cron-parser@5.10.1"
+    "cron-parser": "npm:cron-parser@5.10.1",
+    "@react-email/components": "npm:@react-email/components@1.0.12",
+    "@react-email/render": "npm:@react-email/render@1",
+    "react": "npm:react@19",
+    "react/jsx-runtime": "npm:react@19/jsx-runtime",
+    "@types/react": "npm:@types/react@19"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "jsxImportSourceTypes": "@types/react"
   }
 }

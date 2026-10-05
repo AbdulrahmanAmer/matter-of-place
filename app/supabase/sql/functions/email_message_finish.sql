@@ -1,4 +1,4 @@
-create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text, p_error text)
+create or replace function public.email_message_finish(p_id uuid, p_status text, p_resend_id text default null, p_error text default null)
 returns void
 language plpgsql
 security definer
