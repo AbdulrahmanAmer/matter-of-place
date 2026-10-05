@@ -27,3 +27,26 @@
 
 6. `launch/reel/scene.html` (not blocking). Not proven by this group (the author's own UNPROVEN list): the scene loads /brand/logo/wordmark/wordmark-horizontal-bone.svg and /app/src/styles/tokens.css, so render.yml's reel job must check out brand/. Step 4 must prove it.
    Evidence: scene.html:6 and :65; render.yml reel job not yet written.
+
+## g4 · steps 6
+
+1. `app/tests/unit/reel/render-reel-script.test.ts` (not blocking). The upload branch is covered by no test. In render-reel.mjs, `if (out === undefined && !input.fixture)` with the putIfMissing loop (about lines 301-305) can be inverted or deleted and every unit test, plus the fixture proof, stays green. A real job would then report done with files whose keys hold no object in bucket media. The author already lists the real upload as UNPROVEN, and the plan names no upload test, so this is a follow-up for the slice that proves a real render_reel job.
+   Evidence: Read: the test file imports only resultFor, gateError, probeError, reelInput, reelFiles, PROVISIONAL and MAX_BYTES, and no registry entry names the upload condition. Neither the fixture run nor GitHub run 37342756765 reaches putIfMissing.
+
+2. `app/tests/unit/reel/render-reel-script.test.ts` (not blocking). The provisional-result test only compares the PROVISIONAL constant with its literal value. Deleting `writeFileSync(resultFile, JSON.stringify(PROVISIONAL))` in the main block would stay green. I confirmed by running that the write happens: result.json held reel_timeout during my render. The plan asks only for the value test, so this is a note.
+   Evidence: Read: test lines 95-97. Mid-run, app/.tmp/reel/result.json read {"status":"failed","error":"reel_timeout","retryable":false}.
+
+3. `app/scripts/render-reel.mjs` (not blocking). resultFor (line 89) marks every 'media-store: ' message as retryable. That includes `media-store: SUPABASE_URL is not set` and `SUPABASE_SERVICE_ROLE_KEY is not set` from required() in scripts/lib/media-store.mjs. A missing secret is a configuration fault, not an outage, but it would run 5 attempts of Actions minutes before going dead. The Contract only names a Storage outage, a failed download and a failed upload as retryable.
+   Evidence: Read: media-store.mjs required() throws `media-store: ${name} is not set`, which matches /^(storage_unavailable$|media-store: )/.
+
+4. `app/scripts/render-reel.mjs` (not blocking). If the second flatness check (`node([... probe.mjs flat ...])`, line 285) fails, the error is `probe.mjs exited 1`. The Contract's fixed form is `gate_failed: <check> <value>`, and B9's trigger copies this text into assets.render_error for screen 10. In practice the gate's own flatness check runs first on the same measure, so this is unlikely to fire.
+   Evidence: Read: node() throws `${basename(args[0])} exited ${status}`, and nothing wraps the probe.mjs call.
+
+5. `workspace/05-plans/logs/B12.md` (not blocking). The reel's bytes and gate numbers change between runs on the same machine, not only between machines. My laptop run of the same commit measured -18.23 LUFS, -2.59 dBTP, reel.f356c15a.mp4 at 7108568 bytes and poster.2b6e95a9.jpg. The author's laptop run and CI both measured -18.19 and -2.29, with cd1a66e9 / 3b3e1755. The log's UNPROVEN line describes this only as cross-machine. It does not break F24, since a re-render is a new key anyway, but a by-hand re-render cannot be expected to reproduce a key.
+   Evidence: Ran: my render log showed 'loudness -18 +/-1.5 LUFS -18.23 LUFS' and 'true peak <= -1 dBTP -2.59 dBTP'. gh run view 37342756765 --log shows -18.19 LUFS and -2.29 dBTP.
+
+6. `workspace/05-plans/B12.md` (not blocking). Two plan lines no longer match what was built, for the orchestrator to fold. Capture runs at `--workers` min(4, availableParallelism()), not the plan's `--workers 2`: the runner measured 4 cores. The reel job adds actions/setup-node at node 24, which the plan's step list leaves out (P-2112). Both are logged as decisions.
+   Evidence: Read: render-reel.mjs line 273. Log 'Decisions' items (2) and (5). The CI log printed '4 workers'.
+
+7. `.github/workflows/README.md` (not blocking). The README still says 'These three exist' and has no row for render.yml. The file now carries B8's render job and B12's reel job. The row is B8's to add (this group did not touch the README), so it goes to the orchestrator.
+   Evidence: Read: README line 11, 'Later slices add `render.yml` (B8 ...; B9 and B12 add to it) ... each lands with its owner and gets its row here'. The table lists only ci.yml, deploy.yml and backup.yml.
