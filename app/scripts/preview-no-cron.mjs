@@ -11,6 +11,6 @@ if (source === undefined || target === undefined || extra.length > 0) {
 
 const config = z.record(z.string(), z.unknown()).parse(JSON.parse(readFileSync(source, "utf8")));
 config["triggers"] = { crons: [] };
-// Written beside the source, so the relative paths inside the config still resolve.
+// The caller names a target beside the source, so the relative paths inside the config still resolve.
 writeFileSync(target, `${JSON.stringify(config, null, 2)}\n`);
 console.log(JSON.stringify(config["triggers"]));

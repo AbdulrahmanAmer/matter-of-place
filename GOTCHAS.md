@@ -853,6 +853,7 @@ Entry template
 - hit again: 2026-10-04, B3 g5 repair round (second hit of the same group): a stray interactive `python -` ran again in the repair commit's session; the first round's hit is above. The repair commit `a2f4cb3` changed this entry not at all, so the review counted the cost as unbanked. The hook that refuses `(^|[;&|] *)python3? +-( |$)` is still the open mechanism (see the B3 c3 line).
 - hit again: 2026-10-04, B3 g10 rework: another `python - <<EOF || echo nopython` ahead of a `node` patch hung 120 seconds in the background; the node half ran, `taskkill //PID <pid> //F` freed the shell. The bank was read at the start and the habit repeated: the guard is the rule above, not a reminder.
 - added: 2026-10-02
+- hit again: 2026-10-05, B8b g5 rework: a `python - <<'EOF' || true` with an empty body ahead of a `node` patch; the call moved to the background at 120 s and the node patch ran when python was killed by its process id (found with `Get-CimInstance Win32_Process`, creation time first). About 4 minutes.
 - hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.
 - hit again: 2026-10-04, B3 g8: a leftover `python3 - <<EOF` hung the shell 120 seconds while a merge was being resolved, and later a bare `cat > file` chained before a heredoc waited on stdin for another 120 seconds; each was ended by its own process id (the first with `taskkill //IM python.exe`, which stops every python process: use `//PID`). Write a script file with the Write tool and run it with `node`, never a stdin script.
 - hit again: 2026-10-04, B3 c12: a `python - ; node -e ...` chain hung 120 seconds, the node edit ran only after the python process was ended by its own id; the file held the edit when the Edit tool then said `String to replace not found`.
@@ -3128,6 +3129,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: R38 allows the table only under `src/server/subscribers/`, `newsletter/audience.ts` and `jobs/system/market-open-notice.ts`; the plan says the payload is built "from a real row (... subscriber ...)" and names no such module.
 - rule: a read of `subscribers` outside those modules goes through a function in `src/server/subscribers/` that selects `id` and nothing else (`lookup.ts`); the automation code imports it.
 - proof: `cd app && bunx vitest run tests/unit/boundaries.test.ts` → passes; with `subscriberIdQuery` inlined as `db.from("subscribers")` in `sample-payloads.ts` → the R38 case fails (measured 2026-10-05, B8b g5).
+- added: 2026-10-05
+
+## P-1622 · The plan's `/__scheduled` URL answers 404 on the installed wrangler; the trigger for a scheduled test is `/cdn-cgi/handler/scheduled`
+- symptom: B8b g5, `wrangler dev --test-scheduled`, `curl "http://127.0.0.1:8909/__scheduled?cron=*%2F10+*+*+*+*"` gave 404; the dev log listed `/cdn-cgi/local/explorer/api/local/scheduled`.
+- cause: the plan (B8b step 5, H1's cache-probe keepwarm mode) was written from older wrangler documentation; the route this wrangler serves is under `/cdn-cgi/handler/`.
+- rule: trigger a Worker's `scheduled()` locally with `curl "http://127.0.0.1:<port>/cdn-cgi/handler/scheduled?cron=<urlencoded cron>"`; a plan or script that still says `/__scheduled` is fixed when its owner next edits it (H1.md line 114 and B8b.md step 5 at 2026-10-05).
+- proof: with `bunx wrangler dev --config .output/server/wrangler.json --env-file "$(pwd)/.dev.vars" --port 8909 --test-scheduled` running, `curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8909/__scheduled?cron=*%2F10+*+*+*+*"` → `404`, and the same query on `/cdn-cgi/handler/scheduled` → `200` with a `keepwarm_tick` line in the log (measured 2026-10-05, B8b g5).
+- added: 2026-10-05
+
+## P-1623 · A script that takes a lock on its own connection must read nothing before the `try` whose `finally` releases it: a throw there leaves the connection open and the process hangs
+- symptom: B8b g5 review: `automation-smoke.ts` called `holdDevLock()`, then `readSteps()` and `newestSubmission()` before the `try`; with the recipe read failing, it printed the error, set exit code 1 and never ended (`timeout 45` gave exit 124), holding `pg_advisory_lock('mop-dev-tests')` for every other lane.
+- cause: the `pg` client of the lock keeps the event loop alive; only `release()` ends it, and `release()` sat in a `finally` that did not cover the reads.
+- rule: the line after the lock is `try {`: every read, change and check goes inside it, with the values the `finally` needs declared before it as `let x: T | undefined`.
+- proof: against an empty throwaway PostgreSQL 18 cluster, `env -i PATH="$PATH" HOME="$HOME" USERPROFILE="$USERPROFILE" SYSTEMROOT="$SYSTEMROOT" DEV_DB_URL=postgresql://postgres@127.0.0.1:55433/postgres DEV_SUPABASE_PROJECT_REF=zzzzzzzzzzzzzzzzzzzz DEV_SUPABASE_SERVICE_ROLE_KEY=x timeout 30 bun run scripts/automation-smoke.ts; echo exit=$?` → `exit=1` with the fix, `exit=124` with the reads moved back above the `try` (measured 2026-10-05, B8b g5 rework).
+- added: 2026-10-05
+
+## P-1624 · A check that reads back a value the script just wrote proves nothing, and a "no job" result proves a toggle only against a control where the step is planned
+- symptom: B8b g5 review: the smoke's "real run skipped notify_admin_received (step_disabled)" line came from zero jobs plus a read of the `enabled` flag the script had written itself. `notify_admin` has no step module before B5, so the planner skips it as `not_implemented` with the toggle on or off, and the run printed the same lines either way.
+- cause: the plan's exit line was written for the state after B5; at this commit the step cannot be planned at all.
+- rule: a proof that something was left out because of a setting first shows it is put in with the setting on (a control run), and prints UNPROVEN with the reason when the control cannot show it. Never assert on a value the same script wrote.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN -u SUPABASE_ACCESS_TOKEN bun run scripts/automation-smoke.ts` → `UNPROVEN: real run, notify_admin_received is skipped as not_implemented with the step on, ...` while `src/server/jobs/steps/index.ts` has no `notify_admin` module; after B5 registers one the control should plan the step and the script should print `real run skipped notify_admin_received (step_disabled)`, UNPROVEN until then (measured 2026-10-05, B8b g5 rework).
 - added: 2026-10-05
 
 ## P-519 · The sizer's briefs ran to 15,000 to 30,000 characters each, so its one answer could not hold every group and steps were dropped

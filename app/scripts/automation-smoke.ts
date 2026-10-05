@@ -1,7 +1,9 @@
 // B8b step 5, part 1 of the exit: `bun run scripts/automation-smoke.ts` with the dev profile loaded, on the one
 // database before L1's launch switch only (ruling H35 (5)). It switches step `notify_admin_received` of
-// `submission.received` off, shows that the dry-run and the deployed runner's real fan-out both skip it, runs one
-// keep-warm tick, and puts the recipe back. Its event row stays: `events` is append-only (B2 invariant 3).
+// `submission.received` off, shows that the dry-run skips it and that the deployed runner's real fan-out makes no job
+// for it, runs one keep-warm tick, and puts the recipe back. The real-run line is a proof of the toggle only when the
+// step is planned with it on; otherwise the script prints UNPROVEN. Its event row stays: `events` is append-only (B2
+// invariant 3).
 import { setTimeout as sleep } from "node:timers/promises";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, Json } from "../src/db/index.ts";
@@ -143,8 +145,18 @@ async function keepWarmRow(db: DevDb) {
   return row;
 }
 
+/** Why the planner leaves the step out with the step on, or undefined when it plans it. */
+async function skipReasonWhenOn(db: DevDb, submissionId: string): Promise<string | undefined> {
+  const dry = await dryRun(db, { trigger: TRIGGER, entity_id: submissionId });
+  return dry.skipped.find((step) => step.step_id === STEP)?.reason;
+}
+
 /** The planner's two outputs for the switched-off step, then the keep-warm tick. */
-async function smoke(db: DevDb, submissionId: string): Promise<void> {
+async function smoke(
+  db: DevDb,
+  submissionId: string,
+  reasonWhenOn: string | undefined,
+): Promise<void> {
   const dry = await dryRun(db, { trigger: TRIGGER, entity_id: submissionId });
   const dryReason = dry.skipped.find((step) => step.step_id === STEP)?.reason;
   if (dryReason !== "step_disabled") {
@@ -166,11 +178,15 @@ async function smoke(db: DevDb, submissionId: string): Promise<void> {
       `automation-smoke: the real run made ${String(forStep.length)} job for ${STEP}`,
     );
   }
-  // The real run records no skip, so the reason is read back: no job for the step and the stored step is off.
-  if (stepOf(await readSteps(db))?.["enabled"] !== false)
-    throw new Error(`automation-smoke: ${STEP} is not switched off`);
-  console.log(`real run skipped ${STEP} (step_disabled)`);
-  console.log(`jobs for step: ${String(forStep.length)}`);
+  // The real run records no skip. No job proves the toggle only when the step is planned with it on.
+  if (reasonWhenOn === undefined) {
+    console.log(`real run skipped ${STEP} (step_disabled)`);
+    console.log(`jobs for step: ${String(forStep.length)}`);
+  } else {
+    console.log(
+      `UNPROVEN: real run, ${STEP} is skipped as ${reasonWhenOn} with the step on, so ${String(forStep.length)} jobs for it says nothing about the toggle`,
+    );
+  }
   await cancelOpenJobs(db, eventId);
 
   const before = await keepWarmRow(db);
@@ -195,16 +211,18 @@ async function main(): Promise<void> {
   await assertNotProduction({ dbUrl: process.env["DEV_DB_URL"] });
   const db = devDb();
   const release = await holdDevLock();
-  const original = await readSteps(db);
-  const submissionId = await newestSubmission(db);
+  let original: Json | undefined;
   let changed = false;
   try {
+    original = await readSteps(db);
+    const submissionId = await newestSubmission(db);
+    const reasonWhenOn = await skipReasonWhenOn(db, submissionId);
     await putSteps(db, withStepOff(original), "smoke");
     changed = true;
-    await smoke(db, submissionId);
+    await smoke(db, submissionId, reasonWhenOn);
   } finally {
     try {
-      if (changed) await putSteps(db, original, "smoke-restore");
+      if (changed && original !== undefined) await putSteps(db, original, "smoke-restore");
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
