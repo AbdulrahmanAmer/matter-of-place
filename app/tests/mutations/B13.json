@@ -1,0 +1,642 @@
+[
+  {
+    "id": "b13-g1-img-relative",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "} catch {\n    return false;",
+    "replace": "} catch {\n    return true;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > drops a relative image path"
+  },
+  {
+    "id": "b13-g1-img-http",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": ".protocol === \"https:\"",
+    "replace": ".protocol !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > drops an http image"
+  },
+  {
+    "id": "b13-g1-img-tags",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "            { property: \"og:image:alt\", content: shownImage.alt },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead image > writes the Open Graph"
+  },
+  {
+    "id": "b13-g1-tw-site",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "      { name: \"twitter:title\", content: fullTitle },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead tags > repeats the title"
+  },
+  {
+    "id": "b13-g1-article-dates",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(type === \"article\" && published",
+    "replace": "...(published",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead tags > writes article dates only for an article"
+  },
+  {
+    "id": "b13-g1-canon-query",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const bare = path.split(/[?#]/, 1)[0] ?? \"\";",
+    "replace": "const bare = path;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead canonical > turns /properties"
+  },
+  {
+    "id": "b13-g1-canon-slash",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const trimmed = bare.replace(/\\/+$/, \"\");",
+    "replace": "const trimmed = bare;",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead canonical > turns /faq/"
+  },
+  {
+    "id": "b13-g1-ser-escape",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "/[<>&",
+    "replace": "/[>&",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*serializeJsonForScript > escapes the characters"
+  },
+  {
+    "id": "b13-g1-ser-plain",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "/[<>&",
+    "replace": "/[\"<>&",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*serializeJsonForScript > leaves a payload"
+  },
+  {
+    "id": "b13-g1-ld-hostile",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead jsonLd > never lets a hostile value"
+  },
+  {
+    "id": "b13-g1-ld-graph",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "const graph = Array.isArray(jsonLd)",
+    "replace": "const graph = Array.isArray(jsonLd) && false",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*pageHead jsonLd > wraps an array in one @graph"
+  },
+  {
+    "id": "b13-g1-csp-property",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*property page > renders a hostile payload"
+  },
+  {
+    "id": "b13-g1-csp-property-ld",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "children: serializeJsonForScript(graph)",
+    "replace": "children: JSON.stringify(graph)",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*property page structured data > parses back"
+  },
+  {
+    "id": "b13-g1-csp-story",
+    "test": "tests/unit/csp-inline.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    scripts: graph\n      ? [{ type: \"application/ld+json\", children: serializeJsonForScript(graph) }]\n      : [],",
+    "replace": "    scripts: [{ children: title }],",
+    "run": "bunx vitest run --project unit tests/unit/csp-inline.test.ts",
+    "expect": "FAIL .*story page > renders a hostile payload"
+  },
+  {
+    "id": "b13-g1-copy-dash",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "Short answers about Matter of Place: what we feature,",
+    "replace": "Short answers about Matter of Place — what we feature,",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*page descriptions > faq follows the copy rules"
+  },
+  {
+    "id": "b13-g1-copy-unique",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "\"Submit an existing residential property in California, New York or Florida for editorial review.\"",
+    "replace": "\"Short answers about Matter of Place: what we feature, what it costs and who receives inquiries.\"",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*page descriptions > gives every page its own description"
+  },
+  {
+    "id": "b13-g1-copy-data",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "${formatNumber(interiorSqFt)} sq ft",
+    "replace": "$${formatNumber(interiorSqFt)} sq ft",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > keep to the copy rules"
+  },
+  {
+    "id": "b13-g1-copy-archive",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "city: `in ${label}`",
+    "replace": "city: `in the city`",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > describes an archive page"
+  },
+  {
+    "id": "b13-g1-copy-singular",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "${pluralize(beds, \"bedroom\")}",
+    "replace": "bedrooms",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > uses the singular"
+  },
+  {
+    "id": "b13-g1-copy-pad",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "return text.length < MIN ? `${text} ${PLATFORM}` : text;",
+    "replace": "return text;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > completes a short story deck"
+  },
+  {
+    "id": "b13-g1-copy-cut",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "const end = /\\s/.test(text.charAt(MAX - 1)) ? head.length : head.lastIndexOf(\" \");",
+    "replace": "const end = head.length;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > cuts a long story deck"
+  },
+  {
+    "id": "b13-g1-copy-fit",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "if (next.length > MAX) break;",
+    "replace": "if (next.length > MAX + 200) break;",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*descriptions written from data > adds a second sentence"
+  },
+  {
+    "id": "b13-g1-slug-apos",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/['’]/g, \"\")\n",
+    "replace": "\n",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"Caf"
+  },
+  {
+    "id": "b13-g1-slug-marks",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/\\p{M}/gu, \"\")\n",
+    "replace": "\n",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"Z"
+  },
+  {
+    "id": "b13-g1-slug-trim",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/slug.ts",
+    "find": ".replace(/^-+|-+$/g, \"\")",
+    "replace": ".replace(/^-+$/g, \"\")",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "FAIL .*slugify > turns \"  Shingle"
+  },
+  {
+    "id": "b13-g2-site-search",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "required name=search_term_string",
+    "replace": "required name=q",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*WebSite > carries the site search"
+  },
+  {
+    "id": "b13-g2-crumb-position",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "      \"@type\": \"ListItem\",\n      position: index + 1,\n      name: item.name,\n      item:",
+    "replace": "      \"@type\": \"ListItem\",\n      position: index,\n      name: item.name,\n      item:",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*breadcrumbLd > starts at Home in position 1"
+  },
+  {
+    "id": "b13-g2-listing-date",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "    datePosted: property.publishedAt,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > parses as a RealEstateListing"
+  },
+  {
+    "id": "b13-g2-listing-geo",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "      \"@type\": \"Accommodation\",\n",
+    "replace": "      \"@type\": \"Accommodation\",\n      geo: { \"@type\": \"GeoCoordinates\", latitude: 1, longitude: 2 },\n",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > states the place to city level only"
+  },
+  {
+    "id": "b13-g2-listing-offers",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "...(property.status === \"Active\"",
+    "replace": "...(true",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > offers the property only while it is Active"
+  },
+  {
+    "id": "b13-g2-media-relative",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "if (value.startsWith(\"/media/\")) return absoluteUrl(value);",
+    "replace": "if (value.startsWith(\"/media/\")) return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*propertyListingLd > lists only images on the public media route"
+  },
+  {
+    "id": "b13-g2-media-relative-video",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "if (value.startsWith(\"/media/\")) return absoluteUrl(value);",
+    "replace": "if (value.startsWith(\"/media/\")) return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > makes the media addresses absolute"
+  },
+  {
+    "id": "b13-g2-article-date",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "    datePublished: story.publishedAt,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*articleLd > parses as an Article with datePublished"
+  },
+  {
+    "id": "b13-g2-media-foreign",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "return value.startsWith(\"https://\") ? value : undefined;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*articleLd > leaves the image out unless it is on the media route or https"
+  },
+  {
+    "id": "b13-g2-media-foreign-video",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "return value.startsWith(\"https://\") ? value : undefined;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > returns null for a src that is neither under /media/ nor an absolute https address"
+  },
+  {
+    "id": "b13-g2-collection-count",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "numberOfItems: items.length,",
+    "replace": "numberOfItems: items.length + 1,",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*collectionLd > parses as a CollectionPage"
+  },
+  {
+    "id": "b13-g2-faq-type",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "\"@type\": \"FAQPage\",",
+    "replace": "\"@type\": \"WebPage\",",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*faqJsonLd > parses as a FAQPage"
+  },
+  {
+    "id": "b13-g2-video-none",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "  if (video === undefined) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > returns null without a video"
+  },
+  {
+    "id": "b13-g2-duration-minutes",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "${String(minutes)}M",
+    "replace": "${String(minutes)}m",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > converts minutes and hours"
+  },
+  {
+    "id": "b13-g2-video-poster",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "const thumbnailUrl = mediaAddress(video.poster);",
+    "replace": "const thumbnailUrl = video.poster;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > omits the thumbnail when the poster is a bundled asset"
+  },
+  {
+    "id": "b13-g2-val-none",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "if (sources.length === 0) throw new Error(\"no application/ld+json block\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a page with no structured data"
+  },
+  {
+    "id": "b13-g2-val-json",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "parsed = JSON.parse(source);",
+    "replace": "parsed = {};",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a block that is not JSON"
+  },
+  {
+    "id": "b13-g2-val-context",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "\"@context\": z.literal(\"https://schema.org\")",
+    "replace": "\"@context\": z.string().optional()",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > refuses a block without the schema.org context"
+  },
+  {
+    "id": "b13-g2-val-field",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "      datePublished: text,\n",
+    "replace": "      datePublished: text.optional(),\n",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > names the type and the field"
+  },
+  {
+    "id": "b13-g2-val-single",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "scripts/validate-jsonld.ts",
+    "find": "checked.data[\"@graph\"] ?? [checked.data]",
+    "replace": "checked.data[\"@graph\"] ?? []",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*validateHtml > reads a single block and a graph alike"
+  },
+  {
+    "id": "b13-c1-copy-pad-whole",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "find": "? `${text} ${PLATFORM}` : text;",
+    "replace": "? cutAtWord(`${text} Matter of Place is an editorial real-estate media platform for residential property in California, New York and Florida.`) : text;",
+    "expect": "FAIL .*pads a short text with the whole platform line"
+  },
+  {
+    "id": "b13-c1-copy-abbreviation",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "find": "const end = text.search(SENTENCE_END);",
+    "replace": "const end = text.indexOf(\".\");",
+    "expect": "FAIL .*keeps an abbreviation inside the first sentence"
+  },
+  {
+    "id": "b13-s4-view-threshold",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 2; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > lists a facet of three published properties, not one of two"
+  },
+  {
+    "id": "b13-s4-view-threshold-def",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 2; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > states the threshold that MIN_ARCHIVE holds"
+  },
+  {
+    "id": "b13-s4-view-draft",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > lists a facet of three published properties, not one of two, and ignores a draft"
+  },
+  {
+    "id": "b13-s4-view-state",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'california' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > holds the rows that listFacets derives from the snapshot"
+  },
+  {
+    "id": "b13-s4-view-grant",
+    "kind": "sql",
+    "test": "tests/db/archive.db.test.ts",
+    "sql": "create or replace view public.archive_facets with (security_invoker = true) as with facet_rows as ( select 'city'::text as kind, p.city || ', ' || p.state as label, p.city || ' ' || case p.state when 'California' then 'ca' when 'New York' then 'ny' when 'Florida' then 'fl' else p.state end as source from public.properties p where p.editorial_state = 'published' union all select 'architect'::text, p.architect, p.architect from public.properties p where p.editorial_state = 'published' and btrim(p.architect) <> '' union all select 'style'::text, p.style, p.style from public.properties p where p.editorial_state = 'published' and btrim(p.style) <> '' ), slugged as ( select f.kind, f.label, btrim( regexp_replace( regexp_replace( lower(regexp_replace(normalize(f.source, nfkd), '[\\u0300-\\u036f]', '', 'g')), '[''’]', '', 'g' ), '[^[:alnum:]]+', '-', 'g' ), '-' ) as slug from facet_rows f ) select s.kind, s.slug, min(s.label collate \"C\") as label, count(*)::int as property_count from slugged s where s.slug <> '' group by s.kind, s.slug having count(*) >= 3; revoke all on public.archive_facets from public, anon, authenticated; grant select on public.archive_facets to service_role; grant select on public.archive_facets to anon;",
+    "run": "bunx vitest run --project db tests/db/archive.db.test.ts",
+    "expect": "FAIL .*archive_facets > answers the service role and refuses anon and authenticated"
+  },
+  {
+    "id": "b13-s4-fac-style",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    style: `Fixture Style ${String(n)}`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > inserts a row the publish gate and the constraints accept"
+  },
+  {
+    "id": "b13-s4-fac-overrides",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    ...overrides,\n  } satisfies PropertyInsert;",
+    "replace": "  } satisfies PropertyInsert;",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > raises publish_incomplete for the same row with style null"
+  },
+  {
+    "id": "b13-s4-fac-market",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "values ('california', 'California', 'United States', 'x')\n     on conflict (slug) do nothing",
+    "replace": "values ('california', 'California', 'United States', 'x')",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts",
+    "expect": "FAIL .*publishedProperty > gives a second property another id and slug[\\s\\S]*markets_pkey"
+  },
+  {
+    "id": "b13-s4-ufac-gate",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "    hero_image: `fixtures/property-${String(n)}/hero.webp`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "FAIL .*publishedPropertyRow > is a properties insert that fills every column the publish gate requires"
+  },
+  {
+    "id": "b13-s4-ufac-id",
+    "test": "tests/unit/factories.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "id: deterministicUuid(\"fixtures:property\", n),",
+    "replace": "id: deterministicUuid(\"fixtures:property\", 1),",
+    "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
+    "expect": "FAIL .*publishedPropertyRow > gives the same row for the same n"
+  },
+  {
+    "id": "b13-s4-arch-threshold",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "count >= MIN_ARCHIVE",
+    "replace": "count >= 2",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > lists a facet of three published properties and not one of two"
+  },
+  {
+    "id": "b13-s4-arch-view",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "export const MIN_ARCHIVE = 3;",
+    "replace": "export const MIN_ARCHIVE = 4;",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > agrees with the threshold of the view in its migration"
+  },
+  {
+    "id": "b13-s4-arch-flag",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true",
+    "replace": "state.flags[\"archive_pages\"] !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > lists nothing, finds nothing and links nothing while the flag is off"
+  },
+  {
+    "id": "b13-s4-arch-flag-missing",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true",
+    "replace": "state.flags[\"archive_pages\"] !== false",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*the archive threshold > treats a flag that is missing like a flag that is off"
+  },
+  {
+    "id": "b13-s4-arch-city",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "`${property.city} ${state}`",
+    "replace": "property.city",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > map each kind to its labels and slugs, a city by city and state"
+  },
+  {
+    "id": "b13-s4-arch-label",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "current.label = label < current.label ? label : current.label;",
+    "replace": "current.label = current.label;",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > folds accents and apostrophes into the slug and keeps the label that sorts first"
+  },
+  {
+    "id": "b13-s4-arch-spellings",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "current.labels.add(label);",
+    "replace": "current.labels.add(current.label);",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > links every spelling of a label to its facet"
+  },
+  {
+    "id": "b13-s4-arch-blank",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "if (slug === \"\") return;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > skips an architect that is blank"
+  },
+  {
+    "id": "b13-s4-arch-kind",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "candidate.kind === kind && candidate.slug === slug",
+    "replace": "candidate.slug === slug",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > find a page by kind and slug, and answer null for anything else"
+  },
+  {
+    "id": "b13-s4-arch-href",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "`/archive/${kind}/${slug}`",
+    "replace": "`/archive/${slug}`",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*facets > make the address of an archive page from a label, null when it has none"
+  },
+  {
+    "id": "b13-s4-arch-cards",
+    "test": "tests/unit/archive.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "found.slugs.flatMap((property) => cards.get(property) ?? [])",
+    "replace": "found.slugs.flatMap((property) => source.properties.filter((full) => full.slug === property))",
+    "run": "bunx vitest run --project unit tests/unit/archive.test.ts",
+    "expect": "FAIL .*getFacet items > are list cards: the keys of a PropertyCard, never the gallery"
+  },
+  {
+    "id": "b13-s4-e2e-threshold",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "count >= MIN_ARCHIVE",
+    "replace": "count >= 2",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 404[\\s\\S]*Received: 200",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-s4-e2e-link",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/components/site/archive-link.tsx",
+    "find": "  if (slug === undefined) return label;\n",
+    "replace": "  if (slug === undefined)\n    return (\n      <Link to=\"/archive/$kind/$slug\" params={{ kind, slug: \"fixture-architect\" }}>\n        {label}\n      </Link>\n    );\n",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 0[\\s\\S]*Received: 1",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-s4-e2e-beacon",
+    "kind": "manual",
+    "test": "tests/e2e/seo.spec.ts",
+    "file": "src/routes/_site.archive.$kind.$slug.tsx",
+    "find": "  useTrackView(\"archive_view\", `${kind}/${slug}`, { kind, slug, count });\n",
+    "replace": "",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/seo.spec.ts",
+    "expect": "Expected: 1[\\s\\S]*Received: 0",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  }
+]

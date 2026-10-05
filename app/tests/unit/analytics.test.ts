@@ -31,6 +31,7 @@ const everyEvent: Record<AnalyticsEvent, true> = {
   consent_set: true,
   web_vitals: true,
   csp_report: true,
+  archive_view: true,
 };
 const names = Object.keys(everyEvent).filter((name): name is AnalyticsEvent => name in everyEvent);
 

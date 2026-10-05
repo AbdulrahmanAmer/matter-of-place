@@ -38,6 +38,7 @@ export const analyticsEvents = [
   "consent_set",
   "web_vitals",
   "csp_report",
+  "archive_view",
 ] as const;
 export type AnalyticsEvent = (typeof analyticsEvents)[number];
 

@@ -16,6 +16,7 @@ export type RouteClass =
   | "property"
   | "story"
   | "faq"
+  | "archive"
   | "exposure"
   | "notFound";
 
@@ -61,14 +62,15 @@ export const redirects: { from: string; to: string; status: 301 }[] = [
 
 /** The route class decides which structured-data types a page must carry; an empty list accepts any valid block. */
 export const jsonLdExpectations: Record<RouteClass, string[]> = {
-  home: ["Organization"],
+  home: ["Organization", "WebSite"],
   page: [],
   market: [],
   guide: [],
   region: [],
-  property: ["SingleFamilyResidence"],
-  story: [],
+  property: ["RealEstateListing", "BreadcrumbList"],
+  story: ["Article"],
   faq: ["FAQPage"],
+  archive: ["CollectionPage"],
   exposure: ["FAQPage"],
   notFound: [],
 };
@@ -104,6 +106,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.$market.$region.tsx": "/$market/$region",
   "_site.property.$slug.tsx": "/property/$slug",
   "_site.stories.$slug.tsx": "/stories/$slug",
+  "_site.archive.$kind.$slug.tsx": "/archive/$kind/$slug",
   "_site.markets.$.tsx": "redirect",
   "_site.place-notes.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
@@ -137,6 +140,7 @@ export const dynamicPatterns = {
   region: "/$market/$region",
   property: "/property/$slug",
   story: "/stories/$slug",
+  archive: "/archive/$kind/$slug",
 } as const;
 
 type Params = {

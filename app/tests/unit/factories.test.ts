@@ -4,7 +4,7 @@ import type { TablesInsert } from "../../src/db/types";
 import { submissionTransitions } from "../../src/domain/workflow";
 import { FIXED_NOW, atFrom } from "../fixtures/clock";
 import { fixtureDataset, formatCounts } from "../fixtures/dataset";
-import { submissionRow } from "../fixtures/factories";
+import { publishedPropertyRow, submissionRow } from "../fixtures/factories";
 
 const base = FIXED_NOW;
 const SOURCES = ["tests/fixtures/factories.ts", "tests/fixtures/dataset.ts"];
@@ -88,5 +88,55 @@ describe("fixtureDataset", () => {
         { table: "invoices", count: 3 },
       ]),
     ).toBe("submissions 11, invoices 3");
+  });
+});
+
+// The twelve columns a published property fills beyond the seven of a draft (G62).
+const GATE_COLUMNS = [
+  "region_slug",
+  "neighborhood",
+  "country",
+  "price",
+  "beds",
+  "baths",
+  "interior_sq_ft",
+  "lot_acres",
+  "year_built",
+  "style",
+  "hero_image",
+  "place",
+] as const;
+
+describe("publishedPropertyRow", () => {
+  it("is a properties insert that fills every column the publish gate requires", () => {
+    const row = publishedPropertyRow({ n: 1 });
+    expectTypeOf(row).toExtend<TablesInsert<"properties">>();
+    const filled = new Map(Object.entries(row));
+    expect({
+      state: row.editorial_state,
+      empty: GATE_COLUMNS.filter((column) => (filled.get(column) ?? null) === null),
+      priceAboveZero: (row.price ?? 0) > 0,
+    }).toEqual({ state: "published", empty: [], priceAboveZero: true });
+  });
+
+  it("gives the same row for the same n, another id and slug for another n, and lets an override win", () => {
+    const first = publishedPropertyRow({ n: 1 });
+    const other = publishedPropertyRow({ n: 2 });
+    const owned = publishedPropertyRow({ n: 1, architect: "Fixture Architect", style: null });
+    expect({
+      same: publishedPropertyRow({ n: 1 }),
+      otherId: other.id === first.id,
+      otherSlug: other.slug === first.slug,
+      otherStyle: other.style === first.style,
+      architect: owned.architect,
+      style: owned.style,
+    }).toEqual({
+      same: first,
+      otherId: false,
+      otherSlug: false,
+      otherStyle: false,
+      architect: "Fixture Architect",
+      style: null,
+    });
   });
 });

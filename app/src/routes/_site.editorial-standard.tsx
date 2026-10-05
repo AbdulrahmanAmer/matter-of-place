@@ -2,13 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { editorialQualities } from "../data/exposure";
+import { breadcrumbLd } from "../lib/jsonld";
 import { pageHead } from "../lib/seo";
-
-const description =
-  "What Matter of Place looks for in a property: architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not the measure.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/editorial-standard")({
-  head: () => pageHead({ title: "Editorial Standard", description, path: "/editorial-standard" }),
+  head: () =>
+    pageHead({
+      title: "Editorial Standard",
+      description: pageDescription("editorial-standard"),
+      path: "/editorial-standard",
+      jsonLd: [breadcrumbLd([{ name: "Editorial Standard", path: "/editorial-standard" }])],
+    }),
   component: StandardPage,
 });
 

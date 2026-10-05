@@ -3,7 +3,7 @@
 // and `fanout_pending_events(50)` returns it while it is unprocessed and not waiting.
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { withRollback, type Db } from "../fixtures/db";
+import { createStaffUser, withRollback, type Db } from "../fixtures/db";
 
 interface Planned {
   type?: string;
@@ -279,9 +279,11 @@ describe("a recipe edit after fan-out (invariant 5)", () => {
           conditions: {},
         },
       ];
+      // A real admin: B7's `write_audit` refuses an actor with no `user_roles` row of that kind (DB-04, P-2000).
+      const admin = await createStaffUser(db, ["admin"]);
       await db.query(
-        `select public.automation_put_recipe('submission.received', $1::jsonb, gen_random_uuid(), 'human', 'req-1')`,
-        [JSON.stringify({ steps: edited })],
+        `select public.automation_put_recipe('submission.received', $1::jsonb, $2, 'human', 'req-1')`,
+        [JSON.stringify({ steps: edited }), admin],
       );
       return (await jobsOf(db, eventId)).map((job) => job.payload.params);
     });

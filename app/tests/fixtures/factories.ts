@@ -4,7 +4,7 @@
 import type { TablesInsert } from "../../src/db/types";
 import type { WorkflowState } from "../../src/domain/workflow";
 import { atFrom, deterministicUuid } from "./clock";
-import type { Db } from "./db";
+import { asRole, dbNow, type Db } from "./db";
 
 export const FIXTURE_EMAIL_LIKE = "%@fixtures.invalid";
 
@@ -159,4 +159,72 @@ export async function removeFixtureRows(
       ? await remove("delete from public.jobs where idempotency_key like 'fixtures:%'", [])
       : 0;
   return { payments, submissions, contacts, inquiries, subscribers, jobs };
+}
+
+type PropertyInsert = TablesInsert<"properties">;
+
+export type PublishedPropertyInput = Omit<Partial<PropertyInsert>, "id" | "slug"> & { n: number };
+
+/**
+ * The `properties` row of a published property: a value for every not-null column and for every column that
+ * `enforce_publish_gate` requires of a published row (G62). The city and the style are of its own, so a fixture
+ * never joins an archive facet unless the caller gives it one.
+ */
+export function publishedPropertyRow({ n, ...overrides }: PublishedPropertyInput) {
+  return {
+    id: deterministicUuid("fixtures:property", n),
+    slug: `fixture-property-${String(n)}`,
+    title: `Fixture Property ${String(n)}`,
+    market_slug: "california",
+    region_slug: "bay-area",
+    city: `Fixture City ${String(n)}`,
+    neighborhood: "Fixture Quarter",
+    state: "California",
+    country: "United States",
+    address: `${String(n)} Fixture Lane`,
+    price: 2_500_000,
+    beds: 4,
+    baths: 3.5,
+    interior_sq_ft: 3200,
+    lot_acres: 0.4,
+    year_built: 1962,
+    type: "Residence",
+    style: `Fixture Style ${String(n)}`,
+    status: "Active",
+    hero_image: `fixtures/property-${String(n)}/hero.webp`,
+    story: ["A fixture paragraph."],
+    place: "A quiet street.",
+    editorial_state: "published",
+    ...overrides,
+  } satisfies PropertyInsert;
+}
+
+/**
+ * Inserts one published property as the service role, which `enforce_publish_gate` lets publish, and returns the row.
+ * It needs a transaction: `asRole` is `set local`. The market `california` and its region `bay-area` are created when the
+ * database has none, so a fixture works on an empty schema and leaves a seeded one alone.
+ */
+export async function publishedProperty(db: Db, input: PublishedPropertyInput) {
+  await asRole(db, "service_role");
+  await db.query(
+    `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+     on conflict (slug) do nothing`,
+  );
+  await db.query(
+    `insert into public.regions (slug, market_slug, name, intro) values ('bay-area', 'california', 'Bay Area', 'x')
+     on conflict (slug) do nothing`,
+  );
+  const row = publishedPropertyRow({ published_at: (await dbNow(db)).toISOString(), ...input });
+  const entries = Object.entries(row);
+  const inserted = await db.query<{ id: string; slug: string } & Record<string, unknown>>(
+    `insert into public.properties (${entries.map(([column]) => column).join(", ")})
+     values (${entries.map((_, index) => `$${String(index + 1)}`).join(", ")})
+     returning *`,
+    entries.map(([, value]) => value),
+  );
+  await db.query("reset role");
+  const property = inserted.rows[0];
+  if (property === undefined)
+    throw new Error(`publishedProperty ${String(input.n)} returned no row`);
+  return property;
 }

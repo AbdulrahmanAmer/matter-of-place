@@ -5,15 +5,13 @@ import { TextLink } from "../components/site/text-link";
 import { exposureFaq, offerings, programmatic, selectionSteps } from "../data/exposure";
 import { padIndex } from "../lib/format";
 import { faqJsonLd, pageHead } from "../lib/seo";
-
-const description =
-  "The Feature $295, The Reach $695, The Campaign $1,495 and Five Features $1,250. Editorial presentation with precision distribution, after editorial review.";
+import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/exposure")({
   head: () =>
     pageHead({
       title: "Property Exposure",
-      description,
+      description: pageDescription("exposure"),
       path: "/exposure",
       jsonLd: faqJsonLd(exposureFaq),
     }),

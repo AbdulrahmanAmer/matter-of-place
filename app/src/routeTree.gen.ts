@@ -50,6 +50,7 @@ import { Route as ApiPublicSearchRouteImport } from './routes/api/public/search'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
+import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.$kind.$slug'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
 import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
 import { Route as ApiPublicMarketsSlugRouteImport } from './routes/api/public/markets.$slug'
@@ -266,6 +267,11 @@ const ApiPublicSubscribersRoute = ApiPublicSubscribersRouteImport.update({
   path: '/api/public/subscribers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SiteArchiveKindSlugRoute = SiteArchiveKindSlugRouteImport.update({
+  id: '/archive/$kind/$slug',
+  path: '/archive/$kind/$slug',
+  getParentRoute: () => SiteRoute,
+} as any)
 const ApiHooksOpsHealthTokenRoute = ApiHooksOpsHealthTokenRouteImport.update({
   id: '/api/hooks/ops-health/$token',
   path: '/api/hooks/ops-health/$token',
@@ -351,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -398,6 +405,7 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -450,6 +458,7 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/archive/$kind/$slug'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -549,6 +559,7 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/archive/$kind/$slug'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -600,6 +611,7 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/_site/archive/$kind/$slug'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -924,6 +936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubscribersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_site/archive/$kind/$slug': {
+      id: '/_site/archive/$kind/$slug'
+      path: '/archive/$kind/$slug'
+      fullPath: '/archive/$kind/$slug'
+      preLoaderRoute: typeof SiteArchiveKindSlugRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/api/hooks/ops-health/$token': {
       id: '/api/hooks/ops-health/$token'
       path: '/api/hooks/ops-health/$token'
@@ -1043,6 +1062,7 @@ interface SiteRouteChildren {
   SiteSubmitRoute: typeof SiteSubmitRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
+  SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
 
 const SiteRouteChildren: SiteRouteChildren = {
@@ -1061,6 +1081,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteSubmitRoute: SiteSubmitRoute,
   SiteIndexRoute: SiteIndexRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
+  SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
 
 const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)

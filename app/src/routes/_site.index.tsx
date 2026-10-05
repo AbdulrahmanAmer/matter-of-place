@@ -14,8 +14,10 @@ import { editorialQualities, offerings, programmatic } from "../data/exposure";
 import type { PropertyCard } from "../domain/property";
 import { featuredProperties, heroProperties } from "../lib/catalog";
 import { padIndex } from "../lib/format";
+import { websiteLd } from "../lib/jsonld";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { pageHead } from "../lib/seo";
+import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/")({
@@ -34,15 +36,17 @@ export const Route = createFileRoute("/_site/")({
   head: () =>
     pageHead({
       title: `${siteConfig.name} | Exceptional property. Properly considered.`,
-      description: siteConfig.description,
+      description: pageDescription("index"),
       path: "/",
-      jsonLd: {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        name: siteConfig.name,
-        url: siteConfig.url,
-        parentOrganization: { "@type": "Organization", name: siteConfig.parentCompany },
-      },
+      jsonLd: [
+        {
+          "@type": "Organization",
+          name: siteConfig.name,
+          url: siteConfig.url,
+          parentOrganization: { "@type": "Organization", name: siteConfig.parentCompany },
+        },
+        websiteLd(),
+      ],
     }),
   component: HomePage,
 });

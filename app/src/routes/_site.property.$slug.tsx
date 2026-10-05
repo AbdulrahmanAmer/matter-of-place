@@ -8,6 +8,7 @@ import { Gallery } from "../components/property/gallery";
 import { Representation } from "../components/property/representation";
 import { ShareCover } from "../components/property/share-cover";
 import { StickyActions } from "../components/property/sticky-actions";
+import { ArchiveLink } from "../components/site/archive-link";
 import { Breadcrumb } from "../components/site/breadcrumb";
 import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { ImageHero } from "../components/site/image-hero";
@@ -16,60 +17,63 @@ import { PlaceMap } from "../components/site/place-map";
 import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextButton, TextLink } from "../components/site/text-link";
-import { absoluteUrl, siteConfig } from "../config/site";
+import { siteConfig } from "../config/site";
 import { useTrackView } from "../hooks/use-track-view";
 import { track } from "../lib/analytics";
 import { formatPrice, marketOf, regionOf, relatedProperties } from "../lib/catalog";
 import { cx } from "../lib/cx";
 import { formatNumber } from "../lib/format";
-import { marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
+import { archiveFacetsQuery, marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
+import { breadcrumbLd, propertyListingLd, videoLd } from "../lib/jsonld";
 import { pageHead, unavailableHead } from "../lib/seo";
+import { propertyDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/property/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
-    const [property, properties, markets] = await Promise.all([
+    const [property, properties, markets, archive] = await Promise.all([
       queryClient.ensureQueryData(propertyQuery(params.slug)),
       queryClient.ensureQueryData(propertiesQuery()),
       queryClient.ensureQueryData(marketsQuery()),
+      queryClient.ensureQueryData(archiveFacetsQuery()),
     ]);
     if (!property) throw notFound();
     const market = marketOf(markets, property.market);
     const region = regionOf(markets, property.market, property.region);
     if (!market || !region) throw notFound();
-    return { property, market, region, related: relatedProperties(properties, property, 3) };
+    return {
+      property,
+      market,
+      region,
+      related: relatedProperties(properties, property, 3),
+      facets: archive?.facets ?? null,
+    };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return unavailableHead("Property");
-    const { property } = loaderData;
+    const { property, market, region } = loaderData;
+    const film = videoLd(property);
     return pageHead({
       title: `${property.title} ${property.city}`,
-      description: `${property.city}, ${property.state}: ${String(property.beds)} bedrooms, ${formatNumber(property.interiorSqFt)} sq ft, ${property.style.toLowerCase()} architecture and a sense of place.`,
+      description: propertyDescription(property),
       path: `/property/${property.slug}`,
       type: "article",
-      jsonLd: {
-        "@context": "https://schema.org",
-        "@type": "SingleFamilyResidence",
-        name: property.title,
-        url: absoluteUrl(`/property/${property.slug}`),
-        numberOfRooms: property.beds,
-        numberOfBathroomsTotal: property.baths,
-        yearBuilt: property.yearBuilt,
-        floorSize: { "@type": "QuantitativeValue", value: property.interiorSqFt, unitCode: "FTK" },
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: property.city,
-          addressRegion: property.state,
-          addressCountry: property.country,
-        },
-        publisher: { "@type": "Organization", name: siteConfig.name },
-      },
+      jsonLd: [
+        propertyListingLd(property),
+        breadcrumbLd([
+          { name: "Markets", path: "/markets" },
+          { name: market.name, path: `/${market.slug}` },
+          { name: region.name, path: `/${market.slug}/${region.slug}` },
+          { name: property.title, path: `/property/${property.slug}` },
+        ]),
+        ...(film ? [film] : []),
+      ],
     });
   },
   component: PropertyPage,
 });
 
 function PropertyPage() {
-  const { property, market, region, related } = Route.useLoaderData();
+  const { property, market, region, related, facets } = Route.useLoaderData();
   const [intent, setIntent] = useState<Intent | null>(null);
   const [askOpen, setAskOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -205,7 +209,27 @@ function PropertyPage() {
             </div>
             <div>
               <dt>Architecture</dt>
-              <dd>{property.style}</dd>
+              <dd>
+                <ArchiveLink kind="style" label={property.style} facets={facets} />
+              </dd>
+            </div>
+            {property.architect !== undefined && (
+              <div>
+                <dt>Architect</dt>
+                <dd>
+                  <ArchiveLink kind="architect" label={property.architect} facets={facets} />
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>City</dt>
+              <dd>
+                <ArchiveLink
+                  kind="city"
+                  label={`${property.city}, ${property.state}`}
+                  facets={facets}
+                />
+              </dd>
             </div>
             <div>
               <dt>Year</dt>
