@@ -31,7 +31,6 @@ test.describe("meta", () => {
   test("meta: the home page carries a canonical link, Open Graph and a Twitter card", async ({
     page,
   }) => {
-    test.fixme(true, "BLOCKED until B13: pageHead emits these tags");
     await page.goto("/");
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
     await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);

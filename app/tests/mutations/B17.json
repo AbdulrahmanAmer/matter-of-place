@@ -585,5 +585,15 @@
     "replace": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n      { rel: \"stylesheet\", href: \"https://fonts.googleapis.com/css2?family=Jost\" },\n",
     "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"fonts:\" --reporter=line",
     "expect": "fonts\\.googleapis\\.com"
+  },
+  {
+    "id": "b17-e2e-meta-twitter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/seo.ts",
+    "find": "      { name: \"twitter:card\", content: \"summary_large_image\" },\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"meta:\" --reporter=line",
+    "expect": "twitter:card"
   }
 ]
