@@ -22,6 +22,7 @@ const FROM_DOTENV = [
   { name: "RATE_LIMIT_SALT", source: "PREVIEW_RATE_LIMIT_SALT", required: true },
   { name: "SENTRY_TEST_TOKEN", source: "PREVIEW_SENTRY_TEST_TOKEN", required: false },
   { name: "RESEND_WEBHOOK_SECRET", source: "RESEND_WEBHOOK_SECRET", required: false },
+  { name: "CONFIRM_TOKEN_SECRET", source: "CONFIRM_TOKEN_SECRET", required: false },
 ];
 
 /**

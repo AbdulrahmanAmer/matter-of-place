@@ -24,6 +24,11 @@ const shape = z.object({
   // Key of the render callback signature; unset, the render hook answers 503 (B8 Contract).
   RENDER_CALLBACK_SECRET: text.optional(),
   CATALOG_VERSION_TTL_MS: z.coerce.number().int().nonnegative().optional(),
+  // Seals the confirm token at signup (B5 invariant 7). Base64 of 32 bytes is 43 characters and one `=`.
+  CONFIRM_TOKEN_SECRET: z
+    .string()
+    .regex(/^[A-Za-z0-9+/]{43}=$/, "must be base64 of 32 bytes")
+    .optional(),
 });
 
 // After the launch switch a preview holds no Supabase key (H35 (7)), so only production needs them.
