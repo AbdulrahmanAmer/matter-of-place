@@ -1830,6 +1830,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing `closed` in a plan row, run `cd app && bun run stubs` with that row edited locally; re-label any remaining marker to the slice that owns the work (here STUB(B9 step 6)) in the same pull request.
 - proof: `cd app && bun run stubs` → `stubs: 15 markers, 0 on closed slices` on main at 60f3886; at 21872ef it printed `1 on closed slices` and exit 1.
 - added: 2026-10-03
+- hit again: 2026-10-05, B7 g1: after merging main at a74a75f (B15 marked closed by the records commit d68b75c), the lane's `bun run check` stopped at `stubs` with `src/server/lib/crypto.ts:47 STUB(B15) slice is closed` and `stubs: 10 markers, 1 on closed slices`; the marker is on main, not the lane's work. Proof: `git show a74a75f:app/src/server/lib/crypto.ts | grep -c "STUB(B15)"` → `1`.
 
 ## G-302 · Supabase Storage answers a missing object with HTTP 400 and the status in the body, so a route that waits for a 404 reports an outage
 - paths: app/src/server/public/media.ts, app/src/server/lib/media-store.ts
