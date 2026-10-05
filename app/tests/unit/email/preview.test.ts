@@ -10,6 +10,7 @@ import { renderTemplate } from "../../../src/server/email/render";
 import { entityData, resolveVariables } from "../../../src/server/email/variables";
 import { sendEmail } from "../../../src/server/jobs/steps/send-email";
 import { emailEnv, emailWorld, fakeFetch, NOW, stepCtx } from "../../fixtures/email-send";
+import type { Db } from "../../../src/server/lib/db";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
 
 const SUBMISSION = "11111111-1111-4111-8111-111111111111";
@@ -90,6 +91,16 @@ describe("previewTemplate", () => {
     const db = fakeDb({ tables: { email_templates: [], settings: [] } });
     await expect(previewTemplate(db, { key: "declined" })).rejects.toMatchObject({
       code: "not_found",
+    });
+  });
+
+  it("is unavailable, not not_found, when the read of the row fails", async () => {
+    const failed = Promise.resolve({ data: null, error: { code: "57014" } });
+    const query = { eq: () => query, limit: () => failed };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a client whose one read fails; the code under test touches nothing else
+    const db = { from: () => ({ select: () => query }) } as unknown as Db;
+    await expect(previewTemplate(db, { key: "received" })).rejects.toMatchObject({
+      code: "unavailable",
     });
   });
 

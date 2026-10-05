@@ -217,6 +217,13 @@ describe("resolveVariables", () => {
     );
   });
 
+  it("invoice with neither a payment nor a submission to look for is payment_id_missing, not a read", async () => {
+    const db = dbWith({ payments: [payment()], submissions: [submission()], settings: [] });
+    const outcome = await resolveVariables(db, "invoice", {}).catch((error: unknown) => error);
+    expect(outcome).toMatchObject({ message: "payment_id_missing", name: "NonRetryableError" });
+    expect(db.calls.filter((call) => call.name === "payments")).toEqual([]);
+  });
+
   it("inquiry_ack names the inquirer", async () => {
     const db = dbWith({ inquiries: [inquiry()] });
     expect(await resolveVariables(db, "inquiry_ack", { inquiry_id: INQUIRY })).toEqual({
@@ -389,6 +396,20 @@ describe("resolveVariables admin_notify", () => {
       headline: "Token expiry: The Meta token expires in 5 days.",
       summary: "The Meta token expires in 5 days.",
       link_url: `${SITE_URL}/admin/settings`,
+    });
+  });
+
+  it("a health.failed without a list of failed checks is a non-retryable failure", async () => {
+    const outcome = await resolveVariables(
+      dbWith({}),
+      "admin_notify",
+      { failed: "database" },
+      "health.failed",
+      site,
+    ).catch((error: unknown) => error);
+    expect(outcome).toMatchObject({
+      message: "failed_checks_malformed",
+      name: "NonRetryableError",
     });
   });
 

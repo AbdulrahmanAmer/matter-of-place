@@ -30,10 +30,11 @@ export async function previewTemplate(
     .select("key, subject, preheader, body")
     .eq("key", key)
     .limit(1);
-  const row = result.data?.[0];
-  if (result.error !== null || row === undefined) {
-    throw new AppError("not_found", undefined, "There is no such template.");
+  if (result.error !== null) {
+    throw new AppError("unavailable", undefined, "The template could not be read.");
   }
+  const row = result.data[0];
+  if (row === undefined) throw new AppError("not_found", undefined, "There is no such template.");
   const site = await loadSiteContext(db, siteConfig.url);
   const base =
     entity === undefined

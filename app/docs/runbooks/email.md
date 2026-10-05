@@ -29,6 +29,11 @@ H29) and are not repeated here.
   unreplaced is sent. A block whose text comes out empty is dropped, and so is a fact with no value.
 - A link built from a variable must be https and on the site's own origin, or the render stops with `url_off_site`.
 - The subject is one line whatever a variable held.
+- `previewTemplate` answers a missing row with `AppError` `not_found` and a failed read of the row with `AppError`
+  `unavailable`. A render or variable failure (`missing_variable:<name>`, `url_off_site`, `template_body_invalid`)
+  escapes as a `NonRetryableError`, not an `AppError`: the route that calls it translates it. A preview of
+  `interest_confirm`, `newsletter_confirm` or `repermission` with an entity stops at `missing_variable:confirm_url`,
+  because `entityData` carries no `sealed_token`; preview those with the sample variables.
 - The plain-text part is written from the resolved blocks, not converted from the HTML. In a scratch measurement made
   for this step on 2026-10-05 (laptop at 100 percent load from other lanes, production React build, 100 renders, p50), the
   React render took about 3.6 ms and `toPlainText` of `@react-email/render` about 7 ms. That script is not kept: UNPROVEN

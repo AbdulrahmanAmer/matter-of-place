@@ -1060,10 +1060,37 @@
     "id": "b5-p-notfound",
     "test": "tests/unit/email/preview.test.ts",
     "file": "src/server/email/preview.ts",
-    "find": "if (result.error !== null || row === undefined) {",
-    "replace": "if (false) {",
+    "find": "if (row === undefined) throw",
+    "replace": "if (false) throw",
     "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
     "expect": "× .*is not_found for a key with no row"
+  },
+  {
+    "id": "b5-v-health-malformed",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (!parsed.success) throw new NonRetryableError(\"failed_checks_malformed\");",
+    "replace": "if (!parsed.success) throw parsed.error;",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*health.failed without a list of failed checks"
+  },
+  {
+    "id": "b5-v-invoice-no-id",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "if (paymentId === null && submissionId === null)\n    throw new NonRetryableError(\"payment_id_missing\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice with neither a payment nor a submission"
+  },
+  {
+    "id": "b5-p-unavailable",
+    "test": "tests/unit/email/preview.test.ts",
+    "file": "src/server/email/preview.ts",
+    "find": "if (result.error !== null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/preview.test.ts",
+    "expect": "× .*is unavailable, not not_found"
   },
   {
     "id": "b5-p-client",

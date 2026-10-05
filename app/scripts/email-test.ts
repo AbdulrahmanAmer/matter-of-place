@@ -37,6 +37,7 @@ async function renderToFile(key: EmailTemplateKey): Promise<void> {
 }
 
 interface Secrets {
+  dbUrl: string;
   projectRef: string;
   serviceKey: string;
   runnerSecret: string;
@@ -52,6 +53,7 @@ function loadSecrets(): Secrets {
     return value;
   };
   return {
+    dbUrl: need("DEV_DB_URL"),
     projectRef: need("DEV_SUPABASE_PROJECT_REF"),
     serviceKey: need("DEV_SUPABASE_SERVICE_ROLE_KEY"),
     runnerSecret: need("JOB_RUNNER_SECRET"),
@@ -86,11 +88,14 @@ async function sendOne(key: EmailTemplateKey, address: string, secrets: Secrets)
       .from("email_messages")
       .select("status, resend_id, error")
       .eq("job_id", jobId);
-    const message = messages.data?.[0];
+    if (messages.error !== null)
+      throw new Error(`${key}: email_messages: ${messages.error.message}`);
+    const message = messages.data[0];
     if (message?.status === "sent") return `sent ${key} ${message.resend_id ?? ""}`.trim();
     if (message?.status === "skipped") return `skipped ${key} ${message.error ?? ""}`.trim();
     const jobs = await db.from("jobs").select("status, error, result").eq("id", jobId);
-    const job = jobs.data?.[0];
+    if (jobs.error !== null) throw new Error(`${key}: jobs: ${jobs.error.message}`);
+    const job = jobs.data[0];
     if (job?.status === "dead") throw new Error(`${key}: job dead: ${job.error ?? "no error"}`);
     const skipped = skippedResult.safeParse(job?.result);
     if (job?.status === "done" && skipped.success) return `skipped ${key} ${skipped.data.skipped}`;
@@ -100,10 +105,10 @@ async function sendOne(key: EmailTemplateKey, address: string, secrets: Secrets)
 }
 
 async function sendMode(target: string, address: string): Promise<void> {
-  await assertNotProduction({ dbUrl: process.env["DEV_DB_URL"] });
+  const secrets = loadSecrets();
+  await assertNotProduction({ dbUrl: secrets.dbUrl });
   const keys = target === "all" ? [...emailTemplateKeys] : [target].filter(isKey);
   if (keys.length === 0) throw new Error(`email-test: unknown key ${target}`);
-  const secrets = loadSecrets();
   const release = await holdDevLock();
   try {
     for (const key of keys) console.log(await sendOne(key, address, secrets));

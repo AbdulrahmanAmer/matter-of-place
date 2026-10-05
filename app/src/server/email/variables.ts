@@ -269,6 +269,8 @@ const invoiceSettings = z.object({
 async function invoice({ db, data }: Resolve): Promise<Variables> {
   const paymentId = text(data, "payment_id");
   const submissionId = text(data, "submission_id");
+  if (paymentId === null && submissionId === null)
+    throw new NonRetryableError("payment_id_missing");
   const query = db
     .from("payments")
     .select("amount, invoice_number, product, preferred_method, submission_id");
@@ -453,7 +455,9 @@ const alerts: Record<string, Alert> = {
     headline: "Health check failed",
     path: () => "/admin/jobs",
     summary: ({ data }) => {
-      const failed = failedChecks.parse(data["failed"]);
+      const parsed = failedChecks.safeParse(data["failed"]);
+      if (!parsed.success) throw new NonRetryableError("failed_checks_malformed");
+      const failed = parsed.data;
       const noun = failed.length === 1 ? "health check" : "health checks";
       const lines = failed.map((item) => `${item.check}: ${item.message}`).join("; ");
       return Promise.resolve(`${String(failed.length)} ${noun} failed: ${lines}`);
