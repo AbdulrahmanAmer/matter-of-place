@@ -111,3 +111,23 @@ Source: the fresh reviewer of group c5, none blocking. Three reviewer items abou
 4. File `app/src/server/seo/sitemap.ts` (not blocking).
    What: Known follow-up. The hero's image:caption is the property title, not alt text as the plan says, because Property exposes no hero alt.
    Evidence: imagesOf: { address: property.heroImage, caption: property.title }
+
+## c6 · steps 6
+
+Source: the fresh reviewer of group c6, none blocking. Two reviewer items about GOTCHAS.md are banked (P-1818, and a hit-again line on P-140), not listed here.
+
+1. File `app/tests/mutations/B13.json` (not blocking).
+   What: The single-file proof and all 16 b13-s6 registry 'run' lines use a bare 'bunx vitest run'. That runs with vitest's 5000 ms default timeout, not the 60 s that 'bun run test' sets. On a cold transform cache the route test, which dynamically imports robots[.]txt.ts inside the test body, times out. The 'expect' of b13-s6-robots-route-kind ('FAIL .*the robots route > stores the indexable body as a doc') also matches that timeout. So a cold replay of that entry can print WATCHED-FAIL OK for the wrong reason. The bank already holds this rule (P-140: run a single-file proof as 'bun run test <file>' or add --testTimeout=60000). This group's proof line and registry did not follow it. Confirmed by running.
+   Evidence: First run of 'bunx vitest run --project unit tests/unit/robots.test.ts' in the fresh snapshot: 'x stores the indexable body as a doc ... 5916ms', 'Error: Test timed out in 5000ms', 'Tests 1 failed | 22 passed (23)', exit 1. The next two runs: 23 passed. bun run check (60 s timeout) was green.
+
+2. File `workspace/05-plans/STANDARDS.md` (not blocking).
+   What: Stale prose after the deletion. The folder-map row for public/ (line 87) still lists 'robots.txt' among the static files served as-is. app/docs/README.md line 34 says 'public/ static files served as-is (favicon, robots, ...)'. app/scripts/check-layout.mjs line 152 still allows 'public/{_headers,robots.txt,sw.js,offline.html}'. These are not this group's files: the orchestrator should fold them. robots.test.ts 'the static file > is gone' is what actually stops a re-added file in CI. Found by reading.
+   Evidence: grep -rn robots workspace/05-plans/STANDARDS.md app/docs/README.md app/scripts/check-layout.mjs → STANDARDS.md:87, README.md:34, check-layout.mjs:152
+
+3. File `app/tests/unit/audit/scope-check.test.ts` (not blocking).
+   What: The audit robot's scope check still lists 'app/public/robots.txt' as a path the robot may write (line 60). That is the exact file whose existence silently shadows the dynamic route and turns off the preview-host Disallow. robots.test.ts would turn such a PR red, so this is not a live hole. Still, the audit slice's allow-list should name the route file or nothing. Not this group's file. Found by reading.
+   Evidence: sed -n 50,62p app/tests/unit/audit/scope-check.test.ts shows "app/public/robots.txt" in the allowed list
+
+4. File `app/src/routes/robots[.]txt.ts` (not blocking).
+   What: Suspected by reading, not measured. UNPROVEN. The indexable branch goes through cachedResponse, which calls readState(db) before it looks in the cache. On a fresh isolate with the database unreachable and no last-good doc copy, serveLastGood rethrows and the apex robots.txt answers 503, even though its body is a constant. Crawlers read a 5xx robots.txt as a temporary full disallow. The plan's Contract prescribes cachedResponse for this route, so this is a plan-level weakness, not a builder defect.
+   Evidence: cache.ts lines 173-179: readState failure → serveLastGood → 'if (kept === undefined) throw failure'

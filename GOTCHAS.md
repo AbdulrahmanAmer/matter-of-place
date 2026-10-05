@@ -1461,6 +1461,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run a single-file proof as `bun run test <file>` (bun passes the path on and the script's flags apply) or add `--testTimeout=60000 --hookTimeout=60000` to a bare `bunx vitest run`. A `Test timed out in 5000ms` from a bare run is the default limit, not a fault: re-run it through the script before reading it as red. Whether the limit should move into `vitest.config.ts`, where every runner reads it, is the orchestrator's call (logged as a follow-up).
 - proof: `cd app && for i in 1 2 3 4; do bunx vitest run tests/unit/deploy-guard.test.ts 2>&1 | grep -E "Tests |timed out"; done` → at least one `Test timed out in 5000ms` while two lanes build (measured 2026-10-03); `for i in 1 2 3; do bun run test tests/unit/deploy-guard.test.ts 2>&1 | grep "Tests "; done` → three `Tests  6 passed (6)`.
 - added: 2026-10-03
+- hit again: 2026-10-06, B13 c6 review: the single-file proof of step 6 and all 16 `b13-s6` registry `run` lines use a bare `bunx vitest run`; on a cold transform cache `tests/unit/robots.test.ts` (it imports `robots[.]txt.ts` inside the test body) went red with `Test timed out in 5000ms` and then green twice, and the `expect` of `b13-s6-robots-route-kind` also matches that timeout, so a cold replay can print `WATCHED-FAIL OK` for the wrong reason. Write the proof and the `run` lines as `bun run test <file>`.
 
 ## P-141 · A job's text slice in `hygiene.test.ts` holds the comment above the next job, so a "not in this job" check reads another job's words
 - symptom: B1b c7's first case for H49 (1) asserted `has("dev", "PRODUCTION_DEPLOY")` is false (dev is not gated); it went red on a correct workflow, because the comment written above `production:` names `PRODUCTION_DEPLOY`. The same case first read `deployJob("production")?.if?.split(...)` and `tsc` refused it: `Property 'split' does not exist on type 'string | boolean'`. Two reworks before the case was right.
@@ -3425,6 +3426,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: plain `grep` reads `|` as an ordinary character (basic regular expressions); only `grep -E` (or `\|` in GNU grep) means "or". A proof whose expected output is `0` therefore passes before and after the thing it checks.
 - rule: write every alternation in a proof with `grep -E`, and watch the proof fail once (create or remove the thing it counts) before it goes into the bank or a plan; a proof that expects `0` needs a twin that expects `1`.
 - proof: `printf 'a\nb\n' | grep -c "a|b"` → `0` and `printf 'a\nb\n' | grep -c -E "a|b"` → `2`.
+- added: 2026-10-06
+
+## P-1818 · `review-snapshot.mjs remove` run with the cwd inside the snapshot deletes the snapshot's files, including the script, and then crashes
+- symptom: in the B13 c6 review `node workspace/05-plans/review-snapshot.mjs remove E:/mop-build/seo` run from `E:/mop-build/seo-review` removed the snapshot's files and then died; only `Node.js v24.13.0` reached the tail, and an empty `seo-review` folder was left. The script was gone, so the retry needed the lane's own copy.
+- cause: the script lives in the tree it removes and the shell's cwd is that tree, so the process loses its own file and its cwd mid-run.
+- rule: run `remove` from outside the snapshot, with the lane's copy: `cd E:/mop-build && node E:/mop-build/seo/workspace/05-plans/review-snapshot.mjs remove E:/mop-build/seo`; afterwards no `seo-review` folder remains.
+- proof: `cd E:/mop-build && node E:/mop-build/seo/workspace/05-plans/review-snapshot.mjs remove E:/mop-build/seo; ls -d E:/mop-build/seo-review* 2>&1 | grep -c "No such"` → `review-snapshot: removed E:/mop-build/seo-review`, then `1` (the folder is gone)
 - added: 2026-10-06
 
 ## P-2000 · `write_audit` arrives after slices that already audit: B8b's guarded calls go live and refuse their own tests, and B9 and B16 write `audit_log` directly
