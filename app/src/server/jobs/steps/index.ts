@@ -6,6 +6,7 @@ import { renderCarousel } from "./render-carousel.ts";
 import { buildNewsletterBlock } from "./build-newsletter-block.ts";
 import { renderCover } from "./render-cover.ts";
 import { renderOgStatic } from "./render-og-static.ts";
+import { renderReel } from "./render-reel.ts";
 import { renderStory } from "./render-story.ts";
 import { renderVariants } from "./render-variants.ts";
 import { selftestSteps } from "./selftest.ts";
@@ -20,6 +21,7 @@ const catalog: readonly StepDefinition[] = [
   renderCover,
   renderCarousel,
   renderStory,
+  renderReel,
   renderOgStatic,
   writeCaptionsStep,
   buildNewsletterBlock,

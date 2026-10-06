@@ -6,6 +6,7 @@ import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
 import { mediaUrl } from "../lib/media-store.ts";
 import type { SlideSpec } from "../../templates/social/slides.ts";
+import type { ReelSpec } from "./reel-spec.ts";
 
 // What a render script reads (B9 Contract): the property facts and its photographs as absolute URLs, built from rows
 // only, so the same rows give the same spec and the same hash. Plain `type` aliases, so a spec is a `Json` value.
@@ -200,6 +201,6 @@ export function buildRenderSpec(
 }
 
 /** The SHA-256 of the spec as JSON; the keys are written in one fixed order, so the same rows hash the same. */
-export function specHash(spec: RenderSpec): Promise<string> {
+export function specHash(spec: RenderSpec | ReelSpec): Promise<string> {
   return sha256Hex(JSON.stringify(spec));
 }
