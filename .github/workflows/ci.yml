@@ -301,6 +301,10 @@ jobs:
             echo "TURNSTILE_SECRET=1x0000000000000000000000000000000AA"
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "CATALOG_VERSION_TTL_MS=0"
+            # CI-only values: the Worker issues the mop_csrf cookie and confirm tokens only when these are set, and the
+            # admin sign-in spec asserts the cookie (PR 158). 32 zero bytes in base64 for the token key; a fixed string for CSRF.
+            echo "CSRF_SECRET=ci-only-csrf-secret"
+            echo "CONFIRM_TOKEN_SECRET=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           } > .dev.vars
       - run: bun run test:e2e:install
         if: steps.fe.outputs.changed == 'true'
