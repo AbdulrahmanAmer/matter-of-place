@@ -205,3 +205,33 @@
 3. File: `app/supabase/config.toml`. Not blocking.
    - Follow-up: "CI's supabase start reads [auth.email.smtp] enabled = true with env(RESEND_API_KEY) unset. Config loading tolerates this (config diff with the key unset exits 0). But once B7's admin-signin e2e asks the CI stack for a magic link, local GoTrue will try smtp.resend.com with no valid password (mailpit is already excluded with -x). UNPROVEN until B7's spec runs in CI. Record it for B7/B4."
    - Evidence: "env -u RESEND_API_KEY bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF -> exit 0, same counts. .github/workflows/ci.yml:169 and :262 run supabase start -x ...,mailpit,..."
+
+## g5 · steps 9
+
+1. File: `app/scripts/email-chain.ts (proof of plan step 9) / mop-dev settings`. Not blocking.
+   - Follow-up: "The chain proof, as the plan writes it, exits 1 on mop-dev. admin_notify resolves to settings.site.contact.email (hello@matterofplace.com), and the dev allow-list refuses that address (send-email.ts:134, only when MOP_ENV is not production). The author got exit 0 only by inserting a temporary settings.notifications row into the shared database and deleting it afterwards, and the runbook now makes that manual data change part of every chain proof. The runbook and the log say this truthfully, so nothing false is written. But the plan's pass state cannot be reached on mop-dev without a manual edit of the shared database, and the same red will hit step 5's EMAIL_LIVE=1 proof. The fix belongs to whoever owns the settings seed or the chain script: a standing dev notifications row, or the script setting and restoring the row under its own lock. Production is not affected, because the allow-list is skipped when MOP_ENV is production."
+   - Evidence: "Confirmed by running: env -u CLOUDFLARE_API_TOKEN bun run scripts/email-chain.ts gave chain-exit=1 after 191 s with 'no complete chain within 180 s; jobs: send_received done ; notify_admin_received done'. The email_messages row from 05:56 is admin_notify skipped not_allow_listed."
+
+2. File: `app/scripts/automation-smoke.ts (B8b) / supabase/sql/functions/write_audit.sql (B7)`. Not blocking.
+   - Follow-up: "The step 9 proof 'automation-smoke.ts still exits 0' is NOT MET. B5 did not cause it: the smoke script's all-zero actor has no user_roles row, and write_audit raises forbidden. B5 changes neither file. This was banked as P-1220 and reported honestly. B8b's owner needs to fix it."
+   - Evidence: "Confirmed by running: smoke-exit=1, 'automation-smoke: automation_put_recipe (smoke) failed: forbidden'. git diff origin/main...HEAD touches no file under supabase/sql or this script."
+
+3. File: `app/tests/mutations/B5.json`. Not blocking.
+   - Follow-up: "No registry entry covers the 375 px assertion in email-shots-page.mjs. Both new mutations fail at 600 px or at lint, so deleting the narrow-width check would leave every replay green (R49/C08: every new assertion watched failing). My scratch control shows the check works. It still needs an entry, for example a layout mutation with minWidth 500px, expecting 'received: scrollWidth 5[0-9]{2} at 375 px'."
+   - Evidence: "Confirmed by running: a scratch out/email-w500.html (500 px fixed div) through email-shots-page.mjs printed 'w500: scrollWidth 500 at 375 px', exit=1. The two registry entries expect '... at 600 px' and 'container-width ...' only."
+
+4. File: `app/scripts/email-shots.ts:41-43`. Not blocking.
+   - Follow-up: "process.exit(run.status ?? 1) ignores run.error. If node is missing from PATH or the spawn fails, the script exits 1 and prints nothing, so a person sees a red gate with no cause (close to C06). Printing run.error.message when it is set would close it."
+   - Evidence: "Suspected by reading: spawnSync sets error and leaves status null on ENOENT. Not run."
+
+5. File: `app/scripts/email-shots.ts:16-21`. Not blocking.
+   - Follow-up: "The literal site context {siteUrl, entity: null, address: null, contact: {email: null}} is now in four scripts (email-test.ts, email-cpu.ts, build-auth-templates.ts, email-shots.ts). It is below the jscpd threshold, but C05 asks for no second copy of a helper. One shared preview site in scripts/lib would remove the copies."
+   - Evidence: "Grep 'siteUrl|entity: null|contact: {' in app/scripts finds the same 4-line object in 4 files."
+
+6. File: `.github/workflows/ci.yml:336-347`. Not blocking.
+   - Follow-up: "(1) C22: the new heavy CI step does not state its unit cost in Actions minutes. It took 130 s locally under load. (2) The step only runs when the e2e change test (T-04) sees changes under src/, supabase/, package.json or bun.lock. A PR that changes only scripts/email-shots.ts, scripts/lib/email-shots-page.mjs or scripts/lib/email-lint.ts skips the rendering gate. (3) UNPROVEN: the step and its email-shots artifact have never run in CI."
+   - Evidence: "Read ci.yml lines 231-239 and 338-347. No CI run exists for 1b49b1b."
+
+7. File: `workspace/05-plans/trace.json`. Not blocking.
+   - Follow-up: "The trace entries for email:shots (around lines 7823 and 11032) name only scripts/email-shots.ts as the code file. The browser half now lives in scripts/lib/email-shots-page.mjs (a deviation the author logged), and the trace does not name it. This is the orchestrator's to fold."
+   - Evidence: "Grep 'email-shots' in workspace/05-plans/trace.json shows no email-shots-page.mjs."
