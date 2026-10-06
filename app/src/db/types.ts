@@ -134,6 +134,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assets_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"audit_log": {
@@ -216,6 +222,18 @@ isOneToOne: true
       columns: ["property_id"]
 isOneToOne: false
       referencedRelation: "properties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "campaigns_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
+    },{
+      foreignKeyName: "campaigns_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "campaigns_submission_id_fkey"
@@ -512,6 +530,18 @@ isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "payments_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
+    },{
+      foreignKeyName: "payments_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "payments_submission_id_fkey"
       columns: ["submission_id"]
 isOneToOne: false
@@ -565,6 +595,12 @@ isOneToOne: false
       foreignKeyName: "properties_submission_fk"
       columns: ["submission_id"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "properties_submission_fk"
+      columns: ["submission_id"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     }
@@ -586,6 +622,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_features_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"property_media": {
@@ -605,6 +647,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_media_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"property_related": {
@@ -624,6 +672,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_related_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"rate_limits": {
@@ -740,6 +794,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "slug_history_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"stories": {
@@ -789,6 +849,12 @@ isOneToOne: false
       foreignKeyName: "submission_media_submission_id_fkey"
       columns: ["submission_id"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submission_media_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     }
@@ -820,6 +886,12 @@ isOneToOne: false
       foreignKeyName: "submissions_duplicate_of_fkey"
       columns: ["duplicate_of"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     },{
@@ -828,6 +900,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"subscribers": {
@@ -886,10 +964,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"submission_list": {
+                  Row: {
+                    "accepted_at": string | null,"address": string | null,"brokerage": string | null,"city": string | null,"duplicate_of": string | null,"id": string | null,"package": Database["public"]['Enums']["exposure_package"] | null,"property_id": string | null,"received_at": string | null,"state": Database["public"]['Enums']["accepted_state"] | null,"submitter_kind": Database["public"]['Enums']["submitter_kind"] | null,"submitter_name": string | null,"turnstile_ok": boolean | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Functions: {
-            "agent_key_by_hash":
+            "add_submission_note":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
+                           },
+"agent_key_by_hash":
 { Args: { "p_hash": string }; Returns: {
               "key_id": string,"last_used_at": string,"revoked_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"scopes": (string)[],"user_id": string
             }[]
@@ -1106,6 +1206,29 @@ isOneToOne: false
 "lapse_subscribers":
 { Args: { "p_grace"?: string }; Returns: number
                            },
+"list_submissions":
+{ Args: { "p_after_id"?: string,"p_after_received_at"?: string,"p_limit": number,"p_market"?: Database["public"]['Enums']["accepted_state"],"p_package"?: Database["public"]['Enums']["exposure_package"],"p_search"?: string,"p_states"?: (Database["public"]['Enums']["submission_state"])[],"p_without_property"?: boolean }; Returns: {
+              "accepted_at": string | null,
+"address": string | null,
+"brokerage": string | null,
+"city": string | null,
+"duplicate_of": string | null,
+"id": string | null,
+"package": Database["public"]['Enums']["exposure_package"] | null,
+"property_id": string | null,
+"received_at": string | null,
+"state": Database["public"]['Enums']["accepted_state"] | null,
+"submitter_kind": Database["public"]['Enums']["submitter_kind"] | null,
+"submitter_name": string | null,
+"turnstile_ok": boolean | null,
+"workflow_state": Database["public"]['Enums']["submission_state"] | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "submission_list"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "mark_inquiry_forwarded":
 { Args: { "p_inquiry_id": string,"p_payload": Json }; Returns: boolean
                            },
@@ -1280,6 +1403,9 @@ isOneToOne: false
                            },
 "staff_can_sign_in":
 { Args: { "p_email": string }; Returns: boolean
+                           },
+"start_review":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_ids": (string)[] }; Returns: number
                            },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean

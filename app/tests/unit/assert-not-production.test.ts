@@ -25,6 +25,8 @@ const guardedScripts = [
   "tests/fixtures/catalog-version.ts",
   "scripts/omnikom-run-local.ts",
   "scripts/automation-smoke.ts",
+  "scripts/seed-admin-users.ts",
+  "scripts/probe-amr.ts",
   "scripts/email-chain.ts",
   "scripts/auth-invite-test.ts",
 ];
