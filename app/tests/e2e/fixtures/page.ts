@@ -50,14 +50,22 @@ export async function collect(page: Page): Promise<Collected> {
  * No horizontal scroll, and no element wider than the viewport outside a horizontally scrolling ancestor.
  * Measured after the entrance animations end: the home hero photograph arrives through `heroReveal`
  * (`transform: scale(1.015)` for 0.7 s), so on a fast runner the check used to land inside that window and
- * report `img.hero-image` as wider than the viewport (PRs 138, 150, 155, 158; P-531).
+ * report `img.hero-image` as wider than the viewport (PRs 138, 150, 155, 158; P-531). Only animations that end
+ * are awaited (`cueDrift` on the property hero loops for ever, and waiting on it ate the 30 s test timeout on every
+ * property page in PR 171), and the wait itself is capped at two seconds.
  */
 export async function expectNoOverflow(page: Page): Promise<void> {
-  await page.evaluate(() =>
-    Promise.all(
-      document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-    ),
-  );
+  await page.evaluate(() => {
+    const finite = document.getAnimations().filter((animation) => {
+      const timing = animation.effect?.getComputedTiming();
+      return timing !== undefined && Number.isFinite(timing.endTime);
+    });
+    const settled = Promise.all(
+      finite.map((animation) => animation.finished.catch(() => undefined)),
+    );
+    const cap = new Promise<void>((resolve) => setTimeout(resolve, 2000));
+    return Promise.race([settled.then(() => undefined), cap]);
+  });
   const measured = await page.evaluate(() => {
     const viewport = window.innerWidth;
     const offenders: string[] = [];
