@@ -636,7 +636,7 @@
     "id": "b17-ck-fallback",
     "test": "tests/unit/consent.test.ts",
     "file": "src/lib/consent.ts",
-    "find": "  return readRecord() ?? readCookie();",
+    "find": "  return readCookie() ?? readRecord();",
     "replace": "  return readRecord();",
     "run": "bun run test tests/unit/consent.test.ts",
     "expect": "× .*readConsent returns the cookie's choice when localStorage is empty"
@@ -645,10 +645,10 @@
     "id": "b17-ck-prefer",
     "test": "tests/unit/consent.test.ts",
     "file": "src/lib/consent.ts",
-    "find": "  return readRecord() ?? readCookie();",
-    "replace": "  return readCookie() ?? readRecord();",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord() ?? readCookie();",
     "run": "bun run test tests/unit/consent.test.ts",
-    "expect": "× .*readConsent prefers the record"
+    "expect": "× .*readConsent prefers the cookie"
   },
   {
     "id": "b17-ck-malformed",
@@ -657,7 +657,7 @@
     "find": "match === null ? undefined :",
     "replace": "match === null ? { version: CONSENT_VERSION, analytics: false } :",
     "run": "bun run test tests/unit/consent.test.ts",
-    "expect": "× .*reads a malformed cookie as no decision"
+    "expect": "× .*reads a malformed cookie as the record"
   },
   {
     "id": "b17-ck-version",
@@ -681,7 +681,7 @@
     "id": "b17-ck-throwing",
     "test": "tests/unit/consent.test.ts",
     "file": "src/lib/consent.ts",
-    "find": "  return readRecord() ?? readCookie();",
+    "find": "  return readCookie() ?? readRecord();",
     "replace": "  return localStorage.getItem(KEY) === null ? readCookie() : readRecord();",
     "run": "bun run test tests/unit/consent.test.ts",
     "expect": "× .*reads a throwing localStorage as the cookie"
@@ -690,7 +690,7 @@
     "id": "b17-cn-cookie-only",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/lib/consent.ts",
-    "find": "  return readRecord() ?? readCookie();",
+    "find": "  return readCookie() ?? readRecord();",
     "replace": "  return readRecord();",
     "run": "bun run test tests/unit/consent-notice.test.tsx",
     "expect": "× .*stays closed once decided in a cookie alone"
@@ -905,6 +905,16 @@
     "replace": "",
     "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-privacy-choices\" --reporter=line",
     "expect": "consent-privacy-choices[\\s\\S]*Analytics are off"
+  },
+  {
+    "id": "b17-e2e-consent-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord() ?? readCookie();",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-link-beats-record\" --reporter=line",
+    "expect": "consent-link-beats-record[sS]*Analytics are off"
   },
   {
     "id": "b17-e2e-consent-html",

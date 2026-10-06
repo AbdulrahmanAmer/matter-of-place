@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 // The visitor's analytics choice (GP-02, architecture 10): a `localStorage` record and the `mop_consent` cookie, and
-// this file is the single reader (F11). The cookie carries a choice made without JavaScript (`/api/consent`), so
-// `readConsent()` falls back to it. Storage that is off, blocked or corrupt reads as "no decision" and never throws.
+// this file is the single reader (F11). Every writer sets the cookie, the link to `/api/consent` sets nothing else, so
+// `readConsent()` reads the cookie first: the latest choice wins, with or without JavaScript, and the record answers
+// only when no cookie does. Storage that is off, blocked or corrupt reads as "no decision" and never throws.
 // Google Analytics loads only while `consentGranted()` holds; first-party `track()` events are exempt.
 
 /** Raised to ask every visitor again. */
@@ -46,9 +47,9 @@ function readCookie(): ConsentRecord | undefined {
   }
 }
 
-/** The stored record, else the cookie a choice made without JavaScript left. */
+/** The cookie, which every writer sets and a choice made without JavaScript sets alone; else the stored record. */
 export function readConsent(): ConsentRecord | undefined {
-  return readRecord() ?? readCookie();
+  return readCookie() ?? readRecord();
 }
 
 /** The `Set-Cookie` value of a choice for the current version; the one writer of its attributes, browser and server. */

@@ -131,6 +131,19 @@ test.describe("consent", () => {
     expect(hosts.filter((host) => GOOGLE_HOST.test(host))).toEqual([]);
   });
 
+  test("consent-link-beats-record: a decline made by the plain link after an Allow is the choice the page shows", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    await notice(page).getByRole("button", { name: t.consent.accept }).click();
+    expect(await storedChoice(page)).toMatchObject({ analytics: true });
+    await page.goto("/api/consent?set=decline", {
+      referer: new URL("/privacy-choices", page.url()).href,
+    });
+    await expect(page.getByRole("status")).toHaveText(t.privacyChoices.off);
+    expect(await storedChoice(page)).toMatchObject({ analytics: true });
+  });
+
   // `?preview=` is never cached (neverCached), so every response below is a render the server just made. A stored
   // copy would answer all three alike whatever a render did with the cookie. Millisecond timestamps (the router's
   // `u:`, the query cache's `dehydratedAt`) differ per render and are zeroed.

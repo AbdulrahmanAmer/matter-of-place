@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 // The analytics choice (GP-02): one localStorage record, read in one place. A record for another version, a browser
 // that sends Global Privacy Control and any storage failure all mean "no". Nothing here may throw. A choice made
-// without JavaScript is the `mop_consent` cookie, which `readConsent()` falls back to when there is no record.
+// without JavaScript is the `mop_consent` cookie, which `readConsent()` reads before the record, because every writer sets it and the latest choice must win.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
   CONSENT_VERSION,
   consentCookie,
@@ -15,6 +16,13 @@ import {
 } from "../../src/lib/consent";
 
 const KEY = "mop_consent";
+
+/** What `writeConsent` left in `localStorage`, read without `readConsent()`, which reads the cookie first. */
+function storedRecord() {
+  return z
+    .object({ version: z.number(), analytics: z.boolean(), decided_at: z.string() })
+    .parse(JSON.parse(localStorage.getItem(KEY) ?? "{}"));
+}
 
 function sendGlobalPrivacyControl() {
   Object.defineProperty(navigator, "globalPrivacyControl", { value: true, configurable: true });
@@ -86,12 +94,15 @@ describe("writeConsent", () => {
   it("stores the current version, the choice and the time of the decision", () => {
     expect(writeConsent(true)).toBe(true);
     expect(readConsent()).toMatchObject({ version: CONSENT_VERSION, analytics: true });
-    expect(new Date(readConsent()?.decided_at ?? "").toISOString()).toBe(readConsent()?.decided_at);
+    const stored = storedRecord();
+    expect(stored).toMatchObject({ version: CONSENT_VERSION, analytics: true });
+    expect(new Date(stored.decided_at).toISOString()).toBe(stored.decided_at);
     expect(consentGranted()).toBe(true);
   });
 
   it("stores a decline as analytics false", () => {
     writeConsent(false);
+    expect(storedRecord()).toMatchObject({ version: CONSENT_VERSION, analytics: false });
     expect(readConsent()).toMatchObject({ version: CONSENT_VERSION, analytics: false });
     expect(consentGranted()).toBe(false);
   });
@@ -174,9 +185,19 @@ describe("the mop_consent cookie", () => {
     expect(consentGranted()).toBe(false);
   });
 
-  it("readConsent prefers the record, and reads a malformed cookie as no decision", () => {
+  it("readConsent prefers the cookie, so a decline made by a plain link beats an older Allow record", () => {
+    writeConsent(true);
+    document.cookie = "mop_consent=1.0";
+    expect(readConsent()).toEqual({ version: CONSENT_VERSION, analytics: false });
+    expect(consentGranted()).toBe(false);
     document.cookie = "mop_consent=1.1";
     localStorage.setItem(KEY, JSON.stringify({ version: 1, analytics: false }));
+    expect(readConsent()).toEqual({ version: CONSENT_VERSION, analytics: true });
+  });
+
+  it("reads a malformed cookie as the record, and as no decision when there is none", () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: 1, analytics: false }));
+    document.cookie = "mop_consent=1.2";
     expect(readConsent()).toMatchObject({ analytics: false });
     localStorage.clear();
     for (const value of ["1.2", "1", "x.1", "1.1.1", ""]) {
