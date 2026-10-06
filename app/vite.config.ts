@@ -39,6 +39,8 @@ export default defineConfig(({ command, mode }) => {
           entryFileNames: "assets/[hash].js",
           chunkFileNames: "assets/[hash].js",
           assetFileNames: "assets/[hash][extname]",
+          // The entry's static closure stays in one chunk, so a new route cannot regroup public shared code (H62, P-2008).
+          codeSplitting: { groups: [{ name: "initial", tags: ["$initial"] }] },
         },
       },
     },
