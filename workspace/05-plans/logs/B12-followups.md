@@ -67,3 +67,11 @@
 
 5. `launch/reel/review/ROUND-15.md` (not blocking). Invariant 6 'same MP4 bytes' is still UNPROVEN, and the author says so honestly. My two full captures differ in 1 frame (00506, 6 samples, 1 level); the author saw 14 frames. With putIfMissing keyed on the spec hash, a re-render cannot overwrite a stored reel, so nothing breaks for the product. The orchestrator should either relax the Contract's wording to 'stills byte-identical, MP4 within pixel noise' or assign the cause hunt (P-2119).
    Evidence: Confirmed by running: diff of the two sha256sum lists -> 1 line (00506.png); cmp -> 6 samples max 1.
+
+## c7 · steps 7
+
+1. `app/scripts/db-fn.mjs` (not blocking). Follow-up: bun run db:fn writes a false '-- down:' line for functions that are new. The line says 're-run bun run db:fn <names> from the previous commit', but that commit has no such files. The B12 g5 log line 273 says the author rewrote this line by hand in 20261006001909_reel.sql. That workaround is not in the bank, so the next slice that adds a new SQL function will hit it again.
+   Evidence: db-fn.mjs line 129 writes `-- down: re-run bun run db:fn ${names.join(" ")} from the previous commit of ${sources}`. grep for a db:fn down-line entry in GOTCHAS.md finds none. The migration header now reads '-- down: drop trigger assets_reel_video ...; drop function ...'.
+
+2. `workspace/05-plans/B12.md` (not blocking). Follow-up for the orchestrator to fold into the plan: Data changes still gives the duration formula as floor(d / 60) with round(d) % 60, which yields '0:00' for 59.6. The build rounds first, which is correct and is recorded in P-2120. The Contract also still says render-reel.ts imports '@/server/assets/reel-spec.ts'. The build uses a relative '../../assets/reel-spec.ts', like its sibling steps; the CS-01 .ts rule holds and deno check passes. Neither is a code defect.
+   Evidence: attach_reel.sql: v_seconds := round(...)::int; format('%s:%s', v_seconds / 60, ...). render-reel.ts line 3: import { buildReelSpec } from "../../assets/reel-spec.ts".
