@@ -3718,5 +3718,23 @@
     "replace": "\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× the test script gives every test and hook 60 s"
+  },
+  {
+    "id": "g901-loader",
+    "test": "tests/unit/one-database.test.ts",
+    "file": "scripts/load-env.mjs",
+    "find": "lines.push(`export SUPABASE_URL=${shellQuote(`https://${ref}.supabase.co`)}`);",
+    "replace": "// (loader no longer overwrites SUPABASE_URL)",
+    "run": "bunx vitest run --project unit tests/unit/one-database.test.ts",
+    "expect": "× the dev profile loader overwrites the two generic names"
+  },
+  {
+    "id": "g901-ci-switch",
+    "test": "tests/unit/one-database.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "env:\n  E2E_STACK: \"1\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/one-database.test.ts",
+    "expect": "× ci.yml sets the switch at the workflow level"
   }
 ]

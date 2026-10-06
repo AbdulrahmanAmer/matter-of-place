@@ -46,8 +46,18 @@ export async function collect(page: Page): Promise<Collected> {
   return collected;
 }
 
-/** No horizontal scroll, and no element wider than the viewport outside a horizontally scrolling ancestor. */
+/**
+ * No horizontal scroll, and no element wider than the viewport outside a horizontally scrolling ancestor.
+ * Measured after the entrance animations end: the home hero photograph arrives through `heroReveal`
+ * (`transform: scale(1.015)` for 0.7 s), so on a fast runner the check used to land inside that window and
+ * report `img.hero-image` as wider than the viewport (PRs 138, 150, 155, 158; P-531).
+ */
 export async function expectNoOverflow(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.all(
+      document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
   const measured = await page.evaluate(() => {
     const viewport = window.innerWidth;
     const offenders: string[] = [];
