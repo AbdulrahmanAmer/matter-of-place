@@ -1,11 +1,12 @@
 // B7: the admin side of the database. Step 1: `write_audit`, the agent key lookups, `staff_can_sign_in`,
-// `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Every case runs in one
+// `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Step 4: `start_review`,
+// `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Every case runs in one
 // rolled-back transaction (F22).
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
-import { createSubmission } from "../fixtures/factories";
+import { createSubmission, publishedProperty } from "../fixtures/factories";
 
 async function one<T extends object>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
   const row = (await db.query<T>(sql, params)).rows[0];
@@ -244,6 +245,214 @@ describe("action_roles and the daily caps", () => {
         refused: true,
         city: was,
       });
+    });
+  });
+});
+
+/** Step 4's functions are on this database (P-328): mop-dev has them once main pushes the migration. */
+async function assertStep4(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.start_review') is not null and to_regproc('public.add_submission_note') is not null
+       and to_regproc('public.list_submissions') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+describe("start_review", () => {
+  it("moves a selection to Under Review with one audit row each, naming the reviewer", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const base = await dbNow(db);
+      const ids = [
+        await createSubmission(db, { state: "Submitted", n: 9711, base }),
+        await createSubmission(db, { state: "Submitted", n: 9712, base }),
+      ].sort();
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { started } = await one<{ started: number }>(
+        db,
+        "select public.start_review($1::uuid[], $2, 'human', 'req-sr') as started",
+        [ids, editor],
+      );
+      const moved = await db.query<{ workflow_state: string; reviewed_by: string; audits: string }>(
+        `select s.workflow_state, s.reviewed_by,
+           (select count(*) from public.audit_log a
+            where a.entity_id = s.id and a.action = 'submissions.start_review' and a.request_id = 'req-sr') as audits
+         from public.submissions s where s.id = any ($1::uuid[]) order by s.id`,
+        [ids],
+      );
+      expect({ started, rows: moved.rows }).toEqual({
+        started: 2,
+        rows: [
+          { workflow_state: "Under Review", reviewed_by: editor, audits: "1" },
+          { workflow_state: "Under Review", reviewed_by: editor, audits: "1" },
+        ],
+      });
+    });
+  });
+
+  it("raises wrong_state and moves none when one request of the selection is already under review", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const base = await dbNow(db);
+      const fresh = await createSubmission(db, { state: "Submitted", n: 9713, base });
+      const taken = await createSubmission(db, { state: "Under Review", n: 9714, base });
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const outcome = await attempt(
+        db,
+        "select public.start_review($1::uuid[], $2, 'human', 'req-sr2')",
+        [[fresh, taken], editor],
+      );
+      const { state } = await one<{ state: string }>(
+        db,
+        "select workflow_state as state from public.submissions where id = $1",
+        [fresh],
+      );
+      expect({ outcome, state }).toEqual({ outcome: "P0001 wrong_state", state: "Submitted" });
+    });
+  });
+
+  it("refuses a visual editor through write_audit with 42501 and moves nothing", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const id = await createSubmission(db, { state: "Submitted", n: 9715, base: await dbNow(db) });
+      const visual = await createStaffUser(db, ["visual_editor"]);
+      const outcome = await attempt(
+        db,
+        "select public.start_review(array[$1]::uuid[], $2, 'human', 'req-sr3')",
+        [id, visual],
+      );
+      const { state } = await one<{ state: string }>(
+        db,
+        "select workflow_state as state from public.submissions where id = $1",
+        [id],
+      );
+      expect({ outcome, state }).toEqual({ outcome: "42501 forbidden", state: "Submitted" });
+    });
+  });
+});
+
+describe("add_submission_note", () => {
+  it("appends the note to the request and audits it without its words", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const id = await createSubmission(db, {
+        state: "Under Review",
+        n: 9716,
+        base: await dbNow(db),
+      });
+      const noter = await createStaffUser(db, ["media_ops"]);
+      const text = "Called the listing agent about the light in the hall.";
+      const { note } = await one<{ note: { text: string; actor_id: string; actor_kind: string } }>(
+        db,
+        "select public.add_submission_note($1, $2, $3, 'human', 'req-note') as note",
+        [id, `  ${text}  `, noter],
+      );
+      const stored = await one<{ count: number; last: string }>(
+        db,
+        `select cardinality(notes) as count, notes[cardinality(notes)] ->> 'text' as last
+         from public.submissions where id = $1`,
+        [id],
+      );
+      const audit = await one<{ after: string }>(
+        db,
+        "select after::text as after from public.audit_log where entity_id = $1 and action = 'submissions.note'",
+        [id],
+      );
+      expect({
+        note: [note.text, note.actor_id, note.actor_kind],
+        stored,
+        auditHasText: audit.after.includes("light in the hall"),
+      }).toEqual({
+        note: [text, noter, "human"],
+        stored: { count: 1, last: text },
+        auditHasText: false,
+      });
+    });
+  });
+
+  it("refuses a blank note with validation and an unknown request with not_found", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const id = await createSubmission(db, { state: "Submitted", n: 9717, base: await dbNow(db) });
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const blank = await attempt(
+        db,
+        "select public.add_submission_note($1, '   ', $2, 'human', 'r')",
+        [id, editor],
+      );
+      const unknown = await attempt(
+        db,
+        "select public.add_submission_note($1, 'A note.', $2, 'human', 'r')",
+        [randomUUID(), editor],
+      );
+      expect([blank, unknown]).toEqual(["P0001 validation", "P0001 not_found"]);
+    });
+  });
+});
+
+describe("list_submissions", () => {
+  it("with p_without_property keeps only the accepted request that has no property", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const base = await dbNow(db);
+      const withProperty = await createSubmission(db, { state: "Accepted", n: 9721, base });
+      const without = await createSubmission(db, { state: "Accepted", n: 9722, base });
+      const reviewing = await createSubmission(db, { state: "Under Review", n: 9723, base });
+      const property = await publishedProperty(db, { n: 9721, submission_id: withProperty });
+      const listed = await db.query<{ id: string; property_id: string | null }>(
+        `select id, property_id from public.list_submissions(p_limit => 50, p_without_property => true)
+         where id = any ($1::uuid[])`,
+        [[withProperty, without, reviewing]],
+      );
+      const joined = await one<{ property_id: string | null }>(
+        db,
+        "select property_id from public.submission_list where id = $1",
+        [withProperty],
+      );
+      expect({ listed: listed.rows, joined: joined.property_id }).toEqual({
+        listed: [{ id: without, property_id: null }],
+        joined: property.id,
+      });
+    });
+  });
+
+  it("pages newest first after a cursor and matches the search as plain text", async () => {
+    await withRollback(async (db) => {
+      await assertStep4(db);
+      const base = await dbNow(db);
+      const ids: string[] = [];
+      for (const [offset, n] of [9731, 9732, 9733].entries()) {
+        ids.push(
+          await createSubmission(db, {
+            state: "Submitted",
+            n,
+            base,
+            address: `${String(n)} B7 List_Probe Lane`,
+            received_at: new Date(base.getTime() - offset * 60_000).toISOString(),
+          }),
+        );
+      }
+      const page = async (after: { at: string; id: string } | null) =>
+        (
+          await db.query<{ id: string; at: string }>(
+            `select id, received_at::text as at from public.list_submissions(
+               p_limit => 2, p_search => 'List_Probe',
+               p_after_received_at => $1::timestamptz, p_after_id => $2::uuid)`,
+            [after?.at ?? null, after?.id ?? null],
+          )
+        ).rows;
+      const first = await page(null);
+      const last = first.at(-1);
+      const second = last === undefined ? [] : await page(last);
+      const wildcard = await db.query(
+        "select 1 from public.list_submissions(p_limit => 1, p_search => 'B7 List%Probe')",
+      );
+      expect({
+        first: first.map((row) => row.id),
+        second: second.map((row) => row.id),
+        wildcard: wildcard.rowCount,
+      }).toEqual({ first: ids.slice(0, 2), second: ids.slice(2), wildcard: 0 });
     });
   });
 });

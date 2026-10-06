@@ -1710,5 +1710,195 @@
     "replace": "import { pageHead } from \"../lib/seo\";\nimport { captureAttribution } from \"../lib/attribution\";",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
     "expect": "× .*mounts none of the public chrome or it"
+  },
+  {
+    "id": "b7-g4-actions-owned",
+    "test": "tests/unit/admin-actions.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "return from === \"Under Review\" || from === \"Accepted\" ? \"Awaiting Assets\" : null;",
+    "replace": "return from === \"Under Review\" ? \"Awaiting Assets\" : null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-actions.test.ts",
+    "expect": "× .*offers, in every state, a button for each move canTransition allows and that B7 owns"
+  },
+  {
+    "id": "b7-g4-actions-gate",
+    "test": "tests/unit/admin-actions.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "return to !== null && canTransition(state, to, ctx);",
+    "replace": "return to !== null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-actions.test.ts",
+    "expect": "× .*offers only actions whose move canTransition lets through"
+  },
+  {
+    "id": "b7-g4-actions-table",
+    "test": "tests/unit/admin-actions.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "return ctx.acceptedAt === null ? \"Under Review\" : \"Accepted\";",
+    "replace": "return ctx.acceptedAt === null ? \"Accepted\" : \"Under Review\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-actions.test.ts",
+    "expect": "× .*matches the buttons screen 4 draws for each state"
+  },
+  {
+    "id": "b7-g4-page-max",
+    "test": "tests/unit/admin-pagination.test.ts",
+    "file": "src/domain/admin-page.ts",
+    "find": "export const ADMIN_PAGE_MAX = 50;",
+    "replace": "export const ADMIN_PAGE_MAX = 500;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-pagination.test.ts",
+    "expect": "× .*defaults the limit to 50 and refuses more than 50"
+  },
+  {
+    "id": "b7-g4-page-422",
+    "test": "tests/unit/admin-pagination.test.ts",
+    "file": "src/domain/admin-page.ts",
+    "find": "z.coerce.number().int().min(1).max(ADMIN_PAGE_MAX).default(ADMIN_PAGE_MAX)",
+    "replace": "z.coerce.number().int().min(1).max(500).default(ADMIN_PAGE_MAX)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-pagination.test.ts",
+    "expect": "× .*answers limit=51 with 422 and asks the database nothing"
+  },
+  {
+    "id": "b7-g4-page-slice",
+    "test": "tests/unit/admin-pagination.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const items = rows.slice(0, input.limit);",
+    "replace": "const items = rows;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-pagination.test.ts",
+    "expect": "× .*returns at most 50 rows without a limit, and a cursor to the next page"
+  },
+  {
+    "id": "b7-g4-page-without-property",
+    "test": "tests/unit/admin-pagination.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "...(input.without_property === true ? { p_without_property: true } : {}),",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-pagination.test.ts",
+    "expect": "× .*with without_property=true answers only the accepted request that has no property"
+  },
+  {
+    "id": "b7-g4-svc-started",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "return { started: data };",
+    "replace": "return { started: 1 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*moves a whole selection in one start_review call and answers how many started"
+  },
+  {
+    "id": "b7-g4-svc-authorize",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.start_review\");",
+    "replace": "authorize(actor, \"submissions.list\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*refuses a visual editor with 403 before any database call"
+  },
+  {
+    "id": "b7-g4-svc-wrong-state",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    ...auditContext(actor),\n  });\n  if (error !== null) return { started: 0 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*answers 409 wrong_state when a request of the selection has moved on"
+  },
+  {
+    "id": "b7-g4-table-duplicate",
+    "test": "src/admin/requests/RequestsTable.test.tsx",
+    "file": "src/admin/requests/RequestsTable.tsx",
+    "find": "{row.duplicate_of === null ? null : (",
+    "replace": "{row.duplicate_of !== null ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestsTable.test.tsx",
+    "expect": "× .*shows Possible duplicate, linked to the earlier request, for a row with duplicate_of"
+  },
+  {
+    "id": "b7-g4-table-turnstile",
+    "test": "src/admin/requests/RequestsTable.test.tsx",
+    "file": "src/admin/requests/RequestsTable.tsx",
+    "find": "{row.turnstile_ok ? null : (",
+    "replace": "{!row.turnstile_ok ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestsTable.test.tsx",
+    "expect": "× .*shows Turnstile down for a row with turnstile_ok false"
+  },
+  {
+    "id": "b7-g4-table-owner",
+    "test": "src/admin/requests/RequestsTable.test.tsx",
+    "file": "src/admin/requests/RequestsTable.tsx",
+    "find": "render: (row) => (row.submitter_kind === \"agent\" ? row.brokerage : null),",
+    "replace": "render: (row) => row.brokerage,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestsTable.test.tsx",
+    "expect": "× .*shows the submitter's kind, leaves an owner's brokerage empty and counts the days waiting"
+  },
+  {
+    "id": "b7-g4-table-select",
+    "test": "src/admin/requests/RequestsTable.test.tsx",
+    "file": "src/admin/requests/RequestsTable.tsx",
+    "find": "row.workflow_state === \"Submitted\" ? (",
+    "replace": "row.workflow_state !== \"Declined\" ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestsTable.test.tsx",
+    "expect": "× .*offers a selection box only on requests still Submitted, and a click on it does not open the row"
+  },
+  {
+    "id": "b7-g4-db-sr-reviewer",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.start_review(\n  p_submission_ids uuid[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_count integer := 0;\nbegin\n  -- B7 invariant 5: Submitted to Under Review, one request or a selection, all or none. The rows are locked in id\n  -- order, so two overlapping selections wait on each other instead of deadlocking.\n  if coalesce(cardinality(p_submission_ids), 0) not between 1 and 50 then\n    raise exception 'validation';\n  end if;\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    where s.id = any (p_submission_ids)\n    order by s.id\n    for update\n  loop\n    if v_row.workflow_state <> 'Submitted' then\n      raise exception 'wrong_state';\n    end if;\n    update public.submissions\n    set workflow_state = 'Under Review', reviewed_at = now()\n    where id = v_row.id;\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'submissions.start_review', 'submission', v_row.id,\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Submitted'),\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Under Review'),\n      p_request_id\n    );\n    v_count := v_count + 1;\n  end loop;\n  if v_count <> (select count(distinct x) from unnest(p_submission_ids) x) then\n    raise exception 'not_found';\n  end if;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.start_review(uuid[], uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.start_review(uuid[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"moves a selection to Under Review with one audit row each, naming the reviewer\"",
+    "expect": "× .*moves a selection to Under Review with one audit row each, naming the reviewer"
+  },
+  {
+    "id": "b7-g4-db-sr-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.start_review(\n  p_submission_ids uuid[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_count integer := 0;\nbegin\n  -- B7 invariant 5: Submitted to Under Review, one request or a selection, all or none. The rows are locked in id\n  -- order, so two overlapping selections wait on each other instead of deadlocking.\n  if coalesce(cardinality(p_submission_ids), 0) not between 1 and 50 then\n    raise exception 'validation';\n  end if;\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    where s.id = any (p_submission_ids)\n    order by s.id\n    for update\n  loop\n    update public.submissions\n    set workflow_state = 'Under Review', reviewed_by = p_actor, reviewed_at = now()\n    where id = v_row.id;\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'submissions.start_review', 'submission', v_row.id,\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Submitted'),\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Under Review'),\n      p_request_id\n    );\n    v_count := v_count + 1;\n  end loop;\n  if v_count <> (select count(distinct x) from unnest(p_submission_ids) x) then\n    raise exception 'not_found';\n  end if;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.start_review(uuid[], uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.start_review(uuid[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"raises wrong_state and moves none when one request of the selection is already under review\"",
+    "expect": "× .*raises wrong_state and moves none when one request of the selection is already under review"
+  },
+  {
+    "id": "b7-g4-db-sr-audit",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.start_review(\n  p_submission_ids uuid[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_count integer := 0;\nbegin\n  -- B7 invariant 5: Submitted to Under Review, one request or a selection, all or none. The rows are locked in id\n  -- order, so two overlapping selections wait on each other instead of deadlocking.\n  if coalesce(cardinality(p_submission_ids), 0) not between 1 and 50 then\n    raise exception 'validation';\n  end if;\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    where s.id = any (p_submission_ids)\n    order by s.id\n    for update\n  loop\n    if v_row.workflow_state <> 'Submitted' then\n      raise exception 'wrong_state';\n    end if;\n    update public.submissions\n    set workflow_state = 'Under Review', reviewed_by = p_actor, reviewed_at = now()\n    where id = v_row.id;\n    perform public.write_audit(\n      null, null, 'submissions.start_review', 'submission', v_row.id,\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Submitted'),\n      jsonb_build_object('id', v_row.id, 'workflow_state', 'Under Review'),\n      p_request_id\n    );\n    v_count := v_count + 1;\n  end loop;\n  if v_count <> (select count(distinct x) from unnest(p_submission_ids) x) then\n    raise exception 'not_found';\n  end if;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.start_review(uuid[], uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.start_review(uuid[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses a visual editor through write_audit with 42501 and moves nothing\"",
+    "expect": "× .*refuses a visual editor through write_audit with 42501 and moves nothing"
+  },
+  {
+    "id": "b7-g4-db-note-words",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.add_submission_note(\n  p_submission_id uuid,\n  p_text text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_note jsonb;\nbegin\n  -- An internal note on a request (screen 4). The text stays on the request: the audit row names the note, never its\n  -- words, which may hold personal data (DB-03).\n  if p_text is null or char_length(btrim(p_text)) not between 1 and 2000 then\n    raise exception 'validation';\n  end if;\n  v_note := jsonb_build_object(\n    'id', gen_random_uuid(),\n    'text', btrim(p_text),\n    'actor_id', p_actor,\n    'actor_kind', p_actor_kind,\n    'at', now()\n  );\n  update public.submissions\n  set notes = array_append(notes, v_note)\n  where id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.note', 'submission', p_submission_id,\n    null,\n    jsonb_build_object('id', p_submission_id, 'note_id', v_note ->> 'id', 'text', v_note ->> 'text'),\n    p_request_id\n  );\n  return v_note;\nend;\n$$;\n\nrevoke execute on function public.add_submission_note(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.add_submission_note(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"appends the note to the request and audits it without its words\"",
+    "expect": "× .*appends the note to the request and audits it without its words"
+  },
+  {
+    "id": "b7-g4-db-note-blank",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.add_submission_note(\n  p_submission_id uuid,\n  p_text text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_note jsonb;\nbegin\n  -- An internal note on a request (screen 4). The text stays on the request: the audit row names the note, never its\n  -- words, which may hold personal data (DB-03).\n  if p_text is null or char_length(p_text) not between 1 and 2000 then\n    raise exception 'validation';\n  end if;\n  v_note := jsonb_build_object(\n    'id', gen_random_uuid(),\n    'text', btrim(p_text),\n    'actor_id', p_actor,\n    'actor_kind', p_actor_kind,\n    'at', now()\n  );\n  update public.submissions\n  set notes = array_append(notes, v_note)\n  where id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.note', 'submission', p_submission_id,\n    null,\n    jsonb_build_object('id', p_submission_id, 'note_id', v_note ->> 'id'),\n    p_request_id\n  );\n  return v_note;\nend;\n$$;\n\nrevoke execute on function public.add_submission_note(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.add_submission_note(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses a blank note with validation and an unknown request with not_found\"",
+    "expect": "× .*refuses a blank note with validation and an unknown request with not_found"
+  },
+  {
+    "id": "b7-g4-db-list-without",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.list_submissions(\n  p_limit integer,\n  p_states public.submission_state[] default null,\n  p_market public.accepted_state default null,\n  p_package public.exposure_package default null,\n  p_search text default null,\n  p_without_property boolean default false,\n  p_after_received_at timestamptz default null,\n  p_after_id uuid default null\n)\nreturns setof public.submission_list\nlanguage sql\nstable\nset search_path = ''\nas $$\n  -- Screen 3 (invariant 17c): one keyset page of `submission_list`, newest first, ordered as the list index\n  -- `submissions_list_idx` is. The search text arrives as a parameter, never inside a filter string (R44).\n  with q as (\n    select '%' || replace(replace(replace(p_search, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' as pattern\n  )\n  select l.*\n  from public.submission_list l, q\n  where (p_states is null or l.workflow_state = any (p_states))\n    and (p_market is null or l.state = p_market)\n    and (p_package is null or l.package = p_package)\n    and (\n      p_search is null\n      or l.address ilike q.pattern\n      or l.submitter_name ilike q.pattern\n      or l.brokerage ilike q.pattern\n    )\n    -- The accepted requests still without the property made from them (screen 7, \"New from request\").\n    and (\n      true\n      or (\n        l.accepted_at is not null\n        and l.workflow_state in ('Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled')\n        and l.property_id is null\n      )\n    )\n    and (\n      p_after_received_at is null\n      or l.received_at < p_after_received_at\n      or (l.received_at = p_after_received_at and l.id > p_after_id)\n    )\n  order by l.received_at desc, l.id\n  limit p_limit;\n$$;\n\nrevoke execute on function public.list_submissions(\n  integer, public.submission_state[], public.accepted_state, public.exposure_package, text, boolean, timestamptz, uuid\n) from public, anon, authenticated;\ngrant execute on function public.list_submissions(\n  integer, public.submission_state[], public.accepted_state, public.exposure_package, text, boolean, timestamptz, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with p_without_property keeps only the accepted request that has no property\"",
+    "expect": "× .*with p_without_property keeps only the accepted request that has no property"
+  },
+  {
+    "id": "b7-g4-db-list-escape",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.list_submissions(\n  p_limit integer,\n  p_states public.submission_state[] default null,\n  p_market public.accepted_state default null,\n  p_package public.exposure_package default null,\n  p_search text default null,\n  p_without_property boolean default false,\n  p_after_received_at timestamptz default null,\n  p_after_id uuid default null\n)\nreturns setof public.submission_list\nlanguage sql\nstable\nset search_path = ''\nas $$\n  -- Screen 3 (invariant 17c): one keyset page of `submission_list`, newest first, ordered as the list index\n  -- `submissions_list_idx` is. The search text arrives as a parameter, never inside a filter string (R44).\n  with q as (\n    select '%' || p_search || '%' as pattern\n  )\n  select l.*\n  from public.submission_list l, q\n  where (p_states is null or l.workflow_state = any (p_states))\n    and (p_market is null or l.state = p_market)\n    and (p_package is null or l.package = p_package)\n    and (\n      p_search is null\n      or l.address ilike q.pattern\n      or l.submitter_name ilike q.pattern\n      or l.brokerage ilike q.pattern\n    )\n    -- The accepted requests still without the property made from them (screen 7, \"New from request\").\n    and (\n      not p_without_property\n      or (\n        l.accepted_at is not null\n        and l.workflow_state in ('Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled')\n        and l.property_id is null\n      )\n    )\n    and (\n      p_after_received_at is null\n      or l.received_at < p_after_received_at\n      or (l.received_at = p_after_received_at and l.id > p_after_id)\n    )\n  order by l.received_at desc, l.id\n  limit p_limit;\n$$;\n\nrevoke execute on function public.list_submissions(\n  integer, public.submission_state[], public.accepted_state, public.exposure_package, text, boolean, timestamptz, uuid\n) from public, anon, authenticated;\ngrant execute on function public.list_submissions(\n  integer, public.submission_state[], public.accepted_state, public.exposure_package, text, boolean, timestamptz, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"pages newest first after a cursor and matches the search as plain text\"",
+    "expect": "× .*pages newest first after a cursor and matches the search as plain text"
+  },
+  {
+    "id": "b7-g4-db-list-index",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop index public.submissions_list_idx;",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"the submissions list index\"",
+    "expect": "× .*the submissions list index leads with the state"
   }
 ]
