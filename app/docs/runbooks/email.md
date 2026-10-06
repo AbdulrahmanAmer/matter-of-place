@@ -203,7 +203,7 @@ eval "$(node scripts/load-env.mjs --profile dev)"; bun run scripts/auth-invite-t
 ```
 
 It refuses with `refusing: production database` once `settings.environment` is `production` (and with
-`refusing: DEV_DB_URL is not set` in a shell without the dev profile), then invites the address with the service role
+`refusing: DEV_DB_URL is not set` in a shell without `DEV_DB_URL`), then invites the address with the service role
 key and prints `invited <address>`. The invite creates an auth user; delete it afterwards
 (`DELETE /auth/v1/admin/users/<id>` with the service role key). On 2026-10-06 it invited an `admin+` address of the Zoho
 mailbox: Resend listed the mail from `"Matter of Place" <hello@notify.matterofplace.com>`, subject `You have been invited
