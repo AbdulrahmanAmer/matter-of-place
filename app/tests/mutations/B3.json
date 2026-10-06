@@ -1373,15 +1373,15 @@
     "find": "  return path.length > 1 && path.endsWith(\"/\") ? path.slice(0, -1) : path;",
     "replace": "  return path;",
     "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
-    "expect": "× .*answers a table row with its stored status, however the path is cased or slashed"
+    "expect": "× .*holds an enabled row under its path read as the router reads it"
   },
   {
     "id": "b3-g3-redirect-gate",
     "kind": "file",
     "test": "tests/unit/redirects.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const redirect = page ? await deps.redirect(request) : null;",
-    "replace": "    const redirect = await deps.redirect(request);",
+    "find": "    const redirect = closed === null && page ? await deps.redirect(request) : null;",
+    "replace": "    const redirect = closed === null ? await deps.redirect(request) : null;",
     "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
     "expect": "× .*never looks up /api, /admin or a document"
   },
@@ -1490,8 +1490,8 @@
     "kind": "file",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const outage = error instanceof AppError && error.code === \"unavailable\";",
-    "replace": "    const outage = false;",
+    "find": "  const outage = error instanceof AppError && error.code === \"unavailable\";",
+    "replace": "  const outage = false;",
     "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
     "expect": "× .*answers an outage with the calm 503 and Retry-After, and reports nothing"
   },

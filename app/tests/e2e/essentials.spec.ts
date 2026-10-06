@@ -415,3 +415,80 @@ test.describe("a11y-keyboard", () => {
     await expect(name).not.toHaveAttribute("aria-invalid", "true");
   });
 });
+
+// Invariant 19: a failed read on a client navigation names its request id; the offline worker keeps the shell only.
+test.describe("error-id", () => {
+  test("error-id: a failed API read on a client navigation shows the request id as its reference", async ({
+    page,
+  }) => {
+    test.skip(process.env["E2E_MODE"] !== "live", "a local-mode build makes no API request");
+    await page.goto("/", { waitUntil: "networkidle" });
+    // /stories reads the stories query, which the home page does not put in the hydrated cache.
+    await page.route("**/api/public/**", (route) =>
+      route.fulfill({
+        status: 500,
+        headers: { "x-request-id": "b17-id" },
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "server", requestId: "b17-id" } }),
+      }),
+    );
+    await page.locator("footer").getByRole("link", { name: t.nav.stories }).click();
+    await expect(page.getByText(`${t.errors.reference} b17-id`)).toBeVisible();
+  });
+});
+
+/** Opens `/` and says whether it is served from the host its build names (the canonical link's), where the worker registers. */
+async function onOwnHost(page: Page): Promise<boolean> {
+  await page.goto("/", { waitUntil: "networkidle" });
+  const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+  return new URL(canonical ?? "/", page.url()).hostname === new URL(page.url()).hostname;
+}
+
+/** Every cache name and the path of every entry the page's origin holds. */
+const cacheContents = (page: Page) =>
+  page.evaluate(async () => {
+    const names = await caches.keys();
+    const paths: string[] = [];
+    for (const name of names) {
+      const entries = await (await caches.open(name)).keys();
+      paths.push(...entries.map((entry) => new URL(entry.url).pathname));
+    }
+    return { names, paths };
+  });
+
+test.describe("service-worker", () => {
+  test("service-worker: registers once on the site's own host, keeps only the shell, and shows /offline.html offline", async ({
+    page,
+    context,
+  }) => {
+    test.skip(!(await onOwnHost(page)), "this build names another host (VITE_SITE_URL)");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length),
+    ).toBe(1);
+    const { names, paths } = await cacheContents(page);
+    expect(names).toEqual(["mop-shell-v1"]);
+    expect(paths).toContain("/offline.html");
+    expect(paths.filter((path) => path.startsWith("/api/") || path.startsWith("/admin"))).toEqual(
+      [],
+    );
+    await page.goto("/nope");
+    await context.setOffline(true);
+    try {
+      await page.reload();
+      await expect(page.getByRole("heading", { name: "You are offline" })).toBeVisible();
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
+  test("service-worker: registers nothing on a host other than the one the build names", async ({
+    page,
+  }) => {
+    test.skip(await onOwnHost(page), "this build names this host (VITE_SITE_URL)");
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length),
+    ).toBe(0);
+    expect((await cacheContents(page)).names).toEqual([]);
+  });
+});

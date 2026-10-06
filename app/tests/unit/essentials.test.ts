@@ -20,15 +20,18 @@ import type { Json } from "../../src/db";
 import { cookieInventory } from "../../src/config/cookies";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
+import { errorReference } from "../../src/components/layout/route-error";
 import { PropertyFilm } from "../../src/components/property/gallery";
 import { COOKIE_INVENTORY_HASH } from "../../src/lib/consent";
 import { getRouter } from "../../src/router";
 import { CSP_INLINE_ALLOWLIST } from "../../src/server/lib/csp-allowlist";
 import { mergeFlags } from "../../src/server/lib/flags";
 import { cspFor, inlineHashes, securityHeaders } from "../../src/server/lib/headers";
+import { maintenanceHtml } from "../../src/server/lib/maintenance-html";
 import { handle, type PipelineContext, type PipelineDeps } from "../../src/server/lib/pipeline";
 import { captureException } from "../../src/server/lib/sentry";
 import { setConsent } from "../../src/server/public/consent";
+import { HttpServiceError } from "../../src/services/http/client";
 import { auditAlt } from "../../scripts/alt-audit.mjs";
 import { fakeDb } from "../fixtures/fake-db";
 import { stateJson } from "../fixtures/snapshot";
@@ -94,6 +97,7 @@ function setup(
     render?: (request: Request) => Response | Promise<Response>;
     cache?: PipelineDeps["cache"];
     flags?: Record<string, unknown>;
+    getFlags?: PipelineDeps["getFlags"];
     env?: string;
   } = {},
 ) {
@@ -109,7 +113,7 @@ function setup(
     },
     redirect: () => Promise.resolve(null),
     cache: options.cache ?? ((_request, render) => render()),
-    getFlags: () => Promise.resolve(options.flags ?? {}),
+    getFlags: options.getFlags ?? (() => Promise.resolve(options.flags ?? {})),
     report: () => Promise.resolve(),
     isApiRoute: () => false,
   };
@@ -1000,5 +1004,77 @@ describe("a11y-alt-audit", () => {
     const page =
       '<img src="/a/five.jpg" alt="A walled garden at dusk"><img src="/a/six.jpg" alt="" aria-hidden="true" />';
     expect(auditAlt(page)).toEqual([]);
+  });
+});
+
+describe("route-error", () => {
+  it("route-error: errorReference gives the request id an HttpServiceError carries, and nothing for any other error", () => {
+    expect(errorReference(new HttpServiceError("server", "failed", 500, "abc"))).toBe("abc");
+    expect(errorReference(new HttpServiceError("server", "failed", 500))).toBeUndefined();
+    expect(errorReference(new HttpServiceError("server", "failed", 500, ""))).toBeUndefined();
+    expect(
+      errorReference(Object.assign(new Error("failed"), { requestId: "abc" })),
+    ).toBeUndefined();
+    expect(errorReference(new Error("failed"))).toBeUndefined();
+  });
+});
+
+describe("maintenance", () => {
+  const closed = () => Promise.resolve({ maintenance: true });
+
+  it("maintenance: / answers 503 with Retry-After 300 and no-store, and the cache hook is never called", async () => {
+    const cache = vi.fn<PipelineDeps["cache"]>((_request, render) => render());
+    const { run, rendered } = setup({ getFlags: closed, cache });
+    for (const method of ["GET", "HEAD"]) {
+      const response = await run(get("/", { method }));
+      expect(response.status).toBe(503);
+      expect(response.headers.get("retry-after")).toBe("300");
+      expect(response.headers.get("cache-control")).toContain("no-store");
+    }
+    const page = await run(get("/california?preview=x"));
+    expect(page.status).toBe(503);
+    expect(await page.text()).toBe(maintenanceHtml);
+    expect(cache).not.toHaveBeenCalled();
+    expect(rendered).toEqual([]);
+  });
+
+  it("maintenance: the 503 page's one inline style is hashed into its own policy", async () => {
+    const { run } = setup({ getFlags: closed });
+    const response = await run(get("/"));
+    const [style = ""] = parsedInline(maintenanceHtml, "style");
+    expect(parsedInline(maintenanceHtml, "style")).toHaveLength(1);
+    expect(parsedInline(maintenanceHtml, "script")).toEqual([]);
+    expect(directive(response.headers.get(REPORT_ONLY) ?? "", "style-src")).toContain(
+      `'sha256-${sha256(style)}'`,
+    );
+  });
+
+  it("maintenance: /admin, /api/admin, /api/hooks and a write pass through to the render", async () => {
+    const { run, rendered } = setup({ getFlags: closed });
+    const answers = await Promise.all([
+      run(get("/admin")),
+      run(get("/admin/settings")),
+      run(get("/api/admin/automation/flags")),
+      run(get("/api/hooks/x")),
+      run(get("/api/public/events", { method: "POST" })),
+    ]);
+    // The fixture render is HTML, which B1b's /api/ guard answers as 405 JSON: rendered, not closed.
+    expect(answers.map((response) => response.status)).toEqual([200, 200, 405, 405, 405]);
+    expect(rendered).toEqual([
+      "/admin",
+      "/admin/settings",
+      "/api/admin/automation/flags",
+      "/api/hooks/x",
+      "/api/public/events",
+    ]);
+  });
+
+  it("maintenance: the flag off, or a state read that throws, lets the request through", async () => {
+    const open = setup({ getFlags: () => Promise.resolve({ maintenance: false }) });
+    expect((await open.run(get("/"))).status).toBe(200);
+    const broken = setup({ getFlags: () => Promise.reject(new Error("state down")) });
+    const response = await broken.run(get("/"));
+    expect(response.status).toBe(200);
+    expect(broken.rendered).toEqual(["/"]);
   });
 });

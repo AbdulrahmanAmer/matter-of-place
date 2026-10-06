@@ -1197,5 +1197,162 @@
     "replace": "",
     "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"opened again shows no error\" --reporter=line",
     "expect": "opened again shows no error[^]*aria-invalid"
+  },
+  {
+    "id": "b17-maint-after-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());",
+    "replace": "response = (page ? await deps.cache(request, render) : null) ?? closed ?? redirect ?? (await render());",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-retry-after",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "\"retry-after\": MAINTENANCE_RETRY_AFTER,",
+    "replace": "\"retry-after\": \"60\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-status",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    status: 503,\n",
+    "replace": "    status: 200,\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    isAdmin(path) ||\n    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "replace": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-hooks",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "replace": "    false\n  ) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-write",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    flags[\"maintenance\"] !== true ||\n    (request.method !== \"GET\" && request.method !== \"HEAD\") ||\n",
+    "replace": "    flags[\"maintenance\"] !== true ||\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-state-throws",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    flags = await deps.getFlags().catch((error: unknown) => {\n      reportUnlessOutage(error, ctx, deps, info);\n      return {};\n    });\n",
+    "replace": "    flags = await deps.getFlags();\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: the flag off, or a state read that throws"
+  },
+  {
+    "id": "b17-maint-style-hash",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "cspFor(env, flags, await inlineHashes(maintenanceHtml))",
+    "replace": "cspFor(env, flags, {})",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: the 503 page's one inline style"
+  },
+  {
+    "id": "b17-route-error-ref",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/route-error.tsx",
+    "find": "    ? error.requestId\n",
+    "replace": "    ? undefined\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*route-error: errorReference gives the request id"
+  },
+  {
+    "id": "b17-slash-branch",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  if (slash !== null) return slash;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: a read of a path ending in / moves"
+  },
+  {
+    "id": "b17-slash-host",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "pathname.replace(/^\\/+/, \"\").replace(/\\/+$/, \"\")",
+    "replace": "pathname.slice(1).replace(/\\/+$/, \"\")",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: never moves / itself"
+  },
+  {
+    "id": "b17-slash-method",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  if (request.method !== \"GET\" && request.method !== \"HEAD\") return null;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: never moves / itself"
+  },
+  {
+    "id": "b17-guard-with-maintenance",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/with-maintenance.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bun run test tests/unit/assert-not-production.test.ts",
+    "expect": "scripts/with-maintenance.ts"
+  },
+  {
+    "id": "b17-e2e-sw-offline",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "public/sw.js",
+    "find": "event.respondWith(fetch(request).catch(() => caches.match(OFFLINE)));",
+    "replace": "event.respondWith(fetch(request));",
+    "run": "E2E_TARGET=url E2E_MODE=live E2E_BASE_URL=http://127.0.0.1:8938 cp public/sw.js .output/public/sw.js && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line (a server on 8938 from a build with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938)",
+    "expect": "shows /offline.html offline[^]*You are offline"
+  },
+  {
+    "id": "b17-e2e-sw-api",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "public/sw.js",
+    "find": "const FONTS = [",
+    "replace": "const FONTS = [\"/api/public/properties\",",
+    "run": "E2E_TARGET=url E2E_MODE=live E2E_BASE_URL=http://127.0.0.1:8938 cp public/sw.js .output/public/sw.js && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line (same server as b17-e2e-sw-offline)",
+    "expect": "keeps only the shell[^]*/api/public/properties"
+  },
+  {
+    "id": "b17-e2e-sw-host",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/sw-register.ts",
+    "find": "  if (location.hostname !== new URL(siteConfig.url).hostname) return;\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line",
+    "expect": "registers nothing on a host other than the one the build names[^]*Expected: 0"
+  },
+  {
+    "id": "b17-e2e-error-id",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/route-error.tsx",
+    "find": "    ? error.requestId\n",
+    "replace": "    ? undefined\n",
+    "run": "VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_PORT=8938 E2E_MODE=live bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g error-id --reporter=line",
+    "expect": "error-id: a failed API read[^]*Reference b17-id"
   }
 ]

@@ -654,8 +654,8 @@
     "kind": "file",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    flags = await deps.getFlags();",
-    "replace": "    flags = {};",
+    "find": "    flags = await deps.getFlags().catch((error: unknown) => {",
+    "replace": "    flags = await Promise.resolve({}).catch((error: unknown) => {",
     "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
     "expect": "× .*calls the reader once per page request"
   },

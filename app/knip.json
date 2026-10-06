@@ -8,7 +8,8 @@
     "src/domain/index.ts",
     "src/db/index.ts",
     "docs/verify-example.mjs",
-    "src/server/nitro/*.ts"
+    "src/server/nitro/*.ts",
+    "public/sw.js"
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
   "ignoreBinaries": ["psql", "ffmpeg", "ffprobe"],

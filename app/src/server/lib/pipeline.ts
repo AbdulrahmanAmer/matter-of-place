@@ -1,8 +1,16 @@
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
 import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
-import { securityHeaders, withPageCsp, type Flags, type Framing } from "./headers";
+import {
+  cspFor,
+  inlineHashes,
+  securityHeaders,
+  withPageCsp,
+  type Flags,
+  type Framing,
+} from "./headers";
 import { logLine } from "./log";
+import { maintenanceHtml } from "./maintenance-html";
 
 export interface PipelineContext {
   env: { MOP_ENV?: string | undefined };
@@ -180,9 +188,60 @@ async function refusedByRouter(request: Request, response: Response): Promise<bo
   );
 }
 
+const MAINTENANCE_RETRY_AFTER = "300";
+
 /**
- * The request pipeline of invariant 10, outside to inside: request id, never-cached rule, cache
- * hook, render. Headers are added after the cache hook returns, so a stored render is the same
+ * Invariant 19: while `flags.maintenance` is on, every public read answers 503 before the cache hook, so a stored
+ * page never masks the switch; staff (`/admin`, `/api/admin/*`) and webhooks (`/api/hooks/*`) keep working.
+ * The pipeline turns the handler's `private, no-store` into exactly `no-store`, as for every 5xx.
+ */
+async function maintenanceGate(
+  request: Request,
+  flags: Flags,
+  env: string,
+): Promise<Response | null> {
+  const path = routePath(new URL(request.url).pathname);
+  if (
+    flags["maintenance"] !== true ||
+    (request.method !== "GET" && request.method !== "HEAD") ||
+    isAdmin(path) ||
+    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))
+  ) {
+    return null;
+  }
+  const policyHeader =
+    flags["csp_enforce"] === true
+      ? "content-security-policy"
+      : "content-security-policy-report-only";
+  return new Response(maintenanceHtml, {
+    status: 503,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "retry-after": MAINTENANCE_RETRY_AFTER,
+      "cache-control": "private, no-store",
+      [policyHeader]: cspFor(env, flags, await inlineHashes(maintenanceHtml)),
+    },
+  });
+}
+
+/** Reports an error once, unless it is an outage the read path has already logged and reported. */
+function reportUnlessOutage(
+  error: unknown,
+  ctx: PipelineContext,
+  deps: PipelineDeps,
+  info: { requestId: string; route: string },
+): boolean {
+  const outage = error instanceof AppError && error.code === "unavailable";
+  if (!outage) {
+    logLine("error", "unhandled_error", info);
+    ctx.waitUntil(deps.report(error, info));
+  }
+  return outage;
+}
+
+/**
+ * The request pipeline of invariant 10, outside to inside: request id, never-cached rule, maintenance gate,
+ * cache hook, render. Headers are added after the cache hook returns, so a stored render is the same
  * for every visitor.
  */
 export async function handle(
@@ -196,25 +255,27 @@ export async function handle(
   const underApi = path.startsWith("/api/");
   const mopEnv = ctx.env.MOP_ENV ?? "production";
   const framing = framingOf(request, path);
+  const info = { requestId, route: pathname };
   let flags: Flags = {};
   let response: Response;
   let redirected = false;
   try {
-    flags = await deps.getFlags();
+    // A state that cannot be read lets the request through with no flags: stale beats down (B3 rule 7).
+    flags = await deps.getFlags().catch((error: unknown) => {
+      reportUnlessOutage(error, ctx, deps, info);
+      return {};
+    });
     const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);
     // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.
     const page = !neverCached(request, pathname) && isPageRequest(pathname);
-    const redirect = page ? await deps.redirect(request) : null;
+    const closed = await maintenanceGate(request, flags, mopEnv);
+    const redirect = closed === null && page ? await deps.redirect(request) : null;
     redirected = redirect !== null;
-    response = redirect ?? (page ? await deps.cache(request, render) : await render());
+    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());
   } catch (error) {
     // A page that cannot read the database and holds no last good copy is an outage, already logged and
     // reported once a minute by the read path: it answers 503, not an unhandled error.
-    const outage = error instanceof AppError && error.code === "unavailable";
-    if (!outage) {
-      logLine("error", "unhandled_error", { requestId, route: pathname });
-      ctx.waitUntil(deps.report(error, { requestId, route: pathname }));
-    }
+    const outage = reportUnlessOutage(error, ctx, deps, info);
     response = calmServerError(request, underApi, requestId, outage);
   }
   const refused = await refusedByRouter(request, response);
