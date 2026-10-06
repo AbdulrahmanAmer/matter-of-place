@@ -24,6 +24,12 @@
   --primary: var(--foreground);
   --primary-foreground: var(--background);
 
+  /* Keyboard focus: Obsidian on Bone, Bone on Obsidian (a dark surface sets --focus-ring to --background). */
+  --focus-ring: var(--foreground);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --z-skip-link: 120;
+
   --font-sans: "Jost", "Jost Fallback", sans-serif;
   --font-serif: "Cormorant Garamond", "Cormorant Garamond Fallback", Georgia, serif;
   --font-ui: "Urbanist", "Urbanist Fallback", sans-serif;

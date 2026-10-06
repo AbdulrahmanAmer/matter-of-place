@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Play } from "lucide-react";
 import type { GalleryImage, Property, PropertyVideo } from "../../domain/property";
 import { track } from "../../lib/analytics";
@@ -23,6 +23,22 @@ const intoRows = (images: GalleryImage[]): GalleryImage[][] => {
   }
   if (pair.length) rows.push(pair);
   return rows;
+};
+
+/** Left and Right bring the next or previous image row to the middle of the screen: one Tab stop, not one per photograph. */
+const stepImage = (event: KeyboardEvent<HTMLDivElement>) => {
+  const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+  if (step === 0 || event.target !== event.currentTarget) return;
+  event.preventDefault();
+  const figures = [...event.currentTarget.querySelectorAll("figure")].map((figure) => ({
+    figure,
+    box: figure.getBoundingClientRect(),
+  }));
+  const here = figures.find(({ box }) => box.bottom > window.innerHeight / 2) ?? figures.at(-1);
+  const rows = figures.filter(({ box }) =>
+    here === undefined ? false : (box.top - here.box.top) * step > 1,
+  );
+  (step > 0 ? rows[0] : rows.at(-1))?.figure.scrollIntoView({ block: "center" });
 };
 
 export function Gallery({
@@ -59,8 +75,16 @@ export function Gallery({
 
   if (!images.length && !video) return null;
 
+  /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- the gallery is one labelled Tab stop whose arrow keys step the images (WCAG 2.1.1) */
   return (
-    <div className="dossier-gallery" ref={ref} aria-label={`Photography of the ${city} property`}>
+    <div
+      className="dossier-gallery"
+      ref={ref}
+      role="region"
+      aria-label={`Photography of the ${city} property`}
+      tabIndex={0}
+      onKeyDown={stepImage}
+    >
       {video && <PropertyFilm video={video} city={city} slug={slug} />}
       {intoRows(images).map((row) => (
         <div
@@ -83,10 +107,19 @@ export function Gallery({
       ))}
     </div>
   );
+  /* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- the gallery element above is the only one */
 }
 
 /** Poster frame first; the film loads only when the visitor asks for it. */
-function PropertyFilm({ video, city, slug }: { video: PropertyVideo; city: string; slug: string }) {
+export function PropertyFilm({
+  video,
+  city,
+  slug,
+}: {
+  video: PropertyVideo;
+  city: string;
+  slug: string;
+}) {
   const [playing, setPlaying] = useState(false);
 
   const play = () => {
@@ -106,7 +139,7 @@ function PropertyFilm({ video, city, slug }: { video: PropertyVideo; city: strin
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="none"
             aria-label={`${video.caption}, illustrative film of the ${city} property`}
           />
         ) : (

@@ -41,6 +41,7 @@ const en = {
     searchLabel: "Search location or property",
     openMarkets: "California · New York · Florida",
     tagline: "Exceptional property. Properly considered.",
+    skipToContent: "Skip to content",
   },
   footer: {
     groups: {
@@ -77,6 +78,9 @@ const en = {
     liveSent: "A person will reply within one working day.",
     error: "This did not go through. Please try once more.",
     invalid: "Please check the highlighted details.",
+    /** Beside a field the browser found empty or malformed when the form was sent. */
+    fieldRequired: "Please fill in this field.",
+    fieldInvalid: "Please check this entry.",
     /** A received submission whose photographs are still going out (FE-04). */
     uploading: (done: number, total: number) =>
       `Received. Uploading ${String(done)} of ${String(total)} photographs.`,

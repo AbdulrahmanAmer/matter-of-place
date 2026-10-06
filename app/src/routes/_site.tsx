@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { captureAttribution } from "../lib/attribution";
 import { installClientErrorListeners } from "../lib/report-error";
+import { t } from "../lib/strings";
 import appCss from "../styles.css?url";
 
 // The pathless layout of every public page (FE-02): public-only chrome and effects mount here, never in
@@ -23,8 +24,14 @@ function SiteLayout() {
     });
   }, [router]);
   return (
-    <SiteChrome>
-      <Outlet />
-    </SiteChrome>
+    <>
+      <a className="skip-link" href="#content">
+        {t.header.skipToContent}
+      </a>
+      <SiteChrome>
+        <span id="content" className="skip-target" tabIndex={-1} />
+        <Outlet />
+      </SiteChrome>
+    </>
   );
 }

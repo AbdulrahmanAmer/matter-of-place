@@ -1,8 +1,12 @@
 // B17: the essentials slice. Each title starts with the `-t` name the plan's steps use.
 import "../fixtures/worker-env";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 import { createMemoryHistory } from "@tanstack/react-router";
 import {
   attachRouterServerSsrUtils,
@@ -16,6 +20,7 @@ import type { Json } from "../../src/db";
 import { cookieInventory } from "../../src/config/cookies";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
+import { PropertyFilm } from "../../src/components/property/gallery";
 import { COOKIE_INVENTORY_HASH } from "../../src/lib/consent";
 import { getRouter } from "../../src/router";
 import { CSP_INLINE_ALLOWLIST } from "../../src/server/lib/csp-allowlist";
@@ -24,6 +29,7 @@ import { cspFor, inlineHashes, securityHeaders } from "../../src/server/lib/head
 import { handle, type PipelineContext, type PipelineDeps } from "../../src/server/lib/pipeline";
 import { captureException } from "../../src/server/lib/sentry";
 import { setConsent } from "../../src/server/public/consent";
+import { auditAlt } from "../../scripts/alt-audit.mjs";
 import { fakeDb } from "../fixtures/fake-db";
 import { stateJson } from "../fixtures/snapshot";
 
@@ -918,5 +924,78 @@ describe("consent-pages", () => {
     expect(choices).not.toContain("Analytics are on.");
     expect(choices).not.toContain("Analytics are off.");
     expect(choices).not.toContain("You have not chosen yet.");
+  });
+});
+
+describe("film-caption", () => {
+  const film = { src: "/film.mp4", poster: "/poster.jpg", caption: "Dusk", duration: "0:06" };
+
+  it("film-caption: the property film shows its caption as visible text beside the player and carries no captions track", () => {
+    const markup = renderToString(
+      createElement(PropertyFilm, { video: film, city: "Marin", slug: "marin-house" }),
+    );
+    expect(markup).toContain("<figcaption>Dusk</figcaption>");
+    expect(markup).not.toContain("<track");
+  });
+
+  it("film-caption: the video loads nothing until it is played, so it preloads none", () => {
+    const source = readFileSync("src/components/property/gallery.tsx", "utf8");
+    expect(source).toContain('preload="none"');
+    expect(source).not.toContain('preload="metadata"');
+  });
+});
+
+describe("a11y-contrast", () => {
+  const run = (tokens?: string) => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-contrast-"));
+    try {
+      const file = join(dir, "tokens.css");
+      if (tokens !== undefined) writeFileSync(file, tokens);
+      return spawnSync(process.execPath, ["scripts/contrast.mjs", ...(tokens ? [file] : [])], {
+        encoding: "utf8",
+      });
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  };
+
+  it("a11y-contrast: every text and surface pair of tokens.css reaches 4.5 to 1", () => {
+    const result = run();
+    expect(result.stdout).toContain("--muted-foreground on --background");
+    expect(result.stdout).not.toContain("FAIL");
+    expect(result.status).toBe(0);
+  });
+
+  it("a11y-contrast: a Warm Grey text token on Ivory fails the check and is named", () => {
+    const tokens = readFileSync("src/styles/tokens.css", "utf8").replace(
+      "--muted-foreground: #575751;",
+      "--muted-foreground: #8b877f;",
+    );
+    const result = run(tokens);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toMatch(/FAIL --muted-foreground on --background 3\.\d\d:1/);
+  });
+});
+
+describe("a11y-alt-audit", () => {
+  it("a11y-alt-audit: names an image with no alt, an alt equal to its file name and a decorative image with an alt", () => {
+    const page = [
+      '<img src="/a/one.jpg">',
+      '<img src="/a/two.jpg?v=3" alt="two.jpg">',
+      '<img src="/a/three.jpg" alt="A courtyard" role="presentation">',
+      '<img src="/a/four.jpg" alt="A courtyard" aria-hidden="true">',
+    ].join("");
+    expect(auditAlt(page)).toEqual([
+      "/a/one.jpg: no alt attribute",
+      "/a/two.jpg?v=3: alt is the file name",
+      '/a/three.jpg: decorative image with alt "A courtyard"',
+      '/a/four.jpg: decorative image with alt "A courtyard"',
+    ]);
+  });
+
+  it("a11y-alt-audit: accepts a described image and a decorative image with an empty alt", () => {
+    const page =
+      '<img src="/a/five.jpg" alt="A walled garden at dusk"><img src="/a/six.jpg" alt="" aria-hidden="true" />';
+    expect(auditAlt(page)).toEqual([]);
   });
 });

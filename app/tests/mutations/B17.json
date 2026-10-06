@@ -898,5 +898,277 @@
     "replace": "",
     "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-noscript\" --reporter=line",
     "expect": "consent-noscript[\\s\\S]*Expected: \"1\\.0\""
+  },
+  {
+    "id": "b17-a11y-film-caption",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "        <figcaption>{video.caption}</figcaption>\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*film-caption: the property film shows its caption"
+  },
+  {
+    "id": "b17-a11y-preload",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "preload=\"none\"",
+    "replace": "preload=\"metadata\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*film-caption: the video loads nothing"
+  },
+  {
+    "id": "b17-a11y-contrast-token",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/tokens.css",
+    "find": "--muted-foreground: #575751;",
+    "replace": "--muted-foreground: #8b877f;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-contrast: every text and surface pair"
+  },
+  {
+    "id": "b17-a11y-contrast-exit",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/contrast.mjs",
+    "find": "const ok = ratio >= MINIMUM;",
+    "replace": "const ok = true;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-contrast: a Warm Grey text token"
+  },
+  {
+    "id": "b17-a11y-alt-missing",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "if (alt === undefined) problems.push",
+    "replace": "if (alt === null) problems.push",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-filename",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "else if (alt !== \"\" && alt.toLowerCase() === file.toLowerCase()) {",
+    "replace": "else if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-decorative",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "else if (decorative && alt !== \"\")",
+    "replace": "else if (false)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-empty",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "if (alt === undefined) problems.push",
+    "replace": "if (alt === undefined || alt === \"\") problems.push",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: accepts a described image"
+  },
+  {
+    "id": "b17-e2e-a11y-skip-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.tsx",
+    "find": "      <a className=\"skip-link\" href=\"#content\">\n        {t.header.skipToContent}\n      </a>\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"skip link is the first Tab stop\" --reporter=line",
+    "expect": "skip link is the first Tab stop[^]*toBeFocused"
+  },
+  {
+    "id": "b17-e2e-a11y-trap",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "        event.preventDefault();\n        (event.shiftKey ? last : first).focus();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "open search overlay[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-restore",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "      if (opener.current instanceof HTMLElement) opener.current.focus();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "focus returns to the search button[^]*toBeFocused"
+  },
+  {
+    "id": "b17-e2e-a11y-escape",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "      if (event.key === \"Escape\") {\n        onClose();\n        return;\n      }\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open inquiry dialog\" --reporter=line",
+    "expect": "open inquiry dialog[^]*toHaveCount"
+  },
+  {
+    "id": "b17-e2e-a11y-dialog-ref",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "        ref={dialogRef}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open inquiry dialog\" --reporter=line",
+    "expect": "open inquiry dialog[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-menu-ref",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/menu-panel.tsx",
+    "find": "      ref={ref}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=phone -g \"open menu panel\" --reporter=line",
+    "expect": "open menu panel[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-gallery-keys",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "      onKeyDown={stepImage}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"ArrowRight moves to the next image\" --reporter=line",
+    "expect": "ArrowRight moves to the next image[^]*Expected: not"
+  },
+  {
+    "id": "b17-e2e-a11y-described",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": " {...control(\"name\")} />",
+    "replace": " />",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*aria-invalid"
+  },
+  {
+    "id": "b17-e2e-a11y-error-text",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/field.tsx",
+    "find": "          {error}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*toHaveText"
+  },
+  {
+    "id": "b17-e2e-a11y-ring",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/base.css",
+    "find": "  outline: var(--focus-ring-width) solid var(--focus-ring);\n",
+    "replace": "  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-filter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "aria-expanded={showFilters}",
+    "replace": "aria-expanded={false}",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"filter button on /properties\" --reporter=line",
+    "expect": "filter button on /properties[^]*aria-expanded"
+  },
+  {
+    "id": "b17-e2e-a11y-motion",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/motion.css",
+    "find": "    animation-duration: 0.01ms !important;\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"a11y-reduced-motion\" --reporter=line",
+    "expect": "a11y-reduced-motion[^]*toBeLessThan"
+  },
+  {
+    "id": "b17-e2e-a11y-name",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/field.tsx",
+    "find": "        {children}\n      </label>\n      {error !== undefined && (\n        <span className=\"field-error\" id={errorId}>\n          {error}\n        </span>\n      )}\n",
+    "replace": "        {children}\n        {error !== undefined && (\n          <span className=\"field-error\" id={errorId}>\n            {error}\n          </span>\n        )}\n      </label>\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*getByLabel"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-dark",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/base.css",
+    "find": ".market-card,\n.site-header-overlay {\n  --focus-ring: var(--background);",
+    "replace": ".market-card {\n  --focus-ring: var(--background);",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"ring is Obsidian on the page\" --reporter=line",
+    "expect": "ring is Obsidian on the page[^]*Expected"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-newsletter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/forms.css",
+    "find": ".newsletter-form input {\n  flex: 1;\n  min-width: 0;\n  padding: 14px 0;\n}",
+    "replace": ".newsletter-form input {\n  flex: 1;\n  min-width: 0;\n  padding: 14px 0;\n  outline: none;\n}",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-finder",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/pages/home.css",
+    "find": ".home-finder textarea:focus {\n  border-color",
+    "replace": ".home-finder textarea:focus {\n  outline: none;\n  border-color",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-film",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/gallery.css",
+    "find": "  outline-color: var(--background);\n  outline-offset: -8px;\n",
+    "replace": "  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-filters",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/filters.css",
+    "find": ".filter-bar select {\n  color: var(--foreground);\n",
+    "replace": ".filter-bar select {\n  color: var(--foreground);\n  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-search",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/layout/overlays.css",
+    "find": ".search-panel input {\n  width: 100%;\n",
+    "replace": ".search-panel input {\n  width: 100%;\n  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "open search overlay[^]*shows a ring"
+  },
+  {
+    "id": "b17-e2e-a11y-dialog-reopen",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "    clearAll();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"opened again shows no error\" --reporter=line",
+    "expect": "opened again shows no error[^]*aria-invalid"
   }
 ]

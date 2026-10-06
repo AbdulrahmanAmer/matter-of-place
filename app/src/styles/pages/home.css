@@ -155,7 +155,6 @@
 }
 
 .home-finder textarea:focus {
-  outline: none;
   border-color: var(--foreground);
 }
 

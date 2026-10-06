@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { z } from "zod";
 import { t } from "../../src/lib/strings";
+import { getDynamicRoutes } from "./fixtures/routes";
 
 // B17: the essentials slice in a real browser. Each title starts with the `-g` name the plan's steps use.
 
@@ -170,5 +171,238 @@ test.describe("footer-links", () => {
       await expect(page.locator(`footer a[href="${href}"]`)).toHaveCount(1);
     }
     await expect(page.locator('footer a#consent-change[href="/privacy-choices"]')).toHaveCount(1);
+  });
+});
+
+// Invariant 12: the keyboard reaches and leaves every overlay, and a field error is described.
+const propertyRoutes = (await getDynamicRoutes()).filter(
+  (route) => route.routeClass === "property",
+);
+const propertyPath = propertyRoutes[0]?.path ?? "";
+/** The illustrative property that carries a film, when the build has it. */
+const filmPaths = propertyRoutes
+  .map((route) => route.path)
+  .filter((path) => path.endsWith("/tiburon-waterline"));
+
+/** What the focused element shows: `drawn` when it has an outline of 2 px or more or a box shadow; null on the page itself. */
+const focusState = (page: Page) =>
+  page.evaluate(() => {
+    const node = document.activeElement;
+    if (!node || node === document.body) return null;
+    const style = getComputedStyle(node);
+    return {
+      drawn:
+        (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) >= 2) ||
+        style.boxShadow !== "none",
+      name: `${node.tagName.toLowerCase()}.${node.className}`,
+      opensFilters: node.getAttribute("aria-controls") === "property-filters",
+    };
+  });
+
+/** Tabs through an open dialog once and a half, so the wrap from the last stop to the first is crossed. */
+async function expectTabStaysIn(page: Page, dialog: ReturnType<Page["getByRole"]>) {
+  const stops = await dialog.locator("a[href], button, input, textarea, select").count();
+  for (let press = 0; press < stops + 2; press += 1) {
+    await page.keyboard.press("Tab");
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+    expect((await focusState(page))?.drawn, "the focused control shows a ring").toBe(true);
+  }
+  await page.keyboard.press("Shift+Tab");
+  expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+}
+
+async function expectEscapeReturns(page: Page, opener: ReturnType<Page["getByRole"]>) {
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(opener).toBeFocused();
+}
+
+/** The longest time any running animation of the page will last, in milliseconds (Infinity for a loop). */
+const longestAnimation = (page: Page) =>
+  page.evaluate(() =>
+    Math.max(
+      0,
+      ...document
+        .getAnimations()
+        .map((animation) => Number(animation.effect?.getComputedTiming().activeDuration ?? 0)),
+    ),
+  );
+
+test.describe("a11y-reduced-motion", () => {
+  test("a11y-reduced-motion: a property page's scroll cue drifts for ever by default, and not when the visitor asks for less motion", async ({
+    page,
+  }) => {
+    await page.goto(propertyPath, { waitUntil: "networkidle" });
+    expect(await longestAnimation(page)).toBeGreaterThan(1000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(propertyPath, { waitUntil: "networkidle" });
+    expect(await longestAnimation(page)).toBeLessThan(1);
+  });
+});
+
+test.describe("a11y-keyboard", () => {
+  test("a11y-keyboard: the skip link is the first Tab stop and moves focus below the header", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.keyboard.press("Tab");
+    const skip = page.getByRole("link", { name: t.header.skipToContent });
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeInViewport();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#content")).toBeFocused();
+    expect(new URL(page.url()).hash).toBe("#content");
+  });
+
+  test("a11y-keyboard: Tab stays inside the open menu panel, Escape closes it and focus returns to the menu button", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    const opener = page.getByRole("button", { name: t.header.openMenu });
+    test.skip(!(await opener.isVisible()), "the menu button shows only on narrow screens");
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    const panel = page.getByRole("dialog", { name: "Menu" });
+    await expect(panel).toBeVisible();
+    await expectTabStaysIn(page, panel);
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByRole("button", { name: t.header.openMenu })).toBeFocused();
+  });
+
+  test("a11y-keyboard: Tab stays inside the open search overlay, Escape closes it and focus returns to the search button", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    const opener = page.getByRole("button", { name: t.header.search });
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    const panel = page.getByRole("dialog", { name: t.header.search });
+    await expect(panel).toBeVisible();
+    await expectTabStaysIn(page, panel);
+    await expectEscapeReturns(page, opener);
+  });
+
+  test("a11y-keyboard: Tab stays inside the open inquiry dialog, Escape closes it and focus returns to the button that opened it", async ({
+    page,
+  }) => {
+    await page.goto(propertyPath, { waitUntil: "networkidle" });
+    const opener = page
+      .getByRole("button", { name: "Request a private showing", exact: true })
+      .first();
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expectTabStaysIn(page, dialog);
+    await expectEscapeReturns(page, opener);
+  });
+
+  test("a11y-keyboard: an inquiry dialog opened again shows no error from the last time", async ({
+    page,
+  }) => {
+    await page.goto(propertyPath, { waitUntil: "networkidle" });
+    const opener = page
+      .getByRole("button", { name: "Request a private showing", exact: true })
+      .first();
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    const name = page.locator('.inquiry-dialog input[name="name"]');
+    await page
+      .locator(".inquiry-dialog")
+      .getByRole("button", { name: t.common.send, exact: true })
+      .focus();
+    await page.keyboard.press("Enter");
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    await expect(name).toBeVisible();
+    await expect(name).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("a11y-keyboard: the gallery is one Tab stop and ArrowRight moves to the next image", async ({
+    page,
+  }) => {
+    await page.goto(propertyPath, { waitUntil: "networkidle" });
+    const gallery = page.getByRole("region", { name: /^Photography of the/ });
+    await gallery.focus();
+    await expect(gallery).toBeFocused();
+    const before = await page.evaluate(() => window.scrollY);
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).not.toBe(before);
+  });
+
+  test("a11y-keyboard: the filter button on /properties opens with Enter and closes with Space", async ({
+    page,
+  }) => {
+    await page.goto("/properties", { waitUntil: "networkidle" });
+    const toggle = page.getByRole("button", { name: /^Filter/ });
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Space");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("a11y-keyboard: every Tab stop of the home page, /properties with its filters open, /stories and two property pages draws a focus ring", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const unringed: string[] = [];
+    for (const path of ["/", "/properties", "/stories", propertyPath, ...filmPaths]) {
+      await page.goto(path, { waitUntil: "networkidle" });
+      await page.evaluate(() => {
+        document.documentElement.style.scrollBehavior = "auto";
+      });
+      for (let press = 0; press < 250; press += 1) {
+        await page.keyboard.press("Tab");
+        const stop = await focusState(page);
+        if (stop === null) break;
+        if (stop.opensFilters) await page.keyboard.press("Enter");
+        if (!stop.drawn) unringed.push(`${path} ${stop.name}`);
+      }
+    }
+    expect(unringed).toEqual([]);
+  });
+
+  test("a11y-keyboard: the ring is Obsidian on the page and Bone over the home photograph", async ({
+    page,
+  }) => {
+    const ringOfBrand = async (path: string) => {
+      await page.goto(path, { waitUntil: "networkidle" });
+      for (let press = 0; press < 20; press += 1) {
+        await page.keyboard.press("Tab");
+        if (await page.evaluate(() => document.activeElement?.classList.contains("header-brand"))) {
+          break;
+        }
+      }
+      return page.evaluate(
+        () => getComputedStyle(document.activeElement ?? document.body).outlineColor,
+      );
+    };
+    expect(await ringOfBrand("/")).toBe("rgb(245, 242, 235)");
+    expect(await ringOfBrand("/contact")).toBe("rgb(17, 17, 15)");
+  });
+
+  test("a11y-keyboard: a submitted empty required field is invalid and described by visible error text", async ({
+    page,
+  }) => {
+    await page.goto("/contact", { waitUntil: "networkidle" });
+    const send = page.getByRole("button", { name: t.common.send, exact: true });
+    await send.focus();
+    await page.keyboard.press("Enter");
+    const name = page.locator('input[name="name"]');
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await expect(name).toBeFocused();
+    const describedBy = await name.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    const error = page.locator(`[id="${describedBy ?? ""}"]`);
+    await expect(error).toBeVisible();
+    await expect(error).toHaveText(t.forms.fieldRequired);
+    await expect(page.getByLabel("Your name", { exact: true })).toBeVisible();
+    await name.fill("Ada");
+    await expect(name).not.toHaveAttribute("aria-invalid", "true");
   });
 });
