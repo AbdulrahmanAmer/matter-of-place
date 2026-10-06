@@ -745,6 +745,7 @@ Entry template
 - hit again: 2026-10-05, B13 c1: `vitest/no-conditional-expect` refused an `expect` inside an `if` in the new `tests/unit/csp-inline.test.ts` case, and the c1 costTime line filed it under P-1803, which is the padding cut; the fix is the same as B3 g6 (filter first, then assert once on the resulting list, an empty one included).
 
 - hit again: 2026-10-06, B12 g5: a stateful fake asset row typed as `Tables<"assets">` failed `tsc` (`Record<string, unknown>` is not `NonNullable<Json>`) and `p_spec_hash ?? null` failed `no-unnecessary-condition` (the generated argument is non-null); a local row interface with `meta: Record<string, unknown>` passed both.
+
 ## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
 - symptom: B1b step 3 pins wrangler 4.145.0 (E11), yet `bunx wrangler --version` printed 4.146.0 in an earlier session, and the group's gate was written for 4.145.0.
 - cause: `bunx` uses the dependency of the folder it runs in; outside `app/` there is none and it fetches the newest release. The runbook was the only place that said which one is pinned.
@@ -3368,6 +3369,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-05
 
 - hit again: 2026-10-06, B12 g5: the trigger `assets_reel_video` turned B9's reel case of `tests/db/assets.db.test.ts` red (one `main` file, now `reel_files_missing`) and `tests/unit/error-codes.test.ts` red on the new raised message; neither file is in the step. Both were fixed in the same commit (a reel row with video, poster and duration; `reel_files_missing: 422`). Rule widened: a new trigger on a table is a change to that table: `git grep -n "<table>" -- app/tests/db` and run each hit with the migration as prelude before the commit (P-2120).
+
 ## P-1203 · A pull request that touches `tests/db/rls.db.test.ts` replays `B2:g11-rls-own-row` in CI, whose `run` seeds `--target dev` and fails without the dev profile
 - symptom: PR 137 (B5 step 2, which edits `rls.db.test.ts`) failed its `db` job at the mutation replay with `WATCHED-FAIL BAD: wrong reason (B2:g11-rls-own-row)`, `DEV_SUPABASE_PROJECT_REF is not set`, `error: script "seed" exited with code 1`, while PR 135 and PR 131 (which did not touch that file) passed `db` (2026-10-05).
 - cause: `app/tests/mutations/B2.json` entry `g11-rls-own-row` runs `bun run seed -- --target dev --mode full --images skip` before its test; the CI `db` job has the local stack and no `DEV_SUPABASE_PROJECT_REF`, and `--changed origin/main` replays every entry whose file the pull request touches.
@@ -3716,4 +3718,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `--changed` compares each entry's file and test with the ref, and a lane that carries earlier groups differs from main in all of them.
 - rule: replay the entries of the files of your own group by id (`for id in ...; do node scripts/watchfail.mjs --registry tests/mutations --only <id>; done`) and run it in the background with a bounded wait; read `git status` after any replay that was interrupted.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b12g1-film-label` → `WATCHED-FAIL OK B12:b12g1-film-label` in seconds (2026-10-06).
+- added: 2026-10-06
+
+## P-531 · CI's e2e job exits 1 on a test that failed once and passed on retry: `sweep.spec.ts` on `/` ("elements wider than the viewport") is flaky on the first request of a cold Worker, and `failOnFlakyTests` makes the whole job red
+- symptom: the e2e job prints `✘ sweep.spec.ts:17:3 › /` then `✓ ... / (retry #1)`, ends with "1 flaky, N passed" and `##[error]Process completed with exit code 1`; every later step of the job (coming-soon, admin) is skipped, so a red here hides the admin specs too (P-2010). Seen on PRs 138, 150, 155 and 158 (run 37404779915, 2026-10-06 02:40 UTC); never on a route other than the first `/`.
+- cause: the sweep opens `/` as the very first request of the freshly started Worker; its first layout pass under CI load reports a width overflow that is gone a second later. `app/playwright.config.ts` line 45 sets `failOnFlakyTests: Boolean(process.env["CI"])`, so a retry that passes still fails the job.
+- rule: re-run the failed job once (`gh run rerun <id> --failed`); do not loosen `failOnFlakyTests` or the sweep's width check for it. The fix belongs to the site lane (B17): find why the cold first paint of `/` is wider than the viewport (a late-loading typeface or image without reserved width is the usual cause) and prove it with the sweep on a cold Worker ten times; until then the entry is the record of the gap.
+- proof: `gh run view 37404779915 --job 112079918014 --log-failed | grep -E "flaky|passed|exit code"` → `1 flaky`, `168 passed (2.7m)`, `Process completed with exit code 1`; `grep -n failOnFlakyTests app/playwright.config.ts` → line 45.
 - added: 2026-10-06
