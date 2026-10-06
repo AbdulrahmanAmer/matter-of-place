@@ -163,3 +163,79 @@ what: Routing note, not a c2b defect. The operator's relayed request ('your note
 evidence: Author's unproven list, last item; POSITION.md lines 1183-1188 as cited by the author (I did not read them: they are outside the snapshot scope)
 
 blocking: false
+
+## g3 · steps 3
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. Two more follow-ups of this review name GOTCHAS.md and are banked there (P-2017 for the watched-fail replay that hung, P-2018 for check beside a replay, with hit-again lines under P-066 and P-027).
+
+### 1. app/src/routes/admin.tsx (lines 1-8, beforeLoad imports) with app/scripts/bundle-check.mjs
+
+what: STANDARDS R39 is broken and the gate cannot see it. The admin guard's static imports (team-api, and since g3 also admin-fetch, query and domain/admin-team) are inlined into the client entry chunk, which every public route loads. bundle-check only walks manifest keys, and inlined modules have no key, so it prints OK. P-2013's rule 'keep the guard's imports static' banks the form that hides the violation, after the dynamic form was correctly flagged ('a chunk a public route can reach holds src/admin/query.ts'). The violation predates g3 (g2 already imported team-api statically) and g3 makes it bigger. The plan puts the guard in admin.tsx, and bundle-check treats dynamic imports from the entry as reachable, so no compliant shape exists inside this group's files. The orchestrator needs to rule, and bundle-check needs to scan the entry chunk's contents or its module ids.
+
+evidence: Confirmed by running: grep -l 'X-MOP-CSRF\|mop_csrf' .output/public/assets/*.js prints BBxYnFxD.js. The manifest lists it as file of node_modules/@tanstack/react-start/dist/plugin/default-entry/client.tsx with isEntry true, and src/routes/_site.tsx?tsr-split=component imports it. bundle-check still prints 'OK 21 routes'.
+
+blocking: false
+
+### 2. app/src/routes/admin.tsx (beforeLoad installAdminQueryDefaults/bindAdminFetch; AdminLayout useEffect installClientErrorListeners)
+
+what: Invariant 20 / FE-09 wiring in the layout has no test (R53, C10). query.test.ts and admin-fetch.test.ts call installAdminQueryDefaults and bindAdminFetch themselves. Nothing checks that the real layout calls them or installs the error listeners. If someone removes the layout calls, admin queries go back to TanStack's default retry (4xx retried 3 times, refetch on focus) and uncaught admin errors stop being reported, with every test still green.
+
+evidence: Confirmed by running: with those two calls removed by sed, 'bunx vitest run src/admin tests/unit/admin-*.test.ts tests/unit/report-error.test.ts' gives Test Files 12 passed, Tests 94 passed. Restored with git checkout.
+
+blocking: false
+
+### 3. app/src/admin/ui/test-router.tsx
+
+what: A shared test helper that imports @testing-library/react sits in src/admin/ui. The folder map row for src/admin allows only components, modules and tests beside the code (*.test.ts/tsx). Shared test builders belong in tests/fixtures/ (STANDARDS section 1.3, C03).
+
+evidence: Confirmed by reading: grep -rln test-router src tests lists only AdminRouteError.test.tsx, shell.test.tsx and use-url-filters.test.tsx as importers.
+
+blocking: false
+
+### 4. app/src/styles/admin/*.css, app/src/admin/ui/*.tsx
+
+what: Selectors use admin-*, but STANDARDS R42 says admin selectors use the a- prefix. The step's own proof greps 'admin-shell', so the plan and the standard contradict each other. The author raised it. The orchestrator must rule which one changes.
+
+evidence: grep -c admin-shell .output/public/assets/*.css (the step proof) against STANDARDS.md R42 text
+
+blocking: false
+
+### 5. app/src/admin/ui/TopBar.tsx
+
+what: The plan asks for 'actor name and kind'. The bar shows the role labels joined (ActorBadge name = roles.map(roleLabels)) because GET me returns no display name. Disclosed in the log. Needs a later change to getMe and meSchema, which are outside this group's files.
+
+evidence: Read TopBar.tsx: <ActorBadge name={me.roles.map((role) => roleLabels[role]).join(", ")} .../>
+
+blocking: false
+
+### 6. app/src/routes/admin.tsx (no errorComponent; session_expired redirect from a client navigation)
+
+what: Suspected by reading, not run. (a) The /admin layout has no errorComponent. If GET me answers 503 auth_unavailable, the guard throws before the shell mounts, so the 'Service unavailable, retrying' banner (API-03) never shows and the root error screen appears instead. (b) On a client-side navigation that hits 401 session_expired, adminFetch's host.navigate builds next= from window.location, which is still the previous page, and races the router redirect that uses the target href.
+
+evidence: Read admin.tsx: createFileRoute('/admin')({ ssr:false, beforeLoad, head, component }), no errorComponent. bindAdminFetch currentPath: () => window.location.pathname + search.
+
+blocking: false
+
+### 7. workspace/05-plans/logs/B7.md (g3 block, Cleanup)
+
+what: The author stopped processes by image name with 'taskkill //IM python3.exe', which ended two python3 processes not proven to be its own. The standing rule allows stopping only processes you started, by their own PID. Disclosed. P-094's rule should say kill by PID only.
+
+evidence: Log line: 'taskkill //IM python3.exe ended two python3 processes after a hung probe (P-094); whether both were this call's own could not be confirmed.'
+
+blocking: false
+
+### 8. app/src/admin/ui/admin-fetch.ts / B6 invoices.css (print rule)
+
+what: Nothing in the admin sheet hides [data-print="hide"] in print. The rule is B6's invoices.css, and B7.md line 132's dossier print rules go into src/styles.css, which /admin never links. Printing an admin screen is therefore UNPROVEN until B6 lands. This is a cross-plan note for the orchestrator.
+
+evidence: grep -n 'print' src/styles/admin/*.css finds no @media print. B7.md:132 says the print rules are imported by src/styles.css.
+
+blocking: false
+
+### 9. C:/Users/DELL/.claude/projects/D--Omincom-OmniSkipX-remix-of-data-club-pro/memory/jay-full-review-2026-09.md (the operator's request about Jay)
+
+what: The operator's relayed request ('your note about why Jay broke didn't reach him, so figure that out too') is NOT DONE and BLOCKED for this reviewer. The author's 'unproven' line on it states a stale fact. It says the memory records Jay as OFF since 2026-09-29. The same file later records '2026-09-29 17:00 - Jay v3 BUILD COMPLETE. The real bot runs via the Cloudflare hub (jay-hub.abdoamer683.workers.dev) + jay-link bridge'. Separately, D--Omincom-OmniSkipX/memory/no-subagents-for-jay-work.md records the owner's rule that Jay work is done in the main session, never by subagents or workflow scripts. So the request must go to the main session (an OmniSkipX session), not to a lane worker. Workflow workers are also told to ignore relayed operator messages (P-504), which is a plausible reason relayed notes never land. I did not touch Jay's machinery.
+
+evidence: grep -n 'BUILD COMPLETE' jay-full-review-2026-09.md; cat D--Omincom-OmniSkipX/memory/no-subagents-for-jay-work.md ('no subagents, no Workflow fan-out')
+
+blocking: false
