@@ -1,9 +1,9 @@
 {
   "slice": "B17",
-  "runId": "wf_50ea9b3c-5a4",
+  "runId": "wf_df526cfb-c3b",
   "resume": {
     "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_50ea9b3c-5a4",
+    "resumeFromRunId": "wf_df526cfb-c3b",
     "args": {
       "slice": "B17",
       "root": "E:/mop-build/site",
@@ -13,7 +13,6 @@
         "G": 850
       },
       "steps": [
-        "1",
         "2",
         "3",
         "4",
@@ -25,6 +24,22 @@
         "10",
         "11",
         "12"
+      ],
+      "closeOut": [
+        {
+          "id": "c1",
+          "steps": "1",
+          "critical": false,
+          "title": "B17 close-out c1: step 1 is accepted on slice/b17 (review3 of run wf_50ea9b3c-5a4, commits up to 48763c2) and its pull request 142 is red on CI's e2e job only: the sweep spec fails on every route because the Content-Security-Policy-Report-Only header carries upgrade-insecure-requests, which Chromium logs as a console error ('directive ignored in a report-only policy') and tests/e2e/sweep.spec.ts:34 expects no console errors. Fix that, re-run the sweep against the built Worker, hand in",
+          "defects": [
+            {
+              "file": "app/src/server/lib/headers.ts",
+              "blocking": true,
+              "what": "The report-only policy built from the directive table (line 67 lists upgrade-insecure-requests) must not carry upgrade-insecure-requests: send that directive only in the enforced Content-Security-Policy header, never in Content-Security-Policy-Report-Only. Add a unit case asserting the report-only header string has no upgrade-insecure-requests while the enforced one keeps it, watched-fail it and register it; then run the e2e sweep on the built Worker (wrangler dev on 8938) and paste the count of console errors (0) and routes passed.",
+              "evidence": "CI run 37278228332, job e2e (111660146303): sweep.spec.ts fails on all routes with the Chromium console error about upgrade-insecure-requests in a report-only policy; the merge agent of run wf_50ea9b3c-5a4 recorded it and fixed nothing."
+            }
+          ]
+        }
       ]
     }
   }

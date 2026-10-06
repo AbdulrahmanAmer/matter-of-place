@@ -1165,3 +1165,41 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   the viewport", passes on retry, exits 1 (PRs 138, 150, 155): a follow-up for the site lane, not loosened.
 - Pace: board 114 at 17:45, 115 at 01:30 with eight groups in review or fix rounds at once; the evening's
   rejections (B5 step 3, B17 c1, B12 render, B13 c5, B7 step 2) each cost a round. Morning summary follows.
+
+## 2026-10-06 04:20 night block 2 (Jay heal, P-530, merges 155 to 157, B7 bundle budget, board 128)
+- Board 128 of 259 (49.4 percent) at 04:15; 10 in work; 7 accepted by reviewers and waiting for the orchestrator's re-run.
+  Pace since 01:40: B5 steps 5 and 6, B13 steps 5 and 6 (close-outs c5, c6), B12 steps 1 to 6 accepted; B17 step 4
+  rejected once and in a fix round; B7 step 2 rejected by CI (bundle-check) and in close-out c2.
+- Merged: PR 155 (B5 steps 3, 4, 4a; e2e sweep flake re-run once), 156 (night records), 157. Open: PR 158 (B7 step 2,
+  red on bundle-check: `_site.$market.index` 154,023 and `_site.property.$slug` 155,613 against 153,600; main is
+  151,926 and 153,512; the budget stands, the close-out finds the growth), PR 142 (B17 step 1, waits for its run's merge).
+- Lanes: B13 wf_dbe24ed5-4c9 (step 7 building), B12 wf_49694593-fac (step 7 building, 21 commits unmerged until the run's
+  end), B17 wf_df526cfb-c3b (step 5 building, step 4 fix), B5 wf_03e1b94b-8bd (step 7 building), B7 wf_f057a026-91b
+  (close-out c2 for the bundle budget, then steps 3 to 16). Resume calls in `workspace/05-plans/lanes/*.json`.
+- Stall watch ran every 5 minutes (`stall-watch.mjs --minutes 20 --runs ...`): nothing silent over 20 minutes tonight.
+- Secrets: production Worker `matter-of-place` holds 9 secrets, dev 13; `PREVIEW_WORKER_SECRETS_JSON` on GitHub has 13
+  keys; `CONFIRM_TOKEN_SECRET`, `PREVIEW_TOKEN_SECRET`, `CSRF_SECRET` added to `.env` and every lane. P-530 banked
+  (bare wrangler made a stray Worker in the personal account; deleted).
+- Jay (OmniSkipX, not this repo): link alive but socket down 02:50 to 03:46; fixed by hand, then `ops/jay-watchdog.ps1`
+  step 6 heals it (judge the link by its log; relaunch; prove `ws open`), commit 03ee1c4d there, fired for real at 03:33,
+  03:46 and 04:06. Lesson `ops_memory` 1792; its first wording was technical and the owner's plain question ("why were you
+  offline") did not recall it; reworded in owner language and the recall graph rebuilt: plain questions now rank it first.
+  UNPROVEN: the 04:06 heal reported "no-link-process" while pid 26516 was alive (detection defect, Jay's repo, follow-up).
+  Owner messages #1078, #1079 sit pending behind auto task #1077 (Jay's chat is one worker at a time).
+- Operator asleep; the Dell Precision is set up after he wakes (`workspace/05-plans/lane-runner.md`). Morning summary owed:
+  steps per hour, board figure, merges, open items.
+
+## 2026-10-06 06:40 (rulings H62, H63; two orchestrator commits on slice/b7; three relaunches)
+- Board 128 of 259 (49.4 percent) at 06:20, 12 in work. PRs 159, 160, 162 merged (records, H62, H63).
+- H62: the client entry `codeSplitting` group in `app/vite.config.ts` (B7 close-out c2 proved Rolldown regrouping, not a
+  leak). On slice/b7 since 9e5a731; CI bundle-check on PR 158 OK (property 151,270, market index 149,623). B13's PR 163
+  hit the same wall (153,959) and takes the line by merging main after PR 158 lands.
+- H63: `attach_reel` audits as a system row (B7's `write_audit` forbids a named actor without an `action_roles` row,
+  P-2120); `B12.md` lines 70 and 91 amended.
+- PR 158 then went red on e2e twice; two orchestrator commits on slice/b7 between B7 groups (the builder was in step 3's
+  files): aaa6586 `tests/e2e/helpers/session.ts` reads CI's `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` before the
+  `DEV_*` names; 289be35 `scripts/seed-admin-users.ts --stack` plus one ci.yml line so the e2e job's stack holds the staff
+  accounts the magic-link spec signs in as (P-2010). UNPROVEN until that CI run finishes (watch task bai29enim).
+- Runs: B13 wf_31d6490a-eeb (c7m, then 8 to 13), B12 wf_42239cda-85c (c7 in review, step 8 building; PR 161 draft),
+  B17 wf_df526cfb-c3b (steps 4 fix, 5), B5 wf_03e1b94b-8bd (step 7 review, 8 building), B7 wf_635ac60b-161 (c2b
+  accepted, step 3 building). `lanes/*.json` carry the launch calls.

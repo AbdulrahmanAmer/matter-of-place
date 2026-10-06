@@ -1,9 +1,9 @@
 {
   "slice": "B12",
-  "runId": "wf_49694593-fac",
-  "resume": {
-    "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_49694593-fac",
+  "runId": "wf_42239cda-85c",
+  "note": "steps 1 to 6 accepted on slice/b12; step 7 built and pushed (draft PR 161) but ended blocked on the audit actor; ruling H63 (system row) settles it; close-out c7 reviews step 7 under H63, then steps 8 and 9. Launch: Workflow({ scriptPath, args }) with the object below; resume a killed run with resumeFromRunId set to the live run's id.",
+  "launch": {
+    "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
     "args": {
       "slice": "B12",
       "root": "E:/mop-build/video",
@@ -13,11 +13,24 @@
         "G": 950
       },
       "steps": [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
+        "8",
+        "9"
+      ],
+      "closeOut": [
+        {
+          "id": "c7",
+          "steps": "7",
+          "critical": false,
+          "title": "B12 close-out c7: step 7 (render_reel step, attach_reel, the assets_reel_video trigger) is built, committed and pushed on slice/b12 (4d60396, 6f63d38, a285b39; draft PR 161 with check, build and preview-db green) and ended blocked on one plan contradiction (P-2120): the plan asked the attach audit row to name the approver, and B7's write_audit forbids a named actor on an action without an action_roles row. Ruling H63 (ASSUMED.md, on main) settles it: attach and detach both write a system row (actor_id null, actor_kind null, note 'system'), the approver stays on the assets.approve row of the same transaction; B12.md lines 70 and 91 are amended on main to say so. What is built already does this; this close-out finishes the step's open proofs and makes it reviewable",
+          "defects": [
+            {
+              "file": "app/tests/db/reel.db.test.ts",
+              "blocking": true,
+              "what": "Merge origin/main into slice/b12 first (it carries the amended B12.md and H63; GOTCHAS conflicts go through `node workspace/05-plans/bank-merge.mjs`, P-525). Confirm the test asserts, in one withRollback case, the attach row with actor_id null and actor_kind null and the assets.approve row with the approver's id, and that detach raises catalog_version by exactly 1 (the run measured attach only). Then run the open proofs the step 7 report listed as unproven: `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` in full; the Supabase generator's listing of attach_reel against the hand entry in src/db/types.ts (`bun run types:from-ci -- 161` after a CI run, or the generator against mop-dev); mark PR 161 ready for review so CI's db job runs from zero, and watch `gh pr checks 161 --watch` until db, check and build are green; paste the results into the step 7 log block and cite H63 there. No change to attach_reel's actor handling.",
+              "evidence": "Step 7 report: blockedOn 'The plan does not work as written (GOTCHAS P-2120)'; unproven 'CI db job on PR 161: fresh stack, every migration from zero, the type drift check of the hand entry attach_reel', 'Full watchfail --changed origin/main was not run', 'Detach raising catalog_version once was not measured, only attach'. mop-dev: select count(*) from action_roles where action = 'properties.video_attach' = 0."
+            }
+          ]
+        }
       ]
     }
   }
