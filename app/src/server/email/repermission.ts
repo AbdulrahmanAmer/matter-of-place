@@ -27,6 +27,8 @@ export async function enqueueRepermissionEmail(
   if (email !== undefined && (await isSuppressed(db, email))) return "suppressed";
   const token = randomToken();
   const hash = await sha256Hex(token);
+  // Sealed before the ask is stored: a key that cannot seal must not mark a subscriber as asked who was never mailed.
+  const sealed = await sealToken(token, sealKey);
   const issued = await db.rpc("issue_repermission", {
     p_subscriber_id: subscriberId,
     p_token_hash: hash,
@@ -43,7 +45,7 @@ export async function enqueueRepermissionEmail(
     type: "send_email",
     idempotencyKey: `send_email:${subscriberId}:rp:${hash.slice(0, 12)}`,
     params: { template: "repermission", to: "subscriber" },
-    data: { ...data, sealed_token: await sealToken(token, sealKey) },
+    data: { ...data, sealed_token: sealed },
   });
   return "asked";
 }

@@ -161,6 +161,18 @@ describe("sealToken and openToken", () => {
     );
     expect(await failure(resolving)).toEqual({ dead: true, message: "confirm_secret_missing" });
   });
+
+  it("the runner with a CONFIRM_TOKEN_SECRET that is not base64 of 32 bytes fails with confirm_secret_missing", async () => {
+    vi.stubEnv("CONFIRM_TOKEN_SECRET", "not*base64");
+    const resolving = resolveVariables(
+      fakeDb(),
+      "newsletter_confirm",
+      { subscriber_id: SUBSCRIBER_ID, sealed_token: await sealToken("raw-token", KEY) },
+      undefined,
+      SITE,
+    );
+    expect(await failure(resolving)).toEqual({ dead: true, message: "confirm_secret_missing" });
+  });
 });
 
 describe("requestConfirmation", () => {

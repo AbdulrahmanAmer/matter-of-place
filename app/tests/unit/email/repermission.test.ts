@@ -89,6 +89,12 @@ describe("enqueueRepermissionEmail", () => {
     expect(await enqueueRepermissionEmail(db, SUBSCRIBER_ID, KEY)).toBe("not_consenting");
     expect([hashes.length, jobs]).toEqual([1, []]);
   });
+
+  it("a key that cannot seal throws before the ask is stored", async () => {
+    const { db, hashes, jobs } = world();
+    await expect(enqueueRepermissionEmail(db, SUBSCRIBER_ID, "")).rejects.toThrow();
+    expect([hashes, jobs]).toEqual([[], []]);
+  });
 });
 
 describe("lapseSubscribers", () => {

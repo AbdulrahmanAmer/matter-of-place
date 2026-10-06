@@ -2005,10 +2005,20 @@
     "kind": "file",
     "test": "tests/unit/email/confirm.test.ts",
     "file": "src/server/email/variables.ts",
-    "find": "  if (key === undefined || key === \"\") throw new NonRetryableError(\"confirm_secret_missing\");\n",
+    "find": "  if (key === undefined || !AES_KEY.test(key))\n    throw new NonRetryableError(\"confirm_secret_missing\");\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
     "expect": "× .*the runner without CONFIRM_TOKEN_SECRET fails"
+  },
+  {
+    "id": "b5-c-runner-secret-shape",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "!AES_KEY.test(key))",
+    "replace": "key === \"\")",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*not base64 of 32 bytes fails with confirm_secret_missing"
   },
   {
     "id": "b5-c-sealed-upsert",
@@ -2109,6 +2119,16 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
     "expect": "× .*enqueues nothing when issue_repermission returns false"
+  },
+  {
+    "id": "b5-rp-seal-first",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  const sealed = await sealToken(token, sealKey);\n  const issued = await db.rpc(\"issue_repermission\", {\n    p_subscriber_id: subscriberId,\n    p_token_hash: hash,\n  });\n",
+    "replace": "  const issued = await db.rpc(\"issue_repermission\", {\n    p_subscriber_id: subscriberId,\n    p_token_hash: hash,\n  });\n  const sealed = await sealToken(token, sealKey);\n",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*a key that cannot seal throws before the ask is stored"
   },
   {
     "id": "b5-rp-lapse",

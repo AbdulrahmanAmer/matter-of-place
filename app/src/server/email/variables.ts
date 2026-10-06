@@ -338,10 +338,17 @@ function sentenceList(items: string[]): string {
   return items.length < 2 ? last : `${items.slice(0, -1).join(", ")} and ${last}`;
 }
 
-/** The key is read at call time (G67 (8)); a token sealed with another key, or changed, cannot be opened. */
+/** The shape `env.ts` holds the Worker's key to: base64 of 32 bytes. */
+const AES_KEY = /^[A-Za-z0-9+/]{43}=$/;
+
+/**
+ * The key is read at call time (G67 (8)); an unset or malformed key cannot open any token, so retrying is futile. A
+ * token sealed with another key, or changed, cannot be opened.
+ */
 async function openSealedToken(sealed: string): Promise<string> {
   const key = readVar("CONFIRM_TOKEN_SECRET");
-  if (key === undefined || key === "") throw new NonRetryableError("confirm_secret_missing");
+  if (key === undefined || !AES_KEY.test(key))
+    throw new NonRetryableError("confirm_secret_missing");
   const token = await openToken(sealed, key);
   if (token === null) throw new NonRetryableError("token_unreadable");
   return token;
