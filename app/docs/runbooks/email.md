@@ -160,6 +160,62 @@ be read back). Then `bunx supabase secrets set "RESEND_API_KEY=$RESEND_API_KEY" 
 $DEV_SUPABASE_PROJECT_REF` and `bun run scripts/email-test.ts all <address>` with an address of
 `settings.email.dev_recipients`.
 
+## Auth mail (step 8)
+
+Supabase Auth sends the staff magic link and the invite itself, through Resend's SMTP, from
+`Matter of Place <hello@notify.matterofplace.com>`. These mails never enter `email_messages` and never pass
+`email_sent_today()`; their ceiling is `[auth.rate_limit] email_sent = 10` per hour for the whole project.
+
+```
+cd app
+bun run scripts/build-auth-templates.ts
+```
+
+It draws both emails with `Message` (the shell of `layout.tsx`): one heading, one paragraph and a button whose link is
+`{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=<email|invite>&next={{ .RedirectTo }}`, never
+`{{ .ConfirmationURL }}` (API-01). It runs `lintEmail` on both with the keys `auth_magic_link` and `auth_invite`; a
+finding prints `<key>: <rule> <message>`, exits 1 and writes neither file. Otherwise it writes
+`supabase/templates/magic-link.html` and `invite.html` and prints `wrote <file>` for each. The two files are generated:
+change the script and re-run it, never edit them. Prettier skips `supabase/templates` (its output would change the
+HTML that is sent). The subjects live in `config.toml` and the headings in the script; change both together. The footer
+holds the product line only, because a static file cannot read `settings.site`. The emblem loads from
+`https://matterofplace.com`, which had no DNS record on 2026-10-06, so until the launch switch the emblem does not load
+in a mailbox.
+
+Pushing to the one project, from a shell that holds `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_PROJECT_REF` and the stage's
+`RESEND_API_KEY` (the standing `.env` loader; `config push` substitutes `env(RESEND_API_KEY)` from that shell):
+
+```
+bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF    # lists what the push would change
+bunx supabase config push --project-ref $DEV_SUPABASE_PROJECT_REF --yes
+bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF    # only storage.image_transformation, remote_only
+```
+
+The push prints `auth.email.smtp.pass [secret]` with `local: (set)`, never the value; the diff does not show the
+template contents, so read them back from `GET https://api.supabase.com/v1/projects/<ref>/config/auth` with the access
+token (`mailer_templates_magic_link_content`, `mailer_templates_invite_content`). Done on 2026-10-06: the read-back
+showed `smtp_host` `smtp.resend.com`, `smtp_port` `465`, `smtp_admin_email` `hello@notify.matterofplace.com`,
+`smtp_sender_name` `Matter of Place`, `rate_limit_email_sent` `10`, `disable_signup` `true`, and both template contents
+carrying the token-hash link and no `ConfirmationURL`.
+
+```
+eval "$(node scripts/load-env.mjs --profile dev)"; bun run scripts/auth-invite-test.ts <address>
+```
+
+It refuses with `refusing: production database` once `settings.environment` is `production` (and with
+`refusing: DEV_DB_URL is not set` in a shell without the dev profile), then invites the address with the service role
+key and prints `invited <address>`. The invite creates an auth user; delete it afterwards
+(`DELETE /auth/v1/admin/users/<id>` with the service role key). On 2026-10-06 it invited an `admin+` address of the Zoho
+mailbox: Resend listed the mail from `"Matter of Place" <hello@notify.matterofplace.com>`, subject `You have been invited
+to Matter of Place`, last event `delivered`, with the branded heading and the token-hash link, and `email_messages` held
+0 rows before and after.
+
+Found on `mop-dev` the same day, for B7: `site_url` is still `http://localhost:8080`, so the link in a mailed sign-in or
+invite opens `localhost`, not the dev Worker; and `GET /auth/v1/admin/users` answers 500 `Database error finding users`
+(2 of the 9 rows of `auth.users` hold null token columns). UNPROVEN: whether Resend counts SMTP mail in the same daily
+quota (check the Resend dashboard), whether the mail reached the inbox rather than the spam folder, and B7's cross-device
+sign-in through `/admin/auth/confirm`, whose page is not on `main` yet.
+
 ## The chain proof
 
 ```

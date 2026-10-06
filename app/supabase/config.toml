@@ -166,6 +166,7 @@ additional_redirect_urls = [
   "https://pr-*.holy-meadow-4327.workers.dev/**",
   "https://matter-of-place.holy-meadow-4327.workers.dev/**",
   "https://matter-of-place-dev.holy-meadow-4327.workers.dev/**",
+  "http://localhost:8788/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -203,7 +204,8 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# A hard project-wide ceiling for auth mail, which never passes `email_sent_today()` (B5 step 8, SEC-12, API-04).
+email_sent = 10
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -240,20 +242,25 @@ otp_length = 8
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Auth mail leaves through Resend from `notify.` (B5 step 8, ruling H29 (1)). `pass` is substituted from the shell that
+# runs `config push`: the key of the current stage (`mop-dev-full` before the launch switch, ruling H35 (8)).
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "hello@notify.matterofplace.com"
+sender_name = "Matter of Place"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Written by `bun run scripts/build-auth-templates.ts`; the link carries the token hash, never ConfirmationURL (API-01).
+[auth.email.template.magic_link]
+subject = "Sign in to Matter of Place"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.invite]
+subject = "You have been invited to Matter of Place"
+content_path = "./supabase/templates/invite.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

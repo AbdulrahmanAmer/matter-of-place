@@ -2199,5 +2199,25 @@
     "replace": "return landing(true);",
     "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"after lapse_subscribers\"",
     "expect": "× .*after lapse_subscribers"
+  },
+  {
+    "id": "b5-aj-confirmation-url",
+    "kind": "file",
+    "test": "scripts/build-auth-templates.ts (its lintEmail gate)",
+    "file": "scripts/build-auth-templates.ts",
+    "find": "const CONFIRM = \"{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=\";",
+    "replace": "const CONFIRM = \"{{ .ConfirmationURL }}&type=\";",
+    "run": "bun run scripts/build-auth-templates.ts",
+    "expect": "auth_magic_link: link-href"
+  },
+  {
+    "id": "b5-ao-auth-invite",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/auth-invite-test.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "expected \\[ 'scripts/auth-invite-test.ts' \\] to deeply equal \\[\\]"
   }
 ]
