@@ -13,10 +13,12 @@ import {
   renderRouterToString,
   RouterServer,
 } from "@tanstack/react-router/ssr/server";
+import { JSDOM } from "jsdom";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Json } from "../../src/db";
+import type { Db } from "../../src/server/lib/db";
 import { cookieInventory } from "../../src/config/cookies";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
@@ -33,8 +35,9 @@ import { captureException } from "../../src/server/lib/sentry";
 import { setConsent } from "../../src/server/public/consent";
 import { HttpServiceError } from "../../src/services/http/client";
 import { auditAlt } from "../../scripts/alt-audit.mjs";
+import { countingDb } from "../fixtures/db-counter";
 import { fakeDb } from "../fixtures/fake-db";
-import { stateJson } from "../fixtures/snapshot";
+import { propertyJson, snapshotJson, stateJson } from "../fixtures/snapshot";
 
 vi.mock("../../src/server/lib/sentry", { spy: true });
 
@@ -1076,5 +1079,226 @@ describe("maintenance", () => {
     const response = await broken.run(get("/"));
     expect(response.status).toBe(200);
     expect(broken.rendered).toEqual(["/"]);
+  });
+});
+
+describe("feed", () => {
+  const record = (value: Json): Record<string, Json | undefined> => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error("fixture is not an object");
+    }
+    return value;
+  };
+  const property = (slug: string, title: string, publishedAt: string): Json => ({
+    ...record(propertyJson(slug)),
+    title,
+    published_at: publishedAt,
+  });
+  const story = (slug: string, title: string, publishedAt: string): Json => ({
+    id: slug,
+    slug,
+    title,
+    deck: "A hill and its light.",
+    category: "Places",
+    market_slug: "california",
+    image: null,
+    body: ["One paragraph."],
+    properties: [],
+    published_at: publishedAt,
+  });
+  const published = {
+    properties: [
+      property("p1", "Cliff House", "2026-08-14T00:00:00+00:00"),
+      property("p2", "Fish & <Chips> Residence", "2026-09-02T00:00:00+00:00"),
+    ],
+    stories: [story("s1", "A hill in Tiburon", "2026-08-30T00:00:00+00:00")],
+  };
+  const catalog = (state: Record<string, Json> = {}, parts: Record<string, Json> = published) =>
+    fakeDb({
+      rpc: {
+        public_state: () => stateJson(7, state),
+        public_catalog_snapshot: () => snapshotJson(7, parts),
+      },
+    });
+
+  const loadFeeds = async (db: Db) => {
+    vi.resetModules();
+    const { setDbForTests } = await import("../../src/server/lib/db");
+    setDbForTests(db);
+    return import("../../src/server/public/feeds");
+  };
+  const ask = async (db: Db, format: "rss" | "json", path: string, init?: RequestInit) => {
+    const { serveFeed } = await loadFeeds(db);
+    return serveFeed(get(path, init), "req-12345678", format);
+  };
+
+  const parseXml = (text: string) =>
+    new JSDOM(text, { contentType: "application/xml" }).window.document;
+  const itemsOf = (document: Document) =>
+    [...document.querySelectorAll("channel > item")].map((item) => ({
+      title: item.querySelector("title")?.textContent,
+      link: item.querySelector("link")?.textContent,
+      guid: item.querySelector("guid")?.textContent,
+      pubDate: item.querySelector("pubDate")?.textContent ?? "",
+    }));
+  const jsonFeedSchema = z.object({
+    version: z.literal("https://jsonfeed.org/version/1.1"),
+    title: z.string(),
+    home_page_url: z.string(),
+    feed_url: z.string(),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        url: z.string(),
+        title: z.string(),
+        content_text: z.string(),
+        date_published: z.string(),
+      }),
+    ),
+  });
+  const RFC_822 =
+    /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+
+  it("feed: the RSS 2.0 document parses and carries the required channel items, the self link and an item per row, newest first", async () => {
+    const response = await ask(catalog(), "rss", "/feed.xml");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/rss+xml; charset=utf-8");
+    const document = parseXml(await response.text());
+    expect(document.documentElement.getAttribute("version")).toBe("2.0");
+    expect(document.querySelector("channel > title")?.textContent).toBe("Matter of Place");
+    expect(document.querySelector("channel > link")?.textContent).toBe(`${BASE}/`);
+    expect(document.querySelector("channel > description")?.textContent).toContain(
+      "California, New York and Florida",
+    );
+    expect(document.querySelector("channel > language")?.textContent).toBe("en-us");
+    expect(document.getElementsByTagName("atom:link")[0]?.getAttribute("href")).toBe(
+      `${BASE}/feed.xml`,
+    );
+    expect(itemsOf(document).map(({ title, link, guid }) => ({ title, link, guid }))).toEqual([
+      {
+        title: "Fish & <Chips> Residence",
+        link: `${BASE}/property/p2`,
+        guid: `${BASE}/property/p2`,
+      },
+      { title: "A hill in Tiburon", link: `${BASE}/stories/s1`, guid: `${BASE}/stories/s1` },
+      { title: "Cliff House", link: `${BASE}/property/p1`, guid: `${BASE}/property/p1` },
+    ]);
+  });
+
+  it("feed: every pubDate is RFC 822 and names the instant the row was published; the channel's lastBuildDate is the newest", async () => {
+    const document = parseXml(await (await ask(catalog(), "rss", "/feed.xml")).text());
+    const items = itemsOf(document);
+    for (const { pubDate } of items) expect(pubDate).toMatch(RFC_822);
+    expect(items.map(({ pubDate }) => Date.parse(pubDate))).toEqual([
+      Date.parse("2026-09-02T00:00:00Z"),
+      Date.parse("2026-08-30T00:00:00Z"),
+      Date.parse("2026-08-14T00:00:00Z"),
+    ]);
+    expect(document.querySelector("channel > lastBuildDate")?.textContent).toBe(items[0]?.pubDate);
+  });
+
+  it("feed: the JSON Feed 1.1 document lists the same rows with RFC 3339 dates", async () => {
+    const response = await ask(catalog(), "json", "/feed.json");
+    expect(response.headers.get("content-type")).toBe("application/feed+json; charset=utf-8");
+    const feed = jsonFeedSchema.parse(JSON.parse(await response.text()));
+    expect(feed).toMatchObject({ home_page_url: `${BASE}/`, feed_url: `${BASE}/feed.json` });
+    expect(feed.items.map(({ id, url, title }) => ({ id, url, title }))).toEqual([
+      { id: `${BASE}/property/p2`, url: `${BASE}/property/p2`, title: "Fish & <Chips> Residence" },
+      { id: `${BASE}/stories/s1`, url: `${BASE}/stories/s1`, title: "A hill in Tiburon" },
+      { id: `${BASE}/property/p1`, url: `${BASE}/property/p1`, title: "Cliff House" },
+    ]);
+    expect(feed.items.map((item) => item.date_published)).toEqual([
+      "2026-09-02T00:00:00.000Z",
+      "2026-08-30T00:00:00.000Z",
+      "2026-08-14T00:00:00.000Z",
+    ]);
+  });
+
+  it("feed: with no published property or story both feeds are valid and empty", async () => {
+    const db = catalog({}, { properties: [], stories: [] });
+    const rss = parseXml(await (await ask(db, "rss", "/feed.xml")).text());
+    expect(rss.querySelector("channel > title")?.textContent).toBe("Matter of Place");
+    expect(itemsOf(rss)).toEqual([]);
+    expect(rss.querySelector("channel > lastBuildDate")).toBeNull();
+    const feed = jsonFeedSchema.parse(
+      JSON.parse(await (await ask(db, "json", "/feed.json")).text()),
+    );
+    expect(feed.items).toEqual([]);
+  });
+
+  it("feed: while every market is coming soon the properties are left out of both feeds", async () => {
+    const db = catalog({ coming_soon_global: true }, { properties: published.properties });
+    expect(itemsOf(parseXml(await (await ask(db, "rss", "/feed.xml")).text()))).toEqual([]);
+    const feed = jsonFeedSchema.parse(
+      JSON.parse(await (await ask(db, "json", "/feed.json")).text()),
+    );
+    expect(feed.items).toEqual([]);
+  });
+
+  it("feed: the handlers read nothing beyond the state and the catalog snapshot, once, and a second request of either feed reads nothing", async () => {
+    const db = countingDb(catalog());
+    const { serveFeed } = await loadFeeds(db);
+    await serveFeed(get("/feed.xml"), "req-12345678", "rss");
+    expect(db.counts).toMatchObject({
+      rpc: { public_state: 1, public_catalog_snapshot: 1 },
+      from: {},
+      storage: {},
+      total: 2,
+    });
+    await serveFeed(get("/feed.json"), "req-12345678", "json");
+    await serveFeed(get("/feed.xml", { method: "HEAD" }), "req-12345678", "rss");
+    expect(db.counts.total).toBe(2);
+  });
+
+  it("feed: is stored as kind doc under the versioned key, with the browser lifetime on the answer and the edge lifetime on the copy", async () => {
+    const store = new Map<string, Response>();
+    vi.stubGlobal("caches", {
+      default: {
+        match: (key: string) => Promise.resolve(store.get(key)?.clone()),
+        put: (key: string, response: Response) => {
+          store.set(key, response.clone());
+          return Promise.resolve();
+        },
+      },
+    });
+    const { serveFeed } = await loadFeeds(catalog());
+    const miss = await serveFeed(get("/feed.xml"), "req-12345678", "rss");
+    const hit = await serveFeed(get("/feed.xml"), "req-12345678", "rss");
+    expect([miss.headers.get("x-mop-cache"), hit.headers.get("x-mop-cache")]).toEqual([
+      "miss",
+      "hit",
+    ]);
+    expect(hit.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(hit.headers.get("content-type")).toBe("application/rss+xml; charset=utf-8");
+    const stored = [...store].find(
+      ([key]) => key.endsWith("/v7/doc/feed.xml") && !key.includes("last-good"),
+    );
+    expect(stored?.[1].headers.get("cache-control")).toBe("public, max-age=3600, s-maxage=3600");
+  });
+
+  it("feed: answers a write with 405 and Allow, before any database call, and each route file takes every method through ANY", async () => {
+    const db = catalog();
+    const response = await ask(db, "rss", "/feed.xml", { method: "POST" });
+    expect(response.status).toBe(405);
+    expect(response.headers.get("allow")).toBe("GET, HEAD");
+    expect(db.calls).toEqual([]);
+    for (const file of ["feed[.]xml.ts", "feed[.]json.ts"]) {
+      const source = readFileSync(`src/routes/${file}`, "utf8");
+      expect(source).toContain("ANY:");
+      expect(source).not.toMatch(/\bGET:/);
+    }
+  });
+
+  it("feed: every page's head links the RSS feed and the JSON feed for autodiscovery", async () => {
+    const tags = [...(await renderHome()).matchAll(/<link\b[^>]*>/g)].map(([text]) => text);
+    const alternate = (type: string, href: string) =>
+      tags.some(
+        (text) =>
+          text.includes('rel="alternate"') &&
+          text.includes(`type="${type}"`) &&
+          text.includes(`href="${href}"`),
+      );
+    expect(alternate("application/rss+xml", "/feed.xml")).toBe(true);
+    expect(alternate("application/feed+json", "/feed.json")).toBe(true);
   });
 });

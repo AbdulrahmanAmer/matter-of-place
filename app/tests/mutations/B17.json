@@ -1364,5 +1364,95 @@
     "replace": "    ? undefined\n",
     "run": "VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_PORT=8938 E2E_MODE=live bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g error-id --reporter=line",
     "expect": "error-id: a failed API read[^]*Reference b17-id"
+  },
+  {
+    "id": "b17-g6-feed-channel",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    tag(\"language\", siteConfig.locale.toLowerCase()),\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the RSS 2.0 document parses"
+  },
+  {
+    "id": "b17-g6-feed-rfc822",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "const rfc822 = (date: Date): string => date.toUTCString();",
+    "replace": "const rfc822 = (date: Date): string => date.toISOString();",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every pubDate is RFC 822"
+  },
+  {
+    "id": "b17-g6-feed-json-date",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "date_published: item.published.toISOString(),",
+    "replace": "date_published: item.published.toUTCString(),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the JSON Feed 1.1 document lists"
+  },
+  {
+    "id": "b17-g6-feed-empty",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    ...(newest === undefined ? [] : [tag(\"lastBuildDate\", rfc822(newest.published))]),",
+    "replace": "    tag(\"lastBuildDate\", rfc822(newest?.published ?? new Date(0))),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: with no published property or story"
+  },
+  {
+    "id": "b17-g6-feed-coming-soon",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "    !state.comingSoonGlobal && state.comingSoonMarkets[market] !== true;",
+    "replace": "    state.comingSoonMarkets[market] !== true;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: while every market is coming soon"
+  },
+  {
+    "id": "b17-g6-feed-reads",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "build(itemsOf(await getCatalog(getDb())))",
+    "replace": "build(itemsOf((await getDb().rpc(\"public_state\"), await getCatalog(getDb()))))",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the handlers read nothing beyond"
+  },
+  {
+    "id": "b17-g6-feed-kind",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    \"doc\",\n    async () =>",
+    "replace": "    \"json\",\n    async () =>",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: is stored as kind doc"
+  },
+  {
+    "id": "b17-g6-feed-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "  if (request.method !== \"GET\" && request.method !== \"HEAD\") {",
+    "replace": "  if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: answers a write with 405"
+  },
+  {
+    "id": "b17-g6-feed-any",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/feed[.]xml.ts",
+    "find": "handlers: { ANY:",
+    "replace": "handlers: { GET:",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: answers a write with 405"
+  },
+  {
+    "id": "b17-g6-feed-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"alternate\", type: \"application/rss+xml\", title: siteConfig.name, href: \"/feed.xml\" },\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every page's head links the RSS feed"
   }
 ]

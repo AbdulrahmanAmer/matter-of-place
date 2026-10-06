@@ -118,6 +118,8 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "[.]well-known.security[.]txt.ts": "server",
   "[.]well-known.change-password.ts": "server",
   "[.]well-known.mta-sts[.]txt.ts": "server",
+  "feed[.]xml.ts": "server",
+  "feed[.]json.ts": "server",
   "sitemap[.]xml.ts": sitemapRoute,
 };
 

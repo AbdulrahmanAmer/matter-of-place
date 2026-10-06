@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SiteRouteImport } from './routes/_site'
+import { Route as FeedDotjsonRouteImport } from './routes/feed[.]json'
+import { Route as FeedDotxmlRouteImport } from './routes/feed[.]xml'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DotwellKnownChangePasswordRouteImport } from './routes/[.]well-known.change-password'
 import { Route as DotwellKnownMtaStsDottxtRouteImport } from './routes/[.]well-known.mta-sts[.]txt'
@@ -65,6 +67,16 @@ import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedDotjsonRoute = FeedDotjsonRouteImport.update({
+  id: '/feed.json',
+  path: '/feed.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedDotxmlRoute = FeedDotxmlRouteImport.update({
+  id: '/feed.xml',
+  path: '/feed.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -336,6 +348,8 @@ const ApiPublicSubmissionsIdUploadsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -389,6 +403,8 @@ export interface FileRoutesByFullPath {
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesByTo {
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -442,6 +458,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_site': typeof SiteRouteWithChildren
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -499,6 +517,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -552,6 +572,8 @@ export interface FileRouteTypes {
     | '/api/public/submissions/$id/uploads'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -604,6 +626,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_site'
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -660,6 +684,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
+  FeedDotjsonRoute: typeof FeedDotjsonRoute
+  FeedDotxmlRoute: typeof FeedDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownChangePasswordRoute: typeof DotwellKnownChangePasswordRoute
   DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
@@ -691,6 +717,20 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed.json': {
+      id: '/feed.json'
+      path: '/feed.json'
+      fullPath: '/feed.json'
+      preLoaderRoute: typeof FeedDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed.xml': {
+      id: '/feed.xml'
+      path: '/feed.xml'
+      fullPath: '/feed.xml'
+      preLoaderRoute: typeof FeedDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1205,6 +1245,8 @@ const ApiPublicSubscribersRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
+  FeedDotjsonRoute: FeedDotjsonRoute,
+  FeedDotxmlRoute: FeedDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownChangePasswordRoute: DotwellKnownChangePasswordRoute,
   DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
