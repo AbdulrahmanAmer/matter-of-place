@@ -3,6 +3,7 @@ import { Play } from "lucide-react";
 import type { GalleryImage, Property, PropertyVideo } from "../../domain/property";
 import { track } from "../../lib/analytics";
 import { cx } from "../../lib/cx";
+import { Picture } from "../site/picture";
 
 /** Editorial rhythm: landscapes full width, portraits paired side by side. */
 const intoRows = (images: GalleryImage[]): GalleryImage[][] => {
@@ -93,9 +94,10 @@ export function Gallery({
         >
           {row.map((image) => (
             <figure key={image.src + image.alt}>
-              <img
+              <Picture
                 src={image.src}
-                loading="lazy"
+                variants={image.variants}
+                sizes={row.length === 2 ? "(max-width: 700px) 100vw, 50vw" : "100vw"}
                 width={image.orientation === "portrait" ? 1024 : 1600}
                 height={image.orientation === "portrait" ? 1312 : 1104}
                 alt={status === "Illustrative" ? `${image.alt}, illustrative` : image.alt}

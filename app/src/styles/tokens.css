@@ -35,6 +35,28 @@
   --font-ui: "Urbanist", "Urbanist Fallback", sans-serif;
   --font-ui-alt: "Epilogue", "Epilogue Fallback", sans-serif;
 
+  /* admin: status colours, muted and never gold, always shown beside a word (B7 step 3). Each is 4.5:1 or more
+     on --background and on a 12% tint of itself over it. */
+  --status-danger: #8a3a34;
+  --status-warning: #7d5a35;
+  --status-ok: #4a6350;
+  --status-info: #4f5d63;
+
+  /* admin: spacing, measures and layers of the console. */
+  --admin-space-1: 4px;
+  --admin-space-2: 8px;
+  --admin-space-3: 12px;
+  --admin-space-4: 16px;
+  --admin-space-5: 24px;
+  --admin-space-6: 32px;
+  --admin-space-7: 48px;
+  --admin-bar-h: 56px;
+  --admin-nav-w: 232px;
+  --admin-drawer-w: 520px;
+  --admin-dialog-w: 480px;
+  --admin-z-bar: 10;
+  --admin-z-toast: 20;
+
   /* Page grid: every section, the header and the footer share these two. */
   --container: 1500px;
   --container-pad: clamp(24px, 5vw, 86px);

@@ -8,7 +8,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { createMemoryHistory } from "@tanstack/react-router";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterContextProvider,
+} from "@tanstack/react-router";
 import {
   attachRouterServerSsrUtils,
   renderRouterToString,
@@ -24,7 +29,15 @@ import { cookieInventory } from "../../src/config/cookies";
 import { cspReportBatchSchema } from "../../src/domain/contracts";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
 import { errorReference } from "../../src/components/layout/route-error";
-import { PropertyFilm } from "../../src/components/property/gallery";
+import { Gallery, PropertyFilm } from "../../src/components/property/gallery";
+import { ImageHero } from "../../src/components/site/image-hero";
+import { MarketCard } from "../../src/components/site/market-card";
+import { Picture } from "../../src/components/site/picture";
+import { PropertyCard } from "../../src/components/site/property-card";
+import { StoryCard } from "../../src/components/site/story-card";
+import { markets } from "../../src/data/markets";
+import { properties } from "../../src/data/properties";
+import { stories } from "../../src/data/stories";
 import { COOKIE_INVENTORY_HASH } from "../../src/lib/consent";
 import { getRouter } from "../../src/router";
 import { CSP_INLINE_ALLOWLIST } from "../../src/server/lib/csp-allowlist";
@@ -1317,5 +1330,173 @@ describe("feed", () => {
       );
     expect(alternate("application/rss+xml", "/feed.xml")).toBe(true);
     expect(alternate("application/feed+json", "/feed.json")).toBe(true);
+  });
+});
+
+describe("picture", () => {
+  const variants = {
+    card: { w: 720, h: 497, webp: "/media/p/one/card.webp" },
+    hero: { w: 1600, h: 1104, webp: "/media/p/one/hero.webp" },
+  };
+  const still = {
+    src: "/media/p/one/master.webp",
+    alt: "A walled garden",
+    width: 1600,
+    height: 1104,
+  };
+  const tags = (markup: string) => [...markup.matchAll(/<img\b[^>]*>/g)].map(([tag]) => tag);
+  const inRouter = (node: ReturnType<typeof createElement>) =>
+    renderToString(
+      createElement(RouterContextProvider, {
+        router: createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() }),
+        children: node,
+      }),
+    );
+
+  it("picture: with variants one img carries the WebP 720w and 1600w addresses, and no source and no AVIF", () => {
+    const markup = renderToString(createElement(Picture, { ...still, sizes: "50vw", variants }));
+    expect(tags(markup)).toHaveLength(1);
+    expect(markup).toContain('srcSet="/media/p/one/card.webp 720w, /media/p/one/hero.webp 1600w"');
+    expect(markup).toContain('sizes="50vw"');
+    expect(markup).not.toContain("<source");
+    expect(markup).not.toContain("<picture");
+    expect(markup).not.toContain(".avif");
+  });
+
+  it("picture: without variants a single img with its src and no srcset", () => {
+    const markup = renderToString(createElement(Picture, { ...still, sizes: "50vw" }));
+    expect(tags(markup)).toHaveLength(1);
+    expect(markup).toContain('src="/media/p/one/master.webp"');
+    expect(markup).not.toContain("srcSet");
+  });
+
+  it("picture: priority sets fetchpriority high and no loading, every other image is lazy and decodes async", () => {
+    const first = renderToString(
+      createElement(Picture, { ...still, sizes: "100vw", priority: true }),
+    );
+    expect(first).toContain('fetchPriority="high"');
+    expect(first).not.toContain("loading=");
+    const rest = renderToString(createElement(Picture, { ...still, sizes: "100vw" }));
+    expect(rest).toContain('loading="lazy"');
+    expect(rest).toContain('decoding="async"');
+    expect(rest).not.toContain("fetchPriority");
+  });
+
+  it("picture: width and height are always present, so the page never shifts", () => {
+    for (const priority of [true, false]) {
+      const markup = renderToString(createElement(Picture, { ...still, sizes: "100vw", priority }));
+      expect(markup).toContain('width="1600"');
+      expect(markup).toContain('height="1104"');
+    }
+  });
+
+  it("picture: a hero, a market and a story with no image draw no img and no picture", () => {
+    const market = markets[0];
+    const story = stories[0];
+    if (market === undefined || story === undefined) throw new Error("no bundled data");
+    const hero = renderToString(
+      createElement(ImageHero, { image: undefined, alt: "", eyebrow: "E", title: "T" }),
+    );
+    const card = inRouter(
+      createElement(MarketCard, { market: { ...market, comingSoon: false, image: undefined } }),
+    );
+    const piece = inRouter(createElement(StoryCard, { story: { ...story, image: undefined } }));
+    for (const markup of [hero, card, piece]) {
+      expect(markup).not.toContain("<img");
+      expect(markup).not.toContain("<picture");
+    }
+  });
+
+  it("picture: the hero image is fetched first and the cards and the gallery take their variants", () => {
+    const hero = renderToString(
+      createElement(ImageHero, { image: "/h.webp", variants, alt: "A", eyebrow: "E", title: "T" }),
+    );
+    expect(hero).toContain('fetchPriority="high"');
+    expect(hero).toContain("1600w");
+    const property = properties[0];
+    if (property === undefined) throw new Error("no bundled data");
+    const card = inRouter(
+      createElement(PropertyCard, {
+        property: { ...property, heroVariants: { card: variants.card } },
+      }),
+    );
+    expect(card).toContain('srcSet="/media/p/one/card.webp 720w"');
+    const gallery = renderToString(
+      createElement(Gallery, {
+        images: [{ src: "/g.webp", alt: "A", orientation: "landscape", variants }],
+        city: "Marin",
+        slug: "marin-house",
+        status: "Active",
+      }),
+    );
+    expect(gallery).toContain("/media/p/one/hero.webp 1600w");
+  });
+
+  it("picture: the first image of the home page is fetched at once", async () => {
+    const home = await renderHome();
+    const hero = tags(home).find((tag) => tag.includes('class="hero-image"'));
+    expect(hero).toContain('fetchPriority="high"');
+    expect(hero).not.toContain("loading=");
+  });
+});
+
+describe("lighthouse-config", () => {
+  const local = z
+    .object({
+      ci: z.object({
+        collect: z.object({
+          numberOfRuns: z.number(),
+          settings: z.object({
+            formFactor: z.string(),
+            onlyCategories: z.array(z.string()),
+            skipAudits: z.array(z.string()),
+          }),
+        }),
+        assert: z.object({
+          assertions: z.record(
+            z.string(),
+            z.tuple([z.string(), z.record(z.string(), z.unknown())]),
+          ),
+        }),
+      }),
+    })
+    .parse(JSON.parse(readFileSync("lighthouserc.local.json", "utf8"))).ci;
+  const budget = z
+    .object({ lcpMs: z.number(), cls: z.number(), scriptBytes: z.number() })
+    .parse(JSON.parse(readFileSync("budget.json", "utf8")));
+
+  it("lighthouse-config: the local run skips only is-crawlable and measures the four categories on a mobile profile", () => {
+    expect(local.collect.settings.skipAudits).toEqual(["is-crawlable"]);
+    expect(local.collect.settings.onlyCategories).toEqual([
+      "performance",
+      "accessibility",
+      "best-practices",
+      "seo",
+    ]);
+    expect(local.collect.settings.formFactor).toBe("mobile");
+    expect(local.collect.numberOfRuns).toBe(3);
+  });
+
+  it("lighthouse-config: the categories are asserted at error and the LCP, CLS and script limits equal budget.json", () => {
+    const limit = (key: string, value: number): unknown => [
+      "error",
+      { [key]: value, aggregationMethod: "median" },
+    ];
+    expect(local.assert.assertions).toMatchObject({
+      "categories:performance": limit("minScore", 0.95),
+      "categories:accessibility": limit("minScore", 1),
+      "categories:best-practices": limit("minScore", 1),
+      "categories:seo": limit("minScore", 1),
+      "largest-contentful-paint": limit("maxNumericValue", budget.lcpMs),
+      "cumulative-layout-shift": limit("maxNumericValue", budget.cls),
+      "resource-summary:script:size": ["error", { maxNumericValue: budget.scriptBytes }],
+    });
+  });
+
+  it("lighthouse-config: package.json runs it through lhci:local", () => {
+    const scripts = z
+      .object({ scripts: z.record(z.string(), z.string()) })
+      .parse(JSON.parse(readFileSync("package.json", "utf8"))).scripts;
+    expect(scripts["lhci:local"]).toBe("lhci autorun --config=lighthouserc.local.json");
   });
 });

@@ -1463,5 +1463,95 @@
     "replace": "",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*feed: every page's head links the RSS feed"
+  },
+  {
+    "id": "b17-g7-pic-srcset",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "[variants?.card, variants?.hero]",
+    "replace": "[variants?.card]",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: with variants one img carries"
+  },
+  {
+    "id": "b17-g7-pic-nosrcset",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "srcSet={srcSet || undefined}",
+    "replace": "srcSet={srcSet}",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: without variants a single img"
+  },
+  {
+    "id": "b17-g7-pic-priority",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "{ fetchPriority: \"high\" }",
+    "replace": "{ loading: \"lazy\", fetchPriority: \"high\" }",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: priority sets fetchpriority high"
+  },
+  {
+    "id": "b17-g7-pic-width",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "      width={width}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: width and height are always present"
+  },
+  {
+    "id": "b17-g7-pic-noimage",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/story-card.tsx",
+    "find": "{story.image !== undefined && (",
+    "replace": "{true && (",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: a hero, a market and a story with no image"
+  },
+  {
+    "id": "b17-g7-pic-hero",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/image-hero.tsx",
+    "find": "          alt={alt}\n          priority\n",
+    "replace": "          alt={alt}\n",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the hero image is fetched first"
+  },
+  {
+    "id": "b17-g7-pic-home",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.index.tsx",
+    "find": "        priority\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the first image of the home page"
+  },
+  {
+    "id": "b17-g7-lh-skip",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "lighthouserc.local.json",
+    "find": "\"skipAudits\": [\"is-crawlable\"]",
+    "replace": "\"skipAudits\": [\"is-crawlable\", \"meta-description\"]",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: the local run skips only is-crawlable"
+  },
+  {
+    "id": "b17-g7-lh-lcp",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "lighthouserc.local.json",
+    "find": "{ \"maxNumericValue\": 2500, \"aggregationMethod\": \"median\" }",
+    "replace": "{ \"maxNumericValue\": 3000, \"aggregationMethod\": \"median\" }",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: the categories are asserted at error"
+  },
+  {
+    "id": "b17-g7-lh-script",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "package.json",
+    "find": "\"lhci:local\": \"lhci autorun --config=lighthouserc.local.json\"",
+    "replace": "\"lhci:local\": \"lhci autorun --config=lighthouserc.json\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: package.json runs it through lhci:local"
   }
 ]

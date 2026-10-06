@@ -1,0 +1,7 @@
+/*
+ * The admin stylesheet entry (B7 step 3). It is linked by `src/routes/admin.tsx` alone, so a public visitor never
+ * downloads it, and it takes the tokens and nothing else from the public sheet: no public selector reaches it.
+ */
+@import "../tokens.css";
+@import "./admin.css";
+@import "./ui.css";
