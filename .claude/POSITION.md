@@ -1272,3 +1272,12 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   operator: the 153,600 property-route budget leaves main 362 bytes of headroom and every slice that touches that page
   hits it (B5, B7, B13, B17 today); H1 owns the budgets, and the honest options are to pull H1's measurement forward
   or to keep shaving per slice.
+
+## Lane runner (Dell)
+- 2026-10-07 01:05 (Dell clock): B13 launch from the clone at main 7531328 refused before any agent started: the
+  Workflow tool reports `Script parse error: Unexpected token (92:137)` in `.claude/workflows/build-slice.js`; line 92
+  (the one-database rule from becb161) holds two unescaped backticks around `eval "$(node scripts/load-env.mjs
+  --profile dev)"`; `node -e 'import(...)'` says `Unexpected identifier 'eval'` (`node --check` passes, it parses as
+  CommonJS). Reported to the orchestrator, not fixed (standing rule 01:08). B7 waits on the same file. Free memory at
+  the check: 534 MB of 7,952. Worktrees verified: seo at 9d9ea6c, admin at 7531328, both clean with `.env` at root.
+- 2026-10-07 01:10: P-008 hit again (backslash escapes through the Bash tool were no-ops); the entry grew.
