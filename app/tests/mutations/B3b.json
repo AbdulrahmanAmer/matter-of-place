@@ -754,8 +754,8 @@
     "kind": "file",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/components/layout/consent-notice.tsx",
-    "find": "    writeConsent(analytics);",
-    "replace": "    writeConsent(true);",
+    "find": "    if (!writeConsent(analytics)) setOpen(false);",
+    "replace": "    if (!writeConsent(true)) setOpen(false);",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
     "expect": "× .*No, thank you stores analytics false"
   },
@@ -774,8 +774,8 @@
     "kind": "file",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/components/layout/consent-notice.tsx",
-    "find": "    setOpen(false);\n",
-    "replace": "",
+    "find": "    const stopChange = onConsentChange(() => {\n      setOpen(false);\n    });",
+    "replace": "    const stopChange = onConsentChange(() => undefined);",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
     "expect": "× .*Allow stores analytics true"
   },
@@ -804,8 +804,8 @@
     "kind": "file",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/components/layout/consent-notice.tsx",
-    "find": "    return onConsentNoticeOpen(() => {\n      setOpen(true);\n    });",
-    "replace": "    return undefined;",
+    "find": "    const stopOpen = onConsentNoticeOpen(() => {\n      setOpen(true);\n    });",
+    "replace": "    const stopOpen = () => undefined;",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
     "expect": "× .*stays closed once decided, and Cookie settings"
   },

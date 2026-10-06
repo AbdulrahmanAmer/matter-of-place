@@ -917,8 +917,11 @@ describe("consent-pages", () => {
 
   it("consent-pages: /cookies lists every cookie of the inventory and /privacy-choices names no choice before the browser has read it", async () => {
     const cookies = await renderPage("/cookies");
-    for (const cookie of cookieInventory) expect(cookies).toContain(cookie.provider);
-    expect(cookies).toContain("mop_consent");
+    for (const cookie of cookieInventory) {
+      const name = cookie.name.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      expect(cookies).toContain(`<th scope="row">${name}</th>`);
+      expect(cookies).toContain(cookie.provider);
+    }
     const choices = await renderPage("/privacy-choices");
     expect(choices).toContain('content="noindex, nofollow"');
     expect(choices).not.toContain("Analytics are on.");

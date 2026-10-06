@@ -7,7 +7,10 @@ import { t } from "../../lib/strings";
 import { ConsentNotice } from "./consent-notice";
 
 // A real link to /privacy-choices; with JavaScript the same click reopens the notice in place.
+// A modified click is the visitor opening the page in a new tab or window, so the browser keeps it.
 function reopenNotice(event: MouseEvent) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
+    return;
   event.preventDefault();
   openConsentNotice();
 }

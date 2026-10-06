@@ -11,7 +11,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Footer } from "../../src/components/layout/footer";
 import { track } from "../../src/lib/analytics";
-import { CONSENT_VERSION, consentGranted, readConsent } from "../../src/lib/consent";
+import { CONSENT_VERSION, consentGranted, readConsent, writeConsent } from "../../src/lib/consent";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
@@ -81,6 +81,36 @@ describe("ConsentNotice", () => {
       control()?.click();
     });
     expect(await screen.findByRole("region", { name: "Cookie notice" })).toBeTruthy();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("closes when the choice is written elsewhere on the page, as on /privacy-choices", async () => {
+    await renderFooter();
+    expect(await screen.findByRole("region", { name: "Cookie notice" })).toBeTruthy();
+    act(() => {
+      writeConsent(false);
+    });
+    expect(notice()).toBeNull();
+  });
+
+  it("closes after a click even when the browser refuses to store the choice", async () => {
+    const refuse = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage is full");
+    });
+    await renderFooter();
+    fireEvent.click(await screen.findByRole("button", { name: "Allow" }), { detail: 1 });
+    expect(notice()).toBeNull();
+    refuse.mockRestore();
+  });
+
+  it("leaves a modified click on Cookie settings to the browser: no reopen, the default is not prevented", async () => {
+    store(CONSENT_VERSION, false);
+    const router = await renderFooter();
+    const kept = fireEvent.click(screen.getByRole("link", { name: "Cookie settings" }), {
+      ctrlKey: true,
+    });
+    expect(kept).toBe(true);
+    expect(notice()).toBeNull();
     expect(router.state.location.pathname).toBe("/");
   });
 

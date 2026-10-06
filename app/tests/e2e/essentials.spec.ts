@@ -131,13 +131,22 @@ test.describe("consent", () => {
     expect(hosts.filter((host) => GOOGLE_HOST.test(host))).toEqual([]);
   });
 
-  test("consent-html: / is byte-identical with and without a mop_consent cookie and Sec-GPC", async ({
+  // `?preview=` is never cached (neverCached), so every response below is a render the server just made. A stored
+  // copy would answer all three alike whatever a render did with the cookie. Millisecond timestamps (the router's
+  // `u:`, the query cache's `dehydratedAt`) differ per render and are zeroed.
+  test("consent-html: a fresh render of / is byte-identical with and without a mop_consent cookie and Sec-GPC", async ({
     request,
   }) => {
-    const plain = await (await request.get("/")).text();
+    const render = async (headers: Record<string, string>) => {
+      const response = await request.get("/?preview=consent", { headers });
+      expect(response.headers()["x-mop-cache"]).toBeUndefined();
+      expect(response.headers()["cache-control"]).toBe("no-store");
+      return (await response.text()).replace(/\b\d{13}\b/g, "0");
+    };
+    const plain = await render({});
+    expect(plain).toContain("<footer");
     for (const cookie of ["mop_consent=1.1", "mop_consent=1.0"]) {
-      const other = await request.get("/", { headers: { Cookie: cookie, "Sec-GPC": "1" } });
-      expect(await other.text()).toBe(plain);
+      expect(await render({ Cookie: cookie, "Sec-GPC": "1" })).toBe(plain);
     }
   });
 });

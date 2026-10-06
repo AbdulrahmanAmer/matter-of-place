@@ -705,6 +705,33 @@
     "expect": "× .*opens it again without leaving the page"
   },
   {
+    "id": "b17-cn-elsewhere",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    const stopChange = onConsentChange(() => {\n      setOpen(false);\n    });",
+    "replace": "    const stopChange = onConsentChange(() => {\n      setOpen(true);\n    });",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*closes when the choice is written elsewhere on the page"
+  },
+  {
+    "id": "b17-cn-refused",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    if (!writeConsent(analytics)) setOpen(false);\n",
+    "replace": "    writeConsent(analytics);\n",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*closes after a click even when the browser refuses to store the choice"
+  },
+  {
+    "id": "b17-cn-modified",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey",
+    "replace": "false",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*leaves a modified click on Cookie settings to the browser"
+  },
+  {
     "id": "b17-cn-gpc",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/lib/consent.ts",
@@ -835,7 +862,7 @@
     "test": "tests/unit/essentials.test.ts",
     "file": "src/routes/_site.cookies.tsx",
     "find": "{cookieInventory.map(",
-    "replace": "{cookieInventory.slice(0, 1).map(",
+    "replace": "{cookieInventory.slice(0, -1).map(",
     "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
     "expect": "× .*consent-pages: /cookies lists every cookie"
   },
@@ -884,10 +911,10 @@
     "kind": "manual",
     "test": "tests/e2e/essentials.spec.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
-    "replace": "  response = apiShellGuard(underApi, response, requestId);\n  if (request.headers.get(\"cookie\")?.includes(\"mop_consent\")) response = new Response(`${await response.text()} `, response);\n",
+    "find": "    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n",
+    "replace": "    const render = async () => {\n      const rendered = await withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n      return request.headers.get(\"cookie\")?.includes(\"mop_consent\") ? new Response(`${await rendered.text()} `, rendered) : rendered;\n    };\n",
     "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-html\" --reporter=line",
-    "expect": "consent-html[\\s\\S]*toBe"
+    "expect": "consent-html[\\s\\S]*Expected: \\\"<!DOCTYPE html>"
   },
   {
     "id": "b17-e2e-consent-noscript",
