@@ -1203,3 +1203,34 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Runs: B13 wf_31d6490a-eeb (c7m, then 8 to 13), B12 wf_42239cda-85c (c7 in review, step 8 building; PR 161 draft),
   B17 wf_df526cfb-c3b (steps 4 fix, 5), B5 wf_03e1b94b-8bd (step 7 review, 8 building), B7 wf_635ac60b-161 (c2b
   accepted, step 3 building). `lanes/*.json` carry the launch calls.
+
+## 2026-10-06 08:30 INCIDENT: two Matter of Place test accounts created in OmniSkipX's production project, removed
+- What happened: at 04:11 UTC the B7 step 3 builder ran `tests/e2e/admin-signin.spec.ts` locally; the helper
+  `tests/e2e/helpers/session.ts` (orchestrator commit aaa6586, 06:14 local) preferred `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` when set, meant for CI's stack. On this laptop those two names are Windows user-level
+  variables of Jay's OmniSkipX project (`ypylnlwqariuqjujswzh`), so the test's auth admin calls created two users there;
+  OmniSkipX's sign-up trigger made two `accounts` rows and a `client_owner` role row, and Jay announced two sign-ups.
+  No migration, no table, no other row: every Matter of Place migration runs on the linked ref `hbokkmpgpqhrnemgsqra` or
+  `DEV_DB_URL` (user `postgres.hbokkmpgpqhrnemgsqra`); probes for `markets`, `properties`, `redirects`, `submissions`,
+  `catalog_versions`, `place_notes`, `write_audit` on OmniSkipX all answer PGRST205. The seed script's own comment
+  (P-331) warned against exactly this and the orchestrator overrode it: the fault is the orchestrator's.
+- Audit of the work (transcripts, not the database): 4 transcript files mention the ref: one `supabase projects list`
+  (read-only), two agents that detected the mismatch while reading P-331 and switched to `DEV_*`, and this session's Jay
+  work. No agent ran `e2e-coming-soon.ts` locally (the one other direct `serviceClient()` user); OmniSkipX has no
+  `settings` table anyway (PGRST205).
+- Cleanup (operator's word 08:05, done 08:22 with identity checks before every delete): auth user e18060ac deleted
+  (the invite user was already gone, 404), `accounts` e18060ac and a9b0d24c deleted (2 rows returned), the role row
+  went with the auth user; re-read: accounts `[]`, roles `[]`, both users 404. Jay's memory holds lesson 1798 so his
+  counts exclude them.
+- Prevention, on main (PR 167, 217f13b) and pushed into the three live lanes (site 3128355, email c1bfcb5, admin
+  03de439): `tests/e2e/helpers/session.ts` and `tests/fixtures/service.ts` read `DEV_*` first and the generic names only
+  behind `E2E_STACK=1`; ci.yml sets `E2E_STACK: "1"` at the workflow level; `scripts/load-env.mjs --profile dev` now
+  overwrites `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` with mop-dev's values; `seed-admin-users.ts --stack` only
+  in CI. GOTCHAS.md opens with a READ FIRST banner about the one database; G-901 (warn; `block` denied the fix itself)
+  and a P-331 hit-again line. Cortex lesson recorded.
+- Standing: no new workflow starts until the operator says the database situation is settled (B13 relaunch and the
+  freed B12 slot parked). Live runs: B17 wf_df526cfb-c3b (steps 4, 5 merge next), B5 wf_03e1b94b-8bd (step 7 fix round),
+  B7 wf_635ac60b-161 (step 3 review). B12 merged (PR 161, 07:46). Board 131 of 259 (50.6 percent).
+- Open for the operator: the width-check fix for PRs 158, 163, 142 (draft on `chore/sweep-animations`, uncommitted,
+  stashed as `sweep-draft`), and whether Jay's credentials leave the user-level environment for his key file or vault so
+  no other project can inherit them.
