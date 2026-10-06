@@ -1,9 +1,10 @@
 {
   "slice": "B13",
-  "runId": "wf_b449fffc-88b",
+  "runId": "wf_dbe24ed5-4c9",
+  "note": "fresh run 2026-10-05 23:30 after the step 5 reviewer hung (P-509); step 4 merged in PR 141; steps 5 and 6 as close-outs c5, c6",
   "resume": {
     "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_b449fffc-88b",
+    "resumeFromRunId": "wf_dbe24ed5-4c9",
     "args": {
       "slice": "B13",
       "root": "E:/mop-build/seo",
@@ -13,9 +14,6 @@
         "G": 800
       },
       "steps": [
-        "4",
-        "5",
-        "6",
         "7",
         "8",
         "9",
@@ -24,48 +22,7 @@
         "12",
         "13"
       ],
-      "closeOut": [
-        {
-          "id": "c1",
-          "steps": "1,2",
-          "critical": false,
-          "title": "B13 close-out c1: steps 1 and 2 (page head, canonical, structured data, the CSP inline canary) are built on slice/b13 (4b37dcc, 179f09f) and were rejected once on one blocking defect in run wf_5748a66c-dea, whose fix round never started because the run died (P-509). Fix it and the follow-ups below, re-run the step proofs, hand in",
-          "defects": [
-            {
-              "file": "app/src/lib/seo-copy.ts",
-              "blocking": true,
-              "what": "Line 32 pads a description shorter than 70 characters with the PLATFORM line and then cuts it to 155 with cutAtWord; for a text of about 34 to 69 characters the cut falls inside the platform line, so the meta description ends mid-sentence ('...residential property in.' or '...California, New York and.') or names only California (R46: the markets are California, New York and Florida). Two of the first four bundled stories already produce 'Matter of Place is an editorial real-estate media platform for residential property in.' Rule: the padding sentence is appended whole or not at all (choose a shorter platform line when the text plus the full sentence exceeds 155, never cut inside it); add a unit case over every bundled story and property description asserting no description ends mid-sentence and every one that names markets names all three; watched-fail it.",
-              "evidence": "The review's bun probe over storyDescription(stories[i]) printed 'Why houses in Tiburon and Mill Valley are built for the afternoon. Matter of Place is an editorial real-estate media platform for residential property in.'"
-            },
-            {
-              "file": "GOTCHAS.md",
-              "blocking": false,
-              "what": "Two costTime lines cite P-1800, which covers only the U+2028 escape; bank (a) the csp-inline SSR harness tsc errors and the vitest expect-expect refusal of an assertion helper, and (b) the hostile fixture that put a bad currency into Intl ('Invalid currency code') and silently switched SSR to client rendering, each with a proof command. The log's Costs line holds a raw U+2028 character: spell out the escape and add a hit-again line to P-1800.",
-              "evidence": "git diff origin/main...HEAD -- GOTCHAS.md adds only P-1800; grep -n 'Costs:' workspace/05-plans/logs/B13.md | cat -A shows the raw character."
-            },
-            {
-              "file": "app/src/lib/seo-copy.ts",
-              "blocking": false,
-              "what": "firstSentence splits on the first '.', so an intro with 'St. Helena' or 'Mt. Kisco' would cut to 'St.'; split on a period followed by a space and a capital, or on sentence end, with a unit case.",
-              "evidence": "Read: `${text.split(\".\")[0] ?? text}.`"
-            }
-          ]
-        },
-        {
-          "id": "c3",
-          "steps": "3",
-          "critical": false,
-          "title": "B13 close-out c3: step 3 was being built when the run died; the orchestrator committed the working tree as 5464d28 'B13 g2 step 3 WIP' (unproven: seo.ts, the market, region, guide, about and contact routes, package.json and bun.lock changed). Finish step 3 from that commit, do not start over; the sweep the builder was waiting on had finished green (106 passed) in /tmp/sweep-built.log",
-          "defects": [
-            {
-              "file": "app/src/lib/seo.ts",
-              "blocking": true,
-              "what": "Complete step 3 as the plan writes it from the WIP commit: review every changed file against the step text, finish what is half done, run every proof of step 3 (the sweep included), watched-fail every new test and register it, update the log block, bun run check and bun run build, push.",
-              "evidence": "git log --oneline -1 on slice/b13 → 5464d28 WIP; git show --stat 5464d28 lists the eight files."
-            }
-          ]
-        }
-      ]
+      "closeOut": "see the launch in the session transcript (c5 step 5, c6 step 6); the run id is enough to resume"
     }
   }
 }
