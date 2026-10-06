@@ -21,6 +21,11 @@ defaults:
   run:
     working-directory: app
 
+# Every job's stack is its own `supabase start` (or none); the test fixtures reach it through SUPABASE_URL and
+# SUPABASE_SERVICE_ROLE_KEY only behind this switch, which no laptop shell sets (G-901, P-331).
+env:
+  E2E_STACK: "1"
+
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true

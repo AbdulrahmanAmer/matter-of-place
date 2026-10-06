@@ -68,6 +68,17 @@ function main() {
     if (value === undefined) console.error(`load-env: ${profile.file} has no ${key}`);
     else lines.push(`export ${key}=${shellQuote(value)}`);
   }
+  // The dev profile also overwrites the two generic names in the shell with mop-dev's values. On the operator's
+  // laptop they are Windows user-level variables of another business's Supabase project, and a client that read them
+  // wrote there on 2026-10-06 (G-901, P-331). After this, a stray reader of SUPABASE_URL still reaches mop-dev.
+  if (name === "dev") {
+    const ref = values["DEV_SUPABASE_PROJECT_REF"];
+    const key = values["DEV_SUPABASE_SERVICE_ROLE_KEY"];
+    if (ref !== undefined && key !== undefined) {
+      lines.push(`export SUPABASE_URL=${shellQuote(`https://${ref}.supabase.co`)}`);
+      lines.push(`export SUPABASE_SERVICE_ROLE_KEY=${shellQuote(key)}`);
+    }
+  }
   process.stdout.write(`${lines.join("\n")}\n`);
   return 0;
 }
