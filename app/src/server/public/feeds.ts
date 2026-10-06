@@ -17,19 +17,25 @@ interface FeedItem {
   published: Date;
 }
 
+/**
+ * The catalog carries the day a row was published (`YYYY-MM-DD`, B3's mapper), not the hour. Noon GMT keeps that day
+ * the calendar day in every time zone from UTC-11 to UTC+11, so a reader in California, New York or Florida shows it.
+ */
+const publishDay = (day: string): Date => new Date(`${day}T12:00:00Z`);
+
 function itemsOf(catalog: ServedCatalog): FeedItem[] {
   const items = [
     ...catalog.properties.map((property) => ({
       url: absoluteUrl(`/property/${property.slug}`),
       title: property.title,
       description: property.place,
-      published: new Date(property.publishedAt),
+      published: publishDay(property.publishedAt),
     })),
     ...catalog.stories.map((story) => ({
       url: absoluteUrl(`/stories/${story.slug}`),
       title: story.title,
       description: story.deck,
-      published: new Date(story.publishedAt),
+      published: publishDay(story.publishedAt),
     })),
   ];
   return items.sort((a, b) => b.published.getTime() - a.published.getTime()).slice(0, ITEM_LIMIT);
@@ -42,8 +48,10 @@ const XML_ESCAPES: Record<string, string> = {
   '"': "&quot;",
   "'": "&apos;",
 };
+/** A control character other than tab, line feed and carriage return is not allowed in an XML 1.0 document, escaped or not. */
+const XML_FORBIDDEN = /[^\P{Cc}\t\n\r]/gu;
 const escapeXml = (text: string): string =>
-  text.replace(/[&<>"']/g, (char) => XML_ESCAPES[char] ?? char);
+  text.replace(XML_FORBIDDEN, "").replace(/[&<>"']/g, (char) => XML_ESCAPES[char] ?? char);
 
 const tag = (name: string, text: string): string => `<${name}>${escapeXml(text)}</${name}>`;
 

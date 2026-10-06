@@ -1403,6 +1403,24 @@
     "expect": "× .*feed: every pubDate is RFC 822"
   },
   {
+    "id": "b17-g6-feed-noon",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "new Date(`${day}T12:00:00Z`)",
+    "replace": "new Date(day)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every pubDate is RFC 822 at noon GMT"
+  },
+  {
+    "id": "b17-g6-feed-control",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "text.replace(XML_FORBIDDEN, \"\").replace(",
+    "replace": "text.replace(",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: a control character in a title is dropped"
+  },
+  {
     "id": "b17-g6-feed-json-date",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/public/feeds.ts",

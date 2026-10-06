@@ -1144,10 +1144,10 @@ describe("feed", () => {
   });
   const published = {
     properties: [
-      property("p1", "Cliff House", "2026-08-14T00:00:00+00:00"),
-      property("p2", "Fish & <Chips> Residence", "2026-09-02T00:00:00+00:00"),
+      property("p1", "Cliff House", "2026-08-14T23:45:00+00:00"),
+      property("p2", "Fish & <Chips> Residence", "2026-09-02T17:30:00+00:00"),
     ],
-    stories: [story("s1", "A hill in Tiburon", "2026-08-30T00:00:00+00:00")],
+    stories: [story("s1", "A hill in Tiburon", "2026-08-30T03:10:00+00:00")],
   };
   const catalog = (state: Record<string, Json> = {}, parts: Record<string, Json> = published) =>
     fakeDb({
@@ -1221,16 +1221,36 @@ describe("feed", () => {
     ]);
   });
 
-  it("feed: every pubDate is RFC 822 and names the instant the row was published; the channel's lastBuildDate is the newest", async () => {
+  it("feed: every pubDate is RFC 822 at noon GMT of the publish day, so New York, Florida and California read that day; the channel's lastBuildDate is the newest", async () => {
     const document = parseXml(await (await ask(catalog(), "rss", "/feed.xml")).text());
     const items = itemsOf(document);
     for (const { pubDate } of items) expect(pubDate).toMatch(RFC_822);
     expect(items.map(({ pubDate }) => Date.parse(pubDate))).toEqual([
-      Date.parse("2026-09-02T00:00:00Z"),
-      Date.parse("2026-08-30T00:00:00Z"),
-      Date.parse("2026-08-14T00:00:00Z"),
+      Date.parse("2026-09-02T12:00:00Z"),
+      Date.parse("2026-08-30T12:00:00Z"),
+      Date.parse("2026-08-14T12:00:00Z"),
     ]);
+    for (const timeZone of ["America/New_York", "America/Chicago", "America/Los_Angeles"]) {
+      const day = new Intl.DateTimeFormat("en-CA", { timeZone });
+      expect(items.map(({ pubDate }) => day.format(Date.parse(pubDate)))).toEqual([
+        "2026-09-02",
+        "2026-08-30",
+        "2026-08-14",
+      ]);
+    }
     expect(document.querySelector("channel > lastBuildDate")?.textContent).toBe(items[0]?.pubDate);
+  });
+
+  it("feed: a control character in a title is dropped, so the document stays well formed", async () => {
+    const db = catalog(
+      {},
+      {
+        properties: [],
+        stories: [story("s2", "Quiet hill", "2026-08-30T03:10:00+00:00")],
+      },
+    );
+    const document = parseXml(await (await ask(db, "rss", "/feed.xml")).text());
+    expect(itemsOf(document).map(({ title }) => title)).toEqual(["Quiet hill"]);
   });
 
   it("feed: the JSON Feed 1.1 document lists the same rows with RFC 3339 dates", async () => {
@@ -1244,9 +1264,9 @@ describe("feed", () => {
       { id: `${BASE}/property/p1`, url: `${BASE}/property/p1`, title: "Cliff House" },
     ]);
     expect(feed.items.map((item) => item.date_published)).toEqual([
-      "2026-09-02T00:00:00.000Z",
-      "2026-08-30T00:00:00.000Z",
-      "2026-08-14T00:00:00.000Z",
+      "2026-09-02T12:00:00.000Z",
+      "2026-08-30T12:00:00.000Z",
+      "2026-08-14T12:00:00.000Z",
     ]);
   });
 
