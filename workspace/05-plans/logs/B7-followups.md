@@ -59,3 +59,71 @@ what: Places where the plan text and the code differ. None is a defect in behavi
 evidence: Read: tests/fixtures/admin-routes.ts:49-58; grep -n OUTAGE_RETRY_AFTER app/src/server/lib/errors.ts -> 7: = "30"; sed -n 58p workspace/05-plans/B7.md; app/src/server/lib/error-codes.ts:51-58; grep -n 'permissions/automation.ts' workspace/05-plans/B8b.md -> 138
 
 blocking: false
+
+## g2 · steps 2
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. Two more follow-ups of this review name GOTCHAS.md and are banked there (hit-again lines under P-2006 and P-712).
+
+### 1. app/src/server/lib/csrf.ts (safeNext lets a dot-segment path leave /admin)
+
+what: safeNext lets a dot-segment path leave /admin. '/admin/../stories' and '/admin/%2e%2e/stories' come back unchanged, and the browser resolves them to the public page /stories. The redirect stays on our own origin, matches the plan's literal definition (starts with /admin, no //, no backslash, no scheme), and next is not carried in the mailed link, so I see no off-site redirect. It still misses the step proof's 'paths outside /admin are refused'.
+
+evidence: Confirmed by running: bun -e 'import { safeNext } from "./src/server/lib/csrf.ts"; ...' printed '/admin/../stories => /admin/../stories => resolves /stories' and '/admin/%2e%2e/stories => ... => resolves /stories' (lines 277-283: UNSAFE has no '..' rule).
+
+blocking: false
+
+### 2. workspace/05-plans/logs/B7.md (the step 2 unit proof carries no --testTimeout=60000)
+
+what: The step 2 unit proof runs without --testTimeout=60000, so it gets the unit project's 5 s default (vitest.config.ts sets no testTimeout for unit). The bank says every B7 proof carries the flag (hit-again line under the entry at GOTCHAS.md:1431). On a loaded laptop the proof can go red with no code fault. CI's bun run test passes 60 s, so CI is not affected.
+
+evidence: Confirmed by running: my first run of the nine-file proof, with bun run check running at the same time, printed 'Test Files 4 failed | 5 passed (9), Tests 4 failed | 37 passed (41)'. The rerun alone was 41 passed. That the failures were 5 s timeouts is suspected, not captured.
+
+blocking: false
+
+### 3. app/src/server/team/service.ts (sign-out goes through assertSessionFresh)
+
+what: The author already lists this as a follow-up. Sign-out goes through defineAdminRoute's assertSessionFresh, so a session older than 12 h gets 401 from sign-out, and its cookies are never expired. The session cookie is written with Max-Age=34560000 and carries a live Supabase refresh token. The plan's wrapper order requires that check, so this needs a plan decision (exempt sign-out, or expire the cookies on session_expired).
+
+evidence: Suspected by reading: team/service.ts signOut plus admin-route.ts, where assertSessionFresh runs for every session route; the log says @supabase/ssr writes Max-Age=34560000.
+
+blocking: false
+
+### 4. app/src/routes/admin.tsx (ensureQueryData ignores staleTime; note for step 3)
+
+what: The guard reads me through ensureQueryData with staleTime 60_000. Without revalidateIfStale, ensureQueryData returns any cached value however stale, so the staleTime does nothing. Within one page load, me (and its mop_csrf re-set) runs only once, and a cached null is reused. This is the plan's wording, and the full-page sign-in flow is unaffected, so it is a note for step 3 (adminFetch and the 401 handling).
+
+evidence: Suspected by reading: admin.tsx lines 16-20; TanStack Query v5 ensureQueryData semantics.
+
+blocking: false
+
+### 5. app/src/server/team/service.ts (files outside the group's named list carry this step's work; the orchestrator folds them into B7.md)
+
+what: Files outside the group's named list carry this step's work: src/server/team/service.ts and src/domain/admin-team.ts (step 14's files), src/admin/team/ConfirmForm.tsx and team-api.ts, ratelimit.ts (memoryExhausted), error-codes.ts, and tests/fixtures/supabase-auth.ts. Sign-out also rides on the matrix action 'me', and the email limit key is the salted hashKey(RATE_LIMIT_SALT, email) instead of the plan's sha256Hex(lower(email)). Every one of these is stated in the log as a deviation. The orchestrator should fold them into B7.md (Files, invariant 19, matrix).
+
+evidence: git log origin/main..HEAD shows f27d9af and 559b685 touching these paths; the log's deviations list names each.
+
+blocking: false
+
+### 6. app/scripts/seed-admin-users.ts (seed keys pile up)
+
+what: The author already lists this as a follow-up. Every run inserts a new valid agent key and never revokes earlier ones, so seed keys pile up on mop-dev until the launch switch's db:reset.
+
+evidence: Suspected by reading: seed() at lines 84-88 inserts with no revoke. I revoked the key my own run made (UPDATE 1).
+
+blocking: false
+
+### 7. app/src/routes/admin/sign-in.tsx (UNPROVEN: the real browser sign-in path is never run against reality)
+
+what: UNPROVEN, not covered by any proof. The real browser path (Turnstile in execute mode, then POST send-link, then staff_can_sign_in, then signInWithOtp, then mail) is never run against reality. The unit tests use fake Auth and fake Turnstile, and the e2e signs in through auth.admin.generateLink. Separately, until the orchestrator puts CSRF_SECRET on both Workers, every admin session write on a deployed Worker answers 503 csrf_secret_missing (as the plan intends).
+
+evidence: tests/e2e/helpers/session.ts tokenHashFor uses generateLink; wrangler secret list on both Workers shows no CSRF_SECRET or PREVIEW_TOKEN_SECRET.
+
+blocking: false
+
+### 8. app/src/routes/admin.tsx (the Contract's Vary line against the built Worker)
+
+what: The Contract's transport line asks for Vary: Cookie, Authorization on every /admin document, but the built Worker serves /admin with Cache-Control: no-store and no Vary. With no-store nothing is cached, so there is no practical effect. It is a stale Contract line or a B1b pipeline note, for the orchestrator.
+
+evidence: Confirmed by running: curl -s -D - -o /dev/null http://localhost:8949/admin twice on the built Worker printed only 'HTTP/1.1 200 OK Cache-Control: no-store'.
+
+blocking: false
