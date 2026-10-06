@@ -73,6 +73,33 @@ renders every definition with its sample variables and expects no finding, and h
 Only the key `standalone` may carry Resend's `{{{RESEND_UNSUBSCRIBE_URL}}}`, and only `auth_magic_link` and
 `auth_invite` may carry the Supabase Go-template link.
 
+## Look at every template (`email:shots`)
+
+```
+cd app
+bun run email:shots
+```
+
+`scripts/email-shots.ts` draws each entry of `definitions` with its sample variables and the same site context as
+`email-test.ts render`, runs `lintEmail` and writes `out/email-<key>.html`; the first finding stops it with exit 1. It then
+starts `scripts/lib/email-shots-page.mjs` under Node, which opens every file in headless Chromium at 600 px, saves the
+full page as `out/email-<key>.png`, opens it again at 375 px and stops with exit 1 if `scrollWidth` is wider than the
+viewport at either width. It prints one `ok <key> 600x<height>` line per template. The height is the taller of the
+content and the 900 px viewport, so a short email prints 900. It needs no database and no Resend key; `out/` is
+git-ignored. One run took 2 minutes 24 seconds on 2026-10-06 while other lanes ran their checks (the time on an idle laptop is
+UNPROVEN, and so is which Chromium step slowed; GOTCHAS P-2100), so give it a bounded wait, not a guess.
+The emblem address is answered from `public/apple-touch-icon.png`, so the picture does not depend on the
+live site.
+
+The browser half is a Node file because Playwright cannot start a browser from Bun on the build laptop (Windows, Bun
+1.3.13): `chromium.launch()` never returned, and `connectOverCDP` timed out after 30 seconds, on 2026-10-06; the same
+`launch()` under Node returned at once. Do not fold the two files into one without repeating that check.
+
+The pictures are read by a person: open the PNGs, never trust the exit code alone. The footer shows the product line
+only, because the site context has no entity or address; the real footer needs `settings.site`. CI runs the same command
+in the `e2e` job after the specs and attaches `out/email-*.png` as the artifact `email-shots`, kept 7 days; UNPROVEN until
+a pull request has run that job.
+
 ## Reading `email_messages`
 
 ```
@@ -228,9 +255,19 @@ lock, creates one submission from `delivered@resend.dev` through `create_submiss
 runner, prints `<template_key> <status> <resend_id>` for every message of that event and deletes the submission. It exits
 0 when there is one `received` message and at least one `admin_notify` message, each `sent`, `delivered` or (dry run)
 `skipped` with a `dry_` id; it exits 1 on a dead job, a timeout, a second `submission.received` event or a second
-`received` message. UNPROVEN on `mop-dev` until the runner deploy above. Against a throwaway PostgreSQL 18 cluster it
-printed `refusing: production database` and exit 1 with `settings.environment` set to `production`, and with `preview`
-it took the lock, failed on the missing `create_submission` and exited 1 without hanging.
+`received` message. Against a throwaway PostgreSQL 18 cluster it printed `refusing: production database` and exit 1 with
+`settings.environment` set to `production`, and with `preview` it took the lock, failed on the missing
+`create_submission` and exited 1 without hanging.
+
+On `mop-dev` on 2026-10-06, with no `EMAIL_LIVE` set, the first run printed no rows and exited 1 after 180 seconds
+(`no complete chain`): `received` was `skipped` with a `dry_` id, and `admin_notify` was `skipped` with
+`not_allow_listed` and no id. The admin recipient is `settings.notifications.recipients`, then
+`settings.site.contact.email` (`hello@matterofplace.com` on `mop-dev`), then `ADMIN_NOTIFY_EMAIL`; the dev allow-list
+(`settings.email.dev_recipients`) holds `admin@matterofplace.com`, `admin+*@matterofplace.com` and `*@resend.dev`, so the
+public contact address is refused. With a `notifications` row of `{"recipients": ["admin@matterofplace.com"]}`, put in
+for the run and deleted after it, the script printed `received skipped dry_...` and `admin_notify skipped dry_...` and
+exited 0. Until a `notifications` row exists on `mop-dev`, the chain proof needs one for the run.
+UNPROVEN: the `sent` rows, which need step 5's `EMAIL_LIVE=1` on the deployed runner.
 
 ## Render cost
 

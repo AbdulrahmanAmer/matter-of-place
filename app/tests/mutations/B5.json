@@ -2239,5 +2239,23 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
     "expect": "expected \\[ 'scripts/auth-invite-test.ts' \\] to deeply equal \\[\\]"
+  },
+  {
+    "id": "b5-shots-overflow-600",
+    "test": "scripts/email-shots.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "  maxWidth: \"600px\",",
+    "replace": "  maxWidth: \"600px\",\n  minWidth: \"700px\",",
+    "run": "bun run email:shots",
+    "expect": "received: scrollWidth 7[0-9]{2} at 600 px"
+  },
+  {
+    "id": "b5-shots-lint-stops",
+    "test": "scripts/email-shots.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "  maxWidth: \"600px\",",
+    "replace": "  maxWidth: \"700px\",",
+    "run": "bun run email:shots",
+    "expect": "received: container-width the outer container does not declare max-width: 600px"
   }
 ]
