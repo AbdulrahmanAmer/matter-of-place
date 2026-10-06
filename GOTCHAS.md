@@ -3839,3 +3839,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: UNPROVEN for B5; the owner of `scripts/automation-smoke.ts` (B8b) passes a null actor (the system) or a real staff user, then re-runs it. A group that is told to run another slice's script as a proof reports its red result and the cause, and does not edit the script.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bun run scripts/automation-smoke.ts` → `automation-smoke: automation_put_recipe (smoke) failed: forbidden` (measured 2026-10-06, B5 g5, tree of `slice/b5` merged with main at 99dda79); `grep -n "forbidden" supabase/sql/functions/write_audit.sql` → three raises.
 - added: 2026-10-06
+
+## P-1221 · A new script that copies another script's `.env` reader fails jscpd with a 72-token clone, and the reader is then rewritten
+- symptom: B5 g4's `scripts/auth-invite-test.ts` first carried a copy of the `.env` reader of `scripts/email-test.ts` (`readFileSync(new URL("../../.env", import.meta.url), "utf8").replaceAll("\r", "")` and the line parser after it). `bun run jscpd` in `bun run check` reported a clone of 72 tokens between the two files, and the script was reworked, a second attempt.
+- cause: the script needed the project URL and the service role key and the quickest source was the file the neighbour already parses. A second `.env` parser is also the shape that read `SUPABASE_URL` from the shell on 2026-10-06 (G-901, P-331): the dev profile is the one place that names mop-dev.
+- rule: a new script reads secrets through `eval "$(node scripts/load-env.mjs --profile dev)"` and gets its project from `devProject()` of `scripts/lib/storage-env.ts`; it never parses `.env` itself. A script that needs a name the profile does not export adds the name to the profile, not a reader to the script.
+- proof: `cd app && grep -c readFileSync scripts/auth-invite-test.ts` prints `0` and `grep -n "devProject" scripts/auth-invite-test.ts` prints the import from `./lib/storage-env.ts` and its call; `bun run jscpd` exits 0 on `slice/b5` at B5 g4 (2026-10-06).
+- added: 2026-10-06

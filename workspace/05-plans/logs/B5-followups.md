@@ -191,3 +191,17 @@
 6. File: `(live proof)`. Not blocking.
    - Follow-up: "UNPROVEN: the end-to-end double opt-in against a deployed Worker with EMAIL_LIVE=1 and CONFIRM_TOKEN_SECRET (POST, click the real email, confirmed_at set). The chain from the sealed token to the confirm_url is proven only with a stubbed fetch and fakeDb. The real upsert_subscriber writing sealed_token into subscriber.created is confirmed on mop-dev, but no email was sent and no link was clicked."
    - Evidence: "author's unproven list; my read-only query shows the job dead with subscriber_missing after the smoke's cleanup, so no send happened"
+
+## g4 · steps 8
+
+1. File: `app/supabase/config.toml`. Not blocking.
+   - Follow-up: "SMTP is now live on mop-dev, but only magic_link and invite carry the token-hash link. The confirmation, recovery and email_change templates are still Supabase's unbranded defaults with {{ .ConfirmationURL }}, and they now leave through Resend from notify. Reading GoTrue (not run): a staff sign-in request for an invited user who never accepted the invite goes through the unconfirmed or signup path, not the magic_link template. That user would get a ConfirmationURL link (the API-01 cross-device failure), or a signup_disabled error. The step names only two templates, so this is a follow-up for B7 (send-link path)."
+   - Evidence: "GET /v1/projects/hbokkmpgpqhrnemgsqra/config/auth: mailer_templates_confirmation_content len 184 ConfirmationURL 1, mailer_templates_recovery_content len 254 ConfirmationURL 1, mailer_templates_email_change_content len 270 ConfirmationURL 1, mailer_autoconfirm false"
+
+2. File: `app/scripts/build-auth-templates.ts`. Not blocking.
+   - Follow-up: "Nothing in bun run check ties the committed supabase/templates/*.html to the generator. If someone edits the script or blocks.tsx and does not re-run it, the pushed HTML drifts without anyone noticing. Also, registry entry b5-aj runs the generator itself: a mutation that gets past the lint would overwrite the committed templates in the tree. The CONFIRM prefix is the only ConfirmationURL guard, and it holds today. I confirmed by running that regeneration is byte-identical and the live copy on mop-dev is byte-identical."
+   - Evidence: "bun run scripts/build-auth-templates.ts followed by git status --short printed nothing (identical today). No test under tests/ reads supabase/templates (git grep finds none)."
+
+3. File: `app/supabase/config.toml`. Not blocking.
+   - Follow-up: "CI's supabase start reads [auth.email.smtp] enabled = true with env(RESEND_API_KEY) unset. Config loading tolerates this (config diff with the key unset exits 0). But once B7's admin-signin e2e asks the CI stack for a magic link, local GoTrue will try smtp.resend.com with no valid password (mailpit is already excluded with -x). UNPROVEN until B7's spec runs in CI. Record it for B7/B4."
+   - Evidence: "env -u RESEND_API_KEY bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF -> exit 0, same counts. .github/workflows/ci.yml:169 and :262 run supabase start -x ...,mailpit,..."
