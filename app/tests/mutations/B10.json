@@ -1,0 +1,242 @@
+[
+  {
+    "id": "b10g1-carousel-null",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"instagram\", \"linkedin\"] : [\"instagram\"];",
+    "replace": "return [\"instagram\", \"linkedin\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a carousel to instagram only while multi_image is null"
+  },
+  {
+    "id": "b10g1-carousel-true",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"instagram\", \"linkedin\"] : [\"instagram\"];",
+    "replace": "return [\"instagram\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a carousel to instagram and linkedin when multi_image is true"
+  },
+  {
+    "id": "b10g1-cover-null",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": ": [\"x\", \"linkedin\", \"facebook\"];",
+    "replace": ": [\"x\", \"facebook\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a cover to x, linkedin and facebook while multi_image is null"
+  },
+  {
+    "id": "b10g1-cover-true",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"x\", \"facebook\"]",
+    "replace": "return multiImage ? [\"x\", \"linkedin\", \"facebook\"]",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > leaves linkedin off a cover when multi_image is true"
+  },
+  {
+    "id": "b10g1-story",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"story\":\n      return [\"instagram\", \"facebook\"];",
+    "replace": "case \"story\":\n      return [\"instagram\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a story to instagram and facebook and a reel to instagram"
+  },
+  {
+    "id": "b10g1-reel",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"reel\":\n      return [\"instagram\"];",
+    "replace": "case \"reel\":\n      return [\"instagram\", \"x\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a story to instagram and facebook and a reel to instagram"
+  },
+  {
+    "id": "b10g1-disabled",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "const multiImage = settings.linkedin?.multi_image === true;",
+    "replace": "const multiImage = settings.linkedin?.multi_image === true;\n  if (Reflect.get(settings, \"instagram\")?.enabled === false) return [];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > keeps a channel whose row is disabled in the targets of a carousel"
+  },
+  {
+    "id": "b10g1-no-target",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"newsletter_block\":\n",
+    "replace": "case \"newsletter_block\":\n      return [\"instagram\"];\n",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > gives a newsletter block and a standalone email no target"
+  },
+  {
+    "id": "b10g1-x-file",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"x:cover\": [\"x\"],",
+    "replace": "\"x:cover\": [\"main\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the x file and the x caption for a cover on x"
+  },
+  {
+    "id": "b10g1-x-caption",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return captions?.x ?? null;",
+    "replace": "return asset.caption;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the x file and the x caption for a cover on x"
+  },
+  {
+    "id": "b10g1-order-sort",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "files.filter((file) => file.role === role).sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),",
+    "replace": "files.filter((file) => file.role === role),",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the slide files of an instagram carousel in index order whatever the array order"
+  },
+  {
+    "id": "b10g1-order-caption",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return asset.caption;",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the slide files of an instagram carousel in index order whatever the array order"
+  },
+  {
+    "id": "b10g1-story-main",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"instagram:story\": [\"main\"],",
+    "replace": "\"instagram:story\": [\"poster\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of an instagram story"
+  },
+  {
+    "id": "b10g1-reel-roles",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"instagram:reel\": [\"video\", \"poster\"],",
+    "replace": "\"instagram:reel\": [\"video\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the video and then the poster of an instagram reel"
+  },
+  {
+    "id": "b10g1-li-cover",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"linkedin:cover\": [\"linkedin\"],",
+    "replace": "\"linkedin:cover\": [\"main\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the linkedin file of a cover and the linkedin_set files of a carousel on linkedin"
+  },
+  {
+    "id": "b10g1-li-set",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"linkedin:carousel\": [\"linkedin_set\"],",
+    "replace": "\"linkedin:carousel\": [\"slide\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the linkedin file of a cover and the linkedin_set files of a carousel on linkedin"
+  },
+  {
+    "id": "b10g1-fb-main",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"facebook:cover\": [\"main\"],",
+    "replace": "\"facebook:cover\": [\"x\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of a cover on facebook and the linkedin caption plus the dossier url"
+  },
+  {
+    "id": "b10g1-fb-link",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": ": `${captions.linkedin}\\n\\n${propertyLink(asset.property_slug, \"facebook\")}`;",
+    "replace": ": captions.linkedin;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of a cover on facebook and the linkedin caption plus the dossier url"
+  },
+  {
+    "id": "b10g1-no-file",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "(ROLES[`${channel}:${asset.kind}`] ?? [])",
+    "replace": "(ROLES[`${channel}:${asset.kind}`] ?? [\"main\"])",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > gives no file and no caption where a channel and a kind never meet"
+  },
+  {
+    "id": "b10g1-disabled-block",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "if (!enabled) return disabledBlock(name);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> getChannel > answers a disabled row with the disabled block, which posts nothing"
+  },
+  {
+    "id": "b10g1-ids-accept",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": "graph_version: z.string().regex(/^v\\d+\\.\\d+$/, \"Use a version such as v23.0\"),",
+    "replace": "graph_version: z.string().regex(/^never$/, \"Use a version such as v23.0\"),",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > accepts the fields of each key and any part of them"
+  },
+  {
+    "id": "b10g1-ids-strict",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": ".strictObject({\n      page_id: numericId,",
+    "replace": ".object({\n      page_id: numericId,",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > refuses a field it does not name, a token above all"
+  },
+  {
+    "id": "b10g1-ids-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": "handle: z.string().regex(/^[A-Za-z0-9_]{1,15}$/, \"Use the handle without the @\"),",
+    "replace": "handle: z.string(),",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > refuses an id that is not in the shape the platform uses"
+  },
+  {
+    "id": "b10g1-guard-test-post",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/test-post.ts",
+    "find": "import { assertNotProduction } from \"./assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "\\+\\s+\"scripts/lib/test-post\\.ts\""
+  }
+]
