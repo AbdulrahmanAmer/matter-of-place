@@ -1,39 +1,10 @@
 {
   "slice": "B7",
-  "runId": "wf_5d9f0509-be2",
+  "runId": "wf_f057a026-91b",
+  "note": "steps 1 on main (PR 138); step 2 accepted on the lane, PR 158 red on bundle-check, close-out c2 in run wf_f057a026-91b then steps 3 to 16",
   "resume": {
     "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_5d9f0509-be2",
-    "args": {
-      "slice": "B7",
-      "root": "E:/mop-build/admin",
-      "previewPort": 8948,
-      "bankBase": {
-        "P": 2000,
-        "G": 900
-      },
-      "steps": [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "5a",
-        "6",
-        "7",
-        "7a",
-        "8",
-        "9",
-        "10",
-        "11",
-        "11a",
-        "12",
-        "13",
-        "14",
-        "15",
-        "15a",
-        "16"
-      ]
-    }
+    "resumeFromRunId": "wf_f057a026-91b",
+    "args": "see the launch in the session transcript (closeOut c2, steps 3 to 16)"
   }
 }

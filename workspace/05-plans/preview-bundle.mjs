@@ -35,6 +35,7 @@ const copy = [
   ["JOB_RUNNER_SECRET", "JOB_RUNNER_SECRET", false],
   ["PREVIEW_TOKEN_SECRET", "PREVIEW_TOKEN_SECRET", false],
   ["CONFIRM_TOKEN_SECRET", "CONFIRM_TOKEN_SECRET", false],
+  ["CSRF_SECRET", "CSRF_SECRET", false],
 ];
 for (const [name, source, required] of copy) {
   const value = dotenv[source];
