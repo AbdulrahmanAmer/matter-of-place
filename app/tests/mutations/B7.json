@@ -819,5 +819,896 @@
     "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8948 bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts --grep \"spends nothing\"",
     "expect": "getByRole\\(.button., \\{ name: .Continue to Matter of Place. \\}\\)",
     "kind": "manual"
+  },
+  {
+    "id": "b7-g3-fetch-csrf-header",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "if (token !== undefined) headers.set(CSRF_HEADER, token);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a POST carries X-MOP-CSRF"
+  },
+  {
+    "id": "b7-g3-fetch-writes",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "const WRITES = new Set([\"POST\", \"PUT\", \"PATCH\", \"DELETE\"]);",
+    "replace": "const WRITES = new Set([\"POST\"]);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*every write method carries the header"
+  },
+  {
+    "id": "b7-g3-fetch-get-none",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "const token = WRITES.has(method) ? csrfToken() : undefined;",
+    "replace": "const token = csrfToken();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*every write method carries the header"
+  },
+  {
+    "id": "b7-g3-fetch-401-empty",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "host.queryClient.removeQueries({ queryKey: [\"admin\"] });",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a 401 that ends the session empties"
+  },
+  {
+    "id": "b7-g3-fetch-401-plain",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "response.status === 401 && SESSION_ENDED.has(error.code) && host !== null",
+    "replace": "response.status === 401 && host !== null",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a plain 401 is thrown and leaves"
+  },
+  {
+    "id": "b7-g3-fetch-csrf-me",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "await send(ME_PATH, {});",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a 403 csrf makes one me call and one"
+  },
+  {
+    "id": "b7-g3-fetch-csrf-loop",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "await send(ME_PATH, {});\n      response = await send(path, init);",
+    "replace": "await send(ME_PATH, {});\n      response = await send(path, init);\n      response = await send(path, init);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a second 403 csrf is thrown, not"
+  },
+  {
+    "id": "b7-g3-fetch-403-other",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "if (refused.code === \"csrf\") {",
+    "replace": "if (refused.code !== \"\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a 403 for another reason is thrown at"
+  },
+  {
+    "id": "b7-g3-fetch-503-flag",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "setUnavailable(response.status === 503);",
+    "replace": "setUnavailable(false);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a 503 raises the banner flag"
+  },
+  {
+    "id": "b7-g3-fetch-error-body",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "const { code, message } = parsed.data.error;",
+    "replace": "const { message } = parsed.data.error;\n  const code = \"server\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*an error body becomes an AdminApiError"
+  },
+  {
+    "id": "b7-g3-fetch-header-id",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "const requestId = response.headers.get(\"x-request-id\") ?? undefined;",
+    "replace": "const requestId = undefined;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*an answer that is not an error body"
+  },
+  {
+    "id": "b7-g3-fetch-schema",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "return schema.parse(",
+    "replace": "return (",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*the answer is parsed with the schema"
+  },
+  {
+    "id": "b7-g3-fetch-204",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "response.status === 204 ? undefined : await response.json()",
+    "replace": "await response.json()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*an empty 204 answer parses as undefine"
+  },
+  {
+    "id": "b7-g3-fetch-upload-put",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "method: \"PUT\",",
+    "replace": "method: \"POST\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*puts the file with no cookie and no CS"
+  },
+  {
+    "id": "b7-g3-fetch-upload-refused",
+    "test": "src/admin/ui/admin-fetch.test.ts",
+    "file": "src/admin/ui/admin-fetch.ts",
+    "find": "\"upload_failed\"",
+    "replace": "\"upload_x\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/ui/admin-fetch.test.ts",
+    "expect": "× .*a refused upload throws"
+  },
+  {
+    "id": "b7-g3-query-403",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "if (error instanceof AdminApiError && error.status < 500) return false;",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*a 403 is not retried"
+  },
+  {
+    "id": "b7-g3-query-503",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "return failureCount < 1;",
+    "replace": "return false;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*a 503 is retried once"
+  },
+  {
+    "id": "b7-g3-query-lost",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "return failureCount < 1;",
+    "replace": "return error instanceof AdminApiError && failureCount < 1;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*a lost connection is retried once"
+  },
+  {
+    "id": "b7-g3-query-stale",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "staleTime: 30_000,",
+    "replace": "staleTime: 0,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*a read stays fresh for 30 seconds"
+  },
+  {
+    "id": "b7-g3-query-focus",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "refetchOnWindowFocus: false,",
+    "replace": "refetchOnWindowFocus: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*a read stays fresh for 30 seconds"
+  },
+  {
+    "id": "b7-g3-query-root",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "const all = () => [\"admin\", name] as const;",
+    "replace": "const all = () => [\"adm\", name] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*every key starts at the admin root"
+  },
+  {
+    "id": "b7-g3-query-dashboard",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "[featureKey, adminKeys.dashboard(), timelineKey]",
+    "replace": "[featureKey, timelineKey]",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*invalidates its feature, the dashboard"
+  },
+  {
+    "id": "b7-g3-query-only-those",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "queryClient.invalidateQueries({ queryKey })",
+    "replace": "queryClient.invalidateQueries()",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*invalidates its feature, the dashboard"
+  },
+  {
+    "id": "b7-g3-query-pending",
+    "test": "src/admin/query.test.ts",
+    "file": "src/admin/query.ts",
+    "find": "pendingMs: 300,",
+    "replace": "pendingMs: 0,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/query.test.ts",
+    "expect": "× .*every child route shows its skeleton"
+  },
+  {
+    "id": "b7-g3-dlg-focus-return",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/Dialog.tsx",
+    "find": "if (opener instanceof HTMLElement) opener.focus();",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*moves focus in, keeps Tab inside"
+  },
+  {
+    "id": "b7-g3-dlg-trap",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/Dialog.tsx",
+    "find": "last.focus();",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*moves focus in, keeps Tab inside"
+  },
+  {
+    "id": "b7-g3-dlg-backdrop",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/Dialog.tsx",
+    "find": "if (event.target === event.currentTarget) onClose();",
+    "replace": "onClose();",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*closes on Escape and on the backdrop"
+  },
+  {
+    "id": "b7-g3-dlg-closed",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/Dialog.tsx",
+    "find": "{open ? children : null}",
+    "replace": "{children}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*draws nothing inside while closed"
+  },
+  {
+    "id": "b7-g3-dlg-confirm",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/ConfirmDialog.tsx",
+    "find": "onClick={onConfirm}",
+    "replace": "onClick={onCancel}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*sends the action once on Confirm"
+  },
+  {
+    "id": "b7-g3-dlg-pending",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/ConfirmDialog.tsx",
+    "find": "disabled={pending}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*turns Confirm off while the action"
+  },
+  {
+    "id": "b7-g3-dlg-native",
+    "test": "src/admin/ui/dialogs.test.tsx",
+    "file": "src/admin/ui/Dialog.tsx",
+    "find": "aria-label={label}",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/dialogs.test.tsx",
+    "expect": "× .*is a native dialog with a name"
+  },
+  {
+    "id": "b7-g3-tbl-click",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "setSelected(index);",
+    "replace": "setSelected(index);\n                        return;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*shows a page of rows under its headers"
+  },
+  {
+    "id": "b7-g3-tbl-prev-off",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "disabled={!pager.hasPrevious}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*pages with Next and Previous"
+  },
+  {
+    "id": "b7-g3-tbl-next",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "onClick={pager.onNext}",
+    "replace": "onClick={pager.onPrevious}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*pages with Next and Previous"
+  },
+  {
+    "id": "b7-g3-tbl-one-page",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "pager === undefined || (!pager.hasPrevious && !pager.hasNext) ? null : (",
+    "replace": "pager === undefined ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*shows no pager when there is one page"
+  },
+  {
+    "id": "b7-g3-tbl-empty",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "error === null && !loading && rows.length === 0 ? (",
+    "replace": "false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*shows the empty state instead of an em"
+  },
+  {
+    "id": "b7-g3-tbl-loading",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "const SKELETON_ROWS = 5;",
+    "replace": "const SKELETON_ROWS = 0;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*shows placeholder rows while loading"
+  },
+  {
+    "id": "b7-g3-tbl-error",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "<p role=\"alert\">",
+    "replace": "<p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*shows a failed load with the request i"
+  },
+  {
+    "id": "b7-g3-tbl-views",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "views.onSelect(view.id === views.active ? null : view.id);",
+    "replace": "views.onSelect(view.id);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*saved views are toggle buttons"
+  },
+  {
+    "id": "b7-g3-tbl-j",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "setSelected(Math.min(current + 1, rows.length - 1));",
+    "replace": "setSelected(current);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*j and k move the selected row"
+  },
+  {
+    "id": "b7-g3-tbl-enter",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "if (row !== undefined) onOpen?.(row);",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*j and k move the selected row"
+  },
+  {
+    "id": "b7-g3-tbl-print-toolbar",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "<div className=\"admin-toolbar\" data-print=\"hide\">",
+    "replace": "<div className=\"admin-toolbar\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*marks its toolbar and pager to be left"
+  },
+  {
+    "id": "b7-g3-tbl-print-pager",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/DataTable.tsx",
+    "find": "<div className=\"admin-pager\" data-print=\"hide\">",
+    "replace": "<div className=\"admin-pager\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*marks its toolbar and pager to be left"
+  },
+  {
+    "id": "b7-g3-hk-run",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/use-hotkeys.ts",
+    "find": "const run = bindings[event.key];",
+    "replace": "const run = undefined;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*run on a key press outside a field"
+  },
+  {
+    "id": "b7-g3-hk-typing",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/use-hotkeys.ts",
+    "find": "if (TYPING.has(target.tagName) || target.isContentEditable) return true;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*ignore typing in a field and keys pres"
+  },
+  {
+    "id": "b7-g3-hk-dialog",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/use-hotkeys.ts",
+    "find": "if (target.closest(\"dialog[open]\") !== null) return true;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*ignore typing in a field and keys pres"
+  },
+  {
+    "id": "b7-g3-hk-modifier",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/use-hotkeys.ts",
+    "find": "if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return true;",
+    "replace": "if (event.defaultPrevented) return true;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*ignore a key held with Control or Comm"
+  },
+  {
+    "id": "b7-g3-hk-enter",
+    "test": "src/admin/ui/tables.test.tsx",
+    "file": "src/admin/ui/use-hotkeys.ts",
+    "find": "return event.key === \"Enter\" && ACTIVATES_ITSELF.has(target.tagName);",
+    "replace": "return false;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/tables.test.tsx",
+    "expect": "× .*leave Enter to a focused button"
+  },
+  {
+    "id": "b7-g3-dsp-zone",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/LocalTime.tsx",
+    "find": "marketTimezone(marketSlug)",
+    "replace": "marketTimezone(null)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*shows PT for california and ET for flo"
+  },
+  {
+    "id": "b7-g3-dsp-datetime",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/LocalTime.tsx",
+    "find": "dateTime={value}",
+    "replace": "dateTime={marketSlug ?? \"\"}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*falls back to ET with no market"
+  },
+  {
+    "id": "b7-g3-dsp-pill",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/StatusPill.tsx",
+    "find": "data-tone={tone}",
+    "replace": "data-tone=\"neutral\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*names the state in words and carries"
+  },
+  {
+    "id": "b7-g3-dsp-agent",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/ActorBadge.tsx",
+    "find": "kind === \"agent\" ?",
+    "replace": "true ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*shows each entry with its actor and zo"
+  },
+  {
+    "id": "b7-g3-dsp-diff-changed",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/DiffView.tsx",
+    "find": "(key) => show(before?.[key]) !== show(after?.[key]),",
+    "replace": "() => true,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*lists only the keys that changed"
+  },
+  {
+    "id": "b7-g3-dsp-diff-none",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/DiffView.tsx",
+    "find": "if (keys.length === 0) return <p>No changes.</p>;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*says so when nothing changed"
+  },
+  {
+    "id": "b7-g3-dsp-jobs",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/JobWatcher.tsx",
+    "find": "done: { label: \"Done\", tone: \"ok\" },",
+    "replace": "done: { label: \"Finished\", tone: \"ok\" },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*shows queued, running, done and failed"
+  },
+  {
+    "id": "b7-g3-dsp-jobs-none",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/JobWatcher.tsx",
+    "find": "if (jobs.length === 0) return null;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*draws nothing when no job was started"
+  },
+  {
+    "id": "b7-g3-dsp-field",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/Field.tsx",
+    "find": "\"aria-invalid\": error !== undefined,",
+    "replace": "\"aria-invalid\": false,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*ties the label, the hint and the error"
+  },
+  {
+    "id": "b7-g3-dsp-tabs",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/Tabs.tsx",
+    "find": "ArrowRight: index === last ? 0 : index + 1,",
+    "replace": "ArrowRight: index + 1,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*moves with the arrow keys, wraps"
+  },
+  {
+    "id": "b7-g3-dsp-toast-time",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/Toast.tsx",
+    "find": "const SHOWN_MS = 6000;",
+    "replace": "const SHOWN_MS = 600000;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*shows a message, takes it away on Dism"
+  },
+  {
+    "id": "b7-g3-dsp-toast-print",
+    "test": "src/admin/ui/display.test.tsx",
+    "file": "src/admin/ui/Toast.tsx",
+    "find": "<div className=\"admin-toasts\" data-print=\"hide\"",
+    "replace": "<div className=\"admin-toasts\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/display.test.tsx",
+    "expect": "× .*shows a message, takes it away on Dism"
+  },
+  {
+    "id": "b7-g3-shl-print-shell",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/AdminShell.tsx",
+    "find": "<div className=\"admin-shell\" data-print=\"hide\">",
+    "replace": "<div className=\"admin-shell\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*carries data-print hide on the shell"
+  },
+  {
+    "id": "b7-g3-shl-print-bar",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/TopBar.tsx",
+    "find": "<header className=\"admin-bar\" data-print=\"hide\">",
+    "replace": "<header className=\"admin-bar\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*carries data-print hide on the shell"
+  },
+  {
+    "id": "b7-g3-shl-print-nav",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/NavGroups.tsx",
+    "find": "<nav className=\"admin-nav\" aria-label=\"Admin\" data-print=\"hide\">",
+    "replace": "<nav className=\"admin-nav\" aria-label=\"Admin\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*carries data-print hide on the shell"
+  },
+  {
+    "id": "b7-g3-shl-env-name",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/TopBar.tsx",
+    "find": "<span className=\"admin-env\">{me.environment}</span>",
+    "replace": "<span className=\"admin-env\">{\"x\"}</span>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*names the environment on preview and l"
+  },
+  {
+    "id": "b7-g3-shl-env-prod",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/TopBar.tsx",
+    "find": "me.environment === \"production\" ? null :",
+    "replace": "false ? null :",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*shows no environment badge on producti"
+  },
+  {
+    "id": "b7-g3-shl-agent",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/TopBar.tsx",
+    "find": "kind={me.kind}",
+    "replace": "kind=\"human\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*shows who is signed in, with the agent"
+  },
+  {
+    "id": "b7-g3-shl-search",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/TopBar.tsx",
+    "find": "encodeURIComponent(search)",
+    "replace": "search",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*opens the request list with the search"
+  },
+  {
+    "id": "b7-g3-shl-links",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/NavGroups.tsx",
+    "find": "routeId in router.routesById",
+    "replace": "true",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*links only the screens whose route exi"
+  },
+  {
+    "id": "b7-g3-shl-parent",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/nav.ts",
+    "find": "(entry.parent ?? entry.screen)",
+    "replace": "entry.screen",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*keeps the People link marked while a p"
+  },
+  {
+    "id": "b7-g3-shl-banner",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/AdminShell.tsx",
+    "find": "{unavailable ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*shows the service banner after a 503"
+  },
+  {
+    "id": "b7-g3-shl-rolegate",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/RoleGate.tsx",
+    "find": "return actions.includes(action) ? children : null;",
+    "replace": "return children;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*shows a control only for an action the"
+  },
+  {
+    "id": "b7-g3-flt-read",
+    "test": "src/admin/ui/use-url-filters.test.tsx",
+    "file": "src/admin/ui/use-url-filters.ts",
+    "find": "const cursor = params.get(CURSOR);",
+    "replace": "const cursor = null;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/use-url-filters.test.tsx",
+    "expect": "× .*reads the filters and the cursor from "
+  },
+  {
+    "id": "b7-g3-flt-replace",
+    "test": "src/admin/ui/use-url-filters.test.tsx",
+    "file": "src/admin/ui/use-url-filters.ts",
+    "find": "if (value !== undefined && value !== \"\") search.set(name, value);",
+    "replace": "if (value !== undefined) search.set(name, value);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/use-url-filters.test.tsx",
+    "expect": "× .*replaces every filter, drops empty one"
+  },
+  {
+    "id": "b7-g3-flt-trail",
+    "test": "src/admin/ui/use-url-filters.test.tsx",
+    "file": "src/admin/ui/use-url-filters.ts",
+    "find": "trail.current.push(cursor);",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/use-url-filters.test.tsx",
+    "expect": "× .*walks forward by cursor and back throu"
+  },
+  {
+    "id": "b7-g3-err-id",
+    "test": "src/admin/ui/AdminRouteError.test.tsx",
+    "file": "src/admin/ui/AdminRouteError.tsx",
+    "find": "{requestId === undefined ? null : (",
+    "replace": "{true ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/AdminRouteError.test.tsx",
+    "expect": "× .*renders AdminRouteError inside the she"
+  },
+  {
+    "id": "b7-g3-err-report",
+    "test": "src/admin/ui/AdminRouteError.test.tsx",
+    "file": "src/admin/ui/AdminRouteError.tsx",
+    "find": "reportClientError(error, {",
+    "replace": "void (error, {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/AdminRouteError.test.tsx",
+    "expect": "× .*calls reportClientError once, with the"
+  },
+  {
+    "id": "b7-g3-err-retry",
+    "test": "src/admin/ui/AdminRouteError.test.tsx",
+    "file": "src/admin/ui/AdminRouteError.tsx",
+    "find": "void router.invalidate();",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/AdminRouteError.test.tsx",
+    "expect": "× .*offers Try again, which loads the rout"
+  },
+  {
+    "id": "b7-g3-nav-ids",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "routeId: \"/admin/team/\",",
+    "replace": "routeId: \"/admin/teams/\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*holds 27 entries, one per screen"
+  },
+  {
+    "id": "b7-g3-nav-groups",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"Work\", label: \"Media\" },",
+    "replace": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"System\", label: \"Media\" },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*shows 22 links in six groups when ever"
+  },
+  {
+    "id": "b7-g3-nav-work",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "label: \"People\",",
+    "replace": "label: \"Persons\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*reads Work as Dashboard, Requests,"
+  },
+  {
+    "id": "b7-g3-nav-hidden-parent",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "parent: 26,",
+    "replace": "parent: 25,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*renders no link for screens 1, 4, 6, 8"
+  },
+  {
+    "id": "b7-g3-nav-hidden-signin",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "{ screen: 1, path: \"/admin/sign-in\", routeId: \"/admin/sign-in\", label: \"Sign in\", hidden: true },",
+    "replace": "{ screen: 1, path: \"/admin/sign-in\", routeId: \"/admin/sign-in\", label: \"Sign in\" },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*renders no link for screens 1, 4, 6, 8"
+  },
+  {
+    "id": "b7-g3-nav-absent",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "hasRoute(entry.routeId) &&",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*hides an entry whose route does not ex"
+  },
+  {
+    "id": "b7-g3-nav-commercial",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "requiresAction: \"team.users_list\",",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*hides the team screen from a commercia"
+  },
+  {
+    "id": "b7-g3-nav-audit",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "requiresAction: \"audit.list\",",
+    "replace": "requiresAction: \"audit.usage\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*hides the audit log from a managing ed"
+  },
+  {
+    "id": "b7-g3-nav-leaf",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "routeIds.at(-1)",
+    "replace": "routeIds.at(0)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*marks the screen of the leaf route"
+  },
+  {
+    "id": "b7-g3-nav-parent",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "(entry.parent ?? entry.screen)",
+    "replace": "entry.screen",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*marks the parent's link while a detail"
+  },
+  {
+    "id": "b7-g3-nav-none",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "entry === undefined ? null :",
+    "replace": "entry === undefined ? 2 :",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*marks nothing for a route that is not "
+  },
+  {
+    "id": "b7-g3-mot-unguarded",
+    "test": "tests/unit/admin-motion.test.ts",
+    "file": "src/styles/admin/ui.css",
+    "find": ".admin-actions {\n  display: flex;",
+    "replace": ".admin-actions {\n  transition: color 1s;\n  display: flex;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
+    "expect": "× .*has no transition or animation outside"
+  },
+  {
+    "id": "b7-g3-mot-reduce",
+    "test": "tests/unit/admin-motion.test.ts",
+    "file": "src/styles/admin/ui.css",
+    "find": "animation: none;",
+    "replace": "opacity: 1;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
+    "expect": "× .*puts its motion in one no-preference b"
+  },
+  {
+    "id": "b7-g3-mot-import",
+    "test": "tests/unit/admin-motion.test.ts",
+    "file": "src/styles/admin/index.css",
+    "find": "@import \"./ui.css\";",
+    "replace": "@import \"./ui.css\";\n@import \"../base.css\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
+    "expect": "× .*takes the tokens and its own files onl"
+  },
+  {
+    "id": "b7-g3-mot-gradient",
+    "test": "tests/unit/admin-motion.test.ts",
+    "file": "src/styles/admin/ui.css",
+    "find": ".admin-diff__before {\n  color: var(--status-danger);",
+    "replace": ".admin-diff__before {\n  background: linear-gradient(red, blue);\n  color: var(--status-danger);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
+    "expect": "× .*takes the tokens and its own files onl"
+  },
+  {
+    "id": "b7-g3-bnd-scan",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "tests/unit/admin-boundaries.test.ts",
+    "find": "expect(adminFiles.length).toBeGreaterThan(20);",
+    "replace": "expect(adminFiles.length).toBeGreaterThan(2000);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*scans the admin tree"
+  },
+  {
+    "id": "b7-g3-bnd-server",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/admin/ui/use-toast.ts",
+    "find": "import { createContext, useContext } from \"react\";",
+    "replace": "import { createContext, useContext } from \"react\";\nimport { getDb } from \"../../server/lib/db\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*no admin file imports src/server"
+  },
+  {
+    "id": "b7-g3-bnd-fetch",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/admin/ui/EmptyState.tsx",
+    "find": "export function EmptyState(",
+    "replace": "const leak = fetch(\"/api/x\");\nexport function EmptyState(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*a fetch call outside admin-fetch\\.ts fa"
+  },
+  {
+    "id": "b7-g3-bnd-home",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "tests/unit/admin-boundaries.test.ts",
+    "find": "const FETCH_HOME = \"admin/ui/admin-fetch.ts\";",
+    "replace": "const FETCH_HOME = \"admin/ui/admin-fetch2.ts\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*admin-fetch\\.ts is where the fetch call"
+  },
+  {
+    "id": "b7-g3-bnd-sample",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "tests/unit/admin-boundaries.test.ts",
+    "find": "/(?<![\\w$])fetch\\s*\\(/",
+    "replace": "/(?<![\\w$.])fetch\\s*\\(/",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*the scanners flag a server import and "
+  },
+  {
+    "id": "b7-g3-bnd-layout-css",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/routes/admin.tsx",
+    "find": "import adminCss from \"../styles/admin/index.css?url\";",
+    "replace": "import adminCss from \"../styles.css?url\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*links the admin stylesheet and no publ"
+  },
+  {
+    "id": "b7-g3-bnd-layout-chrome",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/routes/admin.tsx",
+    "find": "import { pageHead } from \"../lib/seo\";",
+    "replace": "import { pageHead } from \"../lib/seo\";\nimport { captureAttribution } from \"../lib/attribution\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*mounts none of the public chrome or it"
   }
 ]
