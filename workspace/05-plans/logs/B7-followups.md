@@ -127,3 +127,39 @@ what: The Contract's transport line asks for Vary: Cookie, Authorization on ever
 evidence: Confirmed by running: curl -s -D - -o /dev/null http://localhost:8949/admin twice on the built Worker printed only 'HTTP/1.1 200 OK Cache-Control: no-store'.
 
 blocking: false
+
+## c2b · steps 2
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. No follow-up of this review names GOTCHAS.md, so none is banked there. The fourth is a routing note for the orchestrator and also carries the operator's relayed request about Jay.
+
+### 1. app/tests/e2e/helpers/session.ts (PR 158 cannot merge as it stands: the helper's variable names are false in CI)
+
+what: Not this group's file (it came from g2 at f27d9af). PR 158 cannot merge as it stands. Lines 3-4 say 'in CI the job's ephemeral stack supplies its own values under the same names', but that is false. Lines 18-19 build the client from `https://${DEV_SUPABASE_PROJECT_REF}.supabase.co` and DEV_SUPABASE_SERVICE_ROLE_KEY, while ci.yml (lines 175-179 and 268-272) exports only SUPABASE_URL=http://127.0.0.1:54321 and SUPABASE_SERVICE_ROLE_KEY from its local stack. Renaming the variables alone would not fix it either: in CI the helper has to read SUPABASE_URL, because a `.supabase.co` host is wrong for the local stack. The author reported this as NOT DONE and banked it (P-2010). It is outside c2b's one-line scope, so it is a follow-up, not a blocker for this group.
+
+evidence: gh run view 37401095820 --job 112068339794 --log-failed | grep -c "DEV_SUPABASE_PROJECT_REF is not set" -> 4; grep -n DEV_SUPABASE app/tests/e2e/helpers/session.ts -> lines 3, 18, 19; grep -n SUPABASE_URL .github/workflows/ci.yml -> 178, 271, 294
+
+blocking: false
+
+### 2. workspace/05-plans/logs/B7.md (the c2b block names the wrong run for the preview job)
+
+what: Small inaccuracy in the c2b block. It says 'CI on pull request 158, run 37401095820 at 9e5a731: build pass, check pass, db pass, preview pass'. The preview job belongs to the deploy run 37401095805, not to ci run 37401095820. Preview did pass, so the substance is true and only the run id is wrong.
+
+evidence: gh run view 37401095820 --json jobs -> build, db, check, merge-gate, e2e (no preview); gh run view 37401095805 --json jobs -> preview success
+
+blocking: false
+
+### 3. app/vite.config.ts (UNPROVEN: server cold start and CPU after the chunk grouping)
+
+what: UNPROVEN, as the author and ruling H62 state. The group sits in the top-level build.rolldownOptions.output, so it also regroups the SSR/Nitro server chunks (the author measured 91 vs 97 files). The worker boots, client navigation works, admin-signin passes and CI preview passed. Cold-start and CPU effect on the deployed worker were not measured. This is a note for the orchestrator, not a defect of the group, because the ruling places the line exactly there.
+
+evidence: Reading line 37-45 of app/vite.config.ts (top-level build, inherited by the ssr environment); the author's P-2008 'also measured' line; I did not measure server cold start
+
+blocking: false
+
+### 4. .claude/POSITION.md (routing note: the operator's request about Jay was not handled)
+
+what: Routing note, not a c2b defect. The operator's relayed request ('your note about why Jay broke didn't reach him, so figure that out too') is addressed to the orchestrator and was not handled by this review or by the author. The author's unverified lead: the note was stored as ops_memory lesson 1792 (reaches Jay only by recall, not as a message), and owner messages #1078/#1079 were pending behind auto task #1077. Recorded here so it is not dropped.
+
+evidence: Author's unproven list, last item; POSITION.md lines 1183-1188 as cited by the author (I did not read them: they are outside the snapshot scope)
+
+blocking: false
