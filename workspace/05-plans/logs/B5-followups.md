@@ -129,3 +129,109 @@
 4. File: `app/docs/runbooks/email.md`. Not blocking.
    - Follow-up: "Follow-up, UNPROVEN (stated honestly by the author, recorded here so it is not dropped). The job-runner deploy with the email steps, its bundle size and cold start, `email-chain.ts` on mop-dev, `email-test.ts all <address>`, and CONFIRM_TOKEN_SECRET on matter-of-place-dev and matter-of-place (BLOCKED: the production Worker's latest version is not deployed after the 'smoke failed f2b24b0' rollback) all remain open until B5 steps 3 and 4 are on main. JOB_RUNNER_SECRET is missing from the lane .env, and the orchestrator must copy CONFIRM_TOKEN_SECRET from the lane .env to the root .env and to PREVIEW_WORKER_SECRETS_JSON."
    - Evidence: "Confirmed by running: wrangler secret list shows 0 CONFIRM_TOKEN_SECRET on both Workers; deployments status shows 'smoke failed f2b24b0...'. email-chain was reproduced only against a throwaway PG18 cluster, where it fails at the missing create_submission."
+
+## g1 · steps 5
+
+1. File: `app/docs/runbooks/email.md`. Not blocking.
+   - Follow-up: "The new section says 'A dropped connection is retried three times'. The code makes three attempts in total, which is two retries: ATTEMPTS = 3 and 'if (attempt === ATTEMPTS) throw error' in app/scripts/resend-domain.ts lines 21 and 63. The unit test title agrees with the code ('the answer of the third try is used'). This is a small factual error in a runbook. Nothing in the product goes wrong because of it, so I rate it a follow-up: change the text to 'tried three times'."
+   - Evidence: "Read: app/scripts/resend-domain.ts:21 'const ATTEMPTS = 3;' and :59-66; runbook line 'A dropped connection is retried three times'."
+
+2. File: `workspace/05-plans/B5.md`. Not blocking.
+   - Follow-up: "The plan text for step 5 and the Files row of resend-check.ts say it reads the three domains 'with one GET /domains'. That cannot be built: the list has no records (P-1212, re-measured: 0 occurrences of "records"). The script makes one list call plus one GET /domains/<id> per verified domain, read only. The plan line is now stale and is the orchestrator's to fold."
+   - Evidence: "Confirmed by running: curl .../domains | grep -c '"records"' -> 0. app/scripts/resend-check.ts:36 calls readDomain per verified domain."
+
+3. File: `app/scripts/resend-domain.ts`. Not blocking.
+   - Follow-up: "UNPROVEN against real services: the write path (POST /domains, the Cloudflare upsert, POST /domains/<id>/verify) is only exercised against a stubbed fetch that the author also wrote. I ran a read-only check: the record names Resend returns today ('send.notes', 'resend._domainkey.notify', root 'send'/'rsend') are relative to the zone, so the '<name>.matterofplace.com' construction matches. Still unexercised: PUT overwriting the first of several TXT records at one name, and a partial write when the apex guard throws partway through the loop. The free plan has no spare slot to test this before the launch switch."
+   - Evidence: "Live read of the three domains' records via listDomains/readDomain (names only); the unit tests are the only evidence for the write calls."
+
+4. File: `workspace/05-plans/logs/B5.md`. Not blocking.
+   - Follow-up: "NOT DONE (the brief anticipated this): the live half of step 5. It needs RESEND_API_KEY and EMAIL_LIVE=1 set on mop-dev, then 'bun run scripts/email-test.ts all <address>' printing a 'sent <key> <resend_id>' line per enabled key, the email_messages query, and a check of the From/Reply-To headers of 'received' and 'repermission' in the Zoho inbox. It needs JOB_RUNNER_SECRET (not in the lane .env; confirmed 0 matches) and the runner deployed from main. The orchestrator must run it before step 5 counts as closed."
+   - Evidence: "Confirmed by running: grep -cE '^JOB_RUNNER_SECRET=.+' .env -> 0; supabase secrets list names show no RESEND_API_KEY or EMAIL_LIVE."
+
+## g2 · steps 6
+
+1. File: `workspace/05-plans/logs/B5.md`. Not blocking.
+   - Follow-up: "The g2 block pastes the output of `bunx vitest run tests/unit/readpath.test.ts -t \"table writes\"` as `Tests  2 passed | 3 skipped (5)`. The command prints `Tests  1 passed | 4 skipped (5)`, because the file has exactly one it() under describe(\"table writes\") (line 60). The conclusion (green) is correct; the pasted count is not real output. That breaks C09 and the rule against paraphrasing output. I marked it follow-up because no product behaviour depends on it: the log line should be corrected to the real output."
+   - Evidence: "Re-run in snapshot 5b1156a: ' Test Files  1 passed (1) /  Tests  1 passed | 4 skipped (5)'; grep of the file shows the only matching it() at line 60."
+
+2. File: `app/src/server/hooks/resend.ts`. Not blocking.
+   - Follow-up: "For `email.complained`, the hook's applyEffect runs B3's `unsubscribe_email` loop before `applyEmailEvent`, so the INT-02 env filter does not cover it. A complaint tagged env=preview that reaches the production handler after the launch switch still calls unsubscribe_email. The comment in events.ts says 'a late event of mail sent in preview must not touch production', and for complaints the hook contradicts that. The author states the decision openly in the log. The real effect is small: preview mail goes only to dev_recipients (admin@, admin+*@, *@resend.dev), so the most that happens is an admin or test address being unsubscribed. The plan's -t \"foreign env\" case targets applyEmailEvent, and that part holds. The hook-level test 'drops an event of another stage' uses email.delivered only, so no test pins the complaint path. Follow-up: either move the env check ahead of the complaint loop, or rule that a complaint is honoured whatever its stage, and add a hook test for whichever is chosen."
+   - Evidence: "Reading events.ts and resend.ts at 5b1156a: applyEffect does `if (event.type === \"email.complained\") { ... db.rpc(\"unsubscribe_email\") ... }` and only then `await applyEmailEvent(...)`. Log g2: 'it also runs for a complaint tagged for another stage; the foreign-env filter covers applyEmailEvent only.'"
+
+3. File: `app/tests/unit/email/events.test.ts`. Not blocking.
+   - Follow-up: "The `delivery()` Svix-signing helper (lines 211-227) is a second copy of `sign()`/`delivery()` in B3's tests/api/resend.api.test.ts (lines 28-46). C05 asks for one shared helper; a fixture under tests/fixtures would serve both. jscpd does not scan tests, so no gate catches this. Follow-up only."
+   - Evidence: "grep -rln 'svix-signature' tests/ returns both files; both build the HMAC from `${id}.${timestamp}.${body}` the same way."
+
+4. File: `workspace/05-plans/B5.md`. Not blocking.
+   - Follow-up: "Stale plan text, for the orchestrator to fold in. Step 6 says the orchestrator still has to add RESEND_WEBHOOK_SECRET to PREVIEW_WORKER_SECRETS_JSON before `wrangler secret list` shows it. That is done: the dev Worker lists RESEND_WEBHOOK_SECRET today. The live bounce proof is still UNPROVEN until this step is deployed and EMAIL_LIVE=1 is set; mop-dev's function secrets have MOP_ENV (= preview) but no EMAIL_LIVE and no RESEND_API_KEY."
+   - Evidence: "wrangler secret list (with .env token) includes RESEND_WEBHOOK_SECRET; `supabase secrets list` names matching MOP|EMAIL|RESEND: ADMIN_NOTIFY_EMAIL,MOP_ENV,RESEND_FROM,RESEND_FROM_BULK."
+
+## g3 · steps 7
+
+1. File: `app/docs/architecture/frontend.md:65, workspace/01-site-index/pages-and-wording.md:28,39,50,299, workspace/00-MAP-OF-WHAT-WE-HAVE.md:33, workspace/05-plans/B3.md:32, workspace/05-plans/trace.json:9166,13346`. Not blocking.
+   - Follow-up: "These docs still describe /place-notes as a 301 to /stories, or the confirm landing as /stories?confirmed=. trace.json names the code file as src/routes/place-notes.tsx, but the shipped file is src/routes/_site.place-notes.tsx. The author lists this as UNPROVEN. None of these files belong to g3, so the orchestrator should fold them in."
+   - Evidence: "git grep -n \"place-notes\" -- . (snapshot) shows frontend.md:65 '| `/pricing`, `/place-notes`, `/markets/*` | redirects ... To `/exposure`, `/stories`'; pages-and-wording.md:50 '| `/place-notes` | `/stories` | src/routes/place-notes.tsx'; B3.md:32 '303 to `/stories?confirmed=1`'"
+
+2. File: `app/src/routes/sitemap[.]xml.ts:5-17`. Not blocking.
+   - Follow-up: "/place-notes is now a real, indexable page with a canonical pageHead and a seo-copy description, but it is not in the sitemap's staticPaths. Step 7 does not ask for this, so it is a follow-up for SEO or B4, not a defect of g3. (Suspected by reading; no test covers it.)"
+   - Evidence: "sed -n 1,30p src/routes/sitemap[.]xml.ts: staticPaths lists /, /properties, /markets, /stories, /editorial-standard, /submit, /exposure, /about, /contact, /faq, /legal, and no /place-notes"
+
+3. File: `app/src/server/email/repermission.ts:28-45`. Not blocking.
+   - Follow-up: "issue_repermission and enqueue_job are two separate calls. An enqueue_job failure after the ask has committed leaves a subscriber marked as asked with no email, and lapse_subscribers will later archive them. A retry mints a new token and overwrites the hash. The author records this as UNPROVEN and it needs a plan or B11 decision. The seal-before-ask ordering for a bad key is closed and watched-fail (b5-rp-seal-first)."
+   - Evidence: "read: `const issued = await db.rpc(\"issue_repermission\", ...)` followed by a separate `await enqueueJob(db, {...})`; there is no transaction or compensation"
+
+4. File: `app/tests/unit/email/confirm.test.ts:53, app/tests/unit/email/repermission.test.ts:47`. Not blocking.
+   - Follow-up: "The group added two identical captureTokens() helpers, and a third copy already exists in tests/api/subscribers.api.test.ts:105. It belongs in tests/fixtures (STANDARDS C05 spirit). jscpd does not scan tests, so no gate catches it."
+   - Evidence: "grep -rn \"function captureTokens\" tests prints three hits: subscribers.api.test.ts:105, confirm.test.ts:53 and repermission.test.ts:47"
+
+5. File: `(slice/b5 branch)`. Not blocking.
+   - Follow-up: "slice/b5 is 48 commits behind origin/main. A read-only merge-tree shows conflicts in GOTCHAS.md, which bank-merge.mjs resolves, and in app/.prettierignore, which is g4's file and not g3's. No g3 source file conflicts; main changed only tests/e2e/fixtures/page.ts in g3's area. Whoever merges main next has to resolve .prettierignore."
+   - Evidence: "git merge-tree --write-tree --name-only HEAD origin/main prints 'CONFLICT (content): Merge conflict in GOTCHAS.md' and 'CONFLICT (content): Merge conflict in app/.prettierignore'"
+
+6. File: `(live proof)`. Not blocking.
+   - Follow-up: "UNPROVEN: the end-to-end double opt-in against a deployed Worker with EMAIL_LIVE=1 and CONFIRM_TOKEN_SECRET (POST, click the real email, confirmed_at set). The chain from the sealed token to the confirm_url is proven only with a stubbed fetch and fakeDb. The real upsert_subscriber writing sealed_token into subscriber.created is confirmed on mop-dev, but no email was sent and no link was clicked."
+   - Evidence: "author's unproven list; my read-only query shows the job dead with subscriber_missing after the smoke's cleanup, so no send happened"
+
+## g4 · steps 8
+
+1. File: `app/supabase/config.toml`. Not blocking.
+   - Follow-up: "SMTP is now live on mop-dev, but only magic_link and invite carry the token-hash link. The confirmation, recovery and email_change templates are still Supabase's unbranded defaults with {{ .ConfirmationURL }}, and they now leave through Resend from notify. Reading GoTrue (not run): a staff sign-in request for an invited user who never accepted the invite goes through the unconfirmed or signup path, not the magic_link template. That user would get a ConfirmationURL link (the API-01 cross-device failure), or a signup_disabled error. The step names only two templates, so this is a follow-up for B7 (send-link path)."
+   - Evidence: "GET /v1/projects/hbokkmpgpqhrnemgsqra/config/auth: mailer_templates_confirmation_content len 184 ConfirmationURL 1, mailer_templates_recovery_content len 254 ConfirmationURL 1, mailer_templates_email_change_content len 270 ConfirmationURL 1, mailer_autoconfirm false"
+
+2. File: `app/scripts/build-auth-templates.ts`. Not blocking.
+   - Follow-up: "Nothing in bun run check ties the committed supabase/templates/*.html to the generator. If someone edits the script or blocks.tsx and does not re-run it, the pushed HTML drifts without anyone noticing. Also, registry entry b5-aj runs the generator itself: a mutation that gets past the lint would overwrite the committed templates in the tree. The CONFIRM prefix is the only ConfirmationURL guard, and it holds today. I confirmed by running that regeneration is byte-identical and the live copy on mop-dev is byte-identical."
+   - Evidence: "bun run scripts/build-auth-templates.ts followed by git status --short printed nothing (identical today). No test under tests/ reads supabase/templates (git grep finds none)."
+
+3. File: `app/supabase/config.toml`. Not blocking.
+   - Follow-up: "CI's supabase start reads [auth.email.smtp] enabled = true with env(RESEND_API_KEY) unset. Config loading tolerates this (config diff with the key unset exits 0). But once B7's admin-signin e2e asks the CI stack for a magic link, local GoTrue will try smtp.resend.com with no valid password (mailpit is already excluded with -x). UNPROVEN until B7's spec runs in CI. Record it for B7/B4."
+   - Evidence: "env -u RESEND_API_KEY bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF -> exit 0, same counts. .github/workflows/ci.yml:169 and :262 run supabase start -x ...,mailpit,..."
+
+## g5 · steps 9
+
+1. File: `app/scripts/email-chain.ts (proof of plan step 9) / mop-dev settings`. Not blocking.
+   - Follow-up: "The chain proof, as the plan writes it, exits 1 on mop-dev. admin_notify resolves to settings.site.contact.email (hello@matterofplace.com), and the dev allow-list refuses that address (send-email.ts:134, only when MOP_ENV is not production). The author got exit 0 only by inserting a temporary settings.notifications row into the shared database and deleting it afterwards, and the runbook now makes that manual data change part of every chain proof. The runbook and the log say this truthfully, so nothing false is written. But the plan's pass state cannot be reached on mop-dev without a manual edit of the shared database, and the same red will hit step 5's EMAIL_LIVE=1 proof. The fix belongs to whoever owns the settings seed or the chain script: a standing dev notifications row, or the script setting and restoring the row under its own lock. Production is not affected, because the allow-list is skipped when MOP_ENV is production."
+   - Evidence: "Confirmed by running: env -u CLOUDFLARE_API_TOKEN bun run scripts/email-chain.ts gave chain-exit=1 after 191 s with 'no complete chain within 180 s; jobs: send_received done ; notify_admin_received done'. The email_messages row from 05:56 is admin_notify skipped not_allow_listed."
+
+2. File: `app/scripts/automation-smoke.ts (B8b) / supabase/sql/functions/write_audit.sql (B7)`. Not blocking.
+   - Follow-up: "The step 9 proof 'automation-smoke.ts still exits 0' is NOT MET. B5 did not cause it: the smoke script's all-zero actor has no user_roles row, and write_audit raises forbidden. B5 changes neither file. This was banked as P-1220 and reported honestly. B8b's owner needs to fix it."
+   - Evidence: "Confirmed by running: smoke-exit=1, 'automation-smoke: automation_put_recipe (smoke) failed: forbidden'. git diff origin/main...HEAD touches no file under supabase/sql or this script."
+
+3. File: `app/tests/mutations/B5.json`. Not blocking.
+   - Follow-up: "No registry entry covers the 375 px assertion in email-shots-page.mjs. Both new mutations fail at 600 px or at lint, so deleting the narrow-width check would leave every replay green (R49/C08: every new assertion watched failing). My scratch control shows the check works. It still needs an entry, for example a layout mutation with minWidth 500px, expecting 'received: scrollWidth 5[0-9]{2} at 375 px'."
+   - Evidence: "Confirmed by running: a scratch out/email-w500.html (500 px fixed div) through email-shots-page.mjs printed 'w500: scrollWidth 500 at 375 px', exit=1. The two registry entries expect '... at 600 px' and 'container-width ...' only."
+
+4. File: `app/scripts/email-shots.ts:41-43`. Not blocking.
+   - Follow-up: "process.exit(run.status ?? 1) ignores run.error. If node is missing from PATH or the spawn fails, the script exits 1 and prints nothing, so a person sees a red gate with no cause (close to C06). Printing run.error.message when it is set would close it."
+   - Evidence: "Suspected by reading: spawnSync sets error and leaves status null on ENOENT. Not run."
+
+5. File: `app/scripts/email-shots.ts:16-21`. Not blocking.
+   - Follow-up: "The literal site context {siteUrl, entity: null, address: null, contact: {email: null}} is now in four scripts (email-test.ts, email-cpu.ts, build-auth-templates.ts, email-shots.ts). It is below the jscpd threshold, but C05 asks for no second copy of a helper. One shared preview site in scripts/lib would remove the copies."
+   - Evidence: "Grep 'siteUrl|entity: null|contact: {' in app/scripts finds the same 4-line object in 4 files."
+
+6. File: `.github/workflows/ci.yml:336-347`. Not blocking.
+   - Follow-up: "(1) C22: the new heavy CI step does not state its unit cost in Actions minutes. It took 130 s locally under load. (2) The step only runs when the e2e change test (T-04) sees changes under src/, supabase/, package.json or bun.lock. A PR that changes only scripts/email-shots.ts, scripts/lib/email-shots-page.mjs or scripts/lib/email-lint.ts skips the rendering gate. (3) UNPROVEN: the step and its email-shots artifact have never run in CI."
+   - Evidence: "Read ci.yml lines 231-239 and 338-347. No CI run exists for 1b49b1b."
+
+7. File: `workspace/05-plans/trace.json`. Not blocking.
+   - Follow-up: "The trace entries for email:shots (around lines 7823 and 11032) name only scripts/email-shots.ts as the code file. The browser half now lives in scripts/lib/email-shots-page.mjs (a deviation the author logged), and the trace does not name it. This is the orchestrator's to fold."
+   - Evidence: "Grep 'email-shots' in workspace/05-plans/trace.json shows no email-shots-page.mjs."

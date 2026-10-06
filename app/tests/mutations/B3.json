@@ -3114,8 +3114,8 @@
     "kind": "file",
     "test": "tests/api/resend.api.test.ts",
     "file": "src/server/hooks/resend.ts",
-    "find": "  if (event.type !== \"email.complained\") return;",
-    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "find": "  if (event.type === \"email.complained\") {",
+    "replace": "  if (event.type === \"email.complaint\") {",
     "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
     "expect": "× .*unsubscribes the recipient of a complaint"
   },
@@ -3124,8 +3124,8 @@
     "kind": "file",
     "test": "tests/api/resend.api.test.ts",
     "file": "src/server/hooks/resend.ts",
-    "find": "  if (event.type !== \"email.complained\") return;",
-    "replace": "  if (event.type !== \"email.complaint\") return;",
+    "find": "  if (event.type === \"email.complained\") {",
+    "replace": "  if (event.type === \"email.complaint\") {",
     "run": "bunx vitest run --project db tests/api/resend.api.test.ts",
     "expect": "× .*makes a confirm link sent before a complaint"
   },

@@ -202,7 +202,7 @@ async function callRoutes(api, checks, expectLimits) {
     "GET /subscribers/confirm",
     { ...confirm, body: confirm.location },
     303,
-    (body) => body === "/stories?confirmed=0",
+    (body) => body === "/place-notes?confirmed=0",
     expectLimits,
   );
   const subject = await call(`${api}/subjects/request`, {
@@ -252,7 +252,9 @@ async function callRoutes(api, checks, expectLimits) {
  * @param {Check[]} checks
  */
 async function readRows(email, checks) {
-  const client = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
+  // Built from the dev profile's own names, never SUPABASE_URL, which a shell may hold for another project (P-331).
+  const url = `https://${required("DEV_SUPABASE_PROJECT_REF")}.supabase.co`;
+  const client = createClient(url, required("DEV_SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   /** @type {[table: string, column: string, marker: [string, string] | null][]} */

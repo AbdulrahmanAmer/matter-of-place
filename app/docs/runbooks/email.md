@@ -73,6 +73,33 @@ renders every definition with its sample variables and expects no finding, and h
 Only the key `standalone` may carry Resend's `{{{RESEND_UNSUBSCRIBE_URL}}}`, and only `auth_magic_link` and
 `auth_invite` may carry the Supabase Go-template link.
 
+## Look at every template (`email:shots`)
+
+```
+cd app
+bun run email:shots
+```
+
+`scripts/email-shots.ts` draws each entry of `definitions` with its sample variables and the same site context as
+`email-test.ts render`, runs `lintEmail` and writes `out/email-<key>.html`; the first finding stops it with exit 1. It then
+starts `scripts/lib/email-shots-page.mjs` under Node, which opens every file in headless Chromium at 600 px, saves the
+full page as `out/email-<key>.png`, opens it again at 375 px and stops with exit 1 if `scrollWidth` is wider than the
+viewport at either width. It prints one `ok <key> 600x<height>` line per template. The height is the taller of the
+content and the 900 px viewport, so a short email prints 900. It needs no database and no Resend key; `out/` is
+git-ignored. One run took 2 minutes 24 seconds on 2026-10-06 while other lanes ran their checks (the time on an idle laptop is
+UNPROVEN, and so is which Chromium step slowed; GOTCHAS P-2100), so give it a bounded wait, not a guess.
+The emblem address is answered from `public/apple-touch-icon.png`, so the picture does not depend on the
+live site.
+
+The browser half is a Node file because Playwright cannot start a browser from Bun on the build laptop (Windows, Bun
+1.3.13): `chromium.launch()` never returned, and `connectOverCDP` timed out after 30 seconds, on 2026-10-06; the same
+`launch()` under Node returned at once. Do not fold the two files into one without repeating that check.
+
+The pictures are read by a person: open the PNGs, never trust the exit code alone. The footer shows the product line
+only, because the site context has no entity or address; the real footer needs `settings.site`. CI runs the same command
+in the `e2e` job after the specs and attaches `out/email-*.png` as the artifact `email-shots`, kept 7 days; UNPROVEN until
+a pull request has run that job.
+
 ## Reading `email_messages`
 
 ```
@@ -103,9 +130,8 @@ project. Set on 2026-10-05 and checked by name and by SHA-256 digest against the
 is `skipped` `not_allow_listed` whatever the flags say, unless `MOP_ENV` is `production`.
 
 `CONFIRM_TOKEN_SECRET` must be the same value wherever it is set: from step 7 on, the Worker seals the confirm token with
-it and the runner opens it, so a token sealed with another key cannot be opened (`token_unreadable`; today both ends are
-the `STUB(B5 step 7)` bodies of `confirmation.ts` and `variables.ts`). It is also a Worker secret: a key of the
-GitHub secret `PREVIEW_WORKER_SECRETS_JSON` for `matter-of-place-dev` and the previews, and
+it and the runner opens it, so a token sealed with another key cannot be opened (`token_unreadable`). It is also a
+Worker secret: a key of the GitHub secret `PREVIEW_WORKER_SECRETS_JSON` for `matter-of-place-dev` and the previews, and
 `bunx wrangler secret put CONFIRM_TOKEN_SECRET --name matter-of-place` for production. To check a copy without printing
 it, compare digests from `app/` with `.env` loaded:
 
@@ -125,6 +151,98 @@ Not done yet, UNPROVEN: the deploy of the runner with the email steps (`bunx sup
 --use-api --project-ref $DEV_SUPABASE_PROJECT_REF`), its bundle size and its cold start. They run from `main` once B5
 steps 3 and 4 are merged (ruling H1), and their figures go here.
 
+## The sending domains (step 5)
+
+```
+cd app
+bun run scripts/resend-check.ts     # read only
+bun run scripts/resend-domain.ts    # changes nothing when all three are verified
+```
+
+Both read `RESEND_API_KEY` from the shell or the root `.env`, print no secret, and stop with `BLOCKED: no RESEND_API_KEY`
+when it is absent. They work on the three domains of `RESEND_DOMAINS` (`matterofplace.com`, `notify.matterofplace.com`,
+`notes.matterofplace.com`, region `us-east-1`; the free plan holds three, so a fourth is never added).
+
+`resend-check.ts` lists the domains once, then reads each verified one for its records. Per domain it prints
+`domain <name> verified`, `spf pass` and `dkim pass`; `spf pass` means every record Resend labels SPF (the return-path
+records) reads `verified`, and `dkim pass` the same for the DKIM record. A domain that is missing or not verified is
+named and the exit code is 1. Run on 2026-10-06 against the account, it printed those three lines for each of the three
+domains and exited 0.
+
+`resend-domain.ts` lists the domains once. A domain listed as `verified` prints `domain <name> verified (no change)` and
+causes no other call, none to Cloudflare either; that run printed the three lines on 2026-10-06 and exited 0. Only a
+domain that is missing (created with `POST /domains`) or not verified (read with `GET /domains/<id>`) goes further: each
+record Resend lists is upserted in the Cloudflare zone `matterofplace.com` with `proxied: false` (a record named `@` is
+refused, because the apex SPF and MX belong to Zoho), then `POST /domains/<id>/verify` runs. The Cloudflare token is read
+from the root `.env.ops` only on that path, so a verified account never needs it. The DMARC record is not written here
+(B17 step 11). A dropped connection is retried three times; an answer from Resend or Cloudflare is not.
+
+UNPROVEN: the write path against the real services. All three domains are verified and the plan holds no fourth slot,
+so it is proved only against a stubbed `fetch` (`tests/unit/email/resend-domain.test.ts`), including that Resend's record
+names are relative to the root zone, as the three verified domains list them.
+
+NOT DONE, waiting: the real sends. They need the runner deployed from `main` with the email steps and the value of
+`JOB_RUNNER_SECRET`, which this lane's `.env` lacks (the project holds it as a function secret, but only its digest can
+be read back). Then `bunx supabase secrets set "RESEND_API_KEY=$RESEND_API_KEY" EMAIL_LIVE=1 --project-ref
+$DEV_SUPABASE_PROJECT_REF` and `bun run scripts/email-test.ts all <address>` with an address of
+`settings.email.dev_recipients`.
+
+## Auth mail (step 8)
+
+Supabase Auth sends the staff magic link and the invite itself, through Resend's SMTP, from
+`Matter of Place <hello@notify.matterofplace.com>`. These mails never enter `email_messages` and never pass
+`email_sent_today()`; their ceiling is `[auth.rate_limit] email_sent = 10` per hour for the whole project.
+
+```
+cd app
+bun run scripts/build-auth-templates.ts
+```
+
+It draws both emails with `Message` (the shell of `layout.tsx`): one heading, one paragraph and a button whose link is
+`{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=<email|invite>&next={{ .RedirectTo }}`, never
+`{{ .ConfirmationURL }}` (API-01). It runs `lintEmail` on both with the keys `auth_magic_link` and `auth_invite`; a
+finding prints `<key>: <rule> <message>`, exits 1 and writes neither file. Otherwise it writes
+`supabase/templates/magic-link.html` and `invite.html` and prints `wrote <file>` for each. The two files are generated:
+change the script and re-run it, never edit them. Prettier skips `supabase/templates` (its output would change the
+HTML that is sent). The subjects live in `config.toml` and the headings in the script; change both together. The footer
+holds the product line only, because a static file cannot read `settings.site`. The emblem loads from
+`https://matterofplace.com`, which had no DNS record on 2026-10-06, so until the launch switch the emblem does not load
+in a mailbox.
+
+Pushing to the one project, from a shell that holds `SUPABASE_ACCESS_TOKEN`, `DEV_SUPABASE_PROJECT_REF` and the stage's
+`RESEND_API_KEY` (the standing `.env` loader; `config push` substitutes `env(RESEND_API_KEY)` from that shell):
+
+```
+bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF    # lists what the push would change
+bunx supabase config push --project-ref $DEV_SUPABASE_PROJECT_REF --yes
+bunx supabase config diff --project-ref $DEV_SUPABASE_PROJECT_REF    # only storage.image_transformation, remote_only
+```
+
+The push prints `auth.email.smtp.pass [secret]` with `local: (set)`, never the value; the diff does not show the
+template contents, so read them back from `GET https://api.supabase.com/v1/projects/<ref>/config/auth` with the access
+token (`mailer_templates_magic_link_content`, `mailer_templates_invite_content`). Done on 2026-10-06: the read-back
+showed `smtp_host` `smtp.resend.com`, `smtp_port` `465`, `smtp_admin_email` `hello@notify.matterofplace.com`,
+`smtp_sender_name` `Matter of Place`, `rate_limit_email_sent` `10`, `disable_signup` `true`, and both template contents
+carrying the token-hash link and no `ConfirmationURL`.
+
+```
+eval "$(node scripts/load-env.mjs --profile dev)"; bun run scripts/auth-invite-test.ts <address>
+```
+
+It refuses with `refusing: production database` once `settings.environment` is `production` (and with
+`refusing: DEV_DB_URL is not set` in a shell without `DEV_DB_URL`), then invites the address with the service role
+key and prints `invited <address>`. The invite creates an auth user; delete it afterwards
+(`DELETE /auth/v1/admin/users/<id>` with the service role key). On 2026-10-06 it invited an `admin+` address of the Zoho
+mailbox: Resend listed the mail from `"Matter of Place" <hello@notify.matterofplace.com>`, subject `You have been invited
+to Matter of Place`, last event `delivered`, with the branded heading and the token-hash link, and `email_messages` held
+0 rows before and after.
+
+Found on `mop-dev` the same day, for B7: `site_url` is still `http://localhost:8080`, so the link in a mailed sign-in or
+invite opens `localhost`, not the dev Worker; and `GET /auth/v1/admin/users` answers 500 `Database error finding users`
+(2 of the 9 rows of `auth.users` hold null token columns). UNPROVEN: whether Resend counts SMTP mail in the same daily
+quota (check the Resend dashboard), whether the mail reached the inbox rather than the spam folder, and B7's cross-device
+sign-in through `/admin/auth/confirm`, whose page is not on `main` yet.
+
 ## The chain proof
 
 ```
@@ -137,9 +255,19 @@ lock, creates one submission from `delivered@resend.dev` through `create_submiss
 runner, prints `<template_key> <status> <resend_id>` for every message of that event and deletes the submission. It exits
 0 when there is one `received` message and at least one `admin_notify` message, each `sent`, `delivered` or (dry run)
 `skipped` with a `dry_` id; it exits 1 on a dead job, a timeout, a second `submission.received` event or a second
-`received` message. UNPROVEN on `mop-dev` until the runner deploy above. Against a throwaway PostgreSQL 18 cluster it
-printed `refusing: production database` and exit 1 with `settings.environment` set to `production`, and with `preview`
-it took the lock, failed on the missing `create_submission` and exited 1 without hanging.
+`received` message. Against a throwaway PostgreSQL 18 cluster it printed `refusing: production database` and exit 1 with
+`settings.environment` set to `production`, and with `preview` it took the lock, failed on the missing
+`create_submission` and exited 1 without hanging.
+
+On `mop-dev` on 2026-10-06, with no `EMAIL_LIVE` set, the first run printed no rows and exited 1 after 180 seconds
+(`no complete chain`): `received` was `skipped` with a `dry_` id, and `admin_notify` was `skipped` with
+`not_allow_listed` and no id. The admin recipient is `settings.notifications.recipients`, then
+`settings.site.contact.email` (`hello@matterofplace.com` on `mop-dev`), then `ADMIN_NOTIFY_EMAIL`; the dev allow-list
+(`settings.email.dev_recipients`) holds `admin@matterofplace.com`, `admin+*@matterofplace.com` and `*@resend.dev`, so the
+public contact address is refused. With a `notifications` row of `{"recipients": ["admin@matterofplace.com"]}`, put in
+for the run and deleted after it, the script printed `received skipped dry_...` and `admin_notify skipped dry_...` and
+exited 0. Until a `notifications` row exists on `mop-dev`, the chain proof needs one for the run.
+UNPROVEN: the `sent` rows, which need step 5's `EMAIL_LIVE=1` on the deployed runner.
 
 ## Render cost
 

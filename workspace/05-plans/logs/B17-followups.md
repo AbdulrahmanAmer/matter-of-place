@@ -61,3 +61,31 @@ Recorded in the bank, not here: two follow-ups whose file is GOTCHAS.md became h
    Evidence: curl http://127.0.0.1:8939/.well-known/security.txt printed 'Contact: mailto:hello@matterofplace.com'.
 
 Recorded in the bank, not here: one follow-up whose file is GOTCHAS.md (a literal NUL byte at line 622 of the bank on 3d66bcc, from group c1's commit 6f81b8a) is already entry P-1910, which this branch's head fixes and enforces in check-gotchas.mjs; it got a dated hit-again line.
+
+## g4 · steps 5
+
+1. File `app/src/components/layout/header.tsx` (not blocking).
+   What: Suspected by reading. With the phone menu open, Tab is kept inside .menu-panel (MenuPanel gets menuRef). The visible 'Close menu' X is the .header-toggle button in the header, outside the panel, so a keyboard user can never Tab to the X they can see. Only Escape or following a link closes the menu. The search overlay and the inquiry dialog do carry their own close button inside the trap. The code follows the plan's exact wording (useModal(..., menuOpen ? menuRef : searchRef)), so this is a plan design gap, not a deviation.
+   Evidence: header.tsx: the toggle is rendered inside <header> and MenuPanel is a sibling below it. menu-panel.tsx holds only the nav links, a Search button and the tagline. The a11y-keyboard menu case shows Tab never leaves the panel.
+
+2. File `app/tests/e2e/essentials.spec.ts` (not blocking).
+   What: The ring case passes on a weaker condition than the contract. focusState counts a stop as 'drawn' when it has an outline of 2 px or more OR any box-shadow. .field input, textarea and select keep `outline: none` (forms.css:20), as does .interest-email (coming-soon.css:45). They show a 1 px underline or edge box-shadow, not the contract's '2 px Obsidian outline offset 2 px'. Focus is visible, but the title 'every Tab stop ... draws a focus ring' says more than the test proves.
+   Evidence: essentials.spec.ts focusState: `drawn: (outlineStyle !== 'none' && outlineWidth >= 2) || style.boxShadow !== 'none'`; grep -rn 'outline: none' app/src/styles finds forms.css:20 and coming-soon.css:45
+
+3. File `app/src/styles/tokens.css` (not blocking).
+   What: The dark-surface ring is Warm Ivory, not Bone. The tokens.css comment, the base.css comment and the e2e title all say 'Bone' (#EEEAE1, --secondary), but the dark-surface ring is var(--background), which is #f5f2eb. The test asserts rgb(245, 242, 235). The colour works; the names say otherwise. Either fold 'Ivory' into the plan's invariant 12 or point the ring at --secondary.
+   Evidence: tokens.css: `--background: #f5f2eb; --secondary: #eeeae1;`; essentials.spec.ts: `expect(await ringOfBrand("/")).toBe("rgb(245, 242, 235)")`
+
+4. File `app/scripts/contrast.mjs` (not blocking).
+   What: PAIRS is a fixed list of 11 hand-picked pairs, so a new text token, or Warm Grey re-entering as a token, is never checked. G-013 was retired as 'enforced-by essentials.test.ts', but that only enforces these 11 pairs, not G-013's rule that Warm Grey is for large text only. The plan line asks it to check 'every text and surface token pair'. Today every text token present is covered.
+   Evidence: contrast.mjs: `const PAIRS = [["--foreground","--background"], ...]` (11 entries); GOTCHAS.md: `- G-013 · ... · enforced-by app/tests/unit/essentials.test.ts`
+
+5. File `workspace/05-plans/B17.md` (not blocking).
+   What: Plan lines for the orchestrator to fold into the plan. (1) The skip link targets span#content before the Outlet, not main. (2) The gallery is a vertical column, and Left/Right step image rows, not one image of a strip. (3) Field is now a div holding the label, with the error outside it. (4) New file src/hooks/use-field-errors.ts is not named in the plan's Files list, and src/lib/strings.ts and tests/mutations/B4.json (entries i and hh) were edited outside the group's file list. The log names and justifies each one. (5) The root not-found and error pages render SiteChrome outside _site.tsx, so they have no skip link.
+   Evidence: logs/B17.md g4 'Differences from the plan' points 1-4; git show --stat 2242a63 lists use-field-errors.ts, strings.ts and B4.json; site-chrome.tsx docblock: '`_site.tsx` and the root's not-found and error pages use it'
+
+6. File `app/src/components/forms/submit` (not blocking).
+   What: NOT DONE, and the author says so. Plan Files names 'the forms that use them (contact-form.tsx, newsletter-form.tsx, inquiry-dialog.tsx, src/components/forms/submit/*)' for described errors. submit/* and interest-form.tsx still rely on native validation, with no aria-describedby error text. The brief's group file list left them out, so this is for a later group or the orchestrator.
+   Evidence: logs/B17.md: 'NOT DONE: ... described errors in interest-form.tsx and submit/*'; grep -n 'useFieldErrors' app/src/components/forms/submit/*.tsx finds nothing
+
+Recorded in the bank, not here: two follow-ups whose file is GOTCHAS.md became three hit-again lines, in P-2125 (the shared scratchpad overwrote a reviewer's check.txt and build.txt), P-1805 (the sweep with --workers=2 timed out on two desktop property pages) and G-031 (the 20 s prettier case timed out inside bun run check).

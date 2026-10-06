@@ -25,6 +25,7 @@ export const analyticsEvents = [
   "submit_property",
   "package_interest",
   "newsletter_signup",
+  "newsletter_confirmed",
   "market_view",
   "region_view",
   "story_view",

@@ -64,6 +64,12 @@ export function toBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** The bytes of a `toBase64Url` text; throws on a text that is not base64url. */
+export function fromBase64Url(text: string): Uint8Array {
+  const base64 = text.replace(/-/g, "+").replace(/_/g, "/");
+  return fromBase64(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
+}
+
 export function randomToken(bytes = 32): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
@@ -73,8 +79,7 @@ const IV_BYTES = 12;
 const aesKey = (key: Uint8Array, usage: "encrypt" | "decrypt") =>
   crypto.subtle.importKey("raw", bytesOf(key), "AES-GCM", false, [usage]);
 
-/** @public A fresh 12-byte IV followed by the ciphertext and its tag. */
-// STUB(B5): first used by src/server/subscribers/confirm-email.ts (sealed confirm token)
+/** A fresh 12-byte IV followed by the ciphertext and its tag. */
 export async function aesGcmSeal(key: Uint8Array, plaintext: Uint8Array): Promise<Uint8Array> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const sealed = new Uint8Array(
@@ -90,8 +95,7 @@ export async function aesGcmSeal(key: Uint8Array, plaintext: Uint8Array): Promis
   return out;
 }
 
-/** @public Null when the data was changed or sealed with another key. */
-// STUB(B5): first used by src/server/subscribers/confirm-email.ts (sealed confirm token)
+/** Null when the data was changed or sealed with another key. */
 export async function aesGcmOpen(key: Uint8Array, sealed: Uint8Array): Promise<Uint8Array | null> {
   const cryptoKey = await aesKey(key, "decrypt");
   try {

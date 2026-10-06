@@ -176,17 +176,17 @@ describe("POST /api/public/subscribers", () => {
         events: await eventsFor(pg, email),
       };
     });
-    // One `subscriber.confirmed` for the valid click, and no `subscriber.created` while `requestConfirmation` seals
-    // nothing (B5's tests cover the sealed case).
+    // One `subscriber.confirmed` for the valid click, and no `subscriber.created`: neither the dev profile nor CI gives
+    // these tests a `CONFIRM_TOKEN_SECRET`, so `requestConfirmation` seals nothing (B5's confirm.test.ts seals).
     expect(events).toEqual([
       { type: "subscriber.confirmed", entity_id: row.id, payload: { subscriber_id: row.id } },
     ]);
     expect(answers.map((answer) => answer.status)).toEqual([303, 303, 303, 303]);
     expect(answers.map(landing)).toEqual([
-      "/stories?confirmed=1",
-      "/stories?confirmed=0",
-      "/stories?confirmed=0",
-      "/stories?confirmed=0",
+      "/place-notes?confirmed=1",
+      "/place-notes?confirmed=0",
+      "/place-notes?confirmed=0",
+      "/place-notes?confirmed=0",
     ]);
     expect(answers[0]?.headers.get("cache-control")).toBe("no-store");
     expect(row.confirmed_at).not.toBeNull();
@@ -281,11 +281,41 @@ describe("POST /api/public/subscribers", () => {
       };
     });
     expect(status).toBe(303);
-    expect(location).toBe("/stories?confirmed=1");
+    expect(location).toBe("/place-notes?confirmed=1");
     expect(Date.parse(after.confirmed_at ?? "")).toBeGreaterThan(
       Date.parse(before.confirmed_at ?? ""),
     );
     expect(after.confirm_token_hash).toBeNull();
+  });
+
+  it("answers a re-permission link clicked after lapse_subscribers confirmed=0 (DL-06)", async () => {
+    const email = nextEmail();
+    const ip = nextIp();
+    const tokens = captureTokens();
+    const fresh = toBase64Url(new Uint8Array(32).fill(9));
+    const { lapsed, location, after } = await run([ip], [email], async (pg) => {
+      await handlePublic(post({ email, source: "stories" }, ip), REQUEST_ID);
+      await click(tokenAt(tokens, 0), ip);
+      const { id } = await rowFor(pg, email);
+      await pg.query("select public.issue_repermission($1, $2)", [id, await sha256Hex(fresh)]);
+      // Asked a century ago, so a grace of 99 years lapses this row and no other row of the shared database.
+      await pg.query(
+        "update public.subscribers set repermission_sent_at = now() - interval '100 years', last_engaged_at = null where id = $1",
+        [id],
+      );
+      const result = await pg.query<{ count: number }>(
+        "select public.lapse_subscribers('99 years') as count",
+      );
+      return {
+        lapsed: result.rows[0]?.count,
+        location: landing(await click(fresh, ip)),
+        after: await rowFor(pg, email),
+      };
+    });
+    expect(lapsed).toBe(1);
+    expect(location).toBe("/place-notes?confirmed=0");
+    expect(after.confirmed_at).not.toBeNull();
+    expect(after.archived_at).not.toBeNull();
   });
 
   it("gives a confirmed address no new link for another post of the same kind", async () => {

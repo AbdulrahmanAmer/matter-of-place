@@ -95,7 +95,9 @@ const en = {
     text: "Selected properties and stories from California, New York and Florida.",
     localSent:
       "Thank you. Place Notes opens with the live service; your address stays with you for now.",
-    liveSent: "Thank you. Place Notes will reach you when the next letter is ready.",
+    liveSent: "Thank you. Check your inbox to confirm.",
+    confirmed: "Thank you. Your address is confirmed.",
+    confirmFailed: "This link has expired or was already used. Subscribe again below.",
   },
   comingSoon: {
     eyebrow: "OPENING SOON",
@@ -124,8 +126,10 @@ const en = {
       legend: "Where are you looking?",
       submit: "Tell me when it opens",
       note: "We will only write about this.",
-      sentMarket: "Thank you. We will write when the first {market} property is published.",
-      sentAny: "Thank you. We will write when the first property is published.",
+      sentMarket:
+        "Thank you. We will write when the first {market} property is published. Please confirm from the email we send.",
+      sentAny:
+        "Thank you. We will write when the first property is published. Please confirm from the email we send.",
     },
     badge: "Opening soon",
     cardLine: "No property listed yet",
