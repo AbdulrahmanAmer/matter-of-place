@@ -4055,7 +4055,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 
 ## P-1923 · A polling script that checks its deadline only between requests never reaches it when one request stalls
 - symptom: B17 g5's review ran `node scripts/wait-status.mjs http://127.0.0.1:8946/ 503 3` against a server that accepts and never answers; under `timeout 25` it printed nothing and ended `exit 124` after 25 s instead of the timeout line and exit 1 after 3 s. That script runs inside `with-maintenance.ts`, so while it hung the maintenance flag stayed true on mop-dev and every preview and local build answered 503, past the plan's 16 second bound. The g5 author's earlier `exit 124 after 60 s with no output` (P-1918's hit-again line) matches it.
-- cause: each `fetch` had no `signal`; Node's fetch waits for headers for about 300 s by default, and the `Date.now() >= deadline` check ran only after a request returned.
+- cause: each `fetch` had no `signal`; Node's fetch waits for headers up to undici's default `headersTimeout` (300 s by its documentation, not measured here), and the `Date.now() >= deadline` check ran only after a request returned.
 - rule: every request of a poll loop carries `signal: AbortSignal.timeout(Math.max(1, deadline - Date.now()))` and counts an abort as a miss; a wrapper that holds a shared setting while its command runs never relies on an outer `timeout` for its bound.
 - proof: `cd app && bunx vitest run tests/unit/essentials.test.ts -t "wait-status"` passes (1 test, about 1 s); registry entry `b17-wait-status-stall` (the `signal` line deleted) turns it red with `expected null to be 1` after the 10 s spawn limit (measured 2026-10-06, B17 g5 rework).
 - added: 2026-10-06
