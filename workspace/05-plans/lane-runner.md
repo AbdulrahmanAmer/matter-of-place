@@ -63,10 +63,10 @@ through GitHub (branches, pull requests, the merge gate) and the shared mop-dev 
 | slice | where | lane folder | port | opens when |
 |---|---|---|---|---|
 | B5 (steps 7 to 9, finishing) | first laptop | E:/mop-build/email | 8868 | running, merges on its own |
-| B17 (steps 7 to 12) | first laptop or Dell | E:/mop-build/site | 8938 | paused after step 6; relaunch from `lanes/B17.json` |
-| B7 (steps 5 to 16) | Dell (long slice) | E:/mop-build/admin | 8948 | paused after step 4; relaunch from `lanes/B7.json` |
-| B13 (steps 8 to 13) | Dell | E:/mop-build/seo | 8928 | after PR 158 lands (H62 line), from `lanes/B13.json` |
-| B10 (steps 0, 3, 4, 5, 5a) | Dell | E:/mop-build/social | 8968 | after B7 steps 2 and 3 are on main (PR 158) |
+| B17 (close-outs c8, c9, then 11 and 12) | first laptop or Dell | E:/mop-build/site | 8938 | paused 16:55 after steps 9-10 handed in; relaunch from `lanes/B17.json` |
+| B7 (steps 5 to 16) | Dell (long slice) | E:/mop-build/admin | 8948 | paused 13:00 after step 4; 1 to 4 on main (PR 158); relaunch from `lanes/B7.json` |
+| B13 (close-out c7b, then 8 to 13) | Dell | E:/mop-build/seo | 8928 | now (PR 163 red only on the property route budget, c7b fixes it), from `lanes/B13.json` |
+| B10 (steps 0, 3, 4, 5, 5a) | Dell | E:/mop-build/social | 8968 | now (B7 steps 1 to 4 on main); lane file to write at launch |
 | B14 (steps 1, 4, 5, 7, 8, 9) | first laptop | E:/mop-build/audit | 8858 | after B13 and B7 steps 1 to 3 are on main |
 | B16 (steps 3 to 8) | first laptop | E:/mop-build/legal | 8848 | after B17 step 1 (PR 142) is on main |
 
