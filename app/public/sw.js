@@ -1,5 +1,6 @@
 // The minimal offline worker (B17 invariant 19): it keeps the shell and the offline page, never the catalog.
-// Navigations go to the network first and fall back to /offline.html; /api/ and /admin are never touched.
+// Every request it answers goes to the network first; a navigation falls back to /offline.html, a shell file to its cached copy.
+// /api/ and /admin are never touched.
 const CACHE = "mop-shell-v1";
 const OFFLINE = "/offline.html";
 const FONTS = [
@@ -57,5 +58,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(request).catch(() => caches.match(OFFLINE)));
     return;
   }
-  event.respondWith(caches.match(request).then((hit) => hit ?? fetch(request)));
+  // Network first here too: the font names carry no content hash, so a cached copy is only the offline fallback.
+  event.respondWith(
+    fetch(request).catch((error) =>
+      caches.match(request).then((hit) => hit ?? Promise.reject(error)),
+    ),
+  );
 });

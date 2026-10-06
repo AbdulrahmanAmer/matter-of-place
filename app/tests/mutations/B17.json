@@ -1281,6 +1281,15 @@
     "expect": "× .*maintenance: the 503 page's one inline style"
   },
   {
+    "id": "b17-wait-status-stall",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/wait-status.mjs",
+    "find": "      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: wait-status exits 1 at its limit"
+  },
+  {
     "id": "b17-route-error-ref",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/components/layout/route-error.tsx",

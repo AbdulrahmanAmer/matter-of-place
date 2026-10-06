@@ -3,6 +3,7 @@ import "../fixtures/worker-env";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createElement } from "react";
@@ -1080,6 +1081,22 @@ describe("maintenance", () => {
     expect(response.status).toBe(200);
     expect(broken.rendered).toEqual(["/"]);
   });
+
+  it("maintenance: wait-status exits 1 at its limit when a request stalls", async () => {
+    const server = createServer(() => undefined);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("the server has no port");
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/wait-status.mjs", `http://127.0.0.1:${String(address.port)}/`, "503", "1"],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    server.closeAllConnections();
+    server.close();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("did not answer 503 within 1 s");
+  }, 15_000);
 });
 
 describe("feed", () => {

@@ -1,7 +1,8 @@
 // `node scripts/wait-status.mjs <url> <status> [seconds=16]` (B17 step 6): sends HEAD once a second until the URL
 // answers <status>, prints that answer's status, retry-after and cache-control, and exits 0; exits 1 when the time
-// runs out. The default covers the 15 second memo of the public state. It sets the exit code and never calls
-// `process.exit` after a fetch (P-1916).
+// runs out, a stalled request included: each HEAD is aborted at the deadline, because the flag stays flipped on the
+// shared database while this waits (P-1923). The default covers the 15 second memo of the public state. It sets the
+// exit code and never calls `process.exit` after a fetch (P-1916).
 
 /**
  * @param {string} url
@@ -13,7 +14,11 @@ async function waitFor(url, status, limit) {
   const deadline = Date.now() + limit * 1000;
   let last = "no answer";
   for (;;) {
-    const response = await fetch(url, { method: "HEAD", redirect: "manual" }).catch(
+    const response = await fetch(url, {
+      method: "HEAD",
+      redirect: "manual",
+      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
+    }).catch(
       /** @param {unknown} error */ (error) => {
         last = error instanceof Error ? error.message : String(error);
         return undefined;
