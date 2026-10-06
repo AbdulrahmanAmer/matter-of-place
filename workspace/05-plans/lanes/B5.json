@@ -1,9 +1,10 @@
 {
   "slice": "B5",
-  "runId": "wf_c014765b-d6a",
+  "runId": "wf_03e1b94b-8bd",
+  "note": "steps 1 to 4a on main (PRs 108, 137, 155); fresh run 2026-10-06 01:50 on steps 5 to 9",
   "resume": {
     "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_c014765b-d6a",
+    "resumeFromRunId": "wf_03e1b94b-8bd",
     "args": {
       "slice": "B5",
       "root": "E:/mop-build/email",
@@ -13,10 +14,6 @@
         "G": 500
       },
       "steps": [
-        "2",
-        "3",
-        "4",
-        "4a",
         "5",
         "6",
         "7",
