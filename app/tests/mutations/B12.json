@@ -418,5 +418,222 @@
     "run": "node scripts/watchfail.mjs --file scripts/render-reel.mjs --find 'export const MAX_BYTES = 12_000_000;' --replace 'export const MAX_BYTES = 1_000_000;' --run 'bun scripts/render-reel.mjs --fixture --out ../.tmp/reel-wf' --expect 'gate_failed: probe size [0-9]+'",
     "expect": "render-reel: failed gate_failed: probe size <bytes>",
     "what": "by hand (a full render, about 3 minutes idle): the probe's size limit becomes 1,000,000 bytes, so the fixture reel is refused after the gate passes; needs Chrome and ffmpeg"
+  },
+  {
+    "id": "b12g5-registry",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "  type: spec.type,",
+    "replace": "  type: \"render_reel_off\",",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*getStep returns a heavy module with onResult"
+  },
+  {
+    "id": "b12g5-c-tier",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "  if (property.campaign_tier !== \"Campaign\") throw new NonRetryableError(\"not_campaign\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*refuses a Feature property by campaign_tier"
+  },
+  {
+    "id": "b12g5-published",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "  if (property.editorial_state !== \"published\") throw new NonRetryableError(\"not_published\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*refuses an unpublished Campaign property"
+  },
+  {
+    "id": "b12g5-stub-job",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "    p_job_id: ctx.job.id,",
+    "replace": "    p_job_id: \"00000000-0000-4000-8000-000000000000\",",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*upserts the reel stub with its job id"
+  },
+  {
+    "id": "b12g5-q-approved",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "  if (revision === null && (asset.status === \"approved\" || asset.status === \"published\")) {",
+    "replace": "  if (revision === null && asset.status === \"none\") {",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*a recipe job whose stub is approved ends already_approved"
+  },
+  {
+    "id": "b12g5-rerender",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/assets/render-run.ts",
+    "find": "  if (revision === null && (asset.status === \"approved\" || asset.status === \"published\")) {",
+    "replace": "  if (asset.status === \"approved\" || asset.status === \"published\") {",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*a re-render job with data.revision dispatches"
+  },
+  {
+    "id": "b12g5-few",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "  if ((await loadMedia(ctx.db, propertyId)).length < CAMERA_SHOTS) {",
+    "replace": "  if ((await loadMedia(ctx.db, propertyId)).length < 0) {",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*three photographs end in too_few_photos"
+  },
+  {
+    "id": "b12g5-k-hero",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "    (await waitForVariants(ctx, propertyId, \"hero\", asset.created_at)) ??",
+    "replace": "    null ??",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*waits two minutes for the hero size"
+  },
+  {
+    "id": "b12g5-k-carousel",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "    (await waitForVariants(ctx, propertyId, \"carousel\", asset.created_at));",
+    "replace": "    null;",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*waits two minutes for the carousel size"
+  },
+  {
+    "id": "b12g5-missing",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "\"hero\", asset.created_at",
+    "replace": "\"hero\", ctx.now.toISOString()",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*ends in variants_missing"
+  },
+  {
+    "id": "b12g5-twice",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "      spec_hash: await specHash(reel),",
+    "replace": "      spec_hash: (await specHash(reel)) + String(Math.random()),",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*render_reel runs twice without a second outside effect"
+  },
+  {
+    "id": "b12g5-text",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "const text = await ctx.db.rpc(\"set_asset_text\", { p_asset: assetId, p_meta: meta });",
+    "replace": "const text = await ctx.db.rpc(\"set_asset_text\", { p_asset: assetId, p_caption: \"\", p_alt_text: \"\", p_meta: meta });",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*writes the files with the dispatched hash"
+  },
+  {
+    "id": "b12g5-p-hash",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "    p_spec_hash: hash,",
+    "replace": "    p_spec_hash: z.object({ spec_hash: z.string() }).parse(z.object({ meta: z.unknown() }).parse(result).meta).spec_hash,",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*takes spec_hash from the dispatched job"
+  },
+  {
+    "id": "b12g5-j-pending",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "  if (text.error !== null) throw unavailable(\"set_asset_text\");",
+    "replace": "  if (text.error !== null) throw unavailable(\"set_asset_text\");\n  await ctx.db.rpc(\"approve_asset\", { p_asset: assetId, p_actor: assetId, p_actor_kind: \"human\" });",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*leaves the asset pending"
+  },
+  {
+    "id": "b12g5-duration",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "    duration_s: z.number(),",
+    "replace": "    duration_s: z.number().optional(),",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel.test.ts",
+    "expect": "FAIL .*refuses a render with no duration"
+  },
+  {
+    "id": "b12g5-t-lint",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "import { buildReelSpec } from \"../../assets/reel-spec.ts\";",
+    "replace": "import { buildReelSpec } from \"../../assets/reel-spec\";",
+    "run": "bunx eslint src/server/jobs/steps/render-reel.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "b12g5-t-deno",
+    "test": "tests/unit/reel/render-reel.test.ts",
+    "file": "src/server/jobs/steps/render-reel.ts",
+    "find": "import { buildReelSpec } from \"../../assets/reel-spec.ts\";",
+    "replace": "import { buildReelSpec } from \"../../assets/reel-spec\";",
+    "run": "deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "expect": "Cannot find module .*src/server/assets/reel-spec'"
+  },
+  {
+    "id": "b12g5-i-trigger",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "drop trigger assets_reel_video on public.assets;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"approve_asset attaches the film\"",
+    "expect": "× .*approve_asset attaches the film[\\s\\S]*expected null to deeply equal"
+  },
+  {
+    "id": "b12g5-snapshot",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "drop trigger assets_reel_video on public.assets;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"public_catalog_snapshot carries the film once it is approved\"",
+    "expect": "× .*public_catalog_snapshot carries the film once it is approved[\\s\\S]*expected null to be 'assets/reel-test/reel/r1/reel"
+  },
+  {
+    "id": "b12g5-s-version",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['hero_image', 'og_image_key', 'updated_at', 'version', 'search_text'];\nbegin\n  if (to_jsonb(new) - v_ignored) = (to_jsonb(old) - v_ignored) and new.version = old.version then\n    return new;\n  end if;\n  new.version := old.version + 1;\n  return new;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"raises catalog_version by exactly 1 and leaves properties.version unchanged\"",
+    "expect": "× .*raises catalog_version by exactly 1 and leaves properties\\.version unchanged[\\s\\S]*expected '40001 version_conflict' to be 'ok'"
+  },
+  {
+    "id": "b12g5-detach",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "drop trigger assets_reel_video on public.assets; create trigger assets_reel_video after update of status on public.assets for each row when (new.kind = 'reel' and new.status = 'approved') execute function public.assets_reel_video();",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"reject_asset with a note takes the film down and writes one system detach row\"",
+    "expect": "× .*reject_asset with a note takes the film down and writes one system detach row[\\s\\S]*to be null"
+  },
+  {
+    "id": "b12g5-guard",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "create or replace function public.attach_reel(p_property uuid, p_asset uuid, p_detach boolean default false)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_property public.properties;\n  v_video text;\n  v_poster text;\n  v_seconds int;\n  v_film jsonb;\nbegin\n  -- B12: an approved reel is the dossier's film (G23); its keys in bucket `media`, never URLs (A13). The one update\n  -- fires B2's properties triggers: the catalog version moves once and `properties.version` does not (DB-16).\n  select * into v_asset from public.assets a where a.id = p_asset;\n  select * into v_property from public.properties p where p.id = p_property for update;\n  v_video := (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'video' limit 1);\n  v_poster := (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'poster' limit 1);\n\n  if p_detach then\n    -- Only the film this asset put there: a newer approved revision keeps its own.\n    if v_video is null then\n      return;\n    end if;\n    update public.properties set video = null where id = p_property;\n    perform public.write_audit(\n      null, null, 'properties.video_detach', 'properties', p_property,\n      jsonb_build_object('video', v_property.video), jsonb_build_object('video', null), null, 'system'\n    );\n    return;\n  end if;\n\n  if v_video is null or v_poster is null or v_asset.meta ->> 'duration_s' is null then\n    raise exception 'reel_files_missing' using errcode = '23514';\n  end if;\n  v_seconds := round((v_asset.meta ->> 'duration_s')::numeric)::int;\n  v_film := jsonb_build_object(\n    'src', v_video,\n    'poster', v_poster,\n    'caption', coalesce(v_asset.alt_text, 'Film of ' || v_property.title),\n    'duration', format('%s:%s', v_seconds / 60, lpad((v_seconds % 60)::text, 2, '0'))\n  );\n  update public.properties set video = v_film where id = p_property;\n  -- A system row (G43): the approver is on the assets.approve row of the same transaction, and write_audit refuses a\n  -- human actor on an action the matrix does not hold.\n  perform public.write_audit(\n    null, null, 'properties.video_attach', 'properties', p_property,\n    jsonb_build_object('video', v_property.video), jsonb_build_object('video', v_film), null, 'system'\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"rejecting a reel leaves a film that another asset put there\"",
+    "expect": "× .*rejecting a reel leaves a film that another asset put there[\\s\\S]*expected null to match object"
+  },
+  {
+    "id": "b12g5-superseded",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "create or replace function public.assets_reel_video()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- B12: approving a reel puts it on the dossier, so a newer approved revision replaces the film; rejecting the\n  -- approved one takes it down. A revision superseded by rerender_asset keeps the film until the next approval.\n  if new.status = 'approved' and old.status <> 'approved' then\n    perform public.attach_reel(new.property_id, new.id);\n  elsif new.status = 'rejected' and old.status in ('approved', 'published') then\n    perform public.attach_reel(new.property_id, new.id, p_detach => true);\n  end if;\n  return null;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"rerender_asset supersedes the approved reel and leaves the film as it is\"",
+    "expect": "× .*rerender_asset supersedes the approved reel and leaves the film as it is[\\s\\S]*expected null to match object"
+  },
+  {
+    "id": "b12g5-poster",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "create or replace function public.attach_reel(p_property uuid, p_asset uuid, p_detach boolean default false)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_property public.properties;\n  v_video text;\n  v_poster text;\n  v_seconds int;\n  v_film jsonb;\nbegin\n  -- B12: an approved reel is the dossier's film (G23); its keys in bucket `media`, never URLs (A13). The one update\n  -- fires B2's properties triggers: the catalog version moves once and `properties.version` does not (DB-16).\n  select * into v_asset from public.assets a where a.id = p_asset;\n  select * into v_property from public.properties p where p.id = p_property for update;\n  v_video := (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'video' limit 1);\n  v_poster := (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'poster' limit 1);\n\n  if p_detach then\n    -- Only the film this asset put there: a newer approved revision keeps its own.\n    if v_video is null or v_property.video ->> 'src' is distinct from v_video then\n      return;\n    end if;\n    update public.properties set video = null where id = p_property;\n    perform public.write_audit(\n      null, null, 'properties.video_detach', 'properties', p_property,\n      jsonb_build_object('video', v_property.video), jsonb_build_object('video', null), null, 'system'\n    );\n    return;\n  end if;\n\n  if v_video is null or v_asset.meta ->> 'duration_s' is null then\n    raise exception 'reel_files_missing' using errcode = '23514';\n  end if;\n  v_seconds := round((v_asset.meta ->> 'duration_s')::numeric)::int;\n  v_film := jsonb_build_object(\n    'src', v_video,\n    'poster', v_poster,\n    'caption', coalesce(v_asset.alt_text, 'Film of ' || v_property.title),\n    'duration', format('%s:%s', v_seconds / 60, lpad((v_seconds % 60)::text, 2, '0'))\n  );\n  update public.properties set video = v_film where id = p_property;\n  -- A system row (G43): the approver is on the assets.approve row of the same transaction, and write_audit refuses a\n  -- human actor on an action the matrix does not hold.\n  perform public.write_audit(\n    null, null, 'properties.video_attach', 'properties', p_property,\n    jsonb_build_object('video', v_property.video), jsonb_build_object('video', v_film), null, 'system'\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"a reel without its poster rolls the approval back with reel_files_missing\"",
+    "expect": "× .*a reel without its poster rolls the approval back with reel_files_missing[\\s\\S]*expected 'ok' to be '23514 reel_files_missing'"
+  },
+  {
+    "id": "b12g5-grant",
+    "kind": "sql",
+    "test": "tests/db/reel.db.test.ts",
+    "sql": "grant execute on function public.attach_reel(uuid, uuid, boolean) to anon, authenticated;",
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"anon and authenticated cannot execute attach_reel\"",
+    "expect": "× .*anon and authenticated cannot execute attach_reel[\\s\\S]*expected \\[ 'ok', 'ok' \\] to deeply equal"
   }
 ]

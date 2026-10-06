@@ -906,6 +906,9 @@ isOneToOne: false
 "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
                            },
+"attach_reel":
+{ Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
+                           },
 "automation_put_channel":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_channel": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
                            },
