@@ -352,14 +352,6 @@ Entry template
 - proof: `grep -c "Gap additions" workspace/05-plans/*.md` → 0 once integrated; architecture.md has §10.
 - added: 2026-09-30
 
-## G-013 · Warm Grey on Ivory fails AA contrast for body text
-- paths: app/src/styles/tokens.css, app/src/styles/base.css
-- severity: warn
-- symptom: `--muted-foreground` (#8B877F) on `--ivory` (#F5F2EB) is about 3.6:1; WCAG 2.2 AA needs 4.5:1 for normal text.
-- rule: Warm Grey is for large text (≥ 24 px or 19 px bold) and metadata only; body copy on Ivory uses Mineral Grey (#575751, about 7:1) or an adjusted token. `scripts/contrast.mjs` (B17 step 5) checks every token pair.
-- proof: `node scripts/contrast.mjs` → all pairs ≥ 4.5 once B17 lands.
-- added: 2026-10-01
-
 ## G-014 · No third-party request before consent: the Google Fonts link in the root route must go
 - paths: app/src/routes/__root.tsx
 - severity: warn
@@ -1532,6 +1524,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - G-026 · The migration scan reads statements, not comments: every `-- down:` header names a drop · enforced-by app/tests/unit/check-migrations.test.ts
 - G-027 · A workflow check that reads only job slices misses the workflow-level `env:` and `concurrency:` · enforced-by app/tests/unit/hygiene.test.ts
 - G-028 · The migration scan is a small SQL lexer: a regex over raw text both misses DDL and flags words · enforced-by app/tests/unit/check-migrations.test.ts
+- G-013 · Warm Grey on Ivory fails AA contrast for body text · enforced-by app/tests/unit/essentials.test.ts
 - G-029 · A destructive-change scan that lists the kinds it refuses lets every other kind through · enforced-by app/tests/unit/check-migrations.test.ts
 - G-030 · An exception to the destructive-change scan passes more than the statement the ruling meant · enforced-by app/tests/unit/check-migrations.test.ts
 - G-032 · A file outside `app/` gets none of the app's gates: prettier finds no config, ESLint calls it outside its base path, tsc never sees it · enforced-by app/tests/unit/hygiene.test.ts
@@ -2540,6 +2533,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `//IM` matches the image name across the whole machine; the lanes (spine, db, tests, design, api) share one laptop and one image name. The lane rule "stop only the processes you started, by their own process id" is prose in the task text and in P-094; nothing in `.claude/agents/mop-builder.md` or a hook refuses the command.
 - rule: find the id of the process you started (`tasklist //FI "IMAGENAME eq python.exe" //FO CSV`, or the port: `netstat -ano | grep ":8828.*LISTENING"`), check its start with `git status` or the log, and end it with `taskkill //PID <id>`, adding `//T` for a parent that respawns its child. Never `//IM`. Still open for the orchestrator: name this command in `.claude/agents/mop-builder.md` and refuse `taskkill.*//?IM` in a hook (the guard hook today covers Edit and Write only).
 - proof: `grep -c '^- hit again.*taskkill //\(F //\)\?IM' GOTCHAS.md` → 3 (the P-094 hit-again lines this entry answers, 2026-10-04); `tasklist //FI "IMAGENAME eq node.exe" //FO CSV //NH | wc -l` → the count of every node process of every lane on the laptop (15 when measured 2026-10-04 08:30 +0300), not only yours.
+- hit again: 2026-10-06, B17 g4: a PowerShell filter on `CommandLine -match 'mop-build'` stopped every workerd of every lane tree instead of this one; match the full tree folder (`mop-build\site`) and the port, and list the ids before stopping any.
 - added: 2026-10-04
 
 ## P-831 · `VAR=/path` in Git Bash is rewritten to `C:/Program Files/Git/path` for the child process: a live build with `VITE_API_BASE_URL=/api/public` answers 500 on every page
@@ -3383,6 +3377,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the dev server of this tree has no database variables; the built Worker gets them from `--env-file .dev.vars` (playwright.config.ts, target `built`); the mutated source reaches the browser only through a build.
 - rule: an e2e entry's `run` is `E2E_TARGET=built E2E_PORT=<lane port> bun run build && bunx playwright test <file> --project=desktop -g "<name>" --reporter=line`, all assignments first; it is `kind: "manual"` in the registry (CI replays unit and sql kinds only) and is replayed once from a scratch registry before it is recorded. The build output left behind is stale after the restore: rebuild before the next proof.
 - proof: `cd app && E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g meta-theme-color --reporter=line` → `1 passed`.
+- hit again: 2026-10-06, B17 g4: twelve end-to-end entries replayed one build each; after the last one the `.output` is the mutated build, so the next proof started with a rebuild.
 - added: 2026-10-05
 
 ## P-1909 · Node reads `/tmp` as `E:\tmp` while Git Bash's `/tmp` is the user's Temp folder
@@ -3405,6 +3400,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `track()` in `src/lib/analytics.ts` queues a beacon only `if (siteConfig.apiBaseUrl && ...)`, and a local-mode build has no API base URL, so `recordBeacons` never sees a body. B3b wrote these cases for the live build (its step 8 says so); `playwright.config.ts` defaults `E2E_MODE` to `local`. This was read from the code, not proved by a run on a live build.
 - rule: do not read those two failures as caused by a change to the consent code; run them with `E2E_MODE=live` against a build made with the live variables, or leave them to CI's e2e job. Run one spec file per call and with `-g` for a route (the sweep alone is tens of tests per project), never three files in one call.
 - proof: `grep -n "apiBaseUrl" app/src/lib/analytics.ts` → the `if (siteConfig.apiBaseUrl && typeof navigator.sendBeacon === "function")` line; `E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/consent.spec.ts` in `app/` → 4 failed (those two cases, both projects), 11 passed.
+- hit again: 2026-10-06, B17 g4: `forms.spec.ts` on a local-mode build failed 12 cases (`Thank you. Place Notes will reach you...`, `Received, with every photograph.`, contact and inquiry timeouts) with no defect in the change; the file is a live-artifact file, so its proof is `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build` then `MSYS_NO_PATHCONV=1 E2E_TARGET=built E2E_MODE=live E2E_PORT=8938 bunx playwright test tests/e2e/forms.spec.ts --project=desktop --project=phone` (26 passed).
 - added: 2026-10-05
 
 ## P-1912 · `quiet.mjs` runs its command through cmd, so a `|` in an argument cuts the command, and Git Bash rewrites a `-g "/cookies"` argument
@@ -3412,6 +3408,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the quiet runner hands the line to cmd, where `|` starts a pipeline; Git Bash turns an argument that starts with `/` into a Windows path (P-015), so the grep became `C:/Program Files/Git/cookies`.
 - rule: no `|` in any argument given to `quiet.mjs`: run one call per name or wrap the command in a script; prefix a call whose argument starts with `/` with `MSYS_NO_PATHCONV=1`.
 - proof: `cd app && MSYS_NO_PATHCONV=1 E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/sweep.spec.ts -g "/cookies"` → `2 passed` (desktop and phone); without the prefix → `Error: No tests found.`
+- hit again: 2026-10-06, B17 g4: `bunx vitest run tests/unit/essentials.test.ts -t "film-caption|a11y-"` through `quiet.mjs` failed with `'a11y-' is not recognized as an internal or external command`; a `-t` pattern with `|` goes to the command without the runner.
 - added: 2026-10-05
 - hit again: P-015 (the second half of this entry).
 
@@ -3421,6 +3418,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the invariant to assert for a Set-Cookie answer is `no-store` contained in the final header, which holds with or without the handler's `private`; a watched-fail cannot turn the handler's header red end to end, only the unit test can. Before editing a shared config a step names, read whether an earlier group already made the change. When a plan says a test "passes before and after", run it after the change.
 - proof: `cd app && bunx vitest run tests/unit/consent-notice.test.tsx` → passes (35 with the two other files of the proof); `grep -c "essentials.spec.ts" playwright.config.ts` → `2`; `grep -n "neverCached" src/server/lib/pipeline.ts` → the `response.headers.has("set-cookie")` line.
 - added: 2026-10-05
+
+## P-1914 · B17 step 5 lines that did not match the tree: no gallery strip, no id on any `<main>`, native validation, and a field error inside the `<label>` renamed the control
+- symptom: (1) the plan says the gallery strip takes Left and Right and scrolls by one image; the dossier gallery is a vertical column whose portraits sit two to a row, and a first version that stepped by `<figure>` made ArrowRight a no-op on the second portrait of a row (`Expected: not 3100`). (2) The skip link "to `main`" has no target: 21 files render their own `<main>` and none sets an id. (3) `axe-baseline.json` was already `[]`, so step 5's "empty the baseline" changed nothing and the first sweep, with six load timeouts, listed no violating file. (4) The contact, newsletter and inquiry forms relied on native `required`, so an empty field never fired `submit` and no field error could exist. (5) The first `Field` put the error span inside the `<label>`: the control's name became "Your name Please fill in this field." and B4's `forms.spec.ts` (`getByLabel("Your name", { exact: true })`) timed out on contact and on the inquiry dialog, in live mode only.
+- cause: the plan was written from the design intent, not from `gallery.tsx`, the routes or `field.tsx`; a label's text content is its accessible name.
+- rule: the gallery region steps image rows (the next figure whose top differs), the skip link targets an empty `<span id="content" tabIndex={-1}>` that `_site.tsx` puts before the `Outlet` (so no page file changes), forms take `noValidate` and `useFieldErrors` reads the browser's own constraint checks on submit, and `Field` is a `<div>` holding the `<label>` and, outside it, the error. Prove a field change with B4's live `forms.spec.ts` as well as the new cases.
+- proof: `cd app && git grep -c 'id="main"' -- src | wc -l` → `0`; `git grep -l "<main" -- src/routes src/components | wc -l` → `21`; `cd app && E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/essentials.spec.ts -g a11y-keyboard --reporter=line` → `19 passed`, `1 skipped` (the menu button shows below 1280 px, so that case skips on the desktop project) on a default build; `forms.spec.ts` on the live build (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build`, then `MSYS_NO_PATHCONV=1 E2E_TARGET=built E2E_MODE=live E2E_PORT=8938 bunx playwright test tests/e2e/forms.spec.ts --project=desktop --project=phone`) → `26 passed` (2026-10-06, B17 g4).
+- added: 2026-10-06
+
+## P-1915 · `watchfail.mjs` by hand: `--record` writes a row for a BAD replay, a value that starts with `--` is a usage error, and a `[sS]` typed through a heredoc loses its backslashes
+- symptom: twelve end-to-end entries replayed with `--record`: eleven came back `BAD: wrong reason` and were appended to `tests/WATCHED-FAIL.md` as BAD rows (the `expect` in the registry read `[sS]*`), the twelfth exited 64 on the regular expression `Array [`. Three more came back `BAD: stayed green` because the test did not reach the control. One unit entry exited 64 because `--find "--muted-foreground: #575751;"` was read as an option.
+- cause: `main` calls `appendLedger` for any outcome but `stale`; `util.parseArgs` treats a following token that starts with `--` as a flag; the Bash tool drops a doubled backslash in a heredoc (P-008).
+- rule: write a registry regular expression without a backslash (`[^]*` for "anything"), pass values as `--find=<text>`, delete every `BAD:` row from the ledger before committing, and read a `stayed green` as "the test never reaches this code": widen the test (here the Tab loop skipped everything before the Filter button and visited no page with the newsletter input or the film).
+- proof: `cd app && grep -c "B17 g4 .*BAD: wrong reason" tests/WATCHED-FAIL.md` → `0` (measured 2026-10-06, B17 g4 after the cleanup; 13 older rows of other lanes quote "BAD: wrong reason" inside their mutation text).
+- added: 2026-10-06
+
+## P-1916 · A command-line script that calls `process.exit(1)` right after fourteen `fetch` calls aborts on this laptop with a libuv assertion and exit 127 instead of 1
+- symptom: `node scripts/alt-audit.mjs http://127.0.0.1:8941` against a stub server that answered every page with a bad image printed the right report and then `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file srcwinasync.c, line 76`; the exit code read in Git Bash was 127. Against the real preview, which had no breach, the same code exited 0.
+- cause: Node 24.13 on Windows, `process.exit` while the sockets of the last `fetch` calls were still closing (observed, not isolated: a one-fetch script against a local server did not reproduce it).
+- rule: a script sets `process.exitCode` and lets the loop end; `process.exit` stays only before any network call (the usage line). Read the exit code of a failing run without a pipe (`cmd; echo $?`): `| tail` hides it.
+- proof: `cd app && grep -c "process.exit(" scripts/alt-audit.mjs` → `1` (the usage exit); `node scripts/alt-audit.mjs http://127.0.0.1:8999; echo $?` → `alt-audit: fetch failed` and `1` (measured 2026-10-06, B17 g4).
+- added: 2026-10-06
 
 ## P-2000 · `write_audit` arrives after slices that already audit: B8b's guarded calls go live and refuse their own tests, and B9 and B16 write `audit_log` directly
 - symptom: B7 g1 created `write_audit` with the DB-04 actor check. Proved on mop-dev with the two new migrations as the prelude, `tests/db/automation.db.test.ts` went from `28 passed` to `Tests  8 failed | 20 passed (28)`, every failure `error: forbidden`; and the plan's actor case "every function with a `p_actor` argument calls `write_audit(`" listed `approve_asset`, `reject_asset`, `rerender_asset`, `set_asset_caption` (B9) and `settings_put_site` (B16), which insert into `audit_log` themselves.
