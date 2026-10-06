@@ -125,6 +125,42 @@ Not done yet, UNPROVEN: the deploy of the runner with the email steps (`bunx sup
 --use-api --project-ref $DEV_SUPABASE_PROJECT_REF`), its bundle size and its cold start. They run from `main` once B5
 steps 3 and 4 are merged (ruling H1), and their figures go here.
 
+## The sending domains (step 5)
+
+```
+cd app
+bun run scripts/resend-check.ts     # read only
+bun run scripts/resend-domain.ts    # changes nothing when all three are verified
+```
+
+Both read `RESEND_API_KEY` from the shell or the root `.env`, print no secret, and stop with `BLOCKED: no RESEND_API_KEY`
+when it is absent. They work on the three domains of `RESEND_DOMAINS` (`matterofplace.com`, `notify.matterofplace.com`,
+`notes.matterofplace.com`, region `us-east-1`; the free plan holds three, so a fourth is never added).
+
+`resend-check.ts` lists the domains once, then reads each verified one for its records. Per domain it prints
+`domain <name> verified`, `spf pass` and `dkim pass`; `spf pass` means every record Resend labels SPF (the return-path
+records) reads `verified`, and `dkim pass` the same for the DKIM record. A domain that is missing or not verified is
+named and the exit code is 1. Run on 2026-10-06 against the account, it printed those three lines for each of the three
+domains and exited 0.
+
+`resend-domain.ts` lists the domains once. A domain listed as `verified` prints `domain <name> verified (no change)` and
+causes no other call, none to Cloudflare either; that run printed the three lines on 2026-10-06 and exited 0. Only a
+domain that is missing (created with `POST /domains`) or not verified (read with `GET /domains/<id>`) goes further: each
+record Resend lists is upserted in the Cloudflare zone `matterofplace.com` with `proxied: false` (a record named `@` is
+refused, because the apex SPF and MX belong to Zoho), then `POST /domains/<id>/verify` runs. The Cloudflare token is read
+from the root `.env.ops` only on that path, so a verified account never needs it. The DMARC record is not written here
+(B17 step 11). A dropped connection is retried three times; an answer from Resend or Cloudflare is not.
+
+UNPROVEN: the write path against the real services. All three domains are verified and the plan holds no fourth slot,
+so it is proved only against a stubbed `fetch` (`tests/unit/email/resend-domain.test.ts`), including that Resend's record
+names are relative to the root zone, as the three verified domains list them.
+
+NOT DONE, waiting: the real sends. They need the runner deployed from `main` with the email steps and the value of
+`JOB_RUNNER_SECRET`, which this lane's `.env` lacks (the project holds it as a function secret, but only its digest can
+be read back). Then `bunx supabase secrets set "RESEND_API_KEY=$RESEND_API_KEY" EMAIL_LIVE=1 --project-ref
+$DEV_SUPABASE_PROJECT_REF` and `bun run scripts/email-test.ts all <address>` with an address of
+`settings.email.dev_recipients`.
+
 ## The chain proof
 
 ```

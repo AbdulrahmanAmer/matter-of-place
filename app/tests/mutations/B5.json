@@ -1659,5 +1659,125 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
     "expect": "expected \\[ 'scripts/email-chain.ts' \\] to deeply equal \\[\\]"
+  },
+  {
+    "id": "b5-rd-verified-no-write",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "io.log(`domain ${name} verified (no change)`);",
+    "replace": "io.log(`domain ${name} verified (no change)`); await json(io, `${RESEND}/domains/${known.id}/verify`, resendInit(keys.resend, \"POST\"));",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "unexpected call POST https://api.resend.com/domains/id-matterofplace.com/verify"
+  },
+  {
+    "id": "b5-rd-created-alone",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "{ name, region: REGION }",
+    "replace": "{ name, region: \"eu-west-1\" }",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a missing domain is created alone"
+  },
+  {
+    "id": "b5-rd-proxied",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "proxied: false,",
+    "replace": "proxied: true,",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a missing domain is created alone"
+  },
+  {
+    "id": "b5-rd-update-in-place",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "init(found === undefined ? \"POST\" : \"PUT\")",
+    "replace": "init(\"POST\")",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "unexpected call POST https://api.cloudflare.com/client/v4/zones/zone-1/dns_records/rec-old"
+  },
+  {
+    "id": "b5-rd-unverified-not-created",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "known === undefined\n        ?",
+    "replace": "true\n        ?",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a listed domain that is not verified is read and verified, never created"
+  },
+  {
+    "id": "b5-rd-apex",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "record.name === \"@\" || record.name === ZONE",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a record at the apex is refused"
+  },
+  {
+    "id": "b5-rd-retry",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "if (attempt === ATTEMPTS) throw error;",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a dropped connection is retried"
+  },
+  {
+    "id": "b5-rd-refusal",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "if (!response.ok) {",
+    "replace": "if (!response.ok && false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a refusal is not retried and names the status"
+  },
+  {
+    "id": "b5-rd-check-spf",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "own.every((entry) => entry.status === \"verified\")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a verified domain whose SPF record is not verified fails spf"
+  },
+  {
+    "id": "b5-rd-check-pending",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "known.status !== \"verified\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× exits non-zero naming a domain listed as pending"
+  },
+  {
+    "id": "b5-rd-check-missing",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "io.log(`domain ${name} missing`);",
+    "replace": "io.log(`domain ${name} gone`);",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× exits non-zero naming a domain the account does not list"
+  },
+  {
+    "id": "b5-rd-check-print",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "io.log(`domain ${name} verified`);",
+    "replace": "io.log(`domain ${name} ok`);",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× prints verified, spf pass and dkim pass for each domain and exits 0"
   }
 ]
