@@ -147,3 +147,21 @@
 4. File: `workspace/05-plans/logs/B5.md`. Not blocking.
    - Follow-up: "NOT DONE (the brief anticipated this): the live half of step 5. It needs RESEND_API_KEY and EMAIL_LIVE=1 set on mop-dev, then 'bun run scripts/email-test.ts all <address>' printing a 'sent <key> <resend_id>' line per enabled key, the email_messages query, and a check of the From/Reply-To headers of 'received' and 'repermission' in the Zoho inbox. It needs JOB_RUNNER_SECRET (not in the lane .env; confirmed 0 matches) and the runner deployed from main. The orchestrator must run it before step 5 counts as closed."
    - Evidence: "Confirmed by running: grep -cE '^JOB_RUNNER_SECRET=.+' .env -> 0; supabase secrets list names show no RESEND_API_KEY or EMAIL_LIVE."
+
+## g2 · steps 6
+
+1. File: `workspace/05-plans/logs/B5.md`. Not blocking.
+   - Follow-up: "The g2 block pastes the output of `bunx vitest run tests/unit/readpath.test.ts -t \"table writes\"` as `Tests  2 passed | 3 skipped (5)`. The command prints `Tests  1 passed | 4 skipped (5)`, because the file has exactly one it() under describe(\"table writes\") (line 60). The conclusion (green) is correct; the pasted count is not real output. That breaks C09 and the rule against paraphrasing output. I marked it follow-up because no product behaviour depends on it: the log line should be corrected to the real output."
+   - Evidence: "Re-run in snapshot 5b1156a: ' Test Files  1 passed (1) /  Tests  1 passed | 4 skipped (5)'; grep of the file shows the only matching it() at line 60."
+
+2. File: `app/src/server/hooks/resend.ts`. Not blocking.
+   - Follow-up: "For `email.complained`, the hook's applyEffect runs B3's `unsubscribe_email` loop before `applyEmailEvent`, so the INT-02 env filter does not cover it. A complaint tagged env=preview that reaches the production handler after the launch switch still calls unsubscribe_email. The comment in events.ts says 'a late event of mail sent in preview must not touch production', and for complaints the hook contradicts that. The author states the decision openly in the log. The real effect is small: preview mail goes only to dev_recipients (admin@, admin+*@, *@resend.dev), so the most that happens is an admin or test address being unsubscribed. The plan's -t \"foreign env\" case targets applyEmailEvent, and that part holds. The hook-level test 'drops an event of another stage' uses email.delivered only, so no test pins the complaint path. Follow-up: either move the env check ahead of the complaint loop, or rule that a complaint is honoured whatever its stage, and add a hook test for whichever is chosen."
+   - Evidence: "Reading events.ts and resend.ts at 5b1156a: applyEffect does `if (event.type === \"email.complained\") { ... db.rpc(\"unsubscribe_email\") ... }` and only then `await applyEmailEvent(...)`. Log g2: 'it also runs for a complaint tagged for another stage; the foreign-env filter covers applyEmailEvent only.'"
+
+3. File: `app/tests/unit/email/events.test.ts`. Not blocking.
+   - Follow-up: "The `delivery()` Svix-signing helper (lines 211-227) is a second copy of `sign()`/`delivery()` in B3's tests/api/resend.api.test.ts (lines 28-46). C05 asks for one shared helper; a fixture under tests/fixtures would serve both. jscpd does not scan tests, so no gate catches this. Follow-up only."
+   - Evidence: "grep -rln 'svix-signature' tests/ returns both files; both build the HMAC from `${id}.${timestamp}.${body}` the same way."
+
+4. File: `workspace/05-plans/B5.md`. Not blocking.
+   - Follow-up: "Stale plan text, for the orchestrator to fold in. Step 6 says the orchestrator still has to add RESEND_WEBHOOK_SECRET to PREVIEW_WORKER_SECRETS_JSON before `wrangler secret list` shows it. That is done: the dev Worker lists RESEND_WEBHOOK_SECRET today. The live bounce proof is still UNPROVEN until this step is deployed and EMAIL_LIVE=1 is set; mop-dev's function secrets have MOP_ENV (= preview) but no EMAIL_LIVE and no RESEND_API_KEY."
+   - Evidence: "wrangler secret list (with .env token) includes RESEND_WEBHOOK_SECRET; `supabase secrets list` names matching MOP|EMAIL|RESEND: ADMIN_NOTIFY_EMAIL,MOP_ENV,RESEND_FROM,RESEND_FROM_BULK."

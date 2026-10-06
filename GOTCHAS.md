@@ -2938,6 +2938,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `vitest.config.ts` declares no `@` alias (only `vite.config.ts` does, for the site build), and no file under `src/server/jobs` or `src/server/automation` uses `@/` at all; R07 allows a relative `.ts` path as well.
 - rule: a Deno-loaded file (`src/server/{jobs,automation,omnikom,...}/**`, `src/domain/**`) imports by relative path with the `.ts` extension (`../lib/hmac.ts`, `../../domain/omnikom.ts`), whatever a plan line says about `@/`.
 - proof: `cd app && grep -c "alias" vitest.config.ts` → `0`; `git grep -n 'from "@/' -- src/server/jobs src/server/omnikom` → no hits; with `../lib/crypto.ts` put back as `@/server/lib/crypto.ts` in `src/server/omnikom/payload.ts` the test file fails with the error above (measured 2026-10-04).
+- Hit again 2026-10-06, B5 g2: the first `bun run check` of step 6 stopped on R07 (an `@/` import in a server file the runner loads) and cost a full check run. Write a relative `.ts` import in every `src/server/**` and `src/domain/**` file from the first line.
 - added: 2026-10-04
 
 ## P-1701 · A plan-named file that is not ordinary code fails the layout gate or knip: run both right after creating it
@@ -3531,6 +3532,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the shell carries `CLOUDFLARE_API_TOKEN` as a Windows user-level variable (the operator's other projects, P-331 class), the dev profile does not export the project's Cloudflare pair, and wrangler takes whatever token the environment holds.
 - rule: never call wrangler bare. Every wrangler call runs with the project's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` read from `.env` and passed in the child's env (as `preview-bundle.mjs` and the fix commit did), and prints `whoami`'s account name first; "Creating new Worker" on a name that should exist means stop and delete the stray. Check for a stray with the shell token: `bunx wrangler secret list --name <worker>` → "not found" is the healthy answer.
 - proof: `bunx wrangler delete --name matter-of-place --force` under the personal token → "Successfully deleted"; under the project env, `secret list --name matter-of-place` → 7 names (CONFIRM_TOKEN_SECRET, RATE_LIMIT_SALT, RESEND_WEBHOOK_SECRET, SENTRY_DSN, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, TURNSTILE_SECRET); `matter-of-place-dev` → 11 names; the personal account has neither Worker.
+- Hit again 2026-10-06, B5 g2: a bare `bunx wrangler secret list --name matter-of-place-dev` answered "Worker not found" (the shell token belongs to the personal account) and the Worker's RESEND_WEBHOOK_SECRET was recorded UNPROVEN, although it was there. "Not found" under the shell token says nothing about the project's Worker. With the project's token and account id loaded from `.env` the same command lists RESEND_WEBHOOK_SECRET.
 - added: 2026-10-06
 
 ## P-528 · The Claude Code cloud sandbox cannot run a lane: its network lets only web traffic out, so the Postgres connection every database test uses is closed even with network access set to "Full"
