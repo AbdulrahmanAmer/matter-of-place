@@ -585,9 +585,20 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
   nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; }
   nav button[aria-current="page"] { border-bottom-color: var(--ink); }
   .side-meta { display: none; }
-  main { padding: 20px 16px 60px; }
+  main { padding: 20px 16px 60px; min-width: 0; }
+  .view { min-width: 0; }
   .hero { grid-template-columns: 1fr; }
   .figure { font-size: 72px; }
+  /* Phone (operator, 2026-10-07): the Arms, Lanes and Slices tables and the Activity list pushed the page to 600 to
+     870 px wide, so the whole view scrolled sideways. Cells wrap, long tokens break, the table scrolls inside .wrap. */
+  table { font-size: 13px; }
+  th, td { padding: 7px 8px 7px 0; }
+  tbody th { white-space: normal; }
+  td, th, .steps li, .events li, p, summary { overflow-wrap: anywhere; }
+  .num { white-space: normal; }
+  .events, .steps { padding-left: 16px; }
+  h1 { font-size: 28px; }
+  .lead { font-size: 17px; }
 }
 </style>
 </head>
