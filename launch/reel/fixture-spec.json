@@ -1,0 +1,89 @@
+{
+  "kind": "reel",
+  "property": {
+    "title": "A residence shaped around the landscape.",
+    "city": "Los Altos Hills",
+    "state": "California",
+    "market": "california",
+    "price": 8950000,
+    "currency": "USD",
+    "beds": 5,
+    "baths": 4.5,
+    "interiorSqFt": 4320,
+    "type": "Estate"
+  },
+  "shots": [
+    {
+      "key": "app/src/assets/gallery/ca-terrace.jpg",
+      "src": "/app/src/assets/gallery/ca-terrace.jpg",
+      "alt": "Terrace beneath the oaks at dusk",
+      "orientation": "landscape"
+    },
+    {
+      "key": "app/src/assets/gallery/ca-living.jpg",
+      "src": "/app/src/assets/gallery/ca-living.jpg",
+      "alt": "Living room opening to oaks and hills",
+      "orientation": "landscape"
+    },
+    {
+      "key": "app/src/assets/gallery/hills-deck.jpg",
+      "src": "/app/src/assets/gallery/hills-deck.jpg",
+      "alt": "Timber deck among redwoods above the bay",
+      "orientation": "portrait"
+    },
+    {
+      "key": "app/src/assets/gallery/coast-terrace.jpg",
+      "src": "/app/src/assets/gallery/coast-terrace.jpg",
+      "alt": "Concrete terrace above the coast at dusk",
+      "orientation": "landscape"
+    },
+    {
+      "key": "app/src/assets/gallery/ca-stair.jpg",
+      "src": "/app/src/assets/gallery/ca-stair.jpg",
+      "alt": "Concrete stair in soft light",
+      "orientation": "portrait"
+    },
+    {
+      "key": "app/src/assets/gallery/ca-kitchen.jpg",
+      "src": "/app/src/assets/gallery/ca-kitchen.jpg",
+      "alt": "Limestone kitchen island",
+      "orientation": "portrait"
+    },
+    {
+      "key": "app/src/assets/gallery/desert-court.jpg",
+      "src": "/app/src/assets/gallery/desert-court.jpg",
+      "alt": "Courtyard with an olive tree and still water",
+      "orientation": "landscape"
+    },
+    {
+      "key": "app/src/assets/gallery/coast-bedroom.jpg",
+      "src": "/app/src/assets/gallery/coast-bedroom.jpg",
+      "alt": "Bedroom with a window onto the sea",
+      "orientation": "portrait"
+    },
+    {
+      "key": "app/src/assets/gallery/fl-pool.jpg",
+      "src": "/app/src/assets/gallery/fl-pool.jpg",
+      "alt": "Long pool before a lit pavilion at dusk",
+      "orientation": "landscape"
+    },
+    {
+      "key": "app/src/assets/gallery/desert-colonnade.jpg",
+      "src": "/app/src/assets/gallery/desert-colonnade.jpg",
+      "alt": "Colonnade in raking light",
+      "orientation": "portrait"
+    }
+  ],
+  "copy": {
+    "location": "LOS ALTOS HILLS, CALIFORNIA",
+    "title": "A residence shaped around the landscape.",
+    "facts": "5 BED · 4.5 BATH · 4,320 SF",
+    "price": "$8,950,000",
+    "site": "matterofplace.com",
+    "credit": "A product of Omnikom"
+  },
+  "sound": {
+    "bed": "wind",
+    "seed": 1067064402
+  }
+}

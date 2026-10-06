@@ -1,5 +1,5 @@
 // Render a scene's sound design: opens <scene.html>?audio=1, awaits window.__audio (base64 float WAV rendered by
-// OfflineAudioContext from the scene's cues.json), saves it. Usage: node launch/engine/audio.mjs <scene.html> [out.wav]
+// OfflineAudioContext from the scene's cues.json), saves it. Usage: node launch/engine/audio.mjs <scene.html> [out.wav] [--query a=b&c=d]
 import puppeteer from "puppeteer-core";
 import { writeFileSync } from "node:fs";
 import { resolve, join, relative, dirname } from "node:path";
@@ -7,9 +7,12 @@ import { serve, ROOT } from "./serve.mjs";
 import { findChrome, CHROME_ARGS } from "./chrome.mjs";
 
 const scene = resolve(process.argv[2]);
-const out = resolve(process.argv[3] || join(dirname(scene), "audio.wav"));
+const queryAt = process.argv.indexOf("--query");
+const query = queryAt >= 0 ? process.argv[queryAt + 1] : "";
+const named = process.argv[3];
+const out = resolve(named && !named.startsWith("--") ? named : join(dirname(scene), "audio.wav"));
 const server = await serve();
-const url = `${server.url}/${relative(ROOT, scene).split("\\").join("/").split("/").map(encodeURIComponent).join("/")}?audio=1`;
+const url = `${server.url}/${relative(ROOT, scene).split("\\").join("/").split("/").map(encodeURIComponent).join("/")}?${query ? `${query}&` : ""}audio=1`;
 const browser = await puppeteer.launch({ executablePath: findChrome(), headless: true, protocolTimeout: 600000, args: CHROME_ARGS });
 const page = await browser.newPage();
 const errors = [];

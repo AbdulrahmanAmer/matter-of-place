@@ -129,7 +129,7 @@ export function PropertyFilm({
 
   return (
     <div className={cx("gallery-full", "gallery-film", playing && "is-playing")}>
-      <figure>
+      <figure className="film-portrait">
         {playing ? (
           <video
             src={video.src}
@@ -140,7 +140,7 @@ export function PropertyFilm({
             loop
             playsInline
             preload="none"
-            aria-label={`${video.caption}, illustrative film of the ${city} property`}
+            aria-label={`${video.caption}, film of the ${city} property`}
           />
         ) : (
           <>

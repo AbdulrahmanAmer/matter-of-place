@@ -11,7 +11,7 @@
     "src/server/nitro/*.ts"
   ],
   "ignore": ["src/db/types.ts", "src/domain/enums.check.ts"],
-  "ignoreBinaries": ["psql"],
+  "ignoreBinaries": ["psql", "ffmpeg", "ffprobe"],
   "ignoreDependencies": ["@fontsource-variable/*"],
   "ignoreIssues": {
     "src/templates/email/!(layout|blocks).tsx": ["exports"]
