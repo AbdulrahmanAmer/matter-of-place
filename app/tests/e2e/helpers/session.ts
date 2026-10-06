@@ -1,7 +1,8 @@
 // Staff sign-in for the admin specs (API-01): the `hashed_token` of `auth.admin.generateLink`, opened on the
 // confirm page in a new browser context, so no mail is sent and the link is never spent by the context that
-// asked for it. Needs the dev profile (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`); in CI the
-// job's ephemeral stack supplies its own values under the same names.
+// asked for it. On the laptop it reads the dev profile (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`);
+// CI's e2e job has no project ref, its ephemeral stack exports `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+// (ci.yml), so those win when both are set (P-2010).
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../../src/db";
@@ -14,11 +15,18 @@ function requiredEnv(name: string): string {
 
 /** The service-role client of the project the Worker under test reads. */
 export function adminClient() {
-  return createClient<Database>(
-    `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
-    requiredEnv("DEV_SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const ciUrl = process.env["SUPABASE_URL"] ?? "";
+  const ciKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+  const [url, key] =
+    ciUrl !== "" && ciKey !== ""
+      ? [ciUrl, ciKey]
+      : [
+          `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
+          requiredEnv("DEV_SUPABASE_SERVICE_ROLE_KEY"),
+        ];
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 /**
