@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-06 01:35 (UTC+3)",
-  "now": "Four lanes live (B13, B12, B17, B7); B5 relaunches on steps 5 to 9 after PR 155. Tooling added tonight: bank-merge.mjs, migrations:restamp, types:from-ci (P-526), stall-watch.mjs (P-529), lane-runner.md for the Dell. Cloud sandbox retired (P-528). Next by dependency unchanged.",
+  "updated": "2026-10-06 12:50 (UTC+3)",
+  "now": "Two lanes live (B17, B7), pausing at their next group boundary for the second-laptop setup (operator, 10:40). B5 and B12 fully on main (PRs 171, 161). Morning: OmniSkipX incident (G-901) cleaned and guarded; H62 line on main (PR 173); width-check flake fixed (PRs 169, 175); one-database guard test (PR 170). Open: PRs 158 (B7 2 and 3), 163 (B13 5 to 7), 142 (B17 1), to be merged before relaunch.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -150,10 +150,15 @@
         "2",
         "3",
         "4",
-        "4a"
+        "4a",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
       ],
       "inReview": [],
-      "note": "Steps 1 and 2 on main (PRs 108, 137); 3, 4 and 4a accepted 2026-10-05 evening (run wf_b3187d8e-c91) and merging in PR 155; CONFIRM_TOKEN_SECRET and RESEND_WEBHOOK_SECRET now in the preview bundle and on both Workers (F12). Steps 5 to 9 relaunch after PR 155 merges and CI deploys the runner."
+      "note": "All nine steps on main: 1 and 2 (PRs 108, 137), 3 to 4a (PR 155), 5 to 9 (PR 171, merged 2026-10-06 11:43 after two merge chores: the H62 line on main, b5-shots-overflow-600 marked manual). Live send of step 5 waits on RESEND_API_KEY and EMAIL_LIVE=1 on mop-dev and the runner deploy (orchestrator, from the shell that holds the secret)."
     },
     "H2": {
       "accepted": [],
@@ -206,46 +211,52 @@
         "1",
         "2",
         "3",
-        "4"
-      ],
-      "inReview": [
+        "4",
         "5",
-        "6"
+        "6",
+        "7"
       ],
-      "note": "Steps 1 to 4 on main (PR 141); 5 and 6 built and in close-out review in run wf_dbe24ed5-4c9 (the earlier run stalled on a hung reviewer, P-529); 7 to 13 follow."
+      "inReview": [],
+      "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 and in PR 163 (blocked twice: bundle wall of H62, now on main; one drifted B4 mutation find, re-pointed). Run wf_31d6490a-eeb ended blocked waiting for 158; relaunch from lanes/B13.json after 163 merges: steps 8 to 13."
     },
     "B17": {
       "accepted": [
         "1",
         "2",
-        "3"
+        "3",
+        "5"
       ],
       "inReview": [
-        "4"
+        "4",
+        "6"
       ],
-      "note": "Step 1 accepted (PR 142 waits on close-out c1, in a fix round); 2 and 3 accepted; 4 building."
+      "note": "Step 1 accepted (PR 142, close-out c1 done); 2, 3, 5 accepted on slice/b17; 4 in its second fix round; 6 in review; run wf_df526cfb-c3b pauses after step 6 banks (operator, 10:40). 7 to 12 relaunch from lanes/B17.json."
     },
     "B7": {
-      "accepted": [
-        "1"
-      ],
-      "inReview": [
-        "2"
-      ],
-      "note": "Step 1 (authz core) on main (PR 138, f2b24b0); step 2 in its first fix round (two comment lines tripping grep proofs); 19 groups in run wf_606b966f-c84."
-    },
-    "B12": {
       "accepted": [
         "1",
         "2",
         "3"
       ],
       "inReview": [
+        "4"
+      ],
+      "note": "Step 1 on main (PR 138); 2 and 3 accepted on slice/b7, in PR 158 (bundle wall and e2e env fixed; the H62 line is on main since PR 173). Step 4 building in run wf_635ac60b-161; pauses after step 4 banks (operator, 10:40). 5 to 16 relaunch from lanes/B7.json, planned for the Dell."
+    },
+    "B12": {
+      "accepted": [
+        "1",
+        "2",
+        "3",
         "4",
         "5",
-        "6"
+        "6",
+        "7",
+        "8",
+        "9"
       ],
-      "note": "Steps 1 to 3 accepted; 4 and 5 (render, review loop) in their second fix round; 6 built and in review."
+      "inReview": [],
+      "note": "All steps on main (PR 161, merged 2026-10-06 07:46; step 7 under ruling H63, the attach audit row is a system row)."
     }
   },
   "lanes": [
