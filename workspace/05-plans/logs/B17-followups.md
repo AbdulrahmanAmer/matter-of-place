@@ -89,3 +89,27 @@ Recorded in the bank, not here: one follow-up whose file is GOTCHAS.md (a litera
    Evidence: logs/B17.md: 'NOT DONE: ... described errors in interest-form.tsx and submit/*'; grep -n 'useFieldErrors' app/src/components/forms/submit/*.tsx finds nothing
 
 Recorded in the bank, not here: two follow-ups whose file is GOTCHAS.md became three hit-again lines, in P-2125 (the shared scratchpad overwrote a reviewer's check.txt and build.txt), P-1805 (the sweep with --workers=2 timed out on two desktop property pages) and G-031 (the 20 s prettier case timed out inside bun run check).
+
+## g3 · steps 4
+
+1. File `app/tests/mutations/B17.json` (not blocking).
+   What: The manual entry b17-e2e-consent-link (line 917) records expect "consent-link-beats-record[sS]*Analytics are off". The backslashes of [\\s\\S] were lost, so [sS]* only matches the letters s and S, and the pattern can never match Playwright output. Replayed as recorded, the watched-fail always reports BAD, even though the mutation does turn the test red for the right reason. Fix: use "consent-link-beats-record[\\\\s\\\\S]*Analytics are off", like the b17-e2e-privacy-choices entry above it. Manual entries are never replayed by G18, so no gate goes red today. The cost lands on whoever re-runs it, for example H1.
+   Evidence: Confirmed by running. watchfail --file with the registry's exact fields printed 'WATCHED-FAIL BAD: wrong reason ... expected /consent-link-beats-record[sS]*Analytics are off/', and the red output showed 'unexpected value "Analytics are on."' at essentials.spec.ts:143. A node check of the regex: the recorded pattern does not match a sample Playwright failure, and /consent-link-beats-record[\\s\\S]*Analytics are off/ does.
+
+2. File `app/tests/WATCHED-FAIL.md` (not blocking).
+   What: The ledger was not updated for the rework. Line 130 still records b17-ck-prefer as the old mutation ('readRecord() ?? readCookie()' -> 'readCookie() ?? readRecord()', expect /readConsent prefers the record/), and the registry entry is now the reverse. Line 133 b17-ck-throwing, line 135 b17-cn-cookie-only and the b17-ck-fallback row find the old text too. No row records the new b17-ck-prefer or b17-e2e-consent-link. Plan B17.md Verification says each watched-fail is 'recorded in tests/WATCHED-FAIL.md'. watchfail appends a ledger row only with --record, and the rework did not use it.
+   Evidence: Seen by reading: sed of WATCHED-FAIL.md lines 120-135 and grep -n 'consent-link' (no match). git show --stat aa4da1f does not list WATCHED-FAIL.md.
+
+3. File `workspace/05-plans/B17.md` (not blocking).
+   What: Contract invariant 8 and the Files line for src/lib/consent.ts still say readConsent() 'reads the record and falls back to the cookie' / 'falls back to that cookie when no localStorage record exists'. The code now reads the cookie first. That is the right order for the plan's other promise ('the stored record and the cookie can never disagree', a no-JS choice is seen once scripts run), and the author flagged it. The orchestrator should fold the plan line.
+   Evidence: Seen by reading: consent.ts line 51 is 'return readCookie() ?? readRecord();'. plan-brief output, invariant 8 and the Files list.
+
+4. File `app/tests/e2e/essentials.spec.ts` (not blocking).
+   What: consent-gpc, and the reload half of consent-privacy-choices, cannot go red for a GA-load fault: the tree has no Google tag loader (B13's Ga4Loader). Plan watched-fail (e) is UNPROVEN until B13 lands. The author declared this.
+   Evidence: Seen by reading the spec: both cases assert only that no Google host was requested, and nothing in the tree ever requests one. The author's unproven list says the same.
+
+5. File `app/src/server/public/consent.ts` (not blocking).
+   What: A plain GET to /api/consent?set=accept from any site, as a top-level link with a SameSite=Lax cookie, opts a visitor in to analytics. The plan specifies a GET, so this is a plan-level consent-forgery question, already raised by the author as a plan decision. R13 limits on /api/consent are also still unset. Note for the plan owner.
+   Evidence: Confirmed by running: curl with 'Referer: https://evil.example/properties' and set=decline answered 303 with Set-Cookie (Location: /). Accept behaves the same by code path (read, not run with a foreign Referer).
+
+Recorded in the bank, not here: none. No follow-up of g3's review has GOTCHAS.md as its file; the `[sS]` backslash loss of follow-up 1 is already banked as P-1915 (a hit-again line there would repeat it, and the follow-up carries the fix).
