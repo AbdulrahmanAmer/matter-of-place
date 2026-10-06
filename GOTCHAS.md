@@ -3695,3 +3695,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a new render step takes the shared parts of `src/server/assets/render-run.ts` (`openStub`, `waitForVariants`, `propertyIdOf`, `unavailable`) instead of copying them, and runs `bun run jscpd` right after the first green unit run, before writing registry entries; after moving a block into a shared helper, repoint the registry entries whose `find` moved with it.
 - proof: `cd app && bun run jscpd` → `Found 0 clones.` on slice/b12 after B12 g5 moved the block into `openStub` (2026-10-06); with the block copied back into `render-reel.ts` it prints the clone above.
 - added: 2026-10-06
+
+## P-2122 · A scratch registry folder reused from an earlier session replays every old file in it
+- symptom: B12 c7 built a scratch registry for the eight `reel.db.test.ts` `sql` entries (the migration prepended, `run` rewritten to node, P-312) in a folder that already held `B12.json`, `B15.json`, `B7.json`, `B8b.json` and `R.json` from an earlier lane. `watchfail --registry <folder>` printed `replayed 135: ok 84, bad 0, stale 51`, ran for about 9 minutes and said nothing about the eight entries, because the tail showed only B8b and R lines.
+- cause: `--registry` replays every `*.json` in the folder, and the scratchpad of a session is shared across tasks, so `mkdir -p` kept the old files.
+- rule: build a scratch registry in a folder you create new (`rm -rf` then `mkdir`, or a name with the task in it) and read `ls <folder>` before the replay; ask for the count (`replayed 8`) you expect.
+- proof: `node scripts/watchfail.mjs --registry <fresh folder holding only the eight reel entries>` → `watchfail: replayed 8: ok 8, bad 0, stale 0` (B12 c7, 2026-10-06; the reused folder gave `replayed 135`).
+- added: 2026-10-06

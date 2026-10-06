@@ -601,8 +601,8 @@
     "kind": "sql",
     "test": "tests/db/reel.db.test.ts",
     "sql": "drop trigger assets_reel_video on public.assets; create trigger assets_reel_video after update of status on public.assets for each row when (new.kind = 'reel' and new.status = 'approved') execute function public.assets_reel_video();",
-    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"reject_asset with a note takes the film down and writes one system detach row\"",
-    "expect": "× .*reject_asset with a note takes the film down and writes one system detach row[\\s\\S]*to be null"
+    "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"reject_asset with a note takes the film down, writes one system detach row and raises catalog_version by 1\"",
+    "expect": "× .*reject_asset with a note takes the film down, writes one system detach row and raises catalog_version by 1[\\s\\S]*expected \\d+ to be \\d+"
   },
   {
     "id": "b12g5-guard",

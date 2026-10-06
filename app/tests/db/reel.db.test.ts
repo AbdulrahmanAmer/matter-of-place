@@ -130,11 +130,13 @@ describe("assets_reel_video", () => {
     });
   });
 
-  it("reject_asset with a note takes the film down and writes one system detach row", async () => {
+  it("reject_asset with a note takes the film down, writes one system detach row and raises catalog_version by 1", async () => {
     await withRollback(async (db) => {
       const reel = await readyReel(db, 9704);
       await db.query(approve, [reel.asset, reel.approver]);
+      const catalog = await catalogVersion(db);
       await db.query(reject, [reel.asset, reel.approver]);
+      expect(await catalogVersion(db)).toBe(catalog + 1);
       expect(await video(db, reel.property)).toBeNull();
       expect(await auditRows(db, "properties.video_detach", reel.property)).toEqual([SYSTEM_ROW]);
     });
