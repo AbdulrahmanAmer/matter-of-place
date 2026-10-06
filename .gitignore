@@ -43,3 +43,6 @@ frames/
 launch/.site-main/
 *.dump
 *.p7m
+
+# scratch output of the render jobs (B12): reel frames, spec and cues
+.tmp/

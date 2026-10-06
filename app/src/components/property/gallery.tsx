@@ -96,7 +96,7 @@ function PropertyFilm({ video, city, slug }: { video: PropertyVideo; city: strin
 
   return (
     <div className={cx("gallery-full", "gallery-film", playing && "is-playing")}>
-      <figure>
+      <figure className="film-portrait">
         {playing ? (
           <video
             src={video.src}
@@ -107,7 +107,7 @@ function PropertyFilm({ video, city, slug }: { video: PropertyVideo; city: strin
             loop
             playsInline
             preload="metadata"
-            aria-label={`${video.caption}, illustrative film of the ${city} property`}
+            aria-label={`${video.caption}, film of the ${city} property`}
           />
         ) : (
           <>
