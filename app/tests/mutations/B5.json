@@ -2247,7 +2247,9 @@
     "find": "  maxWidth: \"600px\",",
     "replace": "  maxWidth: \"600px\",\n  minWidth: \"700px\",",
     "run": "bun run email:shots",
-    "expect": "received: scrollWidth 7[0-9]{2} at 600 px"
+    "expect": "received: scrollWidth 7[0-9]{2} at 600 px",
+    "kind": "manual",
+    "note": "Needs a Chromium binary (bun run email:shots renders the templates in a browser); CI's db job has none, so it is replayed by hand on the laptop: 2026-10-06 the builder saw \"received: scrollWidth 7xx at 600 px\" with the minWidth mutation."
   },
   {
     "id": "b5-shots-lint-stops",
