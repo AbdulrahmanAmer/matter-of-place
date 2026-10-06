@@ -1234,3 +1234,22 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Open for the operator: the width-check fix for PRs 158, 163, 142 (draft on `chore/sweep-animations`, uncommitted,
   stashed as `sweep-draft`), and whether Jay's credentials leave the user-level environment for his key file or vault so
   no other project can inherit them.
+
+## 2026-10-06 12:50 (B5 and B12 on main; pausing for the second laptop; ledger 53.3 percent)
+- Operator (10:40): pause the runs at their next group boundary, set up the Dell as a fully managed second machine
+  (`claude --remote-control dell`, brief in `workspace/05-plans/lane-runner.md`, PR 172), then run many lanes; measured
+  today, accepts scale with lanes (five lanes 2.0 per hour, three lanes 1.0). Operator (12:20): close loose ends myself
+  before the Dell arrives, so every relaunch starts from a clean main.
+- Merged this morning: PR 169 and 174 (overflow check waits for finite animations; the hero `heroReveal` scale and the
+  property hero's infinite `cueDrift` were the two causes of the `/` and `/property/*` failures), 170 (one-database guard:
+  `tests/unit/one-database.test.ts`, `scripts/lib/one-database.mjs`, seven stale B9 mutations re-pointed), 172 (Dell
+  brief), 173 (the H62 `codeSplitting` line on main; CI bundle-check "OK 21 routes"), 171 (B5 steps 5 to 9, after two
+  merge chores). B12 steps 1 to 9 were already on main (PR 161, 07:46).
+- Runs: B5 run wf_03e1b94b-8bd ended at its merge step (merged by hand), B17 wf_df526cfb-c3b (step 6 in review, step 4
+  fix2) and B7 wf_635ac60b-161 (step 4 building) run until their pause watcher fires (`bank:B17:g5:6`, `bank:B7:g4:4`),
+  then stop; lane files carry the remaining steps. Loose ends to close before relaunch: PRs 158 (B7 2, 3), 163 (B13 5
+  to 7), 142 (B17 1): merge main in, CI, gate. B13's relaunch (8 to 13) waits on 163.
+- Ledger `progress.json` and README progress section at 53.3 percent (138 of 259). The board server reads the root
+  checkout: keep it on origin/main (detached), never on a records branch, or the board drifts (it read 129 for an hour).
+- OmniSkipX incident closed: all 160 tables scanned, two lead rows found and removed at 09:10, nothing left (incident
+  block of 08:30 has the detail); Jay's variables stay (operator), the guard makes them harmless here.
