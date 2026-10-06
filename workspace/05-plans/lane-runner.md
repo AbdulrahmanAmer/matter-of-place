@@ -41,8 +41,8 @@ through GitHub (branches, pull requests, the merge gate) and the shared mop-dev 
   from `origin/slice/<x>` when the branch exists), copies `.env` into it, runs `bun install --frozen-lockfile` in its
   `app/`, copies any ignored media the slice's proofs need (P-523), then launches
   `Workflow({ scriptPath: ".claude/workflows/build-slice.js", args: <the args of workspace/05-plans/lanes/<slice>.json> })`.
-- Keeps as many lanes as the processor allows (start with four; add one while the CPU stays under about 80 percent
-  and the reviewers' `bun run check` runs finish under six minutes); runs `node workspace/05-plans/stall-watch.mjs
+- Keeps as many lanes as the machine allows (the Dell starts with two, see the memory line below; add one only when the
+  orchestrator says so); runs `node workspace/05-plans/stall-watch.mjs
   --minutes 20 --runs <ids>` every five minutes; when a run ends with its slice merged, picks the next assigned slice.
 - Handles a blocked merge the way the orchestrator does: the three merge chores are scripts (P-526:
   `node workspace/05-plans/bank-merge.mjs`, `bun run migrations:restamp`, `bun run types:from-ci -- <pr>`); a merge
@@ -52,6 +52,14 @@ through GitHub (branches, pull requests, the merge gate) and the shared mop-dev 
   branch and merges it through the gate (documents-only merges need no CI).
 - Uses only the bank numbers of its slices' ranges (each `lanes/<slice>.json` carries `bankBase`).
 - Answers the orchestrator's messages with facts: run ids, group states, PR numbers, the exact failing line.
+- Never fixes a failing or unparsable script of ours (the workflow, a lane file, check-plans, stall-watch, the merge gate,
+  bank-merge, a helper): it stops that step and sends the orchestrator the exact command, the full error text and the file
+  and line, then waits (operator, 2026-10-07 01:10). The only exceptions are the three scripted merge chores, run as written.
+  This holds for its own records branch too: a refused gate is reported, never satisfied by editing files.
+- Memory on the Dell (8 GB): two lanes from the start, measured rather than gated (operator, 2026-10-07 01:05): free memory
+  is reported every 30 minutes with the run ids, and the first memory symptom (vitest worker start timeout, a `bun run
+  check` over eight minutes, a Chromium launch failure) is reported as it happens; the orchestrator decides on a third lane
+  or a pause.
 
 ## How the orchestrator drives it
 
