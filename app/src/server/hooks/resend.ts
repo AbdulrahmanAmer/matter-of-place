@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { fromBase64, hmacSha256, timingSafeEqual } from "../lib/crypto";
+import { applyEmailEvent, resendEvent, type ResendEvent } from "../email/events";
 import type { Db } from "../lib/db";
 import type { env as workerEnv } from "../lib/env";
 import { AppError } from "../lib/errors";
@@ -12,13 +12,6 @@ import { logLine } from "../lib/log";
 const PROVIDER = "resend";
 const TOLERANCE_SECONDS = 300;
 const SECRET_PREFIX = "whsec_";
-
-const eventSchema = z
-  .object({
-    type: z.string(),
-    data: z.object({ to: z.union([z.string(), z.array(z.string())]).optional() }).passthrough(),
-  })
-  .passthrough();
 
 const refused = () => new AppError("unauthorized", undefined, "The signature does not match.");
 
@@ -49,13 +42,17 @@ export async function verifySvix(
   });
 }
 
-async function applyEffect(db: Db, event: z.infer<typeof eventSchema>): Promise<void> {
-  if (event.type !== "email.complained") return;
-  const recipients = event.data.to ?? [];
-  for (const email of typeof recipients === "string" ? [recipients] : recipients) {
-    const { error } = await db.rpc("unsubscribe_email", { p_email: email });
-    if (error !== null) throw new AppError("server", undefined, "The event could not be applied.");
+async function applyEffect(db: Db, event: ResendEvent, id: string, ownEnv: string): Promise<void> {
+  if (event.type === "email.complained") {
+    const recipients = event.data.to ?? [];
+    for (const email of typeof recipients === "string" ? [recipients] : recipients) {
+      const { error } = await db.rpc("unsubscribe_email", { p_email: email });
+      if (error !== null) {
+        throw new AppError("server", undefined, "The event could not be applied.");
+      }
+    }
   }
+  await applyEmailEvent(db, { ...event, id }, ownEnv);
 }
 
 export async function handleResend(
@@ -84,7 +81,7 @@ export async function handleResend(
   } catch {
     throw new AppError("bad_request", undefined, "The event could not be read.");
   }
-  const event = eventSchema.safeParse(parsed);
+  const event = resendEvent.safeParse(parsed);
   if (!event.success) throw new AppError("bad_request", undefined, "The event could not be read.");
 
   const receipt = await db.rpc("record_webhook_receipt", { p_provider: PROVIDER, p_id: id });
@@ -94,7 +91,7 @@ export async function handleResend(
   const ok = () => Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });
   if (!receipt.data) return ok();
   try {
-    await applyEffect(db, event.data);
+    await applyEffect(db, event.data, id, env.MOP_ENV);
   } catch (error) {
     const forgot = await db.rpc("forget_webhook_receipt", { p_provider: PROVIDER, p_id: id });
     if (forgot.error !== null) logLine("error", "webhook_forget_failed", { provider: PROVIDER });

@@ -3545,3 +3545,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `resend-check.ts` lists once and then reads each verified domain by id, a read only; `spf pass` means every record labelled SPF reads `verified`. A plan line that prints a finer fact than the call it names returns must read the call that holds it, and the log says so.
 - proof: with `.env` loaded, `curl -s -H "Authorization: Bearer $RESEND_API_KEY" https://api.resend.com/domains | grep -c '"records"'` → `0`, and the same on `https://api.resend.com/domains/<id>` of `matterofplace.com` → `1` (2026-10-06, B5 g1).
 - added: 2026-10-06
+
+## P-1213 · A new write in a hook's effect leaves rows behind in a committed-mode api test that cleans only the tables it knew
+- symptom: B5 step 6 made `hooks/resend.ts` call `apply_email_event` after every verified event. B3's `tests/api/resend.api.test.ts` (committed mode, run against `mop-dev`) sends `email.complained` for random `complaint+<uuid>@example.invalid` addresses, stayed green, and left one `email_suppressions` row and one `email_events` row per case on `mop-dev`.
+- cause: the test's cleanup deletes `subscribers`, `webhook_receipts` and `rate_limits` only; a green run does not show a table the cleanup never heard of. The DL-06 case has its own cleanup block, so patching the shared `run` helper alone still left one row of each.
+- rule: when a step adds a write to code that a committed-mode test drives, count the rows that test leaves (`select count(*) ... where email like '<its prefix>%'`) after a run, and add every table to every cleanup block of that file.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/api/resend.api.test.ts; bun run db:psql -- -Atc "select (select count(*) from email_suppressions where email like 'complaint+%'), (select count(*) from email_events where to_email like 'complaint+%')"` → `0|0` (measured 2026-10-06, B5 g2: `1|1` before the second block was fixed).
+- added: 2026-10-06

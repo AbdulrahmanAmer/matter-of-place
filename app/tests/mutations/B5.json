@@ -1779,5 +1779,195 @@
     "replace": "io.log(`domain ${name} ok`);",
     "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
     "expect": "× prints verified, spf pass and dkim pass for each domain and exits 0"
+  },
+  {
+    "id": "b5-ev-foreign-env",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "&& taggedEnv !== ownEnv)",
+    "replace": "&& false)",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*foreign env: an event tagged production"
+  },
+  {
+    "id": "b5-ev-foreign-log",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "    logLine(\"info\", \"email_event_foreign_env\", { type });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*foreign env: an event tagged production"
+  },
+  {
+    "id": "b5-ev-untagged",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "typeof taggedEnv === \"string\" && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*an event tagged with its own env, or with none"
+  },
+  {
+    "id": "b5-ev-email-only",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "type.startsWith(\"email.\") && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a contact.updated is judged by its audience"
+  },
+  {
+    "id": "b5-ev-click-link",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "link: data.click?.link,",
+    "replace": "link: undefined,",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*click link"
+  },
+  {
+    "id": "b5-ev-contact-address",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "type === \"contact.updated\" ? data.email : [data.to].flat()[0]",
+    "replace": "[data.to].flat()[0]",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*unsubscribed: a contact.updated"
+  },
+  {
+    "id": "b5-ev-unsubscribed-flag",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "unsubscribed: data.unsubscribed,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*unsubscribed: a contact.updated"
+  },
+  {
+    "id": "b5-ev-bounce-type",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "bounce_type: data.bounce?.type,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.bounced Permanent maps to p"
+  },
+  {
+    "id": "b5-ev-audience",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "audience_id: data.audience_id,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a Broadcast event maps to p"
+  },
+  {
+    "id": "b5-ev-broadcast",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "broadcast_id: data.broadcast_id,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a Broadcast event maps to p"
+  },
+  {
+    "id": "b5-ev-at",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "at: event.created_at,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.sent maps to p"
+  },
+  {
+    "id": "b5-ev-event-id",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "provider_event_id: id,",
+    "replace": "provider_event_id: type,",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.sent maps to p"
+  },
+  {
+    "id": "b5-ev-string-recipient",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "[data.to].flat()[0]",
+    "replace": "data.to?.[0]",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a recipient sent as a string"
+  },
+  {
+    "id": "b5-ev-rpc-error",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "if (error !== null) throw new AppError(\"server\", undefined, \"The event could not be applied.\");",
+    "replace": "if (error !== null) return;",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*an RPC error is thrown"
+  },
+  {
+    "id": "b5-ev-false-return",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "const { error } = await db.rpc(\"apply_email_event\", { p });\n  if (error !== null) throw",
+    "replace": "const { data: applied, error } = await db.rpc(\"apply_email_event\", { p });\n  if (error !== null || !applied) throw",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a false return, a replay, is a no-op"
+  },
+  {
+    "id": "b5-ev-hook-wired",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  await applyEmailEvent(db, { ...event, id }, ownEnv);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-id",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "{ ...event, id }, ownEnv",
+    "replace": "{ ...event, id: \"x\" }, ownEnv",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-env",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "event.data, id, env.MOP_ENV",
+    "replace": "event.data, id, \"production\"",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-forget",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "db.rpc(\"forget_webhook_receipt\"",
+    "replace": "db.rpc(\"record_webhook_receipt\"",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*forgets the receipt and answers 500"
   }
 ]
