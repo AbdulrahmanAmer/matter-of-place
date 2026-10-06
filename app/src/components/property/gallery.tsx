@@ -146,9 +146,9 @@ export function PropertyFilm({
           />
         ) : (
           <>
-            <img
+            <Picture
               src={video.poster}
-              loading="lazy"
+              sizes="(max-width: 416px) 100vw, 416px"
               width={1600}
               height={1104}
               alt={`${video.caption}, poster frame`}

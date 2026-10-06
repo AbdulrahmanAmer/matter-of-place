@@ -28,7 +28,7 @@ import { z } from "zod";
 import type { Json } from "../../src/db";
 import type { Db } from "../../src/server/lib/db";
 import { cookieInventory } from "../../src/config/cookies";
-import { cspReportBatchSchema } from "../../src/domain/contracts";
+import { cspReportBatchSchema } from "../../src/domain/csp-report";
 import { defaultFlags, featureFlags } from "../../src/domain/flags";
 import { errorReference } from "../../src/components/layout/route-error";
 import { Gallery, PropertyFilm } from "../../src/components/property/gallery";
@@ -51,6 +51,7 @@ import { maintenanceHtml } from "../../src/server/lib/maintenance-html";
 import { handle, type PipelineContext, type PipelineDeps } from "../../src/server/lib/pipeline";
 import { captureException } from "../../src/server/lib/sentry";
 import { setConsent } from "../../src/server/public/consent";
+import { services } from "../../src/services";
 import { HttpServiceError } from "../../src/services/http/client";
 import { auditAlt } from "../../scripts/alt-audit.mjs";
 import { countingDb } from "../fixtures/db-counter";
@@ -1476,6 +1477,43 @@ describe("picture", () => {
       }),
     );
     expect(gallery).toContain("/media/p/one/hero.webp 1600w");
+  });
+
+  it("picture: the film poster is drawn by Picture, so it is sized, lazy and decoded async", () => {
+    const markup = renderToString(
+      createElement(PropertyFilm, {
+        video: { src: "/film.mp4", poster: "/poster.jpg", caption: "Dusk", duration: "0:06" },
+        city: "Marin",
+        slug: "marin-house",
+      }),
+    );
+    const [poster = ""] = tags(markup);
+    expect(poster).toContain(`src="/poster.jpg"`);
+    expect(poster).toContain(`sizes="`);
+    expect(poster).toContain(`decoding="async"`);
+    expect(poster).toContain(`loading="lazy"`);
+  });
+
+  it("picture: the property page gives its hero the hero variants and its share cover the first gallery image variants", async () => {
+    const property = properties[0];
+    const first = property?.gallery[0];
+    if (property === undefined || first === undefined) throw new Error("no bundled data");
+    const named = (folder: string) => ({
+      card: { w: 720, h: 497, webp: `/media/p/${folder}/card.webp` },
+      hero: { w: 1600, h: 1104, webp: `/media/p/${folder}/hero.webp` },
+    });
+    vi.spyOn(services.catalog, "getProperty").mockResolvedValue({
+      ...property,
+      heroVariants: named("hero"),
+      gallery: [{ ...first, variants: named("cover") }],
+    });
+    const page = await renderPage(`/property/${property.slug}`);
+    const hero = /<section class="image-hero">(<img\b[^>]*>)/.exec(page)?.[1];
+    expect(hero).toContain("/media/p/hero/hero.webp 1600w");
+    expect(hero).not.toContain("/media/p/cover/");
+    const cover = /<div class="share-cover-image">(<img\b[^>]*>)/.exec(page)?.[1];
+    expect(cover).toContain("/media/p/cover/hero.webp 1600w");
+    expect(cover).not.toContain("/media/p/hero/");
   });
 
   it("picture: the first image of the home page is fetched at once", async () => {

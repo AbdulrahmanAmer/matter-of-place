@@ -3,7 +3,6 @@ import {
   analyticsBatchSchema,
   clientErrorSchema,
   conciergeQuestionSchema,
-  cspReportBatchSchema,
   inquirySchema,
   searchQuerySchema,
   slugSchema,
@@ -11,6 +10,7 @@ import {
   submissionSchema,
   subscriberSchema,
 } from "../../domain/contracts";
+import { cspReportBatchSchema } from "../../domain/csp-report";
 import {
   getMarket,
   getProperty,

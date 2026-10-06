@@ -1,5 +1,6 @@
 import type { Json } from "../../db";
-import type { AnalyticsBatch, CspReport } from "../../domain/contracts";
+import type { AnalyticsBatch } from "../../domain/contracts";
+import type { CspReport } from "../../domain/csp-report";
 import { analyticsEvents } from "../../lib/analytics";
 import type { Db } from "../lib/db";
 import { sentryOptions } from "../lib/env";

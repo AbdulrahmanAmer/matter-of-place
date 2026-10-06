@@ -218,7 +218,7 @@
   {
     "id": "b17-report-min",
     "test": "tests/unit/essentials.test.ts",
-    "file": "src/domain/contracts.ts",
+    "file": "src/domain/csp-report.ts",
     "find": "  z.array(reportingApiViolation).min(1).max(20),",
     "replace": "  z.array(reportingApiViolation).max(20),",
     "run": "bun run test tests/unit/essentials.test.ts",
@@ -227,7 +227,7 @@
   {
     "id": "b17-report-cut",
     "test": "tests/unit/essentials.test.ts",
-    "file": "src/domain/contracts.ts",
+    "file": "src/domain/csp-report.ts",
     "find": "  directive: cut(100)(directive),",
     "replace": "  directive,",
     "run": "bun run test tests/unit/essentials.test.ts",
@@ -1554,6 +1554,33 @@
     "replace": "",
     "run": "bun run test tests/unit/essentials.test.ts -t picture",
     "expect": "× .*picture: the first image of the home page"
+  },
+  {
+    "id": "b17-g7-pic-poster",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "<Picture\n              src={video.poster}",
+    "replace": "<img\n              src={video.poster}",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the film poster is drawn by Picture"
+  },
+  {
+    "id": "b17-g7-pic-page-hero",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.property.$slug.tsx",
+    "find": "        variants={property.heroVariants}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the property page gives its hero[^]*expect.hero."
+  },
+  {
+    "id": "b17-g7-pic-page-cover",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/share-cover.tsx",
+    "find": "            variants={property.gallery[0]?.variants}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the property page gives its hero[^]*expect.cover."
   },
   {
     "id": "b17-g7-lh-skip",
