@@ -1,6 +1,8 @@
 // The Node and bun side of B3's `src/server/lib/media-store.ts` (ASSUMED H33 (2)): the Storage REST API of the one
 // project, called with `fetch`, no SDK. Keys are content-hashed and never change their bytes (F24).
 
+import { oneDatabaseValue } from "./one-database.mjs";
+
 const IMMUTABLE = "public, max-age=31536000, immutable";
 
 /**
@@ -8,6 +10,8 @@ const IMMUTABLE = "public, max-age=31536000, immutable";
  * @returns {string}
  */
 function required(name) {
+  const one = oneDatabaseValue(name, "media-store");
+  if (one !== undefined) return one;
   const value = process.env[name];
   if (value === undefined || value === "") throw new Error(`media-store: ${name} is not set`);
   return value;
