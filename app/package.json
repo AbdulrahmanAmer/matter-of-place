@@ -49,7 +49,9 @@
     "captions": "bun scripts/captions-runner.ts",
     "omnikom:mock": "bun run scripts/omnikom-mock.ts",
     "omnikom:run-local": "bun run scripts/omnikom-run-local.ts",
-    "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788"
+    "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788",
+    "migrations:restamp": "bun run scripts/restamp-migrations.ts",
+    "types:from-ci": "bun run scripts/types-from-ci.ts"
   },
   "trustedDependencies": [
     "supabase",
@@ -59,6 +61,8 @@
     "rolldown": "1.2.1"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "1",
     "@supabase/ssr": "^0.12.7",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "1.170.18",

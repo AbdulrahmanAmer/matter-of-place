@@ -28,6 +28,11 @@ const shape = z.object({
   // HMAC key of the admin's signed double-submit token; unset, every session write answers 503 (API-05).
   CSRF_SECRET: text.optional(),
   CATALOG_VERSION_TTL_MS: z.coerce.number().int().nonnegative().optional(),
+  // Seals the confirm token at signup (B5 invariant 7). Base64 of 32 bytes is 43 characters and one `=`.
+  CONFIRM_TOKEN_SECRET: z
+    .string()
+    .regex(/^[A-Za-z0-9+/]{43}=$/, "must be base64 of 32 bytes")
+    .optional(),
 });
 
 // After the launch switch a preview holds no Supabase key (H35 (7)), so only production needs them.

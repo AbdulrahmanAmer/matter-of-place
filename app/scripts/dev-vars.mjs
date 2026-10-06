@@ -24,6 +24,7 @@ const FROM_DOTENV = [
   { name: "RESEND_WEBHOOK_SECRET", source: "RESEND_WEBHOOK_SECRET", required: false },
   { name: "PREVIEW_TOKEN_SECRET", source: "PREVIEW_TOKEN_SECRET", required: false },
   { name: "CSRF_SECRET", source: "CSRF_SECRET", required: false },
+  { name: "CONFIRM_TOKEN_SECRET", source: "CONFIRM_TOKEN_SECRET", required: false },
 ];
 
 /**

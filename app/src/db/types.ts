@@ -1017,12 +1017,12 @@ isOneToOne: false
 { Args: { "p_from": Database["public"]['Enums']["editorial_state"],"p_to": Database["public"]['Enums']["editorial_state"] }; Returns: boolean
                            },
 "email_message_begin":
-{ Args: { "p_content_hash": string,"p_entity": string,"p_entity_id": string,"p_job_id": string,"p_kind": string,"p_subject": string,"p_template_key": string,"p_to_email": string }; Returns: {
+{ Args: { "p_content_hash": string,"p_entity"?: string,"p_entity_id"?: string,"p_job_id": string,"p_kind": string,"p_subject": string,"p_template_key": string,"p_to_email": string }; Returns: {
               "content_hash": string,"id": string,"status": string
             }[]
                            },
 "email_message_finish":
-{ Args: { "p_error": string,"p_id": string,"p_resend_id": string,"p_status": string }; Returns: undefined
+{ Args: { "p_error"?: string,"p_id": string,"p_resend_id"?: string,"p_status": string }; Returns: undefined
                            },
 "email_sent_month":
 { Args: Record<PropertyKey, never>; Returns: number

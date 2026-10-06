@@ -226,6 +226,11 @@ export default defineConfig(
     },
     rules: typeAwareRules,
   },
+  // A template file is drawn by a render job and never hot-reloaded: it exports its seed beside its component.
+  {
+    files: ["src/templates/email/*.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
   // Deno code: `deno check` is its type check (the app tsconfig has no Deno globals).
   {
     files: ["supabase/functions/**/*.ts"],

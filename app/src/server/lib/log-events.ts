@@ -35,6 +35,11 @@ export const LogEvent = [
   "send_link_limited",
   "auth_send_failed",
   "jwks_fetch_failed",
+  "confirm_secret_missing",
+  "alert_report_failed",
+  "email_content_changed",
+  "email_event_foreign_env",
+  "resend_quota_daily",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

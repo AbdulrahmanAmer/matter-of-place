@@ -69,6 +69,20 @@ describe("parseEnv", () => {
     );
   });
 
+  it("accepts a CONFIRM_TOKEN_SECRET that is base64 of 32 bytes", () => {
+    const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+    expect(parseEnv({ ...COMMON, MOP_ENV: "local", CONFIRM_TOKEN_SECRET: key })).toMatchObject({
+      CONFIRM_TOKEN_SECRET: key,
+    });
+  });
+
+  it("names CONFIRM_TOKEN_SECRET when it is not base64 of 32 bytes", () => {
+    const short = btoa(String.fromCharCode(...new Uint8Array(16).fill(7)));
+    expect(() => parseEnv({ ...COMMON, MOP_ENV: "local", CONFIRM_TOKEN_SECRET: short })).toThrow(
+      /CONFIRM_TOKEN_SECRET must be base64 of 32 bytes/,
+    );
+  });
+
   it("refuses a MOP_ENV it does not know", () => {
     expect(() => parseEnv({ ...COMMON, MOP_ENV: "staging" })).toThrow(/MOP_ENV/);
   });
