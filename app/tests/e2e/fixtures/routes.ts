@@ -43,6 +43,7 @@ const staticPaths: [string, RouteClass][] = [
   ["/about", "page"],
   ["/contact", "page"],
   ["/faq", "faq"],
+  ["/place-notes", "page"],
   ["/legal", "page"],
 ];
 
@@ -55,7 +56,6 @@ export const staticRoutes: SweepRoute[] = staticPaths.map(([path, routeClass]) =
 /** Every redirect the site keeps for old links, all permanent (`redirects.spec.ts` iterates this list). */
 export const redirects: { from: string; to: string; status: 301 }[] = [
   { from: "/markets/california", to: "/california", status: 301 },
-  { from: "/place-notes", to: "/stories", status: 301 },
   { from: "/pricing", to: "/exposure", status: 301 },
   { from: "/california/san-diego", to: "/california/la-jolla", status: 301 },
 ];
@@ -101,6 +101,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.contact.tsx": "/contact",
   "_site.faq.tsx": "/faq",
   "_site.legal.tsx": "/legal",
+  "_site.place-notes.tsx": "/place-notes",
   "_site.$market.index.tsx": "/$market",
   "_site.$market.guide.tsx": "/$market/guide",
   "_site.$market.$region.tsx": "/$market/$region",
@@ -108,7 +109,6 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.stories.$slug.tsx": "/stories/$slug",
   "_site.archive.$kind.$slug.tsx": "/archive/$kind/$slug",
   "_site.markets.$.tsx": "redirect",
-  "_site.place-notes.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
   "media.$.ts": "server",
   "sitemap[.]xml.ts": sitemapRoute,

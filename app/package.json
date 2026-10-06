@@ -34,6 +34,7 @@
     "test:e2e:edge": "playwright test --project=edge",
     "test:e2e:coming-soon": "bun scripts/e2e-coming-soon.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
+    "email:shots": "bun scripts/email-shots.ts",
     "watchfail": "node scripts/watchfail.mjs",
     "db:reset": "bun scripts/db-reset-dev.mjs",
     "db:psql": "bun scripts/psql-dev.mjs",

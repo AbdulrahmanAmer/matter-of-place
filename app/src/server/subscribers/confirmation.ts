@@ -1,8 +1,17 @@
+import { env } from "../lib/env";
+import { logLine } from "../lib/log";
+import { sealToken } from "./confirm-email";
+
 /**
  * The sealed form of a confirmation token, which the `subscriber.created` event carries to the mail step (G12), or
- * null while no confirmation mail is sent; it emits nothing (G20). The raw token never leaves the request.
+ * null when the Worker has no `CONFIRM_TOKEN_SECRET`, so no confirmation mail is sent. It emits and enqueues nothing
+ * (G20): `upsert_subscriber` writes the event. The raw token never leaves the request.
  */
-// STUB(B5 step 7): sealToken replaces this body
-export function requestConfirmation(_token: string): Promise<string | null> {
-  return Promise.resolve(null);
+export function requestConfirmation(token: string): Promise<string | null> {
+  const key = env.CONFIRM_TOKEN_SECRET;
+  if (key === undefined) {
+    logLine("warn", "confirm_secret_missing");
+    return Promise.resolve(null);
+  }
+  return sealToken(token, key);
 }

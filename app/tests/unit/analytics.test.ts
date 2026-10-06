@@ -18,6 +18,7 @@ const everyEvent: Record<AnalyticsEvent, true> = {
   submit_property: true,
   package_interest: true,
   newsletter_signup: true,
+  newsletter_confirmed: true,
   market_view: true,
   region_view: true,
   story_view: true,

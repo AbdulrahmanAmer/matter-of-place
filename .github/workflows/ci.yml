@@ -334,6 +334,18 @@ jobs:
           else
             echo "admin project absent (B7 not landed)"
           fi
+      # B5 step 9 (GQ-04): every email template, linted and drawn at 600 px and 375 px; the PNGs are for a person to open.
+      # It needs no database and no Resend key. Chromium comes from the install step above.
+      - name: email shots
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run email:shots
+      - if: always() && steps.fe.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: email-shots
+          path: app/out/email-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
