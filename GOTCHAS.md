@@ -862,6 +862,7 @@ Entry template
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
+- hit again: 2026-10-06, B12 g1: a `python3 - <<'EOF' ... || echo nopython` guard in front of a node patch hung to the 120 s ceiling; the node patch ran when python was killed. About 4 minutes; two python processes had to be found by parent id and one was already gone.
 - hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
 - hit again: 2026-10-03, B3 g1: `python - <<EOF || node -e ...` in a conflict resolution hung 120 seconds in the background, the `node` half still ran, and the shell had to be freed with `taskkill //F //IM python.exe`; the bank map names this rule and the command was typed anyway.
 - hit again: 2026-10-04, B8b g3: a `cat > /dev/null; python - 2>/dev/null; node -e "..."` line (two stdin readers pasted ahead of a node patch of `tests/unit/automation/fanout.test.ts`) moved to the background at 120 s; the bash and python processes were stopped by their own ids (`ps -ef`, `kill <pid>`), `grep -c JsonStep` showed the node half had not run, and the five edits were made with the Edit tool. Never start a command with a stdin reader.
@@ -3701,4 +3702,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `--registry` replays every `*.json` in the folder, and the scratchpad of a session is shared across tasks, so `mkdir -p` kept the old files.
 - rule: build a scratch registry in a folder you create new (`rm -rf` then `mkdir`, or a name with the task in it) and read `ls <folder>` before the replay; ask for the count (`replayed 8`) you expect.
 - proof: `node scripts/watchfail.mjs --registry <fresh folder holding only the eight reel entries>` → `watchfail: replayed 8: ok 8, bad 0, stale 0` (B12 c7, 2026-10-06; the reused folder gave `replayed 135`).
+- added: 2026-10-06
+
+## P-2123 · A `<video>` without a captions track fails `jsx-a11y/media-has-caption`; the reel has none by design
+- symptom: B12 g1's first `bun run check` stopped at `lint`: `ReelPlayer.tsx 44:9 error Media elements such as <audio> and <video> must have a <track> for captions  jsx-a11y/media-has-caption`. The dossier's `<video>` in `gallery.tsx` passes only because it is `muted`; the admin reel player plays sound, so the rule applies.
+- cause: the reel has sound design and no speech (S36), so there is no captions track to give (ASSUMED G30), and the rule has no way to know that.
+- rule: a player of the reel, or of any other speechless film that plays sound, carries `// eslint-disable-next-line jsx-a11y/media-has-caption -- the reel has no speech, so it has no captions track (G30)` on the line above the element (R03 asks for the reason); never add a fake `<track>`.
+- proof: `cd app && bunx eslint src/admin/assets/ReelPlayer.tsx` → no output; with the comment removed → the error above (B12 g1, 2026-10-06).
+- added: 2026-10-06
+
+## P-2124 · `watchfail.mjs --changed origin/main` in a long-lived lane replays every earlier group's entries too: 187 replays, over 10 minutes
+- symptom: the reviewer's pass (ruling H60 (c)) says to replay `--changed origin/main`; in slice/b12 it selected 187 entries of B9 and B12 (`replayed 187: ok 125, bad 62`), ran past the 590 s tool limit, and left `src/db/types.ts` modified for as long as it ran (a replay mutates a file, so the tree is not yours to edit meanwhile). Whether the 62 bad ones are db entries that need a database the lane lacks was not measured: UNPROVEN.
+- cause: `--changed` compares each entry's file and test with the ref, and a lane that carries earlier groups differs from main in all of them.
+- rule: replay the entries of the files of your own group by id (`for id in ...; do node scripts/watchfail.mjs --registry tests/mutations --only <id>; done`) and run it in the background with a bounded wait; read `git status` after any replay that was interrupted.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b12g1-film-label` → `WATCHED-FAIL OK B12:b12g1-film-label` in seconds (2026-10-06).
 - added: 2026-10-06

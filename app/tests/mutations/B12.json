@@ -635,5 +635,86 @@
     "sql": "grant execute on function public.attach_reel(uuid, uuid, boolean) to anon, authenticated;",
     "run": "bunx vitest run --project db tests/db/reel.db.test.ts -t \"anon and authenticated cannot execute attach_reel\"",
     "expect": "× .*anon and authenticated cannot execute attach_reel[\\s\\S]*expected \\[ 'ok', 'ok' \\] to deeply equal"
+  },
+  {
+    "id": "b12g1-film-label",
+    "test": "src/components/property/gallery.test.tsx",
+    "file": "src/components/property/gallery.tsx",
+    "find": "aria-label={`${video.caption}, film of the ${city} property`}",
+    "replace": "aria-label={`${video.caption}, illustrative film of the ${city} property`}",
+    "run": "bunx vitest run --project component src/components/property/gallery.test.tsx",
+    "expect": "FAIL .*Gallery film > names the film without calling it illustrative"
+  },
+  {
+    "id": "b12g1-film-portrait",
+    "test": "src/components/property/gallery.test.tsx",
+    "file": "src/components/property/gallery.tsx",
+    "find": "<figure className=\"film-portrait\">",
+    "replace": "<figure>",
+    "run": "bunx vitest run --project component src/components/property/gallery.test.tsx",
+    "expect": "FAIL .*Gallery film > gives the film figure the portrait class, with the caption beside it"
+  },
+  {
+    "id": "b12g1-film-none",
+    "test": "src/components/property/gallery.test.tsx",
+    "file": "src/components/property/gallery.tsx",
+    "find": "{video && <PropertyFilm video={video} city={city} slug={slug} />}",
+    "replace": "{<PropertyFilm video={video ?? { src: \"\", poster: \"\", caption: \"\", duration: \"\" }} city={city} slug={slug} />}",
+    "run": "bunx vitest run --project component src/components/property/gallery.test.tsx",
+    "expect": "FAIL .*Gallery film > renders no film without a video"
+  },
+  {
+    "id": "b12g1-reel-poster",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "{...(poster ? { poster: poster.url } : {})}",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > shows the poster file before play"
+  },
+  {
+    "id": "b12g1-reel-role",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "file.role === \"video\"",
+    "replace": "file.role === \"poster\"",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > plays the file with the video role, whatever its position"
+  },
+  {
+    "id": "b12g1-reel-preload",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "preload=\"none\"",
+    "replace": "preload=\"metadata\"",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > loads nothing until played"
+  },
+  {
+    "id": "b12g1-reel-gate",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "[\"Cuts\", formatNumber(gate.cuts)],",
+    "replace": "[\"Cuts\", \"0\"],",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > lists the gate numbers in a details block"
+  },
+  {
+    "id": "b12g1-reel-nometa",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "reelMetaSchema.safeParse(asset.meta)",
+    "replace": "{ success: true as const, data: { duration_s: 0, fps: 0, gate: { coverage: 0, longest_static_s: 0, cuts: 0, avg_shot_s: 0, lufs: 0, true_peak: 0, flatness: 0 } } }",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > shows no details block when the asset has no gate numbers"
+  },
+  {
+    "id": "b12g1-reel-empty",
+    "test": "src/admin/assets/ReelPlayer.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "<p>No film rendered yet.</p>",
+    "replace": "<p>Nothing yet.</p>",
+    "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
+    "expect": "FAIL .*ReelPlayer > says so when no film has been rendered"
   }
 ]
