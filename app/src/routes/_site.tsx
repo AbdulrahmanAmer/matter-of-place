@@ -5,6 +5,7 @@ import { captureAttribution } from "../lib/attribution";
 import { installClientErrorListeners } from "../lib/report-error";
 import { t } from "../lib/strings";
 import { registerServiceWorker } from "../lib/sw-register";
+import { startWebVitals } from "../lib/web-vitals";
 import appCss from "../styles.css?url";
 
 // The pathless layout of every public page (FE-02): public-only chrome and effects mount here, never in
@@ -18,6 +19,7 @@ function SiteLayout() {
   const router = useRouter();
   useEffect(() => installClientErrorListeners(), []);
   useEffect(() => {
+    startWebVitals();
     registerServiceWorker();
   }, []);
   // B15 invariant 4: one page counted on the first client render and on every resolved navigation, public pages only.

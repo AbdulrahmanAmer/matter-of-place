@@ -520,3 +520,56 @@ test.describe("service-worker", () => {
     expect((await cacheContents(page)).names).toEqual([]);
   });
 });
+
+// Step 9: the three Core Web Vitals join the analytics batch (ASSUMED G11). Sent only when the build has an API.
+const vitalsBatch = z.array(
+  z.object({ event: z.string(), data: z.record(z.string(), z.unknown()) }),
+);
+
+test.describe("web-vitals", () => {
+  test("web-vitals: a navigation and a visibilitychange send the vitals as name, value and id, in one beacon of at most 20 events", async ({
+    page,
+  }) => {
+    test.skip(process.env["E2E_MODE"] !== "live", "a local-mode build sends no events");
+    const beacons: z.infer<typeof vitalsBatch>[] = [];
+    await page.route("**/api/public/events", async (route) => {
+      beacons.push(vitalsBatch.parse(JSON.parse(route.request().postData() ?? "[]")));
+      await route.fulfill({ status: 204 });
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.locator("footer").getByRole("link", { name: t.nav.stories }).click();
+    await expect(page).toHaveURL(/\/stories\/?$/);
+    await page.waitForLoadState("networkidle");
+    const before = beacons.length;
+    // The queue leaves when the page is hidden (B3); the page is made hidden the way the browser reports it.
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await expect
+      .poll(
+        () =>
+          beacons
+            .slice(before)
+            .flat()
+            .filter((entry) => entry.event === "web_vitals").length,
+      )
+      .toBeGreaterThan(0);
+
+    const vitals = beacons.flat().filter((entry) => entry.event === "web_vitals");
+    for (const { data } of vitals) {
+      expect(Object.keys(data).sort()).toEqual(["id", "name", "value"]);
+      expect(["LCP", "CLS", "INP"]).toContain(data["name"]);
+      expect(typeof data["value"]).toBe("number");
+      expect(typeof data["id"]).toBe("string");
+    }
+    // INP is reported only when an interaction was slow enough to count, so it may be absent.
+    expect(vitals.map(({ data }) => data["name"])).toEqual(expect.arrayContaining(["LCP", "CLS"]));
+    expect(beacons.every((beacon) => beacon.length <= 20)).toBe(true);
+    // Before the page was hidden the timer had not run twice: no beacon of its own per metric.
+    expect(before).toBeLessThanOrEqual(1);
+    expect(
+      beacons.slice(before).filter((beacon) => beacon.some((e) => e.event === "web_vitals")),
+    ).toHaveLength(1);
+  });
+});

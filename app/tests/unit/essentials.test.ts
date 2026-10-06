@@ -6,13 +6,14 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createElement } from "react";
+import { act, createElement } from "react";
 import { renderToString } from "react-dom/server";
 import {
   createMemoryHistory,
   createRootRoute,
   createRouter,
   RouterContextProvider,
+  RouterProvider,
 } from "@tanstack/react-router";
 import {
   attachRouterServerSsrUtils,
@@ -20,7 +21,9 @@ import {
   RouterServer,
 } from "@tanstack/react-router/ssr/server";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Metric } from "web-vitals";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { builtinEnvironments } from "vitest/runtime";
 import { z } from "zod";
 import type { Json } from "../../src/db";
 import type { Db } from "../../src/server/lib/db";
@@ -38,6 +41,8 @@ import { markets } from "../../src/data/markets";
 import { properties } from "../../src/data/properties";
 import { stories } from "../../src/data/stories";
 import { COOKIE_INVENTORY_HASH } from "../../src/lib/consent";
+import { registerServiceWorker } from "../../src/lib/sw-register";
+import { startWebVitals } from "../../src/lib/web-vitals";
 import { getRouter } from "../../src/router";
 import { CSP_INLINE_ALLOWLIST } from "../../src/server/lib/csp-allowlist";
 import { mergeFlags } from "../../src/server/lib/flags";
@@ -53,6 +58,21 @@ import { fakeDb } from "../fixtures/fake-db";
 import { propertyJson, snapshotJson, stateJson } from "../fixtures/snapshot";
 
 vi.mock("../../src/server/lib/sentry", { spy: true });
+vi.mock("../../src/lib/sw-register", { spy: true });
+vi.mock("../../src/lib/analytics", { spy: true });
+vi.mock("../../src/lib/web-vitals", { spy: true });
+// A recorder, not a vi.fn(): a dynamic import of a mocked module can hand back a second copy of its functions.
+const vitals = vi.hoisted(() => {
+  const registered: Array<{ name: string; report: (metric: Metric) => void }> = [];
+  const observer = (name: string) => (report: (metric: Metric) => void) => {
+    registered.push({ name, report });
+  };
+  return {
+    registered,
+    module: { onLCP: observer("LCP"), onCLS: observer("CLS"), onINP: observer("INP") },
+  };
+});
+vi.mock("web-vitals", () => vitals.module);
 
 // jsdom ships no types and the project does not install `@types/jsdom` (P-1903, P-1928), so its XML parser is typed here.
 type XmlDom = new (
@@ -1524,5 +1544,108 @@ describe("lighthouse-config", () => {
       .object({ scripts: z.record(z.string(), z.string()) })
       .parse(JSON.parse(readFileSync("package.json", "utf8"))).scripts;
     expect(scripts["lhci:local"]).toBe("lhci autorun --config=lighthouserc.local.json");
+  });
+});
+
+describe("site-layout", () => {
+  let restoreDom: () => Promise<void>;
+  let mounted: Array<() => Promise<void>> = [];
+
+  beforeAll(async () => {
+    const { teardown } = await builtinEnvironments.jsdom.setup(globalThis, {
+      jsdom: { url: `${BASE}/` },
+    });
+    restoreDom = async () => {
+      await teardown(globalThis);
+    };
+    Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
+  });
+
+  afterAll(async () => {
+    Reflect.deleteProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+    await restoreDom();
+  });
+
+  beforeEach(() => {
+    vi.mocked(startWebVitals).mockClear();
+    vi.mocked(registerServiceWorker).mockClear();
+  });
+
+  afterEach(async () => {
+    for (const unmount of mounted) await unmount();
+    mounted = [];
+  });
+
+  /** Renders the whole document of the page at `path` in the browser, the way the client does after hydration. */
+  async function mount(path: string) {
+    const { createRoot } = await import("react-dom/client");
+    const router = getRouter();
+    router.update({
+      history: createMemoryHistory({ initialEntries: [path] }),
+      context: router.options.context,
+    });
+    await router.load();
+    const root = createRoot(document);
+    mounted.push(async () => {
+      await act(async () => {
+        root.unmount();
+        await router.load();
+      });
+    });
+    await act(async () => {
+      root.render(createElement(RouterProvider, { router }));
+      await router.load();
+    });
+  }
+
+  it("site-layout: the public layout starts the web vitals and the service worker once each", async () => {
+    await mount("/about");
+    expect(document.querySelector(".skip-link")).not.toBeNull();
+    expect(vi.mocked(startWebVitals)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(registerServiceWorker)).toHaveBeenCalledTimes(1);
+  });
+
+  it("site-layout: the admin layout starts neither", async () => {
+    await mount("/admin/sign-in");
+    expect(document.querySelector("main.admin-auth")).not.toBeNull();
+    expect(document.querySelector(".skip-link")).toBeNull();
+    expect(vi.mocked(startWebVitals)).not.toHaveBeenCalled();
+    expect(vi.mocked(registerServiceWorker)).not.toHaveBeenCalled();
+  });
+});
+
+describe("web-vitals", () => {
+  const entry = {
+    rating: "good" as const,
+    delta: 1,
+    navigationType: "navigate" as const,
+    navigationId: 1,
+    entries: [],
+  };
+
+  it("web-vitals: LCP, CLS and INP each queue a web_vitals event carrying name, value and id only", async () => {
+    vitals.registered.length = 0;
+    const { track } = await import("../../src/lib/analytics");
+    const { startWebVitals: start } = await vi.importActual<{ startWebVitals: () => void }>(
+      "../../src/lib/web-vitals",
+    );
+    vi.mocked(track).mockImplementation(() => undefined);
+
+    start();
+    await vi.dynamicImportSettled();
+    await vi.waitFor(() => {
+      expect(vitals.registered.length).toBeGreaterThan(0);
+    });
+
+    expect(vitals.registered.map(({ name }) => name)).toEqual(["LCP", "CLS", "INP"]);
+    const [lcp, cls, inp] = vitals.registered;
+    lcp?.report({ ...entry, name: "LCP", value: 1800, id: "v6-lcp" });
+    cls?.report({ ...entry, name: "CLS", value: 0.02, id: "v6-cls" });
+    inp?.report({ ...entry, name: "INP", value: 120, id: "v6-inp" });
+    expect(vi.mocked(track).mock.calls).toEqual([
+      ["web_vitals", { name: "LCP", value: 1800, id: "v6-lcp" }],
+      ["web_vitals", { name: "CLS", value: 0.02, id: "v6-cls" }],
+      ["web_vitals", { name: "INP", value: 120, id: "v6-inp" }],
+    ]);
   });
 });

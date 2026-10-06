@@ -1581,5 +1581,51 @@
     "replace": "\"lhci:local\": \"lhci autorun --config=lighthouserc.json\"",
     "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
     "expect": "× .*lighthouse-config: package.json runs it through lhci:local"
+  },
+  {
+    "id": "b17-g8-vitals-keys",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "  track(\"web_vitals\", { name, value, id });",
+    "replace": "  track(\"web_vitals\", { name, value, id, rating: \"good\" });",
+    "run": "bun run test tests/unit/essentials.test.ts -t web-vitals",
+    "expect": "× .*web-vitals: LCP, CLS and INP each queue"
+  },
+  {
+    "id": "b17-g8-vitals-inp",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "      onINP(report);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t web-vitals",
+    "expect": "× .*web-vitals: LCP, CLS and INP each queue"
+  },
+  {
+    "id": "b17-g8-layout-site",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.tsx",
+    "find": "    startWebVitals();\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t site-layout",
+    "expect": "× .*site-layout: the public layout starts"
+  },
+  {
+    "id": "b17-g8-layout-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/admin.tsx",
+    "find": "import { installClientErrorListeners } from \"../lib/report-error\";\n",
+    "replace": "import { installClientErrorListeners as realInstall } from \"../lib/report-error\";\nimport { startWebVitals } from \"../lib/web-vitals\";\n\nconst installClientErrorListeners = () => {\n  startWebVitals();\n  return realInstall();\n};\n",
+    "run": "bun run test tests/unit/essentials.test.ts -t site-layout",
+    "expect": "× .*site-layout: the admin layout starts neither"
+  },
+  {
+    "id": "b17-g8-e2e-rating",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "const report = ({ name, value, id }: Metric): void => {\n  track(\"web_vitals\", { name, value, id });",
+    "replace": "const report = ({ name, value, rating }: Metric): void => {\n  track(\"web_vitals\", { name, value, rating });",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build && cp .dev.vars .output/server/.dev.vars && E2E_TARGET=built E2E_MODE=live E2E_PORT=8938 bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g web-vitals --reporter=line",
+    "expect": "web-vitals: a navigation[\\s\\S]*-\\s+\"id\","
   }
 ]
