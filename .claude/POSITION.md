@@ -1240,7 +1240,7 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   (`claude --remote-control dell`, brief in `workspace/05-plans/lane-runner.md`, PR 172), then run many lanes; measured
   today, accepts scale with lanes (five lanes 2.0 per hour, three lanes 1.0). Operator (12:20): close loose ends myself
   before the Dell arrives, so every relaunch starts from a clean main.
-- Merged this morning: PR 169 and 175 (overflow check waits for finite animations; the hero `heroReveal` scale and the
+- Merged this morning: PR 169 and 174 (overflow check waits for finite animations; the hero `heroReveal` scale and the
   property hero's infinite `cueDrift` were the two causes of the `/` and `/property/*` failures), 170 (one-database guard:
   `tests/unit/one-database.test.ts`, `scripts/lib/one-database.mjs`, seven stale B9 mutations re-pointed), 172 (Dell
   brief), 173 (the H62 `codeSplitting` line on main; CI bundle-check "OK 21 routes"), 171 (B5 steps 5 to 9, after two

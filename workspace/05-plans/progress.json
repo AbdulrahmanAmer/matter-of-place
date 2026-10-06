@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
   "updated": "2026-10-06 12:50 (UTC+3)",
-  "now": "Two lanes live (B17, B7), pausing at their next group boundary for the second-laptop setup (operator, 10:40). B5 and B12 fully on main (PRs 171, 161). Morning: OmniSkipX incident (G-901) cleaned and guarded; H62 line on main (PR 173); width-check flake fixed (PRs 169, 175); one-database guard test (PR 170). Open: PRs 158 (B7 2 and 3), 163 (B13 5 to 7), 142 (B17 1), to be merged before relaunch.",
+  "now": "Two lanes live (B17, B7), pausing at their next group boundary for the second-laptop setup (operator, 10:40). B5 and B12 fully on main (PRs 171, 161). Morning: OmniSkipX incident (G-901) cleaned and guarded; H62 line on main (PR 173); width-check flake fixed (PRs 169, 174); one-database guard test (PR 170). Open: PRs 158 (B7 2 and 3), 163 (B13 5 to 7), 142 (B17 1), to be merged before relaunch.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
