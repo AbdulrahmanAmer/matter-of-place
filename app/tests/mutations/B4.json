@@ -688,8 +688,8 @@
     "id": "seo-robots",
     "test": "tests/unit/seo.test.ts",
     "file": "src/lib/seo.ts",
-    "find": "...(noindex ? [{ name: \"robots\", content: \"noindex, nofollow\" }] : []),",
-    "replace": "...[],",
+    "find": "? [{ name: \"robots\", content: \"noindex, nofollow\" }]",
+    "replace": "? []",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > adds the robots meta only when noindex is set"
   },
