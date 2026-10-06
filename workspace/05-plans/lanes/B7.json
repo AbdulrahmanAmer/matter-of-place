@@ -1,7 +1,7 @@
 {
   "slice": "B7",
-  "runId": "wf_635ac60b-161",
-  "note": "step 1 on main (PR 138); step 2 accepted on the lane, PR 158 red on bundle-check; close-out c2 (run wf_f057a026-91b) proved Rolldown chunk regrouping and ruling H62 gives B7 the one vite.config.ts line; close-out c2b applies it, then steps 3 to 16. Launch: Workflow({ scriptPath, args }) with the object below; resume a killed run with resumeFromRunId set to the live run's id.",
+  "runId": "paused 2026-10-06 14:40 (run wf_635ac60b-161 stopped after step 4 banked; operator pause for the second laptop)",
+  "note": "Steps 1 on main (PR 138); 2, 3, 4 accepted on slice/b7 (head e72d788) in PR 158, being merged by the orchestrator; the H62 vite line is on main (PR 173). Relaunch: steps 5 to 16, no close-out, from a worktree of slice/b7 after PR 158 merges (merge origin/main into the lane first). Planned machine: the Dell (lane-runner.md).",
   "launch": {
     "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
     "args": {
@@ -13,8 +13,6 @@
         "G": 900
       },
       "steps": [
-        "3",
-        "4",
         "5",
         "5a",
         "6",
@@ -31,22 +29,6 @@
         "15",
         "15a",
         "16"
-      ],
-      "closeOut": [
-        {
-          "id": "c2b",
-          "steps": "2",
-          "critical": true,
-          "title": "B7 close-out c2b: pull request 158 (step 2, sessions, agent keys, Supabase Auth) fails CI's bundle-check because Rolldown regrouped the shared client chunks when the admin routes arrived (close-out c2, P-2008, ruling H62). Ruling H62 lets B7 add exactly one line to app/vite.config.ts: `codeSplitting: { groups: [{ name: \"initial\", tags: [\"$initial\"] }] }` inside build.rolldownOptions.output, with a one-line comment naming H62 and P-2008. Nothing else in the file changes and budget.json does not move",
-          "defects": [
-            {
-              "file": "app/vite.config.ts",
-              "blocking": true,
-              "what": "Add the codeSplitting group named by H62 to build.rolldownOptions.output (next to entryFileNames, chunkFileNames, assetFileNames) with a short comment that names H62 and P-2008. Then prove it in live mode (`export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA; bun run build && node scripts/bundle-check.mjs`): bundle-check prints OK for all 21 routes and `_site.property.$slug` and `_site.$market.index` are below main's 153,512 and 151,926 gzip bytes. Then `bun run check` exit 0, the Nitro output boots under `wrangler dev --port 8948` (with the project's CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from .env in the child env, P-530) and a headless Chromium navigation from /properties to a property page makes 0 document requests and no page error. Commit on slice/b7, push, and watch `gh pr checks 158 --watch`: the build job's bundle-check step must pass; paste its printed sizes into the log block. If CI's bundle-check still fails, stop with needsOrchestrator and the CI numbers; do not touch budget.json or any other file.",
-              "evidence": "Close-out c2 measured on this lane: with the group, property 151,270 and market index 149,623 gzip bytes, 21 routes OK, every route 2,173 to 2,348 bytes under main; without it, 155,613 and 154,023 (FAIL). CI run on PR 158, job build, step bundle-check: FAIL _site.$market.index 154023, FAIL _site.property.$slug 155613."
-            }
-          ]
-        }
       ]
     }
   }
