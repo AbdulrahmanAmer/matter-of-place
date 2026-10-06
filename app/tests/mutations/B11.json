@@ -1,0 +1,218 @@
+[
+  {
+    "id": "b11-resend-classify-by-status-only",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "classifyResendError(status, body, headers, new Date())",
+    "replace": "classifyResendError(status, null, headers, new Date())",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*maps a 429 daily_quota_exceeded to the next UTC midnight"
+  },
+  {
+    "id": "b11-resend-skip-live-side-effects",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "export async function createBroadcast(input: BroadcastInput): Promise<string> {\n  if (!liveSideEffects(\"email\")) return dryId();",
+    "replace": "export async function createBroadcast(input: BroadcastInput): Promise<string> {\n  if (false) return dryId();",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*makes no request to api.resend.com with MOP_ENV=development"
+  },
+  {
+    "id": "b11-resend-drop-broadcast-headers",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "...(input.headers === undefined ? {} : { headers: input.headers }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*creates a broadcast with both List-Unsubscribe headers"
+  },
+  {
+    "id": "b11-resend-readd-unsubscribed-contact",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (existing !== null) {",
+    "replace": "if (existing === null) {",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*does not resubscribe a contact that unsubscribed"
+  },
+  {
+    "id": "b11-resend-keep-contact-in-no-segment",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (segments?.length === 0) await deleteContact(idOrEmail);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*deletes the contact when its last segment is removed"
+  },
+  {
+    "id": "b11-resend-ignore-stored-audience",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (stored !== undefined) return stored;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*creates the audience once: a second call with the stored id makes no request"
+  },
+  {
+    "id": "b11-resend-open-tracking-always-on",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "open_tracking: open }",
+    "replace": "open_tracking: true }",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*sends click tracking on and open tracking off"
+  },
+  {
+    "id": "b11-resend-network-failure-untyped",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "throw new Transient(\"resend_network\", { cause: error });",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*types a dropped connection as Transient"
+  },
+  {
+    "id": "b11-resend-404-fails-a-removal",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (error instanceof NotFound) return fallback;",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*answers false for a removal that finds nothing"
+  },
+  {
+    "id": "b11-resend-no-key-still-calls",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (key === undefined || key === \"\") throw new NonRetryableError(\"resend_not_configured\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*refuses a call without RESEND_API_KEY"
+  },
+  {
+    "id": "b11-resend-dev-prefix-dropped",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "? key : `dev-${key}`;",
+    "replace": "? key : key;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*creates the audience once: a second call with the stored id makes no request"
+  },
+  {
+    "id": "b11-resend-create-instead-of-adopt",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "const id = listed?.id ?? answer(idAnswer, await call(\"POST\", \"/segments\", { name })).id;",
+    "replace": "const id = answer(idAnswer, await call(\"POST\", \"/segments\", { name })).id;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*adopts a segment of the right name"
+  },
+  {
+    "id": "b11-resend-preheader-not-sent",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "preview_text: input.preheader,",
+    "replace": "preview_text: input.subject,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*creates a broadcast with both List-Unsubscribe headers"
+  },
+  {
+    "id": "b11-resend-production-audience-prefixed",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "=== PRODUCTION_ORIGIN ? key",
+    "replace": "!== PRODUCTION_ORIGIN ? key",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*names the production audience without the dev prefix"
+  },
+  {
+    "id": "b11-resend-list-on-audiences-path",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "`/segments/${audienceId}/contacts`",
+    "replace": "`/audiences/${audienceId}/contacts`",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*hits the method and path of the current API"
+  },
+  {
+    "id": "b11-resend-update-always-unsubscribes",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "await call(\"PATCH\", `/contacts/${id}`, { unsubscribed });",
+    "replace": "await call(\"PATCH\", `/contacts/${id}`, { unsubscribed: true });",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*sends updateContact as PATCH /contacts/{id} with unsubscribed false"
+  },
+  {
+    "id": "b11-resend-delete-shared-contact",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (segments?.length === 0) await deleteContact(idOrEmail);",
+    "replace": "await deleteContact(idOrEmail);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*hits the method and path of the current API"
+  },
+  {
+    "id": "b11-resend-tracking-on-root-domain",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "(entry) => entry.name === BULK_DOMAIN,",
+    "replace": "(entry) => entry.name === \"matterofplace.com\",",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*sends click tracking on and open tracking off"
+  },
+  {
+    "id": "b11-resend-tracking-read-wrong",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "return { click: domain.click_tracking === true, open: domain.open_tracking === true };",
+    "replace": "return { click: false, open: domain.open_tracking === true };",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*reads the two tracking values without writing"
+  },
+  {
+    "id": "b11-resend-retry-at-now",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "return new RateLimited(outcome.reason, outcome.at);",
+    "replace": "return new RateLimited(outcome.reason, new Date());",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*maps a 429 rate_limit_exceeded with Retry-After 5"
+  },
+  {
+    "id": "b11-resend-fatal-name-lost",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "return new Invalid(outcome.code);",
+    "replace": "return new Invalid(`resend_${String(status)}`);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*maps a 403 restricted_api_key to NonRetryableError"
+  },
+  {
+    "id": "b11-resend-409-not-conflict",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "if (status === 409) return new Conflict(outcome.code);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*types an unnamed 404, a 409 and a 503"
+  },
+  {
+    "id": "b11-resend-send-ignores-dry-run",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "export async function sendBroadcast(id: string): Promise<string> {\n  if (!liveSideEffects(\"email\")) return dryId();",
+    "replace": "export async function sendBroadcast(id: string): Promise<string> {\n  if (false) return dryId();",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*makes no request and answers dry_ ids under EMAIL_DRY_RUN=1"
+  },
+  {
+    "id": "b11-resend-live-flag-ignored",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "export async function createBroadcast(input: BroadcastInput): Promise<string> {\n  if (!liveSideEffects(\"email\")) return dryId();",
+    "replace": "export async function createBroadcast(input: BroadcastInput): Promise<string> {\n  if (readVar(\"MOP_ENV\") !== \"production\") return dryId();",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*makes requests with MOP_ENV=development when EMAIL_LIVE=1"
+  }
+]
