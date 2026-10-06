@@ -51,6 +51,10 @@ through GitHub (branches, pull requests, the merge gate) and the shared mop-dev 
   line per event under a heading `## Lane runner (Dell)` at the end of `.claude/POSITION.md` on its own records
   branch and merges it through the gate (documents-only merges need no CI).
 - Uses only the bank numbers of its slices' ranges (each `lanes/<slice>.json` carries `bankBase`).
+- Two facts the Dell runner measured (2026-10-07 02:00): `bank-merge.mjs` resolves its root from its own file path, so it
+  is run as the lane's own copy from inside the lane (the clone's copy points at the clone and fails with "GOTCHAS.md is in
+  the index, but not at stage 1"); `stall-watch.mjs` defaults its transcript folder to the first laptop's session, so on
+  any other machine it takes `--dir <that machine's subagents/workflows folder>`.
 - Answers the orchestrator's messages with facts: run ids, group states, PR numbers, the exact failing line.
 - Never fixes a failing or unparsable script of ours (the workflow, a lane file, check-plans, stall-watch, the merge gate,
   bank-merge, a helper): it stops that step and sends the orchestrator the exact command, the full error text and the file
