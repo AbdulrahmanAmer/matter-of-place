@@ -1,0 +1,15 @@
+{
+  "slice": "B6",
+  "runId": "not launched yet (written 2026-10-07 02:05, first laptop)",
+  "note": "Invoicing and payments (manual invoices from /admin, Stripe as a stub interface, S57). Depends on B2 only, all on main; steps 6 (design sign-off) and 9 (legal entity and payment facts) carry operator parts that the sizing marks blocked and the builder records as BLOCKED, the rest builds. Worktree E:/mop-build/b6 (branch slice/b6 from main) on the first laptop with packages and .env. Launch: Workflow({ scriptPath, args }) with the object below.",
+  "launch": {
+    "scriptPath": ".claude/workflows/build-slice.js",
+    "args": {
+      "slice": "B6",
+      "root": "E:/mop-build/b6",
+      "previewPort": 8978,
+      "bankBase": { "P": 2300, "G": 1050 },
+      "steps": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    }
+  }
+}

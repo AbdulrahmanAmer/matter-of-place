@@ -1272,3 +1272,32 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   operator: the 153,600 property-route budget leaves main 362 bytes of headroom and every slice that touches that page
   hits it (B5, B7, B13, B17 today); H1 owns the budgets, and the honest options are to pull H1's measurement forward
   or to keep shaving per slice.
+
+## Lane runner (Dell)
+- 2026-10-07 01:05 (Dell clock): B13 launch from the clone at main 7531328 refused before any agent started: the
+  Workflow tool reports `Script parse error: Unexpected token (92:137)` in `.claude/workflows/build-slice.js`; line 92
+  (the one-database rule from becb161) holds two unescaped backticks around `eval "$(node scripts/load-env.mjs
+  --profile dev)"`; `node -e 'import(...)'` says `Unexpected identifier 'eval'` (`node --check` passes, it parses as
+  CommonJS). Reported to the orchestrator, not fixed (standing rule 01:08). B7 waits on the same file. Free memory at
+  the check: 534 MB of 7,952. Worktrees verified: seo at 9d9ea6c, admin at 7531328, both clean with `.env` at root.
+- 2026-10-07 01:10: P-008 hit again (backslash escapes through the Bash tool were no-ops); the entry grew.
+
+## 2026-10-07 02:40 Six lanes on two machines; the Dell is a managed lane machine
+- Dell (DESKTOP-M1SEEF8, ka@192.168.1.5, i5-8400H, 8 GB, 68 GB free on D:): SSH with the orchestrator's key (`ssh dell`
+  alias here), a desktop bridge (scheduled task `mop-desktop-run` runs a command file inside the signed-in session;
+  `D:\mop\desktop\dell-screenshot.ps1` gives the screen), clone at `D:\mop\Matter Of Place`, `.env` copied over scp,
+  bun 1.3.13, Deno 2.9.7, Playwright Chromium, gh and Claude signed in (same Max account as this session, one weekly
+  limit), `availableModels` updated to the Claude 5 ids, permissions in bypass mode so cross-session messages are not
+  held. Claude Code there runs `claude --remote-control dell` from a desktop terminal (session `dell [f40b59]`).
+- Lanes: Dell runs B13 wf_b52b8501-a01 (c7b, then 8 to 13), B7 wf_9056e71b-55a (5 to 16), B6 wf_a5dd49ae-e6b (1 to 9),
+  B11 wf_8d8f3276-412 (1 to 13), B10 wf_023873a9-fb0 (0, 3, 4, 5, 5a), 2.06 GB free with five builders up; this laptop
+  runs B17 wf_691c6d5a-d34 (c8, c9, 11, 12). Operator (02:20): the Dell takes more lanes than its memory suggests;
+  the plan has no more open slices tonight (B14 after PR 163, B16 after PR 142, H1 after the B slices).
+- Fixed tonight: `.claude/workflows/build-slice.js` did not parse since becb161 (two unescaped backticks in the brief;
+  caught by the Dell runner; PR 179; the post-write hook now parses workflow scripts as the tool does, P-532); the
+  P-516 coverage check now expands a range ending on a lettered step ("1-3b"; PR 181); the board is readable on a
+  phone (every tab 390 px at 390 px; PR 181); lane files B10, B6, B11 (PR 181); the Dell's records PR 178 merged.
+- Operator rules recorded in lane-runner.md: a runner never fixes a failing or unparsable script, it reports the
+  exact command, error and file to the orchestrator; lanes on the Dell are measured, not gated on memory.
+- Standing: report, never fix, applies to the runner; the orchestrator fixes. Watches here: stall, lane results and
+  board (30-minute re-arms). Board server restarted with the phone layout (task b9x0ukbqz).
