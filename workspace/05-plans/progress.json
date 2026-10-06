@@ -217,7 +217,7 @@
         "7"
       ],
       "inReview": [],
-      "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 and in PR 163 (blocked twice: bundle wall of H62, now on main; one drifted B4 mutation find, re-pointed). Run wf_31d6490a-eeb ended blocked waiting for 158; relaunch from lanes/B13.json after 163 merges: steps 8 to 13."
+      "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 in PR 163, red only on bundle-check (property route 153,708 against 153,600; main 153,238). Close-out c7b in lanes/B13.json shrinks step 7 on the property page, then 8 to 13."
     },
     "B17": {
       "accepted": [
@@ -236,12 +236,11 @@
       "accepted": [
         "1",
         "2",
-        "3"
-      ],
-      "inReview": [
+        "3",
         "4"
       ],
-      "note": "Step 1 on main (PR 138); 2 and 3 accepted on slice/b7, in PR 158 (bundle wall and e2e env fixed; the H62 line is on main since PR 173). Step 4 building in run wf_635ac60b-161; pauses after step 4 banks (operator, 10:40). 5 to 16 relaunch from lanes/B7.json, planned for the Dell."
+      "inReview": [],
+      "note": "Steps 1 to 4 on main (PRs 138, 158; 158 merged 2026-10-06 13:20 after the H62 line, the CI seed and the CI-only Worker keys). Run wf_635ac60b-161 paused after step 4 banked (operator, 10:40). 5 to 16 relaunch from lanes/B7.json, planned for the Dell."
     },
     "B12": {
       "accepted": [
