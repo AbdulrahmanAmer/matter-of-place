@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Bookmark, Check, Share2 } from "lucide-react";
-import { InquiryDialog, type Intent } from "../components/forms/inquiry-dialog";
+import type { Intent } from "../components/forms/inquiry-dialog";
 import { AskMatterOfPlace } from "../components/property/concierge";
 import { DossierFacts } from "../components/property/dossier-facts";
 import { Gallery } from "../components/property/gallery";
@@ -28,6 +28,13 @@ import { breadcrumbLd, propertyListingLd, videoLd } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { propertyDescription } from "../lib/seo-copy";
+
+// The dialog opens on a click, so its code and its form helpers load then, not with the page.
+const InquiryDialog = lazy(() =>
+  import("../components/forms/inquiry-dialog").then((module) => ({
+    default: module.InquiryDialog,
+  })),
+);
 
 export const Route = createFileRoute("/_site/property/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -327,12 +334,16 @@ function PropertyPage() {
         onOpenChange={setAskOpen}
         onRequestShowing={requestShowing}
       />
-      <InquiryDialog
-        intent={intent}
-        subject={subject}
-        presentedByOwner={property.presentedByOwner}
-        onClose={closeIntent}
-      />
+      {intent !== null && (
+        <Suspense fallback={null}>
+          <InquiryDialog
+            intent={intent}
+            subject={subject}
+            presentedByOwner={property.presentedByOwner}
+            onClose={closeIntent}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }
