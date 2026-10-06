@@ -765,4 +765,7 @@ export const notPii = [
   "automation_recipes.name",
   "automation_revisions.table_name",
   "email_events.resend_email_id",
+  // A view stores nothing: its source columns, submissions.address and submissions.submitter_name, have rows.
+  "submission_list.address",
+  "submission_list.submitter_name",
 ];

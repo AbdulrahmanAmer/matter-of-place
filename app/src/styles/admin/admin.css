@@ -1,0 +1,325 @@
+/* The admin frame: reset, top bar, navigation, main column, banner, sign-in and error screens. */
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
+}
+
+.admin-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-skip {
+  position: absolute;
+  inset-inline-start: var(--admin-space-3);
+  inset-block-start: calc(-1 * var(--admin-bar-h));
+  padding: var(--admin-space-2) var(--admin-space-3);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.admin-skip:focus {
+  inset-block-start: var(--admin-space-2);
+}
+
+/* The grid: the bar across the top, the navigation and the page below it. The shell itself draws nothing. */
+.admin-frame {
+  display: grid;
+  grid-template-columns: var(--admin-nav-w) minmax(0, 1fr);
+  grid-template-rows: var(--admin-bar-h) minmax(0, 1fr);
+  min-height: 100svh;
+}
+
+:where(.admin-shell) {
+  display: contents;
+}
+
+.admin-bar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--admin-z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-5);
+  padding-inline: var(--admin-space-5);
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-wordmark .brand-horizontal {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0.24em;
+  white-space: nowrap;
+}
+
+.admin-wordmark small {
+  font-size: 0.58em;
+  margin-inline: 0.18em;
+}
+
+.admin-env {
+  padding: var(--admin-space-1) var(--admin-space-2);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-search {
+  flex: 1;
+  max-width: 420px;
+  margin-inline-start: auto;
+}
+
+.admin-search input {
+  width: 100%;
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.admin-search input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.admin-actor {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-nav {
+  grid-column: 1;
+  grid-row: 2;
+  position: sticky;
+  inset-block-start: var(--admin-bar-h);
+  align-self: start;
+  height: calc(100svh - var(--admin-bar-h));
+  overflow-y: auto;
+  padding: var(--admin-space-5) var(--admin-space-4);
+  background: var(--secondary);
+  border-right: 1px solid var(--border);
+}
+
+.admin-nav__group + .admin-nav__group {
+  margin-top: var(--admin-space-5);
+}
+
+.admin-nav__label {
+  margin-bottom: var(--admin-space-2);
+  padding-inline: var(--admin-space-3);
+}
+
+.admin-nav__link {
+  display: block;
+  padding: var(--admin-space-1) var(--admin-space-3);
+  border-inline-start: 1px solid transparent;
+  color: var(--muted-foreground);
+}
+
+.admin-nav__link:hover {
+  color: var(--foreground);
+}
+
+.admin-nav__link[aria-current="page"] {
+  border-inline-start-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.admin-main {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  padding: var(--admin-space-6) var(--admin-space-6) var(--admin-space-7);
+}
+
+.admin-banner {
+  margin-bottom: var(--admin-space-5);
+  padding: var(--admin-space-3) var(--admin-space-4);
+  border: 1px solid var(--status-warning);
+  color: var(--status-warning);
+}
+
+.admin-page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+  margin-bottom: var(--admin-space-5);
+}
+
+.admin-page-head h1 {
+  font-size: 40px;
+}
+
+/* A failure or a wait inside the shell, in the main column. */
+.admin-error {
+  max-width: 560px;
+}
+
+.admin-error h1 {
+  margin-block: var(--admin-space-2) var(--admin-space-3);
+  font-size: 34px;
+}
+
+.admin-error p + p,
+.admin-error p + .admin-actions {
+  margin-top: var(--admin-space-3);
+}
+
+.admin-error code {
+  font-family: var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.admin-pending {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+/* Sign-in and its confirm step: the one screen without the shell. */
+.admin-auth {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: var(--admin-space-5);
+}
+
+.admin-signin {
+  display: grid;
+  gap: var(--admin-space-3);
+  width: min(100%, 360px);
+}
+
+.admin-signin h1 {
+  font-size: 40px;
+}
+
+.admin-signin label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-signin input {
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+}
+
+.admin-signin button {
+  padding: var(--admin-space-3) var(--admin-space-5);
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.admin-signin button:disabled {
+  opacity: 0.35;
+}
+
+@media (max-width: 900px) {
+  .admin-frame {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--admin-bar-h) auto minmax(0, 1fr);
+  }
+
+  .admin-nav {
+    grid-column: 1;
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-main {
+    grid-column: 1;
+    grid-row: 3;
+    padding-inline: var(--admin-space-4);
+  }
+
+  .admin-search {
+    display: none;
+  }
+}

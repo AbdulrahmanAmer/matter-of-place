@@ -1,6 +1,6 @@
 // `node scripts/dev-vars.mjs`: writes the git-ignored `app/.dev.vars` that `wrangler dev` reads (G-006, ASSUMED E10).
 // Dev values only, taken from the repository's `.env`; no value is ever printed. It rewrites the keys below and
-// keeps every other line of an existing `.dev.vars` (B7 adds PREVIEW_TOKEN_SECRET there).
+// keeps every other line of an existing `.dev.vars`.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,8 @@ const FROM_DOTENV = [
   { name: "RATE_LIMIT_SALT", source: "PREVIEW_RATE_LIMIT_SALT", required: true },
   { name: "SENTRY_TEST_TOKEN", source: "PREVIEW_SENTRY_TEST_TOKEN", required: false },
   { name: "RESEND_WEBHOOK_SECRET", source: "RESEND_WEBHOOK_SECRET", required: false },
+  { name: "PREVIEW_TOKEN_SECRET", source: "PREVIEW_TOKEN_SECRET", required: false },
+  { name: "CSRF_SECRET", source: "CSRF_SECRET", required: false },
   { name: "CONFIRM_TOKEN_SECRET", source: "CONFIRM_TOKEN_SECRET", required: false },
 ];
 
