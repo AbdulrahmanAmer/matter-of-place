@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { EmailTemplateKey } from "../../domain/email.ts";
 import { NonRetryableError, type JsonObject } from "../jobs/types.ts";
 import type { Db } from "../lib/db.ts";
+import { readVar } from "../lib/runtime-env.ts";
+import { openToken } from "../subscribers/confirm-email.ts";
 import {
   loadSiteContext,
   readSettings,
@@ -336,9 +338,13 @@ function sentenceList(items: string[]): string {
   return items.length < 2 ? last : `${items.slice(0, -1).join(", ")} and ${last}`;
 }
 
-// STUB(B5 step 7): `openToken(sealed, readVar("CONFIRM_TOKEN_SECRET"))` of subscribers/confirm-email.ts opens the token here
-function openSealedToken(_sealed: string): Promise<string> {
-  return Promise.reject(new NonRetryableError("token_unreadable"));
+/** The key is read at call time (G67 (8)); a token sealed with another key, or changed, cannot be opened. */
+async function openSealedToken(sealed: string): Promise<string> {
+  const key = readVar("CONFIRM_TOKEN_SECRET");
+  if (key === undefined || key === "") throw new NonRetryableError("confirm_secret_missing");
+  const token = await openToken(sealed, key);
+  if (token === null) throw new NonRetryableError("token_unreadable");
+  return token;
 }
 
 /** The confirmation link: the raw token opened from the sealed one the event carried (invariant 7), on the site. */

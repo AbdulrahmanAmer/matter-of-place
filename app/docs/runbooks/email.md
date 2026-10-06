@@ -103,9 +103,8 @@ project. Set on 2026-10-05 and checked by name and by SHA-256 digest against the
 is `skipped` `not_allow_listed` whatever the flags say, unless `MOP_ENV` is `production`.
 
 `CONFIRM_TOKEN_SECRET` must be the same value wherever it is set: from step 7 on, the Worker seals the confirm token with
-it and the runner opens it, so a token sealed with another key cannot be opened (`token_unreadable`; today both ends are
-the `STUB(B5 step 7)` bodies of `confirmation.ts` and `variables.ts`). It is also a Worker secret: a key of the
-GitHub secret `PREVIEW_WORKER_SECRETS_JSON` for `matter-of-place-dev` and the previews, and
+it and the runner opens it, so a token sealed with another key cannot be opened (`token_unreadable`). It is also a
+Worker secret: a key of the GitHub secret `PREVIEW_WORKER_SECRETS_JSON` for `matter-of-place-dev` and the previews, and
 `bunx wrangler secret put CONFIRM_TOKEN_SECRET --name matter-of-place` for production. To check a copy without printing
 it, compare digests from `app/` with `.env` loaded:
 

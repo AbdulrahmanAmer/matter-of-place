@@ -1969,5 +1969,235 @@
     "replace": "db.rpc(\"record_webhook_receipt\"",
     "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
     "expect": "× .*forgets the receipt and answers 500"
+  },
+  {
+    "id": "b5-c-roundtrip",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "new TextDecoder().decode(opened)",
+    "replace": "\"opened\"",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*open a sealed token to the original"
+  },
+  {
+    "id": "b5-c-wrong-key",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "const keyBytes = (key: string): Uint8Array => fromBase64(key);",
+    "replace": "const keyBytes = (_key: string): Uint8Array => new Uint8Array(32);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*a wrong key fails with token_unreadable"
+  },
+  {
+    "id": "b5-c-malformed",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*a changed or malformed sealed text opens to null"
+  },
+  {
+    "id": "b5-c-runner-secret",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (key === undefined || key === \"\") throw new NonRetryableError(\"confirm_secret_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*the runner without CONFIRM_TOKEN_SECRET fails"
+  },
+  {
+    "id": "b5-c-sealed-upsert",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "      sealed_token: await requestConfirmation(token),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*subscribe passes the sealed token and no raw token"
+  },
+  {
+    "id": "b5-c-raw-event",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  return Promise.resolve(token);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain[\\s\\S]*not to contain"
+  },
+  {
+    "id": "b5-c-direct-job",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  void import(\"../lib/jobs\").then(({ enqueueJob }) => enqueueJob(undefined as never, { type: \"send_email\", idempotencyKey: token }));\n  return sealToken(token, key);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain[\\s\\S]*expected 2 to be 1"
+  },
+  {
+    "id": "b5-c-direct-event",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  void import(\"../lib/events\").then(({ emitEvent }) => emitEvent(undefined as never, { type: \"subscriber.created\", entity: \"subscriber\", entityId: null, payload: {} }));\n  return sealToken(token, key);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"calls neither\"",
+    "expect": "× .*calls neither emitEvent nor enqueueJob"
+  },
+  {
+    "id": "b5-c-secret-log",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "    logLine(\"warn\", \"confirm_secret_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*without CONFIRM_TOKEN_SECRET returns null"
+  },
+  {
+    "id": "b5-c-chain-link",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "encodeURIComponent(token)",
+    "replace": "encodeURIComponent(sealed)",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain"
+  },
+  {
+    "id": "b5-rp-key",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "rp:${hash.slice(0, 12)}",
+    "replace": "rp:${hash.slice(0, 8)}",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*gives a candidate one job"
+  },
+  {
+    "id": "b5-rp-raw",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "sealed_token: await sealToken(token, sealKey)",
+    "replace": "sealed_token: token",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*gives a candidate one job"
+  },
+  {
+    "id": "b5-rp-suppressed",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  if (email !== undefined && (await isSuppressed(db, email))) return \"suppressed\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*skips a suppressed candidate"
+  },
+  {
+    "id": "b5-rp-refused",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  if (!issued.data) return \"not_consenting\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*enqueues nothing when issue_repermission returns false"
+  },
+  {
+    "id": "b5-rp-lapse",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  return data;\n}",
+    "replace": "  return 0;\n}",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*returns the count lapse_subscribers returned"
+  },
+  {
+    "id": "b5-pn-track",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "      track(\"newsletter_confirmed\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*confirmed=1 shows the confirmed notice"
+  },
+  {
+    "id": "b5-pn-failed",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "      setNotice(t.newsletter.confirmFailed);",
+    "replace": "      setNotice(t.newsletter.confirmed);",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*confirmed=0 shows the failure notice"
+  },
+  {
+    "id": "b5-pn-block",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "        <NewsletterForm source=\"place-notes\" />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*no query shows neither notice"
+  },
+  {
+    "id": "b5-if-confirm",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/lib/strings.ts",
+    "find": "{market} property is published. Please confirm from the email we send.",
+    "replace": "{market} property is published.",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*tracks interest_signup once with the markets"
+  },
+  {
+    "id": "b5-an-confirmed",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"newsletter_confirmed\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*lists every event name that a track"
+  },
+  {
+    "id": "b5-routes-place-notes",
+    "kind": "file",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"_site.place-notes.tsx\": \"/place-notes\",\n",
+    "replace": "  \"_site.place-notes.tsx\": \"redirect\",\n",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "× .*map a redirect-only file to redirect"
+  },
+  {
+    "id": "b5-api-landing",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "/place-notes?confirmed=",
+    "replace": "/stories?confirmed=",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"confirms on a valid token\"",
+    "expect": "× .*confirms on a valid token"
+  },
+  {
+    "id": "b5-api-lapse",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "return landing(confirmedSchema.parse(data) !== null);",
+    "replace": "return landing(true);",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"after lapse_subscribers\"",
+    "expect": "× .*after lapse_subscribers"
   }
 ]

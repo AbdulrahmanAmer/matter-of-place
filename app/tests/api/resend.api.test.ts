@@ -273,6 +273,6 @@ describe("POST /api/hooks/resend", () => {
       },
     );
     expect(tokens).toHaveLength(1);
-    expect(location).toBe("/stories?confirmed=0");
+    expect(location).toBe("/place-notes?confirmed=0");
   });
 });
