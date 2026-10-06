@@ -2,7 +2,7 @@
 // `SUPABASE_SERVICE_ROLE_KEY` are Windows user-level variables of another business's Supabase project, and on
 // 2026-10-06 a test helper that read them created two accounts there. This test fails the moment a file under
 // tests/ or scripts/ reads either name without the explicit CI switch (`E2E_STACK` for code run by Playwright and
-// vitest, `--stack` for a script), or when the dev profile loader stops overwriting the two names.
+// vitest, `--stack` for a script, or the shared helper `scripts/lib/one-database.mjs`), or when the dev profile loader stops overwriting the two names.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,7 +12,8 @@ const GENERIC = /SUPABASE_(?:URL|SERVICE_ROLE_KEY)/;
 // A read: process.env["NAME"] not followed by an assignment, or required("NAME") / requiredEnv("NAME").
 const READ =
   /process\.env\["SUPABASE_(?:URL|SERVICE_ROLE_KEY)"\](?!\s*=[^=])|required(?:Env)?\(\s*"SUPABASE_(?:URL|SERVICE_ROLE_KEY)"/;
-const SWITCH = /E2E_STACK|--stack/;
+// The switch itself, or the shared helper that holds it (scripts/lib/one-database.mjs).
+const SWITCH = /E2E_STACK|--stack|one-database.mjs/;
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { recursive: true, encoding: "utf8" })

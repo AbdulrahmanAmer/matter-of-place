@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { guardEnv } from "./lib/guard-env.mjs";
+import { oneDatabaseValue } from "./lib/one-database.mjs";
 
 // One call per public API route against a running Worker, then the rows those calls wrote, read with the service
 // key (B3). Needs the dev loader of B3's Inputs. It writes rows, so it refuses a production database first (H35 (5)).
@@ -44,18 +45,8 @@ const record = (value) =>
 
 /** @param {string} name */
 function required(name) {
-  // One database (G-901, P-331): the two generic names resolve from the dev profile first; the shell's own values
-  // count only behind CI's E2E_STACK=1, never on a laptop, where they can belong to another project.
-  if (name === "SUPABASE_URL" || name === "SUPABASE_SERVICE_ROLE_KEY") {
-    const ref = process.env["DEV_SUPABASE_PROJECT_REF"] ?? "";
-    const devKey = process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-    if (ref !== "" && devKey !== "") {
-      return name === "SUPABASE_URL" ? `https://${ref}.supabase.co` : devKey;
-    }
-    if (process.env["E2E_STACK"] !== "1") {
-      throw new Error(`${name} is read only from the dev profile; load it first`);
-    }
-  }
+  const one = oneDatabaseValue(name, "api-smoke");
+  if (one !== undefined) return one;
   const value = process.env[name];
   if (value === undefined || value === "")
     throw new Error(`${name} is not set: load the dev profile`);
