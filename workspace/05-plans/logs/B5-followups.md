@@ -129,3 +129,21 @@
 4. File: `app/docs/runbooks/email.md`. Not blocking.
    - Follow-up: "Follow-up, UNPROVEN (stated honestly by the author, recorded here so it is not dropped). The job-runner deploy with the email steps, its bundle size and cold start, `email-chain.ts` on mop-dev, `email-test.ts all <address>`, and CONFIRM_TOKEN_SECRET on matter-of-place-dev and matter-of-place (BLOCKED: the production Worker's latest version is not deployed after the 'smoke failed f2b24b0' rollback) all remain open until B5 steps 3 and 4 are on main. JOB_RUNNER_SECRET is missing from the lane .env, and the orchestrator must copy CONFIRM_TOKEN_SECRET from the lane .env to the root .env and to PREVIEW_WORKER_SECRETS_JSON."
    - Evidence: "Confirmed by running: wrangler secret list shows 0 CONFIRM_TOKEN_SECRET on both Workers; deployments status shows 'smoke failed f2b24b0...'. email-chain was reproduced only against a throwaway PG18 cluster, where it fails at the missing create_submission."
+
+## g1 · steps 5
+
+1. File: `app/docs/runbooks/email.md`. Not blocking.
+   - Follow-up: "The new section says 'A dropped connection is retried three times'. The code makes three attempts in total, which is two retries: ATTEMPTS = 3 and 'if (attempt === ATTEMPTS) throw error' in app/scripts/resend-domain.ts lines 21 and 63. The unit test title agrees with the code ('the answer of the third try is used'). This is a small factual error in a runbook. Nothing in the product goes wrong because of it, so I rate it a follow-up: change the text to 'tried three times'."
+   - Evidence: "Read: app/scripts/resend-domain.ts:21 'const ATTEMPTS = 3;' and :59-66; runbook line 'A dropped connection is retried three times'."
+
+2. File: `workspace/05-plans/B5.md`. Not blocking.
+   - Follow-up: "The plan text for step 5 and the Files row of resend-check.ts say it reads the three domains 'with one GET /domains'. That cannot be built: the list has no records (P-1212, re-measured: 0 occurrences of "records"). The script makes one list call plus one GET /domains/<id> per verified domain, read only. The plan line is now stale and is the orchestrator's to fold."
+   - Evidence: "Confirmed by running: curl .../domains | grep -c '"records"' -> 0. app/scripts/resend-check.ts:36 calls readDomain per verified domain."
+
+3. File: `app/scripts/resend-domain.ts`. Not blocking.
+   - Follow-up: "UNPROVEN against real services: the write path (POST /domains, the Cloudflare upsert, POST /domains/<id>/verify) is only exercised against a stubbed fetch that the author also wrote. I ran a read-only check: the record names Resend returns today ('send.notes', 'resend._domainkey.notify', root 'send'/'rsend') are relative to the zone, so the '<name>.matterofplace.com' construction matches. Still unexercised: PUT overwriting the first of several TXT records at one name, and a partial write when the apex guard throws partway through the loop. The free plan has no spare slot to test this before the launch switch."
+   - Evidence: "Live read of the three domains' records via listDomains/readDomain (names only); the unit tests are the only evidence for the write calls."
+
+4. File: `workspace/05-plans/logs/B5.md`. Not blocking.
+   - Follow-up: "NOT DONE (the brief anticipated this): the live half of step 5. It needs RESEND_API_KEY and EMAIL_LIVE=1 set on mop-dev, then 'bun run scripts/email-test.ts all <address>' printing a 'sent <key> <resend_id>' line per enabled key, the email_messages query, and a check of the From/Reply-To headers of 'received' and 'repermission' in the Zoho inbox. It needs JOB_RUNNER_SECRET (not in the lane .env; confirmed 0 matches) and the runner deployed from main. The orchestrator must run it before step 5 counts as closed."
+   - Evidence: "Confirmed by running: grep -cE '^JOB_RUNNER_SECRET=.+' .env -> 0; supabase secrets list names show no RESEND_API_KEY or EMAIL_LIVE."
