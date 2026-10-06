@@ -1659,5 +1659,605 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
     "expect": "expected \\[ 'scripts/email-chain.ts' \\] to deeply equal \\[\\]"
+  },
+  {
+    "id": "b5-rd-verified-no-write",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "io.log(`domain ${name} verified (no change)`);",
+    "replace": "io.log(`domain ${name} verified (no change)`); await json(io, `${RESEND}/domains/${known.id}/verify`, resendInit(keys.resend, \"POST\"));",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "unexpected call POST https://api.resend.com/domains/id-matterofplace.com/verify"
+  },
+  {
+    "id": "b5-rd-created-alone",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "{ name, region: REGION }",
+    "replace": "{ name, region: \"eu-west-1\" }",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a missing domain is created alone"
+  },
+  {
+    "id": "b5-rd-proxied",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "proxied: false,",
+    "replace": "proxied: true,",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a missing domain is created alone"
+  },
+  {
+    "id": "b5-rd-update-in-place",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "init(found === undefined ? \"POST\" : \"PUT\")",
+    "replace": "init(\"POST\")",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "unexpected call POST https://api.cloudflare.com/client/v4/zones/zone-1/dns_records/rec-old"
+  },
+  {
+    "id": "b5-rd-unverified-not-created",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "known === undefined\n        ?",
+    "replace": "true\n        ?",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a listed domain that is not verified is read and verified, never created"
+  },
+  {
+    "id": "b5-rd-apex",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "record.name === \"@\" || record.name === ZONE",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a record at the apex is refused"
+  },
+  {
+    "id": "b5-rd-retry",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "if (attempt === ATTEMPTS) throw error;",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a dropped connection is retried"
+  },
+  {
+    "id": "b5-rd-refusal",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-domain.ts",
+    "find": "if (!response.ok) {",
+    "replace": "if (!response.ok && false) {",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a refusal is not retried and names the status"
+  },
+  {
+    "id": "b5-rd-check-spf",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "own.every((entry) => entry.status === \"verified\")",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× a verified domain whose SPF record is not verified fails spf"
+  },
+  {
+    "id": "b5-rd-check-pending",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "known.status !== \"verified\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× exits non-zero naming a domain listed as pending"
+  },
+  {
+    "id": "b5-rd-check-missing",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "io.log(`domain ${name} missing`);",
+    "replace": "io.log(`domain ${name} gone`);",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× exits non-zero naming a domain the account does not list"
+  },
+  {
+    "id": "b5-rd-check-print",
+    "kind": "file",
+    "test": "tests/unit/email/resend-domain.test.ts",
+    "file": "scripts/resend-check.ts",
+    "find": "io.log(`domain ${name} verified`);",
+    "replace": "io.log(`domain ${name} ok`);",
+    "run": "bunx vitest run --project unit tests/unit/email/resend-domain.test.ts",
+    "expect": "× prints verified, spf pass and dkim pass for each domain and exits 0"
+  },
+  {
+    "id": "b5-ev-foreign-env",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "&& taggedEnv !== ownEnv)",
+    "replace": "&& false)",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*foreign env: an event tagged production"
+  },
+  {
+    "id": "b5-ev-foreign-log",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "    logLine(\"info\", \"email_event_foreign_env\", { type });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*foreign env: an event tagged production"
+  },
+  {
+    "id": "b5-ev-untagged",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "typeof taggedEnv === \"string\" && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*an event tagged with its own env, or with none"
+  },
+  {
+    "id": "b5-ev-email-only",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "type.startsWith(\"email.\") && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a contact.updated is judged by its audience"
+  },
+  {
+    "id": "b5-ev-click-link",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "link: data.click?.link,",
+    "replace": "link: undefined,",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*click link"
+  },
+  {
+    "id": "b5-ev-contact-address",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "type === \"contact.updated\" ? data.email : [data.to].flat()[0]",
+    "replace": "[data.to].flat()[0]",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*unsubscribed: a contact.updated"
+  },
+  {
+    "id": "b5-ev-unsubscribed-flag",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "unsubscribed: data.unsubscribed,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*unsubscribed: a contact.updated"
+  },
+  {
+    "id": "b5-ev-bounce-type",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "bounce_type: data.bounce?.type,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.bounced Permanent maps to p"
+  },
+  {
+    "id": "b5-ev-audience",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "audience_id: data.audience_id,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a Broadcast event maps to p"
+  },
+  {
+    "id": "b5-ev-broadcast",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "broadcast_id: data.broadcast_id,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a Broadcast event maps to p"
+  },
+  {
+    "id": "b5-ev-at",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "at: event.created_at,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.sent maps to p"
+  },
+  {
+    "id": "b5-ev-event-id",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "provider_event_id: id,",
+    "replace": "provider_event_id: type,",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*email.sent maps to p"
+  },
+  {
+    "id": "b5-ev-string-recipient",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "[data.to].flat()[0]",
+    "replace": "data.to?.[0]",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a recipient sent as a string"
+  },
+  {
+    "id": "b5-ev-rpc-error",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "if (error !== null) throw new AppError(\"server\", undefined, \"The event could not be applied.\");",
+    "replace": "if (error !== null) return;",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*an RPC error is thrown"
+  },
+  {
+    "id": "b5-ev-false-return",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/email/events.ts",
+    "find": "const { error } = await db.rpc(\"apply_email_event\", { p });\n  if (error !== null) throw",
+    "replace": "const { data: applied, error } = await db.rpc(\"apply_email_event\", { p });\n  if (error !== null || !applied) throw",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*a false return, a replay, is a no-op"
+  },
+  {
+    "id": "b5-ev-hook-wired",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "  await applyEmailEvent(db, { ...event, id }, ownEnv);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-id",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "{ ...event, id }, ownEnv",
+    "replace": "{ ...event, id: \"x\" }, ownEnv",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-env",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "event.data, id, env.MOP_ENV",
+    "replace": "event.data, id, \"production\"",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*hands the svix-id"
+  },
+  {
+    "id": "b5-ev-hook-forget",
+    "kind": "file",
+    "test": "tests/unit/email/events.test.ts",
+    "file": "src/server/hooks/resend.ts",
+    "find": "db.rpc(\"forget_webhook_receipt\"",
+    "replace": "db.rpc(\"record_webhook_receipt\"",
+    "run": "bunx vitest run --project unit tests/unit/email/events.test.ts",
+    "expect": "× .*forgets the receipt and answers 500"
+  },
+  {
+    "id": "b5-c-roundtrip",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "new TextDecoder().decode(opened)",
+    "replace": "\"opened\"",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*open a sealed token to the original"
+  },
+  {
+    "id": "b5-c-wrong-key",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "const keyBytes = (key: string): Uint8Array => fromBase64(key);",
+    "replace": "const keyBytes = (_key: string): Uint8Array => new Uint8Array(32);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*a wrong key fails with token_unreadable"
+  },
+  {
+    "id": "b5-c-malformed",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirm-email.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*a changed or malformed sealed text opens to null"
+  },
+  {
+    "id": "b5-c-runner-secret",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (key === undefined || !AES_KEY.test(key))\n    throw new NonRetryableError(\"confirm_secret_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*the runner without CONFIRM_TOKEN_SECRET fails"
+  },
+  {
+    "id": "b5-c-runner-secret-shape",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "!AES_KEY.test(key))",
+    "replace": "key === \"\")",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*not base64 of 32 bytes fails with confirm_secret_missing"
+  },
+  {
+    "id": "b5-c-sealed-upsert",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "      sealed_token: await requestConfirmation(token),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*subscribe passes the sealed token and no raw token"
+  },
+  {
+    "id": "b5-c-raw-event",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  return Promise.resolve(token);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain[\\s\\S]*not to contain"
+  },
+  {
+    "id": "b5-c-direct-job",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  void import(\"../lib/jobs\").then(({ enqueueJob }) => enqueueJob(undefined as never, { type: \"send_email\", idempotencyKey: token }));\n  return sealToken(token, key);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain[\\s\\S]*expected 2 to be 1"
+  },
+  {
+    "id": "b5-c-direct-event",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "  return sealToken(token, key);",
+    "replace": "  void import(\"../lib/events\").then(({ emitEvent }) => emitEvent(undefined as never, { type: \"subscriber.created\", entity: \"subscriber\", entityId: null, payload: {} }));\n  return sealToken(token, key);",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"calls neither\"",
+    "expect": "× .*calls neither emitEvent nor enqueueJob"
+  },
+  {
+    "id": "b5-c-secret-log",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/confirmation.ts",
+    "find": "    logLine(\"warn\", \"confirm_secret_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "× .*without CONFIRM_TOKEN_SECRET returns null"
+  },
+  {
+    "id": "b5-c-chain-link",
+    "kind": "file",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "encodeURIComponent(token)",
+    "replace": "encodeURIComponent(sealed)",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts -t \"stub chain\"",
+    "expect": "× .*stub chain"
+  },
+  {
+    "id": "b5-rp-key",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "rp:${hash.slice(0, 12)}",
+    "replace": "rp:${hash.slice(0, 8)}",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*gives a candidate one job"
+  },
+  {
+    "id": "b5-rp-raw",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "sealed_token: sealed }",
+    "replace": "sealed_token: token }",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*gives a candidate one job"
+  },
+  {
+    "id": "b5-rp-suppressed",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  if (email !== undefined && (await isSuppressed(db, email))) return \"suppressed\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*skips a suppressed candidate"
+  },
+  {
+    "id": "b5-rp-refused",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  if (!issued.data) return \"not_consenting\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*enqueues nothing when issue_repermission returns false"
+  },
+  {
+    "id": "b5-rp-seal-first",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  const sealed = await sealToken(token, sealKey);\n  const issued = await db.rpc(\"issue_repermission\", {\n    p_subscriber_id: subscriberId,\n    p_token_hash: hash,\n  });\n",
+    "replace": "  const issued = await db.rpc(\"issue_repermission\", {\n    p_subscriber_id: subscriberId,\n    p_token_hash: hash,\n  });\n  const sealed = await sealToken(token, sealKey);\n",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*a key that cannot seal throws before the ask is stored"
+  },
+  {
+    "id": "b5-rp-lapse",
+    "kind": "file",
+    "test": "tests/unit/email/repermission.test.ts",
+    "file": "src/server/email/repermission.ts",
+    "find": "  return data;\n}",
+    "replace": "  return 0;\n}",
+    "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
+    "expect": "× .*returns the count lapse_subscribers returned"
+  },
+  {
+    "id": "b5-pn-track",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "      track(\"newsletter_confirmed\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*confirmed=1 shows the confirmed notice"
+  },
+  {
+    "id": "b5-pn-failed",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "      setNotice(t.newsletter.confirmFailed);",
+    "replace": "      setNotice(t.newsletter.confirmed);",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*confirmed=0 shows the failure notice"
+  },
+  {
+    "id": "b5-pn-block",
+    "kind": "file",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "        <NewsletterForm source=\"place-notes\" />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*no query shows neither notice"
+  },
+  {
+    "id": "b5-if-confirm",
+    "kind": "file",
+    "test": "tests/unit/interest-form.test.tsx",
+    "file": "src/lib/strings.ts",
+    "find": "{market} property is published. Please confirm from the email we send.",
+    "replace": "{market} property is published.",
+    "run": "bunx vitest run --project component tests/unit/interest-form.test.tsx",
+    "expect": "× .*tracks interest_signup once with the markets"
+  },
+  {
+    "id": "b5-an-confirmed",
+    "kind": "file",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"newsletter_confirmed\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "× .*lists every event name that a track"
+  },
+  {
+    "id": "b5-routes-place-notes",
+    "kind": "file",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"_site.place-notes.tsx\": \"/place-notes\",\n",
+    "replace": "  \"_site.place-notes.tsx\": \"redirect\",\n",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "× .*map a redirect-only file to redirect"
+  },
+  {
+    "id": "b5-api-landing",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "/place-notes?confirmed=",
+    "replace": "/stories?confirmed=",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"confirms on a valid token\"",
+    "expect": "× .*confirms on a valid token"
+  },
+  {
+    "id": "b5-api-lapse",
+    "kind": "file",
+    "test": "tests/api/subscribers.api.test.ts",
+    "file": "src/server/subscribers/service.ts",
+    "find": "return landing(confirmedSchema.parse(data) !== null);",
+    "replace": "return landing(true);",
+    "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"after lapse_subscribers\"",
+    "expect": "× .*after lapse_subscribers"
+  },
+  {
+    "id": "b5-aj-confirmation-url",
+    "kind": "file",
+    "test": "scripts/build-auth-templates.ts (its lintEmail gate)",
+    "file": "scripts/build-auth-templates.ts",
+    "find": "const CONFIRM = \"{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=\";",
+    "replace": "const CONFIRM = \"{{ .ConfirmationURL }}&type=\";",
+    "run": "bun run scripts/build-auth-templates.ts",
+    "expect": "auth_magic_link: link-href"
+  },
+  {
+    "id": "b5-ao-auth-invite",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/auth-invite-test.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "expected \\[ 'scripts/auth-invite-test.ts' \\] to deeply equal \\[\\]"
+  },
+  {
+    "id": "b5-shots-overflow-600",
+    "test": "scripts/email-shots.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "  maxWidth: \"600px\",",
+    "replace": "  maxWidth: \"600px\",\n  minWidth: \"700px\",",
+    "run": "bun run email:shots",
+    "expect": "received: scrollWidth 7[0-9]{2} at 600 px",
+    "kind": "manual",
+    "note": "Needs a Chromium binary (bun run email:shots renders the templates in a browser); CI's db job has none, so it is replayed by hand on the laptop: 2026-10-06 the builder saw \"received: scrollWidth 7xx at 600 px\" with the minWidth mutation."
+  },
+  {
+    "id": "b5-shots-lint-stops",
+    "test": "scripts/email-shots.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "  maxWidth: \"600px\",",
+    "replace": "  maxWidth: \"700px\",",
+    "run": "bun run email:shots",
+    "expect": "received: container-width the outer container does not declare max-width: 600px"
   }
 ]

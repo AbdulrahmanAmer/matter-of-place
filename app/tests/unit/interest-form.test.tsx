@@ -72,11 +72,10 @@ describe("InterestForm", () => {
     vi.spyOn(services.newsletter, "subscribe").mockResolvedValue(receipt);
     render(<InterestForm scope="market" market={california} />);
     fillAndSend();
-    expect(
-      await screen.findByText(
-        "Thank you. We will write when the first California property is published.",
-      ),
-    ).toBeTruthy();
+    const sent = await screen.findByText(
+      /^Thank you\. We will write when the first California property is published\./,
+    );
+    expect(sent.textContent).toContain("Please confirm from the email we send.");
     expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("interest_signup", { markets: ["california"] });
   });

@@ -20,7 +20,7 @@ const landing = (confirmed: boolean): Response =>
   new Response(null, {
     status: 303,
     headers: {
-      location: `/stories?confirmed=${confirmed ? "1" : "0"}`,
+      location: `/place-notes?confirmed=${confirmed ? "1" : "0"}`,
       "cache-control": "no-store",
     },
   });
