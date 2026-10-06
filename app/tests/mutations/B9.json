@@ -1271,8 +1271,8 @@
     "id": "b9g6-wait-render_cover",
     "test": "tests/unit/assets/steps.test.ts",
     "file": "src/server/assets/render-run.ts",
-    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
-    "replace": "if (false) {",
+    "find": "  if (await variantsReady(ctx.db, propertyId, variant)) return null;",
+    "replace": "  return null;",
     "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_cover waits two minutes for a photograph that lacks the size\"",
     "expect": "× .*render_cover waits two minutes for a photograph that lacks the size"
   },
@@ -1352,8 +1352,8 @@
     "id": "b9g6-wait-render_carousel",
     "test": "tests/unit/assets/steps.test.ts",
     "file": "src/server/assets/render-run.ts",
-    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
-    "replace": "if (false) {",
+    "find": "  if (await variantsReady(ctx.db, propertyId, variant)) return null;",
+    "replace": "  return null;",
     "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_carousel waits two minutes for a photograph that lacks the size\"",
     "expect": "× .*render_carousel waits two minutes for a photograph that lacks the size"
   },
@@ -1433,8 +1433,8 @@
     "id": "b9g6-wait-render_story",
     "test": "tests/unit/assets/steps.test.ts",
     "file": "src/server/assets/render-run.ts",
-    "find": "if (!(await variantsReady(ctx.db, propertyId, variant))) {",
-    "replace": "if (false) {",
+    "find": "  if (await variantsReady(ctx.db, propertyId, variant)) return null;",
+    "replace": "  return null;",
     "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts -t \"render_story waits two minutes for a photograph that lacks the size\"",
     "expect": "× .*render_story waits two minutes for a photograph that lacks the size"
   },

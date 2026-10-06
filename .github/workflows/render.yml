@@ -27,7 +27,8 @@ jobs:
       contents: read
     # One run per job at a time, never cancelled: a second dispatch of the same job waits.
     concurrency: render-${{ fromJSON(inputs.job).job_id }}
-    env:
+    # The reel job reads the same values through this anchor.
+    env: &job-env
       MOP_JOB: ${{ inputs.job }}
       MOP_ENV: ${{ fromJSON(inputs.job).env }}
       SUPABASE_URL: https://${{ secrets.DEV_SUPABASE_PROJECT_REF }}.supabase.co
@@ -51,6 +52,55 @@ jobs:
         run: bun scripts/render-job.mjs
       - name: callback
         if: always()
+        env:
+          RENDER_CALLBACK_SECRET: ${{ secrets.RENDER_CALLBACK_SECRET }}
+        run: node scripts/post-callback.mjs
+
+  # The reel of a Campaign property (B12): capture, mix, encode and gate run in one foreground step, which writes
+  # result.json before the callback. The engine lives in ../launch with its own packages (G-012). The fixture job
+  # (launch/reel/fixture-job.json) uploads nothing and posts no callback; its files are the run's artifact.
+  reel:
+    if: fromJSON(inputs.job).type == 'render_reel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    concurrency: render-${{ fromJSON(inputs.job).job_id }}
+    env: *job-env
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      # puppeteer-core 25 needs node 22.12 or later for the engine scripts.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Fonts present
+        run: test -s public/fonts/jost-latin-wght-normal.woff2 && test -s public/fonts/cormorant-garamond-latin-wght-normal.woff2
+      - name: ffmpeg
+        run: |
+          command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -y -q ffmpeg; }
+          ffmpeg -version | head -n 1
+      - run: bun install --cwd ../launch --frozen-lockfile
+      - name: render
+        timeout-minutes: 18
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: bun scripts/render-reel.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reel-${{ fromJSON(inputs.job).job_id }}
+          path: app/.tmp/reel/out/
+          # .tmp is dot-named (P-099).
+          include-hidden-files: true
+          retention-days: 3
+      - name: callback
+        if: always() && !fromJSON(env.MOP_JOB).payload.data.fixture
         env:
           RENDER_CALLBACK_SECRET: ${{ secrets.RENDER_CALLBACK_SECRET }}
         run: node scripts/post-callback.mjs

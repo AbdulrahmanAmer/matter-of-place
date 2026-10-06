@@ -50,6 +50,12 @@
   overflow: hidden;
 }
 
+.gallery-film .film-portrait {
+  width: min(100%, 26rem);
+  margin-inline: auto;
+  aspect-ratio: 9 / 16;
+}
+
 .gallery-film video {
   width: 100%;
   height: 100%;

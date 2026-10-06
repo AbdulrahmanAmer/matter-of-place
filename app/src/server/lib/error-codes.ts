@@ -61,6 +61,8 @@ export const errorCodes = {
   csrf_secret_missing: 503,
   // B5: `email_message_finish` takes sent, failed or skipped only.
   invalid_status: 422,
+  // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
+  reel_files_missing: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
