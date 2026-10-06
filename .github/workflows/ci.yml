@@ -325,7 +325,7 @@ jobs:
         run: |
           if bunx playwright test --list --project=admin > /dev/null; then
             bun run scripts/seed-admin-users.ts --stack
-            E2E_DATASET=1 bunx playwright test --project=admin
+            E2E_STACK=1 E2E_DATASET=1 bunx playwright test --project=admin
           else
             echo "admin project absent (B7 not landed)"
           fi

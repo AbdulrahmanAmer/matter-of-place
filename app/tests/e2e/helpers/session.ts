@@ -1,8 +1,10 @@
 // Staff sign-in for the admin specs (API-01): the `hashed_token` of `auth.admin.generateLink`, opened on the
 // confirm page in a new browser context, so no mail is sent and the link is never spent by the context that
-// asked for it. On the laptop it reads the dev profile (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`);
-// CI's e2e job has no project ref, its ephemeral stack exports `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
-// (ci.yml), so those win when both are set (P-2010).
+// asked for it. It reads the dev profile's own names (`DEV_SUPABASE_PROJECT_REF`, `DEV_SUPABASE_SERVICE_ROLE_KEY`)
+// and never `SUPABASE_URL`: on the operator's laptop that name is set at the Windows user level for another
+// business's project, and a client built from it created this spec's test accounts there on 2026-10-06 (P-331,
+// G-901). CI's e2e job has no project ref; its ephemeral `supabase start` stack exports `SUPABASE_URL` and
+// `SUPABASE_SERVICE_ROLE_KEY`, and ci.yml's admin step says so explicitly with `E2E_STACK=1` (P-2010).
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../../src/db";
@@ -15,11 +17,9 @@ function requiredEnv(name: string): string {
 
 /** The service-role client of the project the Worker under test reads. */
 export function adminClient() {
-  const ciUrl = process.env["SUPABASE_URL"] ?? "";
-  const ciKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
   const [url, key] =
-    ciUrl !== "" && ciKey !== ""
-      ? [ciUrl, ciKey]
+    process.env["E2E_STACK"] === "1"
+      ? [requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY")]
       : [
           `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
           requiredEnv("DEV_SUPABASE_SERVICE_ROLE_KEY"),
