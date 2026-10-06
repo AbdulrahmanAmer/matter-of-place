@@ -1,10 +1,9 @@
 {
   "slice": "B13",
-  "runId": "wf_dbe24ed5-4c9",
-  "note": "fresh run 2026-10-05 23:30 after the step 5 reviewer hung (P-509); step 4 merged in PR 141; steps 5 and 6 as close-outs c5, c6",
-  "resume": {
-    "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_dbe24ed5-4c9",
+  "runId": "wf_31d6490a-eeb",
+  "note": "steps 1 to 6 on main or accepted; step 7 accepted on slice/b13 (PR 163 red twice: bundle wall of H62, drifted B4:seo-robots mutation find); run wf_dbe24ed5-4c9 ended blocked at the step 7 merge; close-out c7m makes PR 163 green after PR 158 lands, then steps 8 to 13. Launch: Workflow({ scriptPath, args }) with the object below.",
+  "launch": {
+    "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
     "args": {
       "slice": "B13",
       "root": "E:/mop-build/seo",
@@ -14,7 +13,6 @@
         "G": 800
       },
       "steps": [
-        "7",
         "8",
         "9",
         "10",
@@ -22,7 +20,14 @@
         "12",
         "13"
       ],
-      "closeOut": "see the launch in the session transcript (c5 step 5, c6 step 6); the run id is enough to resume"
+      "closeOut": [
+        {
+          "id": "c7m",
+          "steps": "7",
+          "critical": false,
+          "title": "see the launch of run wf_31d6490a-eeb in the session transcript (close-out c7m: B4:seo-robots find re-pointed, merge origin/main after PR 158, bundle-check OK with the H62 line, PR 163 through the gate)"
+        }
+      ]
     }
   }
 }
