@@ -25,6 +25,7 @@ import { cx } from "../lib/cx";
 import { formatNumber } from "../lib/format";
 import { archiveFacetsQuery, marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
 import { breadcrumbLd, propertyListingLd, videoLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { propertyDescription } from "../lib/seo-copy";
 
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       facets: archive?.facets ?? null,
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
     if (!loaderData) return unavailableHead("Property");
     const { property, market, region } = loaderData;
     const film = videoLd(property);
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       title: `${property.title} ${property.city}`,
       description: propertyDescription(property),
       path: `/property/${property.slug}`,
+      image: ogImageFor({ key: "default", property, ogStatic: ogStaticOf(matches) }),
       type: "article",
       jsonLd: [
         propertyListingLd(property),

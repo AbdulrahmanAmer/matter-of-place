@@ -7,6 +7,7 @@ import { useTrackView } from "../hooks/use-track-view";
 import { pluralize } from "../lib/format";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { archiveQuery } from "../lib/queries";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { archiveDescription } from "../lib/seo-copy";
 
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/_site/archive/$kind/$slug")({
     if (facet === null) throw notFound();
     return facet;
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
     if (!loaderData) return unavailableHead("Archive");
     const { kind, slug, label, count, items } = loaderData;
     const title = titles[kind](label);
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_site/archive/$kind/$slug")({
       title,
       description: archiveDescription(kind, label, count),
       path,
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [
         collectionLd(
           kind,

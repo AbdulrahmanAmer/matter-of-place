@@ -2,15 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SubmitWizard } from "../components/forms/submit/wizard";
 import { PageIntro } from "../components/site/page-intro";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/submit")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Submit a Property",
       description: pageDescription("submit"),
       path: "/submit",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: "Submit a Property", path: "/submit" }])],
     }),
   component: SubmitPage,

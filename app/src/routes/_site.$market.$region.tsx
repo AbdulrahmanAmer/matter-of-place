@@ -12,6 +12,7 @@ import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { marketQuery, propertiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { indexable, pageHead, unavailableHead } from "../lib/seo";
 import { regionDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/_site/$market/$region")({
         .slice(0, 2),
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
     if (!loaderData) return unavailableHead("Region");
     const { market, region, pool } = loaderData;
     const title = `${region.name}, ${market.name}`;
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/_site/$market/$region")({
         title,
         description: fill(t.comingSoon.meta.market, { intro: region.intro, market: region.name }),
         path,
+        image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
         ...indexable(pool.length),
       });
     }
@@ -65,6 +67,7 @@ export const Route = createFileRoute("/_site/$market/$region")({
       title,
       description: regionDescription(region),
       path,
+      image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
       jsonLd: [
         collectionLd(
           "region",

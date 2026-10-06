@@ -5,16 +5,18 @@ import { PageIntro } from "../components/site/page-intro";
 import { StoryGrid } from "../components/site/story-card";
 import { storiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/stories/")({
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(storiesQuery()),
-  head: ({ loaderData }) =>
+  head: ({ loaderData, matches }) =>
     pageHead({
       title: "Stories",
       description: pageDescription("stories.index"),
       path: "/stories",
+      image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
       jsonLd: [
         collectionLd(
           "stories",

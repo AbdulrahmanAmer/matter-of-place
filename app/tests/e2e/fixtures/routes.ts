@@ -112,6 +112,8 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.pricing.tsx": "redirect",
   "media.$.ts": "server",
   "robots[.]txt.ts": "server",
+  "llms[.]txt.ts": "server",
+  "llms-full[.]txt.ts": "server",
   "sitemap[.]xml.ts": sitemapRoute,
 };
 

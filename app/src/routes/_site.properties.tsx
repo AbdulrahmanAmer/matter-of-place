@@ -12,6 +12,7 @@ import { track } from "../lib/analytics";
 import { pluralize } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { indexable, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
@@ -28,18 +29,20 @@ export const Route = createFileRoute("/_site/properties")({
     ]);
     return { properties, markets };
   },
-  head: ({ loaderData }) =>
+  head: ({ loaderData, matches }) =>
     loaderData?.properties.length === 0
       ? pageHead({
           title: "Properties",
           description: t.comingSoon.meta.properties,
           path: "/properties",
+          image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
           ...indexable(loaderData.properties.length),
         })
       : pageHead({
           title: "Properties",
           description: pageDescription("properties"),
           path: "/properties",
+          image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
           jsonLd: [
             collectionLd(
               "properties",

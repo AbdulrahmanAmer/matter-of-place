@@ -4,15 +4,17 @@ import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
 import { isLive } from "../services";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/legal")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Legal",
       description: pageDescription("legal"),
       path: "/legal",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: "Legal", path: "/legal" }])],
     }),
   component: LegalPage,

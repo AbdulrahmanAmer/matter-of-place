@@ -14,6 +14,7 @@ import { NotFound } from "../components/layout/not-found";
 import { RouteError } from "../components/layout/route-error";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { siteConfig } from "../config/site";
+import { ogStaticQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
 import { services } from "../services";
 
@@ -21,6 +22,9 @@ const fontsHref =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500;600&family=Urbanist:wght@300;500;700&family=Epilogue:wght@300;400&display=swap";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: async ({ context: { queryClient } }) => ({
+    ogStatic: await queryClient.ensureQueryData(ogStaticQuery()),
+  }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

@@ -249,7 +249,7 @@ describe("the head of a page that lists properties", () => {
   // The route's own `head()`, called as the router calls it, with a loader result and the params.
   function robotsMeta(head: unknown, loaderData: unknown, params: Record<string, string>) {
     if (typeof head !== "function") throw new Error("the route has no head()");
-    const result: unknown = Reflect.apply(head, undefined, [{ loaderData, params }]);
+    const result: unknown = Reflect.apply(head, undefined, [{ loaderData, params, matches: [] }]);
     return headShape
       .parse(result)
       .meta.filter((tag) => tag["name"] === "robots")
