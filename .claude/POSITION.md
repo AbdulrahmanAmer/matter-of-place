@@ -1203,3 +1203,53 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Runs: B13 wf_31d6490a-eeb (c7m, then 8 to 13), B12 wf_42239cda-85c (c7 in review, step 8 building; PR 161 draft),
   B17 wf_df526cfb-c3b (steps 4 fix, 5), B5 wf_03e1b94b-8bd (step 7 review, 8 building), B7 wf_635ac60b-161 (c2b
   accepted, step 3 building). `lanes/*.json` carry the launch calls.
+
+## 2026-10-06 08:30 INCIDENT: two Matter of Place test accounts created in OmniSkipX's production project, removed
+- What happened: at 04:11 UTC the B7 step 3 builder ran `tests/e2e/admin-signin.spec.ts` locally; the helper
+  `tests/e2e/helpers/session.ts` (orchestrator commit aaa6586, 06:14 local) preferred `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` when set, meant for CI's stack. On this laptop those two names are Windows user-level
+  variables of Jay's OmniSkipX project (`ypylnlwqariuqjujswzh`), so the test's auth admin calls created two users there;
+  OmniSkipX's sign-up trigger made two `accounts` rows and a `client_owner` role row, and Jay announced two sign-ups.
+  No migration, no table, no other row: every Matter of Place migration runs on the linked ref `hbokkmpgpqhrnemgsqra` or
+  `DEV_DB_URL` (user `postgres.hbokkmpgpqhrnemgsqra`); probes for `markets`, `properties`, `redirects`, `submissions`,
+  `catalog_versions`, `place_notes`, `write_audit` on OmniSkipX all answer PGRST205. The seed script's own comment
+  (P-331) warned against exactly this and the orchestrator overrode it: the fault is the orchestrator's.
+- Audit of the work (transcripts, not the database): 4 transcript files mention the ref: one `supabase projects list`
+  (read-only), two agents that detected the mismatch while reading P-331 and switched to `DEV_*`, and this session's Jay
+  work. No agent ran `e2e-coming-soon.ts` locally (the one other direct `serviceClient()` user); OmniSkipX has no
+  `settings` table anyway (PGRST205).
+- Cleanup (operator's word 08:05, done 08:22 with identity checks before every delete): auth user e18060ac deleted
+  (the invite user was already gone, 404), `accounts` e18060ac and a9b0d24c deleted (2 rows returned), the role row
+  went with the auth user; re-read: accounts `[]`, roles `[]`, both users 404. Jay's memory holds lesson 1798 so his
+  counts exclude them.
+- Prevention, on main (PR 167, 217f13b) and pushed into the three live lanes (site 3128355, email c1bfcb5, admin
+  03de439): `tests/e2e/helpers/session.ts` and `tests/fixtures/service.ts` read `DEV_*` first and the generic names only
+  behind `E2E_STACK=1`; ci.yml sets `E2E_STACK: "1"` at the workflow level; `scripts/load-env.mjs --profile dev` now
+  overwrites `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` with mop-dev's values; `seed-admin-users.ts --stack` only
+  in CI. GOTCHAS.md opens with a READ FIRST banner about the one database; G-901 (warn; `block` denied the fix itself)
+  and a P-331 hit-again line. Cortex lesson recorded.
+- Standing: no new workflow starts until the operator says the database situation is settled (B13 relaunch and the
+  freed B12 slot parked). Live runs: B17 wf_df526cfb-c3b (steps 4, 5 merge next), B5 wf_03e1b94b-8bd (step 7 fix round),
+  B7 wf_635ac60b-161 (step 3 review). B12 merged (PR 161, 07:46). Board 131 of 259 (50.6 percent).
+- Open for the operator: the width-check fix for PRs 158, 163, 142 (draft on `chore/sweep-animations`, uncommitted,
+  stashed as `sweep-draft`), and whether Jay's credentials leave the user-level environment for his key file or vault so
+  no other project can inherit them.
+
+## 2026-10-06 12:50 (B5 and B12 on main; pausing for the second laptop; ledger 53.3 percent)
+- Operator (10:40): pause the runs at their next group boundary, set up the Dell as a fully managed second machine
+  (`claude --remote-control dell`, brief in `workspace/05-plans/lane-runner.md`, PR 172), then run many lanes; measured
+  today, accepts scale with lanes (five lanes 2.0 per hour, three lanes 1.0). Operator (12:20): close loose ends myself
+  before the Dell arrives, so every relaunch starts from a clean main.
+- Merged this morning: PR 169 and 174 (overflow check waits for finite animations; the hero `heroReveal` scale and the
+  property hero's infinite `cueDrift` were the two causes of the `/` and `/property/*` failures), 170 (one-database guard:
+  `tests/unit/one-database.test.ts`, `scripts/lib/one-database.mjs`, seven stale B9 mutations re-pointed), 172 (Dell
+  brief), 173 (the H62 `codeSplitting` line on main; CI bundle-check "OK 21 routes"), 171 (B5 steps 5 to 9, after two
+  merge chores). B12 steps 1 to 9 were already on main (PR 161, 07:46).
+- Runs: B5 run wf_03e1b94b-8bd ended at its merge step (merged by hand), B17 wf_df526cfb-c3b (step 6 in review, step 4
+  fix2) and B7 wf_635ac60b-161 (step 4 building) run until their pause watcher fires (`bank:B17:g5:6`, `bank:B7:g4:4`),
+  then stop; lane files carry the remaining steps. Loose ends to close before relaunch: PRs 158 (B7 2, 3), 163 (B13 5
+  to 7), 142 (B17 1): merge main in, CI, gate. B13's relaunch (8 to 13) waits on 163.
+- Ledger `progress.json` and README progress section at 53.3 percent (138 of 259). The board server reads the root
+  checkout: keep it on origin/main (detached), never on a records branch, or the board drifts (it read 129 for an hour).
+- OmniSkipX incident closed: all 160 tables scanned, two lead rows found and removed at 09:10, nothing left (incident
+  block of 08:30 has the detail); Jay's variables stay (operator), the guard makes them harmless here.

@@ -21,6 +21,11 @@ defaults:
   run:
     working-directory: app
 
+# Every job's stack is its own `supabase start` (or none); the test fixtures reach it through SUPABASE_URL and
+# SUPABASE_SERVICE_ROLE_KEY only behind this switch, which no laptop shell sets (G-901, P-331).
+env:
+  E2E_STACK: "1"
+
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -296,6 +301,10 @@ jobs:
             echo "TURNSTILE_SECRET=1x0000000000000000000000000000000AA"
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "CATALOG_VERSION_TTL_MS=0"
+            # CI-only values: the Worker issues the mop_csrf cookie and confirm tokens only when these are set, and the
+            # admin sign-in spec asserts the cookie (PR 158). 32 zero bytes in base64 for the token key; a fixed string for CSRF.
+            echo "CSRF_SECRET=ci-only-csrf-secret"
+            echo "CONFIRM_TOKEN_SECRET=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           } > .dev.vars
       - run: bun run test:e2e:install
         if: steps.fe.outputs.changed == 'true'
@@ -324,10 +333,23 @@ jobs:
           E2E_MODE: live
         run: |
           if bunx playwright test --list --project=admin > /dev/null; then
-            E2E_DATASET=1 bunx playwright test --project=admin
+            bun run scripts/seed-admin-users.ts --stack
+            E2E_STACK=1 E2E_DATASET=1 bunx playwright test --project=admin
           else
             echo "admin project absent (B7 not landed)"
           fi
+      # B5 step 9 (GQ-04): every email template, linted and drawn at 600 px and 375 px; the PNGs are for a person to open.
+      # It needs no database and no Resend key. Chromium comes from the install step above.
+      - name: email shots
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run email:shots
+      - if: always() && steps.fe.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: email-shots
+          path: app/out/email-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

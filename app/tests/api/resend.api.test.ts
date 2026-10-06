@@ -65,6 +65,8 @@ async function run<T>(emails: string[], ids: string[], fn: (pg: Pg) => Promise<T
       await pg.query("begin");
       await pg.query("select set_config('mop.retention', 'on', true)");
       await pg.query("delete from public.subscribers where email = any ($1)", [emails]);
+      await pg.query("delete from public.email_suppressions where email = any ($1)", [emails]);
+      await pg.query("delete from public.email_events where provider_event_id = any ($1)", [ids]);
       await pg.query(
         "delete from public.webhook_receipts where provider = 'resend' and id = any ($1)",
         [ids],
@@ -260,6 +262,8 @@ describe("POST /api/hooks/resend", () => {
         await pg.query("begin");
         await pg.query("select set_config('mop.retention', 'on', true)");
         await pg.query("delete from public.subscribers where email = $1", [email]);
+        await pg.query("delete from public.email_suppressions where email = $1", [email]);
+        await pg.query("delete from public.email_events where provider_event_id = $1", [id]);
         await pg.query(
           "delete from public.webhook_receipts where provider = 'resend' and id = $1",
           [id],
@@ -269,6 +273,6 @@ describe("POST /api/hooks/resend", () => {
       },
     );
     expect(tokens).toHaveLength(1);
-    expect(location).toBe("/stories?confirmed=0");
+    expect(location).toBe("/place-notes?confirmed=0");
   });
 });

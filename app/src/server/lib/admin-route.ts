@@ -1,11 +1,17 @@
 import type { ZodType, ZodTypeDef } from "zod";
+import { requireActor, type Actor } from "./actor.ts";
 import { fromRpcError } from "./admin-errors.ts";
-import { authorize, permission, type ActionId, type Principal } from "./authz.ts";
+import { adminJson, withAdminHeaders } from "./admin-response.ts";
+import { KeyRateLimited } from "./agent-keys.ts";
+import { authorize, permission, type ActionId } from "./authz.ts";
+import { verifyCsrf } from "./csrf.ts";
 import { getDb, type Db } from "./db.ts";
 import { env, sentryOptions } from "./env.ts";
 import { AppError, fromZod, toErrorResponse } from "./errors.ts";
 import { logLine } from "./log.ts";
 import { captureException } from "./sentry.ts";
+import { takeIssuedCookies } from "./session.ts";
+import { assertSessionFresh, requireRecentAuth } from "./session-policy.ts";
 import { waitUntilOf } from "./wait-until.ts";
 
 // The one wrapper of every `/api/admin/*` handler (invariant 1, API-02, CS-03). It runs, in this
@@ -26,8 +32,7 @@ type Auth = "session" | "none";
 type OpenAction = "auth.send_link" | "auth.verify";
 
 /** A signed-in person or agent key; services pass it on, and `auditContext` reads it. */
-export interface AdminActor extends Principal {
-  readonly userId: string;
+export interface AdminActor extends Actor {
   /** The router's `context.requestId`, set by the wrapper. */
   readonly requestId: string;
 }
@@ -50,6 +55,8 @@ interface RouteBase<I> {
   input: ZodType<I, ZodTypeDef, unknown>;
   output?: ZodType<unknown, ZodTypeDef, unknown>;
   bodyLimitBytes?: number;
+  /** A write's body: JSON, or an HTML form for the sign-in confirm page (invariant 19). */
+  body?: "json" | "form";
 }
 
 interface SessionRoute<I> extends RouteBase<I> {
@@ -84,34 +91,22 @@ export type AdminHandler = ((args: HandlerArgs) => Promise<Response>) & {
 /** What the wrapper calls outside itself; a test passes its own. */
 export interface AdminDeps {
   db: () => Db;
-  requireActor: (request: Request, db: Db) => Promise<Omit<AdminActor, "requestId">>;
+  requireActor: (request: Request, db: Db) => Promise<Actor>;
   /** Bearer actors are exempt inside it. */
   verifyCsrf: (request: Request, actor: AdminActor) => Promise<void>;
   assertSessionFresh: (actor: AdminActor, now: Date) => void;
   requireRecentAuth: (actor: AdminActor, now: Date) => void;
 }
 
-const signInFirst = () => new AppError("session_expired", undefined, "Please sign in again.");
-
-// STUB(B7 step 2): requireActor (actor.ts), verifyCsrf (csrf.ts), assertSessionFresh and requireRecentAuth (session-policy.ts)
-const pendingDeps: AdminDeps = {
+const liveDeps: AdminDeps = {
   db: getDb,
-  requireActor: () => Promise.reject(signInFirst()),
-  verifyCsrf: () => Promise.reject(signInFirst()),
-  assertSessionFresh: () => {
-    throw signInFirst();
-  },
-  requireRecentAuth: () => {
-    throw signInFirst();
-  },
+  requireActor,
+  verifyCsrf: (request, actor) => verifyCsrf(request, actor, env.CSRF_SECRET),
+  assertSessionFresh,
+  requireRecentAuth,
 };
 
-// STUB(B7 step 2): adminJson of admin-response.ts
-function adminJson(body: unknown, requestId: string): Response {
-  return Response.json(body ?? null, {
-    headers: { "cache-control": "private, no-store", "x-request-id": requestId },
-  });
-}
+const FORM_TYPE = /^application\/x-www-form-urlencoded\s*(?:;|$)/i;
 
 const tooLarge = () =>
   new AppError("payload_too_large", undefined, "This request is larger than allowed.");
@@ -128,6 +123,7 @@ async function readInput(
   request: Request,
   params: Record<string, string>,
   limit: number,
+  form: boolean,
 ): Promise<unknown> {
   if (!WRITES.includes(request.method)) {
     return { ...Object.fromEntries(new URL(request.url).searchParams), ...params };
@@ -136,6 +132,12 @@ async function readInput(
   const text = await request.text();
   if (new TextEncoder().encode(text).byteLength > limit) throw tooLarge();
   const type = request.headers.get("content-type");
+  if (form) {
+    if (!FORM_TYPE.test(type ?? "")) {
+      throw new AppError("bad_content_type", undefined, "Send this request as a form.");
+    }
+    return { ...Object.fromEntries(new URLSearchParams(text)), ...params };
+  }
   // A write with no body and no type carries only its path parameters; any declared type must be JSON.
   if ((text !== "" || type !== null) && !JSON_TYPE.test(type ?? "")) {
     throw new AppError("bad_content_type", undefined, "Send this request as JSON.");
@@ -155,7 +157,7 @@ async function readInput(
 
 export function defineAdminRoute<I>(
   def: SessionRoute<I> | OpenRoute<I>,
-  deps: AdminDeps = pendingDeps,
+  deps: AdminDeps = liveDeps,
 ): AdminHandler {
   const tag: AdminRouteTag = {
     method: def.method,
@@ -164,16 +166,28 @@ export function defineAdminRoute<I>(
   };
   const handle = async ({ request, context, params = {} }: HandlerArgs): Promise<Response> => {
     const { requestId } = context;
+    // Every answer carries the admin transport headers, the request id and any cookie the auth client wrote.
+    const finish = (response: Response): Response => {
+      withAdminHeaders(response).headers.set("x-request-id", requestId);
+      for (const cookie of takeIssuedCookies(request))
+        response.headers.append("set-cookie", cookie);
+      return response;
+    };
     if (request.method !== def.method) {
       const refused = toErrorResponse(
         new AppError("method_not_allowed", undefined, "This address does not accept that method."),
         requestId,
       );
       refused.headers.set("allow", def.method);
-      return refused;
+      return finish(refused);
     }
     try {
-      const raw = await readInput(request, params, def.bodyLimitBytes ?? MAX_BODY_BYTES);
+      const raw = await readInput(
+        request,
+        params,
+        def.bodyLimitBytes ?? MAX_BODY_BYTES,
+        def.body === "form",
+      );
       const db = deps.db();
       const base: OpenContext = { db, request, env, requestId };
       let result: unknown;
@@ -188,14 +202,14 @@ export function defineAdminRoute<I>(
         if (permission(def.action).recentAuth) deps.requireRecentAuth(actor, now);
         result = await def.handler({ ...base, actor }, parseInput(def.input, raw));
       }
-      if (result instanceof Response) return result;
-      if (!def.output) return adminJson(result, requestId);
+      if (result instanceof Response) return finish(result);
+      if (!def.output) return finish(adminJson(result));
       // A handler that answers outside its own schema is a server fault (500), not the caller's (422).
       const shaped = def.output.safeParse(result);
       if (!shaped.success) {
         throw new Error(`${def.action} answered outside its output schema`);
       }
-      return adminJson(shaped.data, requestId);
+      return finish(adminJson(shaped.data));
     } catch (error) {
       const known = fromRpcError(error);
       if (known.code === "server") {
@@ -204,7 +218,11 @@ export function defineAdminRoute<I>(
           captureException(error, { requestId, route: def.action, ...sentryOptions() }),
         );
       }
-      return toErrorResponse(known, requestId);
+      const refused = toErrorResponse(known, requestId);
+      if (known instanceof KeyRateLimited) {
+        refused.headers.set("retry-after", String(known.retryAfter));
+      }
+      return finish(refused);
     }
   };
   return Object.assign(handle, { [ADMIN_ROUTE]: tag });

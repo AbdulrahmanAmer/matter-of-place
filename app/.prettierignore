@@ -13,3 +13,5 @@ tests/WATCHED-FAIL.md
 src/db/types.ts
 public/fonts/LICENSES.md
 .lighthouseci
+supabase/templates
+.tmp

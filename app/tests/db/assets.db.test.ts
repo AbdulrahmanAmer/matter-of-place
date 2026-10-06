@@ -60,6 +60,9 @@ const COMPLETE_MEDIA = `files = '${MAIN_FILE}', caption = 'A caption.', alt_text
 const BLOCK = `{"title":"t","deck":"d","image_key":"o/p/0-aaaaaaaa.webp","image_url":"https://x.test/media/k","link":"https://x.test/p"}`;
 const COMPLETE_BLOCK = `meta = '{"block":${BLOCK}}', alt_text = 'A house.'`;
 const COMPLETE_EMAIL = `meta = '{"subject":"s","preheader":"p","block":{"title":"t"}}'`;
+// B12's trigger assets_reel_video attaches an approved reel to the dossier and needs its video, poster and duration.
+const REEL_FILES = `[{"media_key":"assets/p/reel/r1/reel.aaaaaaaa.mp4","w":1080,"h":1920,"bytes":1,"role":"video"},{"media_key":"assets/p/reel/r1/poster.aaaaaaaa.jpg","w":1080,"h":1920,"bytes":1,"role":"poster"}]`;
+const COMPLETE_REEL = `files = '${REEL_FILES}', caption = 'A caption.', alt_text = 'A house.', meta = '{"duration_s":18}'`;
 
 /** A stub of `kind` at revision 1 made through `upsert_asset_stub`, then `set` applied (a fixed SQL fragment). */
 async function asset(db: Db, propertyId: string, kind: string, set = ""): Promise<string> {
@@ -98,7 +101,7 @@ const guards = [
   { kind: "cover", ready: COMPLETE_MEDIA, broken: "files = '[]'", missing: "files" },
   { kind: "carousel", ready: COMPLETE_MEDIA, broken: "caption = ' '", missing: "caption" },
   { kind: "story", ready: COMPLETE_MEDIA, broken: "alt_text = null", missing: "alt_text" },
-  { kind: "reel", ready: COMPLETE_MEDIA, broken: "files = '[]'", missing: "files" },
+  { kind: "reel", ready: COMPLETE_REEL, broken: "files = '[]'", missing: "files" },
   {
     kind: "newsletter_block",
     ready: COMPLETE_BLOCK,

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { guardEnv } from "./lib/guard-env.mjs";
+import { oneDatabaseValue } from "./lib/one-database.mjs";
 
 // One call per public API route against a running Worker, then the rows those calls wrote, read with the service
 // key (B3). Needs the dev loader of B3's Inputs. It writes rows, so it refuses a production database first (H35 (5)).
@@ -44,6 +45,8 @@ const record = (value) =>
 
 /** @param {string} name */
 function required(name) {
+  const one = oneDatabaseValue(name, "api-smoke");
+  if (one !== undefined) return one;
   const value = process.env[name];
   if (value === undefined || value === "")
     throw new Error(`${name} is not set: load the dev profile`);
@@ -199,7 +202,7 @@ async function callRoutes(api, checks, expectLimits) {
     "GET /subscribers/confirm",
     { ...confirm, body: confirm.location },
     303,
-    (body) => body === "/stories?confirmed=0",
+    (body) => body === "/place-notes?confirmed=0",
     expectLimits,
   );
   const subject = await call(`${api}/subjects/request`, {
@@ -249,7 +252,9 @@ async function callRoutes(api, checks, expectLimits) {
  * @param {Check[]} checks
  */
 async function readRows(email, checks) {
-  const client = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), {
+  // Built from the dev profile's own names, never SUPABASE_URL, which a shell may hold for another project (P-331).
+  const url = `https://${required("DEV_SUPABASE_PROJECT_REF")}.supabase.co`;
+  const client = createClient(url, required("DEV_SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   /** @type {[table: string, column: string, marker: [string, string] | null][]} */

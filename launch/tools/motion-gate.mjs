@@ -1,12 +1,20 @@
-// Motion gate for Matter of Place films. Usage: node launch/tools/motion-gate.mjs <file.mp4> [--min-s 60 --max-s 80]
+// Motion gate for Matter of Place films. Usage: node launch/tools/motion-gate.mjs <file.mp4> [--min-s 60 --max-s 80] [--w 1920 --h 1080]
+// [--min-cuts 12 --max-cuts 30] [--min-avg-shot 2.0 --max-avg-shot 5.5] [--json <file>]
 // Measures with ffmpeg/ffprobe only (no model): motion coverage, longest static run, cuts, shot length, loudness,
 // pitched-content check, format. Exit 1 on any failed threshold. Zero tokens.
 import { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const file = process.argv[2];
 if (!file) { console.error("usage: motion-gate.mjs <mp4>"); process.exit(2); }
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? Number(process.argv[i + 1]) : d; };
 const MIN_S = arg("--min-s", 60), MAX_S = arg("--max-s", 80);
+const W = arg("--w", 1920), H = arg("--h", 1080);
+const MIN_CUTS = arg("--min-cuts", 12), MAX_CUTS = arg("--max-cuts", 30);
+const MIN_AVG = arg("--min-avg-shot", 2.0), MAX_AVG = arg("--max-avg-shot", 5.5);
+const jsonAt = process.argv.indexOf("--json");
+const jsonOut = jsonAt > 0 ? process.argv[jsonAt + 1] : null;
 
 const run = (cmd, args) => spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 1 << 28 });
 
@@ -47,13 +55,13 @@ if (hasAudio) {
 }
 
 const checks = [
-  ["format 1920x1080", v.width === 1920 && v.height === 1080, `${v.width}x${v.height}`],
+  [`format ${W}x${H}`, v.width === W && v.height === H, `${v.width}x${v.height}`],
   ["30 fps h264", Math.round(fps) === 30 && v.codec_name === "h264", `${fps.toFixed(2)} ${v.codec_name}`],
   [`duration ${MIN_S}-${MAX_S}s`, dur >= MIN_S && dur <= MAX_S, `${dur.toFixed(1)}s`],
   ["motion coverage >= 85%", coverage >= 85, `${coverage.toFixed(1)}%`],
   ["longest static run <= 1.0s", longestS <= 1.0, `${longestS.toFixed(2)}s`],
-  ["cuts 12-30", cuts >= 12 && cuts <= 30, `${cuts}`],
-  ["avg shot 2.0-5.5s", avgShot >= 2.0 && avgShot <= 5.5, `${avgShot.toFixed(2)}s`],
+  [`cuts ${MIN_CUTS}-${MAX_CUTS}`, cuts >= MIN_CUTS && cuts <= MAX_CUTS, `${cuts}`],
+  [`avg shot ${MIN_AVG.toFixed(1)}-${MAX_AVG.toFixed(1)}s`, avgShot >= MIN_AVG && avgShot <= MAX_AVG, `${avgShot.toFixed(2)}s`],
   ["audio present", hasAudio, hasAudio ? "yes" : "no"],
   ["loudness -18 +/-1.5 LUFS", lufs !== null && Math.abs(lufs + 18) <= 1.5, lufs === null ? "n/a" : `${lufs} LUFS`],
   ["true peak <= -1 dBTP", tp !== null && tp <= -1, tp === null ? "n/a" : `${tp} dBTP`],
@@ -62,4 +70,11 @@ const checks = [
 let fail = 0;
 for (const [name, ok, val] of checks) { console.log(`${ok ? "PASS" : "FAIL"}  ${name.padEnd(42)} ${val}`); if (!ok) fail++; }
 console.log(fail ? `GATE FAILED (${fail})` : "GATE PASSED");
+if (jsonOut) {
+  const names = ["format", "fps", "duration", "coverage", "static", "cuts", "avg_shot", "audio", "loudness", "true_peak", "flatness"];
+  const report = { pass: fail === 0, checks: checks.map(([, ok, value], n) => ({ name: names[n], ok, value })),
+    coverage, longest_static_s: longestS, cuts, avg_shot_s: avgShot, lufs, true_peak: tp, flatness: pitched };
+  mkdirSync(dirname(jsonOut), { recursive: true });
+  writeFileSync(jsonOut, `${JSON.stringify(report, null, 2)}\n`);
+}
 process.exit(fail ? 1 : 0);

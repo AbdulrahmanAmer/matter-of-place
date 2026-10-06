@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { assetFileSchema } from "../../domain/assets.ts";
+import type { Tables } from "../../db/index.ts";
+import { assetFileSchema, type AssetKind } from "../../domain/assets.ts";
 import { planCarousel } from "../../templates/social/slides.ts";
 import { dispatchHeavy } from "../jobs/steps/heavy.ts";
 import type { JsonObject, StepContext, StepResult } from "../jobs/types.ts";
@@ -88,6 +89,31 @@ export async function maxSlides(
 }
 
 /**
+ * The job's asset stub of `kind` (invariant 3), or null for a recipe job whose stub is already approved or published.
+ */
+export async function openStub(
+  ctx: StepContext,
+  propertyId: string,
+  kind: AssetKind,
+  data: JsonObject,
+): Promise<Tables<"assets"> | null> {
+  const revision = revisionOf(data);
+  const stub = await ctx.db.rpc("upsert_asset_stub", {
+    p_property: propertyId,
+    p_kind: kind,
+    p_job_id: ctx.job.id,
+    ...(revision === null ? {} : { p_revision: revision }),
+  });
+  if (stub.error !== null) throw unavailable("upsert_asset_stub");
+  const asset = stub.data;
+  // Invariant 12: a second publish never overwrites approved work; a changed property gets a new revision through Re-render.
+  if (revision === null && (asset.status === "approved" || asset.status === "published")) {
+    return null;
+  }
+  return asset;
+}
+
+/**
  * One render step: the state guard, the asset stub, the approved-revision skip, the variants wait, then the dispatch of
  * the spec to render.yml. Nothing here posts, sends or publishes (invariant 1).
  */
@@ -109,19 +135,8 @@ export async function runRender(
     return { status: "done", result: { skipped: "not_published" } };
   }
 
-  const revision = revisionOf(data);
-  const stub = await ctx.db.rpc("upsert_asset_stub", {
-    p_property: propertyId,
-    p_kind: kind,
-    p_job_id: ctx.job.id,
-    ...(revision === null ? {} : { p_revision: revision }),
-  });
-  if (stub.error !== null) throw unavailable("upsert_asset_stub");
-  const asset = stub.data;
-  // Invariant 12: a second publish never overwrites approved work; a changed property gets a new revision through Re-render.
-  if (revision === null && (asset.status === "approved" || asset.status === "published")) {
-    return { status: "done", result: { skipped: "already_approved" } };
-  }
+  const asset = await openStub(ctx, propertyId, kind, data);
+  if (asset === null) return { status: "done", result: { skipped: "already_approved" } };
 
   const wait = await waitForVariants(ctx, propertyId, variant, asset.created_at);
   if (wait !== null) return wait;

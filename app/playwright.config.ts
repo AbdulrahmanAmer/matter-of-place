@@ -79,6 +79,24 @@ export default defineConfig({
     { name: "seo", testMatch: "**/seo.spec.ts", use: desktop },
     { name: "coming-soon-desktop", testMatch: "**/coming-soon.spec.ts", use: desktop },
     { name: "coming-soon-phone", testMatch: "**/coming-soon.spec.ts", use: phone },
+    // B7's admin specs, desktop only; the later slices' files are listed here so they never edit this config.
+    {
+      name: "admin",
+      testMatch: [
+        "**/admin-signin.spec.ts",
+        "**/admin-editorial.spec.ts",
+        "**/admin-full-path.spec.ts",
+        "**/admin-invoice.spec.ts",
+        "**/automation-exit.spec.ts",
+        "**/admin-assets.spec.ts",
+        "**/admin-channels.spec.ts",
+        "**/admin-newsletter.spec.ts",
+      ],
+      // Admin pages render in the browser only (`ssr: false`), and `vite dev` compiles them on first request.
+      timeout: 120_000,
+      expect: { timeout: 30_000 },
+      use: desktop,
+    },
   ],
   ...(target === "url"
     ? {}

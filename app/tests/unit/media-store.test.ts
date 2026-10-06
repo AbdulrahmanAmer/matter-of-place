@@ -38,6 +38,10 @@ const bodyOf = (sent: Sent): { prefixes: string[] } => {
 
 beforeEach(() => {
   vi.stubEnv("MEDIA_PUBLIC_BASE", undefined);
+  // One database (G-901): the helper reads the stubbed generic names only behind E2E_STACK and without a dev profile.
+  vi.stubEnv("E2E_STACK", "1");
+  vi.stubEnv("DEV_SUPABASE_PROJECT_REF", "");
+  vi.stubEnv("DEV_SUPABASE_SERVICE_ROLE_KEY", "");
   vi.stubEnv("SUPABASE_URL", "https://proj.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-key");
 });
