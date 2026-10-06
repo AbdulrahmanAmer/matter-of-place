@@ -35,13 +35,23 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+// `--stack`: CI's e2e job (ci.yml, step admin) seeds the same accounts into its ephemeral `supabase start` stack,
+// which has no project ref and exports SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY instead; the admin specs sign in
+// as these accounts (P-2010). The flag is explicit so a laptop shell holding SUPABASE_URL for another project never
+// seeds it by accident.
+const STACK = process.argv.includes("--stack");
+
 /** Built from the dev profile's own names, never SUPABASE_URL, which a shell may hold for another project (P-331). */
 function devAuth() {
-  return createClient<Database>(
-    `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
-    requiredEnv("DEV_SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  ).auth.admin;
+  const [url, key] = STACK
+    ? [requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY")]
+    : [
+        `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
+        requiredEnv("DEV_SUPABASE_SERVICE_ROLE_KEY"),
+      ];
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  }).auth.admin;
 }
 
 /** The id of the auth user with `email`, created confirmed when it does not exist. */
