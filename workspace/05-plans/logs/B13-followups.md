@@ -131,3 +131,27 @@ Source: the fresh reviewer of group c6, none blocking. Two reviewer items about 
 4. File `app/src/routes/robots[.]txt.ts` (not blocking).
    What: Suspected by reading, not measured. UNPROVEN. The indexable branch goes through cachedResponse, which calls readState(db) before it looks in the cache. On a fresh isolate with the database unreachable and no last-good doc copy, serveLastGood rethrows and the apex robots.txt answers 503, even though its body is a constant. Crawlers read a 5xx robots.txt as a temporary full disallow. The plan's Contract prescribes cachedResponse for this route, so this is a plan-level weakness, not a builder defect.
    Evidence: cache.ts lines 173-179: readState failure → serveLastGood → 'if (kept === undefined) throw failure'
+
+## g1 · steps 7
+
+Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHAS.md as its file, so none went into the bank.
+
+1. File `app/src/routes/__root.tsx` (not blocking).
+   What: Nothing tests the root loader that carries ogStatic. og.test.ts gives the route heads their matches directly, so deleting the `loader` from __root.tsx (line 25, ensureQueryData(ogStaticQuery())) would leave every unit test and every registry entry green. Through the whole chain, the newer-card path (settings.og_static row, then getOgStaticFn, then root loader, then head) is UNPROVEN until a row exists and MEDIA_PUBLIC_BASE is set on a deployed Worker. The author's unproven list does not name this path.
+   Evidence: Suspected from reading, not run: og.test.ts lines 153-157 build `matches` themselves; none of the 42 b13-g1 registry entries mutates __root.tsx. Live curls on 8929 all printed the committed /og/static/*.png fallback, which is the same output with or without the loader.
+
+2. File `app/src/routes/llms[.]txt.ts` (not blocking).
+   What: No unit test or registry entry covers the two llms route handlers (content-type text/plain, cachedResponse 'doc' with sMaxAge 3600 and tags ['seo']). They are proved only by the live-build curl, so a later edit that drops the tag or the content-type would not fail CI until step 13's validate-llms or check-seo exists.
+   Evidence: git diff 183b6ba..c9a4662 -- tests/mutations/B13.json has no entry whose file is src/routes/llms[.]txt.ts or llms-full[.]txt.ts. My live curl confirmed both headers are correct today.
+
+3. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: STANDARDS C22: the new public routes /llms.txt and /llms-full.txt and the new browser-callable server function getOgStaticFn (fired by the root loader on client navigation) state no unit cost (Worker requests, Supabase calls) and no P-009 line in the g1 log block.
+   Evidence: The g1 block in logs/B13.md has no unit-cost or P-009 line. By reading: each is one memoised public_state RPC per interval per isolate, so the cost is small, but C22 asks for it to be written down.
+
+4. File `app/src/server/automation/step-specs.ts` (not blocking).
+   What: purge_cache keeps `sideEffect: "none"`, but with indexnow true it now makes an outside GET to api.indexnow.org. A second run after a crash pings again. That is harmless because IndexNow is idempotent, but R28 and C12 ask the step to say so and to have a 'runs twice' answer. This is a note for whoever owns the spec, since the spec line belongs to B8b.
+   Evidence: step-specs.ts purge_cache entry: `sideEffect: "none"`; purge-cache.ts pingIndexNow does fetch(INDEXNOW_URL...).
+
+5. File `workspace/05-plans/logs/B13-followups.md` (not blocking).
+   What: The author says the 8 BAD B3/B4 api-test registry entries ('No test files found' under --project db) and the STALE B4:seo-robots entry are follow-ups, but they appear only in the prose of the g1 log block. They are not in B13-followups.md, where the other follow-ups of the slice are listed for folding. Recorded here by this step; the entries themselves (the 8 BAD B3/B4 api-test entries and the STALE B4:seo-robots entry) still need an owner.
+   Evidence: grep -n 'seo-robots\|parity.api\|payload-budget' workspace/05-plans/logs/B13-followups.md printed nothing.
