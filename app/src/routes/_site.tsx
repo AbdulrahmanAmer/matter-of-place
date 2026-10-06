@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_site")({
 function SiteLayout() {
   const router = useRouter();
   useEffect(() => installClientErrorListeners(), []);
-  // Once after hydration; B17 step 9 adds startWebVitals() to this effect.
   useEffect(() => {
     registerServiceWorker();
   }, []);

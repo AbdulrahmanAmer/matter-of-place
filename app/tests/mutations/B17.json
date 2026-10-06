@@ -1371,8 +1371,18 @@
     "file": "src/components/layout/route-error.tsx",
     "find": "    ? error.requestId\n",
     "replace": "    ? undefined\n",
-    "run": "VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_PORT=8938 E2E_MODE=live bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g error-id --reporter=line",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_PORT=8938 E2E_MODE=live bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g error-id --reporter=line",
     "expect": "error-id: a failed API read[^]*Reference b17-id"
+  },
+  {
+    "id": "b17-e2e-not-found-q",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/not-found.tsx",
+    "find": "            <input type=\"search\" name=\"q\" />\n",
+    "replace": "            <input type=\"search\" name=\"query\" />\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g not-found --reporter=line",
+    "expect": "not-found: an unknown path[^]*toHaveCount[^]*Received: 0"
   },
   {
     "id": "b17-g6-feed-channel",

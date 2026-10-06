@@ -70,6 +70,8 @@ function runCommand([program, ...programArgs]: string[]): Promise<number> {
 
 async function withFlag(client: pg.Client, value: boolean, command: string[]): Promise<number> {
   const before = await readMaintenance(client);
+  // A run cancelled while it waited for the lock never flips the shared flag.
+  if (stopped) return 1;
   let exitCode = 1;
   try {
     await writeMaintenance(client, value);

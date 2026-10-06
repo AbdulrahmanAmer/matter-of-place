@@ -429,6 +429,21 @@ test.describe("a11y-keyboard", () => {
   });
 });
 
+test.describe("not-found", () => {
+  test("not-found: an unknown path answers 404 with a GET search of /properties through one labelled q field", async ({
+    page,
+  }) => {
+    expect((await page.goto("/nope"))?.status()).toBe(404);
+    const form = page.locator('form[action="/properties"]');
+    await expect(form).toHaveAttribute("method", "get");
+    await expect(form.locator('[name="q"]')).toHaveCount(1);
+    await expect(form.getByRole("searchbox", { name: t.notFound.searchLabel })).toHaveAttribute(
+      "name",
+      "q",
+    );
+  });
+});
+
 // Invariant 19: a failed read on a client navigation names its request id; the offline worker keeps the shell only.
 test.describe("error-id", () => {
   test("error-id: a failed API read on a client navigation shows the request id as its reference", async ({

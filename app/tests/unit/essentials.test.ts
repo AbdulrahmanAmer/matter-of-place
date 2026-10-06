@@ -19,7 +19,6 @@ import {
   renderRouterToString,
   RouterServer,
 } from "@tanstack/react-router/ssr/server";
-import { JSDOM } from "jsdom";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -54,6 +53,13 @@ import { fakeDb } from "../fixtures/fake-db";
 import { propertyJson, snapshotJson, stateJson } from "../fixtures/snapshot";
 
 vi.mock("../../src/server/lib/sentry", { spy: true });
+
+// jsdom ships no types and the project does not install `@types/jsdom` (P-1903, P-1928), so its XML parser is typed here.
+type XmlDom = new (
+  text: string,
+  options: { contentType: "application/xml" },
+) => { window: { document: Document } };
+const { JSDOM } = await vi.importActual<{ JSDOM: XmlDom }>("jsdom");
 
 const BASE = "https://matterofplace.com";
 const REPORT_ONLY = "content-security-policy-report-only";
