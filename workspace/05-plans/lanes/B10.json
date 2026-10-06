@@ -1,0 +1,15 @@
+{
+  "slice": "B10",
+  "runId": "not launched yet (written 2026-10-07 02:00 for the Dell, third lane there)",
+  "note": "Social posting. Steps 0, 3, 4, 5, 5a only (the rest wait on the X developer app, the LinkedIn page and app and the Meta app, which are the operator's). Depends on B9, B8, B8b and B7 steps 1 to 3, all on main. Worktree D:/mop-build/social (branch slice/b10 from main 7531328) exists on the Dell with packages and .env. Launch: Workflow({ scriptPath, args }) with the object below; the lane runner merges origin/main into the worktree first.",
+  "launch": {
+    "scriptPath": ".claude/workflows/build-slice.js",
+    "args": {
+      "slice": "B10",
+      "root": "D:/mop-build/social",
+      "previewPort": 8968,
+      "bankBase": { "P": 2200, "G": 1000 },
+      "steps": ["0", "3", "4", "5", "5a"]
+    }
+  }
+}

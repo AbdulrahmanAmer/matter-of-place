@@ -148,11 +148,17 @@ let groups = sized.groups
 // done. When the orchestrator passes `steps` (the plan's step ids), every one must sit in a group or a close-out;
 // a sizing that omits one is refused before any build.
 if (Array.isArray(a.steps)) {
+  // A range may end on a lettered step ("1-3b", "7-7b"): it covers every plan step whose number sits inside the range,
+  // letters included, so "1-3b" covers 1, 2, 3, 3a and 3b (2026-10-07, the first B10 sizing on the Dell was refused for
+  // a group written exactly like that, P-516 by the letter).
+  const numberOf = (id) => Number(String(id).match(/^(\d+)/)?.[1])
   const expand = (s) => String(s).split(/\s*,\s*/).flatMap((part) => {
-    const m = part.match(/^(\d+)\s*(?:-|to)\s*(\d+)$/)
+    const m = part.match(/^(\d+)[a-z]?\s*(?:-|to)\s*(\d+)[a-z]?$/)
     if (!m) return [part.trim()]
+    const lo = Number(m[1]), hi = Number(m[2])
     const out = []
-    for (let i = Number(m[1]); i <= Number(m[2]); i++) out.push(String(i))
+    for (let i = lo; i <= hi; i++) out.push(String(i))
+    for (const id of a.steps) if (/[a-z]$/.test(String(id)) && numberOf(id) >= lo && numberOf(id) <= hi) out.push(String(id))
     return out
   })
   const covered = new Set([...groups, ...closing].flatMap((g) => expand(g.steps)))
