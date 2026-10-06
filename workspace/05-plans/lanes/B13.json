@@ -1,31 +1,29 @@
 {
   "slice": "B13",
-  "runId": "wf_31d6490a-eeb",
-  "note": "steps 1 to 6 on main or accepted; step 7 accepted on slice/b13 (PR 163 red twice: bundle wall of H62, drifted B4:seo-robots mutation find); run wf_dbe24ed5-4c9 ended blocked at the step 7 merge; close-out c7m makes PR 163 green after PR 158 lands, then steps 8 to 13. Launch: Workflow({ scriptPath, args }) with the object below.",
+  "runId": "paused: run wf_31d6490a-eeb ended blocked 07:55 waiting for PR 158; relaunch below",
+  "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 in PR 163 (main merged in at 9d9ea6c, 2026-10-06 15:20, with bun install for B7's @supabase/ssr). PR 163 is red on one thing: bundle-check, _site.property.$slug 153,708 gzip bytes against 153,600 with the H62 line present (main itself is at 153,238, so step 7 adds about 470 bytes to the property page). Close-out c7b shrinks that; then steps 8 to 13. Launch: Workflow({ scriptPath, args }) with the object below.",
   "launch": {
     "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
     "args": {
       "slice": "B13",
       "root": "E:/mop-build/seo",
       "previewPort": 8928,
-      "bankBase": {
-        "P": 1800,
-        "G": 800
-      },
-      "steps": [
-        "8",
-        "9",
-        "10",
-        "11",
-        "12",
-        "13"
-      ],
+      "bankBase": { "P": 1800, "G": 800 },
+      "steps": ["8", "9", "10", "11", "12", "13"],
       "closeOut": [
         {
-          "id": "c7m",
+          "id": "c7b",
           "steps": "7",
           "critical": false,
-          "title": "see the launch of run wf_31d6490a-eeb in the session transcript (close-out c7m: B4:seo-robots find re-pointed, merge origin/main after PR 158, bundle-check OK with the H62 line, PR 163 through the gate)"
+          "title": "B13 close-out c7b: pull request 163 (steps 5 to 7) fails CI bundle-check on _site.property.$slug alone: 153,708 gzip bytes against 153,600 with ruling H62 in place (main: 153,238). Step 7 added about 470 gzip bytes to the property page's client bundle (check-seo.ts is a script, so the weight is the property page additions: structured data, OG image references, or a helper import that pulled a shared chunk). Take at least 600 bytes back out of the property route without losing what step 7 proves, and make 163 green",
+          "defects": [
+            {
+              "file": "app/src/routes/_site.property.$slug.tsx",
+              "blocking": true,
+              "what": "Measure first: `export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA; bun run build && node scripts/bundle-check.mjs`, then diff the property route's chunk list against main's CI build-output artifact (the P-2008 method). Move whatever step 7 put on the property page's client path that the browser does not need to render the page (structured data built on the server, OG and image metadata in head() only, any helper imported from src/lib/seo.ts that pulled a new shared chunk) behind the server or into head(), so the route loads at most 153,100 gzip bytes locally. Keep every step 7 proof green (check-seo.ts, the unit tests of src/lib/seo.ts, the B13 registry entries). Push, `gh pr checks 163 --watch` until check, build, db and e2e are green, paste CI's bundle-check line into the step 7 log block, then `node workspace/05-plans/merge-gate.mjs 163`. budget.json and vite.config.ts do not change.",
+              "evidence": "Lane at 9d9ea6c after `bun install --frozen-lockfile`: `bundle-check: FAILED 1`, `FAIL _site.property.$slug loads 153708 gzip bytes, over the budget of 153600`, every other route ok; main's last CI build: `ok _site.property.$slug 153238`."
+            }
+          ]
         }
       ]
     }

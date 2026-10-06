@@ -1253,3 +1253,31 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   checkout: keep it on origin/main (detached), never on a records branch, or the board drifts (it read 129 for an hour).
 - OmniSkipX incident closed: all 160 tables scanned, two lead rows found and removed at 09:10, nothing left (incident
   block of 08:30 has the detail); Jay's variables stay (operator), the guard makes them harmless here.
+
+## 2026-10-06 17:00 PAUSED: every lane run stopped at a group boundary (operator, 10:40); the Dell comes next
+- B7 run wf_635ac60b-161 stopped about 13:00 right after step 4 banked; steps 1 to 4 on main (PR 158 merged 13:20 after
+  three orchestrator fixes on its branch: the H62 vite line, `seed-admin-users --stack` in CI, CI-only `CSRF_SECRET` and
+  `CONFIRM_TOKEN_SECRET` in the e2e job's Worker). `lanes/B7.json`: steps 5 to 16, no close-out.
+- B17 run wf_df526cfb-c3b stopped 16:55 right after the steps 9-10 builder handed in. 1 to 7 accepted on slice/b17
+  (febc1a6); 8 rejected once with its fix round not run; 9-10 partial and unreviewed; banks for 6 and 7 not run; the
+  review snapshot removed. The lane's property route is 155,972 gzip bytes with the H62 line (main 153,238): about
+  2.7 KB of B17's own client code to take back (P-1924). `lanes/B17.json`: close-outs c8 (step 8 review and the
+  budget) and c9 (steps 9-10 proofs), then 11 and 12. PR 142 (step 1) merges with the slice.
+- B13: PR 163 (5 to 7) has main merged in (9d9ea6c, `bun install` for `@supabase/ssr`); CI red only on bundle-check,
+  property route 153,708 against 153,600 (step 7's own 470 bytes). `lanes/B13.json`: close-out c7b, then 8 to 13.
+- B5 (PR 171) and B12 (PR 161) whole on main. Ledger 142 of 259 (54.8 percent). No lane runs are live; the board
+  server and its watch stay up; the root checkout stays detached on origin/main.
+- Relaunch order when the operator lifts the hold (dependencies met now): B10 (B7 1 to 4 on main; lane file to write
+  at launch), B13 c7b, B7 5 to 16 (Dell), B17 c8/c9; B14 after PR 163; B16 after PR 142. Open question for the
+  operator: the 153,600 property-route budget leaves main 362 bytes of headroom and every slice that touches that page
+  hits it (B5, B7, B13, B17 today); H1 owns the budgets, and the honest options are to pull H1's measurement forward
+  or to keep shaving per slice.
+
+## Lane runner (Dell)
+- 2026-10-07 01:05 (Dell clock): B13 launch from the clone at main 7531328 refused before any agent started: the
+  Workflow tool reports `Script parse error: Unexpected token (92:137)` in `.claude/workflows/build-slice.js`; line 92
+  (the one-database rule from becb161) holds two unescaped backticks around `eval "$(node scripts/load-env.mjs
+  --profile dev)"`; `node -e 'import(...)'` says `Unexpected identifier 'eval'` (`node --check` passes, it parses as
+  CommonJS). Reported to the orchestrator, not fixed (standing rule 01:08). B7 waits on the same file. Free memory at
+  the check: 534 MB of 7,952. Worktrees verified: seo at 9d9ea6c, admin at 7531328, both clean with `.env` at root.
+- 2026-10-07 01:10: P-008 hit again (backslash escapes through the Bash tool were no-ops); the entry grew.
