@@ -239,3 +239,71 @@ what: The operator's relayed request ('your note about why Jay broke didn't reac
 evidence: grep -n 'BUILD COMPLETE' jay-full-review-2026-09.md; cat D--Omincom-OmniSkipX/memory/no-subagents-for-jay-work.md ('no subagents, no Workflow fan-out')
 
 blocking: false
+
+## g4 · steps 4
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. One more follow-up of this review names GOTCHAS.md and is banked there (P-2126 for the cloud-generated types layout, hit-again lines under P-508 and G-031).
+
+### 1. app/src/admin/ui/README.md (step 1) and app/src/admin/query.ts:79 adminRouteOptions() (g3's files)
+
+what: These two files still tell every admin route to spread ...adminRouteOptions(). The author measured that doing so fails the live bundle-check (AdminRouteError and AdminPending show up as dynamic imports of the client entry). requests.index.tsx works around it by naming errorComponent and dropping pendingComponent. The next admin route built from the README will fail G16 the same way. This is for the orchestrator to fold. I confirmed the shipped route passes bundle-check. I did not rebuild with the spread myself; that failure is the author's measurement.
+
+evidence: grep -rn adminRouteOptions src -> src/admin/ui/README.md:7 'Spread ...adminRouteOptions() ... into createFileRoute'; GOTCHAS P-2013 hit-again line (B7 g4)
+
+blocking: false
+
+### 2. app/scripts/bundle-check.mjs budget / _site.property.$slug
+
+what: 485 gzip bytes of headroom are left on the tightest public route: 153115 of 153600, up from 152569 at g3. I did not measure how much of the 546-byte growth comes from this group's route-tree entries and how much from the origin/main merge 71329d0. If each admin route costs a few hundred bytes on every public first load, one of the next admin screens will fail G16. P-2013 already says this needs an orchestrator ruling rather than a quiet trim.
+
+evidence: bun run build && node scripts/bundle-check.mjs -> 'ok   _site.property.$slug 153115 gzip bytes', 'bundle-check: OK 21 routes under 153600 gzip bytes' (confirmed by running)
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md (Files list and step 4)
+
+what: The plan text is stale against the code, which is the orchestrator's to fold. (1) The code has allowedActions(state, ctx), but the plan says allowedActions(state). (2) listSubmissions now calls a new SQL function, list_submissions, which no plan names, because R44 refused the .or() filter strings. check-plans.mjs does not catch this.
+
+evidence: grep -rn list_submissions workspace/05-plans/*.md workspace/05-plans/trace.json -> nothing; node workspace/05-plans/check-plans.mjs -> OK
+
+blocking: false
+
+### 4. app/supabase/sql/functions/list_submissions.sql
+
+what: Invariant 17c says every list view filters and sorts on an index created by the same migration. Not every path does. The search filter (ilike over address, submitter_name and brokerage) uses no index, and neither do the market and package filters. The unfiltered default page sorts by received_at through B2's submissions_received_idx, not through this migration's submissions_list_idx, whose leading column is workflow_state. At the volume of request intake this costs nothing measurable. It is a plan question, which the author also listed as UNPROVEN.
+
+evidence: grep -n 'create index.*on public.submissions' supabase/migrations/*.sql -> submissions_received_idx (received_at desc) in 20261001090400_intake.sql; submissions_list_idx (workflow_state, received_at desc, id) in 20261006054716 (read, not timed with EXPLAIN)
+
+blocking: false
+
+### 5. app/supabase/sql/functions/start_review.sql
+
+what: C11 is not fully met. The comment names the race partner (two overlapping selections lock rows in id order), but no test runs two start_review calls at the same time to prove they wait on each other and the second one raises wrong_state.
+
+evidence: tests/db/admin.db.test.ts start_review cases are all single-session (read)
+
+blocking: false
+
+### 6. app/supabase/migrations (B7 step 1 write_audit), seen through b7-g4-db-sr-audit
+
+what: A side observation, outside this group's files. The sr-audit mutation calls write_audit(null, null, 'submissions.start_review', ...). write_audit accepted it, and the request moved to Under Review with no role check at all. So write_audit's null-actor path skips the role gate that R21 describes. That may be the intended path for system writes, and only service_role can call these functions, so I found no outside input that reaches it. It is still worth confirming that the null-actor path is meant to bypass action_roles.
+
+evidence: MOP_MUTATION_SQL=<migration + sr-audit sql> node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t 'refuses a visual editor through write_audit with 42501 and moves nothing' -> Received { outcome: 'ok', state: 'Under Review' } (confirmed by running)
+
+blocking: false
+
+### 7. tests/e2e/admin-signin.spec.ts:29 (g2's), PR 158
+
+what: The admin e2e magic-link case fails on CI with no mop_csrf cookie. It was already failing at the g3 head 68551ff (run 37414096360), so g4 did not cause it. PR 158 cannot go green until someone fixes it, and its cause is still UNPROVEN.
+
+evidence: gh api .../actions/jobs/<e2e of 37414096360>/logs -> 'x 1 [admin] tests/e2e/admin-signin.spec.ts:16:1 a magic link ...' and retry, at admin-signin.spec.ts:29:74 (confirmed by running)
+
+blocking: false
+
+### 8. .claude/POSITION.md (orchestrator routing; operator's relayed request about Jay)
+
+what: I think this is why the operator's note about why Jay broke never reached him. His request has now been relayed into three B7 runs: c2b, g3 and g4. Each run wrote it into a lane log as 'for the orchestrator': B7-followups.md items c2b#4 and g3#9, and B7.md line 560 in g4. The notes stop there. Lane logs are not a channel to the operator, and the lead it records (ops_memory lesson 1792, found only by recall and never sent as a message) is the same failure mode. A main session with access to OmniSkipX has to send the explanation to him directly. This reviewer could not: the problem is outside this repository, and the brief forbids touching E:/Matter Of Place.
+
+evidence: grep -rn -i jay workspace/05-plans/logs/ -> B7-followups.md:159, :235-239; B7.md:560 'Not handled: the operator's remark ... addressed to the orchestrator'
+
+blocking: false
