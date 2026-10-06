@@ -2661,6 +2661,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -m1 "RUN " rv-b3b-g2-check.txt` prints a path under your own worktree (the file name you chose, in the scratchpad); `ls $TMP | grep -c "^check.txt$"` prints 0 once you stop using the bare name.
 - added: 2026-10-04
 - hit again: 2026-10-05, B5 g2: a wait loop for `scratchpad/build2.txt` read a file of that name written by another session on 2026-10-04 (`ls -la` showed `Oct  4 21:25`), never saw its marker and ran out the 600 s tool ceiling while the real check was still running. Name scratch files after the lane and group (`b5g2-*`) and check the file's time before trusting it. Proof: `ls -la <scratchpad>/build2.txt` printed the older date while `check2.txt` was 0 bytes.
+- hit again: 2026-10-06, B5 g3: a replay loop read its ids from `scratchpad/ids.txt`, which another session rewrote between the write and the loop: the file held 43 ids of `b13-g1-*` instead of my 88, 25 replays answered `no entry with id`, and the replay was run again from `b5g3-ids.txt`. The rule covers every scratch file, inputs as much as outputs.
 
 ## P-1303 · Git Bash `/tmp` and node's `/tmp` are two different folders, so a path typed in the shell and handed to node writes nothing (ENOENT) or writes elsewhere
 - symptom: a B3b g1 builder wrote a file with a shell redirect to `/tmp/x` and then ran `node` with the same path in a script; node failed with `ENOENT` and nothing was written where the shell had put its file. The cost was a second attempt with a scratchpad path.
