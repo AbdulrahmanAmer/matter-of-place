@@ -165,3 +165,29 @@
 4. File: `workspace/05-plans/B5.md`. Not blocking.
    - Follow-up: "Stale plan text, for the orchestrator to fold in. Step 6 says the orchestrator still has to add RESEND_WEBHOOK_SECRET to PREVIEW_WORKER_SECRETS_JSON before `wrangler secret list` shows it. That is done: the dev Worker lists RESEND_WEBHOOK_SECRET today. The live bounce proof is still UNPROVEN until this step is deployed and EMAIL_LIVE=1 is set; mop-dev's function secrets have MOP_ENV (= preview) but no EMAIL_LIVE and no RESEND_API_KEY."
    - Evidence: "wrangler secret list (with .env token) includes RESEND_WEBHOOK_SECRET; `supabase secrets list` names matching MOP|EMAIL|RESEND: ADMIN_NOTIFY_EMAIL,MOP_ENV,RESEND_FROM,RESEND_FROM_BULK."
+
+## g3 · steps 7
+
+1. File: `app/docs/architecture/frontend.md:65, workspace/01-site-index/pages-and-wording.md:28,39,50,299, workspace/00-MAP-OF-WHAT-WE-HAVE.md:33, workspace/05-plans/B3.md:32, workspace/05-plans/trace.json:9166,13346`. Not blocking.
+   - Follow-up: "These docs still describe /place-notes as a 301 to /stories, or the confirm landing as /stories?confirmed=. trace.json names the code file as src/routes/place-notes.tsx, but the shipped file is src/routes/_site.place-notes.tsx. The author lists this as UNPROVEN. None of these files belong to g3, so the orchestrator should fold them in."
+   - Evidence: "git grep -n \"place-notes\" -- . (snapshot) shows frontend.md:65 '| `/pricing`, `/place-notes`, `/markets/*` | redirects ... To `/exposure`, `/stories`'; pages-and-wording.md:50 '| `/place-notes` | `/stories` | src/routes/place-notes.tsx'; B3.md:32 '303 to `/stories?confirmed=1`'"
+
+2. File: `app/src/routes/sitemap[.]xml.ts:5-17`. Not blocking.
+   - Follow-up: "/place-notes is now a real, indexable page with a canonical pageHead and a seo-copy description, but it is not in the sitemap's staticPaths. Step 7 does not ask for this, so it is a follow-up for SEO or B4, not a defect of g3. (Suspected by reading; no test covers it.)"
+   - Evidence: "sed -n 1,30p src/routes/sitemap[.]xml.ts: staticPaths lists /, /properties, /markets, /stories, /editorial-standard, /submit, /exposure, /about, /contact, /faq, /legal, and no /place-notes"
+
+3. File: `app/src/server/email/repermission.ts:28-45`. Not blocking.
+   - Follow-up: "issue_repermission and enqueue_job are two separate calls. An enqueue_job failure after the ask has committed leaves a subscriber marked as asked with no email, and lapse_subscribers will later archive them. A retry mints a new token and overwrites the hash. The author records this as UNPROVEN and it needs a plan or B11 decision. The seal-before-ask ordering for a bad key is closed and watched-fail (b5-rp-seal-first)."
+   - Evidence: "read: `const issued = await db.rpc(\"issue_repermission\", ...)` followed by a separate `await enqueueJob(db, {...})`; there is no transaction or compensation"
+
+4. File: `app/tests/unit/email/confirm.test.ts:53, app/tests/unit/email/repermission.test.ts:47`. Not blocking.
+   - Follow-up: "The group added two identical captureTokens() helpers, and a third copy already exists in tests/api/subscribers.api.test.ts:105. It belongs in tests/fixtures (STANDARDS C05 spirit). jscpd does not scan tests, so no gate catches it."
+   - Evidence: "grep -rn \"function captureTokens\" tests prints three hits: subscribers.api.test.ts:105, confirm.test.ts:53 and repermission.test.ts:47"
+
+5. File: `(slice/b5 branch)`. Not blocking.
+   - Follow-up: "slice/b5 is 48 commits behind origin/main. A read-only merge-tree shows conflicts in GOTCHAS.md, which bank-merge.mjs resolves, and in app/.prettierignore, which is g4's file and not g3's. No g3 source file conflicts; main changed only tests/e2e/fixtures/page.ts in g3's area. Whoever merges main next has to resolve .prettierignore."
+   - Evidence: "git merge-tree --write-tree --name-only HEAD origin/main prints 'CONFLICT (content): Merge conflict in GOTCHAS.md' and 'CONFLICT (content): Merge conflict in app/.prettierignore'"
+
+6. File: `(live proof)`. Not blocking.
+   - Follow-up: "UNPROVEN: the end-to-end double opt-in against a deployed Worker with EMAIL_LIVE=1 and CONFIRM_TOKEN_SECRET (POST, click the real email, confirmed_at set). The chain from the sealed token to the confirm_url is proven only with a stubbed fetch and fakeDb. The real upsert_subscriber writing sealed_token into subscriber.created is confirmed on mop-dev, but no email was sent and no link was clicked."
+   - Evidence: "author's unproven list; my read-only query shows the job dead with subscriber_missing after the smoke's cleanup, so no send happened"
