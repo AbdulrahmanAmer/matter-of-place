@@ -3521,6 +3521,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: workspace/05-plans/stall-watch.mjs (the Monitor is the orchestrator's standing duty)
 - added: 2026-10-06
 
+## P-531 · CI's e2e job exits 1 on a test that failed once and passed on retry: `sweep.spec.ts` on `/` ("elements wider than the viewport") is flaky on the first request of a cold Worker, and `failOnFlakyTests` makes the whole job red
+- symptom: the e2e job prints `✘ sweep.spec.ts:17:3 › /` then `✓ ... / (retry #1)`, ends with "1 flaky, N passed" and `##[error]Process completed with exit code 1`; every later step of the job (coming-soon, admin) is skipped, so a red here hides the admin specs too (P-2010). Seen on PRs 138, 150, 155 and 158 (run 37404779915, 2026-10-06 02:40 UTC); never on a route other than the first `/`.
+- cause: the sweep opens `/` as the very first request of the freshly started Worker; its first layout pass under CI load reports a width overflow that is gone a second later. `app/playwright.config.ts` line 45 sets `failOnFlakyTests: Boolean(process.env["CI"])`, so a retry that passes still fails the job.
+- rule: re-run the failed job once (`gh run rerun <id> --failed`); do not loosen `failOnFlakyTests` or the sweep's width check for it. The fix belongs to the site lane (B17): find why the cold first paint of `/` is wider than the viewport (a late-loading typeface or image without reserved width is the usual cause) and prove it with the sweep on a cold Worker ten times; until then the entry is the record of the gap.
+- proof: `gh run view 37404779915 --job 112079918014 --log-failed | grep -E "flaky|passed|exit code"` → `1 flaky`, `168 passed (2.7m)`, `Process completed with exit code 1`; `grep -n failOnFlakyTests app/playwright.config.ts` → line 45.
+- added: 2026-10-06
+
 ## P-530 · A bare `wrangler secret put` used the Windows user environment's personal Cloudflare token and created a stray empty Worker named `matter-of-place` in the wrong account
 - symptom: `bunx wrangler secret put CONFIRM_TOKEN_SECRET --name matter-of-place` from `app/` printed "Creating new Worker matter-of-place" and `secret list` showed only the two new names; `wrangler whoami` showed the personal account (abdoamer683), not the project's (Admin@matterofplace.com, the `holy-meadow-4327` subdomain). Production kept serving (200); the stray held two secrets and no code. P-520's placeholder rollback was the same shape.
 - cause: the shell carries `CLOUDFLARE_API_TOKEN` as a Windows user-level variable (the operator's other projects, P-331 class), the dev profile does not export the project's Cloudflare pair, and wrangler takes whatever token the environment holds.
