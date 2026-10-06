@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-06 17:00 (UTC+3)",
-  "now": "PAUSED for the second laptop (operator, 10:40): no lane runs. B5, B12 whole and B7 steps 1 to 4 on main. Loose ends closed by hand: PRs 171, 158 merged; the H62 vite line (173), the overflow-check fixes (169, 174), the one-database guard (170) on main. Left for builders at relaunch: PR 163 (B13 c7b, property route +470 B), PR 142 with B17 (c8, c9: lane 2.7 KB over budget). Relaunch files: lanes/B7.json (5 to 16), B13.json (c7b, 8 to 13), B17.json (c8, c9, 11, 12); B10 opens now (B7 1 to 3 on main), B14 after 163, B16 after 142.",
+  "updated": "2026-10-07 02:40 (UTC+3)",
+  "now": "Six lanes live on two machines (operator, 2026-10-07 01:30 to 02:30): the Dell (ka@192.168.1.5, 8 GB, five lanes) runs B13 wf_b52b8501-a01 (c7b), B7 wf_9056e71b-55a (5 to 16), B6 wf_a5dd49ae-e6b (1 to 9), B11 wf_8d8f3276-412 (1 to 13), B10 wf_023873a9-fb0 (0, 3, 4, 5, 5a); the first laptop runs B17 wf_691c6d5a-d34 (c8, c9, 11, 12). B14 opens after PR 163, B16 after PR 142, H1 after the B slices. The Dell session (Remote Control, bypass mode) reports group results, stalls and memory to the orchestrator; it never fixes a failing script (operator rule).",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
