@@ -1,6 +1,6 @@
 {
   "slice": "B12",
-  "runId": "set after launch",
+  "runId": "wf_42239cda-85c",
   "note": "steps 1 to 6 accepted on slice/b12; step 7 built and pushed (draft PR 161) but ended blocked on the audit actor; ruling H63 (system row) settles it; close-out c7 reviews step 7 under H63, then steps 8 and 9. Launch: Workflow({ scriptPath, args }) with the object below; resume a killed run with resumeFromRunId set to the live run's id.",
   "launch": {
     "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
@@ -8,8 +8,14 @@
       "slice": "B12",
       "root": "E:/mop-build/video",
       "previewPort": 8958,
-      "bankBase": { "P": 2100, "G": 950 },
-      "steps": ["8", "9"],
+      "bankBase": {
+        "P": 2100,
+        "G": 950
+      },
+      "steps": [
+        "8",
+        "9"
+      ],
       "closeOut": [
         {
           "id": "c7",
