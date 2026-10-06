@@ -134,6 +134,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assets_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"audit_log": {
@@ -216,6 +222,18 @@ isOneToOne: true
       columns: ["property_id"]
 isOneToOne: false
       referencedRelation: "properties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "campaigns_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
+    },{
+      foreignKeyName: "campaigns_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "campaigns_submission_id_fkey"
@@ -512,6 +530,18 @@ isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "payments_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
+    },{
+      foreignKeyName: "payments_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "payments_submission_id_fkey"
       columns: ["submission_id"]
 isOneToOne: false
@@ -565,6 +595,12 @@ isOneToOne: false
       foreignKeyName: "properties_submission_fk"
       columns: ["submission_id"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "properties_submission_fk"
+      columns: ["submission_id"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     }
@@ -586,6 +622,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_features_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"property_media": {
@@ -605,6 +647,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_media_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"property_related": {
@@ -624,6 +672,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "property_related_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"rate_limits": {
@@ -740,6 +794,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "slug_history_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"stories": {
@@ -789,6 +849,12 @@ isOneToOne: false
       foreignKeyName: "submission_media_submission_id_fkey"
       columns: ["submission_id"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submission_media_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     }
@@ -820,6 +886,12 @@ isOneToOne: false
       foreignKeyName: "submissions_duplicate_of_fkey"
       columns: ["duplicate_of"]
 isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
       referencedRelation: "submissions"
       referencedColumns: ["id"]
     },{
@@ -828,6 +900,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "properties"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
     }
                   ]
                 },"subscribers": {
@@ -884,14 +962,26 @@ isOneToOne: false
                     "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
                   }
                   Relationships: [
-
+                    
                   ]
                 },"submission_list": {
                   Row: {
                     "accepted_at": string | null,"address": string | null,"brokerage": string | null,"city": string | null,"duplicate_of": string | null,"id": string | null,"package": Database["public"]['Enums']["exposure_package"] | null,"property_id": string | null,"received_at": string | null,"state": Database["public"]['Enums']["accepted_state"] | null,"submitter_kind": Database["public"]['Enums']["submitter_kind"] | null,"submitter_name": string | null,"turnstile_ok": boolean | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
                   }
                   Relationships: [
-
+                    {
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submissions_duplicate_of_fkey"
+      columns: ["duplicate_of"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    }
                   ]
                 }
           }
