@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-06 12:50 (UTC+3)",
-  "now": "Two lanes live (B17, B7), pausing at their next group boundary for the second-laptop setup (operator, 10:40). B5 and B12 fully on main (PRs 171, 161). Morning: OmniSkipX incident (G-901) cleaned and guarded; H62 line on main (PR 173); width-check flake fixed (PRs 169, 174); one-database guard test (PR 170). Open: PRs 158 (B7 2 and 3), 163 (B13 5 to 7), 142 (B17 1), to be merged before relaunch.",
+  "updated": "2026-10-06 17:00 (UTC+3)",
+  "now": "PAUSED for the second laptop (operator, 10:40): no lane runs. B5, B12 whole and B7 steps 1 to 4 on main. Loose ends closed by hand: PRs 171, 158 merged; the H62 vite line (173), the overflow-check fixes (169, 174), the one-database guard (170) on main. Left for builders at relaunch: PR 163 (B13 c7b, property route +470 B), PR 142 with B17 (c8, c9: lane 2.7 KB over budget). Relaunch files: lanes/B7.json (5 to 16), B13.json (c7b, 8 to 13), B17.json (c8, c9, 11, 12); B10 opens now (B7 1 to 3 on main), B14 after 163, B16 after 142.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -224,13 +224,17 @@
         "1",
         "2",
         "3",
-        "5"
+        "4",
+        "5",
+        "6",
+        "7"
       ],
       "inReview": [
-        "4",
-        "6"
+        "8",
+        "9",
+        "10"
       ],
-      "note": "Step 1 accepted (PR 142, close-out c1 done); 2, 3, 5 accepted on slice/b17; 4 in its second fix round; 6 in review; run wf_df526cfb-c3b pauses after step 6 banks (operator, 10:40). 7 to 12 relaunch from lanes/B17.json."
+      "note": "1 to 7 accepted on slice/b17 (head febc1a6; step 1 in PR 142, which merges with the slice). 8 built and rejected once (fix round not run), 9-10 built partial and unreviewed; run wf_df526cfb-c3b paused 16:55 (operator, 10:40). The lane is 2.7 KB over the bundle budget on the property route (P-1924); close-outs c8 and c9 in lanes/B17.json, then 11 and 12."
     },
     "B7": {
       "accepted": [

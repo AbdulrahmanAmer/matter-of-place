@@ -1,42 +1,41 @@
 {
   "slice": "B17",
-  "runId": "wf_df526cfb-c3b",
-  "resume": {
-    "scriptPath": "E:Matter Of Place.claudeworkflows\build-slice.js",
-    "resumeFromRunId": "wf_df526cfb-c3b",
+  "runId": "paused 2026-10-06 16:55 (run wf_df526cfb-c3b stopped right after the steps 9-10 builder handed in; operator pause for the second laptop)",
+  "note": "Step 1 accepted (PR 142, close-out c1 done; PR 142's head is the whole branch, so it merges with the slice at the relaunch's end). Steps 2 to 7 accepted on slice/b17 (head febc1a6). Step 8 built and rejected once (jsdom types, since fixed in step 6's second fix; Picture chunk weight; Lighthouse red, P-1924), its fix round never ran. Steps 9-10 built as partial (web-vitals beacon, site layout) and their review was cut by the pause. Banks for 6 and 7 did not run. The lane's property route is 155,972 gzip bytes against 153,600 with the H62 line present (main is 153,238): B17's own steps carry about 2.7 KB that has to come back out. Relaunch: close-outs c8 and c9 below, then steps 11 and 12. Launch: Workflow({ scriptPath, args }) with the object below.",
+  "launch": {
+    "scriptPath": "E:/Matter Of Place/.claude/workflows/build-slice.js",
     "args": {
       "slice": "B17",
       "root": "E:/mop-build/site",
       "previewPort": 8938,
-      "bankBase": {
-        "P": 1900,
-        "G": 850
-      },
-      "steps": [
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-        "10",
-        "11",
-        "12"
-      ],
+      "bankBase": { "P": 1900, "G": 850 },
+      "steps": ["11", "12"],
       "closeOut": [
         {
-          "id": "c1",
-          "steps": "1",
+          "id": "c8",
+          "steps": "8",
           "critical": false,
-          "title": "B17 close-out c1: step 1 is accepted on slice/b17 (review3 of run wf_50ea9b3c-5a4, commits up to 48763c2) and its pull request 142 is red on CI's e2e job only: the sweep spec fails on every route because the Content-Security-Policy-Report-Only header carries upgrade-insecure-requests, which Chromium logs as a console error ('directive ignored in a report-only policy') and tests/e2e/sweep.spec.ts:34 expects no console errors. Fix that, re-run the sweep against the built Worker, hand in",
+          "title": "B17 close-out c8: step 8 (Picture component, image hygiene, Lighthouse local run) is built on slice/b17 and was rejected once by its reviewer; the run paused before its fix round. The blocking defect (jsdom imported in tests/unit/essentials.test.ts with no type package, red on a clean frozen install) was removed by step 6's second fix (3f651b2); the rest of the review stands. Apply the review, bring the lane's bundle back under budget, hand in for a fresh review",
           "defects": [
             {
-              "file": "app/src/server/lib/headers.ts",
+              "file": "app/src/components/site/picture.tsx",
               "blocking": true,
-              "what": "The report-only policy built from the directive table (line 67 lists upgrade-insecure-requests) must not carry upgrade-insecure-requests: send that directive only in the enforced Content-Security-Policy header, never in Content-Security-Policy-Report-Only. Add a unit case asserting the report-only header string has no upgrade-insecure-requests while the enforced one keeps it, watched-fail it and register it; then run the e2e sweep on the built Worker (wrangler dev on 8938) and paste the count of console errors (0) and routes passed.",
-              "evidence": "CI run 37278228332, job e2e (111660146303): sweep.spec.ts fails on all routes with the Chromium console error about upgrade-insecure-requests in a report-only policy; the merge agent of run wf_50ea9b3c-5a4 recorded it and fixed nothing."
+              "what": "Merge origin/main into the lane first (bank-merge.mjs for GOTCHAS conflicts, P-525; the P-072 sorted diff afterwards), run `bun install --frozen-lockfile`, then measure before any edit (P-1924): `export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA; bun run build && node scripts/bundle-check.mjs`. The lane's `_site.property.$slug` was 155,972 and `_site.$market.index` over 150 KB first-load with the H62 line present, against main's 153,238: B17's own steps (consent, feeds, essentials, the Picture chunk, the web-vitals beacon) added about 2.7 KB of client code. Take it back out of the public routes: anything that runs only on the server or only after interaction goes behind a lazy import or a server function, the shared Picture chunk is folded where Rolldown stops splitting it, the web-vitals beacon stays lazy. Target: every route passes `node scripts/bundle-check.mjs` with at least 300 bytes of headroom on `_site.property.$slug`. Then the rest of the step 8 review: the film poster in gallery.tsx rendered through Picture (invariant 20), a unit test for `variants={property.heroVariants}` on the property ImageHero and `gallery[0]?.variants` in share-cover.tsx, the g7 watched-fails recorded with `--record` into tests/WATCHED-FAIL.md, alt-audit proved on the bundled stand-in with a note that the live run waits for a published property. Lighthouse local (`bun run lhci:local`) is run and its numbers pasted; where it stays red (LCP, script transfer) say so against H61 (warn until H1), do not loosen lighthouserc.",
+              "evidence": "Step 8 review (run wf_df526cfb-c3b, review:B17:g7:8): BLOCKING essentials.test.ts jsdom types (fixed by 3f651b2); minor: Picture chunk +400 B pushes $market.index over the 150 KB first-load budget, property.$slug already over before the group (P-1924: 155,972 base, 156,102 after); Lighthouse local red on all five pages; g7 watched-fails not recorded; no test on heroVariants; film poster is a raw img. Steps 9-10 report: 'Step 9 bundle-check exit 0: not met'."
+            }
+          ]
+        },
+        {
+          "id": "c9",
+          "steps": "9-10",
+          "critical": false,
+          "title": "B17 close-out c9: steps 9 and 10 (web-vitals field beacon with a lazy import, startWebVitals in _site.tsx, site layout, unit and e2e cases with registry entries, essentials runbook) are built on slice/b17 (2af808b, febc1a6) and handed in as partial; their review was cut by the pause. Finish the open proofs after c8 has the bundle under budget, and hand in for a fresh review",
+          "defects": [
+            {
+              "file": "app/src/routes/_site.tsx",
+              "blocking": true,
+              "what": "Re-run the steps 9 and 10 proofs on the tree after c8: `bun run check` green on a clean frozen install, the web-vitals unit and e2e cases green, `node scripts/watchfail.mjs --registry tests/mutations --only <id>` for each new entry, the live build with `node scripts/bundle-check.mjs` OK (this was the unmet proof: 'Step 9 bundle-check exit 0: not met'). Step 10's enforcing CSP header is time-gated (csp_enforce false on mop-dev until seven days after step 1's deploy): record it as UNPROVEN with the exact flag and date rather than flipping it. Update the log block with the numbers and hand in.",
+              "evidence": "Steps 9-10 result (build:B17:g8:9-10): status partial; unproven: 'Step 9 bundle-check exit 0: not met. property.$slug was already over before this group (155972 base, 156102 now)', 'Step 10 enforcing header: csp_enforce is false on mop-dev, time-gated'."
             }
           ]
         }
