@@ -51,6 +51,10 @@ function stubStorage(original: Uint8Array, stagedStatus = 200) {
 }
 
 beforeEach(() => {
+  // One database (G-901): the helper reads the stubbed generic names only behind E2E_STACK and without a dev profile.
+  vi.stubEnv("E2E_STACK", "1");
+  vi.stubEnv("DEV_SUPABASE_PROJECT_REF", "");
+  vi.stubEnv("DEV_SUPABASE_SERVICE_ROLE_KEY", "");
   vi.stubEnv("SUPABASE_URL", BASE);
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-key");
 });

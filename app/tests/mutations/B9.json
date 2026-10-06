@@ -308,9 +308,9 @@
   {
     "id": "b9g5-mk-url-missing",
     "test": "tests/unit/assets/media-key.test.ts",
-    "file": "scripts/lib/media-store.mjs",
-    "find": "value === undefined || value === \"\"",
-    "replace": "value === undefined",
+    "file": "scripts/lib/one-database.mjs",
+    "find": "if (value === undefined || value === \"\") throw new Error(`${label}: ${name} is not set`);",
+    "replace": "if (value === undefined) throw new Error(`${label}: ${name} is not set`);",
     "run": "bunx vitest run --project unit tests/unit/assets/media-key.test.ts",
     "expect": "× throws naming SUPABASE_URL when it is missing"
   },
