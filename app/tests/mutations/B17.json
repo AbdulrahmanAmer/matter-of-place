@@ -1654,5 +1654,77 @@
     "replace": "const report = ({ name, value, rating }: Metric): void => {\n  track(\"web_vitals\", { name, value, rating });",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build && cp .dev.vars .output/server/.dev.vars && E2E_TARGET=built E2E_MODE=live E2E_PORT=8938 bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g web-vitals --reporter=line",
     "expect": "web-vitals: a navigation[\\s\\S]*-\\s+\"id\","
+  },
+  {
+    "id": "b17-obs-below-a",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "GRADES.indexOf(grade) > LOWEST_PASS",
+    "replace": "GRADES.indexOf(grade) > GRADES.length",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 1 on an enforcing policy with a grade below A"
+  },
+  {
+    "id": "b17-obs-a-passes",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "GRADES.indexOf(grade) > LOWEST_PASS",
+    "replace": "GRADES.indexOf(grade) >= LOWEST_PASS",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 0 on an enforcing policy with A or A+"
+  },
+  {
+    "id": "b17-obs-report-only",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "const ENFORCING = \"content-security-policy\";",
+    "replace": "const ENFORCING = \"content-security-policy-report-only\";",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*prints the grade and exits 0 on a report-only policy"
+  },
+  {
+    "id": "b17-obs-no-grade",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!scan.ok || typeof result.grade !== \"string\" || !GRADES.includes(result.grade)",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the scan answers without a grade"
+  },
+  {
+    "id": "b17-obs-retry",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "if (attempt >= ATTEMPTS) throw error;",
+    "replace": "throw error;",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*retries a refused connection and then reads the policy"
+  },
+  {
+    "id": "b17-obs-attempts",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "const ATTEMPTS = 3;",
+    "replace": "const ATTEMPTS = 4;",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 after three refused connections"
+  },
+  {
+    "id": "b17-obs-timeout",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "{ method, signal: AbortSignal.timeout(TIMEOUT_MS) }",
+    "replace": "{ method }",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*prints the grade and exits 0 on a report-only policy"
+  },
+  {
+    "id": "b17-obs-host",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!HOST.test(host)",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*refuses a missing host"
   }
 ]
