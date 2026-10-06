@@ -2095,8 +2095,8 @@
     "kind": "file",
     "test": "tests/unit/email/repermission.test.ts",
     "file": "src/server/email/repermission.ts",
-    "find": "sealed_token: await sealToken(token, sealKey)",
-    "replace": "sealed_token: token",
+    "find": "sealed_token: sealed }",
+    "replace": "sealed_token: token }",
     "run": "bunx vitest run --project unit tests/unit/email/repermission.test.ts",
     "expect": "× .*gives a candidate one job"
   },
