@@ -1188,3 +1188,18 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   Owner messages #1078, #1079 sit pending behind auto task #1077 (Jay's chat is one worker at a time).
 - Operator asleep; the Dell Precision is set up after he wakes (`workspace/05-plans/lane-runner.md`). Morning summary owed:
   steps per hour, board figure, merges, open items.
+
+## 2026-10-06 06:40 (rulings H62, H63; two orchestrator commits on slice/b7; three relaunches)
+- Board 128 of 259 (49.4 percent) at 06:20, 12 in work. PRs 159, 160, 162 merged (records, H62, H63).
+- H62: the client entry `codeSplitting` group in `app/vite.config.ts` (B7 close-out c2 proved Rolldown regrouping, not a
+  leak). On slice/b7 since 9e5a731; CI bundle-check on PR 158 OK (property 151,270, market index 149,623). B13's PR 163
+  hit the same wall (153,959) and takes the line by merging main after PR 158 lands.
+- H63: `attach_reel` audits as a system row (B7's `write_audit` forbids a named actor without an `action_roles` row,
+  P-2120); `B12.md` lines 70 and 91 amended.
+- PR 158 then went red on e2e twice; two orchestrator commits on slice/b7 between B7 groups (the builder was in step 3's
+  files): aaa6586 `tests/e2e/helpers/session.ts` reads CI's `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` before the
+  `DEV_*` names; 289be35 `scripts/seed-admin-users.ts --stack` plus one ci.yml line so the e2e job's stack holds the staff
+  accounts the magic-link spec signs in as (P-2010). UNPROVEN until that CI run finishes (watch task bai29enim).
+- Runs: B13 wf_31d6490a-eeb (c7m, then 8 to 13), B12 wf_42239cda-85c (c7 in review, step 8 building; PR 161 draft),
+  B17 wf_df526cfb-c3b (steps 4 fix, 5), B5 wf_03e1b94b-8bd (step 7 review, 8 building), B7 wf_635ac60b-161 (c2b
+  accepted, step 3 building). `lanes/*.json` carry the launch calls.
