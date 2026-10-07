@@ -113,3 +113,27 @@ Recorded in the bank, not here: two follow-ups whose file is GOTCHAS.md became t
    Evidence: Confirmed by running: curl with 'Referer: https://evil.example/properties' and set=decline answered 303 with Set-Cookie (Location: /). Accept behaves the same by code path (read, not run with a foreign Referer).
 
 Recorded in the bank, not here: none. No follow-up of g3's review has GOTCHAS.md as its file; the `[sS]` backslash loss of follow-up 1 is already banked as P-1915 (a hit-again line there would repeat it, and the follow-up carries the fix).
+
+## c8 · steps 8
+
+1. File `app/lighthouserc.local.json` (step 8 acceptance, lhci:local) (not blocking).
+   What: Lighthouse local is still red on lines that ruling H61 does not cover. H61 only holds LCP and script size at warn. Also red: accessibility 0.98 on /exposure (heading-order, a real page defect), best practices 0.96 on / and /california (console 404 of /media/o/california/... because mop-dev's bucket is missing the file), and performance 0.86 to 0.92 against 0.95. The author reported all of this honestly and the close-out allowed red. Still, heading-order and the missing market image need a named owner, or the step 8 acceptance 'all four category assertions pass' can never close.
+   Evidence: Confirmed by running: bun run lhci:local on 5 pages of the live build on 8939, exit 1; medians a11y /exposure 0.98 (heading-order), bp 0.96 on / and /california (errors-in-console), perf 0.86 to 0.92.
+
+2. File `app/scripts/bundle-check.mjs` (lane budget) (not blocking).
+   What: _site.$market.index has 103 gzip bytes of headroom. That was measured only on this Windows build; no CI run exists for d3f9e6f, so the bundle-check pass in CI's Linux build is UNPROVEN. The close-out also suggested folding the shared Picture chunk. That was not done (vite.config.ts untouched). The 300-byte target, set only for property.$slug, is met (498).
+   Evidence: Confirmed by running: bundle-check prints 'ok _site.$market.index 153497' against 153600; the c8 log says 'The shared Picture chunk ... stays a chunk of its own'.
+
+3. File `workspace/05-plans/B17.md` and `workspace/05-plans/trace.json` (not blocking).
+   What: Two places still name src/domain/contracts.ts as the home of cspReportBatchSchema: the plan's Files list (B17.md line 76) and trace.json, whose 'POST /api/public/csp-report' item lists src/domain/contracts.ts and not src/domain/csp-report.ts. The code now lives in csp-report.ts. There is also a mismatch to settle. The new rule in P-1932 says server-only schemas go under src/domain/. The file's own comment says it is server-only. But STANDARDS section 1.3 describes src/domain/ as 'Shared contracts used by browser and server'. Either the folder-map row or the file's location needs to say so explicitly.
+   Evidence: Grep cspReportBatchSchema: B17.md:76 '`src/domain/contracts.ts` — change: `cspReportBatchSchema` normalises both bodies...'; trace.json:12654-12661 files list includes 'src/domain/contracts.ts', not csp-report.ts. Orchestrator's files to fold.
+
+4. File `app/src/components/forms/inquiry-dialog.tsx` (not blocking).
+   What: Suspected by reading, not proven. The property route now mounts InquiryDialog only when intent !== null, so the dialog's null-intent handling can no longer happen in production: `intent: Intent | null`, `open = intent !== null`, `if (!intent || !copy) return null`, and the reset effect keyed on intent. Only the unit test can still reach it (C04, dead path left by this group's change). Separately, the lazy boundary has `fallback={null}` and no preload. On a slow network the first click shows nothing and does not lock scroll until the chunk arrives. If the chunk fails to load (for example an old tab after a new deploy), the error goes to the route error boundary.
+   Evidence: Grep InquiryDialog: the only src caller is _site.property.$slug.tsx:336-345, wrapped in `{intent !== null && (<Suspense fallback={null}>...`. The e2e dialog cases pass (4 passed), so behaviour holds on a fast local server.
+
+5. File `app/src/components/site/picture.tsx` (plan invariant 20) (not blocking).
+   What: Suspected by reading. Picture writes `sizes` on an <img> that has no srcset: the film poster and every bundled still. The plan requires this ('Both carry sizes'). As I recall the HTML standard, `sizes` is allowed only together with `srcset`, so validators would flag every image without variants. This is a plan-line question for the orchestrator, not a defect of this group.
+   Evidence: Confirmed markup by curl of the stand-in /property/tiburon-waterline: <img src="/assets/T4TFjhsO.jpg" sizes="(max-width: 416px) 100vw, 416px" ... loading="lazy" decoding="async"/>, with no srcset. The conformance claim comes from my reading of the spec and was not run through a validator.
+
+Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (the c8 hit-again line of P-008 inserted inside the B3 g1 line) became P-1935, and the misplaced line was moved back after the B3 g1 line it had split.
