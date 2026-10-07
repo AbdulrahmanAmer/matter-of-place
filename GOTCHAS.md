@@ -4326,3 +4326,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing UNPROVEN for a thing CI proves, list the runs of the branch (`gh run list --workflow deploy.yml --branch <slice> --limit 8`) and read the newest one whose commit descends from the snapshot (`git merge-base --is-ancestor <snapshot> <head>`) with only docs changed (`git diff --stat <snapshot> <head>`).
 - proof: `git merge-base --is-ancestor 6f78f05 789aa6c && echo descends` → `descends`; `gh run list --workflow deploy.yml --branch slice/b17 --limit 3 --json conclusion,databaseId` lists run 37550497051 with `failure`.
 - added: 2026-10-07
+
+## P-534 · The board counts only this laptop's workflow journals: a lane run on another machine is invisible to it until its journal is mirrored here
+- symptom: 2026-10-07 03:20, two groups accepted on the Dell (B11 g1, B10 g1) and the board still read 145 of 259 with "5 in work"; `board.mjs readRuns` walks `~/.claude/projects/<project>/*/subagents/workflows/*/journal.jsonl` on the machine that serves the board, nothing else.
+- cause: the journals are per session and per machine; nothing carries a remote lane's journal to the board's machine.
+- rule: on the orchestrator's machine a loop copies every run folder's `journal.jsonl` from the lane machine with `scp -p` (the mtime is what the board uses for "running now" against stale) into `~/.claude/projects/E--Matter-Of-Place/dell-mirror/subagents/workflows/<run>/` every five minutes (script `dell-journal-mirror.sh` in the orchestrator's scratchpad; the lane machine's session folder is in lane-runner.md). A board figure taken while a remote lane runs is a floor, not the count, until the mirror has run.
+- proof: after the first mirror, `node workspace/05-plans/board.mjs --check` printed `overall: 148 of 259 steps accepted (57.1%), 6 of them not yet re-run by the orchestrator, 16 in review`; before it, 145 and 5 in review from the same ledger.
+- added: 2026-10-07

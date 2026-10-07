@@ -259,12 +259,16 @@ export function collect(now = new Date()) {
     const entry = ledger.slices[slice.id] ?? {};
     const accepted = new Set(entry.accepted ?? []);
     const inReview = new Set(entry.inReview ?? []);
+    // Steps the orchestrator recorded as waiting on the operator (an account or app only he can create). A
+    // reviewer accepts a group as handed in, so the journal alone would count these; the ledger's word wins.
+    const blocked = new Set(entry.blocked ?? []);
     const known = new Set(slice.steps.map((s) => s.id));
-    for (const id of [...accepted, ...inReview]) {
+    for (const id of [...accepted, ...inReview, ...blocked]) {
       if (!known.has(id)) errors.push(`${slice.id}: progress.json names step ${id}, which the plan does not have`);
     }
     for (const id of accepted) {
       if (inReview.has(id)) errors.push(`${slice.id}: step ${id} is both accepted and in review`);
+      if (blocked.has(id)) errors.push(`${slice.id}: step ${id} is both accepted and blocked`);
     }
     // The ledger is the orchestrator's own word (proofs re-run). The journals add, with no one
     // typing, what a reviewer accepted since and what is being built or reviewed right now.
@@ -273,28 +277,35 @@ export function collect(now = new Date()) {
       step.checked = accepted.has(step.id);
       step.state = step.checked
         ? "accepted"
-        : seenInRun === "accepted"
-          ? "accepted"
-          : inReview.has(step.id) || seenInRun === "in review"
-            ? "in review"
-            : "not started";
+        : blocked.has(step.id)
+          ? "waiting on you"
+          : seenInRun === "accepted"
+            ? "accepted"
+            : inReview.has(step.id) || seenInRun === "in review"
+              ? "in review"
+              : "not started";
     }
     slice.note = entry.note ?? "";
     slice.total = slice.steps.length;
     slice.accepted = slice.steps.filter((s) => s.state === "accepted").length;
     slice.unchecked = slice.steps.filter((s) => s.state === "accepted" && !s.checked).length;
     slice.inReview = slice.steps.filter((s) => s.state === "in review").length;
+    slice.blocked = slice.steps.filter((s) => s.state === "waiting on you").length;
     slice.percent = pct(slice.accepted, slice.total);
     slice.state =
       slice.total === 0
         ? slice.planStatus
         : slice.accepted === slice.total
           ? "closed"
-          : slice.accepted + slice.inReview > 0
+          : slice.accepted + slice.inReview + slice.blocked > 0
             ? "in progress"
             : "not started";
     const ledgerState =
-      accepted.size === slice.total ? "closed" : accepted.size + inReview.size > 0 ? "in progress" : "not started";
+      accepted.size === slice.total
+        ? "closed"
+        : accepted.size + inReview.size + blocked.size > 0
+          ? "in progress"
+          : "not started";
     if (slice.total > 0 && ledgerState !== slice.planStatus) {
       errors.push(`${slice.id}: PLAN.md says "${slice.planStatus}", the ledger gives "${ledgerState}"`);
     }
@@ -569,6 +580,7 @@ summary { cursor: pointer; font-weight: 500; }
 .steps { margin: 10px 0 4px; padding-left: 24px; list-style: none; }
 .steps li { margin: 6px 0; color: var(--soft); font-size: 15px; }
 .steps li.accepted { color: var(--ink); }
+.steps li.waiting-on-you { color: var(--ink); font-style: italic; }
 .steps li strong { font-weight: 500; color: var(--ink); }
 .events { padding-left: 20px; margin: 4px 0; }
 .events li { margin: 5px 0; color: var(--soft); font-size: 15px; }
