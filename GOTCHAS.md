@@ -4298,7 +4298,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: B10 g6's brief says to open a draft pull request and take the database proof from its CI `db` job; that job's condition is `github.event.pull_request.draft == false`, so on the draft it never runs, and the brief's proof stays UNPROVEN.
 - cause: the heavy jobs skip drafts to save Actions minutes.
 - rule: while the pull request is a draft, report the CI `db` proof as UNPROVEN and prove the migration on mop-dev inside rolled-back transactions (P-312), file by file; the orchestrator's ready-for-review starts the job, and a type drift it finds is fixed with `bun run types:from-ci -- <pr>`.
-- proof: `grep -n "draft == false" .github/workflows/ci.yml` → the `if:` line of the `db` job, and `gh pr checks <pr>` on the draft lists no `db` check (measured 2026-10-07).
+- proof: `grep -n "draft == false" .github/workflows/ci.yml` → the `if:` line of the `db` job, and `gh pr checks 214` on the draft lists `db` as `skipping` while `check` and `build` run (measured 2026-10-07).
 - added: 2026-10-07
 
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration
