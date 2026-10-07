@@ -67,6 +67,8 @@ export const errorCodes = {
   credentials_unverified: 422,
   channel_locked: 422,
   no_adapter: 422,
+  // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
+  paid_at_future: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { deterministicUuid } from "../fixtures/clock";
+import { atFrom, deterministicUuid } from "../fixtures/clock";
 import { dbNow, withRollback, type Db } from "../fixtures/db";
 import { fixtureDataset, loadDataset } from "../fixtures/dataset";
-import { createSubmission, publishedProperty, removeFixtureRows } from "../fixtures/factories";
+import {
+  createInvoice,
+  createSubmission,
+  publishedProperty,
+  removeFixtureRows,
+} from "../fixtures/factories";
 
 // GQ-03: every case runs inside one rolled-back transaction (invariant 4); none is committed.
 const FIXTURE_IDS =
@@ -32,10 +37,11 @@ describe("loadDataset", () => {
       const second = { ids: await one(db, FIXTURE_IDS), rows: await datasetRows(db) };
       return { counts, first, second };
     });
-    expect(seen.counts).toEqual([
-      [{ table: "submissions", count: datasetIds.length }],
-      [{ table: "submissions", count: datasetIds.length }],
-    ]);
+    const counts = [
+      { table: "submissions", count: datasetIds.length },
+      { table: "invoices", count: fixtureDataset.invoices.length },
+    ];
+    expect(seen.counts).toEqual([counts, counts]);
     expect(seen.second).toEqual(seen.first);
   });
 });
@@ -97,15 +103,45 @@ describe("createSubmission", () => {
   });
 });
 
+describe("createInvoice", () => {
+  it("writes a payment the constraints accept, priced from exposure.ts and dated from the database clock", async () => {
+    const seen = await withRollback(async (db) => {
+      const base = await dbNow(db);
+      const submission = await createSubmission(db, { state: "Scheduled", n: 610, base });
+      const id = await createInvoice(db, {
+        submission,
+        status: "paid",
+        n: 610,
+        product: "The Campaign",
+        due_at: atFrom(base, -1).toISOString(),
+      });
+      return one(
+        db,
+        `select invoice_number, amount::float as amount, status::text, product::text,
+           issued_at = $2 as issued_now, due_at = $2::timestamptz - interval '1 day' as due_override,
+           paid_at = $2 as paid_now
+         from public.payments where id = $1`,
+        [id, base],
+      );
+    });
+    expect(seen).toEqual({
+      invoice_number: "MOP-2026-9610",
+      amount: 1495,
+      status: "paid",
+      product: "The Campaign",
+      issued_now: true,
+      due_override: true,
+      paid_now: true,
+    });
+  });
+});
+
 describe("removeFixtureRows", () => {
   it("leaves zero rows with the marker in each table it deletes from", async () => {
     const seen = await withRollback(async (db) => {
       const base = await dbNow(db);
       const submission = await createSubmission(db, { state: "Accepted", n: 701, base });
-      await db.query(
-        "insert into public.payments (submission_id, product, amount) values ($1, 'The Feature', 1)",
-        [submission],
-      );
+      await createInvoice(db, { submission, status: "due", n: 701 });
       await db.query(
         "insert into public.inquiries (intent, name, email, message, source_path) values ('general', 'Fixture', 'reader+701@fixtures.invalid', 'A question.', '/contact')",
       );
