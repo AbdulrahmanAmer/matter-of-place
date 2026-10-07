@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X } from "lucide-react";
 import { Emblem } from "../brand/emblem";
@@ -19,6 +19,8 @@ import { SearchOverlay } from "./search-overlay";
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const scrolled = useScrolled();
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isHome = path === "/";
@@ -33,7 +35,7 @@ export function Header() {
     closeAll();
   }, [path, closeAll]);
 
-  useModal(menuOpen || searchOpen, closeAll);
+  useModal(menuOpen || searchOpen, closeAll, menuOpen ? menuRef : searchRef);
 
   return (
     <>
@@ -92,6 +94,7 @@ export function Header() {
 
       {menuOpen && (
         <MenuPanel
+          ref={menuRef}
           onNavigate={() => setMenuOpen(false)}
           onSearch={() => {
             setMenuOpen(false);
@@ -100,7 +103,7 @@ export function Header() {
         />
       )}
 
-      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
+      {searchOpen && <SearchOverlay ref={searchRef} onClose={() => setSearchOpen(false)} />}
     </>
   );
 }

@@ -7,6 +7,11 @@
   letter-spacing: 0.04em;
 }
 
+.field label {
+  display: grid;
+  gap: 6px;
+}
+
 .field input,
 .field textarea,
 .field select {
@@ -49,6 +54,18 @@
 .field textarea:focus {
   border-color: var(--foreground);
   box-shadow: 0 0 0 1px var(--foreground);
+}
+
+.field-error {
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  padding-left: 10px;
+  border-left: 1px solid var(--foreground);
+}
+
+.field [aria-invalid="true"] {
+  border-color: var(--foreground);
 }
 
 .field-grid {
@@ -261,7 +278,6 @@
   flex: 1;
   min-width: 0;
   padding: 14px 0;
-  outline: none;
 }
 
 .newsletter-form button {

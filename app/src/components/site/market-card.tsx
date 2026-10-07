@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import type { Market } from "../../domain/market";
 import { t } from "../../lib/strings";
+import { Picture } from "./picture";
 
 export function MarketCard({ market }: { market: Market }) {
   const open = !market.comingSoon;
   return (
     <Link to="/$market" params={{ market: market.slug }} className="market-card">
       {open && market.image !== undefined && (
-        <img
+        <Picture
           src={market.image}
-          loading="lazy"
+          sizes="(max-width: 700px) 100vw, 33vw"
           width={1408}
           height={1008}
           alt={`${market.name} architecture`}

@@ -45,8 +45,10 @@
     "set-env": "bun scripts/set-environment.ts",
     "cpu-gate": "node scripts/cpu-gate.mjs",
     "lhci": "lhci autorun --config=lighthouserc.json",
+    "lhci:local": "lhci autorun --config=lighthouserc.local.json",
     "variants": "bun scripts/variants.ts",
     "fonts": "node scripts/fonts.mjs",
+    "icons": "node scripts/icons.mjs",
     "captions": "bun scripts/captions-runner.ts",
     "omnikom:mock": "bun run scripts/omnikom-mock.ts",
     "omnikom:run-local": "bun run scripts/omnikom-run-local.ts",
@@ -74,6 +76,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "vite-tsconfig-paths": "^6.0.2",
+    "web-vitals": "^6.2.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -109,6 +112,7 @@
     "jsdom": "^30.1.1",
     "knip": "^6.39.0",
     "nitro": "3.0.260603-beta",
+    "parse5": "^8.0.1",
     "pg": "^8.23.1",
     "prettier": "^3.7.3",
     "puppeteer-core": "^25.12.0",

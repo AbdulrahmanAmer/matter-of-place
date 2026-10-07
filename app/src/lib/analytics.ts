@@ -37,6 +37,8 @@ export const analyticsEvents = [
   "interest_signup",
   "coming_soon_view",
   "consent_set",
+  "web_vitals",
+  "csp_report",
   "archive_view",
 ] as const;
 export type AnalyticsEvent = (typeof analyticsEvents)[number];

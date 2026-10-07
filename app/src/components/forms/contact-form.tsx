@@ -6,6 +6,7 @@ import {
   type ContactTopic,
 } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
+import { useFieldErrors } from "../../hooks/use-field-errors";
 import { track } from "../../lib/analytics";
 import { readAttribution } from "../../lib/attribution";
 import { formText, withHoneypot } from "../../lib/form-data";
@@ -40,8 +41,11 @@ export function ContactForm() {
     );
   });
 
+  const { validate, clear, field, control } = useFieldErrors();
+
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!validate(event.currentTarget)) return;
     void run(event.currentTarget).then((receipt) => {
       if (receipt) track("contact_inquiry", { topic });
     });
@@ -58,7 +62,13 @@ export function ContactForm() {
   }
 
   return (
-    <form className="contact-form" onSubmit={onSubmit} aria-busy={pending}>
+    <form
+      className="contact-form"
+      onSubmit={onSubmit}
+      onInput={clear}
+      aria-busy={pending}
+      noValidate
+    >
       <div>
         <p className="eyebrow">WHAT IS THIS ABOUT?</p>
         <ChoiceGroup
@@ -69,11 +79,11 @@ export function ContactForm() {
         />
       </div>
       <div className="field-grid">
-        <Field label="Your name">
-          <input required type="text" name="name" autoComplete="name" />
+        <Field label="Your name" {...field("name")}>
+          <input required type="text" name="name" autoComplete="name" {...control("name")} />
         </Field>
-        <Field label="Email">
-          <input required type="email" name="email" autoComplete="email" />
+        <Field label="Email" {...field("email")}>
+          <input required type="email" name="email" autoComplete="email" {...control("email")} />
         </Field>
         <Field label="Phone (optional)">
           <input type="tel" name="phone" autoComplete="tel" />
@@ -82,8 +92,8 @@ export function ContactForm() {
           <input type="text" name="location" placeholder="City, country" />
         </Field>
       </div>
-      <Field label="Message">
-        <textarea required rows={5} name="message" />
+      <Field label="Message" {...field("message")}>
+        <textarea required rows={5} name="message" {...control("message")} />
       </Field>
       <Honeypot />
       <div className="form-actions">

@@ -28,6 +28,7 @@ const guardedScripts = [
   "scripts/seed-admin-users.ts",
   "scripts/probe-amr.ts",
   "scripts/email-chain.ts",
+  "scripts/with-maintenance.ts",
   "scripts/auth-invite-test.ts",
   "scripts/lib/test-post.ts",
 ];
