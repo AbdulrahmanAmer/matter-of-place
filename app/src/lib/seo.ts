@@ -29,7 +29,7 @@ export type PageHeadInput = {
   noindex?: boolean;
 };
 
-const suffixOf = () => ` | ${siteConfig.name}`;
+const suffix = ` | ${siteConfig.name}`;
 
 /**
  * The one writer of a structured-data script body (SEC-03). Titles and stories arrive from the public
@@ -80,8 +80,8 @@ export function pageHead({
   const hasBrand =
     title === siteConfig.name ||
     title.startsWith(`${siteConfig.name} | `) ||
-    title.endsWith(suffixOf());
-  const fullTitle = hasBrand ? title : `${title}${suffixOf()}`;
+    title.endsWith(suffix);
+  const fullTitle = hasBrand ? title : `${title}${suffix}`;
   const canonical = absoluteUrl(canonicalPath(path));
   const shownImage = image !== undefined && hasAbsoluteHttpsUrl(image) ? image : undefined;
   const graph = Array.isArray(jsonLd)

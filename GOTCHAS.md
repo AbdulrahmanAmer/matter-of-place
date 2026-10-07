@@ -4753,3 +4753,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: give each test its own rows: a factory (`const marked = () => ({ posts: [postRow(...)] })`), never a shared constant, for anything a fake database writes to.
 - proof: from `app/`, `bunx vitest run tests/unit/channels/post-meta.test.ts` → `Tests  9 passed (9)` with the factory; with the constant the run printed `Tests  1 failed | 8 passed (9)` (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-1940 · A test that makes hundreds of requests needs its own timeout, and its watched-fail must not count a timeout as red
+- symptom: B16 g3's `site-read-path.test.ts` case (200 calls of `handlePublic`, one request log line each) went red with `Test timed out in 5000ms` in 2 of 4 runs of the bare `bunx vitest run` proof under load; `bun run check` stayed green because `bun run test` passes `--testTimeout=60000`. The registry entry `b16-g3-read-table` expects `FAIL .*> the site read path > makes one public_state call`, which a timeout satisfies too.
+- cause: a loop test inherits the 5 s default of the project when it is run by name, and a registry `expect` that names only the test matches any failure of that test, including a timeout.
+- rule: give a loop or counter test its own timeout (`it(name, fn, 30_000)`) and keep the loop short; a watched-fail is genuine only when the red output carries the assertion text (`AssertionError`), so read the saved output of the replay once, not only the `WATCHED-FAIL OK` line.
+- proof: `grep -n "30_000" app/tests/unit/site-read-path.test.ts` prints the timeout on the first case.
+- added: 2026-10-08
+
+## P-1941 · A plan line for a public route row is written for an older table shape: the path, the method and the response schema do not match the tree
+- symptom: B16 step 3 says the row is path `/site`, handler `GET`, with a `PublicSite` response; the tree has full paths in every row (`/api/public/site`), every file under `src/routes/api/public` is `ANY` (`routes-parity.test.ts` asserts it), the row is `catalogRead(path, service)`, and `src/domain/settings.ts` has no response schema. A first `publicSiteSchema` built from `siteSettingsSchema.extend` failed `tsc`.
+- cause: the plan text was written before B3's table was built.
+- rule: read one sibling row of `src/server/public/routes.ts` and one sibling file of `src/routes/api/public` before writing a new route; the response schema of an http adapter is a `z.ZodType<T>` typed in `src/services/http/index.ts`. The stale lines are B16.md step 3 and its Files list.
+- proof: `grep -n '"/api/public/site"' app/src/server/public/routes.ts` prints one `catalogRead` row.
+- added: 2026-10-08
+
+## P-1942 · `watchfail.mjs --changed origin/main` on a lane replays the whole lane's registry and outlives a 600 s tool call; killing it leaves a mutation in the tree
+- symptom: the replay moved to the background at 600 s; stopping its `node.exe` left `turnstile: true` changed to `false` in `src/server/public/routes.ts` (an entry of another group), visible only in `git status`.
+- cause: `--changed origin/main` selects every entry whose file differs from main, which on a lane is hundreds; the restore step does not run when the process is killed.
+- rule: replay by `--only <id>` for the entries of your own files, or run `--changed` in the background from the start; after any stopped replay run `git status --short` and `git checkout --` the file it names.
+- proof: `git status --short` after a killed replay names the mutated file; `git checkout -- <file>` clears it.
+- added: 2026-10-08
