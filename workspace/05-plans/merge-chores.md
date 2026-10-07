@@ -48,6 +48,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `app/scripts/observatory.mjs` policy check fails open on a non-OK HEAD; the `!scan.ok` guard branch has no test of its own; C22 cost line for the two new preview steps.
 
 ## B13 (slice/b13, Dell)
+- Step 7 rework: the lazy chunk is fetched on every property view after hydration rather than on a click, so a deploy between HTML and chunk shows; the log's Proof 1 and 3 test counts do not match their commands; the focus guard goes red only under vite dev with StrictMode (CI's e2e target would not catch the earlier variant); P-1822's title still says "code only a click needs". (c7b review2 a7c4b10f)
 - `perf-targets.mjs` comments claim the hard limits are error assertions in `lighthouserc.json`; they are warn in B4's file (12 warn lines, exit 0; lhci LCP 2,604 to 4,388 ms on six preview URLs), so step 8's "lhci exits 0 with invariant 12 met" did not hold as written. (g1 review aa5d0423)
 - `HERO_VARIANT` matches only `/media/v/.../hero.webp`; the preview property page serves the master `/media/o/...` through the mapper fallback (`mappers.ts:283`), so no real run has weighed a hero.
 - Untested branches of `check-seo.ts`: robots bypass header on non-indexable hosts, llms content type, og:title; one `AbortSignal.timeout(15000)` at line 174 is shared by the whole crawl, not per request.

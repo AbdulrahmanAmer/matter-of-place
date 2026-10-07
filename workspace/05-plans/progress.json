@@ -428,6 +428,10 @@
     {
       "what": "Your word to register the captions task on this laptop",
       "why": "Asked for at launch."
+    },
+    {
+      "what": "Sign in to Google Search Console and add matterofplace.com as a Domain property",
+      "why": "B13 step 8 is built; verifying the property needs your Google sign-in (decision S59). I add the TXT record in Cloudflare the moment you read me the verification string; nothing else in B13 waits on it."
     }
   ]
 }
