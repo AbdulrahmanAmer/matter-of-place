@@ -168,8 +168,10 @@ jobs:
           E2E_BASE_URL: ${{ env.PREVIEW_URL }}
           E2E_MODE: ${{ env.HAS_DB == 'true' && 'live' || 'local' }}
         run: bun run test:e2e -- tests/e2e/essentials.spec.ts
-      # Prints the grade; it fails the job below A only once the policy is enforcing (flags.csp_enforce).
+      # Prints the grade; it fails the job below A only once the policy is enforcing (flags.csp_enforce). It runs
+      # after a red essentials step too, so the log of a failed run still shows the grade.
       - name: observatory
+        if: ${{ !cancelled() }}
         run: node scripts/observatory.mjs pr-${{ github.event.number }}.holy-meadow-4327.workers.dev
       # B4 step 10: a front-end change is measured on the preview. The files come from the API: the checkout holds no
       # credentials (persist-credentials: false), so a fetch of the two commits would be refused on a private repository.

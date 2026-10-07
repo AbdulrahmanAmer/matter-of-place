@@ -1695,8 +1695,8 @@
     "id": "b17-obs-retry",
     "test": "tests/unit/observatory.test.ts",
     "file": "scripts/observatory.mjs",
-    "find": "if (attempt >= ATTEMPTS) throw error;",
-    "replace": "throw error;",
+    "find": "if (attempt >= ATTEMPTS)",
+    "replace": "if (true)",
     "run": "bunx vitest run tests/unit/observatory.test.ts",
     "expect": "× .*retries a refused connection and then reads the policy"
   },
@@ -1744,5 +1744,50 @@
     "replace": "if (false) {",
     "run": "bunx vitest run tests/unit/observatory.test.ts",
     "expect": "× .*exits 2 when the host answers the request for its policy with an error status"
+  },
+  {
+    "id": "b17-obs-error-names-request",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "throw new Error(`${method} ${url}: ${describe(error)}`, { cause: error });",
+    "replace": "throw error;",
+    "expect": "× .*names the request that failed and the code of the socket error under it"
+  },
+  {
+    "id": "b17-obs-error-cause-code",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "`${error.message} (${String(cause.code)})`",
+    "replace": "error.message",
+    "expect": "× .*names the request that failed and the code of the socket error under it"
+  },
+  {
+    "id": "b17-deploy-install-step",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "- run: bun run test:e2e:install",
+    "replace": "- run: echo install-removed",
+    "expect": "× .*runs the browser install, the essentials spec and the observatory"
+  },
+  {
+    "id": "b17-deploy-essentials-live",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "E2E_MODE: ${{ env.HAS_DB == 'true' && 'live' || 'local' }}",
+    "replace": "E2E_MODE: local",
+    "expect": "× .*points the essentials spec at the preview"
+  },
+  {
+    "id": "b17-deploy-observatory-after-red",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        if: ${{ !cancelled() }}\n        run: node scripts/observatory.mjs",
+    "replace": "        run: node scripts/observatory.mjs",
+    "expect": "× .*scans the preview host and still prints the grade after a red essentials step"
   }
 ]

@@ -23,18 +23,32 @@ const PAUSE_MS = 1_000;
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 
 /**
+ * The message of a failed request, with the code of the socket error under it (ETIMEDOUT, ENOTFOUND) when there is one.
+ * @param {unknown} error
+ * @returns {string}
+ */
+function describe(error) {
+  if (!(error instanceof Error)) return String(error);
+  const { cause } = error;
+  return cause instanceof Error && "code" in cause
+    ? `${error.message} (${String(cause.code)})`
+    : error.message;
+}
+
+/**
  * @param {FetchLike} fetchImpl
  * @param {string} url
  * @param {"POST" | "HEAD"} method
  * @returns {Promise<Response>}
- * @throws the error of the last attempt
+ * @throws an error that names the method, the address and the cause of the last attempt
  */
 async function send(fetchImpl, url, method) {
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await fetchImpl(url, { method, signal: AbortSignal.timeout(TIMEOUT_MS) });
     } catch (error) {
-      if (attempt >= ATTEMPTS) throw error;
+      if (attempt >= ATTEMPTS)
+        throw new Error(`${method} ${url}: ${describe(error)}`, { cause: error });
       await pause(PAUSE_MS);
     }
   }

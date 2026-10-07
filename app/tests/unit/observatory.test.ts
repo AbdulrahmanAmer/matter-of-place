@@ -1,11 +1,15 @@
 // scripts/observatory.mjs, B17 step 12. The scan answer has the shape the Observatory v2 API returned for
 // example.com on 2026-10-07 (grade F, score 10); the host's own answer is a recorded set of headers.
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parse } from "yaml";
+import { z } from "zod";
 import { runObservatory } from "../../scripts/observatory.mjs";
 
 const APP = resolve(import.meta.dirname, "../..");
+const DEPLOY = resolve(APP, "../.github/workflows/deploy.yml");
 const HOST = "pr-7.holy-meadow-4327.workers.dev";
 const SCAN = "https://observatory-api.mdn.mozilla.net/api/v2/scan?host=" + HOST;
 
@@ -163,7 +167,26 @@ describe("runObservatory", () => {
     const run = observe({ body: scanBody("A") }, { headers: ENFORCING, refuse: 3 });
     await vi.advanceTimersByTimeAsync(5_000);
     const { code, lines } = await run;
-    expect({ code, last: lines.at(-1) }).toEqual({ code: 2, last: "observatory: fetch failed" });
+    expect({ code, last: lines.at(-1) }).toEqual({
+      code: 2,
+      last: `observatory: HEAD https://${HOST}/: fetch failed`,
+    });
+  });
+
+  it("names the request that failed and the code of the socket error under it", async () => {
+    vi.useFakeTimers();
+    const timedOut = new TypeError("fetch failed", {
+      cause: Object.assign(new Error("connect timed out"), { code: "ETIMEDOUT" }),
+    });
+    const lines: string[] = [];
+    const run = runObservatory(HOST, { print: (line) => lines.push(line) }, () =>
+      Promise.reject(timedOut),
+    );
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect({ code: await run, lines }).toEqual({
+      code: 2,
+      lines: [`observatory: POST ${SCAN}: fetch failed (ETIMEDOUT)`],
+    });
   });
 });
 
@@ -178,5 +201,53 @@ describe("the observatory command line", () => {
     expect(answers.map((answer) => [answer.status, answer.stdout.trim()])).toEqual(
       Array.from({ length: 4 }, () => [2, "usage: node scripts/observatory.mjs <host>"]),
     );
+  });
+});
+
+const Step = z.object({
+  name: z.string().optional(),
+  run: z.string().optional(),
+  if: z.string().optional(),
+  env: z.record(z.string(), z.string()).optional(),
+});
+const Deploy = z.object({ jobs: z.object({ preview: z.object({ steps: z.array(Step) }) }) });
+
+describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)", () => {
+  const steps = () => Deploy.parse(parse(readFileSync(DEPLOY, "utf8"))).jobs.preview.steps;
+  const find = (name: string) => steps().find((step) => step.name === name);
+
+  it("runs the browser install, the essentials spec and the observatory after the smoke and before B4's change test", () => {
+    const at = (test: (step: z.infer<typeof Step>) => boolean) => steps().findIndex(test);
+    const order = [
+      at((step) => step.run === 'node scripts/smoke.mjs "$PREVIEW_URL"'),
+      at((step) => step.run === "bun run test:e2e:install"),
+      at((step) => step.name === "essentials"),
+      at((step) => step.name === "observatory"),
+      at((step) => step.name === "change test"),
+    ];
+    expect({
+      found: order.every((index) => index >= 0),
+      ordered: order.every((index, i) => i === 0 || index > (order[i - 1] ?? 0)),
+    }).toEqual({ found: true, ordered: true });
+  });
+
+  it("points the essentials spec at the preview, live when it has a database, with CI left on", () => {
+    expect(find("essentials")).toEqual({
+      name: "essentials",
+      run: "bun run test:e2e -- tests/e2e/essentials.spec.ts",
+      env: {
+        E2E_TARGET: "url",
+        E2E_BASE_URL: "${{ env.PREVIEW_URL }}",
+        E2E_MODE: "${{ env.HAS_DB == 'true' && 'live' || 'local' }}",
+      },
+    });
+  });
+
+  it("scans the preview host and still prints the grade after a red essentials step", () => {
+    const observatory = find("observatory");
+    expect({ run: observatory?.run, condition: observatory?.if }).toEqual({
+      run: "node scripts/observatory.mjs pr-${{ github.event.number }}.holy-meadow-4327.workers.dev",
+      condition: "${{ !cancelled() }}",
+    });
   });
 });
