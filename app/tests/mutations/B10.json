@@ -238,5 +238,55 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
     "expect": "\\+\\s+\"scripts/lib/test-post\\.ts\""
+  },
+  {
+    "id": "b10g2-codecs",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"video_codecs\": [\"h264\", \"hevc\"]",
+    "replace": "\"video_codecs\": [\"hevc\"]",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the codecs inside the recorded lists"
+  },
+  {
+    "id": "b10g2-fps",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"fps\": { \"min\": 23, \"max\": 60 }",
+    "replace": "\"fps\": { \"min\": 23, \"max\": 24 }",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the picture and the frame rate inside the recorded limits"
+  },
+  {
+    "id": "b10g2-duration",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"duration_s\": { \"min\": 3, \"max\": 900 }",
+    "replace": "\"duration_s\": { \"min\": 3, \"max\": 20 }",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the duration and the file size inside the recorded limits"
+  },
+  {
+    "id": "b10g2-size",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"max_size_mb\": 300",
+    "replace": "\"max_size_mb\": 10",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the duration and the file size inside the recorded limits"
+  },
+  {
+    "id": "b10g2-source",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"source\": \"docs\"",
+    "replace": "\"source\": \"guess\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > says where the limits were read"
   }
 ]
