@@ -979,7 +979,7 @@
     "id": "b5-v-admins",
     "test": "tests/unit/email/variables.test.ts",
     "file": "src/server/email/context.ts",
-    "find": "const fallback = siteOf(settings).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "find": "const fallback = (await getSiteSettings(db)).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
     "replace": "const fallback = readVar(\"ADMIN_NOTIFY_EMAIL\");",
     "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
     "expect": "× .*admins fall back to the contact address"
@@ -1031,12 +1031,12 @@
   },
   {
     "id": "b5-v-malformed",
-    "test": "tests/unit/email/variables.test.ts",
+    "test": "tests/unit/email/send-email.test.ts",
     "file": "src/server/email/context.ts",
     "find": "siteSettingsSchema.safeParse(settings.get(\"site\")).data ?? emptySiteSettings",
     "replace": "siteSettingsSchema.parse(settings.get(\"site\"))",
-    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
-    "expect": "× .*reads the identity lines of settings.site"
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*reply to: a malformed settings.site reads as unset"
   },
   {
     "id": "b5-p-entity",

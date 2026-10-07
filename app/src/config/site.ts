@@ -3,8 +3,8 @@
  *
  * Values that depend on the deployment (origins, API base) come from `VITE_*`
  * environment variables. Values that depend on the business (contact details,
- * registered entity) are typed here and rendered only when present, so no page
- * ever shows an invented address or telephone number.
+ * registered entity, social profiles) live in `settings.site`; the nulls here are
+ * the local-mode default, so no page ever shows an invented address or telephone number.
  */
 const env = import.meta.env;
 
@@ -20,7 +20,9 @@ export const siteConfig = {
   parentCompany: "Omnikom",
   locale: "en-US",
   social: {
-    instagram: env.VITE_INSTAGRAM_URL ?? null,
+    instagram: null as string | null,
+    x: null as string | null,
+    linkedin: null as string | null,
   },
   contact: {
     email: null as string | null,

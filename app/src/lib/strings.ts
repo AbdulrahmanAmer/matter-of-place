@@ -27,8 +27,12 @@ const en = {
     faq: "FAQ",
     contact: "Contact",
     privacy: "Privacy",
-    terms: "Terms",
+    terms: "Terms for Professionals",
+    accessibility: "Accessibility",
+    doNotSell: "Do Not Sell or Share",
     instagram: "Instagram",
+    x: "X",
+    linkedin: "LinkedIn",
   },
   header: {
     home: "Matter of Place home",
@@ -52,7 +56,7 @@ const en = {
     },
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
-    line: "An Omnikom company.",
+    line: "A product of Omnikom.",
   },
   common: {
     illustrative: "ILLUSTRATIVE",
@@ -76,6 +80,8 @@ const en = {
     localSent: "Delivery opens with the live service, so this stays with you for now.",
     /** Confirmation once the API is configured. */
     liveSent: "A person will reply within one working day.",
+    /** Directly above the send button of the two inquiry forms (B15 invariant 1). */
+    sharedWithOmnikom: "We share your message with Omnikom, which operates Matter of Place.",
     error: "This did not go through. Please try once more.",
     invalid: "Please check the highlighted details.",
     /** Beside a field the browser found empty or malformed when the form was sent. */

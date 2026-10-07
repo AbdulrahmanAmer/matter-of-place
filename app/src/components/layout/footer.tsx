@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
 import { openConsentNotice } from "../../lib/consent";
+import { useSite } from "../../lib/queries";
+import { presentLines } from "../../domain/settings";
 import { t } from "../../lib/strings";
 import { ConsentNotice } from "./consent-notice";
 
@@ -17,6 +19,12 @@ function reopenNotice(event: MouseEvent) {
 
 export function Footer() {
   const groups = t.footer.groups;
+  const { legal, social } = useSite();
+  const profiles = [
+    { label: t.nav.instagram, href: social.instagram },
+    { label: t.nav.x, href: social.x },
+    { label: t.nav.linkedin, href: social.linkedin },
+  ].flatMap(({ label, href }) => presentLines(href).map((url) => ({ label, url })));
   return (
     <footer className="site-footer">
       <div className="hf-inner">
@@ -85,11 +93,11 @@ export function Footer() {
             <Link to="/privacy-choices" id="consent-change" onClick={reopenNotice}>
               {t.consent.change}
             </Link>
-            {siteConfig.social.instagram && (
-              <a href={siteConfig.social.instagram} rel="noopener noreferrer" target="_blank">
-                {t.nav.instagram}
+            {profiles.map(({ label, url }) => (
+              <a key={label} href={url} rel="noopener noreferrer" target="_blank">
+                {label}
               </a>
-            )}
+            ))}
           </nav>
         </div>
 
@@ -98,7 +106,7 @@ export function Footer() {
             {siteConfig.name} · {t.footer.line}
           </span>
           <span>
-            © {new Date().getFullYear()} {siteConfig.name}
+            © {new Date().getFullYear()} {presentLines(legal.entity)[0] ?? siteConfig.name}
           </span>
         </div>
       </div>

@@ -1,5 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
+import { rootRouteId, useMatch } from "@tanstack/react-router";
 import type { ArchiveKind } from "../domain/archive";
+import { emptySiteSettings, type PublicSite } from "../domain/settings";
 import { isLive, services } from "../services";
 
 /**
@@ -58,6 +60,20 @@ export const siteQuery = () =>
     queryFn: () => services.site.get(),
     staleTime: catalogStaleTime,
   });
+
+const noSite: PublicSite = { ...emptySiteSettings, illustrativeContent: false };
+
+/**
+ * The site identity the root loader filled with `siteQuery()`. Where that loader has not finished (the root error
+ * page) every line is unset and illustrative content is off, so nothing false or empty renders. It reads the
+ * router's match, not a query client, so it needs no provider above it.
+ */
+export function useSite(): PublicSite {
+  return (
+    useMatch({ from: rootRouteId, shouldThrow: false, select: (match) => match.loaderData }) ??
+    noSite
+  );
+}
 
 /** The archive page of one facet, null below the threshold or with the flag off; the local adapter has no archives. */
 export const archiveQuery = (kind: ArchiveKind, slug: string) =>

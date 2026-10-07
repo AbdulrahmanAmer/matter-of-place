@@ -317,5 +317,140 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
     "expect": "FAIL .*> the public route table and its files > has a row for every file"
+  },
+  {
+    "id": "b16-g4-blank-lines",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/domain/settings.ts",
+    "find": "return trimmed === undefined || trimmed === \"\" ? [] : [trimmed];",
+    "replace": "return [trimmed ?? \"\"];",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-null site renders no null"
+  },
+  {
+    "id": "b16-g4-x-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "{ label: t.nav.x, href: social.x },",
+    "replace": "{ label: t.nav.x, href: social.x ?? \"https://x.com/\" },",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-null site renders no null"
+  },
+  {
+    "id": "b16-g4-linkedin-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "{ label: t.nav.linkedin, href: social.linkedin },",
+    "replace": "{ label: t.nav.linkedin, href: null },",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-footer-entity",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "presentLines(legal.entity)[0] ?? siteConfig.name",
+    "replace": "siteConfig.name",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-legal-address",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "presentLines(legal.entity, legal.address)",
+    "replace": "presentLines(legal.entity)",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-contact-email",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.contact.tsx",
+    "find": "{email !== undefined && <a href={`mailto:${email}`}>{email}</a>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-illustrative-always",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "{illustrativeContent && (",
+    "replace": "{(illustrativeContent || true) && (",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> /legal > leaves it out when illustrativeContent is false"
+  },
+  {
+    "id": "b16-g4-illustrative-never",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "{illustrativeContent && (",
+    "replace": "{(illustrativeContent && false) && (",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> /legal > shows the illustrative paragraph when illustrativeContent is true"
+  },
+  {
+    "id": "b16-g4-contact-note",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": "      <p className=\"form-note\">{t.forms.sharedWithOmnikom}</p>\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the inquiry forms > the contact form renders forms.sharedWithOmnikom"
+  },
+  {
+    "id": "b16-g4-dialog-note",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "              <p className=\"form-note\">{t.forms.sharedWithOmnikom}</p>\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the inquiry forms > the inquiry dialog renders forms.sharedWithOmnikom"
+  },
+  {
+    "id": "b16-g4-footer-line",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/lib/strings.ts",
+    "find": "line: \"A product of Omnikom.\",",
+    "replace": "line: \"An Omnikom company.\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the parent company > t.footer.line names"
+  },
+  {
+    "id": "b16-g4-legal-product",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "is a product of {siteConfig.parentCompany}.",
+    "replace": "is a part of {siteConfig.parentCompany}.",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the parent company > t.footer.line names"
+  },
+  {
+    "id": "b16-g4-ctx-table",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "  const site = await getSiteSettings(db);",
+    "replace": "  const site = siteOf(await readSettings(db, [\"site\"]));",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an all-set site"
+  },
+  {
+    "id": "b16-g4-ctx-address",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "    address: site.legal.address,",
+    "replace": "    address: null,",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an all-set site"
+  },
+  {
+    "id": "b16-g4-ctx-empty",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "    entity: site.legal.entity,",
+    "replace": "    entity: site.legal.entity ?? \"unset\",",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an empty site to nulls"
   }
 ]

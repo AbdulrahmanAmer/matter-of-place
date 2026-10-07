@@ -9,7 +9,9 @@ import {
   resolveVariables,
   SkipSend,
 } from "../../../src/server/email/variables";
+import { resetPublicStateMemo } from "../../../src/server/public/state";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
+import { stateJson } from "../../fixtures/snapshot";
 
 const SITE_URL = "https://dev.example.invalid";
 const site: SiteContext = {
@@ -106,7 +108,13 @@ const invoiceSetting = setting("invoice", {
   ],
 });
 
-const dbWith = (tables: Rows) => fakeDb({ tables });
+// The identity lines come from the shared public state, which carries `settings.site`; a new database starts without
+// the memo of the last one.
+function dbWith(tables: Rows) {
+  resetPublicStateMemo();
+  const site = tables.settings?.find((setting) => setting.key === "site")?.value ?? null;
+  return fakeDb({ tables, rpc: { public_state: () => stateJson(7, { site }) } });
+}
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -609,30 +617,5 @@ describe("loadSiteContext", () => {
     expect((await loadSiteContext(db)).siteUrl).toBe("https://b.example.invalid");
     vi.stubEnv("SITE_URL", "");
     await expect(loadSiteContext(db)).rejects.toThrow("site_url_missing");
-  });
-
-  it("reads the identity lines of settings.site, and nulls when they are unset or malformed", async () => {
-    const named = dbWith({
-      settings: [
-        setting("site", {
-          contact: { email: "hello@matterofplace.com" },
-          legal: { entity: "Omnikom Media LLC", address: "1 Example Plaza, Pasadena" },
-        }),
-      ],
-    });
-    expect(await loadSiteContext(named, SITE_URL)).toEqual({
-      siteUrl: SITE_URL,
-      entity: "Omnikom Media LLC",
-      address: "1 Example Plaza, Pasadena",
-      contact: { email: "hello@matterofplace.com" },
-    });
-    for (const settings of [[], [setting("site", "not an object")]]) {
-      expect(await loadSiteContext(dbWith({ settings }), SITE_URL)).toEqual({
-        siteUrl: SITE_URL,
-        entity: null,
-        address: null,
-        contact: { email: null },
-      });
-    }
   });
 });
