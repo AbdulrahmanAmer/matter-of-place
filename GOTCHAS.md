@@ -4595,3 +4595,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a lane that adds a G entry counts first (the proof below) and says in its log when the count is above 40; the orchestrator gardens the bank (merge or retire entries a test now enforces) when the gardening pass runs, and does not leave it to a worker's group. Teaching `check-gotchas.mjs` the cap is a change to its own file and goes through the orchestrator.
 - proof: `grep -c '^## G-[0-9][0-9][0-9]' GOTCHAS.md` → `42` on slice/b7 and `git show origin/main:GOTCHAS.md | grep -c '^## G-[0-9][0-9][0-9]'` → `41` (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour
+- symptom: 2026-10-07, PR 190 (hygiene cap: four B1b entries BAD or STALE), PR 196 (budget: `b3-bc-budget`, `b3-bc-exit` named the old fixture size), PR 215 (`reach()` signature: `b3-bc-nesting`, `b3-bc-lazy` STALE). Each time the author replayed only the entries it had just written, pushed, and CI's db job found the rest; each cost a CI cycle of 10 to 20 minutes and a second push.
+- cause: `watchfail --only <id>` takes one id, so the habit is to replay what one remembers; the entries that anchor on the same source line are not in view.
+- rule: before any push that touches a source or test file, run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` from `app/` (it selects every entry whose test file or target changed against main) and push only on `bad 0, stale 0`; when that run is too long for the Bash limit, run it with `run_in_background` and wait. An entry's `find` names the smallest stable text, never a whole line that a signature or a format change rewrites.
+- proof: PR 215's db job printed `replayed 144: ok 142, bad 0, stale 2` for the two entries the author had not replayed; `--changed origin/main` run on the branch afterwards selected both.
+- added: 2026-10-07
+
+## P-538 · The root checkout is read by the board and shared with background gate chains: a `git checkout` there while another command runs puts edits on the wrong tree
+- symptom: 2026-10-07 09:05, a background chain's `git checkout --detach origin/main` ran while the orchestrator was re-anchoring registry entries on `chore/bundle-check-entry-lazy` in the same checkout; the edit landed on a detached main tree, the replay reported one entry STALE against the wrong file, and the work was redone in a worktree.
+- cause: one working tree, two writers; `git checkout` is global to the tree.
+- rule: the root checkout `E:/Matter Of Place` stays detached on `origin/main` and nobody runs `git checkout` or `git merge` in it; records branches and branch syncs are worked in the orchestrator's worktree `E:/mop-build/orch` (`git -C`), a lane branch in its own lane worktree, and a background chain that must bring main into a branch does it there too. The board reads the root; it never changes under it.
+- proof: `git -C "E:/Matter Of Place" branch --show-current` prints nothing (detached) and `git -C E:/mop-build/orch branch --show-current` names the records branch in work.
+- added: 2026-10-07
