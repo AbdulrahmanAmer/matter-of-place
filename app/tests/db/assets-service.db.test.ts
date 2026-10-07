@@ -2,6 +2,7 @@
 // transaction (F22): the supabase-js client of `src/server/lib/db.ts` is a second connection and cannot see it, so the
 // service gets an adapter that answers the few query builder calls it makes over the test's own `pg` client.
 import "../fixtures/worker-env";
+import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import {
@@ -14,6 +15,7 @@ import type { AdminActor } from "../../src/server/lib/admin-route";
 import type { Db as AppDb } from "../../src/server/lib/db";
 import { createStaffUser, withRollback, type Db } from "../fixtures/db";
 import { publishedProperty } from "../fixtures/factories";
+import { serviceClient } from "../fixtures/service";
 
 type Answer = { data: unknown; error: { message: string; code: string; details: string } | null };
 
@@ -191,6 +193,19 @@ describe("the assets service on the database", () => {
       };
     });
     expect(page).toEqual({ first: 50, second: 10, totals: [60, 60], distinct: 60 });
+  });
+
+  it("listAssets through PostgREST answers a page past the last one with no items and the total", async () => {
+    // Read only, over the real client: PostgREST refuses this range with 416 PGRST103, which the adapter above cannot show.
+    const actor: AdminActor = {
+      userId: randomUUID(),
+      kind: "human",
+      roles: ["media_ops"],
+      scopes: [],
+      requestId: "req-assets-db",
+    };
+    const answer = await listAssets(actor, serviceClient(), { page: 2, property_id: randomUUID() });
+    expect(answer).toEqual({ items: [], total: 0 });
   });
 
   it("media_ops approves: one asset.approved event row and one audit row exist", async () => {

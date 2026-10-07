@@ -48,7 +48,21 @@ interface Shape {
   orders: readonly Order[];
   /** `select(columns, { count: "exact" })`: the answer carries the count of the filtered rows, before `range`. */
   counted: boolean;
+  /** `select(columns, { head: true })`: the count without the rows. */
+  head: boolean;
 }
+
+/** PostgREST's answer to a counted `range` that starts past the last row (measured on mop-dev, G-252). */
+const pastLastRow = (from: number, total: number) => ({
+  data: null,
+  error: {
+    code: "PGRST103",
+    message: "Requested range not satisfiable",
+    details: `An offset of ${String(from)} was requested, but there are only ${String(total)} rows.`,
+    hint: null,
+  },
+  count: null,
+});
 
 function query(all: readonly Row[], shape: Shape) {
   const rows = sorted(all, shape.orders);
@@ -59,7 +73,11 @@ function query(all: readonly Row[], shape: Shape) {
         : Object.fromEntries(shape.columns.map((name) => [name, row[name]])),
     );
   const answer = (part: readonly Row[]) =>
-    Promise.resolve({ data: shown(part), error: null, count: shape.counted ? rows.length : null });
+    Promise.resolve({
+      data: shape.head ? null : shown(part),
+      error: null,
+      count: shape.counted ? rows.length : null,
+    });
   const next = (part: readonly Row[], orders = shape.orders) => query(part, { ...shape, orders });
   return Object.assign(answer(rows), {
     eq: (column: string, value: unknown) =>
@@ -71,7 +89,10 @@ function query(all: readonly Row[], shape: Shape) {
     order: (column: string, options?: { ascending?: boolean }) =>
       next(rows, [...shape.orders, [column, options?.ascending === false ? -1 : 1]]),
     limit: (count: number) => next(rows.slice(0, count)),
-    range: (from: number, to: number) => answer(rows.slice(from, to + 1)),
+    range: (from: number, to: number) =>
+      shape.counted && from > rows.length
+        ? Promise.resolve(pastLastRow(from, rows.length))
+        : answer(rows.slice(from, to + 1)),
     maybeSingle: () => resolved(shown(rows)[0] ?? null),
   });
 }
@@ -84,11 +105,12 @@ export function withTables(db: FakeDb, tables: Record<string, readonly Row[]>): 
       const rows = tables[name];
       if (rows === undefined) throw new Error(`unexpected table ${name}`);
       return {
-        select: (columns = "*", options?: { count?: string }) =>
+        select: (columns = "*", options?: { count?: string; head?: boolean }) =>
           query(rows, {
             columns: columns.split(",").map((column) => column.trim()),
             orders: [],
             counted: options?.count !== undefined,
+            head: options?.head === true,
           }),
       };
     },

@@ -54,7 +54,10 @@ const waitingJobSchema = z.object({ data: z.object({ property_id: z.string() }) 
 
 const notFound = () => new AppError("not_found", undefined, "This asset does not exist.");
 
-/** The properties among `rows` whose null caption waits on a queued `write_captions` job (H34 (2)). */
+/**
+ * The properties among `rows` whose null caption waits on a queued `write_captions` job (H34 (2)). Served by
+ * `jobs_status_run_after_idx` (status first); type and the payload path are filtered on the queued rows it finds.
+ */
 async function waitingProperties(db: Db, rows: readonly AssetRow[]): Promise<Set<string>> {
   const ids = [
     ...new Set(rows.filter((row) => row.caption === null).map((row) => row.property_id)),
@@ -92,25 +95,46 @@ async function planEvent(db: Db, eventId: string): Promise<void> {
   }
 }
 
-/** `GET /api/admin/assets`: 50 a page in `(status, created_at desc)` order, and the count of every match. */
+/** PostgREST's 416 for an offset past the last match (G-252); `offset = total` still answers an empty page. */
+const PAST_LAST_ROW = "PGRST103";
+
+function noCount(): never {
+  throw new Error("assets.list answered without a count");
+}
+
+/** The rows `filters` matches, counted; `head` drops the rows and keeps the count. */
+function matching(db: Db, filters: AssetListFilters, head: boolean) {
+  let query = db.from("assets").select(COLUMNS, { count: "exact", head });
+  if (filters.status !== undefined) query = query.eq("status", filters.status);
+  if (filters.kind !== undefined) query = query.eq("kind", filters.kind);
+  if (filters.property_id !== undefined) query = query.eq("property_id", filters.property_id);
+  return query;
+}
+
+/**
+ * `GET /api/admin/assets`: 50 a page in `(status, created_at desc)` order, and the count of every match. Served by
+ * `assets_status_created_idx`, or `assets_property_status_idx` with a property; `id` only breaks a tie in time. A page
+ * past the last one is empty and still carries the total.
+ */
 export async function listAssets(
   actor: AdminActor,
   db: Db,
   filters: AssetListFilters,
 ): Promise<{ items: AdminAsset[]; total: number }> {
   authorize(actor, "assets.list");
-  let query = db.from("assets").select(COLUMNS, { count: "exact" });
-  if (filters.status !== undefined) query = query.eq("status", filters.status);
-  if (filters.kind !== undefined) query = query.eq("kind", filters.kind);
-  if (filters.property_id !== undefined) query = query.eq("property_id", filters.property_id);
   const first = (filters.page - 1) * ADMIN_PAGE_MAX;
-  const { data, error, count } = await query
+  const { data, error, count } = await matching(db, filters, false)
     .order("status")
     .order("created_at", { ascending: false })
     .order("id")
     .range(first, first + ADMIN_PAGE_MAX - 1);
+  if (error?.code === PAST_LAST_ROW) {
+    const counted = await matching(db, filters, true);
+    if (counted.error !== null) throw fromRpcError(counted.error);
+    return { items: [], total: counted.count ?? noCount() };
+  }
   if (error !== null) throw fromRpcError(error);
-  if (count === null) throw new Error("assets.list answered without a count");
+  if (count === null) return noCount();
   const waiting = await waitingProperties(db, data);
   return { items: data.map((row) => toAdmin(row, waiting)), total: count };
 }
@@ -129,7 +153,10 @@ export async function getAsset(
   return toAdmin(row, await waitingProperties(db, [row]));
 }
 
-/** `POST /api/admin/assets/:id/approve` through `approve_asset`; an agent key is refused until B10's guard. */
+/**
+ * `POST /api/admin/assets/:id/approve` through `approve_asset`. An agent key is refused here before any call, as
+ * `approve_asset` refuses an agent without evidence; B10 step 4 replaces this refusal with `mayApprove`.
+ */
 export async function approveAsset(
   actor: AdminActor,
   db: Db,

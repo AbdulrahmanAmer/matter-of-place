@@ -8,9 +8,11 @@ import { Route as rejectRoute } from "../../../src/routes/api/admin/assets.$id.r
 import { Route as rerenderRoute } from "../../../src/routes/api/admin/assets.$id.rerender";
 import { Route as listRoute } from "../../../src/routes/api/admin/assets.index";
 import {
+  approveAsset,
   editCaption,
   getAsset,
   listAssets,
+  rejectAsset,
   rerenderAsset,
 } from "../../../src/server/assets/service";
 import type * as ActorModule from "../../../src/server/lib/actor";
@@ -32,6 +34,15 @@ import { withTables } from "../../fixtures/table-stub";
 const live = vi.hoisted<{ actor: Actor | undefined; db: FakeDb | undefined }>(() => ({
   actor: undefined,
   db: undefined,
+}));
+/** Each `fanoutEvent` call: the event id and how many client calls had been made by then. */
+const fanout = vi.hoisted(() => ({ seen: [] as { eventId: string; callsBefore: number }[] }));
+
+vi.mock("../../../src/server/automation/fanout", () => ({
+  fanoutEvent: (db: FakeDb, eventId: string) => {
+    fanout.seen.push({ eventId, callsBefore: db.calls.length });
+    return Promise.resolve(0);
+  },
 }));
 
 vi.mock("../../../src/server/lib/actor", async (original) => ({
@@ -265,6 +276,17 @@ describe("listAssets and getAsset", () => {
     expect(first.items[0]?.created_at).toBe(rows[59]?.created_at);
   });
 
+  it("answers a page past the last one with no items and the total, as PostgREST refuses its range", async () => {
+    const rows = Array.from({ length: 8 }, (_, n) =>
+      assetRow({
+        id: `3f2a9c1d-0000-4000-8000-${String(n).padStart(12, "0")}`,
+        caption: "Written.",
+      }),
+    );
+    const answer = await outcome(listAssets(mediaOps, assetsDb(rows), { page: 2 }));
+    expect(answer).toEqual({ items: [], total: 8 });
+  });
+
   it("answers 404 not_found for an id with no row", async () => {
     expect(await outcome(getAsset(mediaOps, assetsDb([]), { id: ASSET_ID }))).toEqual({
       status: 404,
@@ -299,6 +321,21 @@ describe("editCaption", () => {
       answer: { asset_id: ASSET_ID },
       rpc: ["set_asset_caption"],
     });
+  });
+});
+
+describe("approveAsset and rejectAsset", () => {
+  it("plan the event their SQL function returned, once, after that call", async () => {
+    fanout.seen = [];
+    const db = fakeDb({
+      rpc: { approve_asset: () => "evt-approved", reject_asset: () => "evt-rejected" },
+    });
+    await approveAsset(mediaOps, db, { id: ASSET_ID });
+    await rejectAsset(mediaOps, db, { id: ASSET_ID, note: "The light is flat." });
+    expect(fanout.seen).toEqual([
+      { eventId: "evt-approved", callsBefore: 1 },
+      { eventId: "evt-rejected", callsBefore: 2 },
+    ]);
   });
 });
 
