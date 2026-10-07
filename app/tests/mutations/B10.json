@@ -330,6 +330,16 @@
     "expect": "FAIL .*> nextWindowSlot > keeps 09:00 local across both daylight-saving changes"
   },
   {
+    "id": "b10g3-local-day",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "    timeZone: tz,",
+    "replace": "    timeZone: \"UTC\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > counts the local day, not the UTC day, in the Pacific evening"
+  },
+  {
     "id": "b10g3-week-on",
     "kind": "file",
     "test": "tests/unit/channels/window.test.ts",

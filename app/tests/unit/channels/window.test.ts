@@ -35,6 +35,13 @@ describe("nextWindowSlot", () => {
     );
   });
 
+  it("counts the local day, not the UTC day, in the Pacific evening", () => {
+    // Tuesday 6 October 18:00 PDT is already Wednesday in UTC; cap spent, so Wednesday's opening.
+    expect(nextWindowSlot(at("2026-10-07T01:00:00Z"), everyDay, 2)).toEqual(
+      at("2026-10-07T16:00:00Z"),
+    );
+  });
+
   it("keeps 09:00 local across both daylight-saving changes", () => {
     // Saturday 7 March 18:00 PST; Sunday opens at 09:00 PDT.
     expect(nextWindowSlot(at("2026-03-08T02:00:00Z"), everyDay, 0)).toEqual(

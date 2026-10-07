@@ -4075,3 +4075,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `adapters` in `index.ts` holds factories (`() => createMetaChannel("instagram")`) and `getChannel` calls the factory; step 5a registers x, linkedin and youtube the same way. Do not move `filesFor`, `captionFor` or `targetsFor` into the adapter files.
 - proof: `cd app && bunx vitest run tests/unit/channels/meta.test.ts -t "hands out the Meta adapter"` → 1 passed; registry entry `b10g4-registry-instagram` goes red when the instagram factory builds the facebook adapter.
 - added: 2026-10-07
+
+## P-2207 · A time-zone test whose instants fall on the same date in UTC and in the zone cannot see a local-date bug
+- symptom: B10 g3 was rejected once: `window.ts` reads `tz` twice (the window start through `toUtc`, the local date through `Intl.DateTimeFormat`), and swapping `timeZone: tz` for `"UTC"` in `localDate` left every window test green.
+- cause: every instant in the tests sat in the Pacific daytime, where the UTC date and the Los Angeles date agree; the one evening instant (the DST case) gave the same answer either way.
+- rule: code that uses a zone in more than one place gets one watched-fail per use, and a test whose `now` lies between the zone's evening and UTC midnight (for Los Angeles 17:00 to 24:00 local) with a spent cap, so the local day and the UTC day differ.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b10g3-local-day` → `WATCHED-FAIL OK B10:b10g3-local-day`.
+- added: 2026-10-07
