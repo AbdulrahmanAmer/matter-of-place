@@ -4067,7 +4067,7 @@
     "find": "return problems.length === 0 ? 0 : 1;",
     "replace": "return 0;",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
-    "expect": "× .*exits 1 on an entry of 160 KB"
+    "expect": "× .*exits 1 on an entry of 170 KB"
   },
   {
     "id": "b3-z",
