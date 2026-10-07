@@ -409,7 +409,7 @@ export async function timeline(
  * invariant 4), then read the jobs of the event once (invariant 1). A failure here never undoes the decision, so it is
  * logged and the answer carries the jobs found, none at worst.
  */
-async function afterDecision(db: Db, eventId: string): Promise<DecisionAnswer> {
+export async function afterDecision(db: Db, eventId: string): Promise<DecisionAnswer> {
   try {
     await fanoutEvent(db, eventId);
   } catch (failure) {

@@ -1171,6 +1171,9 @@ isOneToOne: false
               "id": string,"received_at": string
             }[]
                            },
+"create_property_from_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Json
+                           },
 "create_subject_request":
 { Args: { "p": Json }; Returns: {
               "id": string,"received_at": string
@@ -1282,6 +1285,16 @@ isOneToOne: false
 "lapse_subscribers":
 { Args: { "p_grace"?: string }; Returns: number
                            },
+"list_properties":
+{ Args: { "p_after_id"?: string,"p_after_updated_at"?: string,"p_limit": number,"p_market"?: string,"p_states"?: (Database["public"]['Enums']["editorial_state"])[] }; Returns: {
+              "campaign_tier": Database["public"]['Enums']["campaign_tier"],"editorial_state": Database["public"]['Enums']["editorial_state"],"featured_rank": number,"hero_rank": number,"id": string,"market_slug": string,"published_at": string,"region_slug": string,"slug": string,"source": Database["public"]['Enums']["submission_source"],"title": string,"updated_at": string
+            }[]
+                           },
+"list_representatives":
+{ Args: { "p_after_id"?: string,"p_after_name"?: string,"p_limit": number,"p_search"?: string }; Returns: {
+              "brokerage": string,"email": string,"id": string,"license": string,"name": string,"phone": string
+            }[]
+                           },
 "list_submissions":
 { Args: { "p_after_id"?: string,"p_after_received_at"?: string,"p_limit": number,"p_market"?: Database["public"]['Enums']["accepted_state"],"p_package"?: Database["public"]['Enums']["exposure_package"],"p_search"?: string,"p_states"?: (Database["public"]['Enums']["submission_state"])[],"p_without_property"?: boolean }; Returns: {
               "accepted_at": string | null,
@@ -1315,6 +1328,9 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_method": string,"p_paid_at": string,"p_payment_id": string,"p_reference": string,"p_request_id": string }; Returns: {
               "event_id": string,"payment_id": string
             }[]
+                           },
+"market_timezone":
+{ Args: { "p_market_slug": string }; Returns: string
                            },
 "meta_token_record":
 { Args: { "p_checked_at": string,"p_data_access_expires_at"?: string,"p_expires_at"?: string,"p_missing_scopes": (string)[],"p_new_token"?: string,"p_token_state": string }; Returns: string
@@ -1415,6 +1431,12 @@ isOneToOne: false
 "person_detail":
 { Args: { "p_contact_id": string }; Returns: Json
                            },
+"preview_property":
+{ Args: { "p_property_id": string }; Returns: Json
+                           },
+"property_detail":
+{ Args: { "p_property_id": string }; Returns: Json
+                           },
 "prune_jobs":
 { Args: { "p_dry_run"?: boolean,"p_keep": string }; Returns: number
                            },
@@ -1423,6 +1445,9 @@ isOneToOne: false
                            },
 "public_state":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"publish_property":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_request_id": string }; Returns: Json
                            },
 "queue_digest_add":
 { Args: { "p_asset": string,"p_property": string }; Returns: string
@@ -1574,11 +1599,20 @@ isOneToOne: false
 "set_environment":
 { Args: { "p_value": string }; Returns: undefined
                            },
+"set_features":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_features": (string)[],"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
 "set_invoice_key":
 { Args: { "p_key": string,"p_payment_id": string }; Returns: string
                            },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined
+                           },
+"set_ranks":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_featured_rank"?: number,"p_hero_rank"?: number,"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
+"set_related":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_related": (string)[],"p_request_id": string }; Returns: number
                            },
 "set_target_image":
 { Args: { "p_image": string,"p_slug": string,"p_target": string,"p_variants": Json }; Returns: undefined
@@ -1615,6 +1649,9 @@ isOneToOne: false
 "unsubscribe_email":
 { Args: { "p_email": string }; Returns: boolean
                            },
+"update_property":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_id": string,"p_patch": Json,"p_request_id": string }; Returns: number
+                           },
 "upsert_asset_stub":
 { Args: { "p_job_id"?: string,"p_kind": Database["public"]['Enums']["asset_kind"],"p_property": string,"p_revision"?: number }; Returns: {
               "alt_text": string | null,
@@ -1640,6 +1677,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"upsert_representative":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_fields": Json,"p_id"?: string,"p_request_id": string }; Returns: string
+                           },
 "upsert_subscriber":
 { Args: { "p": Json }; Returns: string
                            },

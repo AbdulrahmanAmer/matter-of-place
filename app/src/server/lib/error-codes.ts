@@ -62,6 +62,8 @@ export const errorCodes = {
   // B7 step 6: an agent over its daily cap (invariant 3); an unknown cap group or an empty assets note.
   agent_daily_limit: 429,
   invalid_key: 422,
+  // B7 step 7: a Worker without PREVIEW_TOKEN_SECRET signs no draft link (invariant 14).
+  preview_secret_missing: 503,
   // B5: `email_message_finish` takes sent, failed or skipped only.
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.

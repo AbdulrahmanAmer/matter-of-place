@@ -19,19 +19,9 @@ import { fakeDb } from "../fixtures/fake-db";
 // each step removes its entries, and the B7 part is empty after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
-  "properties.list",
-  "properties.get",
-  "properties.timeline",
-  "properties.representatives",
-  "properties.create_from_submission",
-  "properties.update",
-  "properties.representative_put",
-  "properties.preview_token",
   "properties.agent_preview",
   "properties.revoke_previews",
-  "properties.publish",
   "properties.unpublish",
-  "properties.rank",
   "media.list",
   "media.variants_status",
   "media.upload_url",

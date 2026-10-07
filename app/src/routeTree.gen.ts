@@ -47,6 +47,8 @@ import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slu
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
+import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
+import { Route as AdminPropertiesIdRouteImport } from './routes/admin/properties.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
@@ -69,6 +71,10 @@ import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
+import { Route as ApiAdminPropertiesIndexRouteImport } from './routes/api/admin/properties.index'
+import { Route as ApiAdminPropertiesIdRouteImport } from './routes/api/admin/properties.$id'
+import { Route as ApiAdminPropertiesFromSubmissionRouteImport } from './routes/api/admin/properties.from-submission'
+import { Route as ApiAdminPropertiesRepresentativesRouteImport } from './routes/api/admin/properties.representatives'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
 import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSubmissionsDeclineReasonsRouteImport } from './routes/api/admin/submissions.decline-reasons'
@@ -81,6 +87,12 @@ import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/st
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminPropertiesIdFeaturesRouteImport } from './routes/api/admin/properties.$id.features'
+import { Route as ApiAdminPropertiesIdPreviewTokenRouteImport } from './routes/api/admin/properties.$id.preview-token'
+import { Route as ApiAdminPropertiesIdPublishRouteImport } from './routes/api/admin/properties.$id.publish'
+import { Route as ApiAdminPropertiesIdRankRouteImport } from './routes/api/admin/properties.$id.rank'
+import { Route as ApiAdminPropertiesIdRelatedRouteImport } from './routes/api/admin/properties.$id.related'
+import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
 import { Route as ApiAdminSubmissionsIdAcceptRouteImport } from './routes/api/admin/submissions.$id.accept'
 import { Route as ApiAdminSubmissionsIdAssetsReceivedRouteImport } from './routes/api/admin/submissions.$id.assets-received'
 import { Route as ApiAdminSubmissionsIdDeclineRouteImport } from './routes/api/admin/submissions.$id.decline'
@@ -287,6 +299,20 @@ const AdminPeopleIdRoute = AdminPeopleIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/people.$id.lazy').then((d) => d.Route),
 )
+const AdminPropertiesIndexRoute = AdminPropertiesIndexRouteImport.update({
+  id: '/properties/',
+  path: '/properties/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/properties.index.lazy').then((d) => d.Route),
+)
+const AdminPropertiesIdRoute = AdminPropertiesIdRouteImport.update({
+  id: '/properties/$id',
+  path: '/properties/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/properties.$id.lazy').then((d) => d.Route),
+)
 const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
   id: '/requests/',
   path: '/requests/',
@@ -397,6 +423,28 @@ const ApiAdminPeopleIdRoute = ApiAdminPeopleIdRouteImport.update({
   path: '/api/admin/people/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminPropertiesIndexRoute = ApiAdminPropertiesIndexRouteImport.update({
+  id: '/api/admin/properties/',
+  path: '/api/admin/properties/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPropertiesIdRoute = ApiAdminPropertiesIdRouteImport.update({
+  id: '/api/admin/properties/$id',
+  path: '/api/admin/properties/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPropertiesFromSubmissionRoute =
+  ApiAdminPropertiesFromSubmissionRouteImport.update({
+    id: '/api/admin/properties/from-submission',
+    path: '/api/admin/properties/from-submission',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminPropertiesRepresentativesRoute =
+  ApiAdminPropertiesRepresentativesRouteImport.update({
+    id: '/api/admin/properties/representatives',
+    path: '/api/admin/properties/representatives',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminSubmissionsIndexRoute =
   ApiAdminSubmissionsIndexRouteImport.update({
     id: '/api/admin/submissions/',
@@ -462,6 +510,42 @@ const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => ApiAdminPeopleIdRoute,
 } as any)
+const ApiAdminPropertiesIdFeaturesRoute =
+  ApiAdminPropertiesIdFeaturesRouteImport.update({
+    id: '/features',
+    path: '/features',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdPreviewTokenRoute =
+  ApiAdminPropertiesIdPreviewTokenRouteImport.update({
+    id: '/preview-token',
+    path: '/preview-token',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdPublishRoute =
+  ApiAdminPropertiesIdPublishRouteImport.update({
+    id: '/publish',
+    path: '/publish',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdRankRoute =
+  ApiAdminPropertiesIdRankRouteImport.update({
+    id: '/rank',
+    path: '/rank',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdRelatedRoute =
+  ApiAdminPropertiesIdRelatedRouteImport.update({
+    id: '/related',
+    path: '/related',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdTimelineRoute =
+  ApiAdminPropertiesIdTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
 const ApiAdminSubmissionsIdAcceptRoute =
   ApiAdminSubmissionsIdAcceptRouteImport.update({
     id: '/accept',
@@ -551,6 +635,7 @@ export interface FileRoutesByFullPath {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -570,12 +655,16 @@ export interface FileRoutesByFullPath {
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
+  '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
+  '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
+  '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -587,8 +676,15 @@ export interface FileRoutesByFullPath {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
+  '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
+  '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
+  '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
+  '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
+  '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -630,6 +726,7 @@ export interface FileRoutesByTo {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -649,12 +746,16 @@ export interface FileRoutesByTo {
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
+  '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
+  '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
+  '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -666,8 +767,15 @@ export interface FileRoutesByTo {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
+  '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
+  '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
+  '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
+  '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
+  '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -714,6 +822,7 @@ export interface FileRoutesById {
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -733,12 +842,16 @@ export interface FileRoutesById {
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
+  '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
+  '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
+  '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -750,8 +863,15 @@ export interface FileRoutesById {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
+  '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
+  '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
+  '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
+  '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
+  '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -798,6 +918,7 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/people/$id'
+    | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
@@ -817,12 +938,16 @@ export interface FileRouteTypes {
     | '/markets/'
     | '/stories/'
     | '/admin/people/'
+    | '/admin/properties/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
+    | '/api/admin/properties/$id'
+    | '/api/admin/properties/from-submission'
+    | '/api/admin/properties/representatives'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
@@ -834,8 +959,15 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
+    | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/features'
+    | '/api/admin/properties/$id/preview-token'
+    | '/api/admin/properties/$id/publish'
+    | '/api/admin/properties/$id/rank'
+    | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -877,6 +1009,7 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/people/$id'
+    | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
@@ -896,12 +1029,16 @@ export interface FileRouteTypes {
     | '/markets'
     | '/stories'
     | '/admin/people'
+    | '/admin/properties'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
+    | '/api/admin/properties/$id'
+    | '/api/admin/properties/from-submission'
+    | '/api/admin/properties/representatives'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
@@ -913,8 +1050,15 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/people'
+    | '/api/admin/properties'
     | '/api/admin/submissions'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/features'
+    | '/api/admin/properties/$id/preview-token'
+    | '/api/admin/properties/$id/publish'
+    | '/api/admin/properties/$id/rank'
+    | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -960,6 +1104,7 @@ export interface FileRouteTypes {
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/people/$id'
+    | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
@@ -979,12 +1124,16 @@ export interface FileRouteTypes {
     | '/_site/markets/'
     | '/_site/stories/'
     | '/admin/people/'
+    | '/admin/properties/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
+    | '/api/admin/properties/$id'
+    | '/api/admin/properties/from-submission'
+    | '/api/admin/properties/representatives'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
@@ -996,8 +1145,15 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
+    | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/features'
+    | '/api/admin/properties/$id/preview-token'
+    | '/api/admin/properties/$id/publish'
+    | '/api/admin/properties/$id/rank'
+    | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -1038,6 +1194,9 @@ export interface RootRouteChildren {
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
+  ApiAdminPropertiesIdRoute: typeof ApiAdminPropertiesIdRouteWithChildren
+  ApiAdminPropertiesFromSubmissionRoute: typeof ApiAdminPropertiesFromSubmissionRoute
+  ApiAdminPropertiesRepresentativesRoute: typeof ApiAdminPropertiesRepresentativesRoute
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsDeclineReasonsRoute: typeof ApiAdminSubmissionsDeclineReasonsRoute
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
@@ -1045,6 +1204,7 @@ export interface RootRouteChildren {
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
+  ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
 }
 
@@ -1316,6 +1476,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPeopleIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/properties/': {
+      id: '/admin/properties/'
+      path: '/properties'
+      fullPath: '/admin/properties/'
+      preLoaderRoute: typeof AdminPropertiesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/properties/$id': {
+      id: '/admin/properties/$id'
+      path: '/properties/$id'
+      fullPath: '/admin/properties/$id'
+      preLoaderRoute: typeof AdminPropertiesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/requests/': {
       id: '/admin/requests/'
       path: '/requests'
@@ -1470,6 +1644,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPeopleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/properties/': {
+      id: '/api/admin/properties/'
+      path: '/api/admin/properties'
+      fullPath: '/api/admin/properties/'
+      preLoaderRoute: typeof ApiAdminPropertiesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/properties/$id': {
+      id: '/api/admin/properties/$id'
+      path: '/api/admin/properties/$id'
+      fullPath: '/api/admin/properties/$id'
+      preLoaderRoute: typeof ApiAdminPropertiesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/properties/from-submission': {
+      id: '/api/admin/properties/from-submission'
+      path: '/api/admin/properties/from-submission'
+      fullPath: '/api/admin/properties/from-submission'
+      preLoaderRoute: typeof ApiAdminPropertiesFromSubmissionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/properties/representatives': {
+      id: '/api/admin/properties/representatives'
+      path: '/api/admin/properties/representatives'
+      fullPath: '/api/admin/properties/representatives'
+      preLoaderRoute: typeof ApiAdminPropertiesRepresentativesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/submissions/': {
       id: '/api/admin/submissions/'
       path: '/api/admin/submissions'
@@ -1553,6 +1755,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/people/$id/notes'
       preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
       parentRoute: typeof ApiAdminPeopleIdRoute
+    }
+    '/api/admin/properties/$id/features': {
+      id: '/api/admin/properties/$id/features'
+      path: '/features'
+      fullPath: '/api/admin/properties/$id/features'
+      preLoaderRoute: typeof ApiAdminPropertiesIdFeaturesRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/preview-token': {
+      id: '/api/admin/properties/$id/preview-token'
+      path: '/preview-token'
+      fullPath: '/api/admin/properties/$id/preview-token'
+      preLoaderRoute: typeof ApiAdminPropertiesIdPreviewTokenRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/publish': {
+      id: '/api/admin/properties/$id/publish'
+      path: '/publish'
+      fullPath: '/api/admin/properties/$id/publish'
+      preLoaderRoute: typeof ApiAdminPropertiesIdPublishRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/rank': {
+      id: '/api/admin/properties/$id/rank'
+      path: '/rank'
+      fullPath: '/api/admin/properties/$id/rank'
+      preLoaderRoute: typeof ApiAdminPropertiesIdRankRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/related': {
+      id: '/api/admin/properties/$id/related'
+      path: '/related'
+      fullPath: '/api/admin/properties/$id/related'
+      preLoaderRoute: typeof ApiAdminPropertiesIdRelatedRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/timeline': {
+      id: '/api/admin/properties/$id/timeline'
+      path: '/timeline'
+      fullPath: '/api/admin/properties/$id/timeline'
+      preLoaderRoute: typeof ApiAdminPropertiesIdTimelineRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
     }
     '/api/admin/submissions/$id/accept': {
       id: '/api/admin/submissions/$id/accept'
@@ -1712,8 +1956,10 @@ interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
+  AdminPropertiesIdRoute: typeof AdminPropertiesIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
+  AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
 
@@ -1721,8 +1967,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
+  AdminPropertiesIdRoute: AdminPropertiesIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
+  AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
 
@@ -1794,6 +2042,27 @@ const ApiAdminPeopleIdRouteChildren: ApiAdminPeopleIdRouteChildren = {
 const ApiAdminPeopleIdRouteWithChildren =
   ApiAdminPeopleIdRoute._addFileChildren(ApiAdminPeopleIdRouteChildren)
 
+interface ApiAdminPropertiesIdRouteChildren {
+  ApiAdminPropertiesIdFeaturesRoute: typeof ApiAdminPropertiesIdFeaturesRoute
+  ApiAdminPropertiesIdPreviewTokenRoute: typeof ApiAdminPropertiesIdPreviewTokenRoute
+  ApiAdminPropertiesIdPublishRoute: typeof ApiAdminPropertiesIdPublishRoute
+  ApiAdminPropertiesIdRankRoute: typeof ApiAdminPropertiesIdRankRoute
+  ApiAdminPropertiesIdRelatedRoute: typeof ApiAdminPropertiesIdRelatedRoute
+  ApiAdminPropertiesIdTimelineRoute: typeof ApiAdminPropertiesIdTimelineRoute
+}
+
+const ApiAdminPropertiesIdRouteChildren: ApiAdminPropertiesIdRouteChildren = {
+  ApiAdminPropertiesIdFeaturesRoute: ApiAdminPropertiesIdFeaturesRoute,
+  ApiAdminPropertiesIdPreviewTokenRoute: ApiAdminPropertiesIdPreviewTokenRoute,
+  ApiAdminPropertiesIdPublishRoute: ApiAdminPropertiesIdPublishRoute,
+  ApiAdminPropertiesIdRankRoute: ApiAdminPropertiesIdRankRoute,
+  ApiAdminPropertiesIdRelatedRoute: ApiAdminPropertiesIdRelatedRoute,
+  ApiAdminPropertiesIdTimelineRoute: ApiAdminPropertiesIdTimelineRoute,
+}
+
+const ApiAdminPropertiesIdRouteWithChildren =
+  ApiAdminPropertiesIdRoute._addFileChildren(ApiAdminPropertiesIdRouteChildren)
+
 interface ApiAdminSubmissionsIdRouteChildren {
   ApiAdminSubmissionsIdAcceptRoute: typeof ApiAdminSubmissionsIdAcceptRoute
   ApiAdminSubmissionsIdAssetsReceivedRoute: typeof ApiAdminSubmissionsIdAssetsReceivedRoute
@@ -1854,6 +2123,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
+  ApiAdminPropertiesIdRoute: ApiAdminPropertiesIdRouteWithChildren,
+  ApiAdminPropertiesFromSubmissionRoute: ApiAdminPropertiesFromSubmissionRoute,
+  ApiAdminPropertiesRepresentativesRoute:
+    ApiAdminPropertiesRepresentativesRoute,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsDeclineReasonsRoute:
     ApiAdminSubmissionsDeclineReasonsRoute,
@@ -1862,6 +2135,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
+  ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -2,14 +2,16 @@
 // `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Step 4: `start_review`,
 // `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Step 5: the one payments read of
 // `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
+// Step 7: the property functions (migration `admin_properties`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
-import { createSubmission, publishedProperty } from "../fixtures/factories";
+import { createInvoice, createSubmission, publishedProperty } from "../fixtures/factories";
 import { serviceClient } from "../fixtures/service";
+import { marketTimezone } from "../../src/domain/market-time";
 import { newestPaymentId } from "../../src/server/submissions/service";
 
 async function one<T extends object>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
@@ -712,6 +714,613 @@ describe("decisions", () => {
         [[accepted, reviewing]],
       );
       expect({ states, events }).toEqual({ states: ["Accepted", "Under Review"], events: 0 });
+    });
+  });
+});
+
+// Step 7: properties (migration `admin_properties`, invariants 7, 8 and 21).
+
+/** The case runs only against a database that holds the step's migration (P-328). */
+async function assertStep7(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.create_property_from_submission') is not null
+       and to_regproc('public.publish_property') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+/** The markets and region a property needs, when the database has none (as `publishedProperty` does). */
+async function markets(db: Db): Promise<void> {
+  await db.query(
+    `insert into public.markets (slug, name, country, intro)
+     values ('california', 'California', 'United States', 'x'), ('new-york', 'New York', 'United States', 'x'),
+       ('florida', 'Florida', 'United States', 'x')
+     on conflict (slug) do nothing`,
+  );
+  await db.query(
+    `insert into public.regions (slug, market_slug, name, intro) values ('bay-area', 'california', 'Bay Area', 'x')
+     on conflict (slug) do nothing`,
+  );
+}
+
+/** Uploaded photographs of a request, `<submission>/<id>.jpg` as B3 stores them; returns their ids in order. */
+async function photos(db: Db, submission: string, count: number): Promise<string[]> {
+  const ids: string[] = [];
+  for (let n = 0; n < count; n += 1) {
+    const id = randomUUID();
+    await db.query(
+      `insert into public.submission_media (id, submission_id, name, storage_path, sort_order, uploaded_at, mime, bytes)
+       values ($1::uuid, $2::uuid, 'photo.jpg', $2::text || '/' || $1::text || '.jpg', $3, now(), 'image/jpeg', 1000)`,
+      [id, submission, n],
+    );
+    ids.push(id);
+  }
+  return ids;
+}
+
+interface Created {
+  property_id: string;
+  copy_job_id: string | null;
+}
+
+async function createFrom(db: Db, submission: string, actor: string): Promise<Created> {
+  const { answer } = await one<{ answer: Created }>(
+    db,
+    "select public.create_property_from_submission($1, $2, 'human', 'req-cp') as answer",
+    [submission, actor],
+  );
+  return answer;
+}
+
+/** Fills what a request leaves empty, and six stored photographs with alt text (the first is the hero). */
+async function makeComplete(db: Db, property: string): Promise<void> {
+  await db.query(
+    `update public.properties set region_slug = 'bay-area', neighborhood = 'Fixture Quarter', price = 2500000, beds = 4,
+       baths = 3, interior_sq_ft = 3000, lot_acres = 0.5, year_built = 1960, style = 'Modern', place = 'A quiet street.',
+       story = array['One.', 'Two.']
+     where id = $1`,
+    [property],
+  );
+  await sixPhotographs(db, property);
+}
+
+async function sixPhotographs(db: Db, property: string): Promise<void> {
+  for (let n = 1; n <= 6; n += 1) {
+    await db.query(
+      `insert into public.property_media (property_id, media_key, alt, orientation, sort_order)
+       values ($1, 'o/fixture/' || $2::int || '-0a1b2c3d.webp', 'Room', 'landscape', $2::int)`,
+      [property, n],
+    );
+  }
+}
+
+async function versionOf(db: Db, property: string): Promise<number> {
+  const { version } = await one<{ version: number }>(
+    db,
+    "select version from public.properties where id = $1",
+    [property],
+  );
+  return version;
+}
+
+async function toReview(db: Db, property: string, actor: string): Promise<number> {
+  const { version } = await one<{ version: number }>(
+    db,
+    `select public.update_property($1, $2, '{"editorial_state": "review"}', $3, 'human', 'req-rv') as version`,
+    [property, await versionOf(db, property), actor],
+  );
+  return version;
+}
+
+/** A request moved on to Scheduled with its paid The Campaign invoice and its campaign row, as B6 leaves it. */
+async function scheduledCampaign(db: Db, submission: string, property: string, n: number) {
+  const payment = await createInvoice(db, {
+    submission,
+    status: "paid",
+    n,
+    product: "The Campaign",
+  });
+  await db.query("update public.submissions set workflow_state = 'Invoice Issued' where id = $1", [
+    submission,
+  ]);
+  await db.query("update public.submissions set workflow_state = 'Scheduled' where id = $1", [
+    submission,
+  ]);
+  await db.query(
+    `insert into public.campaigns (property_id, submission_id, payment_id, package, media_budget)
+     values ($1, $2, $3, 'The Campaign', 0)`,
+    [property, submission, payment],
+  );
+}
+
+/** The DETAIL of the error `sql` raises, or `ok`; the transaction stays usable (G-102). */
+async function detailOf(db: Db, sql: string, params: unknown[]): Promise<string> {
+  await db.query("savepoint detail");
+  try {
+    await db.query(sql, params);
+    await db.query("release savepoint detail");
+    return "ok";
+  } catch (error) {
+    await db.query("rollback to savepoint detail");
+    if (error instanceof pg.DatabaseError) return `${error.message}: ${error.detail ?? ""}`;
+    throw error;
+  }
+}
+
+describe("create_property_from_submission", () => {
+  it("makes one draft from an accepted Los Angeles request with every missing field null and the slug from the city (G62)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const first = await createSubmission(db, {
+        state: "Accepted",
+        n: 9900,
+        base,
+        city: "Los Angeles",
+      });
+      const second = await createSubmission(db, {
+        state: "Accepted",
+        n: 9903,
+        base,
+        city: "Los Angeles",
+      });
+      const { property_id: id } = await createFrom(db, first, editor);
+      const { property_id: other } = await createFrom(db, second, editor);
+      const row = await one<Record<string, unknown>>(
+        db,
+        `select editorial_state, status, source, market_slug, state, title = address as titled, region_slug,
+           neighborhood, style, place, slug = 'los-angeles-' || left(id::text, 8) as slugged, version
+         from public.properties where id = $1`,
+        [id],
+      );
+      const slugs = await one<{ first: string; second: string }>(
+        db,
+        `select (select slug from public.properties where id = $1) as first,
+           (select slug from public.properties where id = $2) as second`,
+        [id, other],
+      );
+      expect({ row, differs: slugs.first !== slugs.second }).toEqual({
+        row: {
+          editorial_state: "draft",
+          status: "Active",
+          source: "Submission",
+          market_slug: "california",
+          state: "California",
+          titled: true,
+          region_slug: null,
+          neighborhood: null,
+          style: null,
+          place: null,
+          slugged: true,
+          version: 1,
+        },
+        differs: true,
+      });
+    });
+  });
+
+  it("copies three uploaded photographs as staged rows with the same ids and queues one copy job, once", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const submission = await createSubmission(db, { state: "Accepted", n: 9906, base });
+      const media = await photos(db, submission, 3);
+      const first = await createFrom(db, submission, editor);
+      const counts = () =>
+        one<{ properties: number; jobs: number }>(
+          db,
+          `select (select count(*)::int from public.properties where submission_id = $1) as properties,
+             (select count(*)::int from public.jobs where type = 'copy_submission_media'
+                and idempotency_key = 'copy_submission_media:' || $2) as jobs`,
+          [submission, first.property_id],
+        );
+      const before = await counts();
+      const second = await createFrom(db, submission, editor);
+      const rows = (
+        await db.query<{ id: string; staged: boolean; media_key: string | null }>(
+          `select id, staging_path = 'staging/' || property_id || '/' || id || '.jpg' as staged, media_key
+           from public.property_media where property_id = $1 order by sort_order`,
+          [first.property_id],
+        )
+      ).rows;
+      const job = await one<{ id: string; payload: unknown }>(
+        db,
+        "select id, payload from public.jobs where idempotency_key = 'copy_submission_media:' || $1",
+        [first.property_id],
+      );
+      expect({ rows, before, after: await counts(), second, job }).toEqual({
+        rows: media.map((mediaId) => ({ id: mediaId, staged: true, media_key: null })),
+        before: { properties: 1, jobs: 1 },
+        after: { properties: 1, jobs: 1 },
+        second: first,
+        job: {
+          id: first.copy_job_id,
+          payload: { params: {}, data: { property_id: first.property_id } },
+        },
+      });
+    });
+  });
+
+  it("links an agent's representative by address, new or existing in another case, and none for an owner (S55)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { id: known } = await one<{ id: string }>(
+        db,
+        "insert into public.representatives (name, brokerage, email) values ('Known Agent', 'Coast', 'KNOWN@fixtures.invalid') returning id",
+      );
+      const linked = async (submission: string) => {
+        const { property_id: id } = await createFrom(db, submission, editor);
+        return one<{ representative: string | null; email: string | null; owner: boolean }>(
+          db,
+          `select p.representative_id as representative, r.email, p.presented_by_owner as owner
+           from public.properties p left join public.representatives r on r.id = p.representative_id
+           where p.id = $1`,
+          [id],
+        );
+      };
+      const fresh = await linked(await createSubmission(db, { state: "Accepted", n: 9909, base }));
+      const again = await linked(
+        await createSubmission(db, {
+          state: "Accepted",
+          n: 9912,
+          base,
+          submitter_email: "known@fixtures.invalid",
+        }),
+      );
+      const owner = await linked(
+        await createSubmission(db, { state: "Accepted", n: 9915, base, submitter_kind: "owner" }),
+      );
+      expect({
+        fresh: { email: fresh.email, owner: fresh.owner, linked: fresh.representative !== null },
+        again: again.representative,
+        owner,
+      }).toEqual({
+        fresh: { email: "fixture+9909@fixtures.invalid", owner: false, linked: true },
+        again: known,
+        owner: { representative: null, email: null, owner: true },
+      });
+    });
+  });
+
+  it("refuses a request that is not accepted", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const submission = await createSubmission(db, { state: "Under Review", n: 9918, base });
+      expect(
+        await attempt(
+          db,
+          "select public.create_property_from_submission($1, $2, 'human', 'req-cp')",
+          [submission, editor],
+        ),
+      ).toBe("P0001 wrong_state");
+    });
+  });
+});
+
+describe("market_timezone", () => {
+  it("equals marketTimezone for the three markets", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      const rows = (
+        await db.query<{ slug: string; zone: string }>(
+          "select slug, public.market_timezone(slug) as zone from unnest(array['california', 'new-york', 'florida']) slug",
+        )
+      ).rows;
+      expect(rows).toEqual(rows.map(({ slug }) => ({ slug, zone: marketTimezone(slug) })));
+      expect(rows.map((row) => row.zone)).toEqual([
+        "America/Los_Angeles",
+        "America/New_York",
+        "America/New_York",
+      ]);
+    });
+  });
+});
+
+describe("update_property", () => {
+  it("answers version + 1 at the version read, and version_conflict at a stale one", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { property_id: id } = await createFrom(
+        db,
+        await createSubmission(db, { state: "Accepted", n: 9921, base }),
+        editor,
+      );
+      const save = (version: number) =>
+        attempt(
+          db,
+          `select public.update_property($1, $2, '{"title": "Edited"}', $3, 'human', 'req-up')`,
+          [id, version, editor],
+        );
+      const fresh = await save(1);
+      const stale = await save(1);
+      expect({ fresh, stale, version: await versionOf(db, id) }).toEqual({
+        fresh: "ok",
+        stale: "40001 version_conflict",
+        version: 2,
+      });
+    });
+  });
+});
+
+describe("publish_property", () => {
+  it("names every empty field of a draft made from a request that has a hero and six photographs with alt (G62)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { property_id: id } = await createFrom(
+        db,
+        await createSubmission(db, { state: "Accepted", n: 9924, base, city: "Los Angeles" }),
+        editor,
+      );
+      await sixPhotographs(db, id);
+      const raised = await detailOf(
+        db,
+        "select public.publish_property($1, $2, $3, 'human', 'req-pb')",
+        [id, await toReview(db, id, editor), editor],
+      );
+      expect(raised.startsWith("publish_incomplete: Missing: ")).toBe(true);
+      for (const field of ["region_slug", "neighborhood", "style", "place"]) {
+        expect(raised).toContain(field);
+      }
+      expect(raised).not.toContain("hero_image");
+    });
+  });
+
+  it("refuses a property without a hero with publish_incomplete, and a stale version with version_conflict", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { property_id: id } = await createFrom(
+        db,
+        await createSubmission(db, { state: "Accepted", n: 9927, base }),
+        editor,
+      );
+      await db.query(
+        `update public.properties set region_slug = 'bay-area', neighborhood = 'Q', price = 1, beds = 1, baths = 1,
+           interior_sq_ft = 1, lot_acres = 1, year_built = 1960, style = 'S', place = 'P' where id = $1`,
+        [id],
+      );
+      const version = await toReview(db, id, editor);
+      const publish = (at: number) =>
+        detailOf(db, "select public.publish_property($1, $2, $3, 'human', 'req-pb')", [
+          id,
+          at,
+          editor,
+        ]);
+      expect({ noHero: await publish(version), stale: await publish(version - 1) }).toEqual({
+        noHero: "publish_incomplete: Missing: hero_image, six images with alt text",
+        stale: "version_conflict: ",
+      });
+    });
+  });
+
+  it("publishes a Scheduled request's property, moves the request to Published, dates The Campaign and emits its tier and market (DL-09)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const submission = await createSubmission(db, { state: "Accepted", n: 9930, base });
+      const { property_id: id } = await createFrom(db, submission, editor);
+      await makeComplete(db, id);
+      await scheduledCampaign(db, submission, id, 9930);
+      await db.query("update public.properties set campaign_tier = 'Campaign' where id = $1", [id]);
+      const version = await toReview(db, id, editor);
+      const { answer } = await one<{ answer: { event_id: string; version: number } }>(
+        db,
+        "select public.publish_property($1, $2, $3, 'human', 'req-pb') as answer",
+        [id, version, editor],
+      );
+      const after = await one<Record<string, unknown>>(
+        db,
+        `select p.editorial_state, s.workflow_state, c.ends_on - c.starts_on as days,
+           c.starts_on = (now() at time zone 'America/Los_Angeles')::date as today, e.type,
+           e.payload - 'slug' as payload
+         from public.properties p join public.submissions s on s.id = p.submission_id
+         join public.campaigns c on c.property_id = p.id join public.events e on e.id = $2
+         where p.id = $1`,
+        [id, answer.event_id],
+      );
+      expect({ after, step: answer.version - version }).toEqual({
+        after: {
+          editorial_state: "published",
+          workflow_state: "Published",
+          days: 13,
+          today: true,
+          type: "property.published",
+          payload: {
+            property_id: id,
+            tier: "Campaign",
+            market: "california",
+            submission_id: submission,
+          },
+        },
+        step: 2,
+      });
+    });
+  });
+
+  it("republishes after a factual error unpublish without moving the request or the campaign dates (DL-03)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const submission = await createSubmission(db, { state: "Accepted", n: 9933, base });
+      const { property_id: id } = await createFrom(db, submission, editor);
+      await makeComplete(db, id);
+      await scheduledCampaign(db, submission, id, 9933);
+      await db.query("select public.publish_property($1, $2, $3, 'human', 'req-pb')", [
+        id,
+        await toReview(db, id, editor),
+        editor,
+      ]);
+      // What step 7a's unpublish_property writes for a factual error, written here by the test's owner.
+      await db.query(
+        `update public.properties set editorial_state = 'archived', archived_at = now(), published_at = null,
+           unpublish_reason = 'factual_error', unpublished_at = now() where id = $1`,
+        [id],
+      );
+      await db.query(
+        "update public.campaigns set starts_on = starts_on - 3, ends_on = ends_on - 3 where property_id = $1",
+        [id],
+      );
+      const dates = () =>
+        one<{ starts_on: string; ends_on: string; state: string }>(
+          db,
+          `select c.starts_on::text, c.ends_on::text, s.workflow_state as state from public.campaigns c
+           join public.submissions s on s.id = c.submission_id where c.property_id = $1`,
+          [id],
+        );
+      const before = await dates();
+      await db.query(
+        `select public.update_property($1, $2, '{"editorial_state": "draft"}', $3, 'human', 'req-dr')`,
+        [id, await versionOf(db, id), editor],
+      );
+      const outcome = await attempt(
+        db,
+        "select public.publish_property($1, $2, $3, 'human', 'req-pb')",
+        [id, await toReview(db, id, editor), editor],
+      );
+      expect({ outcome, state: before.state, after: await dates() }).toEqual({
+        outcome: "ok",
+        state: "Published",
+        after: before,
+      });
+    });
+  });
+
+  it("an agent's sixth publish in a UTC day raises agent_daily_limit (SEC-11)", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      await markets(db);
+      const base = await dbNow(db);
+      const agent = await createAgent(db, ["chief_editor"]);
+      const { property_id: id } = await createFrom(
+        db,
+        await createSubmission(db, { state: "Accepted", n: 9936, base }),
+        await createStaffUser(db, ["chief_editor"]),
+      );
+      for (let n = 0; n < 5; n += 1) {
+        await db.query(
+          "select public.write_audit($1, 'agent', 'properties.publish', 'property', $2, null, null, 'req-cap')",
+          [agent, id],
+        );
+      }
+      expect(
+        await attempt(db, "select public.publish_property($1, $2, $3, 'agent', 'req-pb')", [
+          id,
+          await versionOf(db, id),
+          agent,
+        ]),
+      ).toBe("P0001 agent_daily_limit");
+    });
+  });
+});
+
+describe("set_ranks, set_features and upsert_representative", () => {
+  it("set_ranks swaps a featured rank another property holds, so it stays unique", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const a = await publishedProperty(db, { n: 9939, featured_rank: 91 });
+      const b = await publishedProperty(db, { n: 9940, featured_rank: 92 });
+      await db.query(
+        "select public.set_ranks($1, $2, $3, 'human', 'req-rk', p_featured_rank => 92)",
+        [a.id, await versionOf(db, a.id), editor],
+      );
+      const ranks = (
+        await db.query<{ id: string; featured_rank: number }>(
+          "select id, featured_rank from public.properties where id = any ($1::uuid[]) order by featured_rank",
+          [[a.id, b.id]],
+        )
+      ).rows;
+      expect(ranks).toEqual([
+        { id: b.id, featured_rank: 91 },
+        { id: a.id, featured_rank: 92 },
+      ]);
+    });
+  });
+
+  it("set_features leaves exactly the list in order with one audit row; a duplicate and a stale version are refused", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const { id } = await publishedProperty(db, { n: 9942 });
+      const set = (version: number, features: string[]) =>
+        attempt(db, "select public.set_features($1, $2, $3, $4, 'human', 'req-ft')", [
+          id,
+          version,
+          features,
+          editor,
+        ]);
+      const version = await versionOf(db, id);
+      const saved = await set(version, ["Pool", "Garden", "Library"]);
+      const duplicate = await set(version + 1, ["Pool", "Pool"]);
+      const stale = await set(version, ["Pool"]);
+      const rows = (
+        await db.query<{ feature: string; sort_order: number }>(
+          "select feature, sort_order from public.property_features where property_id = $1 order by sort_order",
+          [id],
+        )
+      ).rows;
+      const { audits } = await one<{ audits: number }>(
+        db,
+        "select count(*)::int as audits from public.audit_log where entity_id = $1 and action = 'properties.update'",
+        [id],
+      );
+      expect({ saved, duplicate, stale, rows, audits }).toEqual({
+        saved: "ok",
+        duplicate: "P0001 invalid_key",
+        stale: "40001 version_conflict",
+        rows: [
+          { feature: "Pool", sort_order: 0 },
+          { feature: "Garden", sort_order: 1 },
+          { feature: "Library", sort_order: 2 },
+        ],
+        audits: 1,
+      });
+    });
+  });
+
+  it("upsert_representative inserts without an id and edits the brokerage with one, an audit row each", async () => {
+    await withRollback(async (db) => {
+      await assertStep7(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { id } = await one<{ id: string }>(
+        db,
+        `select public.upsert_representative('{"name": "Ana Agent", "brokerage": "Coast"}', $1, 'human', 'req-rp') as id`,
+        [editor],
+      );
+      await db.query(
+        `select public.upsert_representative('{"brokerage": "Coast Two"}', $1, 'human', 'req-rp2', $2)`,
+        [editor, id],
+      );
+      const row = await one<{ name: string; brokerage: string; audits: number }>(
+        db,
+        `select name, brokerage, (select count(*)::int from public.audit_log
+           where entity_id = $1 and action = 'properties.representative_put') as audits
+         from public.representatives where id = $1`,
+        [id],
+      );
+      expect(row).toEqual({ name: "Ana Agent", brokerage: "Coast Two", audits: 2 });
     });
   });
 });
