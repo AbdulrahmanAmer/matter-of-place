@@ -215,6 +215,12 @@ isOneToOne: false
       foreignKeyName: "campaigns_payment_id_fkey"
       columns: ["payment_id"]
 isOneToOne: true
+      referencedRelation: "invoice_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "campaigns_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: true
       referencedRelation: "payments"
       referencedColumns: ["id"]
     },{
@@ -385,6 +391,19 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"invoice_counters": {
+                  Row: {
+                    "last": number,"year": number
+                  }
+                  Insert: {
+                    "last": number,"year": number
+                  }
+                  Update: {
+                    "last"?: number,"year"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"job_events": {
                   Row: {
                     "actor_id": string | null,"at": string,"attempt": number | null,"data": Json | null,"from_status": Database["public"]['Enums']["job_status"] | null,"id": number,"job_id": string,"kind": string,"message": string | null,"to_status": Database["public"]['Enums']["job_status"] | null
@@ -514,13 +533,13 @@ isOneToOne: false
                   ]
                 },"payments": {
                   Row: {
-                    "amount": number,"created_at": string,"currency": string,"id": string,"invoice_file_key": string | null,"invoice_number": string | null,"issued_at": string | null,"issued_by": string | null,"method": Database["public"]['Enums']["payment_method"],"notes": string | null,"paid_at": string | null,"paid_marked_by": string | null,"preferred_method": string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id": string | null,"status": Database["public"]['Enums']["payment_status"],"stripe_payment_intent": string | null,"submission_id": string,"updated_at": string
+                    "amount": number,"created_at": string,"currency": string,"due_at": string | null,"id": string,"invoice_file_key": string | null,"invoice_number": string | null,"invoice_snapshot": Json | null,"issued_at": string | null,"issued_by": string | null,"method": Database["public"]['Enums']["payment_method"],"notes": string | null,"paid_at": string | null,"paid_marked_by": string | null,"paid_method": string | null,"paid_reference": string | null,"preferred_method": string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id": string | null,"status": Database["public"]['Enums']["payment_status"],"stripe_payment_intent": string | null,"submission_id": string,"updated_at": string,"waived_by": string | null
                   }
                   Insert: {
-                    "amount": number,"created_at"?: string,"currency"?: string,"id"?: string,"invoice_file_key"?: string | null,"invoice_number"?: string | null,"issued_at"?: string | null,"issued_by"?: string | null,"method"?: Database["public"]['Enums']["payment_method"],"notes"?: string | null,"paid_at"?: string | null,"paid_marked_by"?: string | null,"preferred_method"?: string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"stripe_payment_intent"?: string | null,"submission_id": string,"updated_at"?: string
+                    "amount": number,"created_at"?: string,"currency"?: string,"due_at"?: string | null,"id"?: string,"invoice_file_key"?: string | null,"invoice_number"?: string | null,"invoice_snapshot"?: Json | null,"issued_at"?: string | null,"issued_by"?: string | null,"method"?: Database["public"]['Enums']["payment_method"],"notes"?: string | null,"paid_at"?: string | null,"paid_marked_by"?: string | null,"paid_method"?: string | null,"paid_reference"?: string | null,"preferred_method"?: string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"stripe_payment_intent"?: string | null,"submission_id": string,"updated_at"?: string,"waived_by"?: string | null
                   }
                   Update: {
-                    "amount"?: number,"created_at"?: string,"currency"?: string,"id"?: string,"invoice_file_key"?: string | null,"invoice_number"?: string | null,"issued_at"?: string | null,"issued_by"?: string | null,"method"?: Database["public"]['Enums']["payment_method"],"notes"?: string | null,"paid_at"?: string | null,"paid_marked_by"?: string | null,"preferred_method"?: string | null,"product"?: Database["public"]['Enums']["exposure_package"],"property_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"stripe_payment_intent"?: string | null,"submission_id"?: string,"updated_at"?: string
+                    "amount"?: number,"created_at"?: string,"currency"?: string,"due_at"?: string | null,"id"?: string,"invoice_file_key"?: string | null,"invoice_number"?: string | null,"invoice_snapshot"?: Json | null,"issued_at"?: string | null,"issued_by"?: string | null,"method"?: Database["public"]['Enums']["payment_method"],"notes"?: string | null,"paid_at"?: string | null,"paid_marked_by"?: string | null,"paid_method"?: string | null,"paid_reference"?: string | null,"preferred_method"?: string | null,"product"?: Database["public"]['Enums']["exposure_package"],"property_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"stripe_payment_intent"?: string | null,"submission_id"?: string,"updated_at"?: string,"waived_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -957,6 +976,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"invoice_list": {
+                  Row: {
+                    "amount": number | null,"days_open": number | null,"due_at": string | null,"id": string | null,"invoice_number": string | null,"issued_at": string | null,"overdue": boolean | null,"paid_at": string | null,"product": Database["public"]['Enums']["exposure_package"] | null,"status": Database["public"]['Enums']["payment_status"] | null,"submission_id": string | null,"submitter_email": string | null,"submitter_name": string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"market_interest_counts": {
                   Row: {
                     "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
@@ -986,7 +1024,12 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "add_submission_note":
+            "activate_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: {
+              "copy_job_id": string,"event_id": string,"property_id": string
+            }[]
+                           },
+"add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
                            },
 "agent_key_by_hash":
@@ -1183,6 +1226,11 @@ isOneToOne: false
 "health_cron_failures":
 { Args: { "p_since": string }; Returns: number
                            },
+"issue_invoice":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_preferred_method": string,"p_product": Database["public"]['Enums']["exposure_package"],"p_request_id": string,"p_snapshot": Json,"p_submission_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
+                           },
 "issue_repermission":
 { Args: { "p_subscriber_id": string,"p_token_hash": string }; Returns: boolean
                            },
@@ -1235,14 +1283,28 @@ isOneToOne: false
 "mark_media_uploaded":
 { Args: { "p_media_id": string,"p_mime": string,"p_sha256": string }; Returns: boolean
                            },
+"mark_payment_paid":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_method": string,"p_paid_at": string,"p_payment_id": string,"p_reference": string,"p_request_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
+                           },
 "meta_token_record":
 { Args: { "p_checked_at": string,"p_data_access_expires_at"?: string,"p_expires_at"?: string,"p_missing_scopes": (string)[],"p_new_token"?: string,"p_token_state": string }; Returns: string
+                           },
+"next_invoice_number":
+{ Args: { "p_prefix"?: string }; Returns: string
                            },
 "open_market_on_publish":
 { Args: { "p_notify"?: boolean,"p_property_id": string }; Returns: string
                            },
 "ops_health":
 { Args: { "p_now": string }; Returns: Json
+                           },
+"package_duration_days":
+{ Args: { "p_product": Database["public"]['Enums']["exposure_package"] }; Returns: number
+                           },
+"payment_tier":
+{ Args: { "p_product": Database["public"]['Enums']["exposure_package"] }; Returns: string
                            },
 "people_list":
 { Args: { "p_cursor_id"?: string,"p_cursor_name"?: string,"p_kind"?: Database["public"]['Enums']["submitter_kind"],"p_limit"?: number,"p_search"?: string }; Returns: {
@@ -1274,6 +1336,11 @@ isOneToOne: false
                            },
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
+                           },
+"record_waiver":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_product": Database["public"]['Enums']["exposure_package"],"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
                            },
 "record_webhook_receipt":
 { Args: { "p_id": string,"p_provider": string }; Returns: boolean
@@ -1400,6 +1467,9 @@ isOneToOne: false
 "set_environment":
 { Args: { "p_value": string }; Returns: undefined
                            },
+"set_invoice_key":
+{ Args: { "p_key": string,"p_payment_id": string }; Returns: string
+                           },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined
                            },
@@ -1408,6 +1478,9 @@ isOneToOne: false
                            },
 "set_vault_secret":
 { Args: { "p_name": string,"p_value": string }; Returns: undefined
+                           },
+"settings_put_invoice":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
@@ -1460,12 +1533,22 @@ isOneToOne: false
 "upsert_subscriber":
 { Args: { "p": Json }; Returns: string
                            },
+"void_payment":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_payment_id": string,"p_reason": string,"p_request_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
+                           },
+"waive_payment":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_payment_id": string,"p_reason": string,"p_request_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
+                           },
 "write_audit":
 { Args: { "p_action": string,"p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_after": Json,"p_before": Json,"p_entity": string,"p_entity_id": string,"p_note"?: string,"p_request_id": string }; Returns: number
                            }
           }
           Enums: {
-            "accepted_state": "California"|"New York"|"Florida","actor_kind": "human"|"agent","app_role": "chief_editor"|"managing_editor"|"visual_editor"|"media_ops"|"commercial"|"admin","asset_kind": "variants"|"cover"|"carousel"|"story"|"reel"|"newsletter_block"|"standalone_email","asset_status": "pending"|"approved"|"rejected"|"published","campaign_tier": "Editorial"|"Feature"|"Reach"|"Campaign","channel_status": "none"|"planned"|"active"|"done","editorial_state": "draft"|"review"|"agent_review"|"published"|"archived","exposure_package": "The Feature"|"The Reach"|"The Campaign"|"Five Features"|"Not sure yet","inquiry_intent": "showing"|"ask"|"similar"|"sell"|"invest"|"agent"|"general","inquiry_state": "new"|"in_progress"|"forwarded"|"closed","job_status": "queued"|"running"|"done"|"failed"|"dead"|"waiting_approval"|"cancelled","listing_status": "Illustrative"|"Active"|"Off-market"|"Under offer"|"Sold","media_orientation": "landscape"|"portrait","payment_method": "invoice_manual"|"stripe","payment_status": "due"|"paid"|"waived"|"refunded","property_type": "Estate"|"Residence"|"Townhouse"|"Waterfront"|"Farmhouse"|"Apartment"|"Penthouse","story_category": "Architecture"|"Interiors"|"Places"|"Stories","submission_source": "Editorial"|"Submission","submission_state": "Submitted"|"Under Review"|"Accepted"|"Declined"|"Awaiting Assets"|"Invoice Issued"|"Scheduled"|"Published"|"Distribution Active"|"Completed"|"Withdrawn","submitter_kind": "agent"|"owner"
+            "accepted_state": "California"|"New York"|"Florida","actor_kind": "human"|"agent","app_role": "chief_editor"|"managing_editor"|"visual_editor"|"media_ops"|"commercial"|"admin","asset_kind": "variants"|"cover"|"carousel"|"story"|"reel"|"newsletter_block"|"standalone_email","asset_status": "pending"|"approved"|"rejected"|"published","campaign_tier": "Editorial"|"Feature"|"Reach"|"Campaign","channel_status": "none"|"planned"|"active"|"done","editorial_state": "draft"|"review"|"agent_review"|"published"|"archived","exposure_package": "The Feature"|"The Reach"|"The Campaign"|"Five Features"|"Not sure yet","inquiry_intent": "showing"|"ask"|"similar"|"sell"|"invest"|"agent"|"general","inquiry_state": "new"|"in_progress"|"forwarded"|"closed","job_status": "queued"|"running"|"done"|"failed"|"dead"|"waiting_approval"|"cancelled","listing_status": "Illustrative"|"Active"|"Off-market"|"Under offer"|"Sold","media_orientation": "landscape"|"portrait","payment_method": "invoice_manual"|"stripe","payment_status": "due"|"paid"|"waived"|"refunded"|"void","property_type": "Estate"|"Residence"|"Townhouse"|"Waterfront"|"Farmhouse"|"Apartment"|"Penthouse","story_category": "Architecture"|"Interiors"|"Places"|"Stories","submission_source": "Editorial"|"Submission","submission_state": "Submitted"|"Under Review"|"Accepted"|"Declined"|"Awaiting Assets"|"Invoice Issued"|"Scheduled"|"Published"|"Distribution Active"|"Completed"|"Withdrawn","submitter_kind": "agent"|"owner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1581,7 +1664,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "accepted_state": ["California", "New York", "Florida"],"actor_kind": ["human", "agent"],"app_role": ["chief_editor", "managing_editor", "visual_editor", "media_ops", "commercial", "admin"],"asset_kind": ["variants", "cover", "carousel", "story", "reel", "newsletter_block", "standalone_email"],"asset_status": ["pending", "approved", "rejected", "published"],"campaign_tier": ["Editorial", "Feature", "Reach", "Campaign"],"channel_status": ["none", "planned", "active", "done"],"editorial_state": ["draft", "review", "agent_review", "published", "archived"],"exposure_package": ["The Feature", "The Reach", "The Campaign", "Five Features", "Not sure yet"],"inquiry_intent": ["showing", "ask", "similar", "sell", "invest", "agent", "general"],"inquiry_state": ["new", "in_progress", "forwarded", "closed"],"job_status": ["queued", "running", "done", "failed", "dead", "waiting_approval", "cancelled"],"listing_status": ["Illustrative", "Active", "Off-market", "Under offer", "Sold"],"media_orientation": ["landscape", "portrait"],"payment_method": ["invoice_manual", "stripe"],"payment_status": ["due", "paid", "waived", "refunded"],"property_type": ["Estate", "Residence", "Townhouse", "Waterfront", "Farmhouse", "Apartment", "Penthouse"],"story_category": ["Architecture", "Interiors", "Places", "Stories"],"submission_source": ["Editorial", "Submission"],"submission_state": ["Submitted", "Under Review", "Accepted", "Declined", "Awaiting Assets", "Invoice Issued", "Scheduled", "Published", "Distribution Active", "Completed", "Withdrawn"],"submitter_kind": ["agent", "owner"]
+            "accepted_state": ["California", "New York", "Florida"],"actor_kind": ["human", "agent"],"app_role": ["chief_editor", "managing_editor", "visual_editor", "media_ops", "commercial", "admin"],"asset_kind": ["variants", "cover", "carousel", "story", "reel", "newsletter_block", "standalone_email"],"asset_status": ["pending", "approved", "rejected", "published"],"campaign_tier": ["Editorial", "Feature", "Reach", "Campaign"],"channel_status": ["none", "planned", "active", "done"],"editorial_state": ["draft", "review", "agent_review", "published", "archived"],"exposure_package": ["The Feature", "The Reach", "The Campaign", "Five Features", "Not sure yet"],"inquiry_intent": ["showing", "ask", "similar", "sell", "invest", "agent", "general"],"inquiry_state": ["new", "in_progress", "forwarded", "closed"],"job_status": ["queued", "running", "done", "failed", "dead", "waiting_approval", "cancelled"],"listing_status": ["Illustrative", "Active", "Off-market", "Under offer", "Sold"],"media_orientation": ["landscape", "portrait"],"payment_method": ["invoice_manual", "stripe"],"payment_status": ["due", "paid", "waived", "refunded", "void"],"property_type": ["Estate", "Residence", "Townhouse", "Waterfront", "Farmhouse", "Apartment", "Penthouse"],"story_category": ["Architecture", "Interiors", "Places", "Stories"],"submission_source": ["Editorial", "Submission"],"submission_state": ["Submitted", "Under Review", "Accepted", "Declined", "Awaiting Assets", "Invoice Issued", "Scheduled", "Published", "Distribution Active", "Completed", "Withdrawn"],"submitter_kind": ["agent", "owner"]
           }
         }
 } as const
