@@ -45,19 +45,23 @@ const manifestSchema = z.record(
 
 /**
  * The manifest keys a chunk loads with it, itself included, through static imports only (or through every
- * import when `dynamic` is set).
+ * import when `dynamic` is set). The entry's own dynamic imports are never followed: they are the router's
+ * lazy loads of every route, admin ones included, and a public route chunk reaches the entry statically
+ * (ruling H66b); what the entry loads on its own is measured through its static imports.
  * @param {Manifest} manifest
  * @param {string} key
  * @param {boolean} dynamic
  * @param {Set<string>} seen
+ * @param {string} entry
  */
-function reach(manifest, key, dynamic, seen) {
+function reach(manifest, key, dynamic, seen, entry) {
   if (seen.has(key)) return seen;
   const chunk = manifest[key];
   if (chunk === undefined) throw new Error(`the manifest names ${key} but has no entry for it`);
   seen.add(key);
-  for (const next of [...(chunk.imports ?? []), ...(dynamic ? (chunk.dynamicImports ?? []) : [])]) {
-    reach(manifest, next, dynamic, seen);
+  const lazy = dynamic && key !== entry ? (chunk.dynamicImports ?? []) : [];
+  for (const next of [...(chunk.imports ?? []), ...lazy]) {
+    reach(manifest, next, dynamic, seen, entry);
   }
   return seen;
 }
@@ -84,16 +88,18 @@ export function checkManifest(manifest, gzipSize) {
   /** @type {Set<string>} */
   const everything = new Set();
   for (const [id, key] of chunks) {
-    const loaded = reach(manifest, entry, false, new Set());
+    const loaded = reach(manifest, entry, false, new Set(), entry);
     for (const [other, otherKey] of chunks) {
-      if (other === id || id.startsWith(`${other}.`)) reach(manifest, otherKey, false, loaded);
+      if (other === id || id.startsWith(`${other}.`))
+        reach(manifest, otherKey, false, loaded, entry);
     }
     let bytes = 0;
     for (const loadedKey of loaded) bytes += gzipSize(manifest[loadedKey]?.file ?? loadedKey);
     routes.push({ route: id, bytes });
-    for (const reachable of reach(manifest, key, true, new Set())) everything.add(reachable);
+    for (const reachable of reach(manifest, key, true, new Set(), entry)) everything.add(reachable);
   }
-  for (const reachable of reach(manifest, entry, false, new Set())) everything.add(reachable);
+  for (const reachable of reach(manifest, entry, false, new Set(), entry))
+    everything.add(reachable);
   const problems = routes
     .filter((size) => size.bytes > SCRIPT_BUDGET_BYTES)
     .map(

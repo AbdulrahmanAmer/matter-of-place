@@ -20,6 +20,7 @@ const Step = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
   if: z.string().optional(),
+  "continue-on-error": z.boolean().optional(),
   uses: z.string().optional(),
   run: z.string().optional(),
   env: z.record(Value).optional(),
@@ -499,6 +500,23 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
     );
     expect(guarded).toEqual([heavy, heavy]);
     expect(steps.find((step) => step.id === "fe")?.run).toContain("^app/(src/|public/");
+  });
+
+  it("the overflow step is advisory with a visible verdict (H67), the Lighthouse step is not", () => {
+    const steps = deployJob("preview")?.steps ?? [];
+    const overflow = steps.find((step) => step.name === "overflow");
+    const verdict = steps.find((step) => step.name === "overflow verdict");
+    expect({
+      advisory: overflow?.["continue-on-error"],
+      lighthouse: steps.find((step) => step.name === "lighthouse")?.["continue-on-error"],
+      condition: verdict?.if,
+      warns: verdict?.run?.includes("::warning title=overflow red on the preview::") ?? false,
+    }).toEqual({
+      advisory: true,
+      lighthouse: undefined,
+      condition: "${{ steps.overflow.outcome == 'failure' }}",
+      warns: true,
+    });
   });
 
   it("preview-db comments once, on a changed migration only, and touches no database (13)", () => {
