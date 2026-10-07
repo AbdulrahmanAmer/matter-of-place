@@ -1,7 +1,8 @@
 // B7: the admin side of the database. Step 1: `write_audit`, the agent key lookups, `staff_can_sign_in`,
 // `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Step 4: `start_review`,
 // `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Step 5: the one payments read of
-// `getSubmission`. Every case but that one runs in one rolled-back transaction (F22).
+// `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
+// Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
@@ -463,5 +464,254 @@ describe("list_submissions", () => {
 describe("getSubmission", () => {
   it("reads the newest payment through the service client, and answers null without error for a request with none", async () => {
     expect(await newestPaymentId(serviceClient(), randomUUID())).toBeNull();
+  });
+});
+
+/** Step 6's functions are on this database (P-328): mop-dev has them once main pushes the migration. */
+async function assertStep6(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.decline_submission') is not null and to_regproc('public.accept_submission') is not null
+       and to_regproc('public.assert_agent_daily_cap') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+async function declineReason(db: Db): Promise<string> {
+  const { id } = await one<{ id: string }>(
+    db,
+    "insert into public.decline_reasons (code, label, email_paragraph) values ($1, 'Not a fit', 'We read it closely.') returning id",
+    [`test-${randomUUID()}`],
+  );
+  return id;
+}
+
+/** A staff account whose stored kind is `agent` (DB-04). */
+async function createAgent(db: Db, roles: string[]): Promise<string> {
+  const id = await createStaffUser(db, roles);
+  await db.query("update public.user_roles set actor_kind = 'agent' where user_id = $1", [id]);
+  return id;
+}
+
+/** How many audit rows of `action` and events of `type` request `id` has. */
+function written(db: Db, id: string, action: string, type: string) {
+  return one<{ audits: number; events: number }>(
+    db,
+    `select (select count(*)::int from public.audit_log where entity_id = $1 and action = $2) as audits,
+       (select count(*)::int from public.events where entity_id = $1 and type = $3) as events`,
+    [id, action, type],
+  );
+}
+
+const marketOf = (state: string) => state.toLowerCase().replace(" ", "-");
+
+const capAt = (db: Db, perDay: number) =>
+  db.query(
+    "update public.settings set value = jsonb_set(value, '{decisions_per_day}', to_jsonb($1::int)) where key = 'agent_daily_limits'",
+    [perDay],
+  );
+
+describe("decisions", () => {
+  it("decline_submission declines with the reason and the reviewer, one submissions.decline row and one submission.declined event", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const id = await createSubmission(db, {
+        state: "Under Review",
+        n: 9731,
+        base: await dbNow(db),
+      });
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const reason = await declineReason(db);
+      const { event } = await one<{ event: string }>(
+        db,
+        "select public.decline_submission($1, $2, ' Not this time ', $3, 'human', 'req-dec') as event",
+        [id, reason, editor],
+      );
+      const row = await one<{
+        workflow_state: string;
+        reviewed_by: string;
+        decline_reason_id: string;
+        decline_note: string;
+        state: string;
+      }>(
+        db,
+        "select workflow_state, reviewed_by, decline_reason_id, decline_note, state::text as state from public.submissions where id = $1",
+        [id],
+      );
+      const { payload } = await one<{ payload: unknown }>(
+        db,
+        "select payload from public.events where id = $1",
+        [event],
+      );
+      expect({
+        row,
+        written: await written(db, id, "submissions.decline", "submission.declined"),
+        payload,
+      }).toEqual({
+        row: {
+          workflow_state: "Declined",
+          reviewed_by: editor,
+          decline_reason_id: reason,
+          decline_note: "Not this time",
+          state: row.state,
+        },
+        written: { audits: 1, events: 1 },
+        payload: {
+          submission_id: id,
+          decline_reason_id: reason,
+          note: "Not this time",
+          tier: "Feature",
+          market: marketOf(row.state),
+        },
+      });
+    });
+  });
+
+  it("accept_submission accepts with the acceptor, one submissions.accept row and one submission.accepted event", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const id = await createSubmission(db, {
+        state: "Under Review",
+        n: 9732,
+        base: await dbNow(db),
+      });
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      await db.query("select public.accept_submission($1, $2, 'human', 'req-acc')", [id, editor]);
+      const row = await one<{ workflow_state: string; accepted_by: string; accepted: boolean }>(
+        db,
+        "select workflow_state, accepted_by, accepted_at is not null as accepted from public.submissions where id = $1",
+        [id],
+      );
+      expect({
+        row,
+        written: await written(db, id, "submissions.accept", "submission.accepted"),
+      }).toEqual({
+        row: { workflow_state: "Accepted", accepted_by: editor, accepted: true },
+        written: { audits: 1, events: 1 },
+      });
+    });
+  });
+
+  it("a second decline of the same request raises wrong_state and writes nothing more", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const id = await createSubmission(db, {
+        state: "Under Review",
+        n: 9733,
+        base: await dbNow(db),
+      });
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const reason = await declineReason(db);
+      const decline = "select public.decline_submission($1, $2, null, $3, 'human', 'req-dec2')";
+      await db.query(decline, [id, reason, editor]);
+      const second = await attempt(db, decline, [id, reason, editor]);
+      expect({
+        second,
+        written: await written(db, id, "submissions.decline", "submission.declined"),
+      }).toEqual({ second: "P0001 wrong_state", written: { audits: 1, events: 1 } });
+    });
+  });
+
+  it("with decisions_per_day 2 an agent's third decision raises agent_daily_limit and a human's does not", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const base = await dbNow(db);
+      await capAt(db, 2);
+      const agent = await createAgent(db, ["managing_editor"]);
+      const human = await createStaffUser(db, ["managing_editor"]);
+      const outcomes: string[] = [];
+      for (const n of [9734, 9735, 9736, 9737, 9738, 9739]) {
+        const id = await createSubmission(db, { state: "Under Review", n, base });
+        const [actor, kind] = n < 9737 ? [agent, "agent"] : [human, "human"];
+        outcomes.push(
+          await attempt(db, "select public.accept_submission($1, $2, $3, 'req-cap')", [
+            id,
+            actor,
+            kind,
+          ]),
+        );
+      }
+      expect(outcomes).toEqual(["ok", "ok", "P0001 agent_daily_limit", "ok", "ok", "ok"]);
+    });
+  });
+
+  it("assert_agent_daily_cap refuses an unknown group with invalid_key and counts an agent called as human by its stored kind", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const base = await dbNow(db);
+      await capAt(db, 2);
+      const agent = await createAgent(db, ["chief_editor"]);
+      for (const n of [9740, 9741]) {
+        const id = await createSubmission(db, { state: "Under Review", n, base });
+        await db.query("select public.accept_submission($1, $2, 'agent', 'req-cap2')", [id, agent]);
+      }
+      const cap = (group: string) =>
+        attempt(db, "select public.assert_agent_daily_cap($1, 'human', $2)", [agent, group]);
+      expect({ other: await cap("other"), decisions: await cap("decisions") }).toEqual({
+        other: "P0001 invalid_key",
+        decisions: "P0001 agent_daily_limit",
+      });
+    });
+  });
+
+  it("request_assets without a note raises invalid_key; with one it writes one submission.awaiting_assets event carrying it", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const id = await createSubmission(db, { state: "Accepted", n: 9742, base: await dbNow(db) });
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const ask = "select public.request_assets($1, $2, $3, 'human', 'req-ra') as event";
+      const blank = await attempt(db, ask, [id, "  ", editor]);
+      const { event } = await one<{ event: string }>(db, ask, [id, "Ten interiors", editor]);
+      const { note } = await one<{ note: string }>(
+        db,
+        "select payload ->> 'note' as note from public.events where id = $1",
+        [event],
+      );
+      const { state } = await one<{ state: string }>(
+        db,
+        "select workflow_state as state from public.submissions where id = $1",
+        [id],
+      );
+      expect({
+        blank,
+        state,
+        note,
+        written: await written(db, id, "submissions.request_assets", "submission.awaiting_assets"),
+      }).toEqual({
+        blank: "P0001 invalid_key",
+        state: "Awaiting Assets",
+        note: "Ten interiors",
+        written: { audits: 1, events: 1 },
+      });
+    });
+  });
+
+  it("assets_received returns an accepted request to Accepted and an unaccepted one to Under Review, with no event", async () => {
+    await withRollback(async (db) => {
+      await assertStep6(db);
+      const base = await dbNow(db);
+      const accepted = await createSubmission(db, { state: "Accepted", n: 9743, base });
+      const reviewing = await createSubmission(db, { state: "Under Review", n: 9744, base });
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const states: string[] = [];
+      for (const id of [accepted, reviewing]) {
+        await db.query("select public.request_assets($1, 'Plans', $2, 'human', 'req-ar')", [
+          id,
+          editor,
+        ]);
+        const { state } = await one<{ state: string }>(
+          db,
+          "select public.assets_received($1, $2, 'human', 'req-ar2')::text as state",
+          [id, editor],
+        );
+        states.push(state);
+      }
+      const { events } = await one<{ events: number }>(
+        db,
+        "select count(*)::int as events from public.events where entity_id = any ($1::uuid[]) and type <> 'submission.awaiting_assets'",
+        [[accepted, reviewing]],
+      );
+      expect({ states, events }).toEqual({ states: ["Accepted", "Under Review"], events: 0 });
+    });
   });
 });

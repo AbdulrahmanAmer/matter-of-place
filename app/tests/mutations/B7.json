@@ -2421,5 +2421,160 @@
     "sql": "create or replace function public.set_contact_notes(\n  p_contact_id uuid,\n  p_notes text,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.contacts;\n  v_updated_at timestamptz;\nbegin\n  -- Screen 27 (invariant 23): the internal notes on a person, saved whole. An editor who started from an older\n  -- version gets `stale`, as on stories. `write_audit` stores `{\"pii\": \"changed\"}` for `notes` (B2's pii_columns).\n  if p_notes is null or char_length(p_notes) > 5000 then\n    raise exception 'validation';\n  end if;\n  select * into v_old from public.contacts c where c.id = p_contact_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  update public.contacts\n  set notes = p_notes\n  where id = p_contact_id\n  returning updated_at into v_updated_at;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'people.note', 'contact', p_contact_id,\n    jsonb_build_object('id', p_contact_id, 'notes', v_old.notes),\n    jsonb_build_object('id', p_contact_id, 'notes', p_notes, 'text', p_notes),\n    p_request_id\n  );\n  return v_updated_at;\nend;\n$$;\n\nrevoke execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"raises stale for an old version\"",
     "expect": "× .*raises stale for an old version"
+  },
+  {
+    "id": "b7-g6-svc-fanout",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    await fanoutEvent(db, eventId);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*decline writes the state, the reason and"
+  },
+  {
+    "id": "b7-g6-svc-preview-own-variables",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const variables = await resolveVariables(db, input.template, data, undefined, site);",
+    "replace": "const variables = { note_paragraph: String(data[\"note\"] ?? \"\") };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*the decline preview is the letter send_e"
+  },
+  {
+    "id": "b7-g6-svc-accept-rpc",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "db.rpc(\"accept_submission\", {",
+    "replace": "db.rpc(\"request_assets\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*accept sets accepted_by and accepted_at"
+  },
+  {
+    "id": "b7-g6-svc-assets-note",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    p_note: input.note,\n",
+    "replace": "    p_note: \"\",\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*request_assets writes one submission\\.aw"
+  },
+  {
+    "id": "b7-g6-domain-assets-note-min",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "note: trimmed.pipe(z.string().min(3).max(2000)),",
+    "replace": "note: trimmed.pipe(z.string().max(2000)),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*request-assets without a note answers 42"
+  },
+  {
+    "id": "b7-g6-svc-assets-received",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  return { workflow_state: data };",
+    "replace": "  return { workflow_state: \"Under Review\" as const };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*assets_received answers where the reques"
+  },
+  {
+    "id": "b7-g6-svc-decline-error",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    p_note: input.note ?? \"\",\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    p_note: input.note ?? \"\",\n    ...auditContext(actor),\n  });\n  if (error !== null) throw new AppError(\"server\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*an agent over its daily cap gets 429"
+  },
+  {
+    "id": "b7-g6-svc-reasons-enabled",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    .eq(\"enabled\", true)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lists the enabled decline reasons in the"
+  },
+  {
+    "id": "b7-g6-ui-letter-sandbox",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/EmailPreview.tsx",
+    "find": "            sandbox=\"\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*declines with a reason and a note after "
+  },
+  {
+    "id": "b7-g6-ui-assets-ready",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/AssetsDialog.tsx",
+    "find": "const ready = note.trim().length >= NOTE_MIN;",
+    "replace": "const ready = note.trim().length > 0;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*keeps Send the request off until the not"
+  },
+  {
+    "id": "b7-g6-ui-actions-held",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/DecisionPanel.tsx",
+    "find": "}).filter((action) => actions.includes(`submissions.${action}`));",
+    "replace": "});",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*offers only the moves the actor holds"
+  },
+  {
+    "id": "b7-g6-db-decline-reviewer",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.decline_submission(\n  p_submission_id uuid,\n  p_reason_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Declined, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. The event's recipe sends the decline letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Under Review' then\n    raise exception 'wrong_state';\n  end if;\n  if not exists (select 1 from public.decline_reasons r where r.id = p_reason_id and r.enabled) then\n    raise exception 'validation';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Declined',\n    decline_reason_id = p_reason_id,\n    decline_note = v_note,\n    reviewed_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.decline', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return public.emit_event(\n    'submission.declined', 'submission', p_submission_id,\n    public.submission_event_payload(v_after)\n      || jsonb_strip_nulls(jsonb_build_object('decline_reason_id', p_reason_id, 'note', v_note)),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"decline_submission declines with the rea\"",
+    "expect": "× .*decline_submission declines with the rea"
+  },
+  {
+    "id": "b7-g6-db-accept-audit",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.accept_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Accepted, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. B6 issues the invoice from here.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Under Review' then\n    raise exception 'wrong_state';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Accepted', accepted_by = p_actor, accepted_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  return public.emit_event(\n    'submission.accepted', 'submission', p_submission_id, public.submission_event_payload(v_after), p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.accept_submission(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.accept_submission(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"accept_submission accepts with the accep\"",
+    "expect": "× .*accept_submission accepts with the accep"
+  },
+  {
+    "id": "b7-g6-db-double-decline",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.decline_submission(\n  p_submission_id uuid,\n  p_reason_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Declined, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. The event's recipe sends the decline letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if not exists (select 1 from public.decline_reasons r where r.id = p_reason_id and r.enabled) then\n    raise exception 'validation';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Declined',\n    decline_reason_id = p_reason_id,\n    decline_note = v_note,\n    reviewed_by = p_actor,\n    reviewed_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.decline', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return public.emit_event(\n    'submission.declined', 'submission', p_submission_id,\n    public.submission_event_payload(v_after)\n      || jsonb_strip_nulls(jsonb_build_object('decline_reason_id', p_reason_id, 'note', v_note)),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a second decline of the same request rai\"",
+    "expect": "× .*a second decline of the same request rai"
+  },
+  {
+    "id": "b7-g6-db-cap-dropped",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assert_agent_daily_cap(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_group text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_actions text[];\n  v_limit integer;\n  v_count integer;\nbegin\n  -- B7 invariant 3 (SEC-11): an agent makes at most `<group>_per_day` of the group's actions per UTC day. The kind is\n  -- the stored one (DB-04): `p_actor_kind` is the caller's claim and is never read.\n  v_actions := case p_group\n    when 'decisions' then array['submissions.decline', 'submissions.accept']\n    when 'publish' then array['properties.publish', 'stories.publish']\n  end;\n  if v_actions is null then\n    raise exception 'invalid_key';\n  end if;\n  if not exists (\n    select 1 from public.user_roles r where r.user_id = p_actor and r.actor_kind = 'agent'\n  ) then\n    return;\n  end if;\n  -- Two parallel calls of one agent count one after the other, so both cannot pass on the last free slot.\n  perform pg_advisory_xact_lock(hashtext(p_actor::text));\n  select (s.value ->> (p_group || '_per_day'))::integer\n  into v_limit\n  from public.settings s\n  where s.key = 'agent_daily_limits';\n  select count(*)\n  into v_count\n  from public.audit_log a\n  where a.actor_id = p_actor\n    and a.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'\n    and a.action = any (v_actions);\nend;\n$$;\n\nrevoke execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with decisions_per_day 2 an agent's thir\"",
+    "expect": "× .*with decisions_per_day 2 an agent's thir"
+  },
+  {
+    "id": "b7-g6-db-cap-claimed-kind",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assert_agent_daily_cap(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_group text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_actions text[];\n  v_limit integer;\n  v_count integer;\nbegin\n  -- B7 invariant 3 (SEC-11): an agent makes at most `<group>_per_day` of the group's actions per UTC day. The kind is\n  -- the stored one (DB-04): `p_actor_kind` is the caller's claim and is never read.\n  v_actions := case p_group\n    when 'decisions' then array['submissions.decline', 'submissions.accept']\n    when 'publish' then array['properties.publish', 'stories.publish']\n  end;\n  if v_actions is null then\n    raise exception 'invalid_key';\n  end if;\n  if p_actor_kind = 'human' then\n    return;\n  end if;\n  -- Two parallel calls of one agent count one after the other, so both cannot pass on the last free slot.\n  perform pg_advisory_xact_lock(hashtext(p_actor::text));\n  select (s.value ->> (p_group || '_per_day'))::integer\n  into v_limit\n  from public.settings s\n  where s.key = 'agent_daily_limits';\n  select count(*)\n  into v_count\n  from public.audit_log a\n  where a.actor_id = p_actor\n    and a.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'\n    and a.action = any (v_actions);\n  if v_count >= v_limit then\n    raise exception 'agent_daily_limit';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assert_agent_daily_cap refuses an unknow\"",
+    "expect": "× .*assert_agent_daily_cap refuses an unknow"
+  },
+  {
+    "id": "b7-g6-db-assets-note",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.request_assets(\n  p_submission_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1 and 5: Under Review or Accepted to Awaiting Assets. The note says what is needed; the event carries\n  -- it, and B5's `awaiting_assets` letter reads it as `assets_note`.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state not in ('Under Review', 'Accepted') then\n    raise exception 'wrong_state';\n  end if;\n  update public.submissions s\n  set workflow_state = 'Awaiting Assets'\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.request_assets', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id, v_note\n  );\n  return public.emit_event(\n    'submission.awaiting_assets', 'submission', p_submission_id,\n    public.submission_event_payload(v_after) || jsonb_build_object('note', v_note),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.request_assets(uuid, text, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.request_assets(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"request_assets without a note raises inv\"",
+    "expect": "× .*request_assets without a note raises inv"
+  },
+  {
+    "id": "b7-g6-db-assets-received",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assets_received(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.submission_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\nbegin\n  -- B7 invariant 5 (ASSUMED): the material arrived. Back to Accepted when the request was accepted before, else to\n  -- Under Review. Audit only: no catalog event and no letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Awaiting Assets' then\n    raise exception 'wrong_state';\n  end if;\n  update public.submissions s\n  set workflow_state = 'Accepted'::public.submission_state\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.assets_received', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return v_after.workflow_state;\nend;\n$$;\n\nrevoke execute on function public.assets_received(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assets_received(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assets_received returns an accepted requ\"",
+    "expect": "× .*assets_received returns an accepted requ"
   }
 ]

@@ -71,6 +71,7 @@ import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/peop
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
 import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
+import { Route as ApiAdminSubmissionsDeclineReasonsRouteImport } from './routes/api/admin/submissions.decline-reasons'
 import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api/admin/submissions.start-review'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
 import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
@@ -80,7 +81,12 @@ import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/st
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminSubmissionsIdAcceptRouteImport } from './routes/api/admin/submissions.$id.accept'
+import { Route as ApiAdminSubmissionsIdAssetsReceivedRouteImport } from './routes/api/admin/submissions.$id.assets-received'
+import { Route as ApiAdminSubmissionsIdDeclineRouteImport } from './routes/api/admin/submissions.$id.decline'
+import { Route as ApiAdminSubmissionsIdEmailPreviewRouteImport } from './routes/api/admin/submissions.$id.email-preview'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
+import { Route as ApiAdminSubmissionsIdRequestAssetsRouteImport } from './routes/api/admin/submissions.$id.request-assets'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
@@ -402,6 +408,12 @@ const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
   path: '/api/admin/submissions/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSubmissionsDeclineReasonsRoute =
+  ApiAdminSubmissionsDeclineReasonsRouteImport.update({
+    id: '/api/admin/submissions/decline-reasons',
+    path: '/api/admin/submissions/decline-reasons',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminSubmissionsStartReviewRoute =
   ApiAdminSubmissionsStartReviewRouteImport.update({
     id: '/api/admin/submissions/start-review',
@@ -450,10 +462,40 @@ const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => ApiAdminPeopleIdRoute,
 } as any)
+const ApiAdminSubmissionsIdAcceptRoute =
+  ApiAdminSubmissionsIdAcceptRouteImport.update({
+    id: '/accept',
+    path: '/accept',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdAssetsReceivedRoute =
+  ApiAdminSubmissionsIdAssetsReceivedRouteImport.update({
+    id: '/assets-received',
+    path: '/assets-received',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdDeclineRoute =
+  ApiAdminSubmissionsIdDeclineRouteImport.update({
+    id: '/decline',
+    path: '/decline',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdEmailPreviewRoute =
+  ApiAdminSubmissionsIdEmailPreviewRouteImport.update({
+    id: '/email-preview',
+    path: '/email-preview',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 const ApiAdminSubmissionsIdNoteRoute =
   ApiAdminSubmissionsIdNoteRouteImport.update({
     id: '/note',
     path: '/note',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdRequestAssetsRoute =
+  ApiAdminSubmissionsIdRequestAssetsRouteImport.update({
+    id: '/request-assets',
+    path: '/request-assets',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
 const ApiAdminSubmissionsIdTimelineRoute =
@@ -535,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
+  '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -546,7 +589,12 @@ export interface FileRoutesByFullPath {
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
+  '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
+  '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
@@ -608,6 +656,7 @@ export interface FileRoutesByTo {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
+  '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -619,7 +668,12 @@ export interface FileRoutesByTo {
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
+  '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
+  '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
@@ -686,6 +740,7 @@ export interface FileRoutesById {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
+  '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -697,7 +752,12 @@ export interface FileRoutesById {
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
+  '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
+  '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
@@ -764,6 +824,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
+    | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -775,7 +836,12 @@ export interface FileRouteTypes {
     | '/api/admin/people/'
     | '/api/admin/submissions/'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/assets-received'
+    | '/api/admin/submissions/$id/decline'
+    | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
@@ -837,6 +903,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
+    | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -848,7 +915,12 @@ export interface FileRouteTypes {
     | '/api/admin/people'
     | '/api/admin/submissions'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/assets-received'
+    | '/api/admin/submissions/$id/decline'
+    | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
@@ -914,6 +986,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
+    | '/api/admin/submissions/decline-reasons'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -925,7 +998,12 @@ export interface FileRouteTypes {
     | '/api/admin/people/'
     | '/api/admin/submissions/'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/assets-received'
+    | '/api/admin/submissions/$id/decline'
+    | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
@@ -961,6 +1039,7 @@ export interface RootRouteChildren {
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
+  ApiAdminSubmissionsDeclineReasonsRoute: typeof ApiAdminSubmissionsDeclineReasonsRoute
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
@@ -1405,6 +1484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/submissions/decline-reasons': {
+      id: '/api/admin/submissions/decline-reasons'
+      path: '/api/admin/submissions/decline-reasons'
+      fullPath: '/api/admin/submissions/decline-reasons'
+      preLoaderRoute: typeof ApiAdminSubmissionsDeclineReasonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/submissions/start-review': {
       id: '/api/admin/submissions/start-review'
       path: '/api/admin/submissions/start-review'
@@ -1468,11 +1554,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
       parentRoute: typeof ApiAdminPeopleIdRoute
     }
+    '/api/admin/submissions/$id/accept': {
+      id: '/api/admin/submissions/$id/accept'
+      path: '/accept'
+      fullPath: '/api/admin/submissions/$id/accept'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdAcceptRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/assets-received': {
+      id: '/api/admin/submissions/$id/assets-received'
+      path: '/assets-received'
+      fullPath: '/api/admin/submissions/$id/assets-received'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdAssetsReceivedRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/decline': {
+      id: '/api/admin/submissions/$id/decline'
+      path: '/decline'
+      fullPath: '/api/admin/submissions/$id/decline'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdDeclineRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/email-preview': {
+      id: '/api/admin/submissions/$id/email-preview'
+      path: '/email-preview'
+      fullPath: '/api/admin/submissions/$id/email-preview'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdEmailPreviewRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
     '/api/admin/submissions/$id/note': {
       id: '/api/admin/submissions/$id/note'
       path: '/note'
       fullPath: '/api/admin/submissions/$id/note'
       preLoaderRoute: typeof ApiAdminSubmissionsIdNoteRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/request-assets': {
+      id: '/api/admin/submissions/$id/request-assets'
+      path: '/request-assets'
+      fullPath: '/api/admin/submissions/$id/request-assets'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdRequestAssetsRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
     '/api/admin/submissions/$id/timeline': {
@@ -1674,13 +1795,26 @@ const ApiAdminPeopleIdRouteWithChildren =
   ApiAdminPeopleIdRoute._addFileChildren(ApiAdminPeopleIdRouteChildren)
 
 interface ApiAdminSubmissionsIdRouteChildren {
+  ApiAdminSubmissionsIdAcceptRoute: typeof ApiAdminSubmissionsIdAcceptRoute
+  ApiAdminSubmissionsIdAssetsReceivedRoute: typeof ApiAdminSubmissionsIdAssetsReceivedRoute
+  ApiAdminSubmissionsIdDeclineRoute: typeof ApiAdminSubmissionsIdDeclineRoute
+  ApiAdminSubmissionsIdEmailPreviewRoute: typeof ApiAdminSubmissionsIdEmailPreviewRoute
   ApiAdminSubmissionsIdNoteRoute: typeof ApiAdminSubmissionsIdNoteRoute
+  ApiAdminSubmissionsIdRequestAssetsRoute: typeof ApiAdminSubmissionsIdRequestAssetsRoute
   ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 
 const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
+  ApiAdminSubmissionsIdAcceptRoute: ApiAdminSubmissionsIdAcceptRoute,
+  ApiAdminSubmissionsIdAssetsReceivedRoute:
+    ApiAdminSubmissionsIdAssetsReceivedRoute,
+  ApiAdminSubmissionsIdDeclineRoute: ApiAdminSubmissionsIdDeclineRoute,
+  ApiAdminSubmissionsIdEmailPreviewRoute:
+    ApiAdminSubmissionsIdEmailPreviewRoute,
   ApiAdminSubmissionsIdNoteRoute: ApiAdminSubmissionsIdNoteRoute,
+  ApiAdminSubmissionsIdRequestAssetsRoute:
+    ApiAdminSubmissionsIdRequestAssetsRoute,
   ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute:
     ApiAdminSubmissionsIdMediaMediaIdOriginalRoute,
@@ -1721,6 +1855,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
+  ApiAdminSubmissionsDeclineReasonsRoute:
+    ApiAdminSubmissionsDeclineReasonsRoute,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,

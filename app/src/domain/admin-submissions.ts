@@ -221,3 +221,58 @@ const timelineEntrySchema = z.object({
 export type TimelineEntry = z.infer<typeof timelineEntrySchema>;
 
 export const timelineAnswerSchema = z.object({ items: z.array(timelineEntrySchema) });
+
+const trimmed = z.string().transform((text) => text.trim());
+
+/** `POST /api/admin/submissions/:id/decline`: a reason from the list, which the letter quotes, and an optional note. */
+export const declineInputSchema = submissionIdInputSchema.extend({
+  decline_reason_id: uuid,
+  note: trimmed.pipe(z.string().max(2000)).optional(),
+});
+
+/** `POST /api/admin/submissions/:id/request-assets`: what is needed, 3 to 2,000 characters, sent in the letter. */
+export const requestAssetsInputSchema = submissionIdInputSchema.extend({
+  note: trimmed.pipe(z.string().min(3).max(2000)),
+});
+
+/** One job a decision started, as `JobWatcher` shows it. */
+const startedJobSchema = z.object({ id: uuid, type: z.string(), status: z.string() });
+
+/** A decision's answer (invariant 1): its event and the jobs planned from it so far; none when the sweep plans them. */
+export const decisionAnswerSchema = z.object({ event_id: uuid, jobs: z.array(startedJobSchema) });
+
+export type DecisionAnswer = z.infer<typeof decisionAnswerSchema>;
+
+/** `POST /api/admin/submissions/:id/assets-received`: where the request went back to; no event, no letter. */
+export const assetsReceivedAnswerSchema = z.object({ workflow_state: z.enum(submissionStates) });
+
+/** The three letters a decision sends, and so the three a decision dialog previews. */
+export const decisionTemplates = ["declined", "accepted", "awaiting_assets"] as const;
+
+/**
+ * `POST /api/admin/submissions/:id/email-preview`: the letter the decision would send, with the reason and the note
+ * the dialog holds. Nothing is saved. A decline letter quotes its reason, so its preview needs one.
+ */
+export const emailPreviewSchema = submissionIdInputSchema
+  .extend({
+    template: z.enum(decisionTemplates),
+    decline_reason_id: uuid.optional(),
+    note: trimmed.pipe(z.string().max(2000)).optional(),
+  })
+  .refine((body) => body.template !== "declined" || body.decline_reason_id !== undefined, {
+    message: "Choose a reason to preview the letter.",
+    path: ["decline_reason_id"],
+  });
+
+export const emailPreviewAnswerSchema = z.object({
+  subject: z.string(),
+  preheader: z.string(),
+  html: z.string(),
+});
+
+/** `GET /api/admin/submissions/decline-reasons`: the enabled reasons, in their order on screen 19. */
+export const declineReasonsAnswerSchema = z.object({
+  items: z.array(z.object({ id: uuid, code: z.string(), label: z.string() })),
+});
+
+export type DeclineReason = z.infer<typeof declineReasonsAnswerSchema>["items"][number];

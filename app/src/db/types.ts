@@ -1042,6 +1042,9 @@ isOneToOne: false
               "copy_job_id": string,"event_id": string,"property_id": string
             }[]
                            },
+"accept_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
 "add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
                            },
@@ -1061,6 +1064,12 @@ isOneToOne: false
                            },
 "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
+                           },
+"assert_agent_daily_cap":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_group": string }; Returns: undefined
+                           },
+"assets_received":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
                            },
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
@@ -1171,6 +1180,9 @@ isOneToOne: false
 { Args: { "p": Json }; Returns: {
               "id": string,"media": Json,"received_at": string
             }[]
+                           },
+"decline_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_reason_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
@@ -1444,6 +1456,9 @@ isOneToOne: false
 { Args: { "p_limit"?: number }; Returns: {
               "id": string
             }[]
+                           },
+"request_assets":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean

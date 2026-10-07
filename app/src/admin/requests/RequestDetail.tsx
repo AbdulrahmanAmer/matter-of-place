@@ -106,7 +106,7 @@ export function RequestDetail({ id }: { id: string }) {
         <aside className="admin-request__side">
           <DecisionPanel
             detail={detail}
-            canStartReview={actions.includes("submissions.start_review")}
+            actions={actions}
             pending={start.isPending}
             onStartReview={() => {
               start.mutate([id], {

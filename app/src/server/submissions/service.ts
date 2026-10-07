@@ -5,22 +5,34 @@ import {
   type Receipt,
   type Submission,
 } from "../../domain/contracts";
+import { siteConfig } from "../../config/site";
 import {
   savedViews,
   submissionListRowSchema,
   submissionNoteSchema,
+  type DecisionAnswer,
+  type DeclineReason,
   type ListSubmissionsInput,
   type SubmissionDetail,
   type SubmissionListRow,
   type SubmissionNote,
   type TimelineEntry,
+  type declineInputSchema,
+  type emailPreviewSchema,
   type noteInputSchema,
   type originalInputSchema,
+  type requestAssetsInputSchema,
   type startReviewInputSchema,
   type submissionIdInputSchema,
 } from "../../domain/admin-submissions";
 import { submissionStates } from "../../domain/contracts";
 import type { WorkflowState } from "../../domain/workflow";
+import { fanoutEvent } from "../automation/fanout";
+import { loadSiteContext } from "../email/context";
+import type { RenderedEmail } from "../email/render";
+import { previewTemplate } from "../email/preview";
+import { resolveVariables } from "../email/variables";
+import type { JsonObject } from "../jobs/types";
 import { fromRpcError } from "../lib/admin-errors";
 import type { AdminActor } from "../lib/admin-route";
 import { auditContext } from "../lib/audit";
@@ -390,4 +402,135 @@ export async function timeline(
 ): Promise<{ items: TimelineEntry[] }> {
   authorize(actor, "submissions.timeline");
   return { items: await entityTimeline(db, "submission", input.id) };
+}
+
+/**
+ * After the decision has committed: plan its event's jobs now, best effort (the runner's sweep is the safety net, B8b
+ * invariant 4), then read the jobs of the event once (invariant 1). A failure here never undoes the decision, so it is
+ * logged and the answer carries the jobs found, none at worst.
+ */
+async function afterDecision(db: Db, eventId: string): Promise<DecisionAnswer> {
+  try {
+    await fanoutEvent(db, eventId);
+  } catch (failure) {
+    logLine("warn", "fanout_failed", {
+      eventId,
+      code: failure instanceof AppError ? failure.code : "server",
+    });
+  }
+  const { data, error } = await db
+    .from("jobs")
+    .select("id, type, status")
+    .eq("event_id", eventId)
+    .order("id");
+  if (error !== null) {
+    logLine("warn", "decision_jobs_unread", { eventId });
+    return { event_id: eventId, jobs: [] };
+  }
+  return { event_id: eventId, jobs: data };
+}
+
+/** `POST /api/admin/submissions/:id/decline`: Under Review to Declined; its recipe sends the decline letter. */
+export async function decline(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof declineInputSchema>,
+): Promise<DecisionAnswer> {
+  authorize(actor, "submissions.decline");
+  const { data, error } = await db.rpc("decline_submission", {
+    p_submission_id: input.id,
+    p_reason_id: input.decline_reason_id,
+    p_note: input.note ?? "",
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return afterDecision(db, data);
+}
+
+/** `POST /api/admin/submissions/:id/accept`: Under Review to Accepted; its recipe sends the acceptance letter. */
+export async function accept(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof submissionIdInputSchema>,
+): Promise<DecisionAnswer> {
+  authorize(actor, "submissions.accept");
+  const { data, error } = await db.rpc("accept_submission", {
+    p_submission_id: input.id,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return afterDecision(db, data);
+}
+
+/** `POST /api/admin/submissions/:id/request-assets`: to Awaiting Assets; the letter says what is needed. */
+export async function requestAssets(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof requestAssetsInputSchema>,
+): Promise<DecisionAnswer> {
+  authorize(actor, "submissions.request_assets");
+  const { data, error } = await db.rpc("request_assets", {
+    p_submission_id: input.id,
+    p_note: input.note,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return afterDecision(db, data);
+}
+
+/** `POST /api/admin/submissions/:id/assets-received`: back to Accepted, or to Under Review if never accepted. */
+export async function assetsReceived(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof submissionIdInputSchema>,
+): Promise<{ workflow_state: WorkflowState }> {
+  authorize(actor, "submissions.assets_received");
+  const { data, error } = await db.rpc("assets_received", {
+    p_submission_id: input.id,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return { workflow_state: data };
+}
+
+/**
+ * `POST /api/admin/submissions/:id/email-preview`: the letter a decision would send (invariant 6). The variables are
+ * built from the keys the decision event gives `send_email`, by the same resolver, so the preview is the send.
+ */
+export async function emailPreview(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof emailPreviewSchema>,
+): Promise<Omit<RenderedEmail, "text">> {
+  authorize(actor, "submissions.email_preview");
+  const data: JsonObject = {
+    submission_id: input.id,
+    ...(input.decline_reason_id === undefined
+      ? {}
+      : { decline_reason_id: input.decline_reason_id }),
+    ...(input.note === undefined || input.note === "" ? {} : { note: input.note }),
+  };
+  const site = await loadSiteContext(db, siteConfig.url);
+  const variables = await resolveVariables(db, input.template, data, undefined, site);
+  const { subject, preheader, html } = await previewTemplate(db, {
+    key: input.template,
+    variables,
+  });
+  return { subject, preheader, html };
+}
+
+/** `GET /api/admin/submissions/decline-reasons`: the reasons the decline dialog offers, in their set order. */
+export async function listDeclineReasons(
+  actor: AdminActor,
+  db: Db,
+): Promise<{ items: DeclineReason[] }> {
+  authorize(actor, "submissions.decline_reasons");
+  const { data, error } = await db
+    .from("decline_reasons")
+    .select("id, code, label")
+    .eq("enabled", true)
+    .order("sort")
+    .order("label");
+  if (error !== null) throw fromRpcError(error);
+  return { items: data };
 }
