@@ -79,10 +79,21 @@ describe("renderIssueHtml", () => {
   it("has no em dash and takes every inline colour from the theme", async () => {
     const html = await renderIssueHtml(issue, site);
     expect(html).not.toContain("—");
-    const colours = (html.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).map((hex) => hex.toLowerCase());
-    expect(colours.length).toBeGreaterThan(0);
+    const declared = [
+      ...html.matchAll(
+        /[;"]\s*(?:color|background(?:-color)?|border(?:-(?:top|bottom|left|right))?(?:-color)?)\s*:\s*([^;"]+)/g,
+      ),
+    ].flatMap((match) =>
+      (match[1] ?? "")
+        .trim()
+        .split(/\s+/)
+        .slice(-1)
+        .filter((value) => value !== "0"),
+    );
+    expect(declared.length).toBeGreaterThan(0);
     const theme = new Set<string>(Object.values(themeHex));
-    expect(colours.filter((hex) => !theme.has(hex))).toEqual([]);
+    expect(declared.filter((value) => !theme.has(value.toLowerCase()))).toEqual([]);
+    expect(html).not.toMatch(/(?:rgb|hsl)a?\(/);
   });
 
   it("escapes what a person typed", async () => {

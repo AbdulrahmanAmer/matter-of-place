@@ -1033,6 +1033,15 @@
     "expect": "FAIL.*draws the masthead, the intro lines and the stories in reading order"
   },
   {
+    "id": "b11-g4-render-rgb-typed",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/blocks/masthead.tsx",
+    "find": "color: themeHex.foreground,",
+    "replace": "color: \"rgb(255, 0, 0)\",",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*has no em dash and takes every inline colour from the theme"
+  },
+  {
     "id": "b11-g4-render-hex-typed",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/templates/email/blocks/masthead.tsx",

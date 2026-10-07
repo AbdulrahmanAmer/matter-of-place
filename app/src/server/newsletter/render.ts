@@ -65,7 +65,7 @@ function viewOf(
         href: withUtm(`${site.siteUrl}/stories/${block.slug}`, campaign, block.slug),
       };
     case "property":
-      // STUB(B9 steps 7-11): B9's `NewsletterBlock.tsx` draws the property block from `meta.block`; until it is on main an issue holding one cannot render
+      // STUB(B9 step 7): B9's `NewsletterBlock.tsx` draws the property block from `meta.block`; until it is on main an issue holding one cannot render
       throw new NonRetryableError("property_block_unavailable");
   }
 }
