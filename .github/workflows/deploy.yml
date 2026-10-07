@@ -433,6 +433,7 @@ jobs:
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}
         run: bun run build
       # MOP_ENV keeps the wrangler.toml default, production. Media is served from the Worker's own
       # origin until L1 sets MOP_LAUNCHED at the domain cut-over (H33 (4)).

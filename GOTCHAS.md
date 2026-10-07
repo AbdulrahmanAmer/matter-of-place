@@ -4153,3 +4153,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a watched-fail of a case that reads `storage.*` is judged on mop-dev inside a rolled-back transaction or in the CI `db` job, never on the native stand-in; on the stand-in read the red message before calling the replay OK. A new entry's `expect` for such a case names the assertion text, not only the title.
 - proof: `"$PSQL" postgresql://postgres@127.0.0.1:55462/mop_g1v -Atc "select to_regclass('storage.buckets')"` prints an empty line on the stand-in; on mop-dev from `app/`: `eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only b6-g1-documents-private` → `WATCHED-FAIL OK`, and the bucket still reads `documents|f` afterwards (replayed by the B6 g1 reviewer, 2026-10-07).
 - added: 2026-10-07
+
+## P-1826 · A Playwright project runs only the specs its `testMatch` names, so a plan's proof for a new spec can pass with zero tests
+- symptom: B13 g1 step 10's proof `bunx playwright test --project=seo tests/e2e/ga4.spec.ts` would have found no test: the `seo` project of `playwright.config.ts` matched `**/seo.spec.ts` only, although plan line 83 says the project matches `seo.spec.ts` and `ga4.spec.ts` (the group that created the project listed one file).
+- cause: the plan assigns the config to B4 and the first spec's group, and the second spec's group is not told that its file is a new entry in the same line.
+- rule: a group that adds a spec reads the `testMatch` of the project its proof names before running it and adds its file there, in the same commit (ruling H46); a run that prints `No tests found` is a failed proof, not a skipped one.
+- proof: `cd app && grep -n 'name: "seo"' playwright.config.ts` → lists both `**/seo.spec.ts` and `**/ga4.spec.ts`; `bunx playwright test --project=seo --list tests/e2e/ga4.spec.ts` lists 6 tests.
+- added: 2026-10-07
+
+## P-1827 · A guard that a second guard repeats stays green when the first is removed, and a test that calls first and changes state afterwards hides it
+- symptom: B13 g1's first watched-fail of `ga4-noid` (drop the empty-id check from `loadGa4`) stayed green: the test called `loadGa4("")` while consent was granted, then switched on Global Privacy Control, and only then ran the timers, so the idle callback's own consent check refused the script for another reason.
+- cause: one test packed four refusals into one sequence and asserted once at the end, so a later state change masked an earlier missing guard.
+- rule: a test of a refusal runs its action, drains the timers and asserts before the next case sets up another state, one case per assert; a guard written twice (before the idle moment and at it) is mutated in both places by one registry entry, or by an entry on the shared source such as `consentGranted`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b13-g1-ga4-noid` → `WATCHED-FAIL OK B13:b13-g1-ga4-noid` (it printed `BAD: stayed green` before the test was split).
+- added: 2026-10-07

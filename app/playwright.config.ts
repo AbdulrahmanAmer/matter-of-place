@@ -76,7 +76,7 @@ export default defineConfig({
     },
     { name: "inquiry-forward", testMatch: "**/inquiry-forward.spec.ts", use: desktop },
     { name: "edge", testMatch: "**/edge-cache.spec.ts", use: desktop },
-    { name: "seo", testMatch: "**/seo.spec.ts", use: desktop },
+    { name: "seo", testMatch: ["**/seo.spec.ts", "**/ga4.spec.ts"], use: desktop },
     { name: "coming-soon-desktop", testMatch: "**/coming-soon.spec.ts", use: desktop },
     { name: "coming-soon-phone", testMatch: "**/coming-soon.spec.ts", use: phone },
     // B7's admin specs, desktop only; the later slices' files are listed here so they never edit this config.

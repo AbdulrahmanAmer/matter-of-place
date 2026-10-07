@@ -1825,5 +1825,177 @@
     "replace": "process.exitCode = 0;",
     "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
     "expect": "FAIL .*the command > exits 1 and prints an error line"
+  },
+  {
+    "id": "b13-g1-ga4-once",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "    if (loaded() || !consentGranted()) return;",
+    "replace": "    if (!consentGranted()) return;",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > injects one script on the first call"
+  },
+  {
+    "id": "b13-g1-ga4-idle",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "  else setTimeout(run, 1);",
+    "replace": "  else run();",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > waits for idle"
+  },
+  {
+    "id": "b13-g1-ga4-withdrawn",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "    if (loaded() || !consentGranted()) return;",
+    "replace": "    if (loaded()) return;",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > injects nothing when the choice is withdrawn"
+  },
+  {
+    "id": "b13-g1-ga4-noid",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "  if (measurementId === \"\" || !consentGranted() || loaded()) return;",
+    "replace": "  if (!consentGranted() || loaded()) return;",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > injects nothing with no measurement id"
+  },
+  {
+    "id": "b13-g1-ga4-config",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "      allow_google_signals: false,",
+    "replace": "      allow_google_signals: true,",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > makes the first config entry"
+  },
+  {
+    "id": "b13-g1-loader-later",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    return onConsentChange(() => {\n      loadGa4(measurementId);\n    });",
+    "replace": "    return undefined;",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > loads the script after a later Allow"
+  },
+  {
+    "id": "b13-g1-loader-stored",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    trackGpcOverride();\n    loadGa4(measurementId);",
+    "replace": "    trackGpcOverride();",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > loads the script for a grant stored by an earlier visit"
+  },
+  {
+    "id": "b13-g1-loader-noid",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    if (measurementId === \"\") return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > does nothing without a measurement id"
+  },
+  {
+    "id": "b13-g1-loader-gpc-via",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "via: \"gpc\"",
+    "replace": "via: \"other\"",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > tracks consent_set via gpc once per session"
+  },
+  {
+    "id": "b13-g1-loader-gpc-once",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": " || sessionStorage.getItem(GPC_TRACKED) !== null",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > tracks consent_set via gpc once per session"
+  },
+  {
+    "id": "b13-g1-loader-gpc-grant",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "record.analytics && !consentGranted()",
+    "replace": "!consentGranted()",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > tracks nothing when Global Privacy Control overrides no grant"
+  },
+  {
+    "id": "b13-g1-loader-click",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    return onConsentChange(() => {\n      loadGa4(measurementId);\n    });",
+    "replace": "    return onConsentChange(() => {\n      trackGpcOverride();\n      loadGa4(measurementId);\n    });",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*Ga4Loader > leaves a click on the notice to the notice"
+  },
+  {
+    "id": "b13-g1-ga4-stale",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.version === CONSENT_VERSION &&\n    record.analytics &&",
+    "replace": "    record.analytics &&",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "FAIL .*loadGa4 > injects nothing without consent"
+  },
+  {
+    "id": "b13-g1-e2e-consent",
+    "kind": "manual",
+    "test": "tests/e2e/ga4.spec.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "import { consentGranted } from \"./consent\";",
+    "replace": "const consentGranted = () => true;",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
+    "expect": "✘.*a fresh context makes no request",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g1-e2e-config",
+    "kind": "manual",
+    "test": "tests/e2e/ga4.spec.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "allow_google_signals: false",
+    "replace": "allow_google_signals: true",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
+    "expect": "✘.*Allow loads the script once",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g1-e2e-version",
+    "kind": "manual",
+    "test": "tests/e2e/ga4.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.version === CONSENT_VERSION &&\n",
+    "replace": "",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
+    "expect": "✘.*a raised consent version asks again",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g1-e2e-gpc",
+    "kind": "manual",
+    "test": "tests/e2e/ga4.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    !globalPrivacyControl()",
+    "replace": "    true",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
+    "expect": "✘.*with Global Privacy Control on",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g1-e2e-html",
+    "kind": "manual",
+    "test": "tests/e2e/ga4.spec.ts",
+    "file": "src/routes/_site.tsx",
+    "find": "  head: () => ({ links: [{ rel: \"stylesheet\", href: appCss }] }),",
+    "replace": "  head: () => ({\n    links: [{ rel: \"stylesheet\", href: appCss }],\n    scripts: [{ src: \"https://www.googletagmanager.com/gtag/js?id=G-TEST000000\" }],\n  }),",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
+    "expect": "✘.*the server-rendered page never names Google Tag Manager",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
   }
 ]
