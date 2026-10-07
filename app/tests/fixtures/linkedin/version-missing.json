@@ -1,0 +1,12 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.linkedin.com/rest/posts",
+  "status": 400,
+  "response": {
+    "status": 400,
+    "code": "VERSION_MISSING",
+    "message": "A version must be present. Please specify a version by adding the LinkedIn-Version header."
+  }
+}

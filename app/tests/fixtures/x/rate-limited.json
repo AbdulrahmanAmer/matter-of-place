@@ -1,0 +1,17 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.x.com/2/tweets",
+  "status": 429,
+  "headers": {
+    "x-rate-limit-reset": "1791116100",
+    "x-user-limit-24hour-reset": "1791136800"
+  },
+  "response": {
+    "title": "Too Many Requests",
+    "detail": "Too Many Requests",
+    "type": "about:blank",
+    "status": 429
+  }
+}

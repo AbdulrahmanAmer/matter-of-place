@@ -1,0 +1,43 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.x.com/2/users/:id/tweets",
+  "response": {
+    "data": [
+      {
+        "id": "1840000000000000001",
+        "edit_history_tweet_ids": ["1840000000000000001"],
+        "text": "Oak Hill, Larchmont. A garden that runs to the creek. https://t.co/Ab12Cd34Ef",
+        "attachments": {
+          "media_keys": ["3_123"]
+        }
+      },
+      {
+        "id": "1840000000000000000",
+        "edit_history_tweet_ids": ["1840000000000000000"],
+        "text": "Elm Court, Sag Harbor. https://t.co/Zz98Yy76Xx",
+        "attachments": {
+          "media_keys": ["3_999"]
+        }
+      }
+    ],
+    "includes": {
+      "media": [
+        {
+          "media_key": "3_123",
+          "type": "photo"
+        },
+        {
+          "media_key": "3_999",
+          "type": "photo"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 2,
+      "newest_id": "1840000000000000001",
+      "oldest_id": "1840000000000000000"
+    }
+  }
+}

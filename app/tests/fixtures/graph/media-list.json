@@ -1,0 +1,22 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media, Reading (the documented sample lists ids only; caption, timestamp and permalink are the requested fields added by hand)",
+  "request": "GET /{ig-user-id}/media?fields=caption,timestamp,permalink",
+  "response": {
+    "data": [
+      {
+        "caption": "Oak Hill, Larchmont.",
+        "timestamp": "2026-10-07T13:00:12+0000",
+        "permalink": "https://www.instagram.com/p/EXAMPLE1/",
+        "id": "17895695668004550"
+      },
+      {
+        "caption": "Sycamore Lane, Pasadena.",
+        "timestamp": "2026-10-06T13:00:09+0000",
+        "permalink": "https://www.instagram.com/p/EXAMPLE2/",
+        "id": "17899305451014820"
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { onRenderResult, runRender } from "../../assets/render-run.ts";
+import { maybeAutoApprove } from "../../channels/auto-approve.ts";
 import type { StepDefinition } from "../types.ts";
 import { renderSpecs } from "./render-specs.ts";
 
@@ -8,5 +9,7 @@ export const renderCover: StepDefinition<z.infer<typeof renderSpecs.render_cover
   type: "render_cover",
   ...renderSpecs.render_cover,
   run: (ctx, params, data) => runRender(ctx, { kind: "cover", variant: "og", params, data }),
-  onResult: onRenderResult,
+  onResult: async (ctx, job, result) => {
+    await maybeAutoApprove(ctx.db, await onRenderResult(ctx, job, result), ctx.now);
+  },
 };

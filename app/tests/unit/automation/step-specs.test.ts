@@ -130,6 +130,21 @@ describe("step specs", () => {
     }
   });
 
+  it("gives the three post steps the 40-second limit their Meta container poll needs (JOB-02)", () => {
+    const posts = ["post_meta", "post_x", "post_linkedin"].map((type) => ({
+      type,
+      spec: listStepSpecs().find((candidate) => candidate.type === type)?.timeoutMs,
+      step: getStep(type)?.timeoutMs,
+    }));
+    expect(posts).toEqual(
+      ["post_meta", "post_x", "post_linkedin"].map((type) => ({
+        type,
+        spec: 40_000,
+        step: 40_000,
+      })),
+    );
+  });
+
   it("sets local on write_captions only and never with heavy", () => {
     const local = listStepSpecs().filter((spec) => spec.local === true);
     expect(local.map((spec) => spec.type)).toEqual(["write_captions"]);
