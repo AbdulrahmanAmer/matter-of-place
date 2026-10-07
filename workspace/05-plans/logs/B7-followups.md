@@ -359,3 +359,23 @@ what: Follow-up, already listed by the author. The CSP img-src is 'self' data:, 
 evidence: Found by reading: grep -n 'img-src\|Report-Only' app/src/server/lib/headers.ts shows img-src at line 22 and Content-Security-Policy-Report-Only at line 72.
 
 blocking: false
+
+## g2 · steps 5a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. Two more follow-ups of this review name GOTCHAS.md and are banked there (hit-again lines on P-712 and P-708).
+
+### 1. app/src/routes/admin/people.$id.lazy.tsx
+
+what: Suspected by reading, not run. A non-uuid id in the address (for example /admin/people/abc) fails personIdInputSchema on the API with a 400 validation error, not a 404. PersonPage throws notFound() only on a 404, so the editor sees the route error page and not 'Person not found'. This is cosmetic for a hand-typed address.
+
+evidence: people.$id.lazy.tsx: `if (person.error instanceof AdminApiError && person.error.status === 404) throw notFound(); throw person.error;` with personIdInputSchema = z.object({ id: z.string().uuid() }) in src/domain/admin-people.ts
+
+blocking: false
+
+### 2. app/supabase/sql/functions/person_detail.sql
+
+what: The emails list matches `lower(e.to_email) = lower(v_contact.email)`, and B5's index is on to_email itself, so no index serves this read (STANDARDS C11: every new list names the index that serves it). The author already logged it as UNPROVEN and as a follow-up for a lower(to_email) index. I record it here so it is not dropped.
+
+evidence: person_detail.sql emails subquery; B7.md log g2 'Choices to check': 'this read does not use it (UNPROVEN cost, a follow-up for a lower(to_email) index)'
+
+blocking: false
