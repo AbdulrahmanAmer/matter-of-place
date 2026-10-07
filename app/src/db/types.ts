@@ -518,6 +518,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"newsletter_issues": {
+                  Row: {
+                    "approval_count": number,"approved_by": string | null,"blocks": NonNullable<Json>,"created_at": string,"id": string,"metrics": NonNullable<Json>,"number": number,"preheader": string | null,"resend_broadcast_id": string | null,"scheduled_for": string | null,"send_error": string | null,"sent_at": string | null,"status": string,"subject": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "approval_count"?: number,"approved_by"?: string | null,"blocks"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"metrics"?: NonNullable<Json>,"number": number,"preheader"?: string | null,"resend_broadcast_id"?: string | null,"scheduled_for"?: string | null,"send_error"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "approval_count"?: number,"approved_by"?: string | null,"blocks"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"metrics"?: NonNullable<Json>,"number"?: number,"preheader"?: string | null,"resend_broadcast_id"?: string | null,"scheduled_for"?: string | null,"send_error"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"ops_heartbeats": {
                   Row: {
                     "at": string,"detail": Json | null,"name": string
@@ -1076,6 +1089,9 @@ isOneToOne: false
 "beat":
 { Args: { "p_detail": Json,"p_name": string }; Returns: undefined
                            },
+"broadcast_recipients_since":
+{ Args: { "p_since": string }; Returns: number
+                           },
 "bump_catalog_version":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -1291,6 +1307,79 @@ isOneToOne: false
 "meta_token_record":
 { Args: { "p_checked_at": string,"p_data_access_expires_at"?: string,"p_expires_at"?: string,"p_missing_scopes": (string)[],"p_new_token"?: string,"p_token_state": string }; Returns: string
                            },
+"newsletter_approve_issue":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_issue": string,"p_request_id": string,"p_send_at": string }; Returns: Json
+                           },
+"newsletter_audience_members":
+{ Args: { "p_audience": string }; Returns: {
+              "email": string,"id": string,"resend_contact_id": string
+            }[]
+                           },
+"newsletter_clear_contact":
+{ Args: { "p_contact_id": string }; Returns: number
+                           },
+"newsletter_export_subscribers":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string }; Returns: {
+              "confirmed_at": string,"email": string,"markets": string,"source": string,"status": string,"unsubscribed_at": string
+            }[]
+                           },
+"newsletter_mark_sending":
+{ Args: { "p_approval_count": number,"p_issue": string }; Returns: boolean
+                           },
+"newsletter_mark_sent":
+{ Args: { "p_issue": string,"p_recipients": number }; Returns: undefined
+                           },
+"newsletter_open_draft":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "approval_count": number,
+"approved_by": string | null,
+"blocks": NonNullable<Json>,
+"created_at": string,
+"id": string,
+"metrics": NonNullable<Json>,
+"number": number,
+"preheader": string | null,
+"resend_broadcast_id": string | null,
+"scheduled_for": string | null,
+"send_error": string | null,
+"sent_at": string | null,
+"status": string,
+"subject": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "newsletter_issues"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"newsletter_recipient_count":
+{ Args: { "p_audience": string }; Returns: number
+                           },
+"newsletter_save_draft":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_blocks": Json,"p_preheader": string,"p_request_id": string,"p_subject": string }; Returns: Json
+                           },
+"newsletter_set_audience":
+{ Args: { "p_audience_id": string,"p_key": string }; Returns: undefined
+                           },
+"newsletter_set_broadcast_id":
+{ Args: { "p_broadcast_id": string,"p_issue": string }; Returns: undefined
+                           },
+"newsletter_set_contact":
+{ Args: { "p_contact_id": string,"p_subscriber": string }; Returns: undefined
+                           },
+"newsletter_set_metrics":
+{ Args: { "p_issue": string,"p_metrics": Json }; Returns: undefined
+                           },
+"newsletter_set_send_error":
+{ Args: { "p_error": string,"p_issue": string }; Returns: undefined
+                           },
+"newsletter_unapprove_issue":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_issue": string,"p_request_id": string }; Returns: Json
+                           },
+"newsletter_update_issue":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_blocks": Json,"p_issue": string,"p_preheader": string,"p_request_id": string,"p_subject": string }; Returns: Json
+                           },
 "next_invoice_number":
 { Args: { "p_prefix"?: string }; Returns: string
                            },
@@ -1314,6 +1403,9 @@ isOneToOne: false
                            },
 "public_state":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"queue_digest_add":
+{ Args: { "p_asset": string,"p_property": string }; Returns: string
                            },
 "rate_limit_check":
 { Args: { "p_checks": Json }; Returns: {
