@@ -4,5 +4,6 @@
  */
 @import "../tokens.css";
 @import "./admin.css";
+@import "./newsletter.css";
 @import "./requests.css";
 @import "./ui.css";

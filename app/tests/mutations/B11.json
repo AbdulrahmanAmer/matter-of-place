@@ -1697,5 +1697,222 @@
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
     "expect": "FAIL.*equals the hand-typed fixture, row for row"
+  },
+  {
+    "id": "b11-g6-table-subject",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssuesTable.tsx",
+    "find": "  { key: \"subject\", header: \"Subject\", render: (row) => row.subject },\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*lists each issue with its status"
+  },
+  {
+    "id": "b11-g6-table-empty",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssuesTable.tsx",
+    "find": "<EmptyState title=\"No issue yet\">",
+    "replace": "<EmptyState title=\"Nothing\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*says there is no issue yet"
+  },
+  {
+    "id": "b11-g6-ed-down",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "onChange(moved(blocks, index, index + 1));",
+    "replace": "onChange(moved(blocks, index, index));",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*moves a block with the keyboard"
+  },
+  {
+    "id": "b11-g6-ed-first-up",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "disabled={index === 0}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*keeps the first block from moving up"
+  },
+  {
+    "id": "b11-g6-ed-drag",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "if (dragging !== null) onChange(moved(blocks, dragging, index));",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*reorders by dragging"
+  },
+  {
+    "id": "b11-g6-ed-no-blocks",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "if (draft.blocks.length === 0) return \"Add a block before approving.\";",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*keeps Approve off while the editor holds no blocks"
+  },
+  {
+    "id": "b11-g6-ed-dirty",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "if (dirty) return \"Save your changes before approving.\";",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*keeps Approve off while a change is not saved"
+  },
+  {
+    "id": "b11-g6-ed-eastern",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "toUtc(sendAt, marketTimezone(null))",
+    "replace": "toUtc(sendAt, \"UTC\")",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*approves with the time read in Eastern"
+  },
+  {
+    "id": "b11-g6-ed-no-time",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "sendAt === \"\" ? undefined :",
+    "replace": "sendAt === \"\" ? \"\" :",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*approves with no time"
+  },
+  {
+    "id": "b11-g6-ed-unapprove",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "run(onUnapprove);",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*takes an approved issue back to draft"
+  },
+  {
+    "id": "b11-g6-ed-refusal",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "setFailure(error instanceof Error ? error.message : \"That did not work. Try again.\");",
+    "replace": "setFailure(null);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*shows a refusal inline"
+  },
+  {
+    "id": "b11-g6-ed-roles",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "{issue.status === \"draft\" && can.approve ? (",
+    "replace": "{issue.status === \"draft\" ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*offers neither Approve nor Save"
+  },
+  {
+    "id": "b11-g6-ed-metrics",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/IssueEditor.tsx",
+    "find": "<dd>{formatNumber(value)}</dd>",
+    "replace": "<dd>{value}</dd>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*shows the results of a sent issue"
+  },
+  {
+    "id": "b11-g6-pf-sandbox",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/PreviewFrame.tsx",
+    "find": "          sandbox=\"\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*draws the issue in a sandboxed frame"
+  },
+  {
+    "id": "b11-g6-pf-placeholder",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/PreviewFrame.tsx",
+    "find": "{html === undefined ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*draws a placeholder"
+  },
+  {
+    "id": "b11-g6-st-market",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/SubscribersTab.tsx",
+    "find": "{ label: \"California\", value: counts.audiences[\"market-ca\"] },",
+    "replace": "{ label: \"California\", value: counts.audiences[\"market-ny\"] },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*counts each audience by market"
+  },
+  {
+    "id": "b11-g6-st-export",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/SubscribersTab.tsx",
+    "find": "exportHref = null,",
+    "replace": "exportHref = \"/x\",",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*offers the CSV only when"
+  },
+  {
+    "id": "b11-g6-st-zero",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/SubscribersTab.tsx",
+    "find": "{formatNumber(row.value)}",
+    "replace": "{formatNumber(row.value + 1)}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*shows a zero for every group"
+  },
+  {
+    "id": "b11-g6-email-read",
+    "test": "tests/unit/staff-email.test.ts",
+    "file": "src/server/lib/staff-email.ts",
+    "find": "const email = data.user.email;",
+    "replace": "const email = \"someone@example.test\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
+    "expect": "× .*reads the sign-in address"
+  },
+  {
+    "id": "b11-g6-email-unavailable",
+    "test": "tests/unit/staff-email.test.ts",
+    "file": "src/server/lib/staff-email.ts",
+    "find": "if (error !== null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
+    "expect": "× .*answers unavailable when the lookup fails"
+  },
+  {
+    "id": "b11-g6-email-none",
+    "test": "tests/unit/staff-email.test.ts",
+    "file": "src/server/lib/staff-email.ts",
+    "find": "if (email === undefined || email === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
+    "expect": "× .*refuses an account with no address"
+  },
+  {
+    "id": "b11-g6-routes-plain",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/newsletter.issues.ts",
+    "find": "GET: defineAdminRoute({",
+    "replace": "GET: ({",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*holds only handlers built by defineAdminRoute"
+  },
+  {
+    "id": "b11-g6-routes-pending-stale",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "tests/unit/admin-routes-parity.test.ts",
+    "find": "  \"automation.templates_send_test\",\n];",
+    "replace": "  \"automation.templates_send_test\",\n  \"newsletter.build\",\n];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*gives every matrix action a route"
+  },
+  {
+    "id": "b11-g6-e2e-subscribers-label",
+    "test": "tests/e2e/admin-newsletter.spec.ts",
+    "file": "src/admin/newsletter/SubscribersTab.tsx",
+    "find": "{ label: \"California\", value: counts.audiences[\"market-ca\"] },",
+    "replace": "{ label: \"Californ\", value: counts.audiences[\"market-ca\"] },",
+    "run": "E2E_TARGET=built E2E_PORT=8988 bunx playwright test --project=admin tests/e2e/admin-newsletter.spec.ts --grep \"subscribers tab counts\"",
+    "expect": "getByRole\\('row', \\{ name: 'California' \\}\\)",
+    "kind": "manual"
   }
 ]

@@ -45,6 +45,8 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminNewsletterIndexRouteImport } from './routes/admin/newsletter.index'
+import { Route as AdminNewsletterIdRouteImport } from './routes/admin/newsletter.$id'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
@@ -67,6 +69,8 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminNewsletterIssuesRouteImport } from './routes/api/admin/newsletter.issues'
+import { Route as ApiAdminNewsletterSubscribersRouteImport } from './routes/api/admin/newsletter.subscribers'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
@@ -79,10 +83,17 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiAdminNewsletterIssuesIdRouteImport } from './routes/api/admin/newsletter.issues.$id'
+import { Route as ApiAdminNewsletterIssuesBuildRouteImport } from './routes/api/admin/newsletter.issues.build'
+import { Route as ApiAdminNewsletterSubscribersExportRouteImport } from './routes/api/admin/newsletter.subscribers.export'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
+import { Route as ApiAdminNewsletterIssuesIdApproveRouteImport } from './routes/api/admin/newsletter.issues.$id.approve'
+import { Route as ApiAdminNewsletterIssuesIdPreviewRouteImport } from './routes/api/admin/newsletter.issues.$id.preview'
+import { Route as ApiAdminNewsletterIssuesIdSendTestRouteImport } from './routes/api/admin/newsletter.issues.$id.send-test'
+import { Route as ApiAdminNewsletterIssuesIdUnapproveRouteImport } from './routes/api/admin/newsletter.issues.$id.unapprove'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
 const SiteRoute = SiteRouteImport.update({
@@ -267,6 +278,20 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNewsletterIndexRoute = AdminNewsletterIndexRouteImport.update({
+  id: '/newsletter/',
+  path: '/newsletter/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/newsletter.index.lazy').then((d) => d.Route),
+)
+const AdminNewsletterIdRoute = AdminNewsletterIdRouteImport.update({
+  id: '/newsletter/$id',
+  path: '/newsletter/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/newsletter.$id.lazy').then((d) => d.Route),
+)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -381,6 +406,18 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminNewsletterIssuesRoute =
+  ApiAdminNewsletterIssuesRouteImport.update({
+    id: '/api/admin/newsletter/issues',
+    path: '/api/admin/newsletter/issues',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminNewsletterSubscribersRoute =
+  ApiAdminNewsletterSubscribersRouteImport.update({
+    id: '/api/admin/newsletter/subscribers',
+    path: '/api/admin/newsletter/subscribers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminPeopleIndexRoute = ApiAdminPeopleIndexRouteImport.update({
   id: '/api/admin/people/',
   path: '/api/admin/people/',
@@ -445,6 +482,24 @@ const ApiPublicSubscribersConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
   } as any)
+const ApiAdminNewsletterIssuesIdRoute =
+  ApiAdminNewsletterIssuesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminNewsletterIssuesRoute,
+  } as any)
+const ApiAdminNewsletterIssuesBuildRoute =
+  ApiAdminNewsletterIssuesBuildRouteImport.update({
+    id: '/build',
+    path: '/build',
+    getParentRoute: () => ApiAdminNewsletterIssuesRoute,
+  } as any)
+const ApiAdminNewsletterSubscribersExportRoute =
+  ApiAdminNewsletterSubscribersExportRouteImport.update({
+    id: '/export',
+    path: '/export',
+    getParentRoute: () => ApiAdminNewsletterSubscribersRoute,
+  } as any)
 const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -467,6 +522,30 @@ const ApiPublicSubmissionsIdUploadsRoute =
     id: '/$id/uploads',
     path: '/$id/uploads',
     getParentRoute: () => ApiPublicSubmissionsRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdApproveRoute =
+  ApiAdminNewsletterIssuesIdApproveRouteImport.update({
+    id: '/approve',
+    path: '/approve',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdPreviewRoute =
+  ApiAdminNewsletterIssuesIdPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdSendTestRoute =
+  ApiAdminNewsletterIssuesIdSendTestRouteImport.update({
+    id: '/send-test',
+    path: '/send-test',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdUnapproveRoute =
+  ApiAdminNewsletterIssuesIdUnapproveRouteImport.update({
+    id: '/unapprove',
+    path: '/unapprove',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
   } as any)
 const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
   ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
@@ -508,6 +587,7 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -527,12 +607,15 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -545,10 +628,17 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
@@ -581,6 +671,7 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -600,12 +691,15 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/newsletter': typeof AdminNewsletterIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -618,10 +712,17 @@ export interface FileRoutesByTo {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesById {
@@ -659,6 +760,7 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -678,12 +780,15 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -696,10 +801,17 @@ export interface FileRoutesById {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRouteTypes {
@@ -737,6 +849,7 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -756,12 +869,15 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -774,10 +890,17 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -810,6 +933,7 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -829,12 +953,15 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/newsletter'
     | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -847,10 +974,17 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people'
     | '/api/admin/submissions'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
     | '__root__'
@@ -887,6 +1021,7 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -906,12 +1041,15 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -924,10 +1062,17 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
 }
@@ -959,6 +1104,8 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminNewsletterIssuesRoute: typeof ApiAdminNewsletterIssuesRouteWithChildren
+  ApiAdminNewsletterSubscribersRoute: typeof ApiAdminNewsletterSubscribersRouteWithChildren
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
@@ -1223,6 +1370,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/newsletter/': {
+      id: '/admin/newsletter/'
+      path: '/newsletter'
+      fullPath: '/admin/newsletter/'
+      preLoaderRoute: typeof AdminNewsletterIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/newsletter/$id': {
+      id: '/admin/newsletter/$id'
+      path: '/newsletter/$id'
+      fullPath: '/admin/newsletter/$id'
+      preLoaderRoute: typeof AdminNewsletterIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/people/': {
       id: '/admin/people/'
       path: '/people'
@@ -1377,6 +1538,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/newsletter/issues': {
+      id: '/api/admin/newsletter/issues'
+      path: '/api/admin/newsletter/issues'
+      fullPath: '/api/admin/newsletter/issues'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/newsletter/subscribers': {
+      id: '/api/admin/newsletter/subscribers'
+      path: '/api/admin/newsletter/subscribers'
+      fullPath: '/api/admin/newsletter/subscribers'
+      preLoaderRoute: typeof ApiAdminNewsletterSubscribersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/people/': {
       id: '/api/admin/people/'
       path: '/api/admin/people'
@@ -1461,6 +1636,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
     }
+    '/api/admin/newsletter/issues/$id': {
+      id: '/api/admin/newsletter/issues/$id'
+      path: '/$id'
+      fullPath: '/api/admin/newsletter/issues/$id'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesRoute
+    }
+    '/api/admin/newsletter/issues/build': {
+      id: '/api/admin/newsletter/issues/build'
+      path: '/build'
+      fullPath: '/api/admin/newsletter/issues/build'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesBuildRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesRoute
+    }
+    '/api/admin/newsletter/subscribers/export': {
+      id: '/api/admin/newsletter/subscribers/export'
+      path: '/export'
+      fullPath: '/api/admin/newsletter/subscribers/export'
+      preLoaderRoute: typeof ApiAdminNewsletterSubscribersExportRouteImport
+      parentRoute: typeof ApiAdminNewsletterSubscribersRoute
+    }
     '/api/admin/people/$id/notes': {
       id: '/api/admin/people/$id/notes'
       path: '/notes'
@@ -1488,6 +1684,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/submissions/$id/uploads'
       preLoaderRoute: typeof ApiPublicSubmissionsIdUploadsRouteImport
       parentRoute: typeof ApiPublicSubmissionsRoute
+    }
+    '/api/admin/newsletter/issues/$id/approve': {
+      id: '/api/admin/newsletter/issues/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/newsletter/issues/$id/approve'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdApproveRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/preview': {
+      id: '/api/admin/newsletter/issues/$id/preview'
+      path: '/preview'
+      fullPath: '/api/admin/newsletter/issues/$id/preview'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdPreviewRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/send-test': {
+      id: '/api/admin/newsletter/issues/$id/send-test'
+      path: '/send-test'
+      fullPath: '/api/admin/newsletter/issues/$id/send-test'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdSendTestRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/unapprove': {
+      id: '/api/admin/newsletter/issues/$id/unapprove'
+      path: '/unapprove'
+      fullPath: '/api/admin/newsletter/issues/$id/unapprove'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdUnapproveRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
     }
     '/api/admin/submissions/$id/media/$mediaId/original': {
       id: '/api/admin/submissions/$id/media/$mediaId/original'
@@ -1590,8 +1814,10 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminNewsletterIdRoute: typeof AdminNewsletterIdRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminNewsletterIndexRoute: typeof AdminNewsletterIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
@@ -1599,8 +1825,10 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminNewsletterIdRoute: AdminNewsletterIdRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminNewsletterIndexRoute: AdminNewsletterIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
@@ -1662,6 +1890,62 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminNewsletterIssuesIdRouteChildren {
+  ApiAdminNewsletterIssuesIdApproveRoute: typeof ApiAdminNewsletterIssuesIdApproveRoute
+  ApiAdminNewsletterIssuesIdPreviewRoute: typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  ApiAdminNewsletterIssuesIdSendTestRoute: typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  ApiAdminNewsletterIssuesIdUnapproveRoute: typeof ApiAdminNewsletterIssuesIdUnapproveRoute
+}
+
+const ApiAdminNewsletterIssuesIdRouteChildren: ApiAdminNewsletterIssuesIdRouteChildren =
+  {
+    ApiAdminNewsletterIssuesIdApproveRoute:
+      ApiAdminNewsletterIssuesIdApproveRoute,
+    ApiAdminNewsletterIssuesIdPreviewRoute:
+      ApiAdminNewsletterIssuesIdPreviewRoute,
+    ApiAdminNewsletterIssuesIdSendTestRoute:
+      ApiAdminNewsletterIssuesIdSendTestRoute,
+    ApiAdminNewsletterIssuesIdUnapproveRoute:
+      ApiAdminNewsletterIssuesIdUnapproveRoute,
+  }
+
+const ApiAdminNewsletterIssuesIdRouteWithChildren =
+  ApiAdminNewsletterIssuesIdRoute._addFileChildren(
+    ApiAdminNewsletterIssuesIdRouteChildren,
+  )
+
+interface ApiAdminNewsletterIssuesRouteChildren {
+  ApiAdminNewsletterIssuesIdRoute: typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  ApiAdminNewsletterIssuesBuildRoute: typeof ApiAdminNewsletterIssuesBuildRoute
+}
+
+const ApiAdminNewsletterIssuesRouteChildren: ApiAdminNewsletterIssuesRouteChildren =
+  {
+    ApiAdminNewsletterIssuesIdRoute:
+      ApiAdminNewsletterIssuesIdRouteWithChildren,
+    ApiAdminNewsletterIssuesBuildRoute: ApiAdminNewsletterIssuesBuildRoute,
+  }
+
+const ApiAdminNewsletterIssuesRouteWithChildren =
+  ApiAdminNewsletterIssuesRoute._addFileChildren(
+    ApiAdminNewsletterIssuesRouteChildren,
+  )
+
+interface ApiAdminNewsletterSubscribersRouteChildren {
+  ApiAdminNewsletterSubscribersExportRoute: typeof ApiAdminNewsletterSubscribersExportRoute
+}
+
+const ApiAdminNewsletterSubscribersRouteChildren: ApiAdminNewsletterSubscribersRouteChildren =
+  {
+    ApiAdminNewsletterSubscribersExportRoute:
+      ApiAdminNewsletterSubscribersExportRoute,
+  }
+
+const ApiAdminNewsletterSubscribersRouteWithChildren =
+  ApiAdminNewsletterSubscribersRoute._addFileChildren(
+    ApiAdminNewsletterSubscribersRouteChildren,
+  )
+
 interface ApiAdminPeopleIdRouteChildren {
   ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
 }
@@ -1719,6 +2003,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminNewsletterIssuesRoute: ApiAdminNewsletterIssuesRouteWithChildren,
+  ApiAdminNewsletterSubscribersRoute:
+    ApiAdminNewsletterSubscribersRouteWithChildren,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
