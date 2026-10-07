@@ -34,6 +34,28 @@ export class SkipSend extends Error {
   }
 }
 
+/**
+ * Thrown by a resolver that needs another job to finish first; `notify_admin` ends the job `retry_at` `at` without
+ * using an attempt.
+ */
+export class WaitFor extends Error {
+  readonly at: Date;
+  readonly reason: string;
+
+  constructor(at: Date, reason: string) {
+    super(`waiting:${reason}`);
+    this.name = "WaitFor";
+    this.at = at;
+    this.reason = reason;
+  }
+}
+
+/** The job the variables are for: an alert that depends on a sibling job of its event reads it by `eventId`. */
+export interface JobRun {
+  eventId: string | null;
+  now: Date;
+}
+
 const idField = {
   submission: "submission_id",
   payment: "payment_id",
@@ -213,9 +235,10 @@ interface Resolve {
   eventType: string | undefined;
   headline: string | undefined;
   site: () => Promise<SiteContext>;
+  job: JobRun | undefined;
 }
 
-type Variables = Record<string, string>;
+export type Variables = Record<string, string>;
 
 const facts = (submission: { submitter_name: string; address: string }): Variables => ({
   submitter_name: submission.submitter_name,
@@ -459,11 +482,6 @@ const alerts: Record<string, Alert> = {
       return `${inquiry.name}, ${inquiry.email}`;
     },
   },
-  "digest.due": {
-    headline: "Place Notes draft ready",
-    path: () => "/admin/newsletter",
-    summary: () => Promise.resolve("Place Notes draft ready for review"),
-  },
   "health.failed": {
     headline: "Health check failed",
     path: () => "/admin/jobs",
@@ -486,9 +504,72 @@ const alerts: Record<string, Alert> = {
   },
 };
 
+const notice = (headline: string, summary: string, path: string): Alert => ({
+  headline,
+  path: () => path,
+  summary: () => Promise.resolve(summary),
+});
+
+const digestResult = z.union([
+  z.object({ issue_id: z.null() }),
+  z.object({ issue_id: z.string(), number: z.number().int() }),
+]);
+
+const DIGEST_WAIT_MS = 60 * 1000;
+
+/** The `digest.due` notice says what the `queue_digest` job of the same event found, and waits while it has not ended. */
+async function digestAlert({ db, job }: Resolve): Promise<Alert> {
+  if (job === undefined || job.eventId === null) throw new NonRetryableError("event_id_missing");
+  const rows = rowsOf(
+    await db
+      .from("jobs")
+      .select("status, result")
+      .eq("event_id", job.eventId)
+      .eq("type", "queue_digest")
+      .limit(1),
+    "jobs",
+  );
+  const sibling = found(rows[0], "queue_digest_job");
+  if (sibling.status === "dead" || sibling.status === "cancelled") {
+    return notice(
+      "Place Notes draft could not be built",
+      "The digest job ended without a draft. Its job record says why.",
+      `/admin/jobs?event_id=${job.eventId}`,
+    );
+  }
+  if (sibling.status !== "done") {
+    throw new WaitFor(new Date(job.now.getTime() + DIGEST_WAIT_MS), "waiting_queue_digest");
+  }
+  const result = digestResult.safeParse(sibling.result);
+  if (!result.success) throw new NonRetryableError("queue_digest_result_malformed");
+  if (result.data.issue_id === null) {
+    return notice(
+      "Nothing to send this cycle",
+      "Nothing was published or approved since the last issue, so no draft was made.",
+      "/admin/newsletter",
+    );
+  }
+  return notice(
+    `Place Notes No. ${String(result.data.number)} draft ready for review`,
+    "Open the draft to check the blocks, the subject and the preheader before approving it.",
+    `/admin/newsletter/${result.data.issue_id}`,
+  );
+}
+
+/** Alerts whose words depend on what another job found, so they are settled before they are read like the others. */
+const settled: Record<string, (resolve: Resolve) => Promise<Alert>> = {
+  "digest.due": digestAlert,
+};
+
 async function adminNotify(resolve: Resolve): Promise<Variables> {
   const { data, eventType, headline: given, site } = resolve;
-  const alert = eventType === undefined ? undefined : own(alerts, eventType);
+  const settle = eventType === undefined ? undefined : own(settled, eventType);
+  const alert =
+    settle !== undefined
+      ? await settle(resolve)
+      : eventType === undefined
+        ? undefined
+        : own(alerts, eventType);
   const supplied = text(data, "summary");
   if (supplied === null && alert === undefined) {
     throw new NonRetryableError("missing_variable:summary");
@@ -515,6 +596,8 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
   repermission: confirmOnly,
   admin_notify: adminNotify,
   standalone: () => Promise.resolve({}),
+  // B11 invariant 14: the market_open_notice job passes both variables to renderTemplate itself.
+  market_open: () => Promise.resolve({}),
   subject_ack: subjectAck,
 };
 
@@ -522,6 +605,7 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
  * The variables of `key` for the event payload `data`: one resolver per key, each returning a string for every name in
  * `variablesByKey[key]`. `site` is read only by a resolver that builds a link, and is loaded from the settings and
  * `SITE_URL` when not given (the job runner). `headline` is the `notify_admin` step's `params.headline`.
+ * `job` is read by an alert that waits for a sibling job (`digest.due`).
  */
 export function resolveVariables(
   db: Db,
@@ -530,12 +614,14 @@ export function resolveVariables(
   eventType?: string,
   site?: SiteContext,
   headline?: string,
+  job?: JobRun,
 ): Promise<Variables> {
   return resolvers[key]({
     db,
     data,
     eventType,
     headline,
+    job,
     site: () => (site === undefined ? loadSiteContext(db) : Promise.resolve(site)),
   });
 }
