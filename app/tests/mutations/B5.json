@@ -1492,8 +1492,8 @@
     "id": "b5-s-getstep",
     "test": "tests/unit/email/send-email.test.ts",
     "file": "src/server/jobs/steps/index.ts",
-    "find": "  sendEmail,\n  notifyAdmin,\n];",
-    "replace": "];",
+    "find": "  sendEmail,\n  notifyAdmin,\n  queueDigest,\n];",
+    "replace": "  queueDigest,\n];",
     "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
     "expect": "× .*is reached through B8's getStep"
   },

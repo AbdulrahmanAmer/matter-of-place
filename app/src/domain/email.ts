@@ -23,6 +23,7 @@ export const emailTemplateKeys = [
   "standalone",
   "subject_ack",
   "repermission",
+  "market_open",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -142,6 +143,7 @@ export const variablesByKey = {
   standalone: [],
   subject_ack: ["kind_label", "due_date"],
   repermission: ["confirm_url"],
+  market_open: ["market_name", "market_url"],
 } as const satisfies Record<EmailTemplateKey, readonly string[]>;
 
 type VariableName = (typeof variablesByKey)[EmailTemplateKey][number];
@@ -201,6 +203,8 @@ const sampleValues = (siteUrl: string): Record<VariableName, string> => ({
   link_url: `${siteUrl}/admin/requests/sample-request`,
   kind_label: "access",
   due_date: "November 18, 2026",
+  market_name: "California",
+  market_url: `${siteUrl}/california`,
 });
 
 /** A value for every variable of `key`; every sample URL is built on `siteUrl`. */
