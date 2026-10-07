@@ -4342,6 +4342,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again (g10 rework 3): the review of 4f428e5 wrote "no CI run exists for this commit" and the builder listed it UNPROVEN, while deploy run 37557550150 had started 10 s after the commit and was red within 4 minutes (`gh run list --workflow deploy.yml --branch slice/b17`). Before writing UNPROVEN or "no CI run" about a pushed commit, wait for its own run and read it.
 - added: 2026-10-07
 
+## P-535 · A slice launch that lists a step the lane's log already shows as done fails at the P-516 coverage check: the sizer leaves done steps out, the check then says the sizing omits them
+- symptom: 2026-10-07 04:40 (B13, steps 8 to 13 with startAt g2) and 07:02 (B16, steps 2 to 8): `Error: sizing of B13 omits plan steps 8, 9 (P-516)` and `sizing of B16 omits plan step 2 (P-516)` at build-slice.js line 166, two minutes and about 95k tokens of sizing each time, before any builder.
+- cause: the sizer reads the tail of `workspace/05-plans/logs/<slice>.md` and treats a step with an accepted block as done (as the brief asks), while the coverage check compares the groups against `args.steps` literally; a step both done and listed has no group.
+- rule: a launch or relaunch passes only steps the log does not show accepted (read the log's last blocks first, or the ledger's `accepted` list); `startAt` is for resuming a run with a cached sizing, never for skipping done steps in a fresh run. A relaunch after a stop lists the remaining steps alone.
+- proof: B13 relaunched as steps ["10","11","12","13"] sized and built; B16 relaunched as ["3","4","5","6","7","8"] sized and built (the second sizer then still grouped the step 2 remainder on its own, which the check accepts because 2 was not in args.steps).
+- added: 2026-10-07
+
+## P-536 · Agents of one session share one scratchpad folder, so a builder's or reviewer's scratch file is overwritten by another lane's agent while it runs
+- symptom: 2026-10-07 on the Dell, four times: a reviewer's scratch registry `B10.json` held another reviewer's copy and `watchfail` replayed 69 entries instead of 45 (B10 g3 review ac85eb06); the B6 g4 builder's registry-script file was overwritten by another lane (a6892ffb); a seven-entry replay reported `replayed 77: ok 7, bad 1, stale 69` (B11 g3 review a4a83cb8); one more in B10 g5.
+- cause: every agent of a Claude Code session receives the same scratchpad path (the session's `scratchpad/`), and five lanes run as agents of one session on a lane machine.
+- rule: an agent writes its scratch files under `scratchpad/<its agent id or group label>/` and reads only there; a scratch registry for a replay is created fresh per replay. The brief says it (build-slice.js, at the next run boundary); until then a clobbered scratch file is re-created under the agent's own folder, which is the agent's own scratch and not one of our scripts, so the report-not-fix rule does not apply.
+- proof: `watchfail` replays with `--registry <own folder>` report exactly the entries the agent wrote (B10 g5 review2 a08c8b4b: 28 entries, 28 replayed).
+- added: 2026-10-07
+
 ## P-534 · The board counts only this laptop's workflow journals: a lane run on another machine is invisible to it until its journal is mirrored here
 - symptom: 2026-10-07 03:20, two groups accepted on the Dell (B11 g1, B10 g1) and the board still read 145 of 259 with "5 in work"; `board.mjs readRuns` walks `~/.claude/projects/<project>/*/subagents/workflows/*/journal.jsonl` on the machine that serves the board, nothing else.
 - cause: the journals are per session and per machine; nothing carries a remote lane's journal to the board's machine.
