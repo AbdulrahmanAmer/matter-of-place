@@ -1,0 +1,1793 @@
+[
+  {
+    "id": "b17-flags-key",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "  \"csp_enforce\",\n  \"maintenance\",\n] as const;",
+    "replace": "  \"maintenance\",\n] as const;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*flags: mergeFlags gives csp_enforce and maintenance"
+  },
+  {
+    "id": "b17-hdr-nosniff",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"X-Content-Type-Options\": \"nosniff\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: carries the security table on a page"
+  },
+  {
+    "id": "b17-hdr-enforce-name",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  return flags[\"csp_enforce\"] === true\n    ? \"Content-Security-Policy\"\n    : \"Content-Security-Policy-Report-Only\";",
+    "replace": "  return \"Content-Security-Policy-Report-Only\";",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: names the enforcing header once csp_enforce"
+  },
+  {
+    "id": "b17-csp-nonce",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [\"'nonce-abc'\", ...hashSources(hashes.scripts ?? [])],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: puts every class .tsr inline script"
+  },
+  {
+    "id": "b17-csp-leave-out",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if ((marked && scripts.length === 0) || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: puts every class .tsr inline script"
+  },
+  {
+    "id": "b17-gtag-wildcard",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"https://www.googletagmanager.com/gtag/js\",",
+    "replace": "    \"https://*.googletagmanager.com\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: lets script-src name the gtag.js path only"
+  },
+  {
+    "id": "b17-img-media",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"frame-src\": framing === \"admin\" ? [\"'self'\"] : [],\n  };",
+    "replace": "    \"frame-src\": framing === \"admin\" ? [\"'self'\"] : [],\n    \"img-src\": [readVar(\"MEDIA_PUBLIC_BASE\") ?? \"\"],\n  };",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: gives img-src exactly self, data and the two GA4"
+  },
+  {
+    "id": "b17-link-media",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    `<${TURNSTILE}>; rel=preconnect`,",
+    "replace": "    `<${TURNSTILE}>; rel=preconnect`,\n    `<https://m.test>; rel=preconnect`,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: sends one Link header with the two fonts"
+  },
+  {
+    "id": "b17-cache-control",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    headers.set(\"cache-control\", \"no-store\");",
+    "replace": "    headers.set(\"cache-control\", \"public, max-age=60\");",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: keeps the Cache-Control of each route class"
+  },
+  {
+    "id": "b17-headers-file",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/_headers",
+    "find": "  Cache-Control: no-cache",
+    "replace": "  Cache-Control: public, max-age=31536000",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*headers: gives static files their lifetime"
+  },
+  {
+    "id": "b17-hash-ldjson",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  const styles = [...html.matchAll(STYLE)].map(([, text = \"\"]) => parsedText(text));",
+    "replace": "  const styles = [...html.matchAll(STYLE), ...html.matchAll(new RegExp('<script type=\"application/ld[+]json\">([^]*?)</script>', \"g\"))].map(([, text = \"\"]) => parsedText(text));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: hashes a class .tsr script"
+  },
+  {
+    "id": "b17-hash-all",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text) || true) scripts.push(parsedText(text));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: leaves an unmarked executable script out"
+  },
+  {
+    "id": "b17-report-each",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      if (found.unexpected > 0) report(new Error(\"csp_unexpected_inline_script\"));",
+    "replace": "      for (let n = 0; n < found.unexpected; n += 1) report(new Error(\"csp_unexpected_inline_script\"));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: leaves an unmarked executable script out"
+  },
+  {
+    "id": "b17-hash-fail-silent",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      report(error instanceof Error ? error : new Error(\"csp_hashing_failed\"));",
+    "replace": "      void error;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: sends the page on with the default policy"
+  },
+  {
+    "id": "b17-tsr-unmarked",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "replace": "    if (CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: reports nothing for a page whose inline"
+  },
+  {
+    "id": "b17-allow-entry",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/csp-allowlist.ts",
+    "find": "document.currentScript.remove()",
+    "replace": "document.currentScript.remove();",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-inline-rules: still finds class .tsr on the bootstrap script"
+  },
+  {
+    "id": "b17-frame-self",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "directive === \"frame-ancestors\" && framing === \"self\" ? [\"'self'\"] : sources",
+    "replace": "sources",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: lets a preview-token page"
+  },
+  {
+    "id": "b17-frame-xfo",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "framing === \"self\" ? \"SAMEORIGIN\" : \"DENY\"",
+    "replace": "\"DENY\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: lets a preview-token page"
+  },
+  {
+    "id": "b17-frame-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "framing === \"admin\" ? [\"'self'\"] : []",
+    "replace": "[]",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*framing: adds its own origin to frame-src"
+  },
+  {
+    "id": "b17-stored-policy",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"content-security-policy-report-only\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-stored: reads the policy and the Link header back"
+  },
+  {
+    "id": "b17-stored-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  \"link\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-stored: reads the policy and the Link header back"
+  },
+  {
+    "id": "b17-report-dedupe",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "recentReports.has(key) || ",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: stores a burst of 100 identical reports"
+  },
+  {
+    "id": "b17-report-limit",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "replace": "    limits: [],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: stores a burst of 100 identical reports"
+  },
+  {
+    "id": "b17-report-limit-61st",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "replace": "    limits: [{ scope: \"ip\", store: \"memory\", limit: 600, windowSeconds: 60 }],\n    turnstile: false,\n    status: 204,\n    service: events.recordCspReports,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: answers 429 for the 61st request"
+  },
+  {
+    "id": "b17-report-min",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/csp-report.ts",
+    "find": "  z.array(reportingApiViolation).min(1).max(20),",
+    "replace": "  z.array(reportingApiViolation).max(20),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: parses a Reporting API array"
+  },
+  {
+    "id": "b17-report-cut",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/domain/csp-report.ts",
+    "find": "  directive: cut(100)(directive),",
+    "replace": "  directive,",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: keeps a row's data short"
+  },
+  {
+    "id": "b17-report-sentry",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/events/service.ts",
+    "find": "  if (error !== null) {",
+    "replace": "  if (error === null) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: still answers 204 and tells Sentry once"
+  },
+  {
+    "id": "b17-events-ct",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!contentTypes.some((type) => sent.startsWith(type))) {",
+    "replace": "  if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp-report: gives a reports body to /api/public/events a 400"
+  },
+  {
+    "id": "b17-csp-proof-stored",
+    "kind": "manual",
+    "test": "scripts/csp-proof.mjs",
+    "run": "node scripts/csp-proof.mjs http://127.0.0.1:8938",
+    "expect": "FAIL .* policy holds each inline script hash"
+  },
+  {
+    "id": "b17-parsed-script",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "scripts.push(parsedText(text));",
+    "replace": "scripts.push(text);",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-render",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "scripts.push(parsedText(text));",
+    "replace": "scripts.push(text);",
+    "expect": "× .*csp-inline-rules: admits every class .tsr script of a real render"
+  },
+  {
+    "id": "b17-parsed-style",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".map(([, text = \"\"]) => parsedText(text));",
+    "replace": ".map(([, text = \"\"]) => text);",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-nul",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".replace(/\\0/g, \"\\uFFFD\")",
+    "replace": "",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-parsed-lf",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": ".replace(/\\r\\n?/g, \"\\n\")",
+    "replace": "",
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
+  },
+  {
+    "id": "b17-csp-upgrade-report-only",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "find": "directive !== \"upgrade-insecure-requests\" || flags[\"csp_enforce\"] === true",
+    "replace": "true",
+    "expect": "× .*headers: sends upgrade-insecure-requests only in the enforced policy"
+  },
+  {
+    "id": "b17-csp-fonts-style",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"style-src\": [\"'self'\"],",
+    "replace": "  \"style-src\": [\"'self'\", \"https://fonts.googleapis.com\"],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp: names no Google Fonts host"
+  },
+  {
+    "id": "b17-csp-fonts-font",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"font-src\": [\"'self'\"],",
+    "replace": "  \"font-src\": [\"'self'\", \"https://fonts.gstatic.com\"],",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*csp: names no Google Fonts host"
+  },
+  {
+    "id": "b17-fonts-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n",
+    "replace": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n      { rel: \"stylesheet\", href: \"https://fonts.googleapis.com/css2?family=Jost\" },\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: the home page links no Google Fonts"
+  },
+  {
+    "id": "b17-fonts-import",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles.css",
+    "find": "@import \"./styles/fonts.css\";\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: the home page links no Google Fonts"
+  },
+  {
+    "id": "b17-fonts-swap",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "  font-family: \"Epilogue\";\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: swap;",
+    "replace": "  font-family: \"Epilogue\";\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: block;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every face of fonts.css names a file"
+  },
+  {
+    "id": "b17-fonts-file",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "url(\"/fonts/epilogue-latin-wght-normal.woff2\")",
+    "replace": "url(\"/fonts/epilogue-latin-wght-missing.woff2\")",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every face of fonts.css names a file"
+  },
+  {
+    "id": "b17-fonts-size-adjust",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/fonts.css",
+    "find": "  size-adjust: 113.02%;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every family has a fallback face"
+  },
+  {
+    "id": "b17-fonts-token",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/tokens.css",
+    "find": "\"Epilogue\", \"Epilogue Fallback\", sans-serif",
+    "replace": "\"Epilogue\", sans-serif",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*fonts: every family has a fallback face"
+  },
+  {
+    "id": "b17-icons-manifest-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"manifest\", href: \"/site.webmanifest\" },\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*icons: the head links the svg"
+  },
+  {
+    "id": "b17-icons-ico-sizes",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/icons.mjs",
+    "find": "ico(await Promise.all([16, 32, 48].map(",
+    "replace": "ico(await Promise.all([16, 32].map(",
+    "run": "node scripts/icons.mjs && bun run test tests/unit/essentials.test.ts",
+    "after": "node scripts/icons.mjs",
+    "expect": "× .*icons: favicon.ico holds 16, 32 and 48"
+  },
+  {
+    "id": "b17-icons-mstile",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/icons.mjs",
+    "find": "[\"mstile-150.png\", await png(emblem, 150)]",
+    "replace": "[\"mstile-150.png\", await png(emblem, 151)]",
+    "run": "node scripts/icons.mjs && bun run test tests/unit/essentials.test.ts",
+    "after": "node scripts/icons.mjs",
+    "expect": "× .*icons: favicon.ico holds 16, 32 and 48"
+  },
+  {
+    "id": "b17-icons-dark-block",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/favicon.svg",
+    "find": "@media (prefers-color-scheme: dark)",
+    "replace": "@media (min-width: 1px)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*icons: favicon.svg carries its colours"
+  },
+  {
+    "id": "b17-manifest-display",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"display\": \"browser\"",
+    "replace": "\"display\": \"standalone\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: names the site"
+  },
+  {
+    "id": "b17-manifest-theme",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"theme_color\": \"#F5F2EB\"",
+    "replace": "\"theme_color\": \"#F5F2EC\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: names the site"
+  },
+  {
+    "id": "b17-manifest-size",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"sizes\": \"192x192\"",
+    "replace": "\"sizes\": \"193x193\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: lists an icon file"
+  },
+  {
+    "id": "b17-manifest-maskable",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/site.webmanifest",
+    "find": "\"purpose\": \"maskable\"",
+    "replace": "\"purpose\": \"any\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*manifest: lists an icon file"
+  },
+  {
+    "id": "b17-identity-browserconfig",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "public/browserconfig.xml",
+    "find": "      <square150x150logo src=\"/mstile-150.png\" />\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: browserconfig.xml names mstile-150.png"
+  },
+  {
+    "id": "b17-identity-expires-days",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "const SECURITY_VALID_DAYS = 180;",
+    "replace": "const SECURITY_VALID_DAYS = 400;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-expires-fixed",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "Date.now() + SECURITY_VALID_DAYS * DAY_MS",
+    "replace": "Date.parse(\"2027-01-01T00:00:00Z\")",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-languages",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    \"Preferred-Languages: en\",\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-contact",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "mailto:${contact ?? SECURITY_CONTACT}",
+    "replace": "mailto:${SECURITY_CONTACT}",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the contact email"
+  },
+  {
+    "id": "b17-identity-doc-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "\"cache-control\": browserCacheControl(\"doc\"),",
+    "replace": "\"cache-control\": \"no-store\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: security.txt gives the fallback contact"
+  },
+  {
+    "id": "b17-identity-redirect",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "location: \"/admin/sign-in\"",
+    "replace": "location: \"/admin\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: change-password sends a visitor"
+  },
+  {
+    "id": "b17-identity-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    refuseWrite(request, requestId) ??\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*identity: change-password sends a visitor"
+  },
+  {
+    "id": "b17-mta-sts-host",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "  if (host?.toLowerCase() !== MTA_STS_HOST) return toErrorResponse(notFound, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers 404 on any other host"
+  },
+  {
+    "id": "b17-mta-sts-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "export function mtaStsTxt(request: Request, requestId: string): Response {\n  const refused = refuseWrite(request, requestId);\n  if (refused !== undefined) return refused;\n",
+    "replace": "export function mtaStsTxt(request: Request, requestId: string): Response {\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers 404 on any other host"
+  },
+  {
+    "id": "b17-mta-sts-mode",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "    \"mode: testing\",",
+    "replace": "    \"mode: enforce\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers the policy"
+  },
+  {
+    "id": "b17-mta-sts-mx",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/identity.ts",
+    "find": "const MTA_STS_MX = [\"mx.zoho.com\", \"mx2.zoho.com\", \"mx3.zoho.com\"];",
+    "replace": "const MTA_STS_MX = [\"mx.zoho.com\", \"mx2.zoho.com\"];",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*mta-sts: answers the policy"
+  },
+  {
+    "id": "b17-e2e-theme-color",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { name: \"theme-color\", content: \"#F5F2EB\" },\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g meta-theme-color --reporter=line",
+    "expect": "meta-theme-color[\\s\\S]*theme-color"
+  },
+  {
+    "id": "b17-e2e-fonts-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n",
+    "replace": "      { rel: \"apple-touch-icon\", href: \"/apple-touch-icon.png\" },\n      { rel: \"stylesheet\", href: \"https://fonts.googleapis.com/css2?family=Jost\" },\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"fonts:\" --reporter=line",
+    "expect": "fonts\\.googleapis\\.com"
+  },
+  {
+    "id": "b17-e2e-meta-twitter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/seo.ts",
+    "find": "      { name: \"twitter:card\", content: \"summary_large_image\" },\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"meta:\" --reporter=line",
+    "expect": "twitter:card"
+  },
+  {
+    "id": "b17-ck-write",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    document.cookie = consentCookie(analytics);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(false\\) sets mop_consent=1.0"
+  },
+  {
+    "id": "b17-ck-write-true",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    document.cookie = consentCookie(analytics);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(true\\) sets mop_consent=1.1"
+  },
+  {
+    "id": "b17-ck-secure",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "SameSite=Lax; Secure`;",
+    "replace": "SameSite=Lax`;",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writeConsent\\(false\\) sets mop_consent=1.0 with Path"
+  },
+  {
+    "id": "b17-ck-order",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    localStorage.setItem(KEY, JSON.stringify(record));\n    document.cookie = consentCookie(analytics);\n",
+    "replace": "    document.cookie = consentCookie(analytics);\n    localStorage.setItem(KEY, JSON.stringify(record));\n",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*writes no cookie when the storage refused the record"
+  },
+  {
+    "id": "b17-ck-fallback",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*readConsent returns the cookie's choice when localStorage is empty"
+  },
+  {
+    "id": "b17-ck-prefer",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord() ?? readCookie();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*readConsent prefers the cookie"
+  },
+  {
+    "id": "b17-ck-malformed",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "match === null ? undefined :",
+    "replace": "match === null ? { version: CONSENT_VERSION, analytics: false } :",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads a malformed cookie as the record"
+  },
+  {
+    "id": "b17-ck-version",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "version: Number(match[1])",
+    "replace": "version: CONSENT_VERSION",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads the cookie of an older version as that version"
+  },
+  {
+    "id": "b17-ck-gpc",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n    !globalPrivacyControl()",
+    "replace": "    record.analytics",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*is not granted by a cookie that says yes while Global Privacy Control"
+  },
+  {
+    "id": "b17-ck-throwing",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return localStorage.getItem(KEY) === null ? readCookie() : readRecord();",
+    "run": "bun run test tests/unit/consent.test.ts",
+    "expect": "× .*reads a throwing localStorage as the cookie"
+  },
+  {
+    "id": "b17-cn-cookie-only",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord();",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*stays closed once decided in a cookie alone"
+  },
+  {
+    "id": "b17-cn-reopen",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "  event.preventDefault();\n  openConsentNotice();",
+    "replace": "  openConsentNotice();",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*opens it again without leaving the page"
+  },
+  {
+    "id": "b17-cn-elsewhere",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    const stopChange = onConsentChange(() => {\n      setOpen(false);\n    });",
+    "replace": "    const stopChange = onConsentChange(() => {\n      setOpen(true);\n    });",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*closes when the choice is written elsewhere on the page"
+  },
+  {
+    "id": "b17-cn-refused",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    if (!writeConsent(analytics)) setOpen(false);\n",
+    "replace": "    writeConsent(analytics);\n",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*closes after a click even when the browser refuses to store the choice"
+  },
+  {
+    "id": "b17-cn-modified",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey",
+    "replace": "false",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*leaves a modified click on Cookie settings to the browser"
+  },
+  {
+    "id": "b17-cn-gpc",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/lib/consent.ts",
+    "find": "    record.analytics &&\n    !globalPrivacyControl()",
+    "replace": "    record.analytics",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*with Global Privacy Control on, Allow is stored"
+  },
+  {
+    "id": "b17-cn-link",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/privacy-choices\" id=\"consent-change\"",
+    "replace": "<Link to=\"/legal\" id=\"consent-change\"",
+    "run": "bun run test tests/unit/consent-notice.test.tsx",
+    "expect": "× .*moves focus to Cookie settings after a keyboard choice"
+  },
+  {
+    "id": "b17-cv-hash",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/config/cookies.ts",
+    "find": "    duration: \"12 months\",",
+    "replace": "    duration: \"11 months\",",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-version",
+    "expect": "× .*consent-version: COOKIE_INVENTORY_HASH is the SHA-256"
+  },
+  {
+    "id": "b17-cv-rows",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/config/cookies.ts",
+    "find": "    name: \"_ga_<id>\",",
+    "replace": "    name: \"_gb_<id>\",",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-version",
+    "expect": "× .*consent-version: lists mop_consent as the first necessary cookie"
+  },
+  {
+    "id": "b17-ca-status",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "    status: 303,",
+    "replace": "    status: 302,",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: accept answers 303"
+  },
+  {
+    "id": "b17-ca-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "\"cache-control\": \"private, no-store\"",
+    "replace": "\"cache-control\": \"private, max-age=60\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: accept answers 303"
+  },
+  {
+    "id": "b17-ca-gpc",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && request.headers.get(\"sec-gpc\") !== \"1\"",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: decline writes 1.0, and Sec-GPC: 1 turns accept into decline"
+  },
+  {
+    "id": "b17-ca-slashes",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && !pathname.startsWith(\"//\")",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: goes back to /"
+  },
+  {
+    "id": "b17-ca-same-origin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "origin === new URL(request.url).origin && ",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: goes back to /"
+  },
+  {
+    "id": "b17-ca-400",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (choice !== \"accept\" && choice !== \"decline\") return toErrorResponse(badChoice, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 400 with no cookie"
+  },
+  {
+    "id": "b17-cp-noscript",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "href=\"/api/consent?set=decline\"",
+    "replace": "href=\"/api/consent?set=nope\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: every page carries the same noscript notice"
+  },
+  {
+    "id": "b17-cp-footer-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/privacy-choices\" id=\"consent-change\"",
+    "replace": "<Link to=\"/legal\" id=\"consent-change\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: every page carries the same noscript notice"
+  },
+  {
+    "id": "b17-cp-state",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "const noState = () => undefined;",
+    "replace": "const noState = () => \"none\" as const;",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-cp-noindex",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "      noindex: true,\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-cp-rows",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.cookies.tsx",
+    "find": "{cookieInventory.map(",
+    "replace": "{cookieInventory.slice(0, -1).map(",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: /cookies lists every cookie"
+  },
+  {
+    "id": "b17-e2e-consent-gpc",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    writeConsent(analytics);\n",
+    "replace": "    writeConsent(analytics);\n    void fetch(\"https://www.googletagmanager.com/gtag/js?id=G-X\", { mode: \"no-cors\" });\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-gpc:\" --reporter=line",
+    "expect": "consent-gpc: with Global Privacy Control[\\s\\S]*www\\.googletagmanager\\.com"
+  },
+  {
+    "id": "b17-e2e-consent-gpc-header",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/public/consent.ts",
+    "find": " && request.headers.get(\"sec-gpc\") !== \"1\"",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-gpc-header\" --reporter=line",
+    "expect": "consent-gpc-header[\\s\\S]*mop_consent=1\\.0"
+  },
+  {
+    "id": "b17-e2e-consent-reopen",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "  event.preventDefault();\n  openConsentNotice();",
+    "replace": "  openConsentNotice();",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-reopen\" --reporter=line",
+    "expect": "consent-reopen[\\s\\S]*privacy-choices"
+  },
+  {
+    "id": "b17-e2e-consent-choices",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": " onClick={choose(false)}",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-privacy-choices\" --reporter=line",
+    "expect": "consent-privacy-choices[\\s\\S]*Analytics are off"
+  },
+  {
+    "id": "b17-e2e-consent-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/consent.ts",
+    "find": "  return readCookie() ?? readRecord();",
+    "replace": "  return readRecord() ?? readCookie();",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-link-beats-record\" --reporter=line",
+    "expect": "consent-link-beats-record[sS]*Analytics are off"
+  },
+  {
+    "id": "b17-e2e-consent-html",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n",
+    "replace": "    const render = async () => {\n      const rendered = await withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n      return request.headers.get(\"cookie\")?.includes(\"mop_consent\") ? new Response(`${await rendered.text()} `, rendered) : rendered;\n    };\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-html\" --reporter=line",
+    "expect": "consent-html[\\s\\S]*Expected: \\\"<!DOCTYPE html>"
+  },
+  {
+    "id": "b17-e2e-consent-noscript",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "      \"set-cookie\": consentCookie(analytics),\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-noscript\" --reporter=line",
+    "expect": "consent-noscript[\\s\\S]*Expected: \"1\\.0\""
+  },
+  {
+    "id": "b17-a11y-film-caption",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "        <figcaption>{video.caption}</figcaption>\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*film-caption: the property film shows its caption"
+  },
+  {
+    "id": "b17-a11y-preload",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "preload=\"none\"",
+    "replace": "preload=\"metadata\"",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*film-caption: the video loads nothing"
+  },
+  {
+    "id": "b17-a11y-contrast-token",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/styles/tokens.css",
+    "find": "--muted-foreground: #575751;",
+    "replace": "--muted-foreground: #8b877f;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-contrast: every text and surface pair"
+  },
+  {
+    "id": "b17-a11y-contrast-exit",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/contrast.mjs",
+    "find": "const ok = ratio >= MINIMUM;",
+    "replace": "const ok = true;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-contrast: a Warm Grey text token"
+  },
+  {
+    "id": "b17-a11y-alt-missing",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "if (alt === undefined) problems.push",
+    "replace": "if (alt === null) problems.push",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-filename",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "else if (alt !== \"\" && alt.toLowerCase() === file.toLowerCase()) {",
+    "replace": "else if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-decorative",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "else if (decorative && alt !== \"\")",
+    "replace": "else if (false)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: names an image"
+  },
+  {
+    "id": "b17-a11y-alt-empty",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/alt-audit.mjs",
+    "find": "if (alt === undefined) problems.push",
+    "replace": "if (alt === undefined || alt === \"\") problems.push",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*a11y-alt-audit: accepts a described image"
+  },
+  {
+    "id": "b17-e2e-a11y-skip-link",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.tsx",
+    "find": "      <a className=\"skip-link\" href=\"#content\">\n        {t.header.skipToContent}\n      </a>\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"skip link is the first Tab stop\" --reporter=line",
+    "expect": "skip link is the first Tab stop[^]*toBeFocused"
+  },
+  {
+    "id": "b17-e2e-a11y-trap",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "        event.preventDefault();\n        (event.shiftKey ? last : first).focus();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "open search overlay[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-restore",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "      if (opener.current instanceof HTMLElement) opener.current.focus();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "focus returns to the search button[^]*toBeFocused"
+  },
+  {
+    "id": "b17-e2e-a11y-escape",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/hooks/use-modal.ts",
+    "find": "      if (event.key === \"Escape\") {\n        onClose();\n        return;\n      }\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open inquiry dialog\" --reporter=line",
+    "expect": "open inquiry dialog[^]*toHaveCount"
+  },
+  {
+    "id": "b17-e2e-a11y-dialog-ref",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "        ref={dialogRef}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open inquiry dialog\" --reporter=line",
+    "expect": "open inquiry dialog[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-menu-ref",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/menu-panel.tsx",
+    "find": "      ref={ref}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=phone -g \"open menu panel\" --reporter=line",
+    "expect": "open menu panel[^]*Expected: true"
+  },
+  {
+    "id": "b17-e2e-a11y-gallery-keys",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "      onKeyDown={stepImage}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"ArrowRight moves to the next image\" --reporter=line",
+    "expect": "ArrowRight moves to the next image[^]*Expected: not"
+  },
+  {
+    "id": "b17-e2e-a11y-described",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": " {...control(\"name\")} />",
+    "replace": " />",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*aria-invalid"
+  },
+  {
+    "id": "b17-e2e-a11y-error-text",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/field.tsx",
+    "find": "          {error}\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*toHaveText"
+  },
+  {
+    "id": "b17-e2e-a11y-ring",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/base.css",
+    "find": "  outline: var(--focus-ring-width) solid var(--focus-ring);\n",
+    "replace": "  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-filter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/routes/_site.properties.tsx",
+    "find": "aria-expanded={showFilters}",
+    "replace": "aria-expanded={false}",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"filter button on /properties\" --reporter=line",
+    "expect": "filter button on /properties[^]*aria-expanded"
+  },
+  {
+    "id": "b17-e2e-a11y-motion",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/motion.css",
+    "find": "    animation-duration: 0.01ms !important;\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"a11y-reduced-motion\" --reporter=line",
+    "expect": "a11y-reduced-motion[^]*toBeLessThan"
+  },
+  {
+    "id": "b17-e2e-a11y-name",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/field.tsx",
+    "find": "        {children}\n      </label>\n      {error !== undefined && (\n        <span className=\"field-error\" id={errorId}>\n          {error}\n        </span>\n      )}\n",
+    "replace": "        {children}\n        {error !== undefined && (\n          <span className=\"field-error\" id={errorId}>\n            {error}\n          </span>\n        )}\n      </label>\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"empty required field\" --reporter=line",
+    "expect": "empty required field[^]*getByLabel"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-dark",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/base.css",
+    "find": ".market-card,\n.site-header-overlay {\n  --focus-ring: var(--background);",
+    "replace": ".market-card {\n  --focus-ring: var(--background);",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"ring is Obsidian on the page\" --reporter=line",
+    "expect": "ring is Obsidian on the page[^]*Expected"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-newsletter",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/forms.css",
+    "find": ".newsletter-form input {\n  flex: 1;\n  min-width: 0;\n  padding: 14px 0;\n}",
+    "replace": ".newsletter-form input {\n  flex: 1;\n  min-width: 0;\n  padding: 14px 0;\n  outline: none;\n}",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-finder",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/pages/home.css",
+    "find": ".home-finder textarea:focus {\n  border-color",
+    "replace": ".home-finder textarea:focus {\n  outline: none;\n  border-color",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-film",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/gallery.css",
+    "find": "  outline-color: var(--background);\n  outline-offset: -8px;\n",
+    "replace": "  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-filters",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/components/filters.css",
+    "find": ".filter-bar select {\n  color: var(--foreground);\n",
+    "replace": ".filter-bar select {\n  color: var(--foreground);\n  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"draws a focus ring\" --reporter=line",
+    "expect": "draws a focus ring[^]*Array"
+  },
+  {
+    "id": "b17-e2e-a11y-ring-search",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/styles/layout/overlays.css",
+    "find": ".search-panel input {\n  width: 100%;\n",
+    "replace": ".search-panel input {\n  width: 100%;\n  outline: none;\n",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"open search overlay\" --reporter=line",
+    "expect": "open search overlay[^]*shows a ring"
+  },
+  {
+    "id": "b17-e2e-a11y-dialog-reopen",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "    clearAll();\n",
+    "replace": "",
+    "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"opened again shows no error\" --reporter=line",
+    "expect": "opened again shows no error[^]*aria-invalid"
+  },
+  {
+    "id": "b17-maint-after-cache",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());",
+    "replace": "response = (page ? await deps.cache(request, render) : null) ?? closed ?? redirect ?? (await render());",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-retry-after",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "\"retry-after\": MAINTENANCE_RETRY_AFTER,",
+    "replace": "\"retry-after\": \"60\",",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-status",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    status: 503,\n",
+    "replace": "    status: 200,\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: / answers 503"
+  },
+  {
+    "id": "b17-maint-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    isAdmin(path) ||\n    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "replace": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-hooks",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix))\n  ) {",
+    "replace": "    false\n  ) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-write",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    flags[\"maintenance\"] !== true ||\n    (request.method !== \"GET\" && request.method !== \"HEAD\") ||\n",
+    "replace": "    flags[\"maintenance\"] !== true ||\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: /admin, /api/admin, /api/hooks and a write pass through"
+  },
+  {
+    "id": "b17-maint-state-throws",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    flags = await deps.getFlags().catch((error: unknown) => {\n      reportUnlessOutage(error, ctx, deps, info);\n      return {};\n    });\n",
+    "replace": "    flags = await deps.getFlags();\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: the flag off, or a state read that throws"
+  },
+  {
+    "id": "b17-maint-style-hash",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "cspFor(env, flags, await inlineHashes(maintenanceHtml))",
+    "replace": "cspFor(env, flags, {})",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: the 503 page's one inline style"
+  },
+  {
+    "id": "b17-wait-status-stall",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "scripts/wait-status.mjs",
+    "find": "      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*maintenance: wait-status exits 1 at its limit"
+  },
+  {
+    "id": "b17-route-error-ref",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/layout/route-error.tsx",
+    "find": "    ? error.requestId\n",
+    "replace": "    ? undefined\n",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*route-error: errorReference gives the request id"
+  },
+  {
+    "id": "b17-slash-branch",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  if (slash !== null) return slash;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: a read of a path ending in / moves"
+  },
+  {
+    "id": "b17-slash-host",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "pathname.replace(/^\\/+/, \"\").replace(/\\/+$/, \"\")",
+    "replace": "pathname.slice(1).replace(/\\/+$/, \"\")",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: never moves / itself"
+  },
+  {
+    "id": "b17-slash-method",
+    "test": "tests/unit/redirects.test.ts",
+    "file": "src/server/public/redirects.ts",
+    "find": "  if (request.method !== \"GET\" && request.method !== \"HEAD\") return null;\n",
+    "replace": "",
+    "run": "bun run test tests/unit/redirects.test.ts",
+    "expect": "× .*trailing slash: never moves / itself"
+  },
+  {
+    "id": "b17-guard-with-maintenance",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/with-maintenance.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bun run test tests/unit/assert-not-production.test.ts",
+    "expect": "scripts/with-maintenance.ts"
+  },
+  {
+    "id": "b17-e2e-sw-offline",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "public/sw.js",
+    "find": "event.respondWith(fetch(request).catch(() => caches.match(OFFLINE)));",
+    "replace": "event.respondWith(fetch(request));",
+    "run": "E2E_TARGET=url E2E_MODE=live E2E_BASE_URL=http://127.0.0.1:8938 cp public/sw.js .output/public/sw.js && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line (a server on 8938 from a build with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938)",
+    "expect": "shows /offline.html offline[^]*You are offline"
+  },
+  {
+    "id": "b17-e2e-sw-api",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "public/sw.js",
+    "find": "const FONTS = [",
+    "replace": "const FONTS = [\"/api/public/properties\",",
+    "run": "E2E_TARGET=url E2E_MODE=live E2E_BASE_URL=http://127.0.0.1:8938 cp public/sw.js .output/public/sw.js && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line (same server as b17-e2e-sw-offline)",
+    "expect": "keeps only the shell[^]*/api/public/properties"
+  },
+  {
+    "id": "b17-e2e-sw-host",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/sw-register.ts",
+    "find": "  if (location.hostname !== new URL(siteConfig.url).hostname) return;\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g service-worker --reporter=line",
+    "expect": "registers nothing on a host other than the one the build names[^]*Expected: 0"
+  },
+  {
+    "id": "b17-e2e-error-id",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/route-error.tsx",
+    "find": "    ? error.requestId\n",
+    "replace": "    ? undefined\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_PORT=8938 E2E_MODE=live bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g error-id --reporter=line",
+    "expect": "error-id: a failed API read[^]*Reference b17-id"
+  },
+  {
+    "id": "b17-e2e-not-found-q",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/components/layout/not-found.tsx",
+    "find": "            <input type=\"search\" name=\"q\" />\n",
+    "replace": "            <input type=\"search\" name=\"query\" />\n",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_SITE_URL=http://127.0.0.1:8938 E2E_TARGET=built E2E_PORT=8938 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g not-found --reporter=line",
+    "expect": "not-found: an unknown path[^]*toHaveCount[^]*Received: 0"
+  },
+  {
+    "id": "b17-g6-feed-channel",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    tag(\"language\", siteConfig.locale.toLowerCase()),\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the RSS 2.0 document parses"
+  },
+  {
+    "id": "b17-g6-feed-rfc822",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "const rfc822 = (date: Date): string => date.toUTCString();",
+    "replace": "const rfc822 = (date: Date): string => date.toISOString();",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every pubDate is RFC 822"
+  },
+  {
+    "id": "b17-g6-feed-noon",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "new Date(`${day}T12:00:00Z`)",
+    "replace": "new Date(day)",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every pubDate is RFC 822 at noon GMT"
+  },
+  {
+    "id": "b17-g6-feed-control",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "text.replace(XML_FORBIDDEN, \"\").replace(",
+    "replace": "text.replace(",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: a control character in a title is dropped"
+  },
+  {
+    "id": "b17-g6-feed-json-date",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "date_published: item.published.toISOString(),",
+    "replace": "date_published: item.published.toUTCString(),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the JSON Feed 1.1 document lists"
+  },
+  {
+    "id": "b17-g6-feed-empty",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    ...(newest === undefined ? [] : [tag(\"lastBuildDate\", rfc822(newest.published))]),",
+    "replace": "    tag(\"lastBuildDate\", rfc822(newest?.published ?? new Date(0))),",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: with no published property or story"
+  },
+  {
+    "id": "b17-g6-feed-coming-soon",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "    !state.comingSoonGlobal && state.comingSoonMarkets[market] !== true;",
+    "replace": "    state.comingSoonMarkets[market] !== true;",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: while every market is coming soon"
+  },
+  {
+    "id": "b17-g6-feed-reads",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "build(itemsOf(await getCatalog(getDb())))",
+    "replace": "build(itemsOf((await getDb().rpc(\"public_state\"), await getCatalog(getDb()))))",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: the handlers read nothing beyond"
+  },
+  {
+    "id": "b17-g6-feed-kind",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "    \"doc\",\n    async () =>",
+    "replace": "    \"json\",\n    async () =>",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: is stored as kind doc"
+  },
+  {
+    "id": "b17-g6-feed-method",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/feeds.ts",
+    "find": "  if (request.method !== \"GET\" && request.method !== \"HEAD\") {",
+    "replace": "  if (false) {",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: answers a write with 405"
+  },
+  {
+    "id": "b17-g6-feed-any",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/feed[.]xml.ts",
+    "find": "handlers: { ANY:",
+    "replace": "handlers: { GET:",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: answers a write with 405"
+  },
+  {
+    "id": "b17-g6-feed-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { rel: \"alternate\", type: \"application/rss+xml\", title: siteConfig.name, href: \"/feed.xml\" },\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts",
+    "expect": "× .*feed: every page's head links the RSS feed"
+  },
+  {
+    "id": "b17-g7-pic-srcset",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "[variants?.card, variants?.hero]",
+    "replace": "[variants?.card]",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: with variants one img carries"
+  },
+  {
+    "id": "b17-g7-pic-nosrcset",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "srcSet={srcSet || undefined}",
+    "replace": "srcSet={srcSet}",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: without variants a single img"
+  },
+  {
+    "id": "b17-g7-pic-priority",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "{ fetchPriority: \"high\" }",
+    "replace": "{ loading: \"lazy\", fetchPriority: \"high\" }",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: priority sets fetchpriority high"
+  },
+  {
+    "id": "b17-g7-pic-width",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/picture.tsx",
+    "find": "      width={width}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: width and height are always present"
+  },
+  {
+    "id": "b17-g7-pic-noimage",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/story-card.tsx",
+    "find": "{story.image !== undefined && (",
+    "replace": "{true && (",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: a hero, a market and a story with no image"
+  },
+  {
+    "id": "b17-g7-pic-hero",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/site/image-hero.tsx",
+    "find": "          alt={alt}\n          priority\n",
+    "replace": "          alt={alt}\n",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the hero image is fetched first"
+  },
+  {
+    "id": "b17-g7-pic-home",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.index.tsx",
+    "find": "        priority\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the first image of the home page"
+  },
+  {
+    "id": "b17-g7-pic-poster",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/gallery.tsx",
+    "find": "<Picture\n              src={video.poster}",
+    "replace": "<img\n              src={video.poster}",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the film poster is drawn by Picture"
+  },
+  {
+    "id": "b17-g7-pic-page-hero",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.property.$slug.tsx",
+    "find": "        variants={property.heroVariants}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the property page gives its hero[^]*expect.hero."
+  },
+  {
+    "id": "b17-g7-pic-page-cover",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/components/property/share-cover.tsx",
+    "find": "            variants={property.gallery[0]?.variants}\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t picture",
+    "expect": "× .*picture: the property page gives its hero[^]*expect.cover."
+  },
+  {
+    "id": "b17-g7-lh-skip",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "lighthouserc.local.json",
+    "find": "\"skipAudits\": [\"is-crawlable\"]",
+    "replace": "\"skipAudits\": [\"is-crawlable\", \"meta-description\"]",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: the local run skips only is-crawlable"
+  },
+  {
+    "id": "b17-g7-lh-lcp",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "lighthouserc.local.json",
+    "find": "{ \"maxNumericValue\": 2500, \"aggregationMethod\": \"median\" }",
+    "replace": "{ \"maxNumericValue\": 3000, \"aggregationMethod\": \"median\" }",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: the categories are asserted at error"
+  },
+  {
+    "id": "b17-g7-lh-script",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "package.json",
+    "find": "\"lhci:local\": \"lhci autorun --config=lighthouserc.local.json\"",
+    "replace": "\"lhci:local\": \"lhci autorun --config=lighthouserc.json\"",
+    "run": "bun run test tests/unit/essentials.test.ts -t lighthouse-config",
+    "expect": "× .*lighthouse-config: package.json runs it through lhci:local"
+  },
+  {
+    "id": "b17-g8-vitals-keys",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "  track(\"web_vitals\", { name, value, id });",
+    "replace": "  track(\"web_vitals\", { name, value, id, rating: \"good\" });",
+    "run": "bun run test tests/unit/essentials.test.ts -t web-vitals",
+    "expect": "× .*web-vitals: LCP, CLS and INP each queue"
+  },
+  {
+    "id": "b17-g8-vitals-inp",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "      onINP(report);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t web-vitals",
+    "expect": "× .*web-vitals: LCP, CLS and INP each queue"
+  },
+  {
+    "id": "b17-g8-layout-site",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/_site.tsx",
+    "find": "    startWebVitals();\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t site-layout",
+    "expect": "× .*site-layout: the public layout starts"
+  },
+  {
+    "id": "b17-g8-layout-admin",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/admin.tsx",
+    "find": "import { installClientErrorListeners } from \"../lib/report-error\";\n",
+    "replace": "import { installClientErrorListeners as realInstall } from \"../lib/report-error\";\nimport { startWebVitals } from \"../lib/web-vitals\";\n\nconst installClientErrorListeners = () => {\n  startWebVitals();\n  return realInstall();\n};\n",
+    "run": "bun run test tests/unit/essentials.test.ts -t site-layout",
+    "expect": "× .*site-layout: the admin layout starts neither"
+  },
+  {
+    "id": "b17-g8-e2e-rating",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/lib/web-vitals.ts",
+    "find": "const report = ({ name, value, id }: Metric): void => {\n  track(\"web_vitals\", { name, value, id });",
+    "replace": "const report = ({ name, value, rating }: Metric): void => {\n  track(\"web_vitals\", { name, value, rating });",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build && cp .dev.vars .output/server/.dev.vars && E2E_TARGET=built E2E_MODE=live E2E_PORT=8938 bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g web-vitals --reporter=line",
+    "expect": "web-vitals: a navigation[\\s\\S]*-\\s+\"id\","
+  },
+  {
+    "id": "b17-obs-below-a",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "GRADES.indexOf(grade) > LOWEST_PASS",
+    "replace": "GRADES.indexOf(grade) > GRADES.length",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 1 on an enforcing policy with a grade below A"
+  },
+  {
+    "id": "b17-obs-a-passes",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "GRADES.indexOf(grade) > LOWEST_PASS",
+    "replace": "GRADES.indexOf(grade) >= LOWEST_PASS",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 0 on an enforcing policy with A or A+"
+  },
+  {
+    "id": "b17-obs-report-only",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "const ENFORCING = \"content-security-policy\";",
+    "replace": "const ENFORCING = \"content-security-policy-report-only\";",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*prints the grade and exits 0 on a report-only policy"
+  },
+  {
+    "id": "b17-obs-no-grade",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!scan.ok || typeof result.grade !== \"string\" || !GRADES.includes(result.grade)",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the scan answers without a grade"
+  },
+  {
+    "id": "b17-obs-retry",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "if (attempt >= ATTEMPTS)",
+    "replace": "if (true)",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*retries a refused connection and then reads the policy"
+  },
+  {
+    "id": "b17-obs-attempts",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "const ATTEMPTS = 3;",
+    "replace": "const ATTEMPTS = 4;",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 after three refused connections"
+  },
+  {
+    "id": "b17-obs-timeout",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "{ method, signal: AbortSignal.timeout(TIMEOUT_MS) }",
+    "replace": "{ method }",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*prints the grade and exits 0 on a report-only policy"
+  },
+  {
+    "id": "b17-obs-host",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!HOST.test(host)",
+    "replace": "false",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*refuses a missing host"
+  },
+  {
+    "id": "b17-obs-scan-ok",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!scan.ok || ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the scan answers an error status that still carries a grade"
+  },
+  {
+    "id": "b17-obs-head-ok",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "if (!head.ok) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the host answers the request for its policy with an error status"
+  },
+  {
+    "id": "b17-obs-error-names-request",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "throw new Error(`${method} ${url}: ${describe(error)}`, { cause: error });",
+    "replace": "throw error;",
+    "expect": "× .*names the request that failed and the code of the socket error under it"
+  },
+  {
+    "id": "b17-obs-error-cause-code",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "`${error.message} (${String(cause.code)})`",
+    "replace": "error.message",
+    "expect": "× .*names the request that failed and the code of the socket error under it"
+  },
+  {
+    "id": "b17-deploy-install-step",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "- run: bun run test:e2e:install",
+    "replace": "- run: echo install-removed",
+    "expect": "× .*runs the browser install, the essentials spec and the observatory"
+  },
+  {
+    "id": "b17-deploy-essentials-live",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "E2E_MODE: ${{ env.HAS_DB == 'true' && 'live' || 'local' }}",
+    "replace": "E2E_MODE: local",
+    "expect": "× .*points the essentials spec at the preview"
+  },
+  {
+    "id": "b17-deploy-observatory-after-red",
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        if: ${{ !cancelled() }}\n        run: node scripts/observatory.mjs",
+    "replace": "        run: node scripts/observatory.mjs",
+    "expect": "× .*scans the preview host and still prints the grade after a red essentials step"
+  }
+]

@@ -82,11 +82,41 @@ describe("resolveRedirect", () => {
     expect(response?.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("answers a table row with its stored status, however the path is cased or slashed", async () => {
+  it("answers a table row with its stored status, however the path is cased", async () => {
     const { redirects } = await load();
     const db = catalogDb(7, parts);
-    const response = await redirects.resolveRedirect(get("/Summer/"), db);
+    const response = await redirects.resolveRedirect(get("/Summer"), db);
     expect([response?.status, response?.headers.get("location")]).toEqual([302, "/markets"]);
+  });
+
+  it("trailing slash: a read of a path ending in / moves with 301 to the path without it, query kept, before any database call", async () => {
+    const { redirects } = await load();
+    const db = catalogDb(7, parts);
+    const answers = await Promise.all(
+      [
+        get("/properties/?q=malibu"),
+        get("/Summer/"),
+        get("/stories//"),
+        get("/properties/", { method: "HEAD" }),
+      ].map((request) => redirects.resolveRedirect(request, db)),
+    );
+    expect(answers.map((answer) => [answer?.status, answer?.headers.get("location")])).toEqual([
+      [301, "/properties?q=malibu"],
+      [301, "/Summer"],
+      [301, "/stories"],
+      [301, "/properties"],
+    ]);
+    expect(answers[0]?.headers.get("cache-control")).toBe("no-store");
+    expect(dbCalls(db)).toBe(0);
+  });
+
+  it("trailing slash: never moves / itself, a write, or a doubled leading slash to another host", async () => {
+    const { redirects } = await load();
+    const db = catalogDb(7, parts);
+    expect(await redirects.resolveRedirect(get("/"), db)).toBeNull();
+    expect(await redirects.resolveRedirect(get("/properties/", { method: "POST" }), db)).toBeNull();
+    const hostLike = await redirects.resolveRedirect(get("//evil.example/"), db);
+    expect(hostLike?.headers.get("location")).toBe("/evil.example");
   });
 
   it("answers null for a path in neither source, so the page reaches its own 404", async () => {
@@ -190,6 +220,13 @@ describe("handle with a redirect", () => {
       expect(lookedUp).not.toHaveBeenCalled();
       expect(rendered).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("trailing slash: the pipeline answers /properties/ with 301 to /properties before the cache hook", async () => {
+    const { answer, cached, rendered } = await run("/properties/");
+    expect([answer.status, answer.headers.get("location")]).toEqual([301, "/properties"]);
+    expect(cached).not.toHaveBeenCalled();
+    expect(rendered).not.toHaveBeenCalled();
   });
 
   it("lets a path with no redirect through to the cache hook", async () => {

@@ -56,19 +56,33 @@ async function catalogOrUndefined(db: Db): Promise<Catalog | undefined> {
   }
 }
 
+const redirectTo = (location: string, status: number) =>
+  new Response(null, { status, headers: { location, "cache-control": "no-store" } });
+
+/**
+ * A read of a path ending in `/` (not `/` itself) moves to the path without it, query kept, before any lookup.
+ * Leading slashes become one, so `//host/` can never become the protocol-relative `//host`.
+ */
+function withoutTrailingSlash(request: Request, url: URL): Response | null {
+  const { pathname } = url;
+  if (pathname === "/" || !pathname.endsWith("/")) return null;
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const path = `/${pathname.replace(/^\/+/, "").replace(/\/+$/, "")}`;
+  return redirectTo(`${path}${url.search}`, 301);
+}
+
 /** The redirect for this request, or null. The answer is never stored. */
 export async function resolveRedirect(request: Request, db: Db): Promise<Response | null> {
+  const url = new URL(request.url);
+  const slash = withoutTrailingSlash(request, url);
+  if (slash !== null) return slash;
   const catalog = await catalogOrUndefined(db);
   if (catalog === undefined) return null;
   if (built?.version !== catalog.version) {
     built = { version: catalog.version, map: loadRedirectMap(catalog) };
   }
-  const url = new URL(request.url);
   const target = built.map.get(normalize(url.pathname));
   if (target === undefined) return null;
   const location = target.to.includes("?") ? target.to : `${target.to}${url.search}`;
-  return new Response(null, {
-    status: target.status,
-    headers: { location, "cache-control": "no-store" },
-  });
+  return redirectTo(location, target.status);
 }
