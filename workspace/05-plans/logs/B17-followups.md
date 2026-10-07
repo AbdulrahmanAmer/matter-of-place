@@ -137,3 +137,19 @@ Recorded in the bank, not here: none. No follow-up of g3's review has GOTCHAS.md
    Evidence: Confirmed markup by curl of the stand-in /property/tiburon-waterline: <img src="/assets/T4TFjhsO.jpg" sizes="(max-width: 416px) 100vw, 416px" ... loading="lazy" decoding="async"/>, with no srcset. The conformance claim comes from my reading of the spec and was not run through a validator.
 
 Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (the c8 hit-again line of P-008 inserted inside the B3 g1 line) became P-1935, and the misplaced line was moved back after the B3 g1 line it had split.
+
+## c9 · steps 9-10
+
+1. File `app/tests/e2e/essentials.spec.ts` (not blocking).
+   What: Line 572-ish, the step 9 e2e assertion meant to show 'no more than one beacon per 10 seconds' (expect(before).toBeLessThanOrEqual(1) plus exactly one vitals beacon after hidden) does not measure the rate. A one-second batch timer still passes. The plan's step 9 proof line for the rate is therefore not shown by this e2e. The rate itself is guarded independently by B3's analytics-batch.test.ts, so nothing in the product slips through.
+   Evidence: Confirmed by running. With FLUSH_MS = 1_000 in src/lib/analytics.ts, a live rebuild and `E2E_TARGET=built E2E_MODE=live E2E_PORT=8939 bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g web-vitals`, the output was '1 passed (12.7s)'. The same mutation against tests/unit/analytics-batch.test.ts printed WATCHED-FAIL OK.
+
+2. File `app/docs/runbooks/essentials.md` (not blocking).
+   What: Step 10 is NOT DONE. The enforcing Content-Security-Policy header is absent (csp_enforce is not in settings.flags on mop-dev) and the gate is time-gated. Its start date ('seven days after step 1 is deployed') is recorded nowhere, so no one can compute when the flip becomes allowed. The only stored csp_report rows (3, all 2026-10-05) are synthetic test posts, not a week of field reports. The author states all of this as UNPROVEN. The runbook and log are accurate, so this is not a false statement. The orchestrator should record step 1's deploy date and schedule the H1 flip (earliest 2026-10-12).
+   Evidence: Confirmed by running. `curl -sI http://127.0.0.1:8939/ | grep -i "content-security-policy:"` gave no output, exit 1. `select key, value from settings` shows flags = {"new_channels": false, "archive_pages": false}. The csp_report rows have data blocked_uri 'inline', 'https://x.test/a.png' and 'https://reviewer.test/x.png'.
+
+3. File `workspace/05-plans/logs/B17.md` (not blocking).
+   What: The step 10 proof 'no console CSP errors' rests on a 'scratch Playwright' script kept outside the repo, so the log's command cannot be re-run from the repository. The plan names the render gate for this proof. I reproduced the result with my own scratch script (0 messages over six routes), but the evidence is not replayable as written.
+   Evidence: In the log's Step 10 block, the line reads '$ scratch Playwright over /, /stories, /properties, /about, /contact, /submit: console messages matching ... 0'. No repo file holds that script. My scratch reproduction printed 'csp console messages: 0'.
+
+Recorded in the bank, not here: none. No follow-up of c9's review has GOTCHAS.md as its file.
