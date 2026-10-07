@@ -93,11 +93,9 @@ function pathsIgnore(text) {
  */
 function documentsOnly(pr, run) {
   const ci = run("git", ["show", `origin/main:${CI_YML}`]);
-  if (ci.status !== 0)
-    return `merge-gate: no checks, and ci.yml cannot be read: ${ci.err}`;
+  if (ci.status !== 0) return `merge-gate: no checks, and ci.yml cannot be read: ${ci.err}`;
   const patterns = pathsIgnore(ci.out);
-  if (patterns === null)
-    return "merge-gate: no checks, and the paths-ignore of ci.yml is unread";
+  if (patterns === null) return "merge-gate: no checks, and the paths-ignore of ci.yml is unread";
   const files = run("gh", [
     "pr",
     "view",
@@ -107,18 +105,13 @@ function documentsOnly(pr, run) {
     "--jq",
     ".changedFiles, .files[].path",
   ]);
-  if (files.status !== 0)
-    return `merge-gate: cannot read the changed files: ${files.err}`;
+  if (files.status !== 0) return `merge-gate: cannot read the changed files: ${files.err}`;
   const [count, ...paths] = files.out.split("\n");
   if (paths.length === 0 || String(paths.length) !== count) {
     return `merge-gate: no checks, and ${String(paths.length)} of ${count ?? ""} changed files listed`;
   }
-  const other = paths.find(
-    (path) => !patterns.some((pattern) => pattern.test(path)),
-  );
-  return other === undefined
-    ? ""
-    : `merge-gate: no checks reported and ${other} is not a document`;
+  const other = paths.find((path) => !patterns.some((pattern) => pattern.test(path)));
+  return other === undefined ? "" : `merge-gate: no checks reported and ${other} is not a document`;
 }
 
 /**
@@ -141,9 +134,7 @@ function behindByDocumentsOnly(headSha, run) {
   if (gained.status !== 0) return "rebase first";
   const paths = gained.out.split("\n").filter(Boolean);
   if (paths.length === 0) return "rebase first";
-  const other = paths.find(
-    (path) => !patterns.some((pattern) => pattern.test(path)),
-  );
+  const other = paths.find((path) => !patterns.some((pattern) => pattern.test(path)));
   return other === undefined ? "" : `rebase first (main gained ${other})`;
 }
 
@@ -183,32 +174,17 @@ export function mergeGate(pr, run) {
     "--jq",
     "[.headRefOid, .isDraft] | @tsv",
   ]);
-  if (view.status !== 0)
-    return refuse(`merge-gate: cannot read pull request ${pr}: ${view.err}`);
+  if (view.status !== 0) return refuse(`merge-gate: cannot read pull request ${pr}: ${view.err}`);
   const [headSha = "", draft] = view.out.split("\t");
   if (draft === "true") return refuse("mark ready first");
 
-  const fetched = run("git", [
-    "fetch",
-    "--quiet",
-    "origin",
-    "main",
-    `pull/${pr}/head`,
-  ]);
-  if (fetched.status !== 0)
-    return refuse(`merge-gate: git fetch failed: ${fetched.err}`);
-  const ancestor = run("git", [
-    "merge-base",
-    "--is-ancestor",
-    "origin/main",
-    headSha,
-  ]);
+  const fetched = run("git", ["fetch", "--quiet", "origin", "main", `pull/${pr}/head`]);
+  if (fetched.status !== 0) return refuse(`merge-gate: git fetch failed: ${fetched.err}`);
+  const ancestor = run("git", ["merge-base", "--is-ancestor", "origin/main", headSha]);
   if (ancestor.status === 1) {
     const refusal = behindByDocumentsOnly(headSha, run);
     if (refusal !== "") return refuse(refusal);
-    lines.push(
-      "behind main by documents only: no check reads them, proceeding",
-    );
+    lines.push("behind main by documents only: no check reads them, proceeding");
   } else if (ancestor.status !== 0) {
     return refuse(`merge-gate: git merge-base failed: ${ancestor.err}`);
   }
@@ -244,24 +220,15 @@ export function mergeGate(pr, run) {
         ".steps[] | [.name, .conclusion] | @tsv",
       ]);
       if (steps.status !== 0) {
-        return refuse(
-          `merge-gate: cannot read the steps of ${workflow} ${name}: ${steps.err}`,
-        );
+        return refuse(`merge-gate: cannot read the steps of ${workflow} ${name}: ${steps.err}`);
       }
-      const work = tsv(steps.out).filter(
-        ([step]) => !BOOKKEEPING.test(step ?? ""),
-      );
-      if (
-        work.length > 0 &&
-        work.every(([, conclusion]) => conclusion === "skipped")
-      ) {
+      const work = tsv(steps.out).filter(([step]) => !BOOKKEEPING.test(step ?? ""));
+      if (work.length > 0 && work.every(([, conclusion]) => conclusion === "skipped")) {
         lines.push(`all steps skipped: ${workflow} ${name}`);
       }
       continue;
     }
-    lines.push(
-      `${bucket === "skipping" ? "skipped" : bucket}: ${workflow} ${name}`,
-    );
+    lines.push(`${bucket === "skipping" ? "skipped" : bucket}: ${workflow} ${name}`);
     if (bucket !== "skipping") blocked = true;
   }
   if (blocked) return refuse("merge-gate: checks are not all green");
@@ -276,30 +243,17 @@ export function mergeGate(pr, run) {
     "-f",
     "context=merge-gate",
   ]);
-  if (status.status !== 0)
-    return refuse(`merge-gate: posting the status failed: ${status.err}`);
+  if (status.status !== 0) return refuse(`merge-gate: posting the status failed: ${status.err}`);
 
-  const merge = run("gh", [
-    "pr",
-    "merge",
-    pr,
-    "--merge",
-    "--match-head-commit",
-    headSha,
-  ]);
+  const merge = run("gh", ["pr", "merge", pr, "--merge", "--match-head-commit", headSha]);
   lines.push(`${merge.out}${merge.err}`);
   return { code: merge.status === 0 ? 0 : 1, lines };
 }
 
-if (
-  process.argv[1] !== undefined &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const pr = process.argv[2];
   if (!/^\d+$/.test(pr ?? "")) {
-    process.stdout.write(
-      "usage: node workspace/05-plans/merge-gate.mjs <pr>\n",
-    );
+    process.stdout.write("usage: node workspace/05-plans/merge-gate.mjs <pr>\n");
     process.exit(2);
   }
   const { code, lines } = mergeGate(pr ?? "", runHere);
