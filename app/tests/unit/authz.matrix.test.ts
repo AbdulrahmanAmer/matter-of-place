@@ -95,6 +95,9 @@ automation.templates_preview       CE ME MO AD
 automation.templates_send_test     CE MO AD
 dashboard.get                      CE ME VE MO CO AD
 me                                 CE ME VE MO CO AD | S
+people.list                        CE ME VE MO CO AD
+people.get                         CE ME VE MO CO AD
+people.note                        CE ME VE MO
 `;
 
 const ROLE: Record<string, AppRole> = {

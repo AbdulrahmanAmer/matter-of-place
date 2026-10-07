@@ -1244,6 +1244,14 @@ isOneToOne: false
 "ops_health":
 { Args: { "p_now": string }; Returns: Json
                            },
+"people_list":
+{ Args: { "p_cursor_id"?: string,"p_cursor_name"?: string,"p_kind"?: Database["public"]['Enums']["submitter_kind"],"p_limit"?: number,"p_search"?: string }; Returns: {
+              "accepted": number,"brokerage": string,"email": string,"id": string,"kind": Database["public"]['Enums']["submitter_kind"],"last_activity_at": string,"name": string,"published": number,"requests": number
+            }[]
+                           },
+"person_detail":
+{ Args: { "p_contact_id": string }; Returns: Json
+                           },
 "prune_jobs":
 { Args: { "p_dry_run"?: boolean,"p_keep": string }; Returns: number
                            },
@@ -1385,6 +1393,9 @@ isOneToOne: false
                            },
 "set_asset_text":
 { Args: { "p_alt_text"?: string,"p_asset": string,"p_caption"?: string,"p_meta"?: Json }; Returns: undefined
+                           },
+"set_contact_notes":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_contact_id": string,"p_expected_updated_at": string,"p_notes": string,"p_request_id": string }; Returns: string
                            },
 "set_environment":
 { Args: { "p_value": string }; Returns: undefined
