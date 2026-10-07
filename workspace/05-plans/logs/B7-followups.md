@@ -307,3 +307,55 @@ what: I think this is why the operator's note about why Jay broke never reached 
 evidence: grep -rn -i jay workspace/05-plans/logs/ -> B7-followups.md:159, :235-239; B7.md:560 'Not handled: the operator's remark ... addressed to the orchestrator'
 
 blocking: false
+
+## g1 · steps 5
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. Three more follow-ups of this review name GOTCHAS.md and are banked there (hit-again lines under P-801, P-310 and P-1602, and the new P-2132 for the cap of 40 path entries, G-902 included; the reviewer's counts of 43 and 42 included the template heading, the real counts are 42 and 41).
+
+### 1. app/src/routes/admin/requests.$id.tsx (public bundle budget, scripts/bundle-check.mjs)
+
+what: Follow-up. After this group the largest public route is 137 gzip bytes under the 153600 budget. Every admin route file adds bytes to the route tree that the public entry loads, so the next admin route (step 6 onward) will most likely fail bundle-check in CI. This group's own budget holds.
+
+evidence: Confirmed by running: live build then node scripts/bundle-check.mjs printed 'ok _site.property.$slug 153463 gzip bytes' and 'bundle-check: OK 22 routes under 153600 gzip bytes'.
+
+blocking: false
+
+### 2. app/src/admin/requests/RequestDetail.tsx:134 (also :127, and the toasts at :56 and :117)
+
+what: Follow-up, STANDARDS C17. The history panel's error shows only history.error.message, the note form shows only note.error.message, and the toasts for start review and open original show only the message. None of them shows the request id, although AdminApiError carries it and DataTable shows it. The screen-level read does show it through AdminRouteError, and screen 3's toasts set the same precedent.
+
+evidence: Found by reading: grep -n 'history.error.message\|error={note.error' app/src/admin/requests/RequestDetail.tsx. Compare src/admin/ui/DataTable.tsx:99, which renders ' Request ${error.requestId}.'
+
+blocking: false
+
+### 3. app/src/server/submissions/service.ts:358-365
+
+what: Follow-up, suspected from reading. originalUrl turns every createSignedUrl error into 503 storage_unavailable with 'try again in a moment'. That includes a submission_media row whose object was never uploaded (uploaded_at null). Such a missing object would answer as an outage, not as not_found. The UI hides the button for uploaded_at null, so only a direct API call reaches this today.
+
+evidence: Found by reading: sed -n '340,366p' app/src/server/submissions/service.ts. No unit case covers a Storage error on the original.
+
+blocking: false
+
+### 4. app/src/admin/requests/RequestDetail.tsx:53
+
+what: Follow-up, suspected from reading, not run in a browser. window.open is called in the mutation's onSuccess, after an awaited fetch, so it is outside the click's user activation. Safari, and other browsers after the activation window, may block the new tab. With 'noopener' the return value is always null, so a blocked tab is invisible to the editor.
+
+evidence: Found by reading the openOriginal handler. The component test stubs window.open, so this is UNPROVEN in a real browser, as the author already says for screen 4 in a browser.
+
+blocking: false
+
+### 5. app/src/admin/requests/RequestDetail.test.tsx
+
+what: Follow-up. Nothing tests that a 404 from getSubmission throws notFound() and renders the route's notFoundComponent, and nothing tests the history panel's loading, empty or error states. getSubmission against a real row is UNPROVEN: the only database contact is newestPaymentId. That covers the route's output schema parse of a real submissions row with jsonb[] notes, and real Storage signing.
+
+evidence: grep -n "it(\|404\|notFound" app/src/admin/requests/RequestDetail.test.tsx shows no 404 or timeline-state case. The db file's only step 5 case calls newestPaymentId.
+
+blocking: false
+
+### 6. app/src/server/lib/headers.ts:22 (not this group's file)
+
+what: Follow-up, already listed by the author. The CSP img-src is 'self' data:, without the Supabase origin. The policy is report-only today, so thumbnails load. Once it is enforced, every signed thumbnail on screen 4 will be blocked.
+
+evidence: Found by reading: grep -n 'img-src\|Report-Only' app/src/server/lib/headers.ts shows img-src at line 22 and Content-Security-Policy-Report-Only at line 72.
+
+blocking: false
