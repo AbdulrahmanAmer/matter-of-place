@@ -45,3 +45,6 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - Flip `check-seo` from the H64 allowlist to hard once B16 and B17 are on main (privacy, terms, accessibility, cookies pages; fonts.googleapis gone from `__root.tsx`; og:image on /place-notes). (g1 build a9266883)
 - `lhci:local` waits for B17 step 8.
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
+
+## Registry (main)
+- `B2:p` and `B8:p` replay BAD (wrong reason) on main today; CI replays them only when their test files change. Re-anchor when those files are next touched (seen 2026-10-07 while adding B4 shells entries).

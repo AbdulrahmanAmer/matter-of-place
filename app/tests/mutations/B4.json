@@ -1181,10 +1181,10 @@
     "id": "p",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "lighthouserc.json",
-    "find": "153600",
+    "find": "163840",
     "replace": "1000000",
     "run": "bunx vitest run tests/unit/perf-budget.test.ts",
-    "expect": "153600"
+    "expect": "163840"
   },
   {
     "id": "p-document",
@@ -1217,10 +1217,10 @@
     "id": "p-budget-script",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "budget.json",
-    "find": "\"scriptBytes\": 153600",
+    "find": "\"scriptBytes\": 163840",
     "replace": "\"scriptBytes\": 140000",
     "run": "bunx vitest run tests/unit/perf-budget.test.ts",
-    "expect": "expected 140000 to be 153600"
+    "expect": "expected 140000 to be 163840"
   },
   {
     "id": "p-url",
@@ -1347,5 +1347,23 @@
     "replace": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "the overflow and Lighthouse steps run only for a front-end change"
+  },
+  {
+    "id": "shells-legacy",
+    "test": "tests/unit/admin-route-shells.test.ts",
+    "file": "tests/unit/admin-route-shells.test.ts",
+    "find": "  \"src/routes/admin.tsx\",\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
+    "expect": "admin\\.tsx imports .*\\.\\./admin/ui/AdminShell"
+  },
+  {
+    "id": "shells-component",
+    "test": "tests/unit/admin-route-shells.test.ts",
+    "file": "tests/unit/admin-route-shells.test.ts",
+    "find": "  \"src/routes/admin/requests.index.tsx\",\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
+    "expect": "requests\\.index\\.tsx defines a component"
   }
 ]
