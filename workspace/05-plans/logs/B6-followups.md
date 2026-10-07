@@ -19,3 +19,27 @@ Review of group g1: no blocking defect. Four follow-ups below, word for word wit
 4. File: `app/supabase/migrations/20261006224201_invoicing.sql`. Blocking: no.
    What: Two additions the plan did not ask for and the log does not mention (C01). First, the constraint payments_product_chosen check (product <> 'Not sure yet'); the plan says ALTER payments adds 'exactly' its listed columns and checks. Second, the insert that starts invoice_counters from existing payment numbers (lines ~57-65). Both are harmless today: mop-dev has 0 payments, so the counter starts at 0, and no caller pays for 'Not sure yet'. They should be logged as deviations or removed in a later group.
    Evidence: psql on mop-dev printed '0|0' for 'select count(*), count(invoice_number) from public.payments'. grep for product_chosen in B6.md, ASSUMED.md and review/B6.md finds nothing.
+
+## g2 · steps 2
+
+Review of group g2: no blocking defect. Five follow-ups below, word for word with their evidence; the two that concern GOTCHAS.md are banked as hit-again lines on P-713 and P-803 and as P-2309.
+
+1. File: `workspace/05-plans/STANDARDS.md`. Blocking: no.
+   What: R06 (line 118) still says src/server never imports src/data. src/server/payments/pricing.ts now does, under a one-file exception in tests/unit/boundaries.test.ts. The plan requires this import, and the folder map's src/data row allows production to read exposure.ts. The R06 prose needs the matching exception so the next reviewer does not flag it. This file belongs to the orchestrator.
+   Evidence: grep -n 'R06' workspace/05-plans/STANDARDS.md; git diff origin/main...slice/b6 -- app/tests/unit/boundaries.test.ts
+
+2. File: `app/src/domain/workflow.ts`. Blocking: no.
+   What: Line 24 widens a hand-written local union `type PaymentStatus = ... | "void"` that duplicates the generated enum PaymentStatus in src/domain/rows.ts (Enums<"payment_status">). The banked rule P-2306 ('widen PaymentStatus in workflow.ts when the enum gains a value') keeps the manual step instead of deriving the type from rows.ts, so the next enum value will diverge again. workflow.ts is also outside the group's named files, but the step could not type without it. Suspected by reading.
+   Evidence: grep -n 'PaymentStatus' app/src/domain/workflow.ts app/src/domain/rows.ts
+
+3. File: `app/tests/unit/payments/domain.test.ts`. Blocking: no.
+   What: The test titled 'accepts the seeded invoice settings' parses a hand-typed copy, not the jsonb seeded by 20261006224201_invoicing.sql, so a drift between the seed and invoiceSettingsSchema would stay green. I parsed the real seed by hand and it passes today.
+   Evidence: Scratch script running invoiceSettingsSchema.safeParse on the seed extracted from the migration printed true. The test's `settings` constant is a literal.
+
+4. File: `app/src/server/payments/adapters/manual.ts`. Blocking: no.
+   What: PaymentAdapter.prepare is typed to return a Promise, but invoiceManual.prepare throws synchronously when there is no snapshot (and a ZodError, not an AppError, on a malformed snapshot). StripeAdapter.parseWebhook has no watched-fail entry; only prepare is mutated in b6-g2-stripe-stub. A caller that uses .catch() instead of await inside try would miss the throw. Suspected by reading; no caller exists yet.
+   Evidence: app/src/server/payments/adapters/manual.ts lines 14-23; app/tests/mutations/B6.json entry b6-g2-stripe-stub mutates only 'Stripe prepare'.
+
+5. File: `workspace/05-plans/B6.md`. Blocking: no.
+   What: The plan text says markPaidInput refuses a future paid_at with 422. The code puts that refusal in paidAtIsFuture(paidAt, now) because of R29. The plan line needs folding. The in-progress g3 service.ts (uncommitted, line 250) already calls paidAtIsFuture(input.paidAt, new Date()), but that is UNPROVEN until g3 is reviewed.
+   Evidence: grep -n paidAtIsFuture app/src/server/payments/service.ts (uncommitted g3 work)
