@@ -1796,8 +1796,8 @@
     "id": "b7-g4-svc-wrong-state",
     "test": "tests/unit/submissions.service.test.ts",
     "file": "src/server/submissions/service.ts",
-    "find": "    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
-    "replace": "    ...auditContext(actor),\n  });\n  if (error !== null) return { started: 0 };",
+    "find": "    p_submission_ids: input.ids,\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    p_submission_ids: input.ids,\n    ...auditContext(actor),\n  });\n  if (error !== null) return { started: 0 };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
     "expect": "× .*answers 409 wrong_state when a request of the selection has moved on"
   },
@@ -1900,5 +1900,526 @@
     "sql": "drop index public.submissions_list_idx;",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"the submissions list index\"",
     "expect": "× .*the submissions list index leads with the state"
+  },
+  {
+    "id": "b7-g5-tl-sort",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": "return entries.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, LIMIT);",
+    "replace": "return entries.slice(0, LIMIT);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*merges the audit rows and the job events"
+  },
+  {
+    "id": "b7-g5-tl-payload-job",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": ".or(entityJobsFilter(id))",
+    "replace": ".eq(\"job_event_entity_id\", id)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*includes a job found only through payload.data.property_id"
+  },
+  {
+    "id": "b7-g5-tl-reads",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": ".from(\"job_events\")",
+    "replace": ".from(\"audit_log\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*makes three reads and no write"
+  },
+  {
+    "id": "b7-g5-tl-no-jobs",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": "typeOf.size === 0\n",
+    "replace": "false\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*reads no job events when the entity has no job"
+  },
+  {
+    "id": "b7-g5-get-commercial",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.get\");\n  const [row,",
+    "replace": "authorize(actor, \"submissions.accept\");\n  const [row,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader open a request"
+  },
+  {
+    "id": "b7-g5-get-order",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".order(\"sort_order\")",
+    "replace": ".order(\"id\", { ascending: false })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader open a request"
+  },
+  {
+    "id": "b7-g5-thumb-seconds",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const THUMB_SECONDS = 3600;",
+    "replace": "const THUMB_SECONDS = 60;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*asks Storage once for the thumbnails"
+  },
+  {
+    "id": "b7-g5-thumb-missing",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "thumbs.get(thumbPath(input.id, photo.id)) ?? null",
+    "replace": "thumbs.get(thumbPath(input.id, photo.id)) ?? \"placeholder\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*gives thumb_url null for a photograph whose thumbnail has no object"
+  },
+  {
+    "id": "b7-g5-thumb-error",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "photos: mediaIds.length,\n    });\n    return signed;",
+    "replace": "photos: mediaIds.length,\n    });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*gives thumb_url null for every photograph when Storage fails"
+  },
+  {
+    "id": "b7-g5-get-404",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "if (row.data === null) {",
+    "replace": "if (row.data === undefined) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*answers 404 for a request that does not exist"
+  },
+  {
+    "id": "b7-g5-payment-none",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "return data[0]?.id ?? null;",
+    "replace": "return data[0]?.id ?? \"none\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns payment_id null for a request without payments"
+  },
+  {
+    "id": "b7-g5-payment-order",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".order(\"created_at\", { ascending: false })",
+    "replace": ".order(\"created_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns the id of the newest payment of the request that is not void"
+  },
+  {
+    "id": "b7-g5-payment-void",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".in(\"status\", [\"due\", \"paid\", \"waived\", \"refunded\"])",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns null when every payment of the request is void"
+  },
+  {
+    "id": "b7-g5-original-seconds",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const ORIGINAL_SECONDS = 600;",
+    "replace": "const ORIGINAL_SECONDS = 60;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*signs the one original for 600 seconds"
+  },
+  {
+    "id": "b7-g5-original-other",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".eq(\"submission_id\", input.id)\n    .maybeSingle();",
+    "replace": ".maybeSingle();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*answers 404 for a photograph of another request"
+  },
+  {
+    "id": "b7-g5-note-role",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.note\");",
+    "replace": "authorize(actor, \"submissions.decline\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a visual editor add a note"
+  },
+  {
+    "id": "b7-g5-note-commercial",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.note\");",
+    "replace": "authorize(actor, \"submissions.get\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*refuses a commercial reader with 403 before any database call"
+  },
+  {
+    "id": "b7-g5-timeline-role",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.timeline\");",
+    "replace": "authorize(actor, \"submissions.accept\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader read the history of a request"
+  },
+  {
+    "id": "b7-g5-ui-facts",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": ".filter(([, value]) => value !== null && value !== \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*groups what was submitted and leaves out what was not"
+  },
+  {
+    "id": "b7-g5-ui-person",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "detail.contact_id !== null || detail.property_id === null ? null : (",
+    "replace": "detail.property_id === null ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*links the person while there is a contact"
+  },
+  {
+    "id": "b7-g5-ui-web",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "return protocol === \"https:\" || protocol === \"http:\" ? value : null;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*opens only web addresses"
+  },
+  {
+    "id": "b7-g5-ui-owner",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "[\"Listing agent\", owner ? detail.listing_agent_name : null],",
+    "replace": "[\"Listing agent\", null],",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*asks an owner about the agent they list with"
+  },
+  {
+    "id": "b7-g5-ui-placeholder",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/PhotoStrip.tsx",
+    "find": "photo.thumb_url === null ? (",
+    "replace": "false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*shows a placeholder where the thumbnail is null"
+  },
+  {
+    "id": "b7-g5-ui-notes-order",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "const newestFirst = [...notes].reverse();",
+    "replace": "const newestFirst = [...notes];",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*lists the notes newest first"
+  },
+  {
+    "id": "b7-g5-ui-notes-gate",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "{canNote ? (",
+    "replace": "{true ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*has no form for an actor who may not note"
+  },
+  {
+    "id": "b7-g5-ui-notes-clear",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "if (kept) setText(\"\");",
+    "replace": "if (kept) setText(text);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*sends the words typed and clears the field"
+  },
+  {
+    "id": "b7-g5-ui-detail-photos",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "<PhotoStrip photos={detail.media} opening={opening} onOpen={openOriginal} />",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*shows the address and state, the photographs"
+  },
+  {
+    "id": "b7-g5-ui-start-one",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "start.mutate([id], {",
+    "replace": "start.mutate([], {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*starts the review of this request alone"
+  },
+  {
+    "id": "b7-g5-ui-start-gate",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "canStartReview={actions.includes(\"submissions.start_review\")}",
+    "replace": "canStartReview",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*offers no Start review to an actor without the action"
+  },
+  {
+    "id": "b7-g5-ui-start-state",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/DecisionPanel.tsx",
+    "find": "canStartReview && offered.includes(\"start_review\") ? (",
+    "replace": "canStartReview ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*hides Start review once the request is under review"
+  },
+  {
+    "id": "b7-g5-ui-original",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "window.open(url, \"_blank\", \"noopener,noreferrer\");",
+    "replace": "window.open(url);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*opens an original only after the button is pressed"
+  },
+  {
+    "id": "b7-g5-db-payments-read",
+    "test": "tests/db/admin.db.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".eq(\"submission_id\", submissionId)",
+    "replace": ".eq(\"submission_idx\", submissionId)",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission",
+    "expect": "× .*reads the newest payment through the service client"
+  },
+  {
+    "id": "b7-g5-db-payments-status",
+    "test": "tests/db/admin.db.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".in(\"status\", [\"due\", \"paid\", \"waived\", \"refunded\"])",
+    "replace": ".neq(\"status\", \"voided\")",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission",
+    "expect": "× .*reads the newest payment through the service client"
+  },
+  {
+    "id": "b7-5a-svc-search",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "{ p_search: input.search }",
+    "replace": "{ p_search: input.search.trim() }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*lists for a commercial actor"
+  },
+  {
+    "id": "b7-5a-svc-cursor",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "items.length === input.limit && last",
+    "replace": "items.length > input.limit && last",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*gives a full page the cursor"
+  },
+  {
+    "id": "b7-5a-svc-get-auth",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "authorize(actor, \"people.get\");",
+    "replace": "authorize(actor, \"people.note\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*reads one person for a commercial actor"
+  },
+  {
+    "id": "b7-5a-svc-get-error",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "await db.rpc(\"person_detail\", { p_contact_id: id });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "await db.rpc(\"person_detail\", { p_contact_id: id });\n  if (error !== null) return personDetailSchema.parse({});",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*answers 404 not_found for an unknown person"
+  },
+  {
+    "id": "b7-5a-svc-audit",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "p_expected_updated_at: input.expected_updated_at,\n    ...auditContext(actor),",
+    "replace": "p_expected_updated_at: input.expected_updated_at,\n    p_actor: actor.userId, p_actor_kind: actor.kind, p_request_id: \"\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*saves for a media_ops actor"
+  },
+  {
+    "id": "b7-5a-svc-note-auth",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "authorize(actor, \"people.note\");",
+    "replace": "authorize(actor, \"people.get\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*refuses a commercial actor with 403"
+  },
+  {
+    "id": "b7-5a-svc-stale",
+    "test": "tests/unit/people.service.test.ts",
+    "file": "src/server/people/service.ts",
+    "find": "...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "...auditContext(actor),\n  });\n  if (error !== null) return { updated_at: \"\" };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/people.service.test.ts",
+    "expect": "× .*answers 409 stale when someone else saved first"
+  },
+  {
+    "id": "b7-5a-matrix-commercial-note",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/people.ts",
+    "find": "{ action: \"people.note\", group: \"people\", roles: noters }",
+    "replace": "{ action: \"people.note\", group: \"people\", roles: appRoles }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*equals the hand-typed fixture"
+  },
+  {
+    "id": "b7-5a-nav-people-list",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/server/lib/permissions/people.ts",
+    "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*reads Work as Dashboard, Requests, People"
+  },
+  {
+    "id": "b7-5a-route-notes",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/people.$id.notes.ts",
+    "find": "action: \"people.note\",",
+    "replace": "action: \"people.get\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
+    "expect": "× .*gives every matrix action a route"
+  },
+  {
+    "id": "b7-5a-ui-columns",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/people/PeopleTable.tsx",
+    "find": "{ key: \"email\", header: \"Email\", render: (row) => row.email },\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*shows the eight columns of a person"
+  },
+  {
+    "id": "b7-5a-ui-empty",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/people/PeopleTable.tsx",
+    "find": "<EmptyState title=\"No one has submitted yet\">",
+    "replace": "<EmptyState title=\"No people\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*says No one has submitted yet"
+  },
+  {
+    "id": "b7-5a-ui-sections",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/people/PersonDetail.tsx",
+    "find": "<Section title=\"Emails\" none=\"No emails sent.\">",
+    "replace": "<Section title=\"Mail\" none=\"No emails sent.\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*draws the six sections of screen 27"
+  },
+  {
+    "id": "b7-5a-ui-open-person",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "{detail.contact_id === null ? null : (",
+    "replace": "{detail.contact_id === undefined ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*shows Open person for a request with a contact"
+  },
+  {
+    "id": "b7-5a-ui-autosave-version",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/people/PersonNotes.tsx",
+    "find": "onSave(next, saved.version)",
+    "replace": "onSave(next, updatedAt)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*autosaves after a pause"
+  },
+  {
+    "id": "b7-5a-ui-stale",
+    "test": "src/admin/people/people.test.tsx",
+    "file": "src/admin/people/PersonNotes.tsx",
+    "find": "error.code === \"stale\"",
+    "replace": "error.code === \"conflict\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/people/people.test.tsx",
+    "expect": "× .*stops on 409 stale"
+  },
+  {
+    "id": "b7-5a-db-kind-stays",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name, kind = excluded.kind,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- G20: the event commits or rolls back with the row; the 10-minute repeat above returned before it.\n  perform public.emit_event(\n    'submission.received', 'submission', v_submission_id, jsonb_build_object('submission_id', v_submission_id), null\n  );\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;\n\nrevoke execute on function public.create_submission(jsonb) from public, anon, authenticated;\ngrant execute on function public.create_submission(jsonb) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"lists two requests from one address\"",
+    "expect": "× .*lists two requests from one address"
+  },
+  {
+    "id": "b7-5a-db-accepted",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.people_list(\n  p_search text default null,\n  p_kind public.submitter_kind default null,\n  p_limit integer default 50,\n  p_cursor_name text default null,\n  p_cursor_id uuid default null\n)\nreturns table (\n  id uuid,\n  name text,\n  kind public.submitter_kind,\n  brokerage text,\n  email text,\n  requests integer,\n  accepted integer,\n  published integer,\n  last_activity_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 26 (invariant 23, S55): one keyset page of the people not anonymised, ordered as B2's\n  -- `contacts_name_idx` is. The search text is compared with `position`, so no pattern is built from it (R44).\n  select\n    c.id,\n    c.name,\n    c.kind,\n    c.brokerage,\n    c.email,\n    coalesce(s.requests, 0),\n    coalesce(s.accepted, 0),\n    coalesce(s.published, 0),\n    greatest(c.updated_at, s.last_updated_at)\n  from public.contacts c\n  left join lateral (\n    select\n      count(*)::integer as requests,\n      count(*)::integer as accepted,\n      count(p.id) filter (where p.first_published_at is not null)::integer as published,\n      max(x.updated_at) as last_updated_at\n    from public.submissions x\n    left join public.properties p on p.submission_id = x.id\n    where x.contact_id = c.id\n  ) s on true\n  where c.archived_at is null\n    and (p_kind is null or c.kind = p_kind)\n    and (\n      p_search is null\n      or position(lower(p_search) in lower(c.name)) > 0\n      or position(lower(p_search) in lower(c.email)) > 0\n      or position(lower(p_search) in lower(coalesce(c.brokerage, ''))) > 0\n    )\n    and (p_cursor_id is null or (lower(c.name), c.id) > (lower(p_cursor_name), p_cursor_id))\n  order by lower(c.name), c.id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.people_list(text, public.submitter_kind, integer, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.people_list(text, public.submitter_kind, integer, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"counts an accepted request\"",
+    "expect": "× .*counts an accepted request"
+  },
+  {
+    "id": "b7-5a-db-search-case",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.people_list(\n  p_search text default null,\n  p_kind public.submitter_kind default null,\n  p_limit integer default 50,\n  p_cursor_name text default null,\n  p_cursor_id uuid default null\n)\nreturns table (\n  id uuid,\n  name text,\n  kind public.submitter_kind,\n  brokerage text,\n  email text,\n  requests integer,\n  accepted integer,\n  published integer,\n  last_activity_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 26 (invariant 23, S55): one keyset page of the people not anonymised, ordered as B2's\n  -- `contacts_name_idx` is. The search text is compared with `position`, so no pattern is built from it (R44).\n  select\n    c.id,\n    c.name,\n    c.kind,\n    c.brokerage,\n    c.email,\n    coalesce(s.requests, 0),\n    coalesce(s.accepted, 0),\n    coalesce(s.published, 0),\n    greatest(c.updated_at, s.last_updated_at)\n  from public.contacts c\n  left join lateral (\n    select\n      count(*)::integer as requests,\n      count(*) filter (where x.accepted_at is not null)::integer as accepted,\n      count(p.id) filter (where p.first_published_at is not null)::integer as published,\n      max(x.updated_at) as last_updated_at\n    from public.submissions x\n    left join public.properties p on p.submission_id = x.id\n    where x.contact_id = c.id\n  ) s on true\n  where c.archived_at is null\n    and (p_kind is null or c.kind = p_kind)\n    and (\n      p_search is null\n      or position(lower(p_search) in lower(c.name)) > 0\n      or position(lower(p_search) in lower(c.email)) > 0\n      or position(p_search in lower(coalesce(c.brokerage, ''))) > 0\n    )\n    and (p_cursor_id is null or (lower(c.name), c.id) > (lower(p_cursor_name), p_cursor_id))\n  order by lower(c.name), c.id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.people_list(text, public.submitter_kind, integer, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.people_list(text, public.submitter_kind, integer, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"finds a person by part of the brokerage\"",
+    "expect": "× .*finds a person by part of the brokerage"
+  },
+  {
+    "id": "b7-5a-db-kind-filter",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.people_list(\n  p_search text default null,\n  p_kind public.submitter_kind default null,\n  p_limit integer default 50,\n  p_cursor_name text default null,\n  p_cursor_id uuid default null\n)\nreturns table (\n  id uuid,\n  name text,\n  kind public.submitter_kind,\n  brokerage text,\n  email text,\n  requests integer,\n  accepted integer,\n  published integer,\n  last_activity_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 26 (invariant 23, S55): one keyset page of the people not anonymised, ordered as B2's\n  -- `contacts_name_idx` is. The search text is compared with `position`, so no pattern is built from it (R44).\n  select\n    c.id,\n    c.name,\n    c.kind,\n    c.brokerage,\n    c.email,\n    coalesce(s.requests, 0),\n    coalesce(s.accepted, 0),\n    coalesce(s.published, 0),\n    greatest(c.updated_at, s.last_updated_at)\n  from public.contacts c\n  left join lateral (\n    select\n      count(*)::integer as requests,\n      count(*) filter (where x.accepted_at is not null)::integer as accepted,\n      count(p.id) filter (where p.first_published_at is not null)::integer as published,\n      max(x.updated_at) as last_updated_at\n    from public.submissions x\n    left join public.properties p on p.submission_id = x.id\n    where x.contact_id = c.id\n  ) s on true\n  where c.archived_at is null\n    and (p_kind is null or true)\n    and (\n      p_search is null\n      or position(lower(p_search) in lower(c.name)) > 0\n      or position(lower(p_search) in lower(c.email)) > 0\n      or position(lower(p_search) in lower(coalesce(c.brokerage, ''))) > 0\n    )\n    and (p_cursor_id is null or (lower(c.name), c.id) > (lower(p_cursor_name), p_cursor_id))\n  order by lower(c.name), c.id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.people_list(text, public.submitter_kind, integer, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.people_list(text, public.submitter_kind, integer, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"finds a person by part of the brokerage\"",
+    "expect": "× .*finds a person by part of the brokerage"
+  },
+  {
+    "id": "b7-5a-db-archived",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.people_list(\n  p_search text default null,\n  p_kind public.submitter_kind default null,\n  p_limit integer default 50,\n  p_cursor_name text default null,\n  p_cursor_id uuid default null\n)\nreturns table (\n  id uuid,\n  name text,\n  kind public.submitter_kind,\n  brokerage text,\n  email text,\n  requests integer,\n  accepted integer,\n  published integer,\n  last_activity_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 26 (invariant 23, S55): one keyset page of the people not anonymised, ordered as B2's\n  -- `contacts_name_idx` is. The search text is compared with `position`, so no pattern is built from it (R44).\n  select\n    c.id,\n    c.name,\n    c.kind,\n    c.brokerage,\n    c.email,\n    coalesce(s.requests, 0),\n    coalesce(s.accepted, 0),\n    coalesce(s.published, 0),\n    greatest(c.updated_at, s.last_updated_at)\n  from public.contacts c\n  left join lateral (\n    select\n      count(*)::integer as requests,\n      count(*) filter (where x.accepted_at is not null)::integer as accepted,\n      count(p.id) filter (where p.first_published_at is not null)::integer as published,\n      max(x.updated_at) as last_updated_at\n    from public.submissions x\n    left join public.properties p on p.submission_id = x.id\n    where x.contact_id = c.id\n  ) s on true\n  where true\n    and (p_kind is null or c.kind = p_kind)\n    and (\n      p_search is null\n      or position(lower(p_search) in lower(c.name)) > 0\n      or position(lower(p_search) in lower(c.email)) > 0\n      or position(lower(p_search) in lower(coalesce(c.brokerage, ''))) > 0\n    )\n    and (p_cursor_id is null or (lower(c.name), c.id) > (lower(p_cursor_name), p_cursor_id))\n  order by lower(c.name), c.id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.people_list(text, public.submitter_kind, integer, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.people_list(text, public.submitter_kind, integer, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"leaves out an archived contact\"",
+    "expect": "× .*leaves out an archived contact"
+  },
+  {
+    "id": "b7-5a-db-cursor",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.people_list(\n  p_search text default null,\n  p_kind public.submitter_kind default null,\n  p_limit integer default 50,\n  p_cursor_name text default null,\n  p_cursor_id uuid default null\n)\nreturns table (\n  id uuid,\n  name text,\n  kind public.submitter_kind,\n  brokerage text,\n  email text,\n  requests integer,\n  accepted integer,\n  published integer,\n  last_activity_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 26 (invariant 23, S55): one keyset page of the people not anonymised, ordered as B2's\n  -- `contacts_name_idx` is. The search text is compared with `position`, so no pattern is built from it (R44).\n  select\n    c.id,\n    c.name,\n    c.kind,\n    c.brokerage,\n    c.email,\n    coalesce(s.requests, 0),\n    coalesce(s.accepted, 0),\n    coalesce(s.published, 0),\n    greatest(c.updated_at, s.last_updated_at)\n  from public.contacts c\n  left join lateral (\n    select\n      count(*)::integer as requests,\n      count(*) filter (where x.accepted_at is not null)::integer as accepted,\n      count(p.id) filter (where p.first_published_at is not null)::integer as published,\n      max(x.updated_at) as last_updated_at\n    from public.submissions x\n    left join public.properties p on p.submission_id = x.id\n    where x.contact_id = c.id\n  ) s on true\n  where c.archived_at is null\n    and (p_kind is null or c.kind = p_kind)\n    and (\n      p_search is null\n      or position(lower(p_search) in lower(c.name)) > 0\n      or position(lower(p_search) in lower(c.email)) > 0\n      or position(lower(p_search) in lower(coalesce(c.brokerage, ''))) > 0\n    )\n    and (p_cursor_id is null or (lower(c.name), c.id) >= (lower(p_cursor_name), p_cursor_id))\n  order by lower(c.name), c.id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.people_list(text, public.submitter_kind, integer, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.people_list(text, public.submitter_kind, integer, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"pages in name order\"",
+    "expect": "× .*pages in name order"
+  },
+  {
+    "id": "b7-5a-db-email-case",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.person_detail(p_contact_id uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- Screen 27 (invariant 23, S55): the person and five lists in one call, each newest first and at most 100 rows.\n  -- Payments are B2's own columns, so the read needs nothing of B6.\n  select * into v_contact from public.contacts c where c.id = p_contact_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  return jsonb_build_object(\n    'contact', jsonb_build_object(\n      'id', v_contact.id,\n      'kind', v_contact.kind,\n      'name', v_contact.name,\n      'email', v_contact.email,\n      'phone', v_contact.phone,\n      'brokerage', v_contact.brokerage,\n      'notes', v_contact.notes,\n      'updated_at', v_contact.updated_at\n    ),\n    'requests', coalesce((\n      select jsonb_agg(r order by r.received_at desc, r.id)\n      from (\n        select s.id, s.address, s.city, s.state, s.workflow_state, s.received_at\n        from public.submissions s\n        where s.contact_id = p_contact_id\n        order by s.received_at desc, s.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'properties', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select p.id, p.title, p.slug, p.editorial_state, p.first_published_at, p.created_at\n        from public.properties p\n        join public.submissions s on s.id = p.submission_id\n        where s.contact_id = p_contact_id\n        order by p.created_at desc, p.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'payments', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select pay.id, pay.invoice_number, pay.product, pay.amount, pay.currency, pay.status, pay.issued_at,\n          pay.paid_at, pay.created_at\n        from public.payments pay\n        join public.submissions s on s.id = pay.submission_id\n        where s.contact_id = p_contact_id\n        order by pay.created_at desc, pay.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'emails', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select e.id, e.template_key, e.status, e.sent_at, e.created_at\n        from public.email_messages e\n        where e.to_email = v_contact.email\n        order by e.created_at desc, e.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'inquiries', coalesce((\n      select jsonb_agg(r order by r.received_at desc, r.id)\n      from (\n        select i.id, i.received_at, i.intent, i.state, i.subject_title\n        from public.inquiries i\n        where i.subject_kind = 'property'\n          and i.subject_slug in (\n            select p.slug\n            from public.properties p\n            join public.submissions s on s.id = p.submission_id\n            where s.contact_id = p_contact_id\n          )\n        order by i.received_at desc, i.id\n        limit 100\n      ) r\n    ), '[]'::jsonb)\n  );\nend;\n$$;\n\nrevoke execute on function public.person_detail(uuid) from public, anon, authenticated;\ngrant execute on function public.person_detail(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"returns the requests, the property\"",
+    "expect": "× .*returns the requests, the property"
+  },
+  {
+    "id": "b7-5a-db-not-found",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.person_detail(p_contact_id uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- Screen 27 (invariant 23, S55): the person and five lists in one call, each newest first and at most 100 rows.\n  -- Payments are B2's own columns, so the read needs nothing of B6.\n  select * into v_contact from public.contacts c where c.id = p_contact_id;\n  return jsonb_build_object(\n    'contact', jsonb_build_object(\n      'id', v_contact.id,\n      'kind', v_contact.kind,\n      'name', v_contact.name,\n      'email', v_contact.email,\n      'phone', v_contact.phone,\n      'brokerage', v_contact.brokerage,\n      'notes', v_contact.notes,\n      'updated_at', v_contact.updated_at\n    ),\n    'requests', coalesce((\n      select jsonb_agg(r order by r.received_at desc, r.id)\n      from (\n        select s.id, s.address, s.city, s.state, s.workflow_state, s.received_at\n        from public.submissions s\n        where s.contact_id = p_contact_id\n        order by s.received_at desc, s.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'properties', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select p.id, p.title, p.slug, p.editorial_state, p.first_published_at, p.created_at\n        from public.properties p\n        join public.submissions s on s.id = p.submission_id\n        where s.contact_id = p_contact_id\n        order by p.created_at desc, p.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'payments', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select pay.id, pay.invoice_number, pay.product, pay.amount, pay.currency, pay.status, pay.issued_at,\n          pay.paid_at, pay.created_at\n        from public.payments pay\n        join public.submissions s on s.id = pay.submission_id\n        where s.contact_id = p_contact_id\n        order by pay.created_at desc, pay.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'emails', coalesce((\n      select jsonb_agg(r order by r.created_at desc, r.id)\n      from (\n        select e.id, e.template_key, e.status, e.sent_at, e.created_at\n        from public.email_messages e\n        where lower(e.to_email) = lower(v_contact.email)\n        order by e.created_at desc, e.id\n        limit 100\n      ) r\n    ), '[]'::jsonb),\n    'inquiries', coalesce((\n      select jsonb_agg(r order by r.received_at desc, r.id)\n      from (\n        select i.id, i.received_at, i.intent, i.state, i.subject_title\n        from public.inquiries i\n        where i.subject_kind = 'property'\n          and i.subject_slug in (\n            select p.slug\n            from public.properties p\n            join public.submissions s on s.id = p.submission_id\n            where s.contact_id = p_contact_id\n          )\n        order by i.received_at desc, i.id\n        limit 100\n      ) r\n    ), '[]'::jsonb)\n  );\nend;\n$$;\n\nrevoke execute on function public.person_detail(uuid) from public, anon, authenticated;\ngrant execute on function public.person_detail(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"raises not_found for an unknown id\"",
+    "expect": "× .*raises not_found for an unknown id"
+  },
+  {
+    "id": "b7-5a-db-stale",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.set_contact_notes(\n  p_contact_id uuid,\n  p_notes text,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.contacts;\n  v_updated_at timestamptz;\nbegin\n  -- Screen 27 (invariant 23): the internal notes on a person, saved whole. An editor who started from an older\n  -- version gets `stale`, as on stories. `write_audit` stores `{\"pii\": \"changed\"}` for `notes` (B2's pii_columns).\n  if p_notes is null or char_length(p_notes) > 5000 then\n    raise exception 'validation';\n  end if;\n  select * into v_old from public.contacts c where c.id = p_contact_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  update public.contacts\n  set notes = p_notes\n  where id = p_contact_id\n  returning updated_at into v_updated_at;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'people.note', 'contact', p_contact_id,\n    jsonb_build_object('id', p_contact_id, 'notes', v_old.notes),\n    jsonb_build_object('id', p_contact_id, 'notes', p_notes),\n    p_request_id\n  );\n  return v_updated_at;\nend;\n$$;\n\nrevoke execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"raises stale for an old version\"",
+    "expect": "× .*raises stale for an old version"
+  },
+  {
+    "id": "b7-5a-db-audit",
+    "kind": "sql",
+    "test": "tests/db/people.db.test.ts",
+    "sql": "create or replace function public.set_contact_notes(\n  p_contact_id uuid,\n  p_notes text,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.contacts;\n  v_updated_at timestamptz;\nbegin\n  -- Screen 27 (invariant 23): the internal notes on a person, saved whole. An editor who started from an older\n  -- version gets `stale`, as on stories. `write_audit` stores `{\"pii\": \"changed\"}` for `notes` (B2's pii_columns).\n  if p_notes is null or char_length(p_notes) > 5000 then\n    raise exception 'validation';\n  end if;\n  select * into v_old from public.contacts c where c.id = p_contact_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  update public.contacts\n  set notes = p_notes\n  where id = p_contact_id\n  returning updated_at into v_updated_at;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'people.note', 'contact', p_contact_id,\n    jsonb_build_object('id', p_contact_id, 'notes', v_old.notes),\n    jsonb_build_object('id', p_contact_id, 'notes', p_notes, 'text', p_notes),\n    p_request_id\n  );\n  return v_updated_at;\nend;\n$$;\n\nrevoke execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"raises stale for an old version\"",
+    "expect": "× .*raises stale for an old version"
   }
 ]

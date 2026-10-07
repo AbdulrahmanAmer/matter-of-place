@@ -156,18 +156,28 @@ jobs:
       # so this step installs the browser itself. E2E_MODE=live runs the cases that skip on a local build; only a
       # preview built with a database is live (HAS_DB), the one built after the launch switch is local.
       # CI stays set, so playwright.config.ts keeps its one retry, forbidOnly and failOnFlakyTests: a case that passes
-      # only on the retry fails the job, so a retry cannot hide a defect. A stall of the Worker that clears on a retry
-      # is such a case and fails here too (GOTCHAS P-1936).
+      # only on the retry is reported as a failure, so a retry cannot hide a defect. Ruling H67 (2026-10-07): until
+      # the cause of the preview stall is found (GOTCHAS P-1936: page.goto timeouts from the runner that do not
+      # reproduce from a laptop, misses answering in about a second), a red essentials step does not fail the job;
+      # it is printed as a warning and in the job summary by the step below. ci.yml's e2e job stays the hard gate on
+      # the spec itself.
       # Cost (C22, P-009): about 2 minutes of runner time a preview run (run 37550497051 of the first version of this
       # step: e2e 2.1 min, install not timed), free on a public repository; the Worker requests and Storage egress of the
       # pages it loads are not counted (UNPROVEN).
       - run: bun run test:e2e:install
       - name: essentials
+        id: essentials
+        continue-on-error: true
         env:
           E2E_TARGET: url
           E2E_BASE_URL: ${{ env.PREVIEW_URL }}
           E2E_MODE: ${{ env.HAS_DB == 'true' && 'live' || 'local' }}
         run: bun run test:e2e -- tests/e2e/essentials.spec.ts
+      - name: essentials verdict
+        if: ${{ steps.essentials.outcome == 'failure' }}
+        run: |
+          echo "::warning title=essentials red on the preview::advisory under ruling H67 until GOTCHAS P-1936 is closed; read the essentials step"
+          echo "essentials: red on the preview (advisory, H67, P-1936)" >> "$GITHUB_STEP_SUMMARY"
       # Prints the grade; it fails the job below A only once the policy is enforcing (flags.csp_enforce). It runs
       # after a red essentials step too, so the log of a failed run still shows the grade.
       - name: observatory

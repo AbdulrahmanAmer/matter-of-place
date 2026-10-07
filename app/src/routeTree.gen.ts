@@ -48,7 +48,10 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
+import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
+import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
@@ -67,7 +70,10 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
+import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
+import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api/admin/submissions.start-review'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
 import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
@@ -76,7 +82,11 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
+import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
+import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
@@ -275,9 +285,28 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
+  id: '/people/',
+  path: '/people/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/people.index.lazy').then((d) => d.Route),
+)
+const AdminPeopleIdRoute = AdminPeopleIdRouteImport.update({
+  id: '/people/$id',
+  path: '/people/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/people.$id.lazy').then((d) => d.Route),
+)
 const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
   id: '/requests/',
   path: '/requests/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRequestsIdRoute = AdminRequestsIdRouteImport.update({
+  id: '/requests/$id',
+  path: '/requests/$id',
   getParentRoute: () => AdminRoute,
 } as any)
 const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
@@ -370,12 +399,27 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminPeopleIndexRoute = ApiAdminPeopleIndexRouteImport.update({
+  id: '/api/admin/people/',
+  path: '/api/admin/people/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPeopleIdRoute = ApiAdminPeopleIdRouteImport.update({
+  id: '/api/admin/people/$id',
+  path: '/api/admin/people/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSubmissionsIndexRoute =
   ApiAdminSubmissionsIndexRouteImport.update({
     id: '/api/admin/submissions/',
     path: '/api/admin/submissions/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
+  id: '/api/admin/submissions/$id',
+  path: '/api/admin/submissions/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSubmissionsStartReviewRoute =
   ApiAdminSubmissionsStartReviewRouteImport.update({
     id: '/api/admin/submissions/start-review',
@@ -419,11 +463,34 @@ const ApiPublicSubscribersConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
   } as any)
+const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => ApiAdminPeopleIdRoute,
+} as any)
+const ApiAdminSubmissionsIdNoteRoute =
+  ApiAdminSubmissionsIdNoteRouteImport.update({
+    id: '/note',
+    path: '/note',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdTimelineRoute =
+  ApiAdminSubmissionsIdTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
     path: '/$id/uploads',
     getParentRoute: () => ApiPublicSubmissionsRoute,
+  } as any)
+const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
+    id: '/media/$mediaId/original',
+    path: '/media/$mediaId/original',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -462,6 +529,8 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -479,11 +548,14 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -492,8 +564,13 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
@@ -528,6 +605,8 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -545,11 +624,14 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -558,8 +640,13 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -599,6 +686,8 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -616,11 +705,14 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -629,8 +721,13 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -670,6 +767,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
@@ -687,11 +786,14 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -700,8 +802,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/admin'
@@ -736,6 +843,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
@@ -753,11 +862,14 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -766,8 +878,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/people'
     | '/api/admin/submissions'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
     | '__root__'
     | '/_site'
@@ -806,6 +923,8 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
@@ -823,11 +942,14 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -836,8 +958,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -871,10 +998,13 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
+  ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
+  ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
 }
 
@@ -1153,11 +1283,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/people/': {
+      id: '/admin/people/'
+      path: '/people'
+      fullPath: '/admin/people/'
+      preLoaderRoute: typeof AdminPeopleIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/people/$id': {
+      id: '/admin/people/$id'
+      path: '/people/$id'
+      fullPath: '/admin/people/$id'
+      preLoaderRoute: typeof AdminPeopleIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/requests/': {
       id: '/admin/requests/'
       path: '/requests'
       fullPath: '/admin/requests/'
       preLoaderRoute: typeof AdminRequestsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/requests/$id': {
+      id: '/admin/requests/$id'
+      path: '/requests/$id'
+      fullPath: '/admin/requests/$id'
+      preLoaderRoute: typeof AdminRequestsIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/api/admin/me': {
@@ -1286,11 +1437,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/people/': {
+      id: '/api/admin/people/'
+      path: '/api/admin/people'
+      fullPath: '/api/admin/people/'
+      preLoaderRoute: typeof ApiAdminPeopleIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/people/$id': {
+      id: '/api/admin/people/$id'
+      path: '/api/admin/people/$id'
+      fullPath: '/api/admin/people/$id'
+      preLoaderRoute: typeof ApiAdminPeopleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/submissions/': {
       id: '/api/admin/submissions/'
       path: '/api/admin/submissions'
       fullPath: '/api/admin/submissions/'
       preLoaderRoute: typeof ApiAdminSubmissionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/submissions/$id': {
+      id: '/api/admin/submissions/$id'
+      path: '/api/admin/submissions/$id'
+      fullPath: '/api/admin/submissions/$id'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/submissions/start-review': {
@@ -1349,12 +1521,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
     }
+    '/api/admin/people/$id/notes': {
+      id: '/api/admin/people/$id/notes'
+      path: '/notes'
+      fullPath: '/api/admin/people/$id/notes'
+      preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
+      parentRoute: typeof ApiAdminPeopleIdRoute
+    }
+    '/api/admin/submissions/$id/note': {
+      id: '/api/admin/submissions/$id/note'
+      path: '/note'
+      fullPath: '/api/admin/submissions/$id/note'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdNoteRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/timeline': {
+      id: '/api/admin/submissions/$id/timeline'
+      path: '/timeline'
+      fullPath: '/api/admin/submissions/$id/timeline'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdTimelineRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
       path: '/$id/uploads'
       fullPath: '/api/public/submissions/$id/uploads'
       preLoaderRoute: typeof ApiPublicSubmissionsIdUploadsRouteImport
       parentRoute: typeof ApiPublicSubmissionsRoute
+    }
+    '/api/admin/submissions/$id/media/$mediaId/original': {
+      id: '/api/admin/submissions/$id/media/$mediaId/original'
+      path: '/media/$mediaId/original'
+      fullPath: '/api/admin/submissions/$id/media/$mediaId/original'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
   }
 }
@@ -1450,12 +1650,18 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminPeopleIdRoute: typeof AdminPeopleIdRoute
+  AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminPeopleIdRoute: AdminPeopleIdRoute,
+  AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
 
@@ -1516,6 +1722,35 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminPeopleIdRouteChildren {
+  ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
+}
+
+const ApiAdminPeopleIdRouteChildren: ApiAdminPeopleIdRouteChildren = {
+  ApiAdminPeopleIdNotesRoute: ApiAdminPeopleIdNotesRoute,
+}
+
+const ApiAdminPeopleIdRouteWithChildren =
+  ApiAdminPeopleIdRoute._addFileChildren(ApiAdminPeopleIdRouteChildren)
+
+interface ApiAdminSubmissionsIdRouteChildren {
+  ApiAdminSubmissionsIdNoteRoute: typeof ApiAdminSubmissionsIdNoteRoute
+  ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
+}
+
+const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
+  ApiAdminSubmissionsIdNoteRoute: ApiAdminSubmissionsIdNoteRoute,
+  ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRoute:
+    ApiAdminSubmissionsIdMediaMediaIdOriginalRoute,
+}
+
+const ApiAdminSubmissionsIdRouteWithChildren =
+  ApiAdminSubmissionsIdRoute._addFileChildren(
+    ApiAdminSubmissionsIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -1547,10 +1782,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
+  ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
+  ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
 }
 export const routeTree = rootRouteImport

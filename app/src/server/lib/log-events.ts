@@ -42,6 +42,7 @@ export const LogEvent = [
   "resend_quota_daily",
   "indexnow_skipped",
   "indexnow_failed",
+  "thumbnail_sign_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];
