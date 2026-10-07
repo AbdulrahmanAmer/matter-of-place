@@ -5,6 +5,9 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- `GRAPH_ERROR_TABLE` has no row for the Business Use Case rate-limit codes 80001, 80002 and the 800xx family, so a 4xx without `is_transient` from them classifies wrong (suspected by reading). (g3 review2 af512bc3)
+- B8's `meta-token-refresh.ts` (lines 72-74) keeps its own Vault-first, env-second token read instead of importing `getMetaToken`; the rule lives in two places.
+- g4: no test proves every Graph call passes `ctx.signal` (replacing it with undefined keeps 34 tests green); `findRecentPost` calls `media_publish` on a FINISHED container while invariant 2 says reconcile never publishes; PUBLISHED adoption reads `/{ig-user-id}/media` where stories list under `/stories`; `graph()` throws `AppError('server')` when `liveSideEffects('social')` is false instead of the dry-run answer of invariant 5; `health()` says "expires on <date>" for a dead token; two costTime items without a bank entry; `debug_token` in the plan's Files line that `meta-token.ts` does not read; `alt_text` not sent. (g4 review af6636e5)
 - STANDARDS R34 still says "exported error table" while knip refuses the unused export (P-2204). (g3 review ac85eb06)
 - `classifyGraphError` returns class `retry_at` with no time: codes 9/2207042 and 4/17/32/613 retry on B8's backoff and the next window, not Meta's reset time (steps 5-6).
 - enable-guard reads `new_channels` through the public-state memo with no reset: facebook answers `channel_locked` up to 15 s after the flag flips.
@@ -15,6 +18,12 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `tests/unit/reels-limits.test.ts` copies the REEL constants instead of reading `render-reel.mjs` exports; a B12 reel change would not turn it red. (g2)
 
 ## B7 (slice/b7, Dell)
+- Public bundle: the largest public route is 137 gzip bytes under 153,600 after step 5 and every admin route file adds to the entry; see ruling H66 before step 6. (g1 review2 a0757fcf)
+- `RequestDetail.tsx` errors and toasts show the message without the request id (C17).
+- `originalUrl` turns every `createSignedUrl` error into 503 `storage_unavailable`; a never-uploaded object should be a 404-class answer.
+- `window.open` in a mutation's `onSuccess` is outside the click's user activation; Safari may block the tab.
+- No test of the notFound path or the history panel's loading, empty and error states; `getSubmission` against a real row unproven.
+- Bank bookkeeping: costTime item 3 cites P-2131 where P-801 fits; the standing rule's loader makes every db vitest refuse on ops variables unless the dev profile is loaded; G-902 takes the bank to 43 G headings against the cap of 40 and `check-gotchas` does not enforce the cap.
 - G-902 rule rewritten: a db test that uses `serviceClient()` keeps `SUPABASE_URL` under `E2E_STACK=1`; `fixtures/worker-env` is for Worker-side tests only (it deletes `SUPABASE_URL`). (g1 review ad972fe0)
 - `src/server/headers.ts` CSP `img-src` is `'self' data:` only; signed Supabase thumbnails on screen 4 are blocked once the policy is enforced (add the Supabase origin as `connect-src` does).
 - Timeline rows show "Team member/Agent/System" instead of actor names; the Part 2 exit after step 16 wants names.
@@ -42,6 +51,16 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `app/scripts/observatory.mjs` policy check fails open on a non-OK HEAD; the `!scan.ok` guard branch has no test of its own; C22 cost line for the two new preview steps.
 
 ## B13 (slice/b13, Dell)
+- Step 10 (GA4): nothing tests the idle wait in a real browser (jsdom has no `requestIdleCallback`); CI never runs `ga4.spec.ts` (the e2e job has no `--project=seo` and no GA4 id in its build); `trackGpcOverride`'s `catch { return; }` drops `consent_set` silently when sessionStorage throws (C06/C07); Decline after Allow leaves gtag.js running until the next load, nothing sets `window['ga-disable-<id>']`; the step 10 curl proof in B13.md cannot be reproduced as written; P-1827's third costTime item is unexplained. (g1 review a929510f, run wf_5f2602e8-5b0)
+- Step 7 rework: the lazy chunk is fetched on every property view after hydration rather than on a click, so a deploy between HTML and chunk shows; the log's Proof 1 and 3 test counts do not match their commands; the focus guard goes red only under vite dev with StrictMode (CI's e2e target would not catch the earlier variant); P-1822's title still says "code only a click needs". (c7b review2 a7c4b10f)
+- `perf-targets.mjs` comments claim the hard limits are error assertions in `lighthouserc.json`; they are warn in B4's file (12 warn lines, exit 0; lhci LCP 2,604 to 4,388 ms on six preview URLs), so step 8's "lhci exits 0 with invariant 12 met" did not hold as written. (g1 review aa5d0423)
+- `HERO_VARIANT` matches only `/media/v/.../hero.webp`; the preview property page serves the master `/media/o/...` through the mapper fallback (`mappers.ts:283`), so no real run has weighed a hero.
+- Untested branches of `check-seo.ts`: robots bypass header on non-indexable hosts, llms content type, og:title; one `AbortSignal.timeout(15000)` at line 174 is shared by the whole crawl, not per request.
+- The seo steps' Actions cost is unstated (C22; measured about 3 s); `sizing/B13.json` names `seo.md` and `lighthouserc.json` where the plan says `search.md` and never touches lighthouserc.
+- Step 7 (c7b fix): plain `lazy` has no reload on a chunk import failure after a deploy (reviewer's note).
 - Flip `check-seo` from the H64 allowlist to hard once B16 and B17 are on main (privacy, terms, accessibility, cookies pages; fonts.googleapis gone from `__root.tsx`; og:image on /place-notes). (g1 build a9266883)
 - `lhci:local` waits for B17 step 8.
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
+
+## Registry (main)
+- `B2:p` and `B8:p` replay BAD (wrong reason) on main today; CI replays them only when their test files change. Re-anchor when those files are next touched (seen 2026-10-07 while adding B4 shells entries).
