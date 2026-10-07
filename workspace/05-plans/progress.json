@@ -84,7 +84,7 @@
         "9"
       ],
       "inReview": [],
-      "note": "Steps 1 to 9 on main (PRs 92, 99, 117) with the seed image upload (c6u) and the assets migrations renamed past main's newest (c9m); 10 and 11 wait on B7."
+      "note": "Steps 1 to 9 on main (PRs 92, 99, 117) with the seed image upload (c6u) and the assets migrations renamed past main's newest (c9m); 10 and 11 wait on B7. Close-out c5n (2026-10-07 05:50, run wf_e0dc4410-89b here): the NewsletterBlock half of step 5 never landed (no NewsletterBlock.tsx, standalone.tsx untouched, render.ts min(1) blocks and string-only variables); B11 step 4 is PARTIAL on it."
     },
     "B3": {
       "accepted": [
