@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.x.com/2/users/me",
+  "response": {
+    "data": {
+      "id": "1700000000000000001",
+      "name": "Matter of Place test",
+      "username": "mop_test"
+    }
+  }
+}

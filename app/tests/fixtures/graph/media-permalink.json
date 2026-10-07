@@ -1,0 +1,7 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-media, the permalink field (the answer is the requested field plus id; the values are made up)",
+  "request": "GET /{media-id}?fields=permalink",
+  "response": { "permalink": "https://www.instagram.com/p/EXAMPLE1/", "id": "17895695668004550" }
+}

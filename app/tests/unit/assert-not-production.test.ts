@@ -31,6 +31,7 @@ const guardedScripts = [
   "scripts/with-maintenance.ts",
   "scripts/auth-invite-test.ts",
   "scripts/set-site.ts",
+  "scripts/lib/test-post.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {

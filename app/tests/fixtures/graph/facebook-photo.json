@@ -1,0 +1,7 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5 (the Graph reference text for Page photos was not readable in step 3, so this shape is the plan's and UNPROVEN; the ids are made up)",
+  "request": "POST /{page-id}/photos",
+  "response": { "id": "1000000000000001", "post_id": "1000000000000002_1000000000000001" }
+}
