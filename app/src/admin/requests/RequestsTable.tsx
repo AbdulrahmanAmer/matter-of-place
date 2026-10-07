@@ -1,31 +1,11 @@
 import type { ComponentProps } from "react";
 import type { SubmissionListRow } from "../../domain/admin-submissions";
-import type { WorkflowState } from "../../domain/workflow";
 import { DataTable, type Column } from "../ui/DataTable";
 import { LocalTime } from "../ui/LocalTime";
-import { StatusPill, type Tone } from "../ui/StatusPill";
+import { StatusPill } from "../ui/StatusPill";
+import { marketSlugOf, stateTone } from "./state-tone";
 
 const DAY_MS = 86_400_000;
-
-const stateTone: Record<WorkflowState, Tone> = {
-  Submitted: "info",
-  "Under Review": "warning",
-  "Awaiting Assets": "warning",
-  Accepted: "ok",
-  "Invoice Issued": "ok",
-  Scheduled: "ok",
-  Published: "ok",
-  "Distribution Active": "ok",
-  Completed: "neutral",
-  Declined: "neutral",
-  Withdrawn: "neutral",
-};
-
-const marketSlug: Record<SubmissionListRow["state"], string> = {
-  California: "california",
-  "New York": "new-york",
-  Florida: "florida",
-};
 
 /** A link inside a row opens its own target, not the row. */
 const stopRow = (event: { stopPropagation: () => void }) => {
@@ -73,7 +53,7 @@ export function RequestsTable({
       key: "received",
       header: "Received",
       render: (row) => (
-        <LocalTime value={row.received_at} marketSlug={marketSlug[row.state]} style="date" />
+        <LocalTime value={row.received_at} marketSlug={marketSlugOf[row.state]} style="date" />
       ),
     },
     {

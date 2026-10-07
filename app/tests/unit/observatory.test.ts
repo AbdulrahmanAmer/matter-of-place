@@ -206,6 +206,8 @@ describe("the observatory command line", () => {
 
 const Step = z.object({
   name: z.string().optional(),
+  id: z.string().optional(),
+  "continue-on-error": z.boolean().optional(),
   run: z.string().optional(),
   if: z.string().optional(),
   env: z.record(z.string(), z.string()).optional(),
@@ -231,15 +233,30 @@ describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)"
     }).toEqual({ found: true, ordered: true });
   });
 
-  it("points the essentials spec at the preview, live when it has a database, with CI left on", () => {
+  it("points the essentials spec at the preview, live when it has a database, with CI left on, advisory under H67", () => {
     expect(find("essentials")).toEqual({
       name: "essentials",
+      id: "essentials",
+      "continue-on-error": true,
       run: "bun run test:e2e -- tests/e2e/essentials.spec.ts",
       env: {
         E2E_TARGET: "url",
         E2E_BASE_URL: "${{ env.PREVIEW_URL }}",
         E2E_MODE: "${{ env.HAS_DB == 'true' && 'live' || 'local' }}",
       },
+    });
+  });
+
+  it("prints a red essentials step as a warning and in the job summary (H67), and only then", () => {
+    const verdict = find("essentials verdict");
+    expect({
+      condition: verdict?.if,
+      warns: verdict?.run?.includes("::warning title=essentials red on the preview::") ?? false,
+      summary: verdict?.run?.includes("GITHUB_STEP_SUMMARY") ?? false,
+    }).toEqual({
+      condition: "${{ steps.essentials.outcome == 'failure' }}",
+      warns: true,
+      summary: true,
     });
   });
 
