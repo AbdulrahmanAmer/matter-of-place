@@ -4291,3 +4291,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: write scratch output only to the session scratchpad directory or through `node workspace/05-plans/quiet.mjs --`, never to a relative `../..` path; count the levels with `pwd` first when a relative path is unavoidable.
 - proof: `cd E:/mop-build/site/app && realpath ../..` → `/e/mop-build`; `ls /e/mop-build/wf1.txt /e/scratch-list.txt` lists the two strays (2026-10-07).
 - added: 2026-10-07
+
+## P-1934 · `watchfail.mjs --changed origin/main` on a slice branch replays every entry of every file the slice touched, not the group's, and `--kinds file` selects nothing
+- symptom: B17 g10, the reviewer's pass (c) `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds file` printed `replayed 0: ... 3119 not selected`; without `--kinds` it replayed the whole slice's entries (101 `WATCHED-FAIL OK` after about ten minutes, still running) and left `app/scripts/alt-audit.mjs` mutated when I stopped it.
+- cause: `--changed <ref>` diffs `<ref>...HEAD`, which on a slice branch is every group's files; `kindOf` gives "file" only for entries with a `find`, and the flag documented as `unit,sql` does not match them.
+- rule: replay a group's own entries with `--only <id>` per id (a loop over the ids of the group's files); never stop a replay by killing it without `git status` afterwards, and restore a mutated committed file with `git checkout -- <file>`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-obs-host` → `WATCHED-FAIL OK B17:b17-obs-host`; `git diff --name-only --relative origin/main...HEAD | wc -l` on slice/b17 → well over 100 files (2026-10-07).
+- added: 2026-10-07
