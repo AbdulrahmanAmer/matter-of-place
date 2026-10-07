@@ -2,9 +2,11 @@ import { z } from "zod";
 import { assetFileSchema, type AssetFile, type AssetKind } from "../../domain/assets.ts";
 import type { SocialChannel } from "../../domain/channels.ts";
 import { propertyLink } from "../assets/links.ts";
-import { AppError } from "../lib/errors.ts";
+import { createLinkedInChannel } from "./linkedin.ts";
 import { createMetaChannel } from "./meta.ts";
 import type { Channel, SocialAsset } from "./types.ts";
+import { createXChannel } from "./x.ts";
+import { createYouTubeChannel } from "./youtube.ts";
 
 // Which asset goes where (B10 Contract). Every function here is pure: a step reads a file or a caption only through
 // `filesFor` and `captionFor`, which pick by `role`, never by position (B9).
@@ -89,20 +91,17 @@ function disabledBlock(id: SocialChannel): Channel {
   };
 }
 
-// Adapters are built on demand: `meta.ts` imports the pure functions above, so a registry that built them at load
+// Adapters are built on demand: the adapters import the pure functions above, so a registry that built them at load
 // would read this module half evaluated.
-// STUB(B10 step 5a): x, linkedin and youtube register here
-const adapters: Partial<Record<SocialChannel, () => Channel>> = {
+const adapters: Record<SocialChannel, () => Channel> = {
   instagram: () => createMetaChannel("instagram"),
   facebook: () => createMetaChannel("facebook"),
+  x: createXChannel,
+  linkedin: createLinkedInChannel,
+  youtube: createYouTubeChannel,
 };
 
 /** The adapter of `name`, or the disabled block when its `channel_settings` row is `enabled = false`. */
 export function getChannel(name: SocialChannel, enabled: boolean): Channel {
-  if (!enabled) return disabledBlock(name);
-  const adapter = adapters[name];
-  if (adapter === undefined) {
-    throw new AppError("server", undefined, `No adapter is registered for ${name}.`);
-  }
-  return adapter();
+  return enabled ? adapters[name]() : disabledBlock(name);
 }

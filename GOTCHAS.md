@@ -768,6 +768,7 @@ Entry template
 
 - hit again: 2026-10-06, B12 g5: a stateful fake asset row typed as `Tables<"assets">` failed `tsc` (`Record<string, unknown>` is not `NonNullable<Json>`) and `p_spec_hash ?? null` failed `no-unnecessary-condition` (the generated argument is non-null); a local row interface with `meta: Record<string, unknown>` passed both.
 
+- hit again: 2026-10-07, B10 g5: the new `tests/fixtures/social-api.ts` failed `tsc` three ways in one run: a `Uint8Array<ArrayBufferLike>` is not a `BodyInit` (copy it, `new Uint8Array(bytes)`, which is backed by an `ArrayBuffer`), a `settings` row value typed `Json` is not the row's `NonNullable<Json>`, and a variable typed `FakeDbOptions["tables"]` (optional under `exactOptionalPropertyTypes`) cannot be passed back as `tables`; lint refused `Reflect.get(args, key)` as an unsafe `any` return in a test (parse the recorded argument with a Zod object instead).
 ## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
 - symptom: B1b step 3 pins wrangler 4.145.0 (E11), yet `bunx wrangler --version` printed 4.146.0 in an earlier session, and the group's gate was written for 4.145.0.
 - cause: `bunx` uses the dependency of the folder it runs in; outside `app/` there is none and it fetches the newest release. The runbook was the only place that said which one is pinned.
@@ -4031,6 +4032,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -c "dev-db" app/scripts/lib/oauth-consent.ts app/scripts/lib/test-post.ts app/scripts/meta-check.ts app/scripts/x-limits-check.ts` prints one line per file with a count of at least 1; `git grep -n "social_posts\|store_channel_token" -- app/src/db/types.ts` prints nothing on the B10 g1 commit.
 - added: 2026-10-07
 
+- hit again: 2026-10-07, B10 g5: the same gap in `src/`, where `scripts/lib/dev-db.ts` is out of reach: `oauth-tokens.ts` calls `store_channel_token`, `record_channel_check` and `record_channel_usage` before step 6 adds them to `src/db/types.ts`. A local interface with a method `rpc(fn: string, args: Record<string, Json>): PromiseLike<{ data: unknown; error: unknown }>` accepts the typed `Db` by assignment (`const client: UntypedRpc = db;`, method parameters compare both ways), so no cast is needed; it sits under a `STUB(B10 step 6)` marker and the answers are parsed with Zod. The unit tests pass the handlers to `fakeDb` as a variable (`tests/fixtures/social-api.ts`), because a literal key the generated types lack fails the excess-property check. Proof: `cd app && bunx tsc --noEmit -p tsconfig.json` prints nothing on slice/b10 at g5.
 ## P-2201 · Two scripts with the same argument skeleton fail jscpd at 71 tokens, and a closure that sets a flag fails the lint as "always falsy"
 - symptom: B10 g1's first `bun run jscpd` printed `x-authorize.ts [19:82 - 30:17]` and `linkedin-authorize.ts [17:83 - 28:17]` as one clone of 12 lines and 71 tokens (threshold 70, R04); the first `eslint` run called `return failed ? 1 : 0` in `meta-check.ts` "Unnecessary conditional, value is always falsy" (a `let failed = false` set from a closure) and the spread `...init.headers` in `x-limits-check.ts` `no-misused-spread` (HeadersInit can be an array).
 - cause: the plan lists `x-authorize.ts` and `linkedin-authorize.ts` as two files that both parse `--target` and `--check`, guard the shell and read two secrets; TypeScript narrows a `let` assigned only in a closure to its initial value; `HeadersInit` is a union that includes arrays.
@@ -4087,6 +4089,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: every instant in the tests sat in the Pacific daytime, where the UTC date and the Los Angeles date agree; the one evening instant (the DST case) gave the same answer either way.
 - rule: code that uses a zone in more than one place gets one watched-fail per use, and a test whose `now` lies between the zone's evening and UTC midnight (for Los Angeles 17:00 to 24:00 local) with a spent cap, so the local day and the UTC day differ.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b10g3-local-day` → `WATCHED-FAIL OK B10:b10g3-local-day`.
+- added: 2026-10-07
+
+## P-2208 · A third `z.lazy` JSON schema in a channel adapter fails jscpd against `meta.ts`
+- symptom: B10 g5's first `bun run jscpd` failed with one clone, `server/channels/meta.ts [57:82 - 69:3] (13 lines, 73 tokens)` against `server/channels/oauth-tokens.ts`, after typecheck, lint and knip were green: the new adapter copied `meta.ts`'s `const jsonValue: z.ZodType<Json> = z.lazy(() => z.union([...]))` to type a provider answer as `Json` for `metrics.raw`.
+- cause: the lazy union is 73 tokens, over the 70-token limit of R04, and `meta.ts` and `src/server/jobs/steps/webhook-omnikom.ts` each hold their own copy; no shared JSON parser exists under `src/server`.
+- rule: an adapter that needs a provider answer as `Json` uses the `isJson(value): value is Json` guard of `oauth-tokens.ts` (or a shared parser once one exists), never a fourth copy of the lazy schema; run `bun run jscpd` right after creating an adapter, not only at the end of the check.
+- proof: `cd app && bun run jscpd` → exit 0 on slice/b10 at B10 g5; with the lazy schema pasted back into `readBody` of `oauth-tokens.ts` it prints `Clone found (typescript)` naming `meta.ts` (measured 2026-10-07).
 - added: 2026-10-07
 
 ## P-2300 · The Dell has no native PostgreSQL: P-718's throwaway cluster starts from the EDB binaries zip, and initdb needs the whole `share` folder

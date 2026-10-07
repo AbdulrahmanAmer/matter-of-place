@@ -1,0 +1,29 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.linkedin.com/rest/images",
+  "responses": {
+    "first": {
+      "value": {
+        "uploadUrlExpiresAt": 1759590000000,
+        "uploadUrl": "https://www.linkedin.com/dms-uploads/sp/v2/D4E10AQExample1/uploaded-image/0?ca=vector_feedshare&cn=uploads&iri=B01-77&sync=0&v=beta&ut=Example1",
+        "image": "urn:li:image:D4E10AQExample1"
+      }
+    },
+    "second": {
+      "value": {
+        "uploadUrlExpiresAt": 1759590000000,
+        "uploadUrl": "https://www.linkedin.com/dms-uploads/sp/v2/D4E10AQExample2/uploaded-image/0?ca=vector_feedshare&cn=uploads&iri=B01-77&sync=0&v=beta&ut=Example2",
+        "image": "urn:li:image:D4E10AQExample2"
+      }
+    },
+    "third": {
+      "value": {
+        "uploadUrlExpiresAt": 1759590000000,
+        "uploadUrl": "https://www.linkedin.com/dms-uploads/sp/v2/D4E10AQExample3/uploaded-image/0?ca=vector_feedshare&cn=uploads&iri=B01-77&sync=0&v=beta&ut=Example3",
+        "image": "urn:li:image:D4E10AQExample3"
+      }
+    }
+  }
+}
