@@ -5,6 +5,11 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- STANDARDS R34 still says "exported error table" while knip refuses the unused export (P-2204). (g3 review ac85eb06)
+- `classifyGraphError` returns class `retry_at` with no time: codes 9/2207042 and 4/17/32/613 retry on B8's backoff and the next window, not Meta's reset time (steps 5-6).
+- enable-guard reads `new_channels` through the public-state memo with no reset: facebook answers `channel_locked` up to 15 s after the flag flips.
+- `mayApprove` in `assets/service.ts` waits for B9's `service.ts` on main; META_METRICS and the Graph classifications are from docs, not a live answer (step 7).
+- Bank rule to write: a scratch registry for a replay lives in its own folder per group and run (a shared scratchpad held another reviewer's B10.json; watchfail replayed 69 entries instead of 45).
 - GOTCHAS.md P-2200 symptom sentence: `get_vault_secret` is not a missing generated type (in `src/db/types.ts` since B8); only `store_channel_token`, `put_channel_ids`, `record_channel_check`, `social_posts` are. (g1 review a860dafb)
 - `src/domain/channels.ts` still carries the plan placeholder Graph version `v23.0`. (g2 review ad17643a)
 - `tests/unit/reels-limits.test.ts` copies the REEL constants instead of reading `render-reel.mjs` exports; a B12 reel change would not turn it red. (g2)
@@ -25,6 +30,10 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- `variables.ts` ~525 `digestAlert`: removing `.eq("event_id", job.eventId)` turns nothing red; the digest-notify fixture holds one queue_digest job, so the filter is never exercised (registry entry BAD as a follow-up). (g2 review a313c3a1)
+- `assemble.ts` 286 and `readIssues` 155 apply the 300-character deck/title caps on read as well as write (suspected from reading).
+- A digest.due recipe using send_email with the admin_notify template fails `NonRetryableError event_id_missing`: `send-email.ts:342` calls `resolveVariables` without the seventh job argument (author-disclosed).
+- `mergeDraft` human-edit detection (lines 138-145) needs care when step 4's `queue_digest_add` replaces blocks.
 - tech-stack.md 324 and B11.md 63 channel pattern: ~~named exports, not a `{ publish, metrics }` adapter~~ (PR 187).
 
 ## B17 (slice/b17, this laptop)
@@ -33,4 +42,6 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `app/scripts/observatory.mjs` policy check fails open on a non-OK HEAD; the `!scan.ok` guard branch has no test of its own; C22 cost line for the two new preview steps.
 
 ## B13 (slice/b13, Dell)
+- Flip `check-seo` from the H64 allowlist to hard once B16 and B17 are on main (privacy, terms, accessibility, cookies pages; fonts.googleapis gone from `__root.tsx`; og:image on /place-notes). (g1 build a9266883)
+- `lhci:local` waits for B17 step 8.
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
