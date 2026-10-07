@@ -3631,6 +3631,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -n "payments_number_unless_waived" supabase/migrations/20261006224201_invoicing.sql` → line 33; with the dev profile and the two B7 migrations as `MOP_MUTATION_SQL` (P-312), `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/people.db.test.ts` → `Tests  8 passed (8)` with `invoice_number` in the insert (measured 2026-10-07 05:35 +0300).
 - added: 2026-10-07
 
+## P-2020 · A watched-fail entry that went red only because the schema lacked a name stayed green once main added the name
+- symptom: CI's `db` job at 80a5917 (run 37564493046, step "mutation replay") failed `WATCHED-FAIL BAD: stayed green (B7:b7-g5-db-payments-status)`; the same entry was OK when B7 g1 recorded it.
+- cause: the entry replaced the payments filter with `.neq("status", "void")`. Before B6, `void` was no value of `payment_status`, so the query errored and the test went red; B6's `20261006224200_invoicing_enum.sql` added `void`, the mutated query became valid and the test (`newestPaymentId` for an unknown id answers null) stayed green. The earlier CI run had stopped at the test step, so the replay first ran a round later.
+- rule: a mutation whose red depends on a name the schema does not have uses a name no migration will add (`voided`, `__missing`), never a word a later slice may adopt; after a merge of main that brings a migration, replay every entry of the branch's registry whose `run` names `--project db` before pushing (`--only <id>` each, dev profile, P-312 prelude for unmerged migrations); a file mutation with a db run has no `kind`, so `--kinds sql` does not select it.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only b7-g5-db-payments-status` → `WATCHED-FAIL OK B7:b7-g5-db-payments-status` with `voided` (measured 2026-10-07 06:05 +0300).
+- added: 2026-10-07
+
 ## P-527 · Three prompt hooks timed out on every prompt and monitor event under five lanes, each discarding its output and holding the turn up to its limit
 - symptom: every UserPromptSubmit printed three red lines: hookify `userpromptsubmit.py` "timed out after 10s", the harness `user-prompt-submit.sh` "after 20s", security-guidance `sg-python.sh security_reminder_hook.py` "after 30s", output discarded. Timed by hand under the load: 4.6 s, 10.2 s and 11.7 s; bare `python3 -c pass` through the Windows Store launcher takes 1.2 s.
 - cause: the plugins' default timeouts assume an idle machine; with five lanes at 100 percent CPU every process start is five to ten times slower, and hookify had no rule file in this project to begin with.
