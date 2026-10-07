@@ -1789,5 +1789,23 @@
     "find": "        if: ${{ !cancelled() }}\n        run: node scripts/observatory.mjs",
     "replace": "        run: node scripts/observatory.mjs",
     "expect": "× .*scans the preview host and still prints the grade after a red essentials step"
+  },
+  {
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "id": "b17-deploy-essentials-advisory",
+    "find": "        id: essentials\n        continue-on-error: true\n",
+    "replace": "        id: essentials\n",
+    "expect": "advisory under H67"
+  },
+  {
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "id": "b17-deploy-essentials-verdict",
+    "find": "        if: ${{ steps.essentials.outcome == 'failure' }}\n",
+    "replace": "        if: ${{ always() }}\n",
+    "expect": "prints a red essentials step as a warning"
   }
 ]
