@@ -4648,9 +4648,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: for your own new entries run one `--only <id>` call each in a single command line (`for id in ...; do node scripts/watchfail.mjs --registry tests/mutations --only "$id"; done`); `--changed` is the one replay that catches a cross-slice regression on a shared file, so run it once before the slice closes in a free window, in the background, and read a bad `db`-project entry as a missing dev profile until it fails under `eval "$(node scripts/load-env.mjs --profile dev)"`.
 - proof: `cd app && for id in b6-g6-baseline b6-g6-label-weight b6-g6-two-inks; do node scripts/watchfail.mjs --registry tests/mutations --only "$id" | tail -1; done` → three `replayed 1: ok 1, bad 0, stale 0` lines; `cd app && node scripts/watchfail.mjs --registry tests/mutations --only f-matrix | tail -1` in a shell without the dev profile → `replayed 1: ok 0, bad 1, stale 0` (measured 2026-10-07).
 - added: 2026-10-07
+
 ## P-2320 · No PDF rasteriser on this laptop, and `bun` plus Playwright hangs: the eye check of a PDF is the layout runs drawn in Chromium by `node`
 - symptom: g6's design review needs to see `out/invoice.pdf`; `pdftoppm`, `mutool`, `gs` and ImageMagick are not installed, headless Chromium does not show PDFs, and a bun script that imported `playwright` ran past 120 seconds with no output.
 - cause: nothing here converts a PDF to pixels; bun's loader and Playwright's browser launch do not finish together on this laptop (cause not isolated).
 - rule: dump `layoutInvoice(snapshot)` to JSON with a bun script, and draw those runs as absolutely positioned text in a 612 x 792 page with a plain `node` Playwright script (Times New Roman and Arial stand in for the standard fonts, same metrics); say in the log that the picture is a stand-in for the PDF, and that the real `out/invoice.pdf` still needs one look once it exists on mop-dev.
 - proof: `for t in pdftoppm mutool gs magick; do command -v $t; done; echo end` → only `end` (no rasteriser); `cd app && node --input-type=module -e "import('playwright').then(m=>console.log(typeof m.chromium.launch))"` → `function` (node loads Playwright; the hang is bun's, so the same import under `bun -e` is the one that does not return).
+- added: 2026-10-07
+
+## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour
+- symptom: 2026-10-07, PR 190 (hygiene cap: four B1b entries BAD or STALE), PR 196 (budget: `b3-bc-budget`, `b3-bc-exit` named the old fixture size), PR 215 (`reach()` signature: `b3-bc-nesting`, `b3-bc-lazy` STALE). Each time the author replayed only the entries it had just written, pushed, and CI's db job found the rest; each cost a CI cycle of 10 to 20 minutes and a second push.
+- cause: `watchfail --only <id>` takes one id, so the habit is to replay what one remembers; the entries that anchor on the same source line are not in view.
+- rule: before any push that touches a source or test file, run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` from `app/` (it selects every entry whose test file or target changed against main) and push only on `bad 0, stale 0`; when that run is too long for the Bash limit, run it with `run_in_background` and wait. An entry's `find` names the smallest stable text, never a whole line that a signature or a format change rewrites.
+- proof: PR 215's db job printed `replayed 144: ok 142, bad 0, stale 2` for the two entries the author had not replayed; `--changed origin/main` run on the branch afterwards selected both.
+- added: 2026-10-07
+
+## P-538 · The root checkout is read by the board and shared with background gate chains: a `git checkout` there while another command runs puts edits on the wrong tree
+- symptom: 2026-10-07 09:05, a background chain's `git checkout --detach origin/main` ran while the orchestrator was re-anchoring registry entries on `chore/bundle-check-entry-lazy` in the same checkout; the edit landed on a detached main tree, the replay reported one entry STALE against the wrong file, and the work was redone in a worktree.
+- cause: one working tree, two writers; `git checkout` is global to the tree.
+- rule: the root checkout `E:/Matter Of Place` stays detached on `origin/main` and nobody runs `git checkout` or `git merge` in it; records branches and branch syncs are worked in the orchestrator's worktree `E:/mop-build/orch` (`git -C`), a lane branch in its own lane worktree, and a background chain that must bring main into a branch does it there too. The board reads the root; it never changes under it.
+- proof: `git -C "E:/Matter Of Place" branch --show-current` prints nothing (detached) and `git -C E:/mop-build/orch branch --show-current` names the records branch in work.
 - added: 2026-10-07
