@@ -238,6 +238,7 @@ Entry template
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 
+- hit again: 2026-10-07, B10 g6: a Bash heredoc holding `'force: ' || p_force::text` ended in `unexpected EOF while looking for matching` and wrote none of its six SQL files, and a `sed` that put `\n` into a generator script wrote a raw newline into a JavaScript string; both were redone with Write and Edit.
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
 - cause: agent definitions are read at session start; the context-inheriting `fork` type is not in this Claude Code build.
@@ -2874,6 +2875,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55432/mop env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/assets.db.test.ts tests/db/render-claim.db.test.ts tests/db/rls.db.test.ts tests/db/schema.db.test.ts tests/db/function-source.db.test.ts tests/db/migration-headers.test.ts` → `Tests  123 passed (123)` (B9 g6, 2026-10-04).
 - added: 2026-10-04
 
+- hit again: 2026-10-07, B10 g6: the two-connection case of `store_channel_token` in `tests/db/social.db.test.ts` cannot run on mop-dev with the P-312 prelude: the second connection runs the prelude's `create type` and `create table` while the first transaction holds the same uncommitted names, and fails with `canceling statement due to lock timeout` after 8 s; this laptop has no native PostgreSQL either, so that case is UNPROVEN until the CI `db` job runs.
 ## P-719 · B2's statement trigger on `property_media` bumps `catalog_version` on every update, claims included: two open transactions that touch the table serialize on the one settings row
 - symptom: B9 g6's `render-claim.db.test.ts` case "two claims on two open transactions" hung 30 s: transaction A claimed 20 rows and stayed open, B's `claim_media_for_render` selected its rows (skip locked worked) and then waited. `pg_stat_activity` showed B on `wait_event_type = Lock`.
 - cause: `property_media_bump_catalog_version` is `after insert or update or delete ... for each statement`, so every update of the table, a `render_job_id` or `staging_path` change included, updates the single `catalog_version` row of `settings`, and an open transaction holds it. The same trigger makes each claim, apply and clear of a render_variants run bump the public cache key three times, although none of the three columns is public.
@@ -4253,6 +4255,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `create` makes a git worktree and runs a frozen install in `app/`, which takes several minutes on a loaded laptop; the Bash tool's default timeout is 120000 ms.
 - rule: run `create` with `run_in_background: true`, or with `timeout: 600000`, and wait for its final `rc` line before the first command in the snapshot (P-027: a bounded loop, never a leading `sleep`); never start `bun run check` in the folder while `create` still runs.
 - proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → the line `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...` (the install that makes `create` slow); `grep -c "^## P-2211" GOTCHAS.md` → 1.
+- added: 2026-10-07
+
+## P-2212 · B10 step 6 puts the `campaign_report` seed row in social.sql, but its template file is step 9's and B5's seed test refuses a row without a definition
+- symptom: B10 g6's brief lists, for `tests/db/social.db.test.ts`, "`select key from email_templates where key = 'campaign_report'` returns one row", and Data changes seeds that row in `<ts>_social.sql` "from `src/templates/email/campaign-report.tsx`'s `definition`", a file step 9 writes. `tests/db/email.db.test.ts` ("the seeded keys equal emailTemplateKeys") compares every `email_templates` row with `emailTemplateKeys` of `src/templates/email/index.ts`, so the row seeded alone turns B5's case red in the CI db job.
+- cause: the plan gives the row (step 6) and its definition (step 9) to different steps.
+- rule: an email template's seed row lands in the commit that adds its definition to `src/templates/email/index.ts` (G46). B10 g6 seeds no `campaign_report` row; step 9 seeds it with `campaign-report.tsx`. A plan line that seeds a row from a file a later step writes is moved, and the log says so.
+- proof: `grep -n "new Set(emailTemplateKeys)" app/tests/db/email.db.test.ts` → the assertion line; `grep -c "campaign_report" app/supabase/migrations/20261007040240_social.sql` → `0` on slice/b10 at g6 (2026-10-07).
+- added: 2026-10-07
+
+## P-2213 · A step module that imports something reaching `fanout.ts` closes a cycle through the step registry, which is then built with `undefined` steps
+- symptom: B10 g6 added `maybeAutoApprove` to the render steps' `onResult` and to `runWriteCaptions`; `auto-approve.ts` imported `fanoutEvent` statically, and `tests/unit/assets/steps.test.ts` failed 17 cases with `TypeError: Cannot read properties of undefined (reading 'type')` at `steps.find((step) => step.type === type)` in `src/server/jobs/steps/index.ts`.
+- cause: `write-captions.ts` → `auto-approve.ts` → `automation/fanout.ts` → `jobs/steps/index.ts` → `write-captions.ts`. When a step module is imported first, `index.ts` builds `catalog` while that module's export is not yet initialised. No lint or knip rule reports a cycle (G-1000).
+- rule: a module a step imports never imports `fanout.ts`, `plan.ts`, `catalog.ts`, `dry-run.ts` or anything else that imports `jobs/steps/index.ts` at the top; it loads it inside the function with `await import(...)`, as `auto-approve.ts` does, or takes the function as an argument.
+- proof: `cd app && bunx vitest run tests/unit/assets/steps.test.ts` → `Tests  89 passed`; with `import "../automation/fanout.ts";` added as the first line of `src/server/channels/auto-approve.ts` and the `vi.mock` of auto-approve in that test file turned off → `Tests  17 failed | 71 passed (88)` and the TypeError above (measured 2026-10-07).
+- added: 2026-10-07
+
+## P-2214 · fakeDb's typed RPC map cannot answer null for a function whose generated `Returns` is not nullable, such as `enqueue_job` on a key it already holds
+- symptom: B10 g6 needed `enqueue_job` to answer null for a second `notify_admin` with the same key (`notifyAdmin` reports to Sentry only for a new job); `tsc` refused the handler: `Type 'string | null' is not assignable to type 'string | Error | Promise<string | Error>'`.
+- cause: the type generator writes every `Returns` without `| null` (P-915 is the same for Args), and `fakeDb` types each handler by it, so the SQL's real null answer cannot be written.
+- rule: a fake that must answer null for an RPC uses `tableDb` of `tests/fixtures/channel-db.ts`, whose handlers are `(args: Record<string, unknown>) => unknown` and are recorded in `calls` as fakeDb records them; never cast a handler.
+- proof: `cd app && bunx tsc --noEmit -p tsconfig.json` → exit 0 on slice/b10 at g6, and `grep -c "return null;" tests/fixtures/channel-db.ts` → at least `1` (the duplicate-key answer of `enqueue_job`) (2026-10-07).
+- added: 2026-10-07
+
+## P-2215 · The CI `db` job skips a draft pull request, so a lane told to open a draft gets no database proof from it
+- symptom: B10 g6's brief says to open a draft pull request and take the database proof from its CI `db` job; that job's condition is `github.event.pull_request.draft == false`, so on the draft it never runs, and the brief's proof stays UNPROVEN.
+- cause: the heavy jobs skip drafts to save Actions minutes.
+- rule: while the pull request is a draft, report the CI `db` proof as UNPROVEN and prove the migration on mop-dev inside rolled-back transactions (P-312), file by file; the orchestrator's ready-for-review starts the job, and a type drift it finds is fixed with `bun run types:from-ci -- <pr>`.
+- proof: `grep -n "draft == false" .github/workflows/ci.yml` → the `if:` line of the `db` job, and `gh pr checks <pr>` on the draft lists no `db` check (measured 2026-10-07).
 - added: 2026-10-07
 
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration

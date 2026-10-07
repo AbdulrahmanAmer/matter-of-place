@@ -5,10 +5,10 @@ import type { StepContext } from "../jobs/types.ts";
 import { sha256Hex } from "../lib/crypto.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
-import { enqueueJob } from "../lib/jobs.ts";
 import { mediaUrl } from "../lib/media-store.ts";
 import { liveSideEffects, readVar } from "../lib/runtime-env.ts";
 import { classifyLinkedInError } from "./linkedin-errors.ts";
+import { notifyAdmin } from "./post-to-channel.ts";
 import type { Channel } from "./types.ts";
 import { classifyXError } from "./x-errors.ts";
 
@@ -42,7 +42,8 @@ export class ChannelApiError extends Error {
 /** The part of a step context the token helpers read; the reconcile job passes its own. */
 export type TokenContext = Pick<StepContext, "db" | "now" | "signal">;
 
-// STUB(B10 step 6): social.sql adds these three functions and `src/db/types.ts` lists them; the calls then use the typed `db.rpc`
+// `record_channel_check` takes a null expiry for a dead token, which the generated Args cannot express (P-915), so
+// the three social.sql calls go through this one untyped door and their answers are parsed.
 interface UntypedRpc {
   rpc(fn: string, args: Record<string, Json>): PromiseLike<{ data: unknown; error: unknown }>;
 }
@@ -202,16 +203,13 @@ async function markTokenDead(ctx: TokenContext, channel: OAuthChannel, cause: st
     p_state: "dead",
   });
   const label = socialChannelLabels[channel];
-  // STUB(B10 step 6): the alert goes through `notifyAdmin` of post-to-channel.ts, which also reports it to Sentry (INT-04)
-  await enqueueJob(ctx.db, {
-    type: "notify_admin",
-    idempotencyKey: `token_dead:${channel}:${ctx.now.toISOString().slice(0, 10)}`,
-    params: { headline: `${label} needs to be reconnected` },
-    data: {
-      summary: `The ${label} token was refused (${cause}). Run the authorize script again (docs/runbooks/social.md) or renew the Meta token (docs/runbooks/meta.md).`,
-      link_path: "/admin/channels",
-    },
-  });
+  await notifyAdmin(
+    ctx.db,
+    `token_dead:${channel}:${ctx.now.toISOString().slice(0, 10)}`,
+    `${label} needs to be reconnected`,
+    `The ${label} token was refused (${cause}). Run the authorize script again (docs/runbooks/social.md) or renew the Meta token (docs/runbooks/meta.md).`,
+    "/admin/channels",
+  );
 }
 
 /**
@@ -347,7 +345,11 @@ export async function callApi(
   ctx: TokenContext,
   channel: OAuthChannel,
   url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: BodyInit },
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: Exclude<RequestInit["body"], undefined>;
+  },
   refreshWithinMs = REFRESH_WITHIN_MS,
 ): Promise<{ body: Json; headers: Headers; token: ChannelToken }> {
   const method = init.method ?? "GET";

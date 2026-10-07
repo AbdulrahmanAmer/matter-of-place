@@ -27,6 +27,15 @@ import {
 } from "../../fixtures/asset-rows";
 import { fakeDb, type FakeCall, type FakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
 
+// B10's automatic approval reads tables these cases do not register; tests/unit/channels/auto-approve.test.ts covers
+// what it decides, and the write_captions case below which assets it is asked about.
+const autoApprove = vi.hoisted(() =>
+  vi.fn((_db: unknown, _assetId: string, _now: Date) =>
+    Promise.resolve({ status: "not_eligible", reason: "not_pending" }),
+  ),
+);
+vi.mock("../../../src/server/channels/auto-approve", () => ({ maybeAutoApprove: autoApprove }));
+
 const DISPATCH_LIMIT = 65_535;
 const DATA = {
   property_id: PROPERTY_ID,
@@ -45,6 +54,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  autoApprove.mockClear();
 });
 
 function step(type: string): StepDefinition {
@@ -869,6 +879,16 @@ describe("write_captions", () => {
     await expect(found.run(context(textDb(), "write_captions"), {}, DATA)).rejects.toThrow(
       new NonRetryableError("local_step"),
     );
+  });
+
+  it("runWriteCaptions for a Feature property asks maybeAutoApprove about the cover, carousel and story, once each", async () => {
+    const db = textDb({ property: propertyRow({ campaign_tier: "Feature" }) });
+    await runCaptions(db);
+    expect(autoApprove.mock.calls.map(([, id]) => id)).toEqual([
+      "asset-cover",
+      "asset-carousel",
+      "asset-story",
+    ]);
   });
 
   it("runWriteCaptions creates the stubs of the Editorial tier, with no job id, and fills the captions", async () => {

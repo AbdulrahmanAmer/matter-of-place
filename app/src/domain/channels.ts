@@ -14,8 +14,7 @@ const socialChannels = [
 
 export type SocialChannel = (typeof socialChannels)[number];
 
-/** @public */
-// STUB(B10 step 6): `social_posts.status` becomes a database enum with social.sql, and `enums.check.ts` gets its pair
+/** @public The database enum `social_post_status`; `enums.check.ts` holds the pair. */
 export const socialPostStatuses = ["scheduled", "posted", "failed"] as const;
 
 /** @public */
@@ -36,13 +35,54 @@ export const socialPostStatusLabels: Record<(typeof socialPostStatuses)[number],
   failed: "Failed",
 };
 
-/** @public */
-// STUB(B10 step 6): `listPosts` and `GET /api/admin/channels/posts` parse their query with this
+/** The query of `GET /api/admin/channels/posts`: `post_id` is the `?post=` link of a failure mail, `withdraw` the list of
+ * taken-down posts a person still deletes by hand (invariant 10). */
 export const socialPostFilters = z.object({
   channel: z.enum(socialChannels).optional(),
   status: z.enum(socialPostStatuses).optional(),
   post_id: z.string().uuid().optional(),
+  withdraw: z
+    .enum(["true", "false"])
+    .transform((value) => value === "true")
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
+});
+
+export type SocialPostFilters = z.output<typeof socialPostFilters>;
+
+export const socialPostSchema = z.object({
+  id: z.string().uuid(),
+  asset_id: z.string().uuid(),
+  property_id: z.string().uuid(),
+  channel: z.enum(socialChannels),
+  status: z.enum(socialPostStatuses),
+  scheduled_at: z.string(),
+  posted_at: z.string().nullable(),
+  remote_id: z.string().nullable(),
+  permalink: z.string().nullable(),
+  metrics: z.record(z.string(), z.unknown()),
+  error: z.string().nullable(),
+  withdraw_required_at: z.string().nullable(),
+  withdrawn_at: z.string().nullable(),
+});
+
+export type SocialPost = z.infer<typeof socialPostSchema>;
+
+export const socialPostListSchema = z.object({
+  items: z.array(socialPostSchema),
+  total: z.number().int().min(0),
+});
+
+const channelIdsKeys = ["meta", "x", "linkedin"] as const;
+
+export type ChannelIdsKey = (typeof channelIdsKeys)[number];
+
+/** `PUT /api/admin/channels/ids/:key`: the key from the path, the fields checked by `channelIdsSchema[key]`. */
+export const channelIdsInputSchema = z.object({ key: z.enum(channelIdsKeys) }).passthrough();
+
+export const channelIdsAnswerSchema = z.object({
+  key: z.enum(channelIdsKeys),
+  value: z.record(z.string(), z.unknown()),
 });
 
 const numericId = z.string().regex(/^\d+$/, "Use the numeric id");

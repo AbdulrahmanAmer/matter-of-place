@@ -112,7 +112,7 @@ export function socialDb(options: SocialDbOptions = {}) {
       if (answer === "stored") vault.splice(0, vault.length, args.p_token_set);
       return answer;
     },
-    record_channel_check: () => null,
+    record_channel_check: () => undefined,
     record_channel_usage: () => 1,
     enqueue_job: () => "3f2a9c1d-0000-4000-8000-0000000000dd",
   };

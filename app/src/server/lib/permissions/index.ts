@@ -1,10 +1,12 @@
 import { audit } from "./audit.ts";
 import { automation } from "./automation.ts";
+import { channels } from "./channels.ts";
 import { dashboard } from "./dashboard.ts";
 import { inquiries } from "./inquiries.ts";
 import { markets } from "./markets.ts";
 import { media } from "./media.ts";
 import { properties } from "./properties.ts";
+import { reports } from "./reports.ts";
 import { settings } from "./settings.ts";
 import { stories } from "./stories.ts";
 import { submissions } from "./submissions.ts";
@@ -23,4 +25,6 @@ export const permissions = [
   ...audit,
   ...automation,
   ...dashboard,
+  ...channels,
+  ...reports,
 ] as const;
