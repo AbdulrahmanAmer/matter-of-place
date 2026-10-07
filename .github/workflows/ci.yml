@@ -345,6 +345,8 @@ jobs:
         if: steps.fe.outputs.changed == 'true'
         run: |
           sed -i '/^MOP_ENV=/d' .dev.vars && echo MOP_ENV=production >> .dev.vars
+          # MOP_ENV=production refuses to start without a Sentry DSN; this one points at a closed local port, so no event leaves the runner.
+          echo SENTRY_DSN=http://ci@127.0.0.1:9/1 >> .dev.vars
           bunx wrangler dev --config .output/server/wrangler.json --env-file "$(pwd)/.dev.vars" --port 8788 > "$RUNNER_TEMP/seo-wrangler.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8788/ && break; sleep 2; done
           curl -s http://127.0.0.1:8788/ | grep -q 'data-services="live"'
