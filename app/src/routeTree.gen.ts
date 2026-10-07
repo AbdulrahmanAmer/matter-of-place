@@ -219,12 +219,16 @@ const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
   getParentRoute: () => AdminRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/admin/people.index.lazy').then((d) => d.Route),
+)
 const AdminPeopleIdRoute = AdminPeopleIdRouteImport.update({
   id: '/people/$id',
   path: '/people/$id',
   getParentRoute: () => AdminRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/admin/people.$id.lazy').then((d) => d.Route),
+)
 const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
   id: '/requests/',
   path: '/requests/',

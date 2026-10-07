@@ -3624,6 +3624,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -n "mutatedNow" scripts/watchfail.mjs | head -3` → the map of files mutated in place and its `restoreAll`; `git status --short` is empty before a check and after a clean replay (2026-10-06).
 - added: 2026-10-06
 
+## P-2019 · A db test's raw insert went red in CI after a merge of main brought another slice's check constraint on the same table
+- symptom: B7 g2's `tests/db/people.db.test.ts` passed on mop-dev (8 of 8) and failed in CI's `db` job at 3462975 (run 37561577159): `new row for relation "payments" violates check constraint "payments_number_unless_waived"`. The fixture inserted a `payments` row without `invoice_number`.
+- cause: B6's `20261006224201_invoicing.sql` landed on main between the lane's mop-dev proof and the CI run and added `check (invoice_number is not null or status = 'waived')`. The lane's proof was older than the schema it ran against in CI.
+- rule: after every `git merge origin/main` that brings a migration, list the tables it alters (`git diff --stat <old base> origin/main -- app/supabase/migrations`, then `grep -n "add constraint" <file>`) and re-run every db test of the branch that inserts into one of them before pushing. A fixture insert gives every column a constraint of the newest migrations requires (here `invoice_number => 'TEST-' || gen_random_uuid()`, as `gate.db.test.ts` does).
+- proof: `cd app && grep -n "payments_number_unless_waived" supabase/migrations/20261006224201_invoicing.sql` → line 33; with the dev profile and the two B7 migrations as `MOP_MUTATION_SQL` (P-312), `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/people.db.test.ts` → `Tests  8 passed (8)` with `invoice_number` in the insert (measured 2026-10-07 05:35 +0300).
+- added: 2026-10-07
+
 ## P-527 · Three prompt hooks timed out on every prompt and monitor event under five lanes, each discarding its output and holding the turn up to its limit
 - symptom: every UserPromptSubmit printed three red lines: hookify `userpromptsubmit.py` "timed out after 10s", the harness `user-prompt-submit.sh` "after 20s", security-guidance `sg-python.sh security_reminder_hook.py` "after 30s", output discarded. Timed by hand under the load: 4.6 s, 10.2 s and 11.7 s; bare `python3 -c pass` through the Windows Store launcher takes 1.2 s.
 - cause: the plugins' default timeouts assume an idle machine; with five lanes at 100 percent CPU every process start is five to ten times slower, and hookify had no rule file in this project to begin with.

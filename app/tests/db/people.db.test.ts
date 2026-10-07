@@ -180,7 +180,8 @@ describe("person_detail", () => {
       const property = await publishedProperty(db, { n: 9812, submission_id: first.id });
       const { payment } = await one<{ payment: string }>(
         db,
-        "insert into public.payments (submission_id, product, amount) values ($1, 'The Feature', 1500) returning id as payment",
+        `insert into public.payments (submission_id, product, amount, invoice_number)
+         values ($1, 'The Feature', 1500, 'TEST-' || gen_random_uuid()) returning id as payment`,
         [first.id],
       );
       const { message } = await one<{ message: string }>(
