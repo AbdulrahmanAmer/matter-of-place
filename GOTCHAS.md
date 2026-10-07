@@ -4298,3 +4298,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: replay a group's own entries with `--only <id>` per id (a loop over the ids of the group's files); never stop a replay by killing it without `git status` afterwards, and restore a mutated committed file with `git checkout -- <file>`.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-obs-host` → `WATCHED-FAIL OK B17:b17-obs-host`; `git diff --name-only --relative origin/main...HEAD | wc -l` on slice/b17 → well over 100 files (2026-10-07).
 - added: 2026-10-07
+
+## P-533 · After a Claude Code session restart, a workflow run cannot be resumed from the new session until its journal is copied over: resume reads only the current session's folder
+- symptom: 2026-10-07 02:38 on the Dell, the first resume after the session restart that loaded `unit-reviewer`: "The journal for workflow run wf_b52b8501-a01 is not on disk, and this session cannot fetch a remote copy". The run's `workflows/<id>.json` and `subagents/workflows/<id>/` sat under the old session's folder (`~/.claude/projects/<project>/<old session id>/`), and `resumeFromRunId` looks only under the new one.
+- cause: workflow journals are stored per session; a restart (needed whenever `.claude/agents/` changes, because the agent registry loads at session start) gives a new session id and an empty folder.
+- rule: before the first resume in a restarted session, copy without moving (`cp -n`) `workflows/<id>.json` and `subagents/workflows/<id>/` for every run to resume from the old session's folder into the new one; then resume; the cached builds replay and the new agents run. The lane runner reports the copy, it is not a fix of a script (operator rule, lane-runner.md).
+- proof: on the Dell, after `cp -n` of the five ids into `33ddf8d3-…/`, all five resumes took and `review:B11:g1:1-2` started at 02:40:42; before the copy the same call printed the "not on disk" refusal.
+- added: 2026-10-07
