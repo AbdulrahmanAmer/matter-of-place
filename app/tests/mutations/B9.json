@@ -2525,6 +2525,33 @@
     "expect": "FAIL .*refuses a block that is not a block"
   },
   {
+    "id": "c5n-edge-rejects",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "new NonRetryableError(\"template_render_failed\"), { cause }",
+    "replace": "new Error(\"template_render_failed\"), { cause }",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*refuses a block that is not a block as a NonRetryableError"
+  },
+  {
+    "id": "c5n-edge-cause",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "(\"template_render_failed\"), { cause })",
+    "replace": "(\"template_render_failed\"), {})",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*refuses a block that is not a block as a NonRetryableError"
+  },
+  {
+    "id": "c5n-edge-build",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "tests/unit/assets/templates.test.ts",
+    "find": "dist/edge/index.mjs",
+    "replace": "dist/node/index.mjs",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*refuses a block that is not a block as a NonRetryableError"
+  },
+  {
     "id": "c5n-variables-passed",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/server/email/render.ts",

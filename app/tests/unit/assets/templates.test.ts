@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SiteContext } from "../../../src/server/email/context";
 import { renderTemplate, type RenderRow } from "../../../src/server/email/render";
 import { lintEmail } from "../../../scripts/lib/email-lint";
@@ -275,6 +275,45 @@ describe("the standalone email", () => {
     await expect(
       renderTemplate(standalone, { ...variables, block: { title: "No picture" } }, site),
     ).rejects.toThrow("template_render_failed");
+  });
+});
+
+// vitest resolves the Node build of @react-email/render; the Worker resolves the `workerd` condition, the edge build.
+// A throwing component resolves with a fallback in the first and rejects in the second (measured 2026-10-07).
+const edgeBuild = "../../../node_modules/@react-email/render/dist/edge/index.mjs";
+
+describe("the standalone email under the render build the Worker bundles", () => {
+  afterEach(() => {
+    vi.doUnmock("@react-email/render");
+    vi.resetModules();
+  });
+
+  async function underEdge() {
+    vi.resetModules();
+    vi.doMock("@react-email/render", () => import(/* @vite-ignore */ edgeBuild));
+    const [{ renderTemplate: render }, { NonRetryableError }] = await Promise.all([
+      import("../../../src/server/email/render"),
+      import("../../../src/server/jobs/types"),
+    ]);
+    return { render, NonRetryableError };
+  }
+
+  it("still draws the property block it is given", async () => {
+    const { render } = await underEdge();
+    const { html } = await render(standalone, { ...variables, block }, site);
+    expect(html).toContain(block.title);
+  });
+
+  it("refuses a block that is not a block as a NonRetryableError, with the reason kept", async () => {
+    const { render, NonRetryableError } = await underEdge();
+    const failure: unknown = await render(
+      standalone,
+      { ...variables, block: { ...block, link: "javascript:alert(1)" } },
+      site,
+    ).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(NonRetryableError);
+    expect(failure).toHaveProperty("message", "template_render_failed");
+    expect(failure).toHaveProperty("cause.message", "standalone_block_invalid");
   });
 });
 

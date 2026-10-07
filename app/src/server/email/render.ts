@@ -138,10 +138,13 @@ export async function renderTemplate(
   const subject = oneLine(interpolate(row.subject, text));
   const preheader = oneLine(interpolate(row.preheader, text));
   const blocks = parsed.data.flatMap((block) => resolveBlock(block, text, site) ?? []);
+  // A component that throws ends two ways: the Node build of `render` resolves with a client-render fallback holding
+  // its stack, the edge build the Worker bundles rejects. Neither is mail, and neither is worth a retry.
   const html = await render(
     createElement(Email, { title: subject, preheader, blocks, site, variables }),
-  );
-  // React turns a component that threw into a client-render fallback holding its stack; that is never mail.
+  ).catch((cause: unknown) => {
+    throw Object.assign(new NonRetryableError("template_render_failed"), { cause });
+  });
   if (html.includes(FAILED_RENDER)) throw new NonRetryableError("template_render_failed");
   return { subject, preheader, html, text: plainText(blocks, site) };
 }

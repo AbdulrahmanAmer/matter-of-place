@@ -4085,14 +4085,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts -t "passes the email gate"` passes; with the `width` attribute renamed (registry entry `c5n-block-width`) it fails on `img-width`.
 - added: 2026-10-07
 
-## G-251 · A template component that throws does not reject `render`: React returns a client-render fallback holding the stack, and it would be mailed
+## G-251 · A component that throws inside `render` resolves with a fallback under Node and rejects in the Worker: refuse both, and test the edge build
 - paths: app/src/templates/email/**, app/src/server/email/render.ts
 - severity: warn
-- symptom: B9 c5n's first test of a malformed `block` expected `renderTemplate` to reject with `standalone_block_invalid`; it resolved with HTML that began `<!--$!--><template data-msg="Switched to client rendering because the server rendering errored: standalone_block_invalid" data-stck="...NonRetryableError ... at Email (E:/mop-build/design/app/src/templates/email/standalone.tsx...`.
-- cause: `@react-email/render` uses React's server renderer, which recovers from an error inside a component by emitting a Suspense error boundary marker and a `<template>` carrying the message and stack, and does not reject.
-- rule: a throw inside an `Email` component is never the refusal; `renderTemplate` refuses any output holding `<!--$!-->` as `template_render_failed`, and a new template file keeps that check in front of every sender.
-- proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts -t "refuses a block that is not a block"` → passes; with the `FAILED_RENDER` line of `render.ts` deleted (registry entry `c5n-block-invalid`) it is red (measured 2026-10-07).
+- symptom: B9 c5n's first test of a malformed `block` expected `renderTemplate` to reject; under vitest it resolved with HTML that began `<!--$!--><template data-msg="Switched to client rendering because the server rendering errored: standalone_block_invalid" data-stck="...`. The fix that checked for that marker went green and was rejected in review: in the Worker the same render rejects with a plain `Error`, so the job runner (`error instanceof NonRetryableError`) retried it until its attempts ran out.
+- cause: `@react-email/render` ships two builds. The Node build (`dist/node`, what vitest resolves) recovers from a throw by emitting a Suspense error marker and does not reject. The `workerd` export condition resolves to `dist/edge`, whose `renderToReadableStream` has `onError: reject`. A check measured under vitest's conditions says nothing about the Worker.
+- rule: `renderTemplate` refuses both outcomes as `NonRetryableError("template_render_failed")` (a rejection keeps the original as `cause`; output holding `<!--$!-->` is refused); a throw inside an `Email` component is never the refusal by itself. A test of a render failure runs against `dist/edge` as well (`vi.doMock("@react-email/render", ...)` with the edge file path).
+- proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts` → 22 passed; registry entries `c5n-edge-build` (the mocked path changed from `dist/edge` to `dist/node`: no cause, the test is red), `c5n-edge-rejects` (plain `Error`), `c5n-edge-cause` (no `cause`) and `c5n-block-invalid` (the Node marker check deleted) are each red (measured 2026-10-07).
 - added: 2026-10-07
+- hit again: 2026-10-07, B9 c5n rework: the first version of this entry described the Node build alone and told the next worker that a throw never rejects.
 
 ## G-1100 · Resend contacts are global and `POST /contacts` on a known address subscribes it again
 - paths: app/src/server/channels/resend.ts, app/docs/runbooks/newsletter.md
