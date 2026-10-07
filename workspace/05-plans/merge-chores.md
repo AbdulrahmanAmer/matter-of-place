@@ -5,6 +5,10 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- Step 5a: the no-vendor-host grep proof cannot fail for two of its three paths; a costTime line mis-banked under P-076; `oauth-consent.ts:164` still says STUB(B10 step 5a) (re-point to step 6); all 17 X and LinkedIn fixtures are source "plan". (g5 review a958e54f)
+- `GRAPH_ERROR_TABLE` has no row for the Business Use Case rate-limit codes 80001, 80002 and the 800xx family, so a 4xx without `is_transient` from them classifies wrong (suspected by reading). (g3 review2 af512bc3)
+- B8's `meta-token-refresh.ts` (lines 72-74) keeps its own Vault-first, env-second token read instead of importing `getMetaToken`; the rule lives in two places.
+- g4: no test proves every Graph call passes `ctx.signal` (replacing it with undefined keeps 34 tests green); `findRecentPost` calls `media_publish` on a FINISHED container while invariant 2 says reconcile never publishes; PUBLISHED adoption reads `/{ig-user-id}/media` where stories list under `/stories`; `graph()` throws `AppError('server')` when `liveSideEffects('social')` is false instead of the dry-run answer of invariant 5; `health()` says "expires on <date>" for a dead token; two costTime items without a bank entry; `debug_token` in the plan's Files line that `meta-token.ts` does not read; `alt_text` not sent. (g4 review af6636e5)
 - STANDARDS R34 still says "exported error table" while knip refuses the unused export (P-2204). (g3 review ac85eb06)
 - `classifyGraphError` returns class `retry_at` with no time: codes 9/2207042 and 4/17/32/613 retry on B8's backoff and the next window, not Meta's reset time (steps 5-6).
 - enable-guard reads `new_channels` through the public-state memo with no reset: facebook answers `channel_locked` up to 15 s after the flag flips.
@@ -28,6 +32,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - Sizing puts the timeline reader at `src/server/submissions/timeline.ts`; plan (B7.md:94) and build say `src/server/lib/timeline.ts`. Plan says mop-designer owns screen 4 once; sizing has `designer:false`, no designer approval logged.
 
 ## B6 (slice/b6, Dell)
+- Step 2: STANDARDS R06 line 118 still says `src/server` never imports `src/data` while `pricing.ts` does under a one-file boundaries exception; `workflow.ts` line 24 widens a hand-written `PaymentStatus` union that duplicates the generated enum in `rows.ts`; `domain.test.ts` "accepts the seeded invoice settings" parses a hand-typed copy, not the jsonb seed of `20261006224201_invoicing.sql`; `invoiceManual.prepare` throws synchronously (a ZodError on a malformed snapshot) though `PaymentAdapter.prepare` returns a Promise; `StripeAdapter.parseWebhook` has no watched-fail; B6.md's "markPaidInput refuses a future paid_at with 422" folds to `paidAtIsFuture` (g3 wires the 422); the third costTime item cites P-2306 for a lesson it does not hold. (g2 review a9cfa1d6)
 - Plan watched-fail (u) (parallel numbering cleanup must fail loudly) not done and not in `B6.json`. (g1 review a68926a9)
 - `payment_tier` parity case checks a hand-typed table; `src/domain/payments.ts` comes with step 2, re-point then.
 - `b6-g1-ag-fixed-now` does not do what the plan's (ag) describes; the change is unlogged.
@@ -36,6 +41,8 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- Step 4 PARTIAL on B9 step 5's missing half (NewsletterBlock, standalone block, object variables in render.ts): B9 close-out c5n runs here (wf_e0dc4410-89b); when it merges, the standalone row update, variablesByKey and the sample-block changes of B11 step 4 complete in B11's next group or a B11 close-out. (g3 build a24a5183)
+- Step 4 bank: `types.ts` hand-typed for the newsletter functions and STUB casts in `assemble.ts` and `resend.ts` until `bun run types:from-ci -- 200` (PR 200 marked ready 05:45).
 - `variables.ts` ~525 `digestAlert`: removing `.eq("event_id", job.eventId)` turns nothing red; the digest-notify fixture holds one queue_digest job, so the filter is never exercised (registry entry BAD as a follow-up). (g2 review a313c3a1)
 - `assemble.ts` 286 and `readIssues` 155 apply the 300-character deck/title caps on read as well as write (suspected from reading).
 - A digest.due recipe using send_email with the admin_notify template fails `NonRetryableError event_id_missing`: `send-email.ts:342` calls `resolveVariables` without the seventh job argument (author-disclosed).
@@ -48,6 +55,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `app/scripts/observatory.mjs` policy check fails open on a non-OK HEAD; the `!scan.ok` guard branch has no test of its own; C22 cost line for the two new preview steps.
 
 ## B13 (slice/b13, Dell)
+- Step 10 (GA4): nothing tests the idle wait in a real browser (jsdom has no `requestIdleCallback`); CI never runs `ga4.spec.ts` (the e2e job has no `--project=seo` and no GA4 id in its build); `trackGpcOverride`'s `catch { return; }` drops `consent_set` silently when sessionStorage throws (C06/C07); Decline after Allow leaves gtag.js running until the next load, nothing sets `window['ga-disable-<id>']`; the step 10 curl proof in B13.md cannot be reproduced as written; P-1827's third costTime item is unexplained. (g1 review a929510f, run wf_5f2602e8-5b0)
 - Step 7 rework: the lazy chunk is fetched on every property view after hydration rather than on a click, so a deploy between HTML and chunk shows; the log's Proof 1 and 3 test counts do not match their commands; the focus guard goes red only under vite dev with StrictMode (CI's e2e target would not catch the earlier variant); P-1822's title still says "code only a click needs". (c7b review2 a7c4b10f)
 - `perf-targets.mjs` comments claim the hard limits are error assertions in `lighthouserc.json`; they are warn in B4's file (12 warn lines, exit 0; lhci LCP 2,604 to 4,388 ms on six preview URLs), so step 8's "lhci exits 0 with invariant 12 met" did not hold as written. (g1 review aa5d0423)
 - `HERO_VARIANT` matches only `/media/v/.../hero.webp`; the preview property page serves the master `/media/o/...` through the mapper fallback (`mappers.ts:283`), so no real run has weighed a hero.
@@ -57,3 +65,10 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - Flip `check-seo` from the H64 allowlist to hard once B16 and B17 are on main (privacy, terms, accessibility, cookies pages; fonts.googleapis gone from `__root.tsx`; og:image on /place-notes). (g1 build a9266883)
 - `lhci:local` waits for B17 step 8.
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
+
+## Workflow (`.claude/workflows/build-slice.js`, at a run boundary)
+- The review brief names the live lane folder (`D:/mop-build/b6`) as a place to run checks while the next group's builder writes uncommitted files into it; a reviewer's `bun run check` there is not clean evidence. The brief should name the review snapshot only (`review-snapshot.mjs create`) and forbid commands in the lane root. (B6 g2 review a9cfa1d6)
+- A settled reject waits for the next hand-in before its fix round starts (`settle()`); a group marked `needsOrchestrator` ends the run even when the item is already satisfied; the brief says "no CI run exists for this commit" when a descendant commit's run on the lane's PR does (B17 g10 review a63987521141769f5).
+
+## Registry (main)
+- `B2:p` and `B8:p` replay BAD (wrong reason) on main today; CI replays them only when their test files change. Re-anchor when those files are next touched (seen 2026-10-07 while adding B4 shells entries).

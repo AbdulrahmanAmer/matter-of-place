@@ -1323,3 +1323,33 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   full hour of results exists. The operator (03:00) confirmed grind mode: pipelines are fixed, workflows run, replies short.
 - Board republished as artifact version 66 (phone layout live). Watches re-armed at 03:08 (stall byyu4vw8b, lane results
   bu5fi2aq8, board birswq9x4).
+
+## 2026-10-07 05:15 Eleven Dell accepts, the first lane merge, three rulings
+
+- Pace since the 02:40 resume: Dell accepts B11 g1 and g2, B10 g1 to g4, B6 g1, B7 g1, B13 c7b and g1; here B17 c8, c9
+  (reviewer accepts, my re-run pending). Board 159 of 259 (61.4 percent) at 05:05, from 145 at 02:40; about 6 accepts
+  an hour over the two machines, part of the jump being the mirror making the Dell visible (P-534). B6 g1 merged to
+  main (PR 185, ec1b4f0, the schema-group merge): the first lane merge of the night.
+- Rulings: H64 (B13's `check-seo` at warn through an allowlist until B16 and B17 land what it checks); H65 (the merge
+  gate lets a head behind main through when main gained only paths ci.yml ignores; B6's merge agent had re-merged
+  main five times, each restarting CI, because records PRs 190 to 194 moved main); H66 (admin route files are shells,
+  enforced by `tests/unit/admin-route-shells.test.ts`; public script budget 163,840; measured: four admin route files
+  cost the public entry 2,527 gzip bytes, `_site` 143,354 against 140,827 without them; B7 step 6 converts the five
+  existing files first). PRs 190 to 196 merged (hygiene 90 s cap, P-534 mirror, blocked list on the board, merge-chores.md,
+  gate H65, H66).
+- `workspace/05-plans/merge-chores.md` holds every reviewer follow-up per slice; folded when each lane merges, never
+  pushed onto a live lane. The board's ledger has a per-slice `blocked` list shown as "waiting on you" (B10 steps 1, 2,
+  3a, 3b: the Meta, X and LinkedIn apps). GA4 and Search Console exist since 2026-10-03 (operator; TXT record live);
+  `VITE_GA4_MEASUREMENT_ID` set as a GitHub variable at 04:55.
+- B17 step 12 rejected three times (round 1 emptied CI to hide flaky cases; round 2 and 3: the deploy run of the exact
+  commit has the essentials step red because the pr-142 preview Worker stalls some data-reading requests, P-1936; 34
+  requests from here were all under 1.4 s). fix3 running; if the group ends rejected the stall is my task before B17
+  merges. B13 run wf_b52b8501-a01 ended after g1 (needsOrchestrator); relaunched as wf_5f2602e8-5b0 for steps 10 to 13
+  with noMerge (the H64 allowlist is my chore before PR 163 gates); it stops again after step 10 and the Dell relaunches
+  11 to 13 without asking.
+- Workflow follow-ups (not touched while runs are live): a settled reject waits for the next hand-in before its fix round
+  starts (`settle()` in build-slice.js); a group marked needsOrchestrator ends the run; the review brief says "no CI run
+  exists" when a descendant commit's run does. Registry: `B2:p` and `B8:p` replay BAD on main today (merge-chores.md).
+- Dell memory floor tonight 172 MB (03:38), no OOM or crash in any transcript; hygiene 20 s timeouts were the only
+  symptom, fixed by PR 190. Journals mirrored here every five minutes (task bibqds20x). Watches: stall, lane results,
+  board, 30-minute re-arms.

@@ -49,16 +49,16 @@ const sizes = (bytes: Record<string, number>) => (file: string) => {
 const SMALL = { "assets/index.js": 1000, "assets/shared.js": 500, "assets/site.js": 100 };
 
 describe("checkManifest", () => {
-  it("passes an entry of 140 KB and fails one of 160 KB, naming the route", () => {
+  it("passes an entry of 140 KB and fails one of 170 KB, naming the route", () => {
     const small = { ...SMALL, "assets/stories.js": 10, "assets/story.js": 10 };
     const heavy = (entry: number) =>
       checkManifest(recorded(), sizes({ ...small, "assets/index.js": entry }));
-    expect([heavy(140_000).problems, heavy(160_000).problems]).toEqual([
+    expect([heavy(140_000).problems, heavy(170_000).problems]).toEqual([
       [],
       [
-        `_site loads 160600 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
-        `_site.stories loads 160610 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
-        `_site.stories.$slug loads 160620 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
+        `_site loads 170600 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
+        `_site.stories loads 170610 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
+        `_site.stories.$slug loads 170620 gzip bytes, over the budget of ${String(SCRIPT_BUDGET_BYTES)}`,
       ],
     ]);
   });
@@ -181,8 +181,8 @@ describe("the built output", () => {
     });
   });
 
-  it("exits 1 on an entry of 160 KB", () => {
-    const { code, lines } = run(built(160_000));
+  it("exits 1 on an entry of 170 KB", () => {
+    const { code, lines } = run(built(170_000));
     expect([code, lines.filter((line) => line.startsWith("FAIL")).length]).toEqual([1, 3]);
   });
 
