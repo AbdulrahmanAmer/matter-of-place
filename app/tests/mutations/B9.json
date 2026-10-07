@@ -2568,5 +2568,23 @@
     "replace": "false",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*is refused for a key whose template only draws"
+  },
+  {
+    "id": "c5n-block-width",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/NewsletterBlock.tsx",
+    "find": "width={IMAGE_WIDTH}",
+    "replace": "data-width={IMAGE_WIDTH}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*passes the email gate on the block it draws"
+  },
+  {
+    "id": "c5n-block-https",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": ".startsWith(\"https://\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*refuses a block whose link or image is not an https address"
   }
 ]

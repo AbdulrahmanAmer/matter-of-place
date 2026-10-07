@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { SiteContext } from "../../../src/server/email/context";
 import { renderTemplate, type RenderRow } from "../../../src/server/email/render";
+import { lintEmail } from "../../../scripts/lib/email-lint";
 import fixture from "../../../src/templates/social/fixtures/property.fixture.json";
 import { CarouselSlide } from "../../../src/templates/social/Carousel.tsx";
 import { Cover } from "../../../src/templates/social/Cover.tsx";
@@ -248,6 +249,26 @@ describe("the standalone email", () => {
     expect(html).not.toContain("View the property");
     expect(html).not.toContain(block.title);
     expect(html).not.toContain('<img src="https://matterofplace.com/media');
+  });
+
+  it("passes the email gate on the block it draws: an image with a width and no empty link", async () => {
+    const { html, text } = await renderTemplate(standalone, { ...variables, block }, site);
+    // The plain-text part of a Campaign email does not yet hold the block's link (B11's follow-up), so text-url is left out.
+    const rules = lintEmail(html, text, "standalone")
+      .map((finding) => finding.rule)
+      .filter((rule) => rule !== "text-url");
+    expect(rules).toEqual([]);
+  });
+
+  it("refuses a block whose link or image is not an https address", async () => {
+    for (const bad of [
+      { ...block, link: "javascript:alert(1)" },
+      { ...block, image_url: "http://matterofplace.com/media/properties/p1/og.webp" },
+    ]) {
+      await expect(renderTemplate(standalone, { ...variables, block: bad }, site)).rejects.toThrow(
+        "template_render_failed",
+      );
+    }
   });
 
   it("refuses a block that is not a block", async () => {

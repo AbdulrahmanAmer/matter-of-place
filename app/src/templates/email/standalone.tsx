@@ -18,12 +18,15 @@ export const definition: EmailDefinition = {
   ],
 };
 
+// A mail client must never be given a `javascript:` or plain `http:` address, whoever wrote the stored block.
+const https = z.string().url().startsWith("https://");
+
 const block = z.object({
   title: z.string().min(1),
   deck: z.string(),
   image_key: z.string().min(1),
-  image_url: z.string().url(),
-  link: z.string().url(),
+  image_url: https,
+  link: https,
   alt: z.string().optional(),
 });
 

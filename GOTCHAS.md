@@ -885,6 +885,7 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
+- hit again: 2026-10-07, B9 c5n rework: an empty `python -` heredoc written as a habit guard hung 120 seconds in front of a `node` patch; the patch had applied (`git diff` showed it) and `taskkill //F //IM python.exe` ended the loop.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
 - hit again: 2026-10-06, B12 g1: a `python3 - <<'EOF' ... || echo nopython` guard in front of a node patch hung to the 120 s ceiling; the node patch ran when python was killed. About 4 minutes; two python processes had to be found by parent id and one was already gone.
 - hit again: 2026-10-06, B5 g5: a `python - <<'EOF' || node -e ...` guard hung to the 120 s ceiling before a one-line edit of `package.json`; the edit was redone with Edit. About 2 minutes.
@@ -4060,7 +4061,28 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: B9 c5n's brief said `tests/unit/assets/templates.test.ts` does not exist on main; the builder wrote it with Write, the hook raised no refusal, and the 197-line SSR snapshot file of B9 g4 (Cover, Story, OgCard, carousel, 22 registry entries) was replaced until `git status` showed ` M` instead of `??`. `git checkout --` restored it and the new cases were appended.
 - cause: the brief was written against main, and the lane branch carries earlier groups' commits (`7982a01` added the file); Write replaces a file it was not told to read.
 - rule: before a Write of a file the brief calls new, run `git ls-files <path>` and `git log --oneline -1 -- <path>` on the lane branch; a tracked file is Read and edited, never written over.
-- proof: `git log --oneline -1 -- app/tests/unit/assets/templates.test.ts` → `7982a01 B9 g4 steps 4,5: ...`
+- proof: `git log --oneline --diff-filter=A -1 -- app/tests/unit/assets/templates.test.ts` → `7982a016 B9 g4 steps 4,5: ...` (without `--diff-filter=A` the newest commit that touched the file prints, which is c5n's own)
+- added: 2026-10-07
+
+## P-732 · After a merge of main the lane's node_modules can be stale: `Cannot find package '@react-email/render'`
+- symptom: B9 c5n's first `bunx vitest run` after `git merge origin/main` failed at import with `Cannot find package '@react-email/render'`; the package is in `app/package.json`, the lane's `node_modules` predates it.
+- cause: a lane's `app/node_modules` is its own and is not refreshed by a merge, so a dependency another lane added to the lockfile is missing until it is installed.
+- rule: after a merge that touches `app/package.json` or `app/bun.lock`, run `bun install --frozen-lockfile` in `app` before the first test; an import error for a package the manifest lists is this, not a code defect.
+- proof: `cd app && bun install --frozen-lockfile && bun -e 'import("@react-email/render").then(() => console.log("ok"))'` → `ok` (measured 2026-10-07).
+- added: 2026-10-07
+
+## P-733 · A new required prop on `EmailProps` breaks every other caller of `Message`, and a zod `satisfies` of an optional field fails under `exactOptionalPropertyTypes`
+- symptom: B9 c5n added `variables` to `EmailProps`; `bun run typecheck` then failed in `scripts/build-auth-templates.ts`, which builds `Message` itself without `renderTemplate`. A first `satisfies NewsletterBlockProps` on the zod schema's optional `alt` failed with `Type 'string | undefined' is not assignable to type 'string'`.
+- cause: `EmailProps` has two callers, `renderTemplate` and the auth-template build script, and `exactOptionalPropertyTypes` (R01) makes `alt?: string` refuse the explicit `undefined` that zod's optional produces.
+- rule: before adding a field to `EmailProps`, grep `createElement(Message` and `EmailProps` under `app/src` and `app/scripts` and give every caller the field; a prop that receives a zod-optional value is typed `alt?: string | undefined`, as `NewsletterBlockProps` does.
+- proof: `grep -n "variables: {}" app/scripts/build-auth-templates.ts` → one hit, and `cd app && bun run typecheck` exits 0 (measured 2026-10-07).
+- added: 2026-10-07
+
+## P-734 · An email block was drawn without running the email gate on it: B5's `lintEmail` found `img-width` and `link-text` on the first Campaign block
+- symptom: the first c5n build of `NewsletterBlock` passed its tests and was rejected on review: `lintEmail(html, text, "standalone")` of a row with a block gave `img-width` (the `<img>` had only a CSS width, which Outlook ignores) and `link-text` (the image link held no visible text). The sample row of B5 has no block, so `tests/unit/email/lint.test.ts` stayed green.
+- cause: a block that only a variable draws is in no sample render, so the lint test never saw it; the author wrote "no mail client was used" and did not run the deterministic gate that was in the repository.
+- rule: a component that draws into an email is rendered through `renderTemplate` and passed to `lintEmail` in its own test; an image carries a numeric `width` attribute, and a link carries visible text (an image is not clickable on its own).
+- proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts -t "passes the email gate"` passes; with the `width` attribute renamed (registry entry `c5n-block-width`) it fails on `img-width`.
 - added: 2026-10-07
 
 ## G-251 · A template component that throws does not reject `render`: React returns a client-render fallback holding the stack, and it would be mailed

@@ -16,6 +16,10 @@ export interface NewsletterBlockProps {
   alt?: string | undefined;
 }
 
+// The width of the layout's column (600 px less 32 px of padding each side): Outlook ignores a CSS width, so the
+// attribute holds the image to the column, and `width: 100%` below lets every other client scale it.
+const IMAGE_WIDTH = 536;
+
 const table: CSSProperties = { width: "100%", margin: "0 0 22px", borderCollapse: "collapse" };
 
 const image: CSSProperties = { display: "block", width: "100%", height: "auto", border: 0 };
@@ -54,14 +58,12 @@ export function NewsletterBlock(props: NewsletterBlockProps) {
       <tbody>
         <tr>
           <td>
-            <a href={props.link}>
-              <img
-                src={props.image_url}
-                alt={props.alt ?? props.title}
-                loading="lazy"
-                style={image}
-              />
-            </a>
+            <img
+              src={props.image_url}
+              alt={props.alt ?? props.title}
+              width={IMAGE_WIDTH}
+              style={image}
+            />
           </td>
         </tr>
         <tr>
