@@ -85,10 +85,26 @@ interface FakeQuery extends Promise<{ data: Row[]; error: null }> {
   in: (column: string, values: unknown[]) => FakeQuery;
   is: (column: string, value: null) => FakeQuery;
   gt: (column: string, value: string) => FakeQuery;
+  like: (column: string, pattern: string) => FakeQuery;
+  contains: (column: string, values: unknown[]) => FakeQuery;
+  not: (column: string, operator: "is", value: null) => FakeQuery;
+  order: (column: string, options?: { ascending?: boolean }) => FakeQuery;
   limit: (count: number) => FakeQuery;
 }
 
-/** Tables that answer `eq`, `in`, `is`, `gt` and `limit` as Postgres would (P-905), recorded in `calls` like `fakeDb`'s. */
+/** A `like` pattern as a test: `%` is any run of characters, everything else is literal. */
+const likeTest = (pattern: string): RegExp =>
+  new RegExp(
+    `^${pattern
+      .split("%")
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*")}$`,
+  );
+
+/**
+ * Tables that answer `eq`, `in`, `is`, `gt`, `like`, `contains`, `not ... is null`, `order` and `limit` as Postgres
+ * would (P-905), recorded in `calls` like `fakeDb`'s.
+ */
 export function filteredFrom(tables: Record<string, Row[]>, calls: FakeDb["calls"]) {
   return (name: string) => {
     calls.push({ kind: "from", name, args: [] });
@@ -107,6 +123,24 @@ export function filteredFrom(tables: Record<string, Row[]>, calls: FakeDb["calls
             current.filter((row) => {
               const cell = row[column];
               return typeof cell === "string" && cell > value;
+            }),
+          ),
+        like: (column: string, pattern: string) =>
+          query(current.filter((row) => likeTest(pattern).test(String(row[column])))),
+        contains: (column: string, values: unknown[]) =>
+          query(
+            current.filter((row) => {
+              const cell = row[column];
+              return Array.isArray(cell) && values.every((value) => cell.includes(value));
+            }),
+          ),
+        not: (column: string, _operator: "is", value: null) =>
+          query(current.filter((row) => (row[column] ?? null) !== value)),
+        order: (column: string, options?: { ascending?: boolean }) =>
+          query(
+            [...current].sort((a, b) => {
+              const order = String(a[column]) < String(b[column]) ? -1 : 1;
+              return options?.ascending === false ? -order : order;
             }),
           ),
         limit: (count: number) => query(current.slice(0, count)),

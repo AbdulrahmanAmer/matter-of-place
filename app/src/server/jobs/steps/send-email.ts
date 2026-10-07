@@ -123,7 +123,7 @@ export async function templateRow(db: Db, key: EmailTemplateKey) {
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** `*` stands for any run of characters before the `@` (invariant 6). */
-function allowListed(address: string, patterns: readonly string[]): boolean {
+export function allowListed(address: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) =>
     new RegExp(`^${pattern.split("*").map(escapeRegExp).join("[^@]*")}$`).test(address),
   );

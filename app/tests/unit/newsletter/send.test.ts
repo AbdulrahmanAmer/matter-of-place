@@ -17,9 +17,28 @@ import {
   Transient,
   updateContact,
 } from "../../../src/server/channels/resend";
+import { getSystemJob } from "../../../src/server/jobs/system/index";
+import { newsletterSend } from "../../../src/server/jobs/system/newsletter-send";
 import { NonRetryableError } from "../../../src/server/jobs/types";
-import { CONTACT, emailEnv, FROM_BULK, NOW } from "../../fixtures/email-send";
+import {
+  CONTACT,
+  emailEnv,
+  failure as outcomeOf,
+  FROM_BULK,
+  NOW,
+  PRODUCTION_SHARE,
+  stepCtx,
+} from "../../fixtures/email-send";
 import { fakeDb } from "../../fixtures/fake-db";
+import {
+  newsletterDb,
+  propertyBlock,
+  propertyRow,
+  storyBlock,
+  storyRow,
+  uuid,
+  type Row,
+} from "../../fixtures/newsletter-world";
 
 // B11 step 2: the Resend adapter against a fake provider. Every call is recorded by method, path and JSON body; a
 // call the test did not route fails loudly, so a method that reaches for an endpoint nobody listed is red.
@@ -383,5 +402,324 @@ describe("resend adapter fails closed", () => {
     const calls = provider({ "POST /broadcasts": { body: DRAFT } });
     await createBroadcast(broadcastInput);
     expect(keys(calls)).toEqual(["POST /broadcasts"]);
+  });
+});
+
+// B11 invariants 4 to 6 (INT-10, INT-11): the `newsletter_send` system job against the fake provider above and a
+// database whose issue functions keep one issue row as the SQL functions of step 4 do.
+
+const ISSUE_ID = uuid(900);
+const LEGAL = { entity: "Omnikom Media LLC", address: "100 Ocean Drive, Miami, FL 33139" };
+
+interface SendWorld {
+  issue?: Row;
+  recipients?: number;
+  sentToday?: number;
+  channel?: boolean;
+  legal?: { entity: string | null; address: string | null };
+  properties?: Row[];
+  /** The first `newsletter_mark_sent` calls fail, as a crash after Resend accepted the send would. */
+  markSentFails?: number;
+}
+
+function sendWorld(options: SendWorld = {}) {
+  const issue: Row = {
+    id: ISSUE_ID,
+    number: 7,
+    status: "approved",
+    approval_count: 2,
+    blocks: [{ id: "intro", type: "intro", text: "Two walks." }, storyBlock(1)],
+    subject: "Place Notes No. 7: Under the oaks",
+    preheader: "A walk.",
+    resend_broadcast_id: null,
+    sent_at: null,
+    send_error: null,
+    metrics: {},
+    ...options.issue,
+  };
+  const notices: unknown[] = [];
+  let crashes = options.markSentFails ?? 0;
+  const { db } = newsletterDb(
+    {
+      newsletter_issues: [issue],
+      stories: [storyRow(1, { slug: "under-the-oaks" })],
+      properties: options.properties ?? [],
+      channel_settings: [{ channel: "newsletter", enabled: options.channel ?? true }],
+      settings: [
+        { key: "email", value: PRODUCTION_SHARE },
+        { key: "site", value: { contact: { email: CONTACT }, legal: options.legal ?? LEGAL } },
+        { key: "resend", value: { audiences: { "place-notes": SEGMENT } } },
+      ],
+    },
+    {
+      newsletter_recipient_count: () => options.recipients ?? 3,
+      newsletter_audience_members: () => [],
+      email_sent_today: () => options.sentToday ?? 0,
+      email_sent_month: () => 0,
+      enqueue_job: (args) => {
+        notices.push(args["p_payload"]);
+        return "job-2";
+      },
+      newsletter_mark_sending: (args) => {
+        const fresh = ["approved", "sending"].includes(String(issue["status"]));
+        if (!fresh || issue["approval_count"] !== args["p_approval_count"]) return false;
+        issue["status"] = "sending";
+        return true;
+      },
+      newsletter_set_broadcast_id: (args) => {
+        issue["resend_broadcast_id"] ??= args["p_broadcast_id"];
+        return null;
+      },
+      newsletter_mark_sent: (args) => {
+        if ((crashes -= 1) >= 0) return new Error("connection reset");
+        if (issue["status"] !== "sending") return new Error("wrong_state");
+        Object.assign(issue, {
+          status: "sent",
+          sent_at: NOW.toISOString(),
+          send_error: null,
+          metrics: { recipients: args["p_recipients"] },
+        });
+        return null;
+      },
+      newsletter_set_send_error: (args) => {
+        issue["send_error"] = args["p_error"];
+        return null;
+      },
+    },
+  );
+  return { db, issue, notices };
+}
+
+const SEND_ROUTES = {
+  [`GET /segments/${SEGMENT}/contacts`]: { body: { data: [] } },
+  "POST /broadcasts": { body: DRAFT },
+  "POST /broadcasts/br_1/send": { body: { id: "br_1" } },
+  "GET /broadcasts/br_1": { body: { id: "br_1", status: "draft" } },
+};
+
+const runSend = (db: ReturnType<typeof sendWorld>["db"], approvalCount = 2) =>
+  newsletterSend.run(
+    stepCtx(db, { type: "newsletter_send" }),
+    {},
+    { issue_id: ISSUE_ID, approval_count: approvalCount },
+  );
+
+const sends = (calls: Call[]) => keys(calls).filter((key) => key.endsWith("/send"));
+
+describe("newsletter_send", () => {
+  it("is registered with twelve attempts", () => {
+    expect(getSystemJob("newsletter_send")).toBe(newsletterSend);
+    expect(newsletterSend.maxAttempts).toBe(12);
+  });
+
+  it("sends an approved issue: sent, sent_at and metrics.recipients", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue } = sendWorld({ recipients: 3 });
+    expect(await runSend(db)).toEqual({
+      status: "done",
+      result: { broadcast_id: "br_1", recipients: 3 },
+    });
+    expect(issue).toMatchObject({
+      status: "sent",
+      sent_at: NOW.toISOString(),
+      resend_broadcast_id: "br_1",
+      metrics: { recipients: 3 },
+    });
+    expect(sends(calls)).toEqual(["POST /broadcasts/br_1/send"]);
+  });
+
+  it("syncs the audience before it creates the broadcast", async () => {
+    const calls = provider(SEND_ROUTES);
+    await runSend(sendWorld().db);
+    expect(keys(calls)).toEqual([
+      `GET /segments/${SEGMENT}/contacts`,
+      "POST /broadcasts",
+      "POST /broadcasts/br_1/send",
+    ]);
+  });
+
+  it("refuses an issue whose footer has no postal address: footer_incomplete, written to send_error", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue } = sendWorld({ legal: { entity: LEGAL.entity, address: null } });
+    expect(await outcomeOf(runSend(db))).toEqual({ dead: true, message: "footer_incomplete" });
+    expect(issue).toMatchObject({ status: "approved", send_error: "footer_incomplete" });
+    expect(calls).toEqual([]);
+  });
+
+  it("skips a job whose approval_count is stale", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue } = sendWorld();
+    expect(await runSend(db, 1)).toEqual({ status: "done", result: { skipped: "stale" } });
+    expect(issue["status"]).toBe("approved");
+    expect(calls).toEqual([]);
+  });
+
+  it("skips with one notice to the admin while the newsletter channel is off", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, notices } = sendWorld({ channel: false });
+    expect(await runSend(db)).toEqual({ status: "done", result: { skipped: "channel_disabled" } });
+    expect(notices).toEqual([
+      {
+        params: { headline: "Place Notes No. 7 not sent: the newsletter channel is off" },
+        data: {
+          summary: "Switch the newsletter channel on, then approve the issue again",
+          link_path: "/admin/automation/settings",
+        },
+      },
+    ]);
+    expect(calls).toEqual([]);
+  });
+
+  it("resumes a crash between create and send with the send only", async () => {
+    let attempt = 0;
+    const calls = provider({
+      ...SEND_ROUTES,
+      "POST /broadcasts/br_1/send": () =>
+        (attempt += 1) === 1 ? failure("server_busy", 503) : { body: { id: "br_1" } },
+    });
+    const { db, issue } = sendWorld();
+    expect(await outcomeOf(runSend(db))).toEqual({ dead: false, message: "resend_status_503" });
+    await runSend(db);
+    expect(keys(calls).filter((key) => key.startsWith("POST "))).toEqual([
+      "POST /broadcasts",
+      "POST /broadcasts/br_1/send",
+      "POST /broadcasts/br_1/send",
+    ]);
+    expect(issue["status"]).toBe("sent");
+  });
+
+  it.each(["sent", "queued"])(
+    "adopts a stored broadcast Resend answers %s for: no send call, the issue ends sent",
+    async (status) => {
+      const calls = provider({ "GET /broadcasts/br_1": { body: { id: "br_1", status } } });
+      const { db, issue } = sendWorld({
+        recipients: 4,
+        issue: { status: "sending", resend_broadcast_id: "br_1" },
+      });
+      expect(await runSend(db)).toEqual({ status: "done", result: { adopted: true } });
+      expect(sends(calls)).toEqual([]);
+      expect(issue).toMatchObject({ status: "sent", metrics: { recipients: 4 } });
+    },
+  );
+
+  it("confirms a Conflict from the send through getBroadcast and ends sent with no second send (INT-10)", async () => {
+    const calls = provider({
+      ...SEND_ROUTES,
+      "POST /broadcasts/br_1/send": failure("conflict", 409),
+      "GET /broadcasts/br_1": { body: { id: "br_1", status: "sending" } },
+    });
+    const { db, issue } = sendWorld();
+    expect(await runSend(db)).toEqual({ status: "done", result: { adopted: true } });
+    expect(sends(calls)).toEqual(["POST /broadcasts/br_1/send"]);
+    expect(issue["status"]).toBe("sent");
+  });
+
+  it("returns retry_at the next UTC midnight plus a minute on a 429 daily_quota_exceeded (INT-11)", async () => {
+    provider({
+      ...SEND_ROUTES,
+      "POST /broadcasts/br_1/send": failure("daily_quota_exceeded", 429),
+    });
+    const { db, issue } = sendWorld();
+    expect(await runSend(db)).toEqual({
+      status: "retry_at",
+      at: new Date("2026-10-06T00:01:00.000Z"),
+      reason: "resend_daily_quota_exceeded",
+    });
+    expect(issue).toMatchObject({ status: "sending", resend_broadcast_id: "br_1" });
+  });
+
+  it("writes restricted_api_key to send_error and ends dead", async () => {
+    provider({ ...SEND_ROUTES, "POST /broadcasts/br_1/send": failure("restricted_api_key", 403) });
+    const { db, issue } = sendWorld();
+    expect(await outcomeOf(runSend(db))).toEqual({ dead: true, message: "restricted_api_key" });
+    expect(issue["send_error"]).toBe("restricted_api_key");
+  });
+
+  it("holds 30 recipients with 25 sent today to tomorrow, leaves the issue approved and tells the admin once", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue, notices } = sendWorld({ recipients: 30, sentToday: 25 });
+    expect(await runSend(db)).toEqual({
+      status: "retry_at",
+      at: new Date("2026-10-06T00:01:00.000Z"),
+      reason: "quota",
+    });
+    expect(issue["status"]).toBe("approved");
+    expect(notices).toEqual([
+      {
+        params: { headline: "Place Notes No. 7 waits for tomorrow's quota" },
+        data: {
+          summary: "30 recipients, 25 sent today, bulk cap 50",
+          link_path: `/admin/newsletter/${ISSUE_ID}`,
+        },
+      },
+    ]);
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses 51 recipients as quota_exceeds_plan: send_error, still approved, one notice", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue, notices } = sendWorld({ recipients: 51 });
+    expect(await outcomeOf(runSend(db))).toEqual({ dead: true, message: "quota_exceeds_plan" });
+    expect(issue).toMatchObject({ status: "approved", send_error: "quota_exceeds_plan" });
+    expect(notices).toEqual([
+      {
+        params: { headline: "Place Notes No. 7 exceeds the free sending plan" },
+        data: {
+          summary: "51 recipients, bulk cap 50; sending needs a paid plan decision",
+          link_path: `/admin/newsletter/${ISSUE_ID}`,
+        },
+      },
+    ]);
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses an issue holding a property unpublished after approval before any create, with one notice", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue, notices } = sendWorld({
+      issue: { blocks: [storyBlock(1), propertyBlock(2, "Oak Hill")] },
+      properties: [propertyRow(2, { slug: "oak-hill", editorial_state: "draft" })],
+    });
+    expect(await outcomeOf(runSend(db))).toEqual({ dead: true, message: "block_unpublished" });
+    expect(issue).toMatchObject({
+      status: "approved",
+      send_error: `block_unpublished:property:${uuid(2)}`,
+    });
+    expect(notices).toEqual([
+      {
+        params: { headline: "Place Notes No. 7 holds an unpublished item" },
+        data: { summary: "Oak Hill", link_path: `/admin/newsletter/${ISSUE_ID}` },
+      },
+    ]);
+    expect(calls).toEqual([]);
+  });
+
+  it("ends sent with a dry_ broadcast id and no fetch under EMAIL_DRY_RUN=1", async () => {
+    emailEnv({ EMAIL_DRY_RUN: "1" });
+    const calls = provider({});
+    const { db, issue } = sendWorld();
+    await runSend(db);
+    expect(issue["status"]).toBe("sent");
+    expect(String(issue["resend_broadcast_id"])).toMatch(/^dry_/);
+    expect(calls).toEqual([]);
+  });
+
+  it("newsletter_send runs twice without a second outside effect", async () => {
+    let sent = false;
+    const calls = provider({
+      ...SEND_ROUTES,
+      "POST /broadcasts/br_1/send": () => {
+        sent = true;
+        return { body: { id: "br_1" } };
+      },
+      "GET /broadcasts/br_1": () => ({ body: { id: "br_1", status: sent ? "sent" : "draft" } }),
+    });
+    const { db, issue } = sendWorld({ markSentFails: 1 });
+    expect(await outcomeOf(runSend(db))).toEqual({
+      dead: false,
+      message: "newsletter_write_failed:newsletter_mark_sent:XX000",
+    });
+    expect(await runSend(db)).toEqual({ status: "done", result: { adopted: true } });
+    expect(sends(calls)).toHaveLength(1);
+    expect(issue["status"]).toBe("sent");
   });
 });

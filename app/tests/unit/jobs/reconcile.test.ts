@@ -1,11 +1,13 @@
-// B8 step 8: the reconcile system job (G10). B3's reconcileUploads is passed in as a fake, so the cases prove which
-// `since` the job hands it and what it stores; one case runs the registered job against a fake client.
+// B8 step 8: the reconcile system job (G10). B3's reconcileUploads and B11's aggregateRecentIssues are passed in as
+// fakes, so the cases prove which `since` and `now` the job hands them and what it stores; one case runs the
+// registered job against a fake client.
 import { describe, expect, it, vi } from "vitest";
 import type { JsonObject, StepContext } from "../../../src/server/jobs/types";
 import { NonRetryableError } from "../../../src/server/jobs/types";
 import {
   reconcile,
   reconcileJob,
+  type AggregateIssues,
   type ReconcileUploads,
   type UploadCounts,
 } from "../../../src/server/jobs/system/reconcile";
@@ -15,6 +17,7 @@ import { fakeDb } from "../../fixtures/fake-db";
 
 const NOW = new Date("2026-10-04T13:00:00.000Z");
 const COUNTS: UploadCounts = { checked: 3, uploaded: 2, deleted: 1, missing: 0 };
+const noIssues: AggregateIssues = () => Promise.resolve({ issues: 0 });
 
 /** The jobs read of the job: the latest done reconcile run, or none. */
 function jobsChain(lastFinishedAt: string | null) {
@@ -59,7 +62,7 @@ function jobsOnly(lastFinishedAt: string | null): Db {
 
 async function sinceGiven(lastFinishedAt: string | null, data: JsonObject = {}): Promise<string> {
   const uploads = vi.fn<ReconcileUploads>(() => Promise.resolve(COUNTS));
-  await reconcileJob(uploads).run(context(lastFinishedAt), {}, data);
+  await reconcileJob(uploads, noIssues).run(context(lastFinishedAt), {}, data);
   const since = uploads.mock.calls[0]?.[1];
   if (since === undefined) throw new Error("reconcileUploads was not called");
   return since.toISOString();
@@ -81,31 +84,53 @@ describe("reconcile", () => {
   });
 
   it("stores the counts under result.uploads", async () => {
-    const result = await reconcileJob(() => Promise.resolve(COUNTS)).run(context(null), {}, {});
-    expect(result).toEqual({ status: "done", result: { uploads: COUNTS } });
+    const result = await reconcileJob(() => Promise.resolve(COUNTS), noIssues).run(
+      context(null),
+      {},
+      {},
+    );
+    expect(result).toEqual({
+      status: "done",
+      result: { uploads: COUNTS, newsletter: { issues: 0 } },
+    });
+  });
+
+  it("calls aggregateRecentIssues on every run with ctx.now and stores result.newsletter", async () => {
+    const aggregate = vi.fn<AggregateIssues>(() => Promise.resolve({ issues: 2 }));
+    const job = reconcileJob(() => Promise.resolve(COUNTS), aggregate);
+    const first = await job.run(context(null), {}, {});
+    await job.run(context("2026-10-04T12:45:00.000Z"), {}, {});
+    expect(aggregate.mock.calls.map(([, now]) => now)).toEqual([NOW, NOW]);
+    expect(first).toEqual({
+      status: "done",
+      result: { uploads: COUNTS, newsletter: { issues: 2 } },
+    });
   });
 
   it("throws when reconcileUploads throws, so the runner retries", async () => {
-    const failing = reconcileJob(() => Promise.reject(new Error("storage_list_failed")));
+    const failing = reconcileJob(() => Promise.reject(new Error("storage_list_failed")), noIssues);
     await expect(failing.run(context(null), {}, {})).rejects.toThrow("storage_list_failed");
   });
 
   it("runs the real reconcileUploads, which reads the waiting submission_media rows", async () => {
-    const client = fakeDb({ tables: { submission_media: [] } });
+    const client = fakeDb({ tables: { submission_media: [], newsletter_issues: [] } });
     const db = Object.assign(fakeDb(), {
-      from: (table: "jobs" | "submission_media") =>
+      from: (table: "jobs" | "submission_media" | "newsletter_issues") =>
         table === "jobs" ? jobsChain(null) : client.from(table),
     });
     const result = await reconcile.run(context(null, db), {}, {});
     expect(result).toEqual({
       status: "done",
-      result: { uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0 } },
+      result: {
+        uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0 },
+        newsletter: { issues: 0 },
+      },
     });
     expect(client.calls).toContainEqual({ kind: "from", name: "submission_media", args: [] });
   });
 
   it("refuses an unreadable data.since without retrying", async () => {
-    const job = reconcileJob(() => Promise.resolve(COUNTS));
+    const job = reconcileJob(() => Promise.resolve(COUNTS), noIssues);
     await expect(job.run(context(null), {}, { since: "yesterday-ish" })).rejects.toBeInstanceOf(
       NonRetryableError,
     );

@@ -1085,5 +1085,599 @@
     "replace": "html",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*points the unsubscribe link at nothing, since only Resend fills the variable"
+  },
+  {
+    "id": "b11-g5-quota-no-plan-check",
+    "test": "tests/unit/newsletter/quota.test.ts",
+    "file": "src/server/newsletter/quota.ts",
+    "find": "  if (recipients > numbers.bulkCap) return { ...numbers, status: \"exceeds_plan\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/quota.test.ts",
+    "expect": "FAIL.*refuses 51 recipients as exceeds_plan"
+  },
+  {
+    "id": "b11-g5-quota-daily-cap",
+    "test": "tests/unit/newsletter/quota.test.ts",
+    "file": "src/server/newsletter/quota.ts",
+    "find": "bulkCap: share.data.bulk_cap,",
+    "replace": "bulkCap: share.data.daily_cap,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/quota.test.ts",
+    "expect": "FAIL.*holds 30 recipients with 25 sent today to tomorrow"
+  },
+  {
+    "id": "b11-g5-quota-today-twice",
+    "test": "tests/unit/newsletter/quota.test.ts",
+    "file": "src/server/newsletter/quota.ts",
+    "find": "numbers.sentToday + recipients > numbers.bulkCap",
+    "replace": "numbers.sentToday * 2 + recipients > numbers.bulkCap",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/quota.test.ts",
+    "expect": "FAIL.*lets 20 recipients with 25 sent today go"
+  },
+  {
+    "id": "b11-g5-quota-no-month",
+    "test": "tests/unit/newsletter/quota.test.ts",
+    "file": "src/server/newsletter/quota.ts",
+    "find": "if (numbers.sentMonth + recipients > numbers.monthlyCap) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/quota.test.ts",
+    "expect": "FAIL.*refuses at monthly_cap 2,600"
+  },
+  {
+    "id": "b11-g5-quota-no-settings-guard",
+    "test": "tests/unit/newsletter/quota.test.ts",
+    "file": "src/server/newsletter/quota.ts",
+    "find": "  if (!share.success) throw new NonRetryableError(\"email_settings_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/quota.test.ts",
+    "expect": "FAIL.*refuses to guess without settings\\.email"
+  },
+  {
+    "id": "b11-g5-aud-market-key",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "\"new-york\": \"market-ny\",",
+    "replace": "\"new-york\": \"market-nyc\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*maps each of the three market slugs"
+  },
+  {
+    "id": "b11-g5-aud-no-markets",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    ...subscriber.markets.filter(isMarket).map((market) => MARKET_AUDIENCE[market]),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*puts a confirmed Place Notes subscriber in place-notes"
+  },
+  {
+    "id": "b11-g5-aud-interest",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": " || source.startsWith(\"interest:\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*adds an interest:california subscriber to no audience"
+  },
+  {
+    "id": "b11-g5-aud-state",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "  if (confirmed_at === null || unsubscribed_at !== null || archived_at !== null) return [];\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*adds no unconfirmed, unsubscribed, archived or anonymised subscriber"
+  },
+  {
+    "id": "b11-g5-aud-store-id",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    await setContact(db, member.id, contact.id);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*adds each member missing from the listed contacts once and stores its id"
+  },
+  {
+    "id": "b11-g5-aud-no-diff",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    if (contact === undefined) {",
+    "replace": "    if (true) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*makes no add or remove call on a second run"
+  },
+  {
+    "id": "b11-g5-aud-no-clear",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    await clearContact(db, contact.id);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*removes a suppressed or anonymised listed contact"
+  },
+  {
+    "id": "b11-g5-aud-no-update",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    if (contact.unsubscribed) await updateContact(contact.id, { unsubscribed: false });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*subscribes again a member re-confirmed after an unsubscribe"
+  },
+  {
+    "id": "b11-g5-aud-stored-id",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "    if (member.resend_contact_id !== null) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*leaves alone a listed unsubscribed contact whose member row still holds its id"
+  },
+  {
+    "id": "b11-g5-aud-dev-all",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "  if (readVar(\"MOP_ENV\") === \"production\") return members;",
+    "replace": "  return members;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*adds only the members matching settings\\.email\\.dev_recipients"
+  },
+  {
+    "id": "b11-g5-aud-429",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "      return new RateLimited(outcome.reason, outcome.at);",
+    "replace": "      return new Transient(\"resend_429\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*rejects with RateLimited on a 429"
+  },
+  {
+    "id": "b11-g5-aud-422",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "      return new Invalid(outcome.code);",
+    "replace": "      return new Transient(outcome.code);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*rejects a 422 as non-retryable"
+  },
+  {
+    "id": "b11-g5-aud-dry",
+    "test": "tests/unit/newsletter/audience.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "  if (!liveSideEffects(\"email\")) return { dry_run: true, members: members.length };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/audience.test.ts",
+    "expect": "FAIL.*makes no call and writes nothing with EMAIL_DRY_RUN=1"
+  },
+  {
+    "id": "b11-g5-met-any-broadcast",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/metrics.ts",
+    "find": "      .eq(\"broadcast_id\", issue.resend_broadcast_id),",
+    "replace": "      ,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*counts the delivered, bounced and clicked events"
+  },
+  {
+    "id": "b11-g5-met-no-dedupe",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/metrics.ts",
+    "find": "if (seen.has(event.provider_event_id) || !isCounted(event.type)) continue;",
+    "replace": "if (!isCounted(event.type)) continue;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*counts a replayed event id once"
+  },
+  {
+    "id": "b11-g5-met-any-slug",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/metrics.ts",
+    "find": "for (const slug of slugs.filter((candidate) => known.has(candidate))) {",
+    "replace": "for (const slug of slugs) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*puts clicks in per_property by the utm_content slug"
+  },
+  {
+    "id": "b11-g5-met-no-window",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "until === null || (unsubscribed_at ?? \"\") < until",
+    "replace": "true",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*counts the unsubscribes between this issue's send and the next"
+  },
+  {
+    "id": "b11-g5-met-unsent",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/metrics.ts",
+    "find": "  if (issue?.sent_at == null || issue.resend_broadcast_id === null) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*writes nothing for an issue that has not been sent"
+  },
+  {
+    "id": "b11-g5-met-window-16",
+    "test": "tests/unit/newsletter/metrics.test.ts",
+    "file": "src/server/newsletter/metrics.ts",
+    "find": "const RECENT_MS = 14 * 24 * 60 * 60 * 1000;",
+    "replace": "const RECENT_MS = 16 * 24 * 60 * 60 * 1000;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/metrics.test.ts",
+    "expect": "FAIL.*aggregates a 3-day-old issue and skips a 15-day-old one"
+  },
+  {
+    "id": "b11-g5-mo-unregistered",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  marketOpenNotice,\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*is registered with twelve attempts"
+  },
+  {
+    "id": "b11-g5-mo-link",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "market_url: `${site.siteUrl}/${market}`",
+    "replace": "market_url: site.siteUrl",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*sends market_open once to each confirmed interest-only subscriber"
+  },
+  {
+    "id": "b11-g5-mo-every-source",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "      .like(\"source\", \"interest:%\")\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*sends nothing to a Place Notes-only or an interest:florida subscriber"
+  },
+  {
+    "id": "b11-g5-mo-every-market",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "      .contains(\"markets\", [market])\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*sends nothing to a Place Notes-only or an interest:florida subscriber"
+  },
+  {
+    "id": "b11-g5-mo-no-stop",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "    if (outcome.status === \"retry_at\") return outcome;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*stops at the first retry_at sendOne returns"
+  },
+  {
+    "id": "b11-g5-mo-transactional",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "      kind: \"bulk\",",
+    "replace": "      kind: \"transactional\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*holds every market_open send once email_sent_today"
+  },
+  {
+    "id": "b11-g5-mo-resend-again",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  if (OUT.has(message.status)) return { status: \"already_sent\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*market_open_notice runs twice without a second outside effect"
+  },
+  {
+    "id": "b11-g5-mo-zero",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "      .contains(\"markets\", [market])\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*ends sent: 0 for a market with no interest signup"
+  },
+  {
+    "id": "b11-g5-mo-template-off",
+    "test": "tests/unit/newsletter/market-open-notice.test.ts",
+    "file": "src/server/jobs/system/market-open-notice.ts",
+    "find": "  if (!row.enabled) return { status: \"done\", result: { skipped: \"template_disabled\" } };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
+    "expect": "FAIL.*sends nothing while the market_open template is switched off"
+  },
+  {
+    "id": "b11-g5-svc-agent-approve",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/lib/permissions/newsletter.ts",
+    "find": "roles: editors, humanOnly: true },",
+    "replace": "roles: editors },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*refuses an agent's approve with 403 human_only"
+  },
+  {
+    "id": "b11-g5-svc-send-at",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "p_send_at: input.send_at ?? new Date().toISOString(),",
+    "replace": "p_send_at: new Date().toISOString(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*approves for a person through newsletter_approve_issue"
+  },
+  {
+    "id": "b11-g5-svc-test-flag",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "data: { issue_id: input.id, test: true, to: input.to },",
+    "replace": "data: { issue_id: input.id, to: input.to },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*queues one newsletter_preview job with data\\.test"
+  },
+  {
+    "id": "b11-g5-svc-count-invalid",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/audience.ts",
+    "find": "const rows = data.filter(({ email }) => !email.endsWith(\".invalid\"));",
+    "replace": "const rows = data;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*lists subscriber counts and no address"
+  },
+  {
+    "id": "b11-g5-svc-export-commercial",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/lib/permissions/newsletter.ts",
+    "find": "{ action: \"newsletter.subscribers_export\", group: \"newsletter\", roles: editors },",
+    "replace": "{ action: \"newsletter.subscribers_export\", group: \"newsletter\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*refuses commercial on the export with 403"
+  },
+  {
+    "id": "b11-g5-svc-csv-header",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "  \"confirmed_at\",\n  \"unsubscribed_at\",\n] as const;",
+    "replace": "  \"confirmed_at\",\n] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*exports a CSV for managing_editor"
+  },
+  {
+    "id": "b11-g5-svc-csv-formula",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "const safe = /^[=+\\-@\\t\\r]/.test(text) ? `'${text}` : text;",
+    "replace": "const safe = text;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*exports a CSV for managing_editor"
+  },
+  {
+    "id": "b11-g5-svc-list-order",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": ".order(\"number\", { ascending: false });",
+    "replace": ".order(\"number\", { ascending: true });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*lists every issue, newest first"
+  },
+  {
+    "id": "b11-g5-svc-get-missing",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "  if (issue === undefined) throw notFound();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*answers 404 not_found for an issue that does not exist"
+  },
+  {
+    "id": "b11-g5-svc-build-audit",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "    p_preheader: merged.preheader,\n    ...auditContext(actor),\n",
+    "replace": "    p_preheader: merged.preheader,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*builds the draft from a published story through newsletter_save_draft"
+  },
+  {
+    "id": "b11-g5-svc-build-empty",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "  if (merged.blocks.length === 0) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*refuses to build an empty issue with 422 issue_empty"
+  },
+  {
+    "id": "b11-g5-svc-update-args",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "    p_preheader: input.preheader,",
+    "replace": "    p_preheader: input.subject,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*updates a draft through newsletter_update_issue"
+  },
+  {
+    "id": "b11-g5-svc-preview-width",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "(await loadBlocks(db, issue)).render, input.viewport, site)",
+    "replace": "(await loadBlocks(db, issue)).render, \"desktop\", site)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*previews the issue as a subscriber gets it"
+  },
+  {
+    "id": "b11-g5-svc-unapprove-audit",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "    p_issue: input.id,\n    ...auditContext(actor),\n",
+    "replace": "    p_issue: input.id,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*unapproves through newsletter_unapprove_issue"
+  },
+  {
+    "id": "b11-g5-send-unregistered",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  newsletterSend,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*newsletter_send > is registered with twelve attempts"
+  },
+  {
+    "id": "b11-g5-send-no-mark-sent",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  await markSent(db, issue.id, recipients);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*sends an approved issue: sent, sent_at and metrics\\.recipients"
+  },
+  {
+    "id": "b11-g5-send-no-sync",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    await syncAudience(ctx.db, AUDIENCE);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*syncs the audience before it creates the broadcast"
+  },
+  {
+    "id": "b11-g5-send-no-footer-gate",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  if (site.entity === null || site.address === null || !email.html.includes(UNSUBSCRIBE_URL)) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*refuses an issue whose footer has no postal address"
+  },
+  {
+    "id": "b11-g5-send-no-stale-check",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    issue.approval_count !== parsed.data.approval_count",
+    "replace": "    false",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*skips a job whose approval_count is stale"
+  },
+  {
+    "id": "b11-g5-send-no-channel",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  if (!(await channelEnabled(db))) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*skips with one notice to the admin while the newsletter channel is off"
+  },
+  {
+    "id": "b11-g5-send-no-prewrite",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    await rpcOrThrow(\n      db.rpc(\"newsletter_set_broadcast_id\", { p_issue: issue.id, p_broadcast_id: id }),\n      \"newsletter_set_broadcast_id\",\n    );\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*resumes a crash between create and send with the send only"
+  },
+  {
+    "id": "b11-g5-send-no-adoption",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    if (issue.resend_broadcast_id !== null && (await accepted(issue.resend_broadcast_id))) {",
+    "replace": "    if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*adopts a stored broadcast Resend answers sent"
+  },
+  {
+    "id": "b11-g5-send-no-conflict",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    if (error instanceof Conflict && (await accepted(id))) return adopt(db, issue);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*confirms a Conflict from the send through getBroadcast"
+  },
+  {
+    "id": "b11-g5-send-no-rate-limit",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    if (error instanceof RateLimited) {",
+    "replace": "    if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*returns retry_at the next UTC midnight plus a minute"
+  },
+  {
+    "id": "b11-g5-send-no-send-error",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    if (error instanceof NonRetryableError) await setSendError(ctx.db, issue.id, error.message);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*writes restricted_api_key to send_error and ends dead"
+  },
+  {
+    "id": "b11-g5-send-quota-ignored",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  return { status: \"retry_at\", at: quota.at, reason: \"quota\" };",
+    "replace": "  return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*holds 30 recipients with 25 sent today to tomorrow, leaves the issue approved"
+  },
+  {
+    "id": "b11-g5-send-notice-headline",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    params: { headline: notice.headline },",
+    "replace": "    params: {},",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*holds 30 recipients with 25 sent today to tomorrow, leaves the issue approved"
+  },
+  {
+    "id": "b11-g5-send-no-plan-check",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  if (quota.status === \"exceeds_plan\") {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*refuses 51 recipients as quota_exceeds_plan"
+  },
+  {
+    "id": "b11-g5-send-no-block-check",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "  if (loaded.unpublished.length > 0) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*refuses an issue holding a property unpublished after approval"
+  },
+  {
+    "id": "b11-g5-send-dry-sends",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/channels/resend.ts",
+    "find": "export async function sendBroadcast(id: string): Promise<string> {\n  if (!liveSideEffects(\"email\")) return dryId();",
+    "replace": "export async function sendBroadcast(id: string): Promise<string> {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*ends sent with a dry_ broadcast id and no fetch"
+  },
+  {
+    "id": "b11-g5-send-twice-no-adoption",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/jobs/system/newsletter-send.ts",
+    "find": "    if (issue.resend_broadcast_id !== null && (await accepted(issue.resend_broadcast_id))) {",
+    "replace": "    if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*newsletter_send runs twice without a second outside effect"
+  },
+  {
+    "id": "b11-g5-reconcile-no-newsletter",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "      const newsletter = await aggregateIssues(ctx.db, ctx.now);",
+    "replace": "      const newsletter = { issues: 0 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts",
+    "expect": "FAIL.*calls aggregateRecentIssues on every run with ctx\\.now"
+  },
+  {
+    "id": "b11-g5-authz-fixture-row",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "tests/unit/authz.matrix.test.ts",
+    "find": "newsletter.subscribers_export       CE ME MO\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "FAIL.*equals the hand-typed fixture, row for row"
   }
 ]

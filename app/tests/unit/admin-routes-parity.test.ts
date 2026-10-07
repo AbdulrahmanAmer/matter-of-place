@@ -99,6 +99,17 @@ const routesPending: readonly ActionId[] = [
   "automation.flags_put",
   "automation.templates_preview",
   "automation.templates_send_test",
+  // B11 step 7 adds the screen 13 routes and removes these.
+  "newsletter.issues_list",
+  "newsletter.issues_get",
+  "newsletter.preview",
+  "newsletter.subscribers_count",
+  "newsletter.build",
+  "newsletter.update",
+  "newsletter.send_test",
+  "newsletter.unapprove",
+  "newsletter.approve",
+  "newsletter.subscribers_export",
 ];
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");

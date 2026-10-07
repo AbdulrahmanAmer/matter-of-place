@@ -1113,10 +1113,10 @@
     "id": "b8b-g4-bump-notify-always",
     "test": "tests/unit/automation/bump-catalog-version.test.ts",
     "file": "src/server/jobs/steps/bump-catalog-version.ts",
-    "find": "p_notify: notify,",
-    "replace": "p_notify: true,",
+    "find": "p_notify: true,",
+    "replace": "p_notify: false,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
-    "expect": "× .*asks for the notice only when market_open_notice is registered"
+    "expect": "× .*asks open_market_on_publish for the market_open_notice job"
   },
   {
     "id": "b8b-g4-bump-direct-settings",
@@ -1131,7 +1131,7 @@
     "id": "b8b-g4-bump-slug-dropped",
     "test": "tests/unit/automation/bump-catalog-version.test.ts",
     "file": "src/server/jobs/steps/bump-catalog-version.ts",
-    "find": "return [slug];",
+    "find": "return typeof slug === \"string\" ? [slug] : [];",
     "replace": "return [];",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
     "expect": "× .*answers the slug the function returned"
