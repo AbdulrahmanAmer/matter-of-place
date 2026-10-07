@@ -1,6 +1,8 @@
+import { z } from "zod";
 import { variablesByKey } from "../../domain/email.ts";
-import { Message } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { NewsletterBlock } from "../social/NewsletterBlock.tsx";
+import { Blocks } from "./blocks.tsx";
+import { Layout, type EmailDefinition, type EmailProps } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "standalone",
@@ -16,4 +18,27 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = Message;
+const block = z.object({
+  title: z.string().min(1),
+  deck: z.string(),
+  image_key: z.string().min(1),
+  image_url: z.string().url(),
+  link: z.string().url(),
+  alt: z.string().optional(),
+});
+
+/**
+ * The Campaign email: the property block of the `standalone_email` asset (`meta.block`, passed as the variable
+ * `block`), then the row's own blocks. Without `block` (the sample renders) the property block is left out.
+ */
+export function Email({ title, preheader, blocks, site, variables }: EmailProps) {
+  const given = variables["block"];
+  const parsed = given === undefined ? undefined : block.safeParse(given);
+  if (parsed?.success === false) throw new Error("standalone_block_invalid");
+  return (
+    <Layout title={title} preheader={preheader} site={site}>
+      {parsed === undefined ? null : <NewsletterBlock {...parsed.data} />}
+      <Blocks blocks={blocks} />
+    </Layout>
+  );
+}

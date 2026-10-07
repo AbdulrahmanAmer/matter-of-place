@@ -1,6 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { SiteContext } from "../../../src/server/email/context";
+import { renderTemplate, type RenderRow } from "../../../src/server/email/render";
 import fixture from "../../../src/templates/social/fixtures/property.fixture.json";
 import { CarouselSlide } from "../../../src/templates/social/Carousel.tsx";
 import { Cover } from "../../../src/templates/social/Cover.tsx";
@@ -193,5 +195,96 @@ describe("the social templates", () => {
       false,
       false,
     ]);
+  });
+});
+
+const site: SiteContext = {
+  siteUrl: "https://matterofplace.com",
+  entity: null,
+  address: null,
+  contact: { email: null },
+};
+
+// The stored block of a Campaign property and the row B11 seeds for `standalone`: no blocks of its own.
+const block = {
+  title: "412 Alder Lane",
+  deck: "A quiet house above the water.",
+  image_key: "properties/p1/og.webp",
+  image_url: "https://matterofplace.com/media/properties/p1/og.webp",
+  link: "https://matterofplace.com/properties/alder-lane?utm_source=newsletter",
+};
+
+const standalone: RenderRow = {
+  key: "standalone",
+  subject: "{{subject}}",
+  preheader: "{{preheader}}",
+  body: [],
+};
+const variables = { subject: "Alder Lane", preheader: "A new property" };
+
+describe("the standalone email", () => {
+  it("draws the property block it is given, from an empty body, with no placeholder left", async () => {
+    const { html, text } = await renderTemplate(standalone, { ...variables, block }, site);
+    expect(html).toContain(block.title);
+    expect(html).toContain(block.deck);
+    expect(html).toContain(`src="${block.image_url}"`);
+    expect(html).toContain(`href="${block.link}"`);
+    expect(html).toContain(`alt="${block.title}"`);
+    expect(html).not.toContain("{{");
+    expect(text).not.toContain("{{");
+  });
+
+  it("uses the alt text of the asset when one is given", async () => {
+    const { html } = await renderTemplate(
+      standalone,
+      { ...variables, block: { ...block, alt: "The house at dusk" } },
+      site,
+    );
+    expect(html).toContain('alt="The house at dusk"');
+  });
+
+  it("draws no property block when it is given none", async () => {
+    const { html } = await renderTemplate(standalone, variables, site);
+    expect(html).not.toContain("View the property");
+    expect(html).not.toContain(block.title);
+    expect(html).not.toContain('<img src="https://matterofplace.com/media');
+  });
+
+  it("refuses a block that is not a block", async () => {
+    await expect(
+      renderTemplate(standalone, { ...variables, block: { title: "No picture" } }, site),
+    ).rejects.toThrow("template_render_failed");
+  });
+});
+
+describe("variables that are not text", () => {
+  it("are not interpolated: a placeholder naming one has no value", async () => {
+    const row: RenderRow = {
+      ...standalone,
+      body: [{ type: "paragraph", text: "{{block}}" }],
+    };
+    await expect(renderTemplate(row, { ...variables, block }, site)).rejects.toThrow(
+      "missing_variable:block",
+    );
+  });
+
+  it("are not checked as addresses, but a text one in a button still is", async () => {
+    const off = { ...block, link: "https://example.com/elsewhere" };
+    const { html } = await renderTemplate(standalone, { ...variables, block: off }, site);
+    expect(html).toContain(`href="${off.link}"`);
+    const button: RenderRow = {
+      ...standalone,
+      body: [{ type: "button", label: "Open", url: "{{url}}" }],
+    };
+    await expect(renderTemplate(button, { ...variables, url: off.link }, site)).rejects.toThrow(
+      "url_off_site",
+    );
+  });
+});
+
+describe("an empty body", () => {
+  it("is refused for a key whose template only draws the row's blocks", async () => {
+    const row: RenderRow = { key: "received", subject: "Received", preheader: "", body: [] };
+    await expect(renderTemplate(row, {}, site)).rejects.toThrow("template_body_invalid");
   });
 });

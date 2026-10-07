@@ -2487,5 +2487,86 @@
     "replace": "} catch (failure) {\n      throw failure;",
     "run": "bunx vitest run --project unit tests/unit/assets/variants-upload.test.ts",
     "expect": "FAIL .*names a row whose master cannot be read, leaves its variants alone and goes on"
+  },
+  {
+    "id": "c5n-block-deck",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/NewsletterBlock.tsx",
+    "find": "<td style={deck}>{props.deck}</td>",
+    "replace": "<td style={deck}></td>",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*draws the property block it is given"
+  },
+  {
+    "id": "c5n-block-alt",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/NewsletterBlock.tsx",
+    "find": "alt={props.alt ?? props.title}",
+    "replace": "alt={props.title}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*uses the alt text of the asset"
+  },
+  {
+    "id": "c5n-block-absent",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "{parsed === undefined ? null : <NewsletterBlock {...parsed.data} />}",
+    "replace": "<NewsletterBlock title=\"x\" deck=\"\" image_key=\"k\" image_url=\"https://matterofplace.com/media/k\" link=\"https://matterofplace.com/\" {...parsed?.data} />",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*draws no property block when it is given none"
+  },
+  {
+    "id": "c5n-block-invalid",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "if (html.includes(FAILED_RENDER)) throw new NonRetryableError(\"template_render_failed\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*refuses a block that is not a block"
+  },
+  {
+    "id": "c5n-variables-passed",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "site, variables }",
+    "replace": "site, variables: {} }",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*draws the property block it is given"
+  },
+  {
+    "id": "c5n-body-empty",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "const body = z.array(emailBlockSchema);",
+    "replace": "const body = z.array(emailBlockSchema).min(1);",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*draws the property block it is given"
+  },
+  {
+    "id": "c5n-text-only",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "typeof entry[1] === \"string\"",
+    "replace": "entry[1] !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*are not interpolated"
+  },
+  {
+    "id": "c5n-link-check",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "target.origin !== new URL(site.siteUrl).origin",
+    "replace": "target.origin !== target.origin",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*are not checked as addresses"
+  },
+  {
+    "id": "c5n-empty-default",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/server/email/render.ts",
+    "find": "parsed.data.length === 0 && Email === Message",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL .*is refused for a key whose template only draws"
   }
 ]

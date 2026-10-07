@@ -18,7 +18,9 @@ export interface RenderedEmail {
   text: string;
 }
 
-const body = z.array(emailBlockSchema).min(1);
+const body = z.array(emailBlockSchema);
+
+const FAILED_RENDER = "<!--$!-->";
 
 const VARIABLE = /\{\{([A-Za-z0-9_]+)\}\}/g;
 
@@ -108,22 +110,38 @@ function plainText(blocks: readonly EmailBlock[], site: SiteContext): string {
   return `${[...parts, footerLines(site).join(LINE)].join(GAP)}${LINE}`;
 }
 
+/** Only a string value is text: an object such as the `block` of a standalone email is drawn by its template file. */
+const textVariables = (variables: Readonly<Record<string, unknown>>): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(variables).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+
 /**
  * The one renderer (invariant 2): preview, test send and send all come through here. Subject, preheader and blocks come
  * from `row`; the template file of `row.key` only draws them, and a row whose key has no template file is drawn in
- * the plain shell.
+ * the plain shell. `variables` reach that file unchanged; only the string ones are interpolated, and a row with no
+ * blocks renders only when its file draws its own content.
  */
 export async function renderTemplate(
   row: RenderRow,
-  variables: Record<string, string>,
+  variables: Readonly<Record<string, unknown>>,
   site: SiteContext,
 ): Promise<RenderedEmail> {
   const parsed = body.safeParse(row.body);
   if (!parsed.success) throw new NonRetryableError("template_body_invalid");
-  const subject = oneLine(interpolate(row.subject, variables));
-  const preheader = oneLine(interpolate(row.preheader, variables));
-  const blocks = parsed.data.flatMap((block) => resolveBlock(block, variables, site) ?? []);
   const Email = definitions.find((file) => file.definition.key === row.key)?.Email ?? Message;
-  const html = await render(createElement(Email, { title: subject, preheader, blocks, site }));
+  if (parsed.data.length === 0 && Email === Message)
+    throw new NonRetryableError("template_body_invalid");
+  const text = textVariables(variables);
+  const subject = oneLine(interpolate(row.subject, text));
+  const preheader = oneLine(interpolate(row.preheader, text));
+  const blocks = parsed.data.flatMap((block) => resolveBlock(block, text, site) ?? []);
+  const html = await render(
+    createElement(Email, { title: subject, preheader, blocks, site, variables }),
+  );
+  // React turns a component that threw into a client-render fallback holding its stack; that is never mail.
+  if (html.includes(FAILED_RENDER)) throw new NonRetryableError("template_render_failed");
   return { subject, preheader, html, text: plainText(blocks, site) };
 }

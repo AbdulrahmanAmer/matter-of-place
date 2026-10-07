@@ -4050,3 +4050,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a watched-fail of a case that reads `storage.*` is judged on mop-dev inside a rolled-back transaction or in the CI `db` job, never on the native stand-in; on the stand-in read the red message before calling the replay OK. A new entry's `expect` for such a case names the assertion text, not only the title.
 - proof: `"$PSQL" postgresql://postgres@127.0.0.1:55462/mop_g1v -Atc "select to_regclass('storage.buckets')"` prints an empty line on the stand-in; on mop-dev from `app/`: `eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only b6-g1-documents-private` → `WATCHED-FAIL OK`, and the bucket still reads `documents|f` afterwards (replayed by the B6 g1 reviewer, 2026-10-07).
 - added: 2026-10-07
+
+## P-731 · A brief that says a file "does not exist on main" can name a file the lane branch already holds: Write overwrote it
+- symptom: B9 c5n's brief said `tests/unit/assets/templates.test.ts` does not exist on main; the builder wrote it with Write, the hook raised no refusal, and the 197-line SSR snapshot file of B9 g4 (Cover, Story, OgCard, carousel, 22 registry entries) was replaced until `git status` showed ` M` instead of `??`. `git checkout --` restored it and the new cases were appended.
+- cause: the brief was written against main, and the lane branch carries earlier groups' commits (`7982a01` added the file); Write replaces a file it was not told to read.
+- rule: before a Write of a file the brief calls new, run `git ls-files <path>` and `git log --oneline -1 -- <path>` on the lane branch; a tracked file is Read and edited, never written over.
+- proof: `git log --oneline -1 -- app/tests/unit/assets/templates.test.ts` → `7982a01 B9 g4 steps 4,5: ...`
+- added: 2026-10-07
+
+## G-251 · A template component that throws does not reject `render`: React returns a client-render fallback holding the stack, and it would be mailed
+- paths: app/src/templates/email/**, app/src/server/email/render.ts
+- severity: warn
+- symptom: B9 c5n's first test of a malformed `block` expected `renderTemplate` to reject with `standalone_block_invalid`; it resolved with HTML that began `<!--$!--><template data-msg="Switched to client rendering because the server rendering errored: standalone_block_invalid" data-stck="...NonRetryableError ... at Email (E:/mop-build/design/app/src/templates/email/standalone.tsx...`.
+- cause: `@react-email/render` uses React's server renderer, which recovers from an error inside a component by emitting a Suspense error boundary marker and a `<template>` carrying the message and stack, and does not reject.
+- rule: a throw inside an `Email` component is never the refusal; `renderTemplate` refuses any output holding `<!--$!-->` as `template_render_failed`, and a new template file keeps that check in front of every sender.
+- proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts -t "refuses a block that is not a block"` → passes; with the `FAILED_RENDER` line of `render.ts` deleted (registry entry `c5n-block-invalid`) it is red (measured 2026-10-07).
+- added: 2026-10-07
