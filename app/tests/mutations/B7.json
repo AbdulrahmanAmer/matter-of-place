@@ -1796,8 +1796,8 @@
     "id": "b7-g4-svc-wrong-state",
     "test": "tests/unit/submissions.service.test.ts",
     "file": "src/server/submissions/service.ts",
-    "find": "    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
-    "replace": "    ...auditContext(actor),\n  });\n  if (error !== null) return { started: 0 };",
+    "find": "    p_submission_ids: input.ids,\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    p_submission_ids: input.ids,\n    ...auditContext(actor),\n  });\n  if (error !== null) return { started: 0 };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
     "expect": "× .*answers 409 wrong_state when a request of the selection has moved on"
   },
@@ -1900,5 +1900,293 @@
     "sql": "drop index public.submissions_list_idx;",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"the submissions list index\"",
     "expect": "× .*the submissions list index leads with the state"
+  },
+  {
+    "id": "b7-g5-tl-sort",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": "return entries.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, LIMIT);",
+    "replace": "return entries.slice(0, LIMIT);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*merges the audit rows and the job events"
+  },
+  {
+    "id": "b7-g5-tl-payload-job",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": ".or(entityJobsFilter(id))",
+    "replace": ".eq(\"job_event_entity_id\", id)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*includes a job found only through payload.data.property_id"
+  },
+  {
+    "id": "b7-g5-tl-reads",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": ".from(\"job_events\")",
+    "replace": ".from(\"audit_log\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*makes three reads and no write"
+  },
+  {
+    "id": "b7-g5-tl-no-jobs",
+    "test": "tests/unit/timeline.test.ts",
+    "file": "src/server/lib/timeline.ts",
+    "find": "typeOf.size === 0\n",
+    "replace": "false\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/timeline.test.ts",
+    "expect": "× .*reads no job events when the entity has no job"
+  },
+  {
+    "id": "b7-g5-get-commercial",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.get\");\n  const [row,",
+    "replace": "authorize(actor, \"submissions.accept\");\n  const [row,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader open a request"
+  },
+  {
+    "id": "b7-g5-get-order",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".order(\"sort_order\")",
+    "replace": ".order(\"id\", { ascending: false })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader open a request"
+  },
+  {
+    "id": "b7-g5-thumb-seconds",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const THUMB_SECONDS = 3600;",
+    "replace": "const THUMB_SECONDS = 60;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*asks Storage once for the thumbnails"
+  },
+  {
+    "id": "b7-g5-thumb-missing",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "thumbs.get(thumbPath(input.id, photo.id)) ?? null",
+    "replace": "thumbs.get(thumbPath(input.id, photo.id)) ?? \"placeholder\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*gives thumb_url null for a photograph whose thumbnail has no object"
+  },
+  {
+    "id": "b7-g5-thumb-error",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "photos: mediaIds.length,\n    });\n    return signed;",
+    "replace": "photos: mediaIds.length,\n    });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*gives thumb_url null for every photograph when Storage fails"
+  },
+  {
+    "id": "b7-g5-get-404",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "if (row.data === null) {",
+    "replace": "if (row.data === undefined) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*answers 404 for a request that does not exist"
+  },
+  {
+    "id": "b7-g5-payment-none",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "return data[0]?.id ?? null;",
+    "replace": "return data[0]?.id ?? \"none\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns payment_id null for a request without payments"
+  },
+  {
+    "id": "b7-g5-payment-order",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".order(\"created_at\", { ascending: false })",
+    "replace": ".order(\"created_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns the id of the newest payment of the request that is not void"
+  },
+  {
+    "id": "b7-g5-payment-void",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".in(\"status\", [\"due\", \"paid\", \"waived\", \"refunded\"])",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*returns null when every payment of the request is void"
+  },
+  {
+    "id": "b7-g5-original-seconds",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const ORIGINAL_SECONDS = 600;",
+    "replace": "const ORIGINAL_SECONDS = 60;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*signs the one original for 600 seconds"
+  },
+  {
+    "id": "b7-g5-original-other",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".eq(\"submission_id\", input.id)\n    .maybeSingle();",
+    "replace": ".maybeSingle();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*answers 404 for a photograph of another request"
+  },
+  {
+    "id": "b7-g5-note-role",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.note\");",
+    "replace": "authorize(actor, \"submissions.decline\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a visual editor add a note"
+  },
+  {
+    "id": "b7-g5-note-commercial",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.note\");",
+    "replace": "authorize(actor, \"submissions.get\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*refuses a commercial reader with 403 before any database call"
+  },
+  {
+    "id": "b7-g5-timeline-role",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "authorize(actor, \"submissions.timeline\");",
+    "replace": "authorize(actor, \"submissions.accept\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lets a commercial reader read the history of a request"
+  },
+  {
+    "id": "b7-g5-ui-facts",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": ".filter(([, value]) => value !== null && value !== \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*groups what was submitted and leaves out what was not"
+  },
+  {
+    "id": "b7-g5-ui-person",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "detail.contact_id !== null || detail.property_id === null ? null : (",
+    "replace": "detail.property_id === null ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*links the person while there is a contact"
+  },
+  {
+    "id": "b7-g5-ui-web",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "return protocol === \"https:\" || protocol === \"http:\" ? value : null;",
+    "replace": "return value;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*opens only web addresses"
+  },
+  {
+    "id": "b7-g5-ui-owner",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/SubmittedFields.tsx",
+    "find": "[\"Listing agent\", owner ? detail.listing_agent_name : null],",
+    "replace": "[\"Listing agent\", null],",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*asks an owner about the agent they list with"
+  },
+  {
+    "id": "b7-g5-ui-placeholder",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/PhotoStrip.tsx",
+    "find": "photo.thumb_url === null ? (",
+    "replace": "false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*shows a placeholder where the thumbnail is null"
+  },
+  {
+    "id": "b7-g5-ui-notes-order",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "const newestFirst = [...notes].reverse();",
+    "replace": "const newestFirst = [...notes];",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*lists the notes newest first"
+  },
+  {
+    "id": "b7-g5-ui-notes-gate",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "{canNote ? (",
+    "replace": "{true ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*has no form for an actor who may not note"
+  },
+  {
+    "id": "b7-g5-ui-notes-clear",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/NotesPanel.tsx",
+    "find": "if (kept) setText(\"\");",
+    "replace": "if (kept) setText(text);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*sends the words typed and clears the field"
+  },
+  {
+    "id": "b7-g5-ui-detail-photos",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "<PhotoStrip photos={detail.media} opening={opening} onOpen={openOriginal} />",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*shows the address and state, the photographs"
+  },
+  {
+    "id": "b7-g5-ui-start-one",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "start.mutate([id], {",
+    "replace": "start.mutate([], {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*starts the review of this request alone"
+  },
+  {
+    "id": "b7-g5-ui-start-gate",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "canStartReview={actions.includes(\"submissions.start_review\")}",
+    "replace": "canStartReview",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*offers no Start review to an actor without the action"
+  },
+  {
+    "id": "b7-g5-ui-start-state",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/DecisionPanel.tsx",
+    "find": "canStartReview && offered.includes(\"start_review\") ? (",
+    "replace": "canStartReview ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*hides Start review once the request is under review"
+  },
+  {
+    "id": "b7-g5-ui-original",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/RequestDetail.tsx",
+    "find": "window.open(url, \"_blank\", \"noopener,noreferrer\");",
+    "replace": "window.open(url);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*opens an original only after the button is pressed"
+  },
+  {
+    "id": "b7-g5-db-payments-read",
+    "test": "tests/db/admin.db.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".eq(\"submission_id\", submissionId)",
+    "replace": ".eq(\"submission_idx\", submissionId)",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission",
+    "expect": "× .*reads the newest payment through the service client"
   }
 ]
