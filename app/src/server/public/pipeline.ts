@@ -199,7 +199,7 @@ async function read(match: Match, request: Request, db: Db, ctx: PublicCtx): Pro
 
 function memoryCheck(route: PublicRoute, name: string, key: string): LimitResult {
   const checks = [
-    ...[{ bucket: `${name}:form`, ...FORM_LIMIT }],
+    ...(route.form === true ? [{ bucket: `${name}:form`, ...FORM_LIMIT }] : []),
     ...route.limits
       .filter((limit) => limit.store === "memory")
       .map((limit) => ({

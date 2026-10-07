@@ -392,7 +392,7 @@ evidence: scripts/bundle-check.mjs:54-60 and :94; log block 'NOT DONE, BLOCKED' 
 
 blocking: false
 
-### 2. app/supabase/migrations/20261007042201_admin_submissions_decisions.sql
+### 2. app/supabase/migrations/20261007223745_admin_submissions_decisions.sql
 
 what: The step's CI db proof is UNPROVEN. PR 213 is a draft, so its db job is skipped (P-2001). There is also a likely type-drift failure. submission_event_payload(public.submissions) is a new function whose argument is a row type, and src/db/types.ts has no entry for it. No function in types.ts has this shape, so I cannot predict what the generator emits. When the PR is marked ready, the db job's type-drift step may go red. In that case bun run types:from-ci -- 213 takes the generated types.
 
