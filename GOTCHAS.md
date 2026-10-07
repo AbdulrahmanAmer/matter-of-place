@@ -804,6 +804,8 @@ Entry template
 
 - hit again: 2026-10-07, B10 g5: the new `tests/fixtures/social-api.ts` failed `tsc` three ways in one run: a `Uint8Array<ArrayBufferLike>` is not a `BodyInit` (copy it, `new Uint8Array(bytes)`, which is backed by an `ArrayBuffer`), a `settings` row value typed `Json` is not the row's `NonNullable<Json>`, and a variable typed `FakeDbOptions["tables"]` (optional under `exactOptionalPropertyTypes`) cannot be passed back as `tables`; lint refused `Reflect.get(args, key)` as an unsafe `any` return in a test (parse the recorded argument with a Zod object instead).
 
+- hit again: 2026-10-07, B11 g2 (step 3): the first `bun run check` failed `@typescript-eslint/no-misused-spread` because the first length-cap fix spread a string (`[...text]`); the g2 costTime line mapped it to P-2402, which covers a B5 test row and not this, and the review of the fix round found no hit-again line anywhere. The string case of the B3b g2 line above: count and cut code points with `Array.from(text)` (`app/src/domain/newsletter.ts`, `withinCap` and `clipWords`), and run `bunx eslint --max-warnings 0 <your files>` before the full check.
+
 ## P-077 · A plan pins one tool version while `bunx` resolves another, depending on the folder
 - symptom: B1b step 3 pins wrangler 4.145.0 (E11), yet `bunx wrangler --version` printed 4.146.0 in an earlier session, and the group's gate was written for 4.145.0.
 - cause: `bunx` uses the dependency of the folder it runs in; outside `app/` there is none and it fetches the newest release. The runbook was the only place that said which one is pinned.

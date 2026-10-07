@@ -65,3 +65,24 @@
 6. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
    - What: Some UNPROVEN claims are out of date, and one gate is still pending. The PR has left draft and CI ran on db076e6: 're-apply' and the check job's 'deno' step passed, so those two are now proven. The db job stopped at the expected type drift, which skipped test:db, so newsletter.db, email.db and actor.db -t newsletter_approve_issue are still UNPROVEN on CI's stack. Next: run 'bun run types:from-ci -- 200', commit src/db/types.ts, and see the db job green before merge (R57/C21: migration and types in the same PR).
    - Evidence: gh run view 37563337565: db steps 'supabase start' success, 're-apply' success, 'type drift' failure, 'Run bun run test:db' skipped. The check job's 'deno' step succeeded. The drift diff lists only newsletter_issues and the new functions.
+
+## g2 · steps 3
+
+1. File: `app/src/server/newsletter/assemble.ts`. Blocking: no.
+   - What: Follow-up (test gap). The cut on the property title (`title: clipWords(title)` in propertyCandidates, about line 207) has no test and no registry entry. If it were removed, a newsletter_block asset whose meta.block.title is longer than 300 characters would bring back the retryable ZodError loop this fix round was meant to close. The current code is correct. The new test uses the title "Oak Hill", which is 8 characters.
+   - Evidence: Confirmed by running: with `title: clipWords(title),` replaced by `title,`, `bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts` gave Tests 16 passed. Restored afterwards.
+
+2. File: `app/src/server/email/variables.ts`. Blocking: no.
+   - What: Follow-up (test gap). The guard `sibling.status !== "done"` on the new one-hour give-up branch (about line 546) has no test. Every "draft ready" and "nothing to send" case uses a sibling made 1 minute earlier. If the guard were dropped, admins would get "Place Notes draft is not ready" for a finished draft whenever notify_admin runs more than an hour after queue_digest was made (for example after a Resend backoff or a runner outage). The current code is correct. Add a case with a done sibling aged 61 minutes plus a registry entry.
+   - Evidence: Confirmed by running: with `sibling.status !== "done" &&
+    job.now` replaced by `job.now`, `bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts` gave Tests 6 passed. Restored afterwards.
+
+3. File: `app/src/server/email/variables.ts`. Blocking: no.
+   - What: Follow-up (plan fold, orchestrator). The one-hour give-up is behaviour the plan's Files line does not describe: it says "not yet done or dead → WaitFor", which means waiting with no end. It also gives a false alarm in two cases, judged by reading. First, a queue_digest in normal B8 backoff that finishes after the hour: admins get "not ready" and then no "draft ready" notice. Second, after a runner outage of an hour or more, notify_admin may be claimed before the queued queue_digest. The author lists this deviation under unproven. It gives a notice to a person rather than leaving one silent forever, so it is not a contract break with a data or security consequence. B11.md step 3 and the Files line for variables.ts should be updated to match.
+   - Evidence: `git show 9298384 -- app/src/server/email/variables.ts` adds DIGEST_GIVE_UP_MS = 60 * 60 * 1000 and the "Place Notes draft is not ready" notice. The plan brief quotes: "not yet done or dead → throws new WaitFor(now plus 1 minute, \"waiting_queue_digest\")".
+
+4. File: `workspace/05-plans/B11.md`. Blocking: no.
+   - What: Follow-up (plan fold, orchestrator). The group touched files that are not in the plan's Files list: tests/fixtures/email-send.ts, tests/fixtures/newsletter-world.ts and B5's tests/unit/email/variables.test.ts. The author reported this.
+   - Evidence: Author's unproven list and the slice log block "g2 · steps 3 (fix round after the second review)".
+
+(Follow-up 4 of the reviewer's list, a cost with no gotcha entry, is a hit-again line in P-076 in GOTCHAS.md, not a follow-up.)
