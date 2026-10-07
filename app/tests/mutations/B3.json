@@ -4178,5 +4178,15 @@
     "replace": "cache: (page, render) => (hasDatabase && page.method === \"NONE\" ? cachedResponse(page, \"html\", render) : render()),",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
     "expect": "FAIL GET /: 200 none"
+  },
+  {
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "id": "b3-bc-entry-lazy",
+    "find": "const lazy = dynamic && key !== entry ? (chunk.dynamicImports ?? []) : [];",
+    "replace": "const lazy = dynamic ? (chunk.dynamicImports ?? []) : [];",
+    "expect": "does not follow the entry's own lazy loads"
   }
 ]
