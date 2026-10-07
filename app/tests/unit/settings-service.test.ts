@@ -56,7 +56,10 @@ describe("getPublicSite", () => {
   it("is the site with illustrativeContent, from one state read", async () => {
     const { service } = await load();
     const db = stateDb(SET_SITE);
-    expect(await service.getPublicSite(db)).toEqual({ ...SET_SITE, illustrativeContent: true });
+    expect(await service.getPublicSite(db, undefined, { env: { MOP_ENV: "local" } })).toEqual({
+      ...SET_SITE,
+      illustrativeContent: true,
+    });
     expect(db.counts.total).toBe(1);
   });
 });

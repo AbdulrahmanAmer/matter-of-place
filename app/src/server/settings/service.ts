@@ -28,12 +28,20 @@ export async function getSiteSettings(db: Db): Promise<SiteSettings> {
   return siteSettingsSchema.parse((await getPublicState(db)).site);
 }
 
-/** The body of `GET /api/public/site`: one state read gives both parts. */
-export async function getPublicSite(db: Db): Promise<PublicSite> {
+/**
+ * The body of `GET /api/public/site`: one state read gives both parts. `illustrativeContent` is forced false
+ * when `MOP_ENV` is production (F26 c, invariant 6), as `applyVisibility` does for the catalog: the one database
+ * says `development` until the launch switch, and the production Worker reads it. The environment is the route's.
+ */
+export async function getPublicSite(
+  db: Db,
+  _input: undefined,
+  ctx: { env: { MOP_ENV: string } },
+): Promise<PublicSite> {
   const state = await getPublicState(db);
   return {
     ...siteSettingsSchema.parse(state.site),
-    illustrativeContent: state.illustrativeContent,
+    illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== "production",
   };
 }
 

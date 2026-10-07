@@ -183,8 +183,8 @@
     "id": "b16-g2-public-illustrative",
     "test": "tests/unit/settings-service.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "illustrativeContent: state.illustrativeContent,",
-    "replace": "illustrativeContent: false,",
+    "find": "state.illustrativeContent && ctx.env",
+    "replace": "false && ctx.env",
     "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
     "expect": "FAIL .*> getPublicSite > is the site with illustrativeContent"
   },
@@ -295,10 +295,19 @@
     "id": "b16-g3-whole-state",
     "test": "tests/unit/site-read-path.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent,\n  };",
+    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== \"production\",\n  };",
     "replace": "  return { ...state, ...siteSettingsSchema.parse(state.site) };",
     "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
     "expect": "FAIL .*> the site read path > answers with the site and illustrativeContent and no other key"
+  },
+  {
+    "id": "b16-g3-production-illustrative",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": " && ctx.env.MOP_ENV !== \"production\",",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > answers illustrativeContent false in production"
   },
   {
     "id": "b16-g3-read-table",

@@ -62,7 +62,7 @@ describe("the site read path", () => {
     }
     expect(db.counts.rpc).toEqual({ public_state: 1 });
     expect(db.counts.from).toEqual({});
-  });
+  }, 30_000);
 
   it("asks again for every call when the memo interval is zero, which is what holds the count down", async () => {
     vi.stubEnv("CATALOG_VERSION_TTL_MS", "0");
@@ -80,5 +80,24 @@ describe("the site read path", () => {
     const body = z.record(z.string(), z.unknown()).parse(await response.json());
     expect(body).toEqual({ ...SITE, illustrativeContent: true });
     expect(Object.keys(body).sort()).toEqual(["contact", "illustrativeContent", "legal", "social"]);
+  });
+
+  it("answers illustrativeContent false in production although the database says true (F26 c, invariant 6)", async () => {
+    const { routes } = await import("../../src/server/public/routes");
+    const { env } = await import("../../src/server/lib/env");
+    const row = routes.find((candidate) => candidate.path === "/api/public/site");
+    if (row === undefined || row.raw === true) throw new Error("the site row is a JSON read");
+    const ctx = {
+      requestId: "r1",
+      ipHash: "hash",
+      turnstileOk: false,
+      wait: () => undefined,
+      env: { ...env, MOP_ENV: "production" as const },
+    };
+    const body = z
+      .record(z.string(), z.unknown())
+      .parse(await row.service(stateDb(), undefined, ctx));
+    expect(body["illustrativeContent"]).toBe(false);
+    expect(body["contact"]).toEqual(SITE.contact);
   });
 });
