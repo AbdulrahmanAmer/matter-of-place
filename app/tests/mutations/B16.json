@@ -169,5 +169,126 @@
     "replace": "  } catch {\n    return true;\n  }",
     "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
     "expect": "FAIL .*> siteSettingsSchema > takes an Instagram address only as https"
+  },
+  {
+    "id": "b16-g2-read-table",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "replace": "  await db.from(\"settings\").select(\"value\");\n  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> getSiteSettings > is the stored site, one public_state call in 200 reads"
+  },
+  {
+    "id": "b16-g2-public-illustrative",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "illustrativeContent: state.illustrativeContent,",
+    "replace": "illustrativeContent: false,",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> getPublicSite > is the site with illustrativeContent"
+  },
+  {
+    "id": "b16-g2-put-parsed",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    p_value: parsed.data,",
+    "replace": "    p_value: input,",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > sends the parsed value"
+  },
+  {
+    "id": "b16-g2-put-schema",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (!parsed.success) throw fromZod(parsed.error);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > refuses an invalid value"
+  },
+  {
+    "id": "b16-g2-put-error",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);",
+    "replace": "  if (error !== null) return;",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > throws the function's error code"
+  },
+  {
+    "id": "b16-g2-ready-required",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/readiness.ts",
+    "find": ".filter((spec) => spec.required && unset.has(spec.key))",
+    "replace": ".filter((spec) => unset.has(spec.key))",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> siteReadiness > lists the required fields still unset"
+  },
+  {
+    "id": "b16-g2-ready-unset",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/readiness.ts",
+    "find": "value === null ? [`${group}.${field}`] : [],",
+    "replace": "value !== undefined ? [`${group}.${field}`] : [],",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> siteReadiness > is empty when every required field is set"
+  },
+  {
+    "id": "b16-g2-deno-ext",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { getPublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState } from \"../public/state\";",
+    "run": "bunx eslint --max-warnings 0 src/server/settings/service.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "b16-g2-guarded",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/set-site.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "'scripts/set-site\\.ts'"
+  },
+  {
+    "id": "b16-g2-db-audit",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "create or replace function public.settings_put_site(\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before jsonb;\nbegin\n  select s.value into v_before from public.settings s where s.key = 'site' for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n\n  -- The version bump is B2's trigger on settings, in this same transaction (`site` is a public key).\n  update public.settings set value = p_value where key = 'site';\n\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"writes the value and one audit_log row\"",
+    "expect": "× .*writes the value and one audit_log row[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-bump",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "alter table public.settings disable trigger settings_bump_catalog_version;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"moves catalog_version by 1\"",
+    "expect": "× .*moves catalog_version by 1[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-grant",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "grant execute on function public.settings_put_site(jsonb, uuid, public.actor_kind, text, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"refuses the authenticated role\"",
+    "expect": "× .*refuses the authenticated role[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-grant-anon",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "grant execute on function public.settings_put_site(jsonb, uuid, public.actor_kind, text, text) to anon;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"refuses the anon role\"",
+    "expect": "× .*refuses the anon role[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-parse",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "update public.settings set value = jsonb_set(value, '{contact,email}', '\"not-an-email\"') where key = 'site';",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"the stored row parses\"",
+    "expect": "× .*the stored row parses with siteSettingsSchema[\\s\\S]*AssertionError"
   }
 ]
