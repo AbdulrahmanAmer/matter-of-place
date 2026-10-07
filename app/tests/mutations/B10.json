@@ -1194,8 +1194,8 @@
     "kind": "file",
     "test": "tests/unit/channels/x.test.ts",
     "file": "src/server/channels/oauth-tokens.ts",
-    "find": "if (response.status === 401) await markTokenDead(ctx, channel, \"401\");",
-    "replace": "",
+    "find": "throw await refused(ctx, channel, classify(channel, response, body, token.refreshed, ctx.now));",
+    "replace": "throw new ChannelApiError(classify(channel, response, body, token.refreshed, ctx.now));",
     "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
     "expect": "FAIL .*> X publishing > records the token dead on a 401 after a refresh"
   },
@@ -1764,8 +1764,8 @@
     "kind": "file",
     "test": "tests/unit/channels/oauth-tokens.test.ts",
     "file": "src/server/channels/oauth-tokens.ts",
-    "find": "await markTokenDead(ctx, channel, \"invalid_grant\");",
-    "replace": "",
+    "find": "throw await refused(ctx, channel, failure);",
+    "replace": "throw new ChannelApiError(failure);",
     "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
     "expect": "FAIL .*> getChannelToken > maps invalid_grant with the same refresh token to token_dead"
   },
@@ -1818,6 +1818,16 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
     "expect": "FAIL .*> checkChannelToken > stores dead once and returns it when the refresh answers invalid_grant"
+  },
+  {
+    "id": "b10g5-ot-refresh-401-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (failure.class === \"token_dead\") {",
+    "replace": "if (failure.reason === \"invalid_grant\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > stores dead and alerts when the (x|linkedin) token endpoint answers 401"
   },
   {
     "id": "b10g5-ot-check-503",

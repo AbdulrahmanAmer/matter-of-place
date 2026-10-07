@@ -269,6 +269,33 @@ describe("checkChannelToken", () => {
     expect(rpcArgs(db, "record_channel_check")).toMatchObject([{ p_state: "dead" }]);
   });
 
+  it.each([
+    { channel: "x" as const, url: X_TOKEN, error: "unauthorized_client" },
+    { channel: "linkedin" as const, url: LINKEDIN_TOKEN, error: "invalid_client" },
+  ])(
+    "stores dead and alerts when the $channel token endpoint answers 401 $error",
+    async ({ channel, url, error }) => {
+      const api = stubPlatform({ [url]: new Answer({ error }, 401) });
+      const { db, ctx: context } = ctx({
+        vault: set(`${channel}-held`, HOUR_LEFT.expires_at),
+        settings: LINKEDIN_SETTINGS,
+      });
+      expect(await checkChannelToken(context, channel)).toBe("dead");
+      expect(api.calls()).toEqual([url]);
+      expect(rpcArgs(db, "record_channel_check")).toEqual([
+        {
+          p_channel: channel,
+          p_expires_at: null,
+          p_checked_at: NOW.toISOString(),
+          p_state: "dead",
+        },
+      ]);
+      expect(rpcArgs(db, "enqueue_job")).toMatchObject([
+        { p_type: "notify_admin", p_idempotency_key: `token_dead:${channel}:2026-10-04` },
+      ]);
+    },
+  );
+
   it("stores nothing and throws on a 503", async () => {
     stubPlatform({ [ME]: new Answer(null, 503) });
     const { db, ctx: context } = ctx({ vault: DAYS_LEFT });

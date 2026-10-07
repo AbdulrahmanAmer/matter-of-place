@@ -214,6 +214,18 @@ async function markTokenDead(ctx: TokenContext, channel: OAuthChannel, cause: st
   });
 }
 
+/**
+ * The error for an answer that was not 2xx. A `token_dead` is recorded and alerted first, whatever its cause (a
+ * refused refresh, a client secret the token endpoint no longer accepts, a 401 after a refresh), so the caller never
+ * holds a dead token that `settings` does not show.
+ */
+async function refused(ctx: TokenContext, channel: OAuthChannel, failure: ChannelFailure) {
+  if (failure.class === "token_dead") {
+    await markTokenDead(ctx, channel, failure.reason ?? String(failure.status));
+  }
+  return new ChannelApiError(failure);
+}
+
 function clientCredentials(channel: OAuthChannel): { id: string; secret: string } {
   const prefix = PLATFORMS[channel].secrets;
   const id = readVar(`${prefix}_CLIENT_ID`);
@@ -265,9 +277,8 @@ async function refresh(ctx: TokenContext, channel: OAuthChannel, held: TokenSet)
     if (failure.reason === "invalid_grant") {
       const current = await readStored(ctx.db, channel);
       if (current !== null && current.refresh_token !== sent) return fresh(current);
-      await markTokenDead(ctx, channel, "invalid_grant");
     }
-    throw new ChannelApiError(failure);
+    throw await refused(ctx, channel, failure);
   }
   const answer = refreshAnswerSchema.safeParse(body);
   if (!answer.success) {
@@ -329,8 +340,8 @@ async function recordXRead(db: Db): Promise<void> {
 /**
  * One authorised call to X or LinkedIn. A write (any method but GET) goes out only when `liveSideEffects("social")`
  * says so (R35); reads always do. A 401 with a token that was not refreshed for this call refreshes it and
- * sends once more; a 401 after a refresh records the token dead. Every X GET is a read and is counted once. An answer
- * that is not 2xx throws `ChannelApiError` with its class.
+ * sends once more; a 401 after a refresh, like a refused refresh, records the token dead. Every X GET is a read and is
+ * counted once. An answer that is not 2xx throws `ChannelApiError` with its class.
  */
 export async function callApi(
   ctx: TokenContext,
@@ -362,8 +373,7 @@ export async function callApi(
   if (channel === "x" && method === "GET") await recordXRead(ctx.db);
   const body = await readBody(response);
   if (response.ok) return { body, headers: response.headers, token };
-  if (response.status === 401) await markTokenDead(ctx, channel, "401");
-  throw new ChannelApiError(classify(channel, response, body, token.refreshed, ctx.now));
+  throw await refused(ctx, channel, classify(channel, response, body, token.refreshed, ctx.now));
 }
 
 /**
