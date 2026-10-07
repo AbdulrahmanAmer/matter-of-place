@@ -238,6 +238,7 @@ Entry template
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 - hit again: 2026-10-07, B6 g5: a `node -e` patch whose JavaScript held template strings with backticks failed with `unexpected EOF` and wrote nothing; the two edits were redone with the Edit tool.
+- hit again: 2026-10-07, B6 g4: a `node -e` patch lost a newline escape on the way in, so the text it wrote was wrong; redone with Edit.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -953,6 +954,7 @@ Entry template
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 - hit again: 2026-10-07, B6 g5: a `python3 - <<EOF ... || node -e` guard hung 120 seconds in a read-only lookup; the node half ran after `taskkill` and the lookup was redone without python.
 
+- hit again: 2026-10-07, B6 g4: a `python -` heredoc hung the shell before a one-line edit; the edit was redone with Edit (the g4 log says without cost, the cost line says a few minutes: read it as a few minutes).
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
 - cause: a ruling about one answer was read as a ruling about both, and the properties of a response were written from the ruling, not from a `curl -D -`.
@@ -4210,6 +4212,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `check` runs `format:check` late and only reports; nothing formats the files while they are written, and a file written with Write or Edit has the author's wrapping, not prettier's. A registry `find` copied before formatting then goes stale too (P-066, P-415).
 - rule: run `bunx prettier --config .prettierrc --write <the files the group added or changed>` from `app/` before the first `bun run check`, then write registry `find` strings from the formatted file. Never run `bun run format` on the whole tree in a lane: it rewrites files the group does not own.
 - proof: `cd app && bunx prettier --config .prettierrc --check src/server/payments/service.ts tests/unit/payments/service.test.ts` → `All matched files use Prettier code style!`; `grep -n "^format:check\|\"format:check\"" package.json` shows the gate that fails otherwise.
+- added: 2026-10-07
+
+## P-2317 · `npx tsc` outside a folder with the project's own TypeScript installs a different npm package named `tsc`
+- symptom: B6 g4 ran `npx tsc --noEmit` to typecheck one file; npx fetched the package named `tsc` from the registry and printed a notice that it is not the compiler instead of type errors. A few minutes.
+- cause: the npm package `tsc` is a deprecated stub, not the TypeScript compiler (that is `typescript`, whose binary is `tsc`). `npx tsc` reaches the real binary only when `node_modules/.bin/tsc` exists in the folder it runs from; from the tree root there is none.
+- rule: typecheck with `bun run typecheck` from `app/` (it runs both tsconfigs); for one config use `bunx tsc --noEmit -p tsconfig.json` from `app/`. Never `npx tsc`.
+- proof: `npm view tsc description` → `A deprecated release of the TypeScript compiler`; `cd app && grep -n '"typecheck"' package.json` → `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json`.
+- added: 2026-10-07
+
+## P-2318 · A step that replaces an earlier group's `STUB(...)` edits that group's tests and registry entries too, and the plan does not name them
+- symptom: B6 g4 removed g3's `STUB(B6 step 4)` (`missingForInvoice` in `invoice-snapshot.ts`). The real list names `payment_methods.instructions` where the stub said `payment_methods`, so g3's `service.test.ts` case asserting the issue paths went red, and the registry entry `b6-g3-ready-late-terms` pointed at a line that had moved to `invoice-settings.ts`, a file the g4 plan text does not list. About ten minutes.
+- cause: a stub is the earlier group's code under the earlier group's tests; the later step owns the real behaviour but the plan names only its new files. Every test and mutation that touched the stub is part of the replacement.
+- rule: before replacing a `STUB(...)`, run `grep -rn "<stub name>" src tests scripts` and `grep -n "<stub file>" tests/mutations/*.json`; change the matching expectations and `find` strings in the same commit, replay the earlier group's affected entries (`--only <id>`), and name the files in the log as g4 did.
+- proof: `grep -rn "STUB(B6 step 4)" app/src app/scripts` prints nothing; `grep -n "b6-g3-ready-late-terms" -A3 app/tests/mutations/B6.json | grep file` → `src/server/payments/invoice-settings.ts`.
 - added: 2026-10-07
 
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration

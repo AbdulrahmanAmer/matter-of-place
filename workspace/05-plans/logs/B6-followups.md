@@ -67,3 +67,23 @@ Review of group g3: no blocking defect. Five follow-ups below, word for word wit
 5. File: `app/src/server/payments/service.ts`. Blocking: no.
    What: Follow-up. Plan Files says issueInvoiceCore(db, input, actor) is exported for scripts/invoice-smoke.ts. Here it is file-local, with the signature (db, raw, audit: AuditArgs). Under R04 the export waits for the step that first imports it, but whoever writes the smoke issue path must edit service.ts and reconcile the signature with the plan line. Also markPaid still sends p_reference: '' for an absent reference (the author's own recorded follow-up).
    Evidence: service.ts line 109: 'async function issueInvoiceCore(db: Db, raw: unknown, audit: AuditArgs)'; line 255: 'p_reference: input.reference ?? ""'
+
+## g4 · steps 4
+
+Review of group g4: no blocking defect. Four follow-ups below, word for word with their evidence; the three that concern GOTCHAS.md are banked as P-2317 (`npx tsc`), P-2318 (replacing a STUB touches the earlier group's tests and registry) and as hit-again lines on P-094 and P-008.
+
+1. File: `app/tests/unit/assert-not-production.test.ts`. Blocking: no.
+   What: Nothing fails if the production guard is removed from either new script. The test's guardedScripts list (lines 13-32) does not contain scripts/set-invoice.ts or scripts/invoice-smoke.ts, although the test's own comment says later slices append the files they create. The plan's watched-fail (aj) says that deleting assertNotProduction from invoice-smoke.ts, then from set-invoice.ts, must turn this test red naming the script. Today it cannot go red. The guard is present in both scripts now (confirmed by reading). But if it is lost in a refactor, every gate stays green, and after the launch switch set-invoice.ts could write the 'Test only (dev)' payment instructions into the production settings.invoice. This test file is not in g4's file list (one writer per file), so this is a follow-up. It must be closed before slice B6 closes, because the (aj) watched-fail cannot be replayed until then.
+   Evidence: Read lines 13-32 of tests/unit/assert-not-production.test.ts: the list has 18 paths and neither invoice script. The author's watchedFail list has no (aj) entry. (Suspected by reading; I did not mutate the scripts because this review is read-only.)
+
+2. File: `app/scripts/set-invoice.ts`. Blocking: no.
+   What: Against STANDARDS C05/R04: set-invoice.ts:19 and invoice-smoke.ts:12 each declare their own requiredEnv and build the 'https://<DEV_SUPABASE_PROJECT_REF>.supabase.co' URL and key by hand. scripts/lib/storage-env.ts already exports requiredEnv and devProject(), which return exactly that url and key from the dev-profile names. jscpd passes because each copy is under 70 tokens.
+   Evidence: grep -rn 'function requiredEnv' scripts shows scripts/lib/storage-env.ts:10 (exported) and new copies at scripts/set-invoice.ts and scripts/invoice-smoke.ts:12.
+
+3. File: `app/src/server/payments/invoice-settings.ts`. Blocking: no.
+   What: Against R04: the exported types InvoiceSettings, InvoiceInputs and InvoiceSettingsActor are not imported anywhere outside this file. knip does not flag exported types under the current config. InvoiceSettingsActor will probably be needed by B7's settings service; the other two could be file-local.
+   Evidence: A grep over src, scripts and tests for these names, excluding this file, finds only a local type alias in service.test.ts:90 that does not import them.
+
+4. File: `app/scripts/set-invoice.ts`. Blocking: no.
+   What: UNPROVEN (the author already said so): the two 'ready' outputs of step 4 and the exact line 'missing: payment_methods.instructions' on mop-dev. They wait on B16's set-site.ts and site.example.json/site.empty.json. The only evidence that the example fixture is ready and the seed lacks only payment_methods.instructions is the fake-db unit test, against a site object the test builds itself.
+   Evidence: On mop-dev, set-invoice.ts --file invoice.example.json printed 'missing: legal.entity, legal.address' (the site row has legal.entity and legal.address null).
