@@ -87,8 +87,44 @@ summary::-webkit-details-marker {
 }
 
 :focus-visible {
-  outline: 1px solid currentColor;
-  outline-offset: 4px;
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Dark surfaces: the ring is Bone, so it stays visible against them. */
+.hero,
+.image-hero,
+.hero-text,
+.markets-feature,
+.home-submit,
+.market-card,
+.site-header-overlay {
+  --focus-ring: var(--background);
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: var(--container-pad);
+  z-index: var(--z-skip-link);
+  padding: 12px 20px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+  outline-color: var(--background);
+  outline-offset: -6px;
+}
+
+/* The skip link lands here, below the fixed header. */
+.skip-target {
+  scroll-margin-top: var(--header-h);
 }
 
 /* Typography */

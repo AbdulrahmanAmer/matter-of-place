@@ -43,6 +43,12 @@ export async function sha256Hex(input: string | Uint8Array): Promise<string> {
   return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytesOf(input))));
 }
 
+/** The digest in standard base64, the form of a `'sha256-...'` source in a Content-Security-Policy. */
+export async function sha256Base64(input: string | Uint8Array): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytesOf(input)));
+  return btoa(String.fromCharCode(...digest));
+}
+
 /** @public */
 export async function sha1Bytes(input: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-1", bytesOf(input)));

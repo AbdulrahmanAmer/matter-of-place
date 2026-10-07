@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
@@ -5,12 +6,39 @@ import { openConsentNotice } from "../../lib/consent";
 import { t } from "../../lib/strings";
 import { ConsentNotice } from "./consent-notice";
 
+// A real link to /privacy-choices; with JavaScript the same click reopens the notice in place.
+// A modified click is the visitor opening the page in a new tab or window, so the browser keeps it.
+function reopenNotice(event: MouseEvent) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
+    return;
+  event.preventDefault();
+  openConsentNotice();
+}
+
 export function Footer() {
   const groups = t.footer.groups;
   return (
     <footer className="site-footer">
       <div className="hf-inner">
         <ConsentNotice />
+        <noscript>
+          <section className="consent-notice" aria-label={t.consent.label}>
+            <p className="consent-text">
+              {t.consent.text}{" "}
+              <Link to="/legal" hash="privacy">
+                {t.consent.link}
+              </Link>
+            </p>
+            <div className="consent-actions">
+              <a className="consent-allow" href="/api/consent?set=accept">
+                {t.consent.accept}
+              </a>
+              <a className="consent-decline" href="/api/consent?set=decline">
+                {t.consent.decline}
+              </a>
+            </div>
+          </section>
+        </noscript>
         <div className="footer-top">
           <Link to="/" className="footer-brand" aria-label={t.header.home}>
             <Emblem className="footer-emblem" />
@@ -54,14 +82,9 @@ export function Footer() {
             <Link to="/legal" hash="terms">
               {t.nav.terms}
             </Link>
-            <button
-              type="button"
-              id="consent-change"
-              className="consent-change"
-              onClick={openConsentNotice}
-            >
+            <Link to="/privacy-choices" id="consent-change" onClick={reopenNotice}>
               {t.consent.change}
-            </button>
+            </Link>
             {siteConfig.social.instagram && (
               <a href={siteConfig.social.instagram} rel="noopener noreferrer" target="_blank">
                 {t.nav.instagram}

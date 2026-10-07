@@ -101,8 +101,9 @@ function methodNotAllowed(requestId: string, candidates: readonly Match[]): Resp
   return response;
 }
 
-async function readJson(request: Request): Promise<unknown> {
-  if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
+async function readJson(request: Request, contentTypes: readonly string[]): Promise<unknown> {
+  const sent = (request.headers.get("content-type") ?? "").toLowerCase();
+  if (!contentTypes.some((type) => sent.startsWith(type))) {
     throw new AppError("bad_request", undefined, "Send the details as JSON.");
   }
   const text = await request.text();
@@ -248,7 +249,9 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
     throw new AppError("payload_too_large", undefined, "That is more than we can take in one go.");
   }
   if (route.raw === true) return route.service(request, db, env);
-  const { body, filled } = stripHoneypot(await readJson(request));
+  const { body, filled } = stripHoneypot(
+    await readJson(request, route.contentTypes ?? ["application/json"]),
+  );
   const name = routeName(route.path);
   if (filled) {
     logLine("info", "honeypot", { route: name });

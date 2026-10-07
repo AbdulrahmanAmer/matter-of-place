@@ -109,6 +109,8 @@ describe("getFlags and getCatalog read the public state only", () => {
       coming_soon: true,
       new_channels: true,
       archive_pages: false,
+      csp_enforce: false,
+      maintenance: false,
     });
   });
 

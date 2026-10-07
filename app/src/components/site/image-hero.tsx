@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import type { ImageVariants } from "../../domain/property";
 import { ContentTag } from "./content-tag";
+import { Picture } from "./picture";
 
 export function ImageHero({
   image,
+  variants,
   alt,
   eyebrow,
   title,
@@ -12,6 +15,7 @@ export function ImageHero({
 }: {
   /** Nothing is drawn without one: a market, region or story may have no photograph yet (G55). */
   image?: string | undefined;
+  variants?: ImageVariants | undefined;
   alt: string;
   eyebrow: string;
   title: string;
@@ -25,7 +29,15 @@ export function ImageHero({
   return (
     <section className="image-hero">
       {image !== undefined && (
-        <img src={image} width={1600} height={1104} alt={alt} fetchPriority="high" />
+        <Picture
+          src={image}
+          variants={variants}
+          sizes="100vw"
+          width={1600}
+          height={1104}
+          alt={alt}
+          priority
+        />
       )}
       {tag !== undefined && <ContentTag label={tag} />}
       <div className="image-hero-content">
