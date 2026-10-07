@@ -33,11 +33,12 @@ async function attempt(db: Db, sql: string, params: unknown[] = []): Promise<str
 
 const address = () => `test-${randomUUID()}@example.test`;
 
-// The Contract's class of each of B5's keys (INT-03).
+// The class of each key that is not transactional (B5's Contract, INT-03; B11's market_open).
 const classes: Record<string, string> = {
   admin_notify: "alert",
   standalone: "bulk",
   repermission: "bulk",
+  market_open: "bulk",
 };
 
 async function job(db: Db): Promise<string> {
