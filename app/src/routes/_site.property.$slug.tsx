@@ -29,7 +29,8 @@ import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { propertyDescription } from "../lib/seo-copy";
 
-// The dialog opens on a click, so its code and its form helpers load then, not with the page.
+// The dialog and its form helpers are a separate chunk, fetched once the page has hydrated. It is
+// mounted closed, so the modal hook sees a real open and close, never a mount that is already open.
 const InquiryDialog = lazy(() =>
   import("../components/forms/inquiry-dialog").then((module) => ({
     default: module.InquiryDialog,
@@ -88,6 +89,8 @@ function PropertyPage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const closeIntent = useCallback(() => setIntent(null), []);
+  const [dialogMounted, setDialogMounted] = useState(false);
+  useEffect(() => setDialogMounted(true), []);
 
   useTrackView("property_view", property.slug, { slug: property.slug });
 
@@ -334,7 +337,7 @@ function PropertyPage() {
         onOpenChange={setAskOpen}
         onRequestShowing={requestShowing}
       />
-      {intent !== null && (
+      {dialogMounted && (
         <Suspense fallback={null}>
           <InquiryDialog
             intent={intent}
