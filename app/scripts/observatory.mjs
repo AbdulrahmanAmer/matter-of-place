@@ -43,7 +43,7 @@ async function send(fetchImpl, url, method) {
 /**
  * Scans `host`, prints its grade, and returns the exit code: 0 when the grade is A or better or the
  * policy is not enforcing, 1 when an enforcing policy comes with a grade below A, 2 when the scan or the
- * request for the policy cannot be read.
+ * request for the policy cannot be read or answers an error status.
  * @param {string} host
  * @param {ObservatoryOptions} options
  * @param {FetchLike} fetchImpl
@@ -77,6 +77,12 @@ export async function runObservatory(host, options, fetchImpl) {
     print(`observatory: ${host} grade ${grade} score ${String(result.score)}`);
     print(`details: ${String(result.details_url)}`);
     const head = await send(fetchImpl, `https://${host}/`, "HEAD");
+    if (!head.ok) {
+      print(
+        `observatory: ${host} answered the request for its policy with status ${String(head.status)}`,
+      );
+      return 2;
+    }
     enforcing = head.headers.has(ENFORCING);
   } catch (error) {
     print(`observatory: ${error instanceof Error ? error.message : String(error)}`);

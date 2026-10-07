@@ -21,11 +21,10 @@ function scanBody(grade: string | null, score = 105) {
   };
 }
 
-/** `scan` answers the POST; `head` the HEAD of the host: headers, or a refusal that many times first. */
-function server(
-  scan: { status?: number; body: unknown },
-  head: { headers: Record<string, string>; refuse?: number },
-) {
+type Head = { headers: Record<string, string>; status?: number; refuse?: number };
+
+/** `scan` answers the POST; `head` the HEAD of the host: status and headers, or a refusal that many times first. */
+function server(scan: { status?: number; body: unknown }, head: Head) {
   const calls: Call[] = [];
   let refused = 0;
   const fetchImpl = (url: string, init: RequestInit) => {
@@ -38,15 +37,14 @@ function server(
       refused += 1;
       return Promise.reject(new TypeError("fetch failed"));
     }
-    return Promise.resolve(new Response(null, { status: 200, headers: head.headers }));
+    return Promise.resolve(
+      new Response(null, { status: head.status ?? 200, headers: head.headers }),
+    );
   };
   return { calls, fetchImpl };
 }
 
-async function observe(
-  scan: { status?: number; body: unknown },
-  head: { headers: Record<string, string>; refuse?: number },
-) {
+async function observe(scan: { status?: number; body: unknown }, head: Head) {
   const lines: string[] = [];
   const { calls, fetchImpl } = server(scan, head);
   const code = await runObservatory(HOST, { print: (line) => lines.push(line) }, fetchImpl);
@@ -125,6 +123,28 @@ describe("runObservatory", () => {
       { headers: ENFORCING },
     );
     expect(code).toBe(2);
+  });
+
+  it("exits 2 when the scan answers an error status that still carries a grade", async () => {
+    const { code, lines } = await observe(
+      { status: 429, body: scanBody("A") },
+      { headers: ENFORCING },
+    );
+    expect({ code, lines }).toEqual({
+      code: 2,
+      lines: [`observatory: no grade for ${HOST}: status 429, error null`],
+    });
+  });
+
+  it("exits 2 when the host answers the request for its policy with an error status", async () => {
+    const { code, lines } = await observe(
+      { body: scanBody("F", 10) },
+      { headers: {}, status: 503 },
+    );
+    expect({ code, last: lines.at(-1) }).toEqual({
+      code: 2,
+      last: `observatory: ${HOST} answered the request for its policy with status 503`,
+    });
   });
 
   it("retries a refused connection and then reads the policy", async () => {

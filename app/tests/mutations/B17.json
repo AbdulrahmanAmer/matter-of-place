@@ -1726,5 +1726,23 @@
     "replace": "false",
     "run": "bunx vitest run tests/unit/observatory.test.ts",
     "expect": "× .*refuses a missing host"
+  },
+  {
+    "id": "b17-obs-scan-ok",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "!scan.ok || ",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the scan answers an error status that still carries a grade"
+  },
+  {
+    "id": "b17-obs-head-ok",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "scripts/observatory.mjs",
+    "find": "if (!head.ok) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "expect": "× .*exits 2 when the host answers the request for its policy with an error status"
   }
 ]
