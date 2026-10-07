@@ -12,7 +12,9 @@ export interface FakeDbOptions {
       | Error
       | Promise<PublicSchema["Functions"][F]["Returns"] | Error>;
   };
-  tables?: { [T in keyof PublicSchema["Tables"]]?: PublicSchema["Tables"][T]["Row"][] };
+  tables?: { [T in keyof PublicSchema["Tables"]]?: PublicSchema["Tables"][T]["Row"][] } & {
+    [V in keyof PublicSchema["Views"]]?: PublicSchema["Views"][V]["Row"][];
+  };
   storage?: Record<string, Record<string, (...args: unknown[]) => unknown>>;
 }
 
@@ -30,6 +32,8 @@ interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
   eq: () => FakeQuery;
   in: () => FakeQuery;
   lte: () => FakeQuery;
+  lt: () => FakeQuery;
+  or: () => FakeQuery;
   order: () => FakeQuery;
   limit: () => FakeQuery;
 }
@@ -67,6 +71,8 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
         eq: query,
         in: query,
         lte: query,
+        lt: query,
+        or: query,
         order: query,
         limit: query,
       });

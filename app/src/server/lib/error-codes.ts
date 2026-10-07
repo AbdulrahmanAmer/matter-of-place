@@ -65,6 +65,10 @@ export const errorCodes = {
   reel_files_missing: 422,
   // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
   paid_at_future: 422,
+  // B6: issuing waits for acceptance and complete invoice settings (invariants 1 and 7); the PDF is made by the runner.
+  not_accepted: 409,
+  invoice_not_ready: 409,
+  pdf_not_ready: 404,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

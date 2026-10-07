@@ -55,6 +55,9 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
+import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
+import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
 import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api/admin/submissions.start-review'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
@@ -64,6 +67,12 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
+import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
+import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
+import { Route as ApiAdminPaymentsIdWaiveRouteImport } from './routes/api/admin/payments.$id.waive'
+import { Route as ApiAdminSubmissionsIdActivateRouteImport } from './routes/api/admin/submissions.$id.activate'
+import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 
 const SiteRoute = SiteRouteImport.update({
@@ -295,6 +304,22 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
+  id: '/api/admin/payments/',
+  path: '/api/admin/payments/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPaymentsIdRoute = ApiAdminPaymentsIdRouteImport.update({
+  id: '/api/admin/payments/$id',
+  path: '/api/admin/payments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPaymentsIssueInvoiceRoute =
+  ApiAdminPaymentsIssueInvoiceRouteImport.update({
+    id: '/api/admin/payments/issue-invoice',
+    path: '/api/admin/payments/issue-invoice',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminSubmissionsIndexRoute =
   ApiAdminSubmissionsIndexRouteImport.update({
     id: '/api/admin/submissions/',
@@ -343,6 +368,39 @@ const ApiPublicSubscribersConfirmRoute =
     id: '/confirm',
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
+  } as any)
+const ApiAdminPaymentsIdMarkPaidRoute =
+  ApiAdminPaymentsIdMarkPaidRouteImport.update({
+    id: '/mark-paid',
+    path: '/mark-paid',
+    getParentRoute: () => ApiAdminPaymentsIdRoute,
+  } as any)
+const ApiAdminPaymentsIdPdfRoute = ApiAdminPaymentsIdPdfRouteImport.update({
+  id: '/pdf',
+  path: '/pdf',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
+const ApiAdminPaymentsIdVoidRoute = ApiAdminPaymentsIdVoidRouteImport.update({
+  id: '/void',
+  path: '/void',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
+const ApiAdminPaymentsIdWaiveRoute = ApiAdminPaymentsIdWaiveRouteImport.update({
+  id: '/waive',
+  path: '/waive',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
+const ApiAdminSubmissionsIdActivateRoute =
+  ApiAdminSubmissionsIdActivateRouteImport.update({
+    id: '/api/admin/submissions/$id/activate',
+    path: '/api/admin/submissions/$id/activate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminSubmissionsIdWaiveRoute =
+  ApiAdminSubmissionsIdWaiveRouteImport.update({
+    id: '/api/admin/submissions/$id/waive',
+    path: '/api/admin/submissions/$id/waive',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
@@ -397,6 +455,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -405,7 +465,14 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesByTo {
@@ -451,6 +518,8 @@ export interface FileRoutesByTo {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -459,7 +528,14 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRoutesById {
@@ -510,6 +586,8 @@ export interface FileRoutesById {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -518,7 +596,14 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
 }
 export interface FileRouteTypes {
@@ -569,6 +654,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -577,7 +664,14 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments/'
     | '/api/admin/submissions/'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
+    | '/api/admin/submissions/$id/activate'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -623,6 +717,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -631,7 +727,14 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments'
     | '/api/admin/submissions'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
+    | '/api/admin/submissions/$id/activate'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
   id:
     | '__root__'
@@ -681,6 +784,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -689,7 +794,14 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments/'
     | '/api/admin/submissions/'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
+    | '/api/admin/submissions/$id/activate'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
   fileRoutesById: FileRoutesById
 }
@@ -714,11 +826,16 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
+  ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
+  ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
+  ApiAdminSubmissionsIdActivateRoute: typeof ApiAdminSubmissionsIdActivateRoute
+  ApiAdminSubmissionsIdWaiveRoute: typeof ApiAdminSubmissionsIdWaiveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1045,6 +1162,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/payments/': {
+      id: '/api/admin/payments/'
+      path: '/api/admin/payments'
+      fullPath: '/api/admin/payments/'
+      preLoaderRoute: typeof ApiAdminPaymentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/payments/$id': {
+      id: '/api/admin/payments/$id'
+      path: '/api/admin/payments/$id'
+      fullPath: '/api/admin/payments/$id'
+      preLoaderRoute: typeof ApiAdminPaymentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/payments/issue-invoice': {
+      id: '/api/admin/payments/issue-invoice'
+      path: '/api/admin/payments/issue-invoice'
+      fullPath: '/api/admin/payments/issue-invoice'
+      preLoaderRoute: typeof ApiAdminPaymentsIssueInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/submissions/': {
       id: '/api/admin/submissions/'
       path: '/api/admin/submissions'
@@ -1107,6 +1245,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/subscribers/confirm'
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
+    }
+    '/api/admin/payments/$id/mark-paid': {
+      id: '/api/admin/payments/$id/mark-paid'
+      path: '/mark-paid'
+      fullPath: '/api/admin/payments/$id/mark-paid'
+      preLoaderRoute: typeof ApiAdminPaymentsIdMarkPaidRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/pdf': {
+      id: '/api/admin/payments/$id/pdf'
+      path: '/pdf'
+      fullPath: '/api/admin/payments/$id/pdf'
+      preLoaderRoute: typeof ApiAdminPaymentsIdPdfRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/void': {
+      id: '/api/admin/payments/$id/void'
+      path: '/void'
+      fullPath: '/api/admin/payments/$id/void'
+      preLoaderRoute: typeof ApiAdminPaymentsIdVoidRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/waive': {
+      id: '/api/admin/payments/$id/waive'
+      path: '/waive'
+      fullPath: '/api/admin/payments/$id/waive'
+      preLoaderRoute: typeof ApiAdminPaymentsIdWaiveRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/submissions/$id/activate': {
+      id: '/api/admin/submissions/$id/activate'
+      path: '/api/admin/submissions/$id/activate'
+      fullPath: '/api/admin/submissions/$id/activate'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdActivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/submissions/$id/waive': {
+      id: '/api/admin/submissions/$id/waive'
+      path: '/api/admin/submissions/$id/waive'
+      fullPath: '/api/admin/submissions/$id/waive'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdWaiveRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
@@ -1271,6 +1451,23 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminPaymentsIdRouteChildren {
+  ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
+  ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
+  ApiAdminPaymentsIdVoidRoute: typeof ApiAdminPaymentsIdVoidRoute
+  ApiAdminPaymentsIdWaiveRoute: typeof ApiAdminPaymentsIdWaiveRoute
+}
+
+const ApiAdminPaymentsIdRouteChildren: ApiAdminPaymentsIdRouteChildren = {
+  ApiAdminPaymentsIdMarkPaidRoute: ApiAdminPaymentsIdMarkPaidRoute,
+  ApiAdminPaymentsIdPdfRoute: ApiAdminPaymentsIdPdfRoute,
+  ApiAdminPaymentsIdVoidRoute: ApiAdminPaymentsIdVoidRoute,
+  ApiAdminPaymentsIdWaiveRoute: ApiAdminPaymentsIdWaiveRoute,
+}
+
+const ApiAdminPaymentsIdRouteWithChildren =
+  ApiAdminPaymentsIdRoute._addFileChildren(ApiAdminPaymentsIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -1292,11 +1489,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
+  ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
+  ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
+  ApiAdminSubmissionsIdActivateRoute: ApiAdminSubmissionsIdActivateRoute,
+  ApiAdminSubmissionsIdWaiveRoute: ApiAdminSubmissionsIdWaiveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
