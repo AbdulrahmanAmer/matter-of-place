@@ -72,6 +72,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
 
 ## Workflow (`.claude/workflows/build-slice.js`, at a run boundary)
+- Briefs tell every agent to use `scratchpad/<agent id>/` for scratch files (P-536); the P-516 coverage check accepts a listed step the sizer marks done (P-535) or the launcher strips done steps itself.
 - The review brief names the live lane folder (`D:/mop-build/b6`) as a place to run checks while the next group's builder writes uncommitted files into it; a reviewer's `bun run check` there is not clean evidence. The brief should name the review snapshot only (`review-snapshot.mjs create`) and forbid commands in the lane root. (B6 g2 review a9cfa1d6)
 - A settled reject waits for the next hand-in before its fix round starts (`settle()`); a group marked `needsOrchestrator` ends the run even when the item is already satisfied; the brief says "no CI run exists for this commit" when a descendant commit's run on the lane's PR does (B17 g10 review a63987521141769f5).
 
