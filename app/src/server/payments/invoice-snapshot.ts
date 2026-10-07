@@ -7,6 +7,7 @@ import {
 import type { SubmissionRow } from "../../domain/rows.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
+import { isBlank } from "./invoice-layout.ts";
 import { invoiceReadiness, readInvoiceInputs } from "./invoice-settings.ts";
 import { offeringFor, priceFor } from "./pricing.ts";
 
@@ -40,13 +41,6 @@ export async function assertInvoiceReady(db: Db): Promise<void> {
 const incomplete = (field: string) =>
   new AppError("server", undefined, `snapshot_incomplete:${field}`);
 
-function isBlank(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
-  if (typeof value === "string") return value.trim() === "";
-  if (typeof value === "number") return !(value > 0);
-  return Array.isArray(value) && value.length === 0;
-}
-
 /**
  * Every field of `requiredInvoiceFields` except the number and the two dates, which `issue_invoice` adds in the
  * transaction that assigns the number. Throws `snapshot_incomplete:<field>` when one is blank.
@@ -72,6 +66,7 @@ export async function buildInvoiceSnapshot(
     preferred_method: preferredMethod,
     terms: invoice.terms,
     late_terms: invoice.late_terms,
+    billing_email: invoice.billing_email,
     bill_to: {
       name: submission.submitter_name,
       email: submission.submitter_email,

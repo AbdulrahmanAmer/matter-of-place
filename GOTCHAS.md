@@ -237,6 +237,7 @@ Entry template
 - hit again: 2026-10-05, B12 g2: a heredoc that wrote five test files in one Bash call ended in `unexpected EOF` and wrote none of them (`ls tests/unit/reel` then failed); each file was written again with the Write tool.
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
+- hit again: 2026-10-07, B6 g5: a `node -e` patch whose JavaScript held template strings with backticks failed with `unexpected EOF` and wrote nothing; the two edits were redone with the Edit tool.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -950,6 +951,7 @@ Entry template
 - hit again: 2026-10-04, B3b g4: an empty `python - <<EOF` at the end of a file-writing command held the call until the 120 s timeout and moved it to the background; kill it with `taskkill //F //IM python.exe`, and never type `python` here.
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
+- hit again: 2026-10-07, B6 g5: a `python3 - <<EOF ... || node -e` guard hung 120 seconds in a read-only lookup; the node half ran after `taskkill` and the lookup was redone without python.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -4173,6 +4175,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the scratchpad path named in the environment block is per session, not per agent, and lanes of one workflow share the session.
 - rule: a scratch file that is run more than once, or that names a registry or log of your slice, gets the slice and group in its file name (`b6-g4-add-entries.mjs`), or lives in the lane tree under a git-ignored name that you delete before the commit; never trust an older file in the scratchpad to be yours.
 - proof: `head -3 "$SCRATCHPAD/add-entries.mjs"` in the B6 g4 session printed `tests/mutations/B11.json`, not `B6.json`.
+- added: 2026-10-07
+
+## P-2312 · B6 g5: three lines of the plan did not match the code or the standards they build on
+- symptom: step 5 puts `localInvoiceStore(dir)`, which imports `node:fs`, into `invoice-pdf.ts`, a file the Deno job runner loads, and R07 forbids `node:*` there: it was written, then taken out again (the smoke script writes its `--out` file itself, the tests use a map). Step 5 also calls `issueInvoiceCore(db, input, actor)` exported with a `{ id, kind, note }` actor, but g3 wrote it file-local as `(db, raw, audit: AuditArgs)`. And the plan says the snapshot freezes `billing_email`, but `buildInvoiceSnapshot` did not write it, so the PDF could not name the billing address (E19).
+- cause: the lines of a step quote what earlier steps would give, and nobody re-read the earlier code against them; R07 is a standard, not a line of step 5.
+- rule: before building on a quoted line, open the file it names (one `grep -n "<symbol>" <file>`); keep a helper that needs `node:*` in `scripts/`; and give a new snapshot field a test that parses the builder's output with the schema the PDF layout reads (`invoiceSnapshotSchema`), so builder and layout cannot drift apart.
+- proof: `grep -n "node:" app/src/server/payments/invoice-pdf.ts` → no hits; `cd app && bunx vitest run --project unit tests/unit/payments/service.test.ts -t "what the PDF layout parses"` passes and goes red when `billing_email` is dropped from `invoice-snapshot.ts` (`b6-g5-snapshot-billing-email`).
+- added: 2026-10-07
+
+## P-2313 · A Worker route that imports a module with a static `import "pdf-lib"` puts the library (618 KB minified) into the Worker's startup graph
+- symptom: `service.ts` (`getPdf`) imports `invoiceSignedUrl` from `invoice-pdf.ts`, which imported `pdf-lib` statically: after `bun run build` the Worker held `_libs/pdf-lib+tslib.mjs` (618,352 bytes) and loaded it on every cold start, to sign a 60-second link.
+- cause: the plan keeps `invoiceSignedUrl`, the bucket constant and the renderer in one file, and the bundler follows static imports.
+- rule: `pdf-lib` is loaded where a PDF is made, with `await import("pdf-lib")` (`newInvoiceDocument` in `invoice-layout.ts`, `renderInvoicePdf`), and imported as a type only at the top of a file; the Deno runner resolves the same dynamic import through `deno.json`.
+- proof: `cd app && bun run build && grep -c "pdf-lib" .output/server/index.mjs` → `0`, and `grep -rho 'import("[^"]*pdf-lib[^"]*")' .output/server` finds the one lazy chunk; `deno check --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` exits 0.
+- added: 2026-10-07
+
+## P-2314 · After main is merged into a lane, `bun run check` fails on two things the merge itself does not show: an older `action_roles` migration and a newest one that lacks the lane's actions
+- symptom: B6 g5 merged origin/main (B7 people, B11) and `bun run check` went red three checks late: `migrations:check` said `rename supabase/migrations/20261007021713_action_roles.sql to a timestamp after 20261007035723`, and after `bun run migrations:restamp` the sync test said `expected [ …(91) ] to deeply equal [ …(94) ]` (the newest `action_roles` file held 91 of the 94 actions of the merged matrix). `migrations:check` also kept reading the old name until the rename was committed, because it diffs commits, not the working tree.
+- cause: `permissions/index.ts` now lists main's groups and the lane's, but each lane's `action_roles` file holds only the actions it knew; `action-roles.sync.test.ts` reads the newest file only.
+- rule: right after the merge commit run `bun run migrations:check`, `bun run migrations:restamp` when it asks, commit the rename, then `bun run scripts/gen-action-roles.mjs` (rows are only upserted, so a second file is safe) and commit that before the first `bun run check`.
+- proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
 
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration

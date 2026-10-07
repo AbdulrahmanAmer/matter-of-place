@@ -41,6 +41,7 @@ export const LogEvent = [
   "email_event_foreign_env",
   "resend_quota_daily",
   "thumbnail_sign_failed",
+  "invoice_glyph_replaced",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

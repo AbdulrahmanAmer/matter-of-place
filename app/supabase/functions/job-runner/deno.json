@@ -4,6 +4,7 @@
     "@/domain/": "../../../src/domain/",
     "zod": "npm:zod@3.25.76",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.117.2",
+    "pdf-lib": "npm:pdf-lib@1.17.1",
     "cron-parser": "npm:cron-parser@5.10.1",
     "@react-email/components": "npm:@react-email/components@1.0.12",
     "@react-email/render": "npm:@react-email/render@1",

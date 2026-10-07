@@ -635,9 +635,9 @@
   {
     "id": "b6-g3-pdf-ttl",
     "test": "tests/unit/payments/pdf-route.test.ts",
-    "file": "src/server/payments/service.ts",
-    "find": "createSignedUrl(row.invoice_file_key, 60)",
-    "replace": "createSignedUrl(row.invoice_file_key, 3600)",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": ".createSignedUrl(path, 60)",
+    "replace": ".createSignedUrl(path, 3600)",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
     "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers commercial 302 to the URL Storage signed for the key and 60 seconds, private and no-store[\\s\\S]*3600"
   },
@@ -653,7 +653,7 @@
   {
     "id": "b6-g3-pdf-storage",
     "test": "tests/unit/payments/pdf-route.test.ts",
-    "file": "src/server/payments/service.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
     "find": "    throw new AppError(\"storage_unavailable\", undefined, \"File storage is not answering.\");",
     "replace": "    throw new Error(\"storage\");",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
@@ -748,5 +748,266 @@
     "replace": "  });\n  void error;\n  return parsed.data;",
     "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
     "expect": "FAIL .*> applyInvoiceSettings > throws the database's error code when the function raises"
+  },
+  {
+    "id": "b6-g5-i-tax-line",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "top = block(snapshot.tax_line, note, top + 8, PAGE.margin, CONTENT_WIDTH) + 8;",
+    "replace": "top = top + 16;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws tax_line and refuses"
+  },
+  {
+    "id": "b6-g5-m-undrawn-field",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  \"late_terms\",\n] as const;",
+    "replace": "  \"late_terms\",\n  \"legal_name\",\n] as const;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws legal_name and refuses"
+  },
+  {
+    "id": "b6-g5-late-terms-run",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "top = block(snapshot.late_terms, body, top, PAGE.margin, CONTENT_WIDTH) + 16;",
+    "replace": "top = top + 16;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws late_terms and refuses"
+  },
+  {
+    "id": "b6-g5-entity-guard",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "const missing = requiredInvoiceFields.find((field) => isBlank(Reflect.get(snapshot, field)));",
+    "replace": "const missing = undefined as string | undefined;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws entity and refuses"
+  },
+  {
+    "id": "b6-g5-billing-line",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "`Questions about this invoice: ${snapshot.billing_email}`",
+    "replace": "`Questions about this invoice: ${snapshot.contact.email}`",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "names the billing address for questions"
+  },
+  {
+    "id": "b6-g5-owner-brokerage",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (snapshot.bill_to.brokerage !== null && snapshot.bill_to.brokerage.trim() !== \"\") {",
+    "replace": "if (snapshot.bill_to.brokerage !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "holds no brokerage line"
+  },
+  {
+    "id": "b6-g5-fold-l",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "  [\"Ł\", \"L\"],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "reads a name outside WinAnsi"
+  },
+  {
+    "id": "b6-g5-break-word",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (piece !== \"\" && widthOf(piece + char, style) > maxWidth) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "keeps every run inside the page margins"
+  },
+  {
+    "id": "b6-g5-overflow",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (next > PAGE.height - PAGE.margin)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "throws invoice_overflow"
+  },
+  {
+    "id": "b6-g5-winansi-set",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "‰‹›€™",
+    "replace": "‰‹›€",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "accepts exactly the characters"
+  },
+  {
+    "id": "b6-g5-amount-format",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "minimumFractionDigits: 2,",
+    "replace": "minimumFractionDigits: 0,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "groups thousands and always shows cents"
+  },
+  {
+    "id": "b6-g5-g-live-settings",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "await store.put(path, await renderInvoicePdf(snapshot.data));",
+    "replace": "await store.put(path, await renderInvoicePdf({ ...snapshot.data, entity: \"Another Entity Inc.\" }));",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "renders from the stored snapshot, not from settings"
+  },
+  {
+    "id": "b6-g5-pdf-clock",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "Document.create({ updateMetadata: false })",
+    "replace": "Document.create()",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "whatever the clock says"
+  },
+  {
+    "id": "b6-g5-s-bucket",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "export const INVOICE_BUCKET = \"documents\";",
+    "replace": "export const INVOICE_BUCKET = \"media\";",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "writes to the bucket documents without overwriting"
+  },
+  {
+    "id": "b6-g5-upsert",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "upsert: false",
+    "replace": "upsert: true",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "writes to the bucket documents without overwriting"
+  },
+  {
+    "id": "b6-g5-conflict-stored",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (error !== null && !alreadyExists(error)) throw error;",
+    "replace": "if (error !== null) throw error;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "counts a 409 already exists answer as stored"
+  },
+  {
+    "id": "b6-g5-key-path",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "snapshot.data.issue_date.slice(0, 4)",
+    "replace": "snapshot.data.issue_date.slice(0, 3)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "records the key once"
+  },
+  {
+    "id": "b6-g5-key-recorded",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "return { key: recorded.data, existed: false };",
+    "replace": "return { key: path, existed: false };",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "answers the key that was recorded first when two renders finish together"
+  },
+  {
+    "id": "b6-g5-existing-key",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (row.invoice_file_key !== null) return { key: row.invoice_file_key, existed: true };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "leaves a payment whose key is set alone"
+  },
+  {
+    "id": "b6-g5-final-failures",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (row.invoice_snapshot === null) throw new NonRetryableError(\"snapshot_missing\");",
+    "replace": "if (row.invoice_snapshot === null) throw new Error(\"snapshot_missing\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "says payment_missing, snapshot_missing and snapshot_invalid"
+  },
+  {
+    "id": "b6-g5-signed-url-ttl",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": ".createSignedUrl(path, 60)",
+    "replace": ".createSignedUrl(path, 600)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "asks the bucket documents for a link of 60 seconds"
+  },
+  {
+    "id": "b6-g5-signed-url-error",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "throw new AppError(\"storage_unavailable\", undefined, \"File storage is not answering.\");",
+    "replace": "throw new AppError(\"server\", undefined, \"File storage is not answering.\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "answers 503 storage_unavailable"
+  },
+  {
+    "id": "b6-g5-r-key-null",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/payments/invoice-attachment.ts",
+    "find": "(await ensureInvoicePdf(ctx.db, paymentId, store)).key",
+    "replace": "(() => {\n    throw new NonRetryableError(\"attachment_unavailable\");\n  })()",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "renders, stores and attaches when the invoice_pdf job has not run yet"
+  },
+  {
+    "id": "b6-g5-y-placeholder",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/email/attachments.ts",
+    "find": "invoice_pdf: invoicePdfAttachment,",
+    "replace": "invoice_pdf: () => Promise.reject(new Error(\"attachment_unavailable\")),",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "is the entry of the registry"
+  },
+  {
+    "id": "b6-g5-attachment-retry",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/payments/invoice-attachment.ts",
+    "find": "const store = storageInvoiceStore(ctx.db);",
+    "replace": "const store = storageInvoiceStore(ctx.db);\n  if (payment.invoice_file_key !== null) {\n    try {\n      await store.get(payment.invoice_file_key);\n    } catch {\n      throw new NonRetryableError(\"payment_missing\");\n    }\n  }",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "rethrows a Storage error so the step retries"
+  },
+  {
+    "id": "b6-g5-job-skipped",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/invoice-pdf.ts",
+    "find": "return { status: \"done\", result: existed ? { key, skipped: \"exists\" } : { key } };",
+    "replace": "return { status: \"done\", result: { key } };",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "invoice_pdf runs twice without a second outside effect"
+  },
+  {
+    "id": "b6-g5-job-attempts",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/invoice-pdf.ts",
+    "find": "maxAttempts: 12,",
+    "replace": "maxAttempts: 5,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "is a system job with 12 attempts"
+  },
+  {
+    "id": "b6-g5-job-registered",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  invoicePdf,\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "is a system job with 12 attempts"
+  },
+  {
+    "id": "b6-g5-snapshot-billing-email",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/invoice-snapshot.ts",
+    "find": "    billing_email: invoice.billing_email,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "gives what the PDF layout parses once SQL adds the number and the two dates"
   }
 ]

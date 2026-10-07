@@ -18,6 +18,7 @@ import { authorize } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
 import { logLine } from "../lib/log.ts";
+import { invoiceSignedUrl } from "./invoice-pdf.ts";
 import { assertInvoiceReady, buildInvoiceSnapshot } from "./invoice-snapshot.ts";
 import { priceFor } from "./pricing.ts";
 
@@ -106,7 +107,11 @@ async function answer(db: Db, result: { data: unknown; error: unknown }): Promis
 }
 
 /** The parse, readiness, snapshot, the issue and its fan-out: everything of an issue below authorization. */
-async function issueInvoiceCore(db: Db, raw: unknown, audit: AuditArgs): Promise<PaymentAnswer> {
+export async function issueInvoiceCore(
+  db: Db,
+  raw: unknown,
+  audit: AuditArgs,
+): Promise<PaymentAnswer> {
   const input = parse(issueInvoiceInput, raw);
   const { data, error } = await db
     .from("submissions")
@@ -346,10 +351,5 @@ export async function getPdf(actor: AdminActor, db: Db, raw: unknown): Promise<s
   if (row.invoice_file_key === null) {
     throw new AppError("pdf_not_ready", undefined, "The PDF is still being made.");
   }
-  // STUB(B6 step 5): invoiceSignedUrl of invoice-pdf.ts replaces this call
-  const signed = await db.storage.from("documents").createSignedUrl(row.invoice_file_key, 60);
-  if (signed.error !== null) {
-    throw new AppError("storage_unavailable", undefined, "File storage is not answering.");
-  }
-  return signed.data.signedUrl;
+  return invoiceSignedUrl(db, row.invoice_file_key);
 }

@@ -5,6 +5,7 @@ import { appRoles } from "../../../src/domain/contracts";
 import { requiredInvoiceFields, sqlAssignedFields } from "../../../src/domain/payments";
 import type { AdminActor } from "../../../src/server/lib/admin-route";
 import type { AppRole } from "../../../src/server/lib/authz";
+import { invoiceSnapshotSchema } from "../../../src/server/payments/invoice-layout";
 import { buildInvoiceSnapshot } from "../../../src/server/payments/invoice-snapshot";
 import { priceFor } from "../../../src/server/payments/pricing";
 import {
@@ -283,9 +284,26 @@ describe("buildInvoiceSnapshot", () => {
       currency: "USD",
       tax_line: invoiceSettings.tax_line,
       late_terms: invoiceSettings.late_terms,
+      billing_email: invoiceSettings.billing_email,
       instructions: invoiceSettings.payment_methods,
       bill_to: { name: "Ada Owner" },
     });
+  });
+
+  it("gives what the PDF layout parses once SQL adds the number and the two dates", async () => {
+    const snapshot = await buildInvoiceSnapshot(
+      fakeDb({ tables: { settings: settingsRows() } }),
+      submission,
+      "The Reach",
+      "bank_transfer",
+    );
+    const stored = {
+      ...snapshot,
+      invoice_number: "MOP-2026-0001",
+      issue_date: "2026-10-07",
+      due_date: "2026-10-21",
+    };
+    expect(invoiceSnapshotSchema.safeParse(stored).success).toBe(true);
   });
 
   it("throws snapshot_incomplete:late_terms when late_terms is blank", async () => {

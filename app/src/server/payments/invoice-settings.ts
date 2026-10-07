@@ -59,7 +59,7 @@ export function invoiceReadiness(site: SiteSettings, invoice: InvoiceSettings | 
 }
 
 /** The generated `Args` type lists every uuid as a string, while SQL takes a null actor as the system. */
-function actorArg(id: string | null): string {
+export function actorArg(id: string | null): string {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- null is the system actor of write_audit; the generated Args type cannot say so
   return id as string;
 }
