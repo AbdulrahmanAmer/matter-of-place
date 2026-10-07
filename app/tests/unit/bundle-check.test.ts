@@ -121,6 +121,40 @@ describe("checkManifest", () => {
       ["_site", "_site.stories", "_site.stories.$slug"],
     ]);
   });
+
+  it("does not follow the entry's own lazy loads from a public route chunk that imports the entry (H66b)", () => {
+    const manifest = recorded({
+      [route("admin.requests.index")]: {
+        file: "assets/admin-requests.js",
+        src: route("admin.requests.index"),
+        dynamicImports: ["_admin-fetch.js"],
+      },
+      "_admin-fetch.js": { file: "assets/admin-fetch.js", src: "src/admin/ui/admin-fetch.ts" },
+    });
+    const entry = manifest[ENTRY];
+    const story = manifest[route("_site.stories.$slug")];
+    if (entry === undefined || story === undefined)
+      throw new Error("the recorded manifest lost a chunk");
+    // Rolldown's route chunks import the entry chunk statically; the entry lazily loads every route file,
+    // and an admin route file loads its helpers lazily inside beforeLoad (H66).
+    entry.dynamicImports = [...(entry.dynamicImports ?? []), route("admin.requests.index")];
+    story.imports = [ENTRY];
+    const all = { ...SMALL, "assets/stories.js": 1, "assets/story.js": 1 };
+    const clean = checkManifest(
+      manifest,
+      sizes({ ...all, "assets/admin-requests.js": 1, "assets/admin-fetch.js": 1 }),
+    );
+    // The same helper reached lazily from the public route itself is still a problem.
+    story.dynamicImports = ["_admin-fetch.js"];
+    const dirty = checkManifest(
+      manifest,
+      sizes({ ...all, "assets/admin-requests.js": 1, "assets/admin-fetch.js": 1 }),
+    );
+    expect([clean.problems, dirty.problems]).toEqual([
+      [],
+      ["a chunk a public route can reach holds src/admin/ui/admin-fetch.ts"],
+    ]);
+  });
 });
 
 describe("seedTitles", () => {
