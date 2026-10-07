@@ -3,6 +3,7 @@ import { localCatalog } from "./local/catalog";
 import { localConcierge } from "./local/concierge";
 import { localInquiries, localNewsletter, localSubmissions } from "./local/outbox";
 import { localSearch } from "./local/search";
+import { localSite } from "./local/site";
 import type { Services } from "./types";
 
 export type { ConciergeAnswer, SearchMatch, Services, UploadProgress } from "./types";
@@ -16,6 +17,7 @@ const localServices: Services = {
   newsletter: localNewsletter,
   search: localSearch,
   concierge: localConcierge,
+  site: localSite,
 };
 
 /**

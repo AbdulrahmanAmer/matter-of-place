@@ -1,5 +1,6 @@
 import type { Market } from "../domain/market";
 import type { Property, PropertyCard } from "../domain/property";
+import type { PublicSite } from "../domain/settings";
 import type { Story } from "../domain/story";
 import type {
   ConciergeAnswer,
@@ -69,6 +70,10 @@ export interface ConciergeService {
   answer(question: ConciergeQuestion): Promise<ConciergeAnswer>;
 }
 
+export interface SiteService {
+  get(): Promise<PublicSite>;
+}
+
 export type Services = {
   mode: ServiceMode;
   catalog: CatalogService;
@@ -77,6 +82,7 @@ export type Services = {
   newsletter: NewsletterService;
   search: SearchService;
   concierge: ConciergeService;
+  site: SiteService;
 };
 
 export type ServiceErrorKind = "network" | "validation" | "server" | "not-found";

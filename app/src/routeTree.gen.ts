@@ -60,6 +60,7 @@ import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inqu
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
 import { Route as ApiPublicSearchRouteImport } from './routes/api/public/search'
+import { Route as ApiPublicSiteRouteImport } from './routes/api/public/site'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
@@ -346,6 +347,11 @@ const ApiPublicSearchRoute = ApiPublicSearchRouteImport.update({
   path: '/api/public/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSiteRoute = ApiPublicSiteRouteImport.update({
+  id: '/api/public/site',
+  path: '/api/public/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStoriesRoute = ApiPublicStoriesRouteImport.update({
   id: '/api/public/stories',
   path: '/api/public/stories',
@@ -521,6 +527,7 @@ export interface FileRoutesByFullPath {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -594,6 +601,7 @@ export interface FileRoutesByTo {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -672,6 +680,7 @@ export interface FileRoutesById {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -750,6 +759,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -823,6 +833,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -900,6 +911,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -953,6 +965,7 @@ export interface RootRouteChildren {
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRouteWithChildren
   ApiPublicSearchRoute: typeof ApiPublicSearchRoute
+  ApiPublicSiteRoute: typeof ApiPublicSiteRoute
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
@@ -1326,6 +1339,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/search'
       fullPath: '/api/public/search'
       preLoaderRoute: typeof ApiPublicSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/site': {
+      id: '/api/public/site'
+      path: '/api/public/site'
+      fullPath: '/api/public/site'
+      preLoaderRoute: typeof ApiPublicSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/stories': {
@@ -1713,6 +1733,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRouteWithChildren,
   ApiPublicSearchRoute: ApiPublicSearchRoute,
+  ApiPublicSiteRoute: ApiPublicSiteRoute,
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,

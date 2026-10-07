@@ -51,6 +51,14 @@ export const storyQuery = (slug: string) =>
     staleTime: catalogStaleTime,
   });
 
+/** The legal identity and whether illustrative content may show; it changes with the catalog version. */
+export const siteQuery = () =>
+  queryOptions({
+    queryKey: ["site"],
+    queryFn: () => services.site.get(),
+    staleTime: catalogStaleTime,
+  });
+
 /** The archive page of one facet, null below the threshold or with the flag off; the local adapter has no archives. */
 export const archiveQuery = (kind: ArchiveKind, slug: string) =>
   queryOptions({

@@ -290,5 +290,32 @@
     "sql": "update public.settings set value = jsonb_set(value, '{contact,email}', '\"not-an-email\"') where key = 'site';",
     "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"the stored row parses\"",
     "expect": "× .*the stored row parses with siteSettingsSchema[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g3-whole-state",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent,\n  };",
+    "replace": "  return { ...state, ...siteSettingsSchema.parse(state.site) };",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > answers with the site and illustrativeContent and no other key"
+  },
+  {
+    "id": "b16-g3-read-table",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "replace": "  await db.from(\"settings\").select(\"value\");\n  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > makes one public_state call"
+  },
+  {
+    "id": "b16-g3-no-row",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "  catalogRead(\"/api/public/site\", getPublicSite),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "FAIL .*> the public route table and its files > has a row for every file"
   }
 ]
