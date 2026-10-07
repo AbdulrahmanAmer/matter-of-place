@@ -83,6 +83,7 @@ export const rlsMatrix: Record<string, Access> = {
   schedule_settings: { select: staffRoles, insert: automation, update: automation },
   automation_revisions: staffRead,
   event_fanout_failures: {},
+  newsletter_issues: staffRead,
 };
 
 /**

@@ -596,6 +596,8 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
   repermission: confirmOnly,
   admin_notify: adminNotify,
   standalone: () => Promise.resolve({}),
+  // B11 invariant 14: the market_open_notice job passes both variables to renderTemplate itself.
+  market_open: () => Promise.resolve({}),
   subject_ack: subjectAck,
 };
 

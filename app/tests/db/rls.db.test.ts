@@ -93,6 +93,8 @@ begin
   values ('received', 'transactional', 'test-rls-' || v_user || '@example.test');
   insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
   insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
+  insert into public.newsletter_issues (number, status)
+  select coalesce(max(number), 0) + 1, 'sent' from public.newsletter_issues;
   insert into public.channel_settings (channel, posting_window) values ('youtube', '{"tz": "UTC"}')
   on conflict (channel) do nothing;
   insert into public.schedule_settings (key, cron) values ('backup', '0 3 * * *') on conflict (key) do nothing;
