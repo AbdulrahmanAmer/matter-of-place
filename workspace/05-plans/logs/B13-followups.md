@@ -169,3 +169,35 @@ Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHA
 3. File `app/tests/e2e/forms.spec.ts` (not blocking).
    What: The guard the author names, `inquiry dialog: focus moves in on open and returns to the opener on close`, only fails under vite dev with StrictMode. P-1822 itself says it passes on the built Worker with the earlier broken variant. CI runs e2e only with E2E_TARGET: built (ci.yml:314, 321, 332). So no CI job would catch a return to mounting the dialog on click. The budget keeps the dialog out of the static graph, but nothing in CI checks that it mounts closed.
    Evidence: grep -n E2E_TARGET .github/workflows/ci.yml → built only; GOTCHAS.md P-1822 cause line
+
+## g1 · steps 8-9
+
+Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHAS.md as its file, so none went into the bank (the first one is already banked in P-1814).
+
+1. File `app/scripts/check-seo.ts (CI e2e job, PR 163)` (not blocking).
+   What: The live proof of step 9 ('one ok per check, exit 0', and the seo steps of e2e green on a PR) is UNPROVEN and red. The causes are outside this group: B16 and B17 legal pages give 404, B17 step 2 fonts.googleapis is still in __root.tsx, and /place-notes gives no image to pageHead. Consequence: e2e is a REQUIRED_PR_CHECK, so PR 163 cannot merge, and the accepted steps 1 to 7 on it cannot merge either, until those land or the orchestrator changes the merge order. P-1814 already banks this. The orchestrator also has to name who wires og:image on /place-notes: that page became a page after B13 step 7 was built.
+   Evidence: gh run view 37554841638 --log: 'seo check | fail status: /privacy answered 404' ... 'Process completed with exit code 1'; app/scripts/merge-gate.mjs:12 REQUIRED_PR_CHECKS = ["check","build","db","e2e","preview"]
+
+2. File `app/scripts/perf-targets.mjs` (not blocking).
+   What: Lines 7-8 of the comment say 'the hard limits stay `error` assertions in `lighthouserc.json`'. That is false today: largest-contentful-paint and resource-summary:script:size are 'warn' in B4's lighthouserc.json. The plan's step 8 proof ('preview lhci exits 0 with the hard limits of invariant 12 met') did not hold: LCP was 2604 to 4388 ms on every URL in both PR 163 runs, and script size was 161876 bytes. The job passed only because of the warn level. Invariant 12 ('enforced per PR') is not enforced. The fix is B4's file, not this group's. The comment and the log line 'Step 8 PROVEN in CI' should say that the hard-limit half is NOT met.
+   Evidence: app/lighthouserc.json: "largest-contentful-paint": ["warn", {"maxNumericValue": 2500 ...}], "resource-summary:script:size": ["warn", ...]; gh run view 37554841564 --log shows 'largest-contentful-paint warning' for all 6 URLs and step exit 0
+
+3. File `app/scripts/perf-targets.mjs` (not blocking).
+   What: The hero-weight target is UNPROVEN against a real report. HERO_VARIANT (line 15) matches only /media/v/.../hero.webp, but on PR 163's preview the property page shows its hero through the mapper fallback (mappers.ts:283, mediaUrl(row.hero_image)) as the master /media/o/.../0-49087d38.webp, so no real run has ever weighed a hero. The plan's watched-fail (g), a 300 KB image on the home route, would stay silent unless the image is a hero variant. Only the synthetic unit fixture exercises this line. In production the variants are made when a photograph is attached (G66), so the gap is limited to the time before they render.
+   Evidence: curl -s https://pr-163.holy-meadow-4327.workers.dev/property/west-village-townhouse | grep -a -o '/media/[^"]*' gives only /media/o/... addresses; curl of /media/o/west-village-townhouse/0-49087d38.webp gives 404 application/json
+
+4. File `app/tests/unit/check-seo.test.ts` (not blocking).
+   What: (Suspected by reading, not mutated.) Some branches of check-seo.ts have no test that would go red if they were removed: the robots 'x-mop-cache: bypass' requirement on a non-indexable host (check-seo.ts:264-265; the only workers.dev case supplies the header and asserts a pass), the llms content-type check (268-274), the og:title/og:description/og:url/og:type/twitter:card loop (94-103), and the --production non-200 throw (285-286). The 'seo preview host' CI step has also never run, because it is skipped after seo check fails.
+   Evidence: tests/mutations/B13.json b13-g4-* entries: none mutates lines 94-103, 264-265, 268-274 or 285-286; the 'sends the Host header ...' case passes x-mop-cache: bypass in its own stub
+
+5. File `app/scripts/check-seo.ts` (not blocking).
+   What: (Suspected by reading.) Line 174 calls AbortSignal.timeout(15000) once in runChecks, and every request shares that signal. The 15 s limit therefore covers the whole crawl (the Promise.all over every sitemap URL, then robots, llms and the API), not each request. After L1, the runbook's 'check-seo.ts https://matterofplace.com --production' against a sitemap that grows with properties and facets can stop with a single 'aborted' failure.
+   Evidence: check-seo.ts:172-177: const init = { redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS), ... }; get = (path) => fetcher(`${root}${path}`, init)
+
+6. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: STANDARDS C22: the new seo steps of the e2e job do not state their unit cost (Actions minutes). Measured, it is small: in run 37554841638, seo serve started 01:05:30 and seo check 01:05:33.
+   Evidence: git diff 83c9855..daed675 -- workspace/05-plans/logs/B13.md | grep -i -E 'actions minute|unit cost|P-009' gives no line
+
+7. File `workspace/05-plans/sizing/B13.json` (not blocking).
+   What: The sizing entry for g4 names app/docs/runbooks/seo.md and app/lighthouserc.json. The plan and the brief name docs/runbooks/search.md, and B13 never edits lighthouserc.json. The orchestrator owns this file and should correct it.
+   Evidence: workspace/05-plans/sizing/B13.json:9 "files": [..., "app/docs/runbooks/seo.md", ..., "app/lighthouserc.json"]
