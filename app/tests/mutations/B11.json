@@ -214,5 +214,419 @@
     "replace": "export async function createBroadcast(input: BroadcastInput): Promise<string> {\n  if (readVar(\"MOP_ENV\") !== \"production\") return dryId();",
     "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
     "expect": "FAIL.*makes requests with MOP_ENV=development when EMAIL_LIVE=1"
+  },
+  {
+    "id": "b11-assemble-empty-saves",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "if (merged.blocks.length === 0) return { issue_id: null };",
+    "replace": "if (merged.blocks.length === -1) return { issue_id: null };",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*returns a null issue and saves nothing with no candidate and no open draft"
+  },
+  {
+    "id": "b11-assemble-drop-draft-blocks",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "const blocks = [...draft.blocks, ...orderBlocks(fresh)];",
+    "replace": "const blocks = [...orderBlocks(fresh)];",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*returns the open draft and keeps its add-mode block when no candidate is new"
+  },
+  {
+    "id": "b11-assemble-drop-draft-blocks-merge",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "const blocks = [...draft.blocks, ...orderBlocks(fresh)];",
+    "replace": "const blocks = [...orderBlocks(fresh)];",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*keeps the draft's blocks and their intro text in order, and appends only the new ones"
+  },
+  {
+    "id": "b11-assemble-always-save",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "merged.added === 0 &&",
+    "replace": "merged.added === -1 &&",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*saves nothing when the draft already holds the candidates and its subject and preheader are built"
+  },
+  {
+    "id": "b11-assemble-overwrite-edited-subject",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "given !== null && given !== \"\" && given !== built ? given : null;",
+    "replace": "null;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*keeps a subject a human edited and appends the new candidate"
+  },
+  {
+    "id": "b11-assemble-number-off-by-one",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "Math.max(0, ...all.map(({ number }) => number)) + 1,",
+    "replace": "Math.max(0, ...all.map(({ number }) => number)) + 2,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*numbers a new draft after the last issue and writes a system row"
+  },
+  {
+    "id": "b11-assemble-swallow-save-error",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "if (error !== null) throw new Error(`newsletter_save_draft_failed:${error.code}`);",
+    "replace": "if (error === undefined) throw new Error(`newsletter_save_draft_failed:${error.code}`);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*throws when the save fails, so the runner backs off"
+  },
+  {
+    "id": "b11-collect-unpublished-property",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "      .eq(\"editorial_state\", \"published\")\n      .is(\"taken_down_at\", null),",
+    "replace": "      .is(\"taken_down_at\", null),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*skips an unpublished property and a taken-down one"
+  },
+  {
+    "id": "b11-collect-taken-down-property",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "      .is(\"taken_down_at\", null),",
+    "replace": "      .in(\"id\", [...latest.keys()]),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*skips an unpublished property and a taken-down one"
+  },
+  {
+    "id": "b11-collect-lowest-revision",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "asset.revision > held.revision",
+    "replace": "asset.revision < held.revision",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*takes only the highest approved revision of a property"
+  },
+  {
+    "id": "b11-collect-unapproved-asset",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "    .eq(\"status\", \"approved\");",
+    "replace": "    .eq(\"kind\", \"newsletter_block\");",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*leaves out a property that is not approved or not a newsletter block"
+  },
+  {
+    "id": "b11-collect-draft-holds",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": ".filter(({ status }) => status !== \"draft\")",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*leaves out what an approved, sending or sent issue already holds, and not what a draft holds"
+  },
+  {
+    "id": "b11-collect-sending-not-held",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": ".filter(({ status }) => status !== \"draft\")",
+    "replace": ".filter(({ status }) => status === \"approved\")",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*leaves out what an approved, sending or sent issue already holds, and not what a draft holds"
+  },
+  {
+    "id": "b11-collect-ignore-since-assets",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "await (since === null ? approved : approved.gt(\"approved_at\", since)),",
+    "replace": "await approved,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*reads only what came after the last sent issue"
+  },
+  {
+    "id": "b11-collect-ignore-since-stories",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "await (since === null ? published : published.gt(\"published_at\", since)),",
+    "replace": "await published,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*reads only what came after the last sent issue"
+  },
+  {
+    "id": "b11-collect-draft-story",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "    .eq(\"editorial_state\", \"published\")\n    .is(\"archived_at\", null);",
+    "replace": "    .is(\"archived_at\", null);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*leaves out an unpublished or archived story"
+  },
+  {
+    "id": "b11-collect-archived-story",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "    .eq(\"editorial_state\", \"published\")\n    .is(\"archived_at\", null);",
+    "replace": "    .eq(\"editorial_state\", \"published\");",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*leaves out an unpublished or archived story"
+  },
+  {
+    "id": "b11-merge-append-held",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "const fresh = candidates.filter(({ block }) => !held.has(entityId(block)));",
+    "replace": "const fresh = candidates;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*keeps the draft's blocks and their intro text in order, and appends only the new ones"
+  },
+  {
+    "id": "b11-merge-subject-from-draft-blocks",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "      buildSubject(blocks, draft.number),",
+    "replace": "      buildSubject(draft.blocks, draft.number),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*rebuilds the subject and preheader from the merged list when the draft holds the built ones"
+  },
+  {
+    "id": "b11-merge-campaign-last",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "block.type === \"story\" ? 2 : campaign ? 0 : 1;",
+    "replace": "block.type === \"story\" ? 2 : 1;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*puts a Campaign property before a newer plain one, and stories last"
+  },
+  {
+    "id": "b11-subject-no-number-colon",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "`${lead}: ${tidy(first.title)}`",
+    "replace": "`${lead} ${tidy(first.title)}`",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*leads with the issue number and the title of the first block"
+  },
+  {
+    "id": "b11-subject-lead-colon",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "first === undefined ? lead :",
+    "replace": "first === undefined ? `${lead}:` :",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is the lead alone with no block"
+  },
+  {
+    "id": "b11-subject-limit-80",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "const SUBJECT_MAX = 60;",
+    "replace": "const SUBJECT_MAX = 80;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is cut at a word to at most 60 characters"
+  },
+  {
+    "id": "b11-subject-takes-intro",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "block is ContentBlock => block.type !== \"intro\"",
+    "replace": "block is ContentBlock => true",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*skips an intro block and replaces an em dash"
+  },
+  {
+    "id": "b11-subject-keep-em-dash",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": ".replace(/\\s*\\u2014\\s*/g, \", \")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*skips an intro block and replaces an em dash"
+  },
+  {
+    "id": "b11-preheader-keep-em-dash",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": ".replace(/\\s*\\u2014\\s*/g, \", \")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is cut at a word to at most 110 characters with no em dash"
+  },
+  {
+    "id": "b11-preheader-from-title",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "cutAtWord(tidy(first.deck), PREHEADER_MAX)",
+    "replace": "cutAtWord(tidy(first.title), PREHEADER_MAX)",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is the deck of the first block"
+  },
+  {
+    "id": "b11-preheader-empty-text",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "first === undefined ? \"\" :",
+    "replace": "first === undefined ? \"x\" :",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is empty with no block"
+  },
+  {
+    "id": "b11-preheader-limit-130",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "const PREHEADER_MAX = 110;",
+    "replace": "const PREHEADER_MAX = 130;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*is cut at a word to at most 110 characters with no em dash"
+  },
+  {
+    "id": "b11-order-oldest-first",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "b.publishedAt.localeCompare(a.publishedAt)",
+    "replace": "a.publishedAt.localeCompare(b.publishedAt)",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*puts Campaign properties first, then properties newest first, then stories"
+  },
+  {
+    "id": "b11-order-stories-first",
+    "test": "tests/unit/newsletter/subject.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "block.type === \"story\" ? 2 : campaign ? 0 : 1;",
+    "replace": "block.type === \"story\" ? -1 : campaign ? 0 : 1;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/subject.test.ts",
+    "expect": "FAIL.*puts Campaign properties first, then properties newest first, then stories"
+  },
+  {
+    "id": "b11-queue-swap-args",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/jobs/steps/queue-digest.ts",
+    "find": "await addBlock(ctx.db, propertyIdOf(data), assetId);",
+    "replace": "await addBlock(ctx.db, assetId, propertyIdOf(data));",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*adds the block of an approved newsletter asset through queue_digest_add"
+  },
+  {
+    "id": "b11-queue-random-asset",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "    p_asset: assetId,",
+    "replace": "    p_asset: crypto.randomUUID(),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*sends the same asset the same way twice, so the function can keep one block"
+  },
+  {
+    "id": "b11-queue-no-kind-check",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/jobs/steps/queue-digest.ts",
+    "find": "if (data[\"kind\"] !== \"newsletter_block\") {",
+    "replace": "if (data[\"kind\"] === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*skips a cover and adds nothing"
+  },
+  {
+    "id": "b11-queue-swallow-add-error",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "if (error !== null) throw new Error(`queue_digest_add_failed:${error.code}`);",
+    "replace": "if (error === undefined) throw new Error(`queue_digest_add_failed:${error.code}`);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*throws when queue_digest_add fails, so the runner backs off"
+  },
+  {
+    "id": "b11-queue-assemble-wrong-null",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/jobs/steps/queue-digest.ts",
+    "find": "result: await assemble(ctx.db, ctx.job.id)",
+    "replace": "result: { issue_id: \"x\" }",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*answers a null issue in assemble mode when nothing is eligible"
+  },
+  {
+    "id": "b11-queue-assemble-drops-issue",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/jobs/steps/queue-digest.ts",
+    "find": "result: await assemble(ctx.db, ctx.job.id)",
+    "replace": "result: { issue_id: null }",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*answers the saved issue in assemble mode"
+  },
+  {
+    "id": "b11-queue-default-mode",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\"]).default(\"add\") }).strict(),",
+    "replace": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\"]).default(\"assemble\") }).strict(),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*accepts add and assemble, and add by default"
+  },
+  {
+    "id": "b11-queue-accepts-send",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\"]).default(\"add\") }).strict(),",
+    "replace": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\", \"send\"]).default(\"add\") }).strict(),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*refuses any other mode and any other key"
+  },
+  {
+    "id": "b11-queue-accepts-other-key",
+    "test": "tests/unit/newsletter/queue-digest.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\"]).default(\"add\") }).strict(),",
+    "replace": "paramsSchema: z.object({ mode: z.enum([\"add\", \"assemble\"]).default(\"add\") }),",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/queue-digest.test.ts",
+    "expect": "FAIL.*refuses any other mode and any other key"
+  },
+  {
+    "id": "b11-digest-no-wait",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "if (error instanceof WaitFor) return",
+    "replace": "if (error instanceof WaitFor && error.at.getTime() < 0) return",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*retries a minute later while the queue_digest job is queued, and sends nothing"
+  },
+  {
+    "id": "b11-digest-wait-ten-minutes",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const DIGEST_WAIT_MS = 60 * 1000;",
+    "replace": "const DIGEST_WAIT_MS = 10 * 60 * 1000;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*retries a minute later while the queue_digest job is queued, and sends nothing"
+  },
+  {
+    "id": "b11-digest-nothing-wording",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "notice(\n      \"Nothing to send this cycle\",",
+    "replace": "notice(\n      \"Place Notes draft ready\",",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*says nothing to send this cycle when the issue is null"
+  },
+  {
+    "id": "b11-digest-number-dropped",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "`Place Notes No. ${String(result.data.number)} draft ready for review`",
+    "replace": "\"Place Notes draft ready for review\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*says the draft of issue 3 is ready for review"
+  },
+  {
+    "id": "b11-digest-dead-waits",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "sibling.status === \"dead\" || sibling.status === \"cancelled\"",
+    "replace": "sibling.status === \"cancelled\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*says the draft could not be built when the job is dead"
+  },
+  {
+    "id": "b11-digest-missing-job-name",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "found(rows[0], \"queue_digest_job\")",
+    "replace": "found(rows[0], \"digest_job\")",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*is a failure, not a wait, when the event has no queue_digest job"
   }
 ]

@@ -1,7 +1,7 @@
 import { stepSpecs } from "../../automation/step-specs.ts";
 import { loadSiteContext, resolveAdminRecipients } from "../../email/context.ts";
 import { renderTemplate } from "../../email/render.ts";
-import { resolveVariables } from "../../email/variables.ts";
+import { resolveVariables, WaitFor, type Variables } from "../../email/variables.ts";
 import {
   NonRetryableError,
   type JsonObject,
@@ -45,14 +45,22 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
   const eventType = await eventTypeOf(ctx);
   const row = await templateRow(ctx.db, key);
   const site = await loadSiteContext(ctx.db);
-  const variables = await resolveVariables(
-    ctx.db,
-    key,
-    data,
-    eventType,
-    site,
-    typeof headline === "string" ? headline : undefined,
-  );
+  let variables: Variables;
+  try {
+    variables = await resolveVariables(
+      ctx.db,
+      key,
+      data,
+      eventType,
+      site,
+      typeof headline === "string" ? headline : undefined,
+      { eventId: ctx.job.eventId, now: ctx.now },
+    );
+  } catch (error) {
+    // A notice that waits for a sibling job ends here, with no attempt used; every other error is the runner's.
+    if (error instanceof WaitFor) return { status: "retry_at", at: error.at, reason: error.reason };
+    throw error;
+  }
   const fingerprint = ["alert", await alertKey(ctx, eventType)];
   await reportAlert(
     ctx,
