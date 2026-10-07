@@ -4050,3 +4050,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a watched-fail of a case that reads `storage.*` is judged on mop-dev inside a rolled-back transaction or in the CI `db` job, never on the native stand-in; on the stand-in read the red message before calling the replay OK. A new entry's `expect` for such a case names the assertion text, not only the title.
 - proof: `"$PSQL" postgresql://postgres@127.0.0.1:55462/mop_g1v -Atc "select to_regclass('storage.buckets')"` prints an empty line on the stand-in; on mop-dev from `app/`: `eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only b6-g1-documents-private` → `WATCHED-FAIL OK`, and the bucket still reads `documents|f` afterwards (replayed by the B6 g1 reviewer, 2026-10-07).
 - added: 2026-10-07
+
+## P-2305 · A merge agent chased a moving main: three merges of origin/main in twenty minutes, each restarting CI, because the gate refused "rebase first" for every records commit
+- symptom: `merge-gate.mjs 185` printed `rebase first` three times; each answer was a merge of origin/main, a push and a 7 minute CI run, and main had moved again by the time the checks were green.
+- cause: other lanes merge records pull requests (hygiene cap, merge-chores.md, a ruling) into main every few minutes, and the gate required the head to contain origin/main whatever main had gained.
+- rule: when the gate says `rebase first`, merge origin/main and push once, wait for green, and run the gate at once; since ruling H65 a head behind main by documents only passes the gate, so a second round happens only when main gained code. Never wait on a clock between the green checks and the gate.
+- proof: `grep -c "behind main by documents only" workspace/05-plans/merge-gate.mjs` → 1; PR 185 merged at ec1b4f0 after the third merge, the fourth main advance being documents only.
+- added: 2026-10-07
