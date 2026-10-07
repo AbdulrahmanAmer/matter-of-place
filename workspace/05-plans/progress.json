@@ -142,7 +142,7 @@
         "2"
       ],
       "inReview": [],
-      "note": "Steps 1 and 2 merged in part (PR 98: domain and migration); the service part of step 2 and steps 3 to 8 wait on B3, B3b, B5 and B17."
+      "note": "Steps 1 and 2 merged in part (PR 98: domain and migration); the service part of step 2 and steps 3 to 8 wait on B3, B3b, B5 and B17. Steps 2 to 8 launched 2026-10-07 07:00 on this laptop (run wf_ac5c1968-444, lane E:/mop-build/legal) after B17 merged."
     },
     "B5": {
       "accepted": [
@@ -234,7 +234,7 @@
         "9",
         "10"
       ],
-      "note": "1 to 7 accepted on slice/b17 (head febc1a6; step 1 in PR 142, which merges with the slice). 8 built and rejected once (fix round not run), 9-10 built partial and unreviewed; run wf_df526cfb-c3b paused 16:55 (operator, 10:40). The lane is 2.7 KB over the bundle budget on the property route (P-1924); close-outs c8 and c9 in lanes/B17.json, then 11 and 12."
+      "note": "1 to 7 accepted on slice/b17 (head febc1a6; step 1 in PR 142, which merges with the slice). 8 built and rejected once (fix round not run), 9-10 built partial and unreviewed; run wf_df526cfb-c3b paused 16:55 (operator, 10:40). The lane is 2.7 KB over the bundle budget on the property route (P-1924); close-outs c8 and c9 in lanes/B17.json, then 11 and 12. Run wf_691c6d5a-d34 merged slice/b17 as PR 142 (27a0165, 2026-10-07 06:58): c8 (step 8), c9 (steps 9 to 10) and step 12 accepted by the reviewer (step 12 after three fix rounds; the deploy run of its commit green, essentials 49 passed); step 11 blocked on B1b step 11. Orchestrator re-run pending. Lighthouse local stays red on perf, LCP and script transfer (H61, warn until H1)."
     },
     "B7": {
       "accepted": [
