@@ -153,3 +153,27 @@ Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (the c8 h
    Evidence: In the log's Step 10 block, the line reads '$ scratch Playwright over /, /stories, /properties, /about, /contact, /submit: console messages matching ... 0'. No repo file holds that script. My scratch reproduction printed 'csp console messages: 0'.
 
 Recorded in the bank, not here: none. No follow-up of c9's review has GOTCHAS.md as its file.
+
+## g10 · steps 12
+
+1. File `app/docs/runbooks/delivery.md` (not blocking).
+   What: The Previews section (lines 225-229) still says the preview job builds, deploys, waits, runs the smoke and comments. It does not mention the browser install, essentials and observatory steps this group added (or B4's change test, overflow and lighthouse). Line 200 also says the smoke is 'the last step of every deploy job', which is no longer true for preview. A runbook reader would not know the preview can go red on an Observatory API outage (exit 2) or on the essentials spec. This is not this group's file, so the orchestrator should fold it in.
+   Evidence: Read of app/docs/runbooks/delivery.md:198-237; grep -rn observatory app/docs finds nothing
+
+2. File `.github/workflows/deploy.yml` (not blocking).
+   What: The essentials step is a new required gate on every preview. It can go red for reasons unrelated to the PR: the P-1936 stall (empty mop-dev media bucket, a page's load event times out under parallel load), and with failOnFlakyTests a pass on retry also fails. The observatory step exits 2 on an Observatory API outage or a 429, which follows the plan contract but also makes the preview red for a third-party reason. Run 37557550150 was red on the stall; 37563311198 was green. The author lists this as UNPROVEN and it is banked (P-1936). I am recording it as a follow-up and not blocking, because the cause is the empty bucket outside g10's files.
+   Evidence: deploy.yml:155-175; GOTCHAS.md P-1936 at line 4323; B17 log rework 3 cites run 37557550150 (consent-noscript on phone)
+
+3. File `.github/workflows/deploy.yml` (not blocking).
+   What: C22: the cost comment covers only the install and essentials steps (about 2 minutes). The observatory step (one outside API call, measured 2s) has no cost line. merge-chores.md:51 asked for a cost line for both new steps. This is minor.
+   Evidence: deploy.yml:161-163 cost comment sits above the install/essentials steps; the observatory comment at 171-172 has no cost
+
+4. File `app/tests/unit/observatory.test.ts` (not blocking).
+   What: The structural deploy.yml tests use describe.skipIf(!existsSync(DEPLOY)), so if the workflow moves or the path resolution breaks they skip silently and do not fail. In CI and in this snapshot the file exists and all 16 tests ran, so this does not affect the current proof.
+   Evidence: observatory.test.ts: describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)", ...)
+
+5. File `.github/workflows/deploy.yml` (not blocking).
+   What: The brief says the essentials step must set E2E_MODE=live 'like the overflow step'. The author used `${{ env.HAS_DB == 'true' && 'live' || 'local' }}` instead, so it falls back to local after the launch switch, while the overflow step stays unconditionally live. Today it evaluates to live (the job log shows 'E2E_MODE: live'), and b17-deploy-essentials-live pins it. This is a deliberate, documented divergence between two adjacent steps; the author logged overflow's post-switch break as another group's problem.
+   Evidence: deploy.yml:169 vs 196; CI log 'preview essentials ... E2E_MODE: live'
+
+Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (a watched-fail replay in the same tree as `bun run check`, hit again in the g10 review) became a hit-again line of P-2018.
