@@ -2422,5 +2422,23 @@
     "replace": "if (true) fail(0,",
     "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
     "expect": "FAIL .*as the builder writes it > has no problem when the list is cut at the size cap"
+  },
+  {
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts -t \"allowedUntil\"",
+    "id": "b13-h64-allow-legal",
+    "find": "pattern: /^status: \\/(?:privacy|terms|accessibility) answered 404$/,",
+    "replace": "pattern: /^status: \\/(?:privacy|terms) answered 404$/,",
+    "expect": "allows the legal pages' 404"
+  },
+  {
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts -t \"allowedUntil\"",
+    "id": "b13-h64-allow-nothing-else",
+    "find": "return ALLOWED_UNTIL.find(({ pattern }) => pattern.test(`${name}: ${problem}`))?.until;",
+    "replace": "return ALLOWED_UNTIL.find(({ pattern }) => pattern.test(`${name}: ${problem}`))?.until ?? (name === \"status\" ? \"B16\" : undefined);",
+    "expect": "allows nothing else"
   }
 ]

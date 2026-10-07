@@ -2,6 +2,8 @@
 import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import {
+  ALLOWED_UNTIL,
+  allowedUntil,
   checkHead,
   checkProductionSitemap,
   checkRobots,
@@ -44,6 +46,35 @@ function page(path: string, fields: Fields = {}): string {
     "</head><body></body></html>",
   ].join("");
 }
+
+describe("allowedUntil (ruling H64)", () => {
+  it("allows the legal pages' 404 and the two og:image gaps, each naming the slice that removes it", () => {
+    expect(
+      [
+        ["status", "/privacy answered 404"],
+        ["status", "/terms answered 404"],
+        ["status", "/accessibility answered 404"],
+        ["status", "/cookies answered 404"],
+        ["head", "/place-notes: og:image is missing"],
+      ].map(([name, problem]) => allowedUntil(name ?? "", problem ?? "")?.slice(0, 3)),
+    ).toEqual(["B16", "B16", "B16", "B17", "B17"]);
+  });
+
+  it("allows nothing else: a 404 on another page, a 500 on a legal page, or any other check", () => {
+    expect(
+      [
+        ["status", "/about answered 404"],
+        ["status", "/privacy answered 500"],
+        ["head", "/privacy: description is missing"],
+        ["no-third-party", "/: initial HTML holds fonts.googleapis"],
+      ].map(([name, problem]) => allowedUntil(name ?? "", problem ?? "")),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  it("names a slice on every allowed line, so the list empties as slices land", () => {
+    expect(ALLOWED_UNTIL.every(({ until }) => /^B\d+/.test(until))).toBe(true);
+  });
+});
 
 describe("checkHead", () => {
   it("passes a complete head", () => {

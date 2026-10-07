@@ -26,6 +26,26 @@ export type Options = {
 
 export type CheckResult = { name: string; problems: string[] };
 
+// Ruling H64: a finding on a page another slice ships is printed as `warn <check>: <problem> (until <slice>)` and
+// does not fail the run until that slice is on main; then its line is removed here and the finding fails again.
+// Each line names the slice and step that removes it. Empty list means every finding fails.
+export const ALLOWED_UNTIL: readonly { pattern: RegExp; until: string }[] = [
+  {
+    pattern: /^status: \/(?:privacy|terms|accessibility) answered 404$/,
+    until: "B16 steps 5 to 7 ship the privacy, terms and accessibility pages",
+  },
+  { pattern: /^status: \/cookies answered 404$/, until: "B17 step 2 ships the cookies page" },
+  {
+    pattern: /^head: \/(?:cookies|place-notes): .*og:image/,
+    until: "B17 step 2 (cookies) and B11 step 9 (Place Notes) give their pages an og:image",
+  },
+];
+
+/** The reason a finding is allowed for now, or undefined when it fails the run. */
+export function allowedUntil(name: string, problem: string): string | undefined {
+  return ALLOWED_UNTIL.find(({ pattern }) => pattern.test(`${name}: ${problem}`))?.until;
+}
+
 function decode(value: string): string {
   return value.replace(/&(?:#(\d+)|#x([0-9a-f]+)|(\w+));/gi, (whole, dec, hex, name) => {
     if (typeof dec === "string") return String.fromCodePoint(Number(dec));
@@ -312,11 +332,18 @@ async function main(args: string[]): Promise<void> {
     { host: values.host, goneSlug: values["gone-slug"], production: values.production },
     fetch,
   );
+  let failed = false;
   for (const { name, problems } of results) {
     if (problems.length === 0) console.log(`ok ${name}`);
-    else for (const problem of problems) console.log(`fail ${name}: ${problem}`);
+    for (const problem of problems) {
+      const until = allowedUntil(name, problem);
+      if (until === undefined) {
+        failed = true;
+        console.log(`fail ${name}: ${problem}`);
+      } else console.log(`warn ${name}: ${problem} (until ${until})`);
+    }
   }
-  if (results.some(({ problems }) => problems.length > 0)) process.exit(1);
+  if (failed) process.exit(1);
 }
 
 if (import.meta.main) {
