@@ -2103,6 +2103,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -c "src/env.d.ts" tsconfig.scripts.json && bunx tsc --noEmit -p tsconfig.scripts.json; echo $?` → `1` then `0`; `node scripts/watchfail.mjs --registry tests/mutations --only hy-gate-include 2>&1 | tail -2 | head -1` → `WATCHED-FAIL OK B1b:hy-gate-include` (measured 2026-10-03, B9 g5).
 - added: 2026-10-03
 
+- hit again: 2026-10-07, B10 g6: `render-*.ts` and `write-captions.ts` now import `auto-approve.ts`, so `scripts/captions-runner.ts` reaches `src/server/channels/oauth-tokens.ts`, and `tsc -p tsconfig.scripts.json` (lib ES2022, no DOM) refused its `BodyInit`: `error TS2304: Cannot find name 'BodyInit'`. The type became `Exclude<RequestInit["body"], undefined>`, which both programs know.
 ## P-715 · A size check that compares a screenshot with the viewport it was taken at measures nothing: declare the size apart and compare the frame's own box
 - symptom: B9 g5's first `shoot.mjs` checked the JPEG's header against `frame.viewport` (or the clip). Plan watched-fail (a), a cover viewport of 1200x628, would have stayed green: the page was shot at 628 and the file said 628.
 - cause: the expected value and the measured value came from the same number (global RULE 2: a check that shares its answer with the thing it checks proves nothing).
