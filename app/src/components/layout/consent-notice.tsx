@@ -1,7 +1,13 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { track } from "../../lib/analytics";
-import { CONSENT_VERSION, onConsentNoticeOpen, readConsent, writeConsent } from "../../lib/consent";
+import {
+  CONSENT_VERSION,
+  onConsentChange,
+  onConsentNoticeOpen,
+  readConsent,
+  writeConsent,
+} from "../../lib/consent";
 import { t } from "../../lib/strings";
 
 const decided = () => readConsent()?.version === CONSENT_VERSION;
@@ -16,17 +22,25 @@ export function ConsentNotice() {
 
   useEffect(() => {
     setOpen(!decided());
-    return onConsentNoticeOpen(() => {
+    const stopOpen = onConsentNoticeOpen(() => {
       setOpen(true);
     });
+    // A choice made elsewhere on the page, as on /privacy-choices, answers the notice too.
+    const stopChange = onConsentChange(() => {
+      setOpen(false);
+    });
+    return () => {
+      stopOpen();
+      stopChange();
+    };
   }, []);
 
   if (!open) return null;
 
   const choose = (analytics: boolean) => (event: MouseEvent<HTMLButtonElement>) => {
-    writeConsent(analytics);
+    // The listener above closes the notice once the choice is stored; a browser that refuses the store closes it here.
+    if (!writeConsent(analytics)) setOpen(false);
     track("consent_set", { analytics });
-    setOpen(false);
     // A click with no pointer is the keyboard: the button is leaving, so focus goes where the choice can be changed.
     if (event.detail === 0) document.getElementById("consent-change")?.focus();
   };

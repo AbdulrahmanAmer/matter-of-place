@@ -18,9 +18,6 @@ import { ogStaticQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
 import { services } from "../services";
 
-const fontsHref =
-  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500;600&family=Urbanist:wght@300;500;700&family=Epilogue:wght@300;400&display=swap";
-
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async ({ context: { queryClient } }) => ({
     ogStatic: await queryClient.ensureQueryData(ogStaticQuery()),
@@ -38,9 +35,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: fontsHref },
+      { rel: "manifest", href: "/site.webmanifest" },
+      { rel: "alternate", type: "application/rss+xml", title: siteConfig.name, href: "/feed.xml" },
+      {
+        rel: "alternate",
+        type: "application/feed+json",
+        title: siteConfig.name,
+        href: "/feed.json",
+      },
     ],
   }),
   shellComponent: RootShell,

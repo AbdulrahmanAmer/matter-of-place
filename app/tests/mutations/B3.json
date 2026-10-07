@@ -1373,15 +1373,15 @@
     "find": "  return path.length > 1 && path.endsWith(\"/\") ? path.slice(0, -1) : path;",
     "replace": "  return path;",
     "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
-    "expect": "× .*answers a table row with its stored status, however the path is cased or slashed"
+    "expect": "× .*holds an enabled row under its path read as the router reads it"
   },
   {
     "id": "b3-g3-redirect-gate",
     "kind": "file",
     "test": "tests/unit/redirects.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const redirect = page ? await deps.redirect(request) : null;",
-    "replace": "    const redirect = await deps.redirect(request);",
+    "find": "    const redirect = closed === null && page ? await deps.redirect(request) : null;",
+    "replace": "    const redirect = closed === null ? await deps.redirect(request) : null;",
     "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",
     "expect": "× .*never looks up /api, /admin or a document"
   },
@@ -1490,8 +1490,8 @@
     "kind": "file",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const outage = error instanceof AppError && error.code === \"unavailable\";",
-    "replace": "    const outage = false;",
+    "find": "  const outage = error instanceof AppError && error.code === \"unavailable\";",
+    "replace": "  const outage = false;",
     "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
     "expect": "× .*answers an outage with the calm 503 and Retry-After, and reports nothing"
   },
@@ -1910,8 +1910,8 @@
     "kind": "file",
     "test": "tests/unit/headers.test.ts",
     "file": "src/server/lib/headers.ts",
-    "find": "            ? supabaseOrigin()",
-    "replace": "            ? []",
+    "find": "    \"connect-src\": supabaseOrigin(),",
+    "replace": "    \"connect-src\": [],",
     "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
     "expect": "× .*lets connect-src reach the origin of SUPABASE_URL"
   },
@@ -3394,8 +3394,8 @@
     "kind": "file",
     "test": "tests/api/events.api.test.ts",
     "file": "src/server/events/service.ts",
-    "find": "path: maskEmails(path),",
-    "replace": "path,",
+    "find": "path: maskEmails(path),\n      data: scrub(data),",
+    "replace": "path,\n      data: scrub(data),",
     "run": "bunx vitest run --project db tests/api/events.api.test.ts",
     "expect": "× .*scrubs an email-shaped value from data and path"
   },
@@ -3624,8 +3624,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/routes.ts",
-    "find": "limit: 60, windowSeconds: 60",
-    "replace": "limit: 600, windowSeconds: 60",
+    "find": "limit: 60, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,\n    service: search.match,",
+    "replace": "limit: 600, windowSeconds: 60 }],\n    turnstile: false,\n    status: 200,\n    service: search.match,",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*answers 429 to the 61st search and the 31st concierge question"
   },

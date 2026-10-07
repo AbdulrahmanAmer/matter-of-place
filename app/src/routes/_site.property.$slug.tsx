@@ -165,6 +165,7 @@ function PropertyDossier({ data }: { data: Dossier }) {
     <main>
       <ImageHero
         image={property.heroImage}
+        variants={property.heroVariants}
         alt={`${illustrative ? "Illustrative architecture" : "Architecture"} in ${property.city}`}
         eyebrow={`${property.city.toUpperCase()}, ${property.state.toUpperCase()}`}
         title={property.title}

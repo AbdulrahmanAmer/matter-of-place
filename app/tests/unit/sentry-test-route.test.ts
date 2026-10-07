@@ -1,3 +1,4 @@
+import "../fixtures/worker-env";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { handle, type PipelineContext, type PipelineDeps } from "../../src/server/lib/pipeline";
