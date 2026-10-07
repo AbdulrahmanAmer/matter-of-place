@@ -231,3 +231,19 @@ Second review round of the group (a fresh reviewer on the frozen snapshot), reco
 - what: Follow-up for the orchestrator, not blocking. Line 17 of the plan still says 'ASSUMED placeholder v23.0; step 3 replaces it with the newest version', but the runbook now records v26.0. The hint text in src/domain/channels.ts:57 ('Use a version such as v23.0', a g1 file) also still names v23.0. Neither line is false, but the plan line is stale.
 - evidence: git grep -n 'v23.0' gives only src/domain/channels.ts:57, tests/unit/channels/ids.test.ts and workspace/05-plans/B10.md:17
 - blocking: false
+
+## g3 · steps 4
+
+Second review of g3 (the resume run of 2026-10-08): no blocking defect, two follow-ups, recorded word for word with their evidence. None has GOTCHAS.md as its file, so no gotcha entry was added.
+
+### app/tests/unit/assets/service.test.ts (proof command of B10 step 4)
+
+- what: UNPROVEN (the author reports it as NOT DONE, waiting for B9): the step 4 proof command still passes with no B9 case, because vitest drops a path that does not exist when the other paths match. Once B9 lands, the same command stays green whether or not the human_approval_required case was added to service.test.ts. Whoever closes this part should replay a registry entry that mutates the mayApprove call in approveAsset. A green run of this command is not enough.
+- evidence: The command ran with tests/unit/assets/service.test.ts in its file list and printed 'Test Files 6 passed (6)', exit 0, while that file is not in the tree.
+- blocking: false
+
+### app/tests/unit/channels/meta-metrics.test.ts:28
+
+- what: The plan asks that 'every metric in the recorded fixtures maps to a normalised field'. The test first filters the fixture names down to those in META_METRICS, so a fixture name with no field (total_interactions in media-insights.json) is never checked. This is acceptable today: total_interactions has no normalised field and the plan accepts that it lands in raw. The fixture is documentation-sourced, not a live recording, so META_METRICS stays UNPROVEN against a real Graph answer until step 7 (the author says so, P-2205). Suspected by reading; not a code defect.
+- evidence: tests/fixtures/graph/media-insights.json lists reach, likes and total_interactions. The test asserts names.filter(name in META_METRICS) equals ['reach','likes'].
+- blocking: false
