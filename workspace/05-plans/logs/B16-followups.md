@@ -21,3 +21,23 @@
 5. File `app/src/domain/retention.ts` (not blocking).
    What: The unit test checks only the five keys B2 seeds. The other four (subject_requests, email_pii, rate_limits, analytics_daily) have no seeded row on main yet: B3, B5 and B8 seed them. Until step 5's db test (-t retention) runs, a wrong number for any of those four would pass. The author lists this as UNPROVEN, which is correct.
    Evidence: ls app/supabase/migrations shows no 20261001100000_public_write_functions.sql and no B5 or B8 retention migration on this commit.
+
+## g2 · steps 2
+
+1. File `app/scripts/set-site.ts` (not blocking).
+   What: Follow-up (plan text, not this group's file): the plan's Files line for set-site.ts says to set process.env.CATALOG_VERSION_TTL_MS ??= "0" and load service.ts and readiness.ts with a dynamic import(). The script imports them statically and never sets the variable. By reading the code I think the deviation is harmless: state.ts reads the TTL at call time through readVar, and the script reads no state before its write, so the memo is empty when siteReadiness runs. Running the script confirms it: example then empty printed 'missing: none' and then 'missing: legal.entity legal.address'. The B16.md plan line is now stale and the orchestrator should fold it.
+   Evidence: set-site.ts lines 11-12 import readiness.ts and service.ts statically, and nothing in the file sets CATALOG_VERSION_TTL_MS. The g2 block of workspace/05-plans/logs/B16.md states the deviation and the reason.
+
+2. File `app/docs/runbooks/api.md` (not blocking).
+   What: Follow-up: the plan's Files line asks for runbook lines on running scripts/set-site.ts (both fixtures, that the empty fixture restores the shared mop-dev row, and that the script refuses after L1's switch). They are not written. Step 2's own text does not name the file, and the author lists this as NOT DONE. It needs to land with step 3's route row, or the orchestrator should assign it.
+   Evidence: git diff origin/main...slice/b16 --stat lists no docs/runbooks/api.md. The plan-brief Files list names it next to the GET /api/public/site row.
+
+3. File `app/tests/unit/settings-service.test.ts` (not blocking).
+   What: Follow-up: plan watched-fail (k) names site-read-path.test.ts (step 3's file). This group proved the same property (getSiteSettings never queries the settings table, one public_state call in 200 reads) in a new file that is not on the group's list. The author explains why (knip needs an importer for getPublicSite). Step 3 still has to create site-read-path.test.ts so that (k) holds as the plan words it. Its contract is covered for now.
+   Evidence: watchfail --only b16-g2-read-table prints WATCHED-FAIL OK B16:b16-g2-read-table against tests/unit/settings-service.test.ts. No tests/unit/site-read-path.test.ts exists at 5bab4e7.
+
+4. File `workspace/05-plans/logs/B16.md` (not blocking).
+   What: Follow-up: the log's g2 UNPROVEN line ('the CI db job on the pull request ... skipped while the PR is a draft') is now outdated. PR 209 is not a draft and the db job passed on head 5bab4e7, running settings-site.db.test.ts (5 tests) on the ephemeral stack. Separately, the preview job on the same run failed: 7 flaky @overflow phone-sweep page.goto net::ERR_ABORTED timeouts and 48 passed. This group touches no UI or route, so the failure is not its own. It will still hold the merge gate until it is re-run.
+   Evidence: gh pr checks 209: 'db pass 3m1s', 'preview fail 7m32s'. gh run view 37573151075 --job 112636074297 --log: 'db tests/db/settings-site.db.test.ts (5 tests)'. gh run view 37573151038 --log-failed: '7 flaky ... 48 passed', then '##[error]Process completed with exit code 1'.
+
+(The fifth g2 follow-up, a GOTCHAS.md cost, went to the bank as a hit-again line in P-508.)
