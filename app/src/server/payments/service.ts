@@ -153,7 +153,7 @@ const invoiceListRow = z.object({
   days_open: z.number().nullable(),
 });
 
-const CURSOR = /^(null|d{4}-dd-ddT[d:.]+(?:Z|[+-]dd:dd))~([0-9a-f-]{36})$/;
+const CURSOR = /^(null|\d{4}-\d\d-\d\dT[\d:.]+(?:Z|[+-]\d\d:\d\d))~([0-9a-f-]{36})$/;
 
 type ListInput = z.output<typeof listPaymentsInput>;
 type InvoiceListRow = z.infer<typeof invoiceListRow>;

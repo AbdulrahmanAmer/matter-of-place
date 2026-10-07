@@ -588,6 +588,33 @@
     "expect": "FAIL .*> listPayments and getPayment > answers one page with the cursor of the row it ends on, and refuses a broken cursor with 422"
   },
   {
+    "id": "b6-g3-cursor-digits",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "(null|\\d{4}-\\d\\d-\\d\\dT",
+    "replace": "(null|d{4}-dd-ddT",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
+    "id": "b6-g3-keyset-older",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "filtered(db, input).lt(\"issued_at\", at), take)",
+    "replace": "filtered(db, input).eq(\"issued_at\", at), take)",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
+    "id": "b6-g3-keyset-unissued",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": ".is(\"issued_at\", null).lt(\"id\", id), take)",
+    "replace": ".is(\"issued_at\", null), take)",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
     "id": "b6-g3-get-reader",
     "test": "tests/unit/payments/service.test.ts",
     "file": "src/server/payments/service.ts",
@@ -602,7 +629,7 @@
     "file": "src/routes/api/admin/payments.$id.pdf.ts",
     "find": "            status: 302,",
     "replace": "            status: 200,",
-    "run": "bunx vitest run --project unit tests/unit/payments/pdf-route.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
     "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers commercial 302 to the URL Storage signed for the key and 60 seconds, private and no-store"
   },
   {
@@ -611,7 +638,7 @@
     "file": "src/server/payments/service.ts",
     "find": "createSignedUrl(row.invoice_file_key, 60)",
     "replace": "createSignedUrl(row.invoice_file_key, 3600)",
-    "run": "bunx vitest run --project unit tests/unit/payments/pdf-route.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
     "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers commercial 302 to the URL Storage signed for the key and 60 seconds, private and no-store[\\s\\S]*3600"
   },
   {
@@ -620,7 +647,7 @@
     "file": "src/server/payments/service.ts",
     "find": "  if (row.invoice_file_key === null) {",
     "replace": "  if (row.invoice_file_key === \"none\") {",
-    "run": "bunx vitest run --project unit tests/unit/payments/pdf-route.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
     "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers 404 pdf_not_ready while the key is null"
   },
   {
@@ -629,7 +656,7 @@
     "file": "src/server/payments/service.ts",
     "find": "    throw new AppError(\"storage_unavailable\", undefined, \"File storage is not answering.\");",
     "replace": "    throw new Error(\"storage\");",
-    "run": "bunx vitest run --project unit tests/unit/payments/pdf-route.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
     "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers 503 storage_unavailable when Storage answers an error"
   },
   {

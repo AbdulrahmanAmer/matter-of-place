@@ -523,6 +523,57 @@ describe("listPayments and getPayment", () => {
     expect(await refusal(listPayments(editor, db, { cursor: "yesterday" }))).toBe("422 validation");
   });
 
+  interface ViewQuery extends Promise<{ data: ListedRow[]; error: null }> {
+    eq: (column: "issued_at" | "status" | "overdue", value: unknown) => ViewQuery;
+    lt: (column: "issued_at" | "id", value: string) => ViewQuery;
+    is: (column: "issued_at") => ViewQuery;
+    order: () => ViewQuery;
+    limit: (count: number) => ViewQuery;
+  }
+
+  // Applies the filters the service sends, so a cursor fed back reads the next page. The rows are given in the
+  // view's own order (newest issue first, then id, unissued last), so `order` keeps them as they are.
+  const view = (kept: ListedRow[]): ViewQuery =>
+    Object.assign(Promise.resolve({ data: kept, error: null }), {
+      eq: (column: "issued_at" | "status" | "overdue", value: unknown) =>
+        view(kept.filter((row) => row[column] === value)),
+      lt: (column: "issued_at" | "id", value: string) =>
+        view(kept.filter((row) => (row[column] ?? value) < value)),
+      is: (column: "issued_at") => view(kept.filter((row) => row[column] === null)),
+      order: () => view(kept),
+      limit: (count: number) => view(kept.slice(0, count)),
+    });
+
+  it("reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued", async () => {
+    const id = (n: number) => `6b2e0a00-0000-4000-8000-00000000010${String(n)}`;
+    const at = (day: number) => `2026-10-0${String(day)}T09:00:00.123456+00:00`;
+    const rows = [
+      listed({ id: id(7), issued_at: at(3) }),
+      listed({ id: id(6), issued_at: at(2) }),
+      listed({ id: id(5), issued_at: at(2) }),
+      listed({ id: id(4), issued_at: at(1) }),
+      listed({ id: id(3), issued_at: null }),
+      listed({ id: id(2), issued_at: null }),
+      listed({ id: id(1), issued_at: null }),
+    ];
+    const db = Object.assign(fakeDb(), { from: () => ({ select: () => view(rows) }) });
+    const first = await listPayments(editor, db, { limit: 2 });
+    const second = await listPayments(editor, db, { limit: 2, cursor: first.next_cursor });
+    const third = await listPayments(editor, db, { limit: 2, cursor: second.next_cursor });
+    const fourth = await listPayments(editor, db, { limit: 2, cursor: third.next_cursor });
+    expect(
+      [first, second, third, fourth].map((page) => [
+        page.items.map((row) => row.id),
+        page.next_cursor,
+      ]),
+    ).toEqual([
+      [[id(7), id(6)], `${at(2)}~${id(6)}`],
+      [[id(5), id(4)], `${at(1)}~${id(4)}`],
+      [[id(3), id(2)], `null~${id(2)}`],
+      [[id(1)], null],
+    ]);
+  });
+
   it("answers 404 for an unknown payment and the row with its snapshot otherwise", async () => {
     const row = paymentRow({ invoice_snapshot: { invoice_number: "MOP-2026-0001" } });
     expect(
