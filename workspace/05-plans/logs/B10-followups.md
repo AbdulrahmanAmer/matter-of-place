@@ -33,3 +33,19 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: The plan says the scripts read secrets 'with the E10 loader' (scripts/load-env.mjs). readSecret instead parses the root .env directly, after checking the shell first. This copies the existing pattern in scripts/resend-domain.ts, so jscpd stays quiet. The dev profile in load-env.mjs does not allow-list META_*, X_* or LINKEDIN_*. This is a deviation from the plan's wording, not a leak. No such names are set in this shell, and no value is printed.
 - evidence: social-script.ts readSecret(); load-env.mjs dev profile names (read)
 - blocking: false
+
+## g2 · steps 1-3b
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The two that concern GOTCHAS.md are banked as hit-again lines of P-152 and P-706 (the bank's rule: a lesson it already holds gets a "hit again", not a new entry).
+
+### app/tests/unit/channels/reels-limits.test.ts
+
+- what: Follow-up. The REEL constants are copied into the test, as plan step 3 asks. render-reel.mjs already exports MAX_BYTES and holds W, H and FPS as module constants. If B12 changes the reel (for example FPS to 24 or a longer duration), this test stays green while the probe and the limits drift apart. The test only checks the copied numbers against reels-limits.json, not what render-reel.mjs actually enforces. The plan allows this, so it is a note for B12 or a later step, not a fault in g2.
+- evidence: render-reel.mjs:23-27 and :110-116 vs reels-limits.test.ts:5-13 (read, values equal today)
+- blocking: false
+
+### app/src/domain/channels.ts
+
+- what: Follow-up, orchestrator to fold. The plan placeholder v23.0 is still the example in the Account ids form's validation message ('Use a version such as v23.0', channels.ts:57, a g1 file). B10.md line 17 still calls v23.0 the placeholder. The runbook now records v26.0 as the version to enter. The message is still valid, just stale.
+- evidence: git grep -n v23 shows app/src/domain/channels.ts:57, tests/unit/channels/ids.test.ts:7-8, workspace/05-plans/B10.md:17
+- blocking: false
