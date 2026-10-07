@@ -247,7 +247,7 @@ export type DecisionAnswer = z.infer<typeof decisionAnswerSchema>;
 export const assetsReceivedAnswerSchema = z.object({ workflow_state: z.enum(submissionStates) });
 
 /** The three letters a decision sends, and so the three a decision dialog previews. */
-export const decisionTemplates = ["declined", "accepted", "awaiting_assets"] as const;
+const decisionTemplates = ["declined", "accepted", "awaiting_assets"] as const;
 
 /**
  * `POST /api/admin/submissions/:id/email-preview`: the letter the decision would send, with the reason and the note

@@ -2157,8 +2157,8 @@
     "id": "b7-g5-ui-start-gate",
     "test": "src/admin/requests/RequestDetail.test.tsx",
     "file": "src/admin/requests/RequestDetail.tsx",
-    "find": "canStartReview={actions.includes(\"submissions.start_review\")}",
-    "replace": "canStartReview",
+    "find": "            actions={actions}\n",
+    "replace": "            actions={[...actions, \"submissions.start_review\"]}\n",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
     "expect": "× .*offers no Start review to an actor without the action"
   },
@@ -2166,8 +2166,8 @@
     "id": "b7-g5-ui-start-state",
     "test": "src/admin/requests/RequestDetail.test.tsx",
     "file": "src/admin/requests/DecisionPanel.tsx",
-    "find": "canStartReview && offered.includes(\"start_review\") ? (",
-    "replace": "canStartReview ? (",
+    "find": "{offered.includes(\"start_review\") ? (",
+    "replace": "{actions.includes(\"submissions.start_review\") ? (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
     "expect": "× .*hides Start review once the request is under review"
   },
