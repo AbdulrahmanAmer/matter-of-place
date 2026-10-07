@@ -125,7 +125,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B3 | closed | 2026-10-04 | lane `E:/mop-build/api` (branch `slice/b3`); 18 steps accepted, merged in PRs #102 and #100 (2ab9d52); the dev Worker runs live. Item 8 of step 12 is L1's (production Worker secrets); step 13's render CPU is UNPROVEN in the runbook. |
 | B3b | closed | 2026-10-05 | lane `E:/mop-build/coming`; 10 steps accepted, merged in PRs #118, #122, #128 (9529d0a). The production switch (H49 (1)) waits on the production Worker's secrets and the production Turnstile pair. |
 | B4 | closed | 2026-10-05 | lane `E:/mop-build/tests`; 10 steps accepted, merged in PRs #97, #105, #119 (50e14b8). LCP and script size at `warn` until H1 (H61); the CPU gate wiring is a recorded follow-up. |
-| B5 | in progress | | started 2026-10-04 in the lane `E:/mop-build/email` (branch `slice/b5`, port 8868, bank numbers from P-1200 and G-500); step 1 on `main` (PR #108); parked until B8b. |
+| B5 | closed | 2026-10-06 | lane `E:/mop-build/email` (branch `slice/b5`); 10 steps accepted and on `main` (PRs #108, #137, #155, #171, merged 2026-10-06 11:43). Live send of step 5 waits on RESEND_API_KEY and EMAIL_LIVE=1 on mop-dev and the runner deploy (orchestrator, from the shell that holds the secret). |
 | B6 | not started | | |
 | B7 | in progress | | started 2026-10-05 04:00 in the lane `E:/mop-build/admin` (branch `slice/b7`, port 8948, bank numbers from P-2000 and G-900). |
 | B8 | in progress | | lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); steps 1 to 8a on `main` (PRs #101, #109, #113); 2a open, 9 to 10a wait on B7 and B8b. |
@@ -133,7 +133,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B9 | in progress | | lane `E:/mop-build/design`; steps 1 to 6 on `main` (PRs #92, #99); direction S65; 7 to 11 wait on B8 and B7. |
 | B10 | not started | | |
 | B11 | not started | | |
-| B12 | in progress | | started 2026-10-05 04:50 in the lane `E:/mop-build/video` (branch `slice/b12`, port 8958, bank numbers from P-2100 and G-950), steps 1 to 5; 6 to 9 after B8b, B7 and the function secret. |
+| B12 | closed | 2026-10-06 | lane `E:/mop-build/video` (branch `slice/b12`); 9 steps accepted and on `main` (PR #161, merged 2026-10-06 07:46; step 7 under ruling H63, the attach audit row is a system row). |
 | B13 | in progress | | started 2026-10-05 00:30 in the lane `E:/mop-build/seo` (branch `slice/b13`, port 8928, bank numbers from P-1800 and G-800). |
 | B14 | in progress | | started 2026-10-04 in the lane `E:/mop-build/audit` (branch `slice/b14`, port 8858, bank numbers from P-1100 and G-450); steps 2, 3 and 6 on `main` (PR #103). |
 | B15 | closed | 2026-10-05 | lane `E:/mop-build/handoff`; 7 steps accepted, merged in PRs #127, #132, #135 (0f5d678). Step 6 admin half waits on B7 steps 2 and 11 (recorded in B15-followups.md); the real Omnikom endpoint and the contract note are the operator's (S59). |
