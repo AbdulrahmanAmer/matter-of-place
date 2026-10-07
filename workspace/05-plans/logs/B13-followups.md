@@ -155,3 +155,17 @@ Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHA
 5. File `workspace/05-plans/logs/B13-followups.md` (not blocking).
    What: The author says the 8 BAD B3/B4 api-test registry entries ('No test files found' under --project db) and the STALE B4:seo-robots entry are follow-ups, but they appear only in the prose of the g1 log block. They are not in B13-followups.md, where the other follow-ups of the slice are listed for folding. Recorded here by this step; the entries themselves (the 8 BAD B3/B4 api-test entries and the STALE B4:seo-robots entry) still need an owner.
    Evidence: grep -n 'seo-robots\|parity.api\|payload-budget' workspace/05-plans/logs/B13-followups.md printed nothing.
+
+## c7b · steps 7
+
+1. File `app/src/routes/_site.property.$slug.tsx` (not blocking).
+   What: Line 34 uses plain React `lazy`. It has no reload when the import fails, and the rework makes this worse: the chunk is now fetched on every property page view right after hydration, not only on a click. If the chunk fails to load (a deploy between the HTML and the chunk fetch, or a flaky mobile network), React.lazy throws to the root `errorComponent: PublicRouteError` (__root.tsx:49). A visitor who never touched the dialog then sees the whole page replaced by the error. `lazyRouteComponent` from @tanstack/react-router is already installed and does a one-time `window.location.reload()` on `isModuleNotFoundError`. This is the only `lazy(` in src/. The previous reviewer raised it and it is not in workspace/05-plans/logs/B13-followups.md (grep -i lazy finds nothing). Found by reading; I did not reproduce a failure.
+   Evidence: grep -rn "lazy(" app/src → only _site.property.$slug.tsx:34; grep -n reload node_modules/@tanstack/react-router/dist/esm/lazyRouteComponent.js → lines 25-39; grep -n errorComponent src/routes/__root.tsx → 49
+
+2. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: The test counts in Proof 1 and Proof 3 do not come from the command written next to them. Proof 3 says `5 passed` for `-g "inquiry dialog"`, and Proof 1 says 3 passed and 2 failed, one of them `contact: ...`. That filter matches 4 tests and can never match the contact test. The output most likely came from a broader filter. The substance still holds: every inquiry test passes on the live build. P-1822's proof line has the same `5 passed` and also expects `151177`, while the shipped tree prints 151188.
+   Evidence: bunx playwright test --project=desktop tests/e2e/forms.spec.ts -g "inquiry dialog" → `Running 4 tests ... 4 passed`; grep -n "inquiry dialog" tests/e2e/forms.spec.ts → lines 100 and 141 only; bundle-check → 151188
+
+3. File `app/tests/e2e/forms.spec.ts` (not blocking).
+   What: The guard the author names, `inquiry dialog: focus moves in on open and returns to the opener on close`, only fails under vite dev with StrictMode. P-1822 itself says it passes on the built Worker with the earlier broken variant. CI runs e2e only with E2E_TARGET: built (ci.yml:314, 321, 332). So no CI job would catch a return to mounting the dialog on click. The budget keeps the dialog out of the static graph, but nothing in CI checks that it mounts closed.
+   Evidence: grep -n E2E_TARGET .github/workflows/ci.yml → built only; GOTCHAS.md P-1822 cause line
