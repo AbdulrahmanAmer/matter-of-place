@@ -43,3 +43,27 @@ Review of group g2: no blocking defect. Five follow-ups below, word for word wit
 5. File: `workspace/05-plans/B6.md`. Blocking: no.
    What: The plan text says markPaidInput refuses a future paid_at with 422. The code puts that refusal in paidAtIsFuture(paidAt, now) because of R29. The plan line needs folding. The in-progress g3 service.ts (uncommitted, line 250) already calls paidAtIsFuture(input.paidAt, new Date()), but that is UNPROVEN until g3 is reviewed.
    Evidence: grep -n paidAtIsFuture app/src/server/payments/service.ts (uncommitted g3 work)
+
+## g3 · steps 3
+
+Review of group g3: no blocking defect. Five follow-ups below, word for word with their evidence; the two that concern GOTCHAS.md are banked as P-2315 and P-2316 (the prettier cost was mapped to P-066, which holds no such lesson).
+
+1. File: `app/tests/mutations/B6.json`. Blocking: no.
+   What: Follow-up. The entry b6-g3-ac-copy-loop runs tests/unit/subrequest-budget.test.ts, which resets modules and imports route files. It still gets vitest's 5000 ms default. This is the same flaw this fix round fixed for the four pdf-route entries, and it breaks the rule the round just banked under G-031.
+   Evidence: First replay: 'WATCHED-FAIL BAD: wrong reason (B6:b6-g3-ac-copy-loop)' with 'Error: Test timed out in 5000ms' on all 3 tests. The rerun alone gave WATCHED-FAIL OK. Fix: add --testTimeout=60000 to its run line. The G-031 hit-again's own proof (grep -c ... pdf-route ... prints 4) cannot see this entry.
+
+2. File: `app/src/server/payments/service.ts`. Blocking: no.
+   What: Follow-up (UNPROVEN, already declared by the author). No test proves the order of the payments list. The round-trip stand-in's order() is a no-op, so changing nullsFirst: false to true at line 173 (or reversing ascending) stays green. Postgres DESC puts NULLs first by default. If the option is lost, the waivers recorded without an invoice lead page 1 and the keyset sequence breaks. Needs a db or e2e case over invoice_list.
+   Evidence: node scripts/watchfail.mjs --file src/server/payments/service.ts --find 'nullsFirst: false' --replace 'nullsFirst: true' --run 'bunx vitest run --project unit tests/unit/payments/service.test.ts' --expect 'FAIL .*listPayments' printed 'WATCHED-FAIL BAD: stayed green'
+
+3. File: `app/supabase/migrations/20261006224201_invoicing.sql`. Blocking: no.
+   What: Follow-up (C11, suspected by reading). The keyset list on invoice_list orders by (issued_at desc, id desc) and filters by issued_at, but no index on payments(issued_at, id) serves it. Only payments_waived_by_idx and payments_one_live_idx exist. Harmless at launch volume, but C11 asks every new list query to name its index.
+   Evidence: grep -n 'create index\|create unique index' supabase/migrations/20261006224201_invoicing.sql shows only payments_waived_by_idx and payments_one_live_idx
+
+4. File: `app/supabase/migrations/20261007021713_action_roles.sql`. Blocking: no.
+   What: Follow-up for the next merge of origin/main. main now carries 20261007035723_action_roles.sql, so migration-order refuses this file until it is restamped (P-511, bun run migrations:restamp). Both files are upsert-only, so the order loses no rows.
+   Evidence: bun run migrations:check printed 'rename supabase/migrations/20261007021713_action_roles.sql to a timestamp after 20261007035723', exit 1
+
+5. File: `app/src/server/payments/service.ts`. Blocking: no.
+   What: Follow-up. Plan Files says issueInvoiceCore(db, input, actor) is exported for scripts/invoice-smoke.ts. Here it is file-local, with the signature (db, raw, audit: AuditArgs). Under R04 the export waits for the step that first imports it, but whoever writes the smoke issue path must edit service.ts and reconcile the signature with the plan line. Also markPaid still sends p_reference: '' for an absent reference (the author's own recorded follow-up).
+   Evidence: service.ts line 109: 'async function issueInvoiceCore(db: Db, raw: unknown, audit: AuditArgs)'; line 255: 'p_reference: input.reference ?? ""'

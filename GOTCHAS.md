@@ -4198,6 +4198,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
 
+## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
+- symptom: a reviewer ran `bun run scripts/gen-action-roles.mjs --check` to see whether the file was in sync. It printed `wrote supabase/migrations/20261007043422_action_roles.sql 91 actions` and `git status` showed `?? supabase/migrations/20261007043422_action_roles.sql`: a read-only check had added a migration to the snapshot, which was deleted by hand.
+- cause: the script never reads `process.argv`; every run writes a new stamped file with all actions. The read-only check is a test, not a flag.
+- rule: never pass a flag to `gen-action-roles.mjs` and never run it to look. To check sync run `bunx vitest run tests/unit/action-roles.sync.test.ts`; run the generator only to write the file you mean to commit (P-2314).
+- proof: `cd app && grep -c "process.argv" scripts/gen-action-roles.mjs` → `0`; `bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed`, and `git status --short supabase/migrations` prints nothing afterwards.
+- added: 2026-10-07
+
+## P-2316 · The first `bun run check` of a group goes red at `format:check` on its own new files, after six gates have passed
+- symptom: B6 g3's first `bun run check` ended at `format:check` (prettier) on new files of the group, after layout, typecheck, lint, knip, jscpd and stubs had passed.
+- cause: `check` runs `format:check` late and only reports; nothing formats the files while they are written, and a file written with Write or Edit has the author's wrapping, not prettier's. A registry `find` copied before formatting then goes stale too (P-066, P-415).
+- rule: run `bunx prettier --config .prettierrc --write <the files the group added or changed>` from `app/` before the first `bun run check`, then write registry `find` strings from the formatted file. Never run `bun run format` on the whole tree in a lane: it rewrites files the group does not own.
+- proof: `cd app && bunx prettier --config .prettierrc --check src/server/payments/service.ts tests/unit/payments/service.test.ts` → `All matched files use Prettier code style!`; `grep -n "^format:check\|\"format:check\"" package.json` shows the gate that fails otherwise.
+- added: 2026-10-07
+
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration
 - symptom: B17 g1's first `inlineHashes` followed the plan (hash a script only with `class="$tsr"` or an exact `CSP_INLINE_ALLOWLIST` entry, the list empty). `curl -s http://127.0.0.1:8938/` showed three kinds of inline script on `/`: the marked bootstrap `<script class="$tsr" id="$tsr-stream-barrier">`, `<script type="application/ld+json">`, and a bare `<script>(function(a,f){let l;try{l=JSON.parse(sessionStorage.getItem(a)...` of 613 characters. The bare one would have been reported to Sentry as `csp_unexpected_inline_script` on every miss and blocked once `csp_enforce` is on.
 - cause: `scrollRestoration: true` in `src/router.tsx` makes `@tanstack/react-router` emit the scroll-restoration script (`getScrollRestorationScriptForRouter`, router-core `scroll-restoration-script/server.js`) without the `$tsr` marker. Its text is a constant of the package (`scroll-restoration-inline.js` is a prebuilt string, plus the storage key and `document.currentScript.remove()`), identical on every page and in the vitest render and the built Worker, and it changes only with a router upgrade.
