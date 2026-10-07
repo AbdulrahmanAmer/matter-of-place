@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.x.com/2/tweets",
+  "response": {
+    "data": {
+      "id": "1840000000000000001",
+      "edit_history_tweet_ids": ["1840000000000000001"],
+      "text": "Oak Hill, Larchmont. A garden that runs to the creek. https://t.co/Ab12Cd34Ef"
+    }
+  }
+}

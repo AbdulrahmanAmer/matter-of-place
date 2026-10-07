@@ -172,7 +172,7 @@ export async function onRenderResult(
   ctx: StepContext,
   job: StepContext["job"],
   result: unknown,
-): Promise<void> {
+): Promise<string> {
   const { files } = rendered.parse(result);
   const { asset_id: assetId, spec_hash: hash } = dispatched.parse(job.result);
   const { error } = await ctx.db.rpc("set_asset_files", {
@@ -181,4 +181,5 @@ export async function onRenderResult(
     p_spec_hash: hash,
   });
   if (error !== null) throw unavailable("set_asset_files");
+  return assetId;
 }

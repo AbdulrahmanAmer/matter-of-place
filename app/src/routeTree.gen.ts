@@ -69,6 +69,7 @@ import { Route as ApiAdminAssetsIdRouteImport } from './routes/api/admin/assets.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
@@ -85,6 +86,7 @@ import { Route as ApiAdminAssetsIdApproveRouteImport } from './routes/api/admin/
 import { Route as ApiAdminAssetsIdCaptionRouteImport } from './routes/api/admin/assets.$id.caption'
 import { Route as ApiAdminAssetsIdRejectRouteImport } from './routes/api/admin/assets.$id.reject'
 import { Route as ApiAdminAssetsIdRerenderRouteImport } from './routes/api/admin/assets.$id.rerender'
+import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
@@ -397,6 +399,11 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
+  id: '/api/admin/channels/posts',
+  path: '/api/admin/channels/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPeopleIndexRoute = ApiAdminPeopleIndexRouteImport.update({
   id: '/api/admin/people/',
   path: '/api/admin/people/',
@@ -482,6 +489,11 @@ const ApiAdminAssetsIdRerenderRoute =
     path: '/rerender',
     getParentRoute: () => ApiAdminAssetsIdRoute,
   } as any)
+const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
+  id: '/api/admin/channels/ids/$key',
+  path: '/api/admin/channels/ids/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -571,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -588,6 +601,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -650,6 +664,7 @@ export interface FileRoutesByTo {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -667,6 +682,7 @@ export interface FileRoutesByTo {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -734,6 +750,7 @@ export interface FileRoutesById {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -751,6 +768,7 @@ export interface FileRoutesById {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -818,6 +836,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -835,6 +854,7 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -897,6 +917,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -914,6 +935,7 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -980,6 +1002,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
@@ -997,6 +1020,7 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -1033,6 +1057,7 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
@@ -1042,6 +1067,7 @@ export interface RootRouteChildren {
   ApiAdminAssetsIndexRoute: typeof ApiAdminAssetsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
+  ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1466,6 +1492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/channels/posts': {
+      id: '/api/admin/channels/posts'
+      path: '/api/admin/channels/posts'
+      fullPath: '/api/admin/channels/posts'
+      preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/people/': {
       id: '/api/admin/people/'
       path: '/api/admin/people'
@@ -1577,6 +1610,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/assets/$id/rerender'
       preLoaderRoute: typeof ApiAdminAssetsIdRerenderRouteImport
       parentRoute: typeof ApiAdminAssetsIdRoute
+    }
+    '/api/admin/channels/ids/$key': {
+      id: '/api/admin/channels/ids/$key'
+      path: '/api/admin/channels/ids/$key'
+      fullPath: '/api/admin/channels/ids/$key'
+      preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/people/$id/notes': {
       id: '/api/admin/people/$id/notes'
@@ -1854,6 +1894,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
@@ -1863,6 +1904,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAssetsIndexRoute: ApiAdminAssetsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
+  ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

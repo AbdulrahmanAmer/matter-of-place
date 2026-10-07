@@ -15,6 +15,9 @@ import { writeCaptionsStep } from "./write-captions.ts";
 import { sendEmail } from "./send-email.ts";
 import { notifyAdmin } from "./notify-admin.ts";
 import { queueDigest } from "./queue-digest.ts";
+import { postMeta } from "./post-meta.ts";
+import { postX } from "./post-x.ts";
+import { postLinkedIn } from "./post-linkedin.ts";
 
 // The step catalog: each slice that implements a step type appends one import and one entry here.
 const catalog: readonly StepDefinition[] = [
@@ -32,6 +35,9 @@ const catalog: readonly StepDefinition[] = [
   sendEmail,
   notifyAdmin,
   queueDigest,
+  postMeta,
+  postX,
+  postLinkedIn,
 ];
 
 // Fails closed: only an explicit development or preview runner knows the self-test steps.

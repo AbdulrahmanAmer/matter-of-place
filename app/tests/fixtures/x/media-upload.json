@@ -1,0 +1,19 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.x.com/2/media/upload",
+  "response": {
+    "data": {
+      "id": "123",
+      "media_key": "3_123",
+      "size": 48211,
+      "expires_after_secs": 86400,
+      "image": {
+        "image_type": "image/webp",
+        "w": 1200,
+        "h": 675
+      }
+    }
+  }
+}
