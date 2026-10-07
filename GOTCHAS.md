@@ -4199,3 +4199,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a migration that creates a `public` table adds, in the same commit, its columns to `tests/db/schema-manifest.ts`, its row to `tests/db/rls-matrix.ts` and one insert to `FIXTURES` in `tests/db/rls.db.test.ts`; run `schema`, `rls` and `function-source` with the migration as prelude (P-312) before the first push.
 - proof: from `app/` with the dev profile and the two B11 migrations exported as `MOP_MUTATION_SQL`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts` → `Tests  7 failed | 7 passed (14)` without the `FIXTURES` insert and `Tests  14 passed (14)` with it (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-2211 · `review-snapshot.mjs create` outlasts the Bash tool's 120 s default timeout and moves to the background
+- symptom: the B10 g5 review's first `node workspace/05-plans/review-snapshot.mjs create D:/mop-build/social <sha>` printed `Command did not complete within its 120s timeout and was moved to the background`, and the reviewer did not know when the snapshot (worktree plus `bun install --frozen-lockfile`) was complete. The earlier g5 review hit the same wait and left it in its log (B10.md) for the orchestrator; no entry held it.
+- cause: `create` makes a git worktree and runs a frozen install in `app/`, which takes several minutes on a loaded laptop; the Bash tool's default timeout is 120000 ms.
+- rule: run `create` with `run_in_background: true`, or with `timeout: 600000`, and wait for its final `rc` line before the first command in the snapshot (P-027: a bounded loop, never a leading `sleep`); never start `bun run check` in the folder while `create` still runs.
+- proof: `grep -n "bun install" workspace/05-plans/review-snapshot.mjs` → the line `execSync("bun install --frozen-lockfile", { cwd: join(snap, "app"), ...` (the install that makes `create` slow); `grep -c "^## P-2211" GOTCHAS.md` → 1.
+- added: 2026-10-07

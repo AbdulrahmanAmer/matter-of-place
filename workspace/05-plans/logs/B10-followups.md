@@ -141,3 +141,43 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: Plan line to fold. The Files line for meta.ts lists debug_token, but meta-token.ts and Outputs say Meta health only reads what B8's meta_token_refresh stored. The author declared debug_token not done and also left alt_text unsent. The plan should say which is meant.
 - evidence: plan-brief Files list, meta.ts line ('... findRecentPost, debug_token, error classification ...') vs the meta-token.ts line ('never calls Graph itself').
 - blocking: false
+
+## g5 · steps 5a
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The sixth (GOTCHAS.md, the snapshot create step's run time) is banked as P-2211.
+
+### app/src/server/channels/oauth-tokens.ts
+
+- what: Found by reading, not by running. Two runs can refresh the same X token at the same moment (two post_x jobs, or a post beside the daily check). X rotates refresh tokens, so the second request gets invalid_grant. If its Vault re-read (line 278) happens before the first run's store_channel_token has committed, Vault still holds the refresh token that was sent. That run then marks the token dead: settings.x.token_state becomes dead, the admin gets a 'X needs to be reconnected' alert, and the post fails token_dead, even though Vault holds a good new set a few milliseconds later. This matches the plan's wording, so it is not blocking. It could be closed by doing for invalid_grant what the code already does for busy and stale: wait 2 seconds, read Vault again, and only then call the token dead.
+- evidence: oauth-tokens.ts lines 275-281: `if (failure.reason === "invalid_grant") { const current = await readStored(...); if (current !== null && current.refresh_token !== sent) return fresh(current); } throw await refused(...)`. The re-read happens at once, with no wait.
+- blocking: false
+
+### app/src/server/channels/x-errors.ts
+
+- what: Found by reading; the API shape is UNPROVEN. resetAt takes the latest of x-rate-limit-reset, x-user-limit-24hour-reset and x-app-limit-24hour-reset. If X sends the 24-hour headers on every write, a 429 from the 15-minute window would wait for the 24-hour reset, which can be hours later. The code does not read any `-remaining` header to tell which limit was hit. Step 3a should record a real 429 and pick the reset header from it.
+- evidence: x-errors.ts lines 11-15 and 27-31. The fixture tests/fixtures/x/rate-limited.json has a 15-minute reset of 12:15Z and a 24-hour reset of 18:00Z, and x-errors.test.ts expects 18:00Z.
+- blocking: false
+
+### app/src/server/channels/x-errors.ts
+
+- what: Already declared UNPROVEN by the author. A dead token is recognised only when X answers with `error: invalid_grant` (or a 401). If X's token endpoint answers a dead refresh token with a 400 carrying another error code, such as invalid_request, classifyXError returns non_retryable. Then nothing is stored, health does not turn red, and no reconnect alert is sent. The only sign would be the failed post. Step 3a should record X's real answer to a dead grant and the classifier should follow it.
+- evidence: x-errors.ts lines 51-58: only `problem?.error === "invalid_grant"` or status 401 gives token_dead; any other 4xx gives non_retryable. tests/fixtures/x/invalid-grant.json has source "plan".
+- blocking: false
+
+### app/tests/unit/channels/linkedin.test.ts
+
+- what: Two parts of the code have no test. (1) The statistics query uses `ugcPosts=List(...)` for a urn:li:ugcPost id. Only the share id is tested, so that branch can be removed with every test still green. (2) Every request in oauth-tokens.ts passes `signal: ctx.signal`, as R27 and R32 require, but nothing tests it. Removing it from callApi leaves every channel test green. The g4 review raised the same gap for Graph.
+- evidence: Confirmed by running the two watchfail probes listed under reran: both printed `WATCHED-FAIL BAD: stayed green`.
+- blocking: false
+
+### app/docs/runbooks/social.md
+
+- what: Not this group's files. Two places still describe step 5a as missing. social.md line 66 says `--check` waits for oauth-tokens.ts (step 5a). scripts/lib/oauth-consent.ts lines 164-165 carry `STUB(B10 step 5a)` and print `check is built with oauth-tokens.ts (step 5a)`. oauth-tokens.ts now exists, and the log (B10.md line 185) says --check waits for step 6's generated types. The runbook line and the STUB marker should both name step 6.
+- evidence: grep -rn "STUB(B10 step 5a)" app/scripts app/docs gives oauth-consent.ts:164; sed -n 66p app/docs/runbooks/social.md gives "`--check` is not built yet. It needs `oauth-tokens.ts` (step 5a)".
+- blocking: false
+
+### app/src/server/channels/oauth-tokens.ts
+
+- what: Two smaller points. (1) When X or LinkedIn posting is switched off (liveSideEffects false), callApi throws AppError("server") instead of returning the dry-run answer the plan's invariant 5 describes. meta.ts does the same, and the g4 follow-up already records it; it should be settled for all three adapters at once in step 6. (2) recordXRead adds one read per callApi call, but a 401 followed by a refresh and a resend makes two GETs, so settings.x.usage counts one read too few each time that happens.
+- evidence: oauth-tokens.ts lines 354-360 (the throw) and lines 368-373 (the second attempt, then one recordXRead).
+- blocking: false
