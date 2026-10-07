@@ -3763,5 +3763,14 @@
     "find": "        id: overflow\n        continue-on-error: true\n",
     "replace": "        id: overflow\n",
     "expect": "overflow step is advisory"
+  },
+  {
+    "id": "bank-merge-collision",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "if (collisions.length > 0) {",
+    "replace": "if (collisions.length > 99) {",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "refuses two different entries under one number"
   }
 ]
