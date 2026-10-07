@@ -2613,5 +2613,165 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*refuses a block whose link or image is not an https address"
+  },
+  {
+    "id": "b9g1-no-store",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/admin-response.ts",
+    "find": "\"cache-control\": \"private, no-store\",",
+    "replace": "\"cache-control\": \"private, max-age=60\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"are the only assets route files\"",
+    "expect": "× .*are the only assets route files[\\s\\S]*\"cacheControl\": \"private, max-age=60\""
+  },
+  {
+    "id": "b9g1-commercial-approve",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "{ action: \"assets.approve\", group: \"assets\", roles: deciders },",
+    "replace": "{ action: \"assets.approve\", group: \"assets\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers 403 forbidden to commercial on approve\"",
+    "expect": "× .*answers 403 forbidden to commercial on approve[\\s\\S]*\"name\": \"approve_asset\""
+  },
+  {
+    "id": "b9g1-agent-approve",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "  if (actor.kind === \"agent\") {",
+    "replace": "  if (actor.kind === \"human\" && actor.kind === \"agent\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"refuses an agent bearer approve\"",
+    "expect": "× .*refuses an agent bearer approve[\\s\\S]*\"name\": \"approve_asset\""
+  },
+  {
+    "id": "b9g1-reject-note",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/domain/admin-assets.ts",
+    "find": "  note: z.string().trim().min(1).max(2000),",
+    "replace": "  note: z.string().trim().max(2000).optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers 422 to rejectAsset without a note\"",
+    "expect": "× .*answers 422 to rejectAsset without a note[\\s\\S]*\"name\": \"reject_asset\""
+  },
+  {
+    "id": "b9g1-list-role",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "{ action: \"assets.list\", group: \"assets\", roles: appRoles },",
+    "replace": "{ action: \"assets.list\", group: \"assets\", roles: [\"admin\"] },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers a media_ops list with no-store JSON\"",
+    "expect": "× .*answers a media_ops list with no-store JSON[\\s\\S]*\\+   \"status\": 403"
+  },
+  {
+    "id": "b9g1-files-url",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "url: mediaUrl(file.media_key) }",
+    "replace": "url: file.media_key }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"return files\"",
+    "expect": "× .*return files\\[0\\]\\.url equal to the relative mediaUrl[\\s\\S]*\\+   \"assets/"
+  },
+  {
+    "id": "b9g1-captions-waiting",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "captions_waiting: row.caption === null && waiting.has(row.property_id),",
+    "replace": "captions_waiting: false,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"marks a null caption\"",
+    "expect": "× .*marks a null caption whose property has a queued write_captions job[\\s\\S]*-     true,\\n\\+     false,"
+  },
+  {
+    "id": "b9g1-page-50",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": ".range(first, first + ADMIN_PAGE_MAX - 1);",
+    "replace": ".range(first, first + 1000);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"pages 60 rows at 50 a page\"",
+    "expect": "× .*pages 60 rows at 50 a page[\\s\\S]*expected \\[ 60, 60, 10, 60 \\]"
+  },
+  {
+    "id": "b9g1-not-found",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "  if (row === undefined) throw notFound();\n  return toAdmin(",
+    "replace": "  return toAdmin(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers 404 not_found for an id with no row\"",
+    "expect": "× .*answers 404 not_found for an id with no row[\\s\\S]*Cannot read properties of undefined \\(reading 'caption'\\)"
+  },
+  {
+    "id": "b9g1-lint-skipped",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "    const issues = await captionIssues(db, id, captions);",
+    "replace": "    const issues: ZodIssue[] = [];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers 422 caption_lint_failed to a banned word\"",
+    "expect": "× .*answers 422 caption_lint_failed to a banned word[\\s\\S]*unexpected rpc set_asset_caption"
+  },
+  {
+    "id": "b9g1-caption-stored",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "    if (issues.length > 0) {",
+    "replace": "    if (issues.length >= 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"stores passing text through set_asset_caption once\"",
+    "expect": "× .*stores passing text through set_asset_caption once[\\s\\S]*AppError: The caption does not follow the house voice"
+  },
+  {
+    "id": "b9g1-rerender-answer",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "  return assetRerenderSchema.parse(data);",
+    "replace": "  return { asset_id: input.id, job_id: null };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"returns the same pending revision and job on a second call\"",
+    "expect": "× .*returns the same pending revision and job on a second call[\\s\\S]*\\+     \"job_id\": null"
+  },
+  {
+    "id": "b9g1-matrix-row",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "{ action: \"assets.caption\", group: \"assets\", roles: deciders },",
+    "replace": "{ action: \"assets.caption\", group: \"assets\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts -t \"equals the hand-typed fixture\"",
+    "expect": "× .*equals the hand-typed fixture[\\s\\S]*\\+   \"assets.caption admin chief_editor commercial"
+  },
+  {
+    "id": "b9g1-reject-plain",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/assets.$id.reject.ts",
+    "find": "      }),\n    },\n  },\n});",
+    "replace": "      }).bind(null),\n    },\n  },\n});",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts -t \"holds only handlers built by defineAdminRoute\"",
+    "expect": "\"file\": \"assets\\.\\$id\\.reject\\.ts\"[\\s\\S]*\"tag\": undefined"
+  },
+  {
+    "id": "b9g1-db-page-50",
+    "test": "tests/db/assets-service.db.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": ".range(first, first + ADMIN_PAGE_MAX - 1);",
+    "replace": ".range(first, first + 1000);",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets-service.db.test.ts -t \"listAssets returns at most 50 items\"",
+    "expect": "× .*listAssets returns at most 50 items[\\s\\S]*\\+   \"first\": 60"
+  },
+  {
+    "id": "b9g1-db-approve-audit",
+    "kind": "sql",
+    "test": "tests/db/assets-service.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- Until B10 replaces this check with mayApprove, only a human approves.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets-service.db.test.ts -t \"media_ops approves\"",
+    "expect": "× .*media_ops approves[\\s\\S]*\\+   \"audit\": 0"
+  },
+  {
+    "id": "b9g1-db-reject-note",
+    "test": "tests/db/assets-service.db.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "    p_note: input.note,",
+    "replace": "    p_note: \"another note\",",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets-service.db.test.ts -t \"rejectAsset with a note writes one asset.rejected event\"",
+    "expect": "× .*rejectAsset with a note writes one asset.rejected event[\\s\\S]*\\+     \"note\": \"another note\""
+  },
+  {
+    "id": "b9g1-db-rerender-twice",
+    "kind": "sql",
+    "test": "tests/db/assets-service.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets-service.db.test.ts -t \"rerenderAsset twice returns the same pending revision\"",
+    "expect": "× .*rerenderAsset twice returns the same pending revision[\\s\\S]*expected \\{ …\\(2\\) \\} to deeply equal"
   }
 ]

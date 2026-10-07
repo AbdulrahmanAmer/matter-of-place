@@ -1,15 +1,19 @@
 // B8 step 8: proves the job system end to end on the one database, before L1's launch switch only (ruling H35 (5)).
-// `bun run scripts/job-selftest.ts [--light-only | --fail-light | --reconcile]` with the dev profile loaded. It
-// enqueues jobs, lets the deployed runner take them on its cron tick, and polls each one until it settles.
+// `bun run scripts/job-selftest.ts [--light-only | --fail-light | --reconcile | --event property.published --fixture]`
+// with the dev profile loaded. It enqueues jobs, lets the deployed runner take them on its cron tick, and polls each
+// one until it settles. The event form (B9 step 10) publishes the fixture property's event and follows its jobs.
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, Json } from "../src/db/index.ts";
+import fixture from "../src/templates/social/fixtures/property.fixture.json";
+import { holdDevLock } from "../tests/fixtures/dev-lock.ts";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { guardEnv } from "./lib/guard-env.mjs";
 
 const MODES = ["--light-only", "--fail-light", "--reconcile"] as const;
-type Mode = (typeof MODES)[number] | "full";
+const EVENT_ARGS = "--event property.published --fixture";
+type Mode = (typeof MODES)[number] | "full" | "event";
 
 const POLL_MS = 5_000;
 // A light job waits at most one cron minute for its tick; the heavy one also waits for a render.yml run.
@@ -26,10 +30,13 @@ interface Settled {
 
 function parseMode(args: string[]): Mode {
   if (args.length === 0) return "full";
+  if (args.join(" ") === EVENT_ARGS) return "event";
   const [flag] = args;
   const mode = MODES.find((known) => known === flag);
   if (args.length > 1 || mode === undefined) {
-    throw new Error(`usage: bun run scripts/job-selftest.ts [${MODES.join(" | ")}]`);
+    throw new Error(
+      `usage: bun run scripts/job-selftest.ts [${[...MODES, EVENT_ARGS].join(" | ")}]`,
+    );
   }
   return mode;
 }
@@ -159,6 +166,78 @@ async function runReconcile(db: DevDb, runId: string): Promise<void> {
   console.log(`reconcile uploads: ${JSON.stringify(uploads ?? null)}`);
 }
 
+interface EventJob {
+  type: string;
+  status: string;
+  run_local: boolean;
+}
+
+async function eventJobs(db: DevDb, eventId: string): Promise<EventJob[]> {
+  const { data, error } = await db
+    .from("jobs")
+    .select("type, status, run_local")
+    .eq("event_id", eventId)
+    .order("type");
+  if (error !== null)
+    throw new Error(`job-selftest: reading the event's jobs failed: ${error.message}`);
+  return data;
+}
+
+/** Emits `property.published` for the fixture property under the writer lock (G34), then follows its jobs. */
+async function runEvent(db: DevDb): Promise<void> {
+  const { slug } = fixture.property;
+  const { data: property, error } = await db
+    .from("properties")
+    .select("id, slug, campaign_tier, market_slug")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error !== null) throw new Error(`job-selftest: reading ${slug} failed: ${error.message}`);
+  if (property === null)
+    throw new Error(`job-selftest: no property ${slug}; run B2's dev seed first`);
+  const release = await holdDevLock();
+  let emitted: string;
+  try {
+    const { data, error: emitError } = await db.rpc("emit_event", {
+      p_type: "property.published",
+      p_entity: "property",
+      p_entity_id: property.id,
+      p_payload: {
+        property_id: property.id,
+        slug: property.slug,
+        tier: property.campaign_tier,
+        market: property.market_slug,
+      },
+    });
+    if (emitError !== null)
+      throw new Error(`job-selftest: emit_event failed: ${emitError.message}`);
+    emitted = data;
+  } finally {
+    await release();
+  }
+  console.log(`property.published ${emitted} for ${slug} (${property.id})`);
+  // The runner's sweep plans the event on a cron tick; write_captions then waits for the laptop runner (H34 (2)).
+  const planned = Date.now() + LIGHT_LIMIT_MS;
+  let jobs = await eventJobs(db, emitted);
+  while (jobs.length === 0 && Date.now() < planned) {
+    await sleep(POLL_MS);
+    jobs = await eventJobs(db, emitted);
+  }
+  if (jobs.length === 0) throw new Error(`job-selftest: event ${emitted} planned no job`);
+  const deadline = Date.now() + HEAVY_LIMIT_MS;
+  const open = (all: EventJob[]) => all.filter((job) => !job.run_local && !SETTLED.has(job.status));
+  while (open(jobs).length > 0 && Date.now() < deadline) {
+    await sleep(POLL_MS);
+    jobs = await eventJobs(db, emitted);
+  }
+  for (const job of jobs) console.log(`${job.type} ${job.status}`);
+  const unsettled = open(jobs).map((job) => job.type);
+  if (unsettled.length > 0) {
+    throw new Error(`job-selftest: still open after 900 s: ${unsettled.join(", ")}`);
+  }
+  const dead = jobs.filter((job) => job.status === "dead").map((job) => job.type);
+  if (dead.length > 0) throw new Error(`job-selftest: dead: ${dead.join(", ")}`);
+}
+
 async function main(): Promise<void> {
   const mode = parseMode(process.argv.slice(2));
   guardEnv();
@@ -174,6 +253,9 @@ async function main(): Promise<void> {
       return;
     case "--light-only":
       await runLight(db, runId);
+      return;
+    case "event":
+      await runEvent(db);
       return;
     case "full":
       await runLight(db, runId);

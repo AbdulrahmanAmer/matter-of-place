@@ -1,3 +1,4 @@
+import { assets } from "./assets.ts";
 import { audit } from "./audit.ts";
 import { automation } from "./automation.ts";
 import { dashboard } from "./dashboard.ts";
@@ -25,4 +26,5 @@ export const permissions = [
   ...automation,
   ...dashboard,
   ...people,
+  ...assets,
 ] as const;

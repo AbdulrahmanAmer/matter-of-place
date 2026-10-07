@@ -98,6 +98,12 @@ me                                 CE ME VE MO CO AD | S
 people.list                        CE ME VE MO CO AD
 people.get                         CE ME VE MO CO AD
 people.note                        CE ME VE MO
+assets.list                        CE ME VE MO CO AD
+assets.get                         CE ME VE MO CO AD
+assets.approve                     CE MO
+assets.reject                      CE MO
+assets.re_render                   CE MO
+assets.caption                     CE MO
 `;
 
 const ROLE: Record<string, AppRole> = {

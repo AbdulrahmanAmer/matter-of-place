@@ -64,6 +64,8 @@ import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/storie
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
 import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.$kind.$slug'
+import { Route as ApiAdminAssetsIndexRouteImport } from './routes/api/admin/assets.index'
+import { Route as ApiAdminAssetsIdRouteImport } from './routes/api/admin/assets.$id'
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
@@ -79,6 +81,10 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiAdminAssetsIdApproveRouteImport } from './routes/api/admin/assets.$id.approve'
+import { Route as ApiAdminAssetsIdCaptionRouteImport } from './routes/api/admin/assets.$id.caption'
+import { Route as ApiAdminAssetsIdRejectRouteImport } from './routes/api/admin/assets.$id.reject'
+import { Route as ApiAdminAssetsIdRerenderRouteImport } from './routes/api/admin/assets.$id.rerender'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
@@ -366,6 +372,16 @@ const SiteArchiveKindSlugRoute = SiteArchiveKindSlugRouteImport.update({
   path: '/archive/$kind/$slug',
   getParentRoute: () => SiteRoute,
 } as any)
+const ApiAdminAssetsIndexRoute = ApiAdminAssetsIndexRouteImport.update({
+  id: '/api/admin/assets/',
+  path: '/api/admin/assets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAssetsIdRoute = ApiAdminAssetsIdRouteImport.update({
+  id: '/api/admin/assets/$id',
+  path: '/api/admin/assets/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminAuthSendLinkRoute = ApiAdminAuthSendLinkRouteImport.update({
   id: '/api/admin/auth/send-link',
   path: '/api/admin/auth/send-link',
@@ -444,6 +460,27 @@ const ApiPublicSubscribersConfirmRoute =
     id: '/confirm',
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
+  } as any)
+const ApiAdminAssetsIdApproveRoute = ApiAdminAssetsIdApproveRouteImport.update({
+  id: '/approve',
+  path: '/approve',
+  getParentRoute: () => ApiAdminAssetsIdRoute,
+} as any)
+const ApiAdminAssetsIdCaptionRoute = ApiAdminAssetsIdCaptionRouteImport.update({
+  id: '/caption',
+  path: '/caption',
+  getParentRoute: () => ApiAdminAssetsIdRoute,
+} as any)
+const ApiAdminAssetsIdRejectRoute = ApiAdminAssetsIdRejectRouteImport.update({
+  id: '/reject',
+  path: '/reject',
+  getParentRoute: () => ApiAdminAssetsIdRoute,
+} as any)
+const ApiAdminAssetsIdRerenderRoute =
+  ApiAdminAssetsIdRerenderRouteImport.update({
+    id: '/rerender',
+    path: '/rerender',
+    getParentRoute: () => ApiAdminAssetsIdRoute,
   } as any)
 const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   id: '/notes',
@@ -530,6 +567,7 @@ export interface FileRoutesByFullPath {
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
+  '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -543,8 +581,13 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/assets/$id/approve': typeof ApiAdminAssetsIdApproveRoute
+  '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
+  '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
+  '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -603,6 +646,7 @@ export interface FileRoutesByTo {
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
+  '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -616,8 +660,13 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/assets': typeof ApiAdminAssetsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/assets/$id/approve': typeof ApiAdminAssetsIdApproveRoute
+  '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
+  '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
+  '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -681,6 +730,7 @@ export interface FileRoutesById {
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
+  '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -694,8 +744,13 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/assets/$id/approve': typeof ApiAdminAssetsIdApproveRoute
+  '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
+  '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
+  '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
@@ -759,6 +814,7 @@ export interface FileRouteTypes {
     | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
+    | '/api/admin/assets/$id'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -772,8 +828,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/assets/'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/assets/$id/approve'
+    | '/api/admin/assets/$id/caption'
+    | '/api/admin/assets/$id/reject'
+    | '/api/admin/assets/$id/rerender'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -832,6 +893,7 @@ export interface FileRouteTypes {
     | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
+    | '/api/admin/assets/$id'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -845,8 +907,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/assets'
     | '/api/admin/people'
     | '/api/admin/submissions'
+    | '/api/admin/assets/$id/approve'
+    | '/api/admin/assets/$id/caption'
+    | '/api/admin/assets/$id/reject'
+    | '/api/admin/assets/$id/rerender'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -909,6 +976,7 @@ export interface FileRouteTypes {
     | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
+    | '/api/admin/assets/$id'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -922,8 +990,13 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/assets/'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/assets/$id/approve'
+    | '/api/admin/assets/$id/caption'
+    | '/api/admin/assets/$id/reject'
+    | '/api/admin/assets/$id/rerender'
     | '/api/admin/people/$id/notes'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
@@ -956,6 +1029,7 @@ export interface RootRouteChildren {
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
+  ApiAdminAssetsIdRoute: typeof ApiAdminAssetsIdRouteWithChildren
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
@@ -965,6 +1039,7 @@ export interface RootRouteChildren {
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
+  ApiAdminAssetsIndexRoute: typeof ApiAdminAssetsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
 }
@@ -1356,6 +1431,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteArchiveKindSlugRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/api/admin/assets/': {
+      id: '/api/admin/assets/'
+      path: '/api/admin/assets'
+      fullPath: '/api/admin/assets/'
+      preLoaderRoute: typeof ApiAdminAssetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/assets/$id': {
+      id: '/api/admin/assets/$id'
+      path: '/api/admin/assets/$id'
+      fullPath: '/api/admin/assets/$id'
+      preLoaderRoute: typeof ApiAdminAssetsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/auth/send-link': {
       id: '/api/admin/auth/send-link'
       path: '/api/admin/auth/send-link'
@@ -1460,6 +1549,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/subscribers/confirm'
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
+    }
+    '/api/admin/assets/$id/approve': {
+      id: '/api/admin/assets/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/assets/$id/approve'
+      preLoaderRoute: typeof ApiAdminAssetsIdApproveRouteImport
+      parentRoute: typeof ApiAdminAssetsIdRoute
+    }
+    '/api/admin/assets/$id/caption': {
+      id: '/api/admin/assets/$id/caption'
+      path: '/caption'
+      fullPath: '/api/admin/assets/$id/caption'
+      preLoaderRoute: typeof ApiAdminAssetsIdCaptionRouteImport
+      parentRoute: typeof ApiAdminAssetsIdRoute
+    }
+    '/api/admin/assets/$id/reject': {
+      id: '/api/admin/assets/$id/reject'
+      path: '/reject'
+      fullPath: '/api/admin/assets/$id/reject'
+      preLoaderRoute: typeof ApiAdminAssetsIdRejectRouteImport
+      parentRoute: typeof ApiAdminAssetsIdRoute
+    }
+    '/api/admin/assets/$id/rerender': {
+      id: '/api/admin/assets/$id/rerender'
+      path: '/rerender'
+      fullPath: '/api/admin/assets/$id/rerender'
+      preLoaderRoute: typeof ApiAdminAssetsIdRerenderRouteImport
+      parentRoute: typeof ApiAdminAssetsIdRoute
     }
     '/api/admin/people/$id/notes': {
       id: '/api/admin/people/$id/notes'
@@ -1662,6 +1779,23 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminAssetsIdRouteChildren {
+  ApiAdminAssetsIdApproveRoute: typeof ApiAdminAssetsIdApproveRoute
+  ApiAdminAssetsIdCaptionRoute: typeof ApiAdminAssetsIdCaptionRoute
+  ApiAdminAssetsIdRejectRoute: typeof ApiAdminAssetsIdRejectRoute
+  ApiAdminAssetsIdRerenderRoute: typeof ApiAdminAssetsIdRerenderRoute
+}
+
+const ApiAdminAssetsIdRouteChildren: ApiAdminAssetsIdRouteChildren = {
+  ApiAdminAssetsIdApproveRoute: ApiAdminAssetsIdApproveRoute,
+  ApiAdminAssetsIdCaptionRoute: ApiAdminAssetsIdCaptionRoute,
+  ApiAdminAssetsIdRejectRoute: ApiAdminAssetsIdRejectRoute,
+  ApiAdminAssetsIdRerenderRoute: ApiAdminAssetsIdRerenderRoute,
+}
+
+const ApiAdminAssetsIdRouteWithChildren =
+  ApiAdminAssetsIdRoute._addFileChildren(ApiAdminAssetsIdRouteChildren)
+
 interface ApiAdminPeopleIdRouteChildren {
   ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
 }
@@ -1716,6 +1850,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,
+  ApiAdminAssetsIdRoute: ApiAdminAssetsIdRouteWithChildren,
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
@@ -1725,6 +1860,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
+  ApiAdminAssetsIndexRoute: ApiAdminAssetsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
 }
