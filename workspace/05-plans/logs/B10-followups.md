@@ -89,3 +89,55 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: Unproven against the live API. META_METRICS and the Graph error classifications were tested only against fixtures the lane built from Meta's documentation (media-insights.json has source 'docs'), not against a live answer. They stay unproven until step 7 records a real insights response and the first case is tightened to 'every name in the answer is a table name' (P-2205).
 - evidence: tests/fixtures/graph/media-insights.json has "source": "docs" and includes total_interactions, which has no field.
 - blocking: false
+
+## g4 · steps 5
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The one that concerns GOTCHAS.md is banked as P-2209 and a hit-again line on P-008.
+
+### app/src/server/channels/meta.ts
+
+- what: Suspected by reading, not run: findRecentPost calls media_publish when a stored container answers FINISHED (settleContainer, line 348). Plan invariant 2 says the reconcile job 'adopts a match or records outcome_unknown, and it never publishes'. If reconcile-social.ts calls this adapter's findRecentPost as it stands, a FINISHED container older than one hour would be published from the reconcile job. The adapter has no lookup-only path. The plan places publish-on-FINISHED inside findRecentPost's flow, so the tension is in the plan. The reconcile group needs to resolve it, and the orchestrator should fold it into the plan.
+- evidence: meta.ts:340-350 (settleContainer: FINISHED -> publishContainer); meta.ts:442-449 (findRecentPost -> settleContainer). Plan B10 invariant 2, last sentences on the reconcile job.
+- blocking: false
+
+### app/src/server/channels/meta.ts
+
+- what: Suspected by reading, UNPROVEN until step 7: the PUBLISHED adoption reads GET /{ig-user-id}/media. As far as I know, Instagram lists stories under /{ig-user-id}/stories, not /media. A crashed story container that answers PUBLISHED would then get not_found and end as outcome_unknown, never adopted. The plan names /media for every kind, so this is a plan line to check against the live API in step 7.
+- evidence: meta.ts:284-297 adoptInstagramMedia; fixture media-list.json is docs-made with hand-added fields (source 'docs').
+- blocking: false
+
+### app/src/server/channels/meta.ts
+
+- what: The live switch differs from the plan wording. Invariant 5 says the adapters 'return the dry-run answer' when liveSideEffects('social') is false. graph() (line 150-156) throws AppError('server') instead, because PublishResult in types.ts has no dry-run variant. No write leaves either way, so the safety property holds. The post-to-channel group must know that this throw is a retryable 'server' error, not a result. The plan line should be folded.
+- evidence: meta.ts:150-156; types.ts PublishResult = posted | in_progress | skipped_disabled; the 'sends no write call when ...' tests expect code 'server'.
+- blocking: false
+
+### app/tests/unit/channels/meta.test.ts
+
+- what: No test proves that every Graph call passes ctx.signal, which the plan's Files line for meta.ts requires ('every call passes ctx.signal'). With the signal replaced by undefined, all 34 tests stay green. The eslint selector only checks that an init with a signal key exists.
+- evidence: node scripts/watchfail.mjs --file src/server/channels/meta.ts --find "const signal = session.ctx.signal;" --replace "const signal = undefined;" --run "bunx vitest run --project unit tests/unit/channels/meta.test.ts" --expect FAIL -> 'WATCHED-FAIL BAD: stayed green'
+- blocking: false
+
+### workspace/05-plans/logs/B10.md
+
+- what: The g4 log says check-gotchas prints 42 path entries, above the limit of 40, and calls that 'not this group's'. This group's G-1000 is a path entry and took the count from 41 to 42. The bank was already over the limit, but the log leaves out this group's share. The orchestrator should retire or merge a path entry.
+- evidence: check-gotchas: OK (42 path entries ...); GOTCHAS.md:31 'Keep under 40 live G entries'; the author's own report: 'it was 41 before G-1000'.
+- blocking: false
+
+### app/src/server/channels/meta.ts
+
+- what: health() shows a misleading detail. A red token (token_state 'dead', or settings.meta never filled) still reads 'The token expires on <date>.' or 'The token does not expire.' The level is right; the words contradict it.
+- evidence: meta.ts:462-471. The test 'reports the token health from settings.meta' checks only state: 'red' for a dead token.
+- blocking: false
+
+### app/src/server/channels/index.ts
+
+- what: Note for the post-to-channel group: getChannel returns Channel, so publish's onContainer argument and findRecentPost (MetaChannel only) are not reachable through the registry without a typed path. That group needs one, without casting.
+- evidence: index.ts getChannel(): Channel returns adapter(); meta.ts:51-58 MetaChannel extends Channel.
+- blocking: false
+
+### workspace/05-plans/B10.md
+
+- what: Plan line to fold. The Files line for meta.ts lists debug_token, but meta-token.ts and Outputs say Meta health only reads what B8's meta_token_refresh stored. The author declared debug_token not done and also left alt_text unsent. The plan should say which is meant.
+- evidence: plan-brief Files list, meta.ts line ('... findRecentPost, debug_token, error classification ...') vs the meta-token.ts line ('never calls Graph itself').
+- blocking: false
