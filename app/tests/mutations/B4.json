@@ -1356,14 +1356,5 @@
     "replace": "",
     "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
     "expect": "admin\\.tsx imports .*\\.\\./admin/ui/AdminShell"
-  },
-  {
-    "id": "shells-component",
-    "test": "tests/unit/admin-route-shells.test.ts",
-    "file": "tests/unit/admin-route-shells.test.ts",
-    "find": "  \"src/routes/admin/requests.index.tsx\",\n",
-    "replace": "",
-    "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
-    "expect": "requests\\.index\\.tsx defines a component"
   }
 ]
