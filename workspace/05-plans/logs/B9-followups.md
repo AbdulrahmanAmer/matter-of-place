@@ -199,3 +199,17 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 7. `workspace/05-plans/B2.md:102` and the B9 Files entry for scripts/lib/media-store.mjs (not blocking)
    - What: Stale plan text. It says the media store is loaded only lazily through a non-literal specifier and that B2's code never imports it statically. variants.ts now imports it statically, which is correct now that the file exists (the old reason was that tsc could not resolve a missing file). No src/ or Deno file imports variants.ts: the src mentions are comments only.
    - Evidence: grep 'scripts/variants' in src finds only comment lines in spec.ts:94 and mappers.ts:194. bun run build exit 0.
+
+## c5n · steps 5
+
+1. `app/src/server/email/render.ts` (not blocking)
+   - What: The empty-body guard checks the key, not whether anything was drawn. An empty body passes whenever the key's Email is not Message. So a standalone row with body [] and no block variable renders a mail with only the layout (header and footer) and no content, and send_email would send it. src/server/email/variables.ts:598 resolves standalone to {} (no block) today. B5's stored placeholder body is not empty, so nothing breaks now. The risk arrives once B11 seeds the empty body the test comment describes, if any path sends without block. This is suspected from reading, not seen in a send.
+   - Evidence: render.ts line 133 reads 'if (parsed.data.length === 0 && Email === Message) throw ...'. The test 'draws no property block when it is given none' renders standalone with body [] and no block, and it resolves.
+
+2. `app/docs/runbooks/email.md` (not blocking)
+   - What: Lines 26-33 are stale. They say the template file only draws the row's blocks and that text and links take {{variable}}. They list the render failures without template_render_failed, and they do not mention that an object variable (block) is drawn by standalone.tsx without being interpolated or site-checked. Not this group's file; the author already named it as left over. The orchestrator should fold it in.
+   - Evidence: sed -n 20,40p app/docs/runbooks/email.md (read in the snapshot)
+
+3. `workspace/05-plans/B9.md` (not blocking)
+   - What: The group also changed three B5 files that B9.md's Files lines do not name: src/templates/email/layout.tsx (the required variables prop on EmailProps), src/templates/email/blocks.tsx (Blocks exported) and scripts/build-auth-templates.ts (passes variables: {}). Each is the smallest change that the plan's 'hands variables to the Email component as its prop' forces. The plan's Files list should name them so the one-writer accounting is accurate.
+   - Evidence: git diff origin/main...slice/b9 --stat lists app/scripts/build-auth-templates.ts, app/src/templates/email/blocks.tsx and app/src/templates/email/layout.tsx. grep -nE 'layout\.tsx|blocks\.tsx|build-auth-templates' workspace/05-plans/B9.md prints nothing.

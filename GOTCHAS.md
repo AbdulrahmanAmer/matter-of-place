@@ -1039,6 +1039,8 @@ Entry template
 - hit again: 2026-10-06, B12 g1 review: a `bunx vitest run` started beside a full `bun run check` died with `[vitest-pool-runner]: Timeout waiting for worker to respond` and ran no test; the machine was shared by every parallel lane. Run the two one after the other, never side by side, and rerun a run that reports no test.
 - hit again: 2026-10-07, B6 g1 review: the first full `bun run check` timed out at `hygiene.test.ts` (`lint gives prettier/prettier the options of .prettierrc for it`, its own 20 s limit) while other agents ran on the machine; alone the file gave `Tests  63 passed (63)`, and the second full run printed `quiet: ok`, exit 0. It cost a second full run of about 4 minutes. The slice's gotchasAdded named only P-2303 although the branch added P-2300, P-2301, P-2302 and P-2303: list every entry the branch added.
 
+- hit again: 2026-10-07, B9 c5n review: the first `bun run check` exited 1 only on `Failed to start forks worker for test files .../src/admin/ui/tables.test.tsx ... Timeout waiting for worker to respond` while other lanes ran; `bun run test` alone then printed 208 passed, exit 0, and cost about 10 minutes. Read it as load and rerun the test stage once, as above.
+
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
 - symptom: H42 (1) says a documents-only pull request has no check, "measured on PRs 21 and 23", because every changed path is under `paths-ignore`. `gh pr view 23 --json files` lists `.claude/workflows/build-slice.js`, which matches none of `workspace/**`, `launch/**`, `**/*.md`, and `origin/main` holds no workflow at all, so neither PR could have had a check whatever it changed.
 - cause: `no checks reported` has two causes (every changed path ignored, or no workflow on the branches), and the measurement was taken while the second held. The ruling's mechanism is still right for the state after B1b merges.
@@ -1209,6 +1211,7 @@ Entry template
 - added: 2026-10-03
 - hit again: 2026-10-04, B3 g8: five new tests failed lint with the same rule on `JSON.parse(...) as T`, `await response.json() as T` and `... as Property`; parse with a Zod schema (`beaconBody.parse(JSON.parse(text))`) and give a helper the narrow `Pick<>` type it reads instead of casting a partial object.
 - hit again: 2026-10-04, B9 c6u: `bun run lint` refused `no-unsafe-type-assertion` on a cast in the new `tests/unit/assets/variants-upload.test.ts`; the cast was replaced by a type guard as above, and the group's costTime named this entry.
+- hit again: 2026-10-07, B9 c5n: the second attempt at the edge-build test in `tests/unit/assets/templates.test.ts` (the first rework's tests ran under Node and passed for the wrong reason, G-251) was named in the group's costTime under this entry, but this entry covers only the `no-unsafe-type-assertion` refusal; the group's other two costs are P-735 and P-736, banked after the review found them unbanked.
 
 ## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
 - symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
@@ -4094,6 +4097,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/assets/templates.test.ts` → 22 passed; registry entries `c5n-edge-build` (the mocked path changed from `dist/edge` to `dist/node`: no cause, the test is red), `c5n-edge-rejects` (plain `Error`), `c5n-edge-cause` (no `cause`) and `c5n-block-invalid` (the Node marker check deleted) are each red (measured 2026-10-07).
 - added: 2026-10-07
 - hit again: 2026-10-07, B9 c5n rework: the first version of this entry described the Node build alone and told the next worker that a throw never rejects.
+
+## P-735 · `@typescript-eslint/consistent-type-imports` refuses an `import("...")` type annotation: use `import type` at the top
+- symptom: while B9 c5n wrote the edge-build test, lint refused an `import()` type annotation with `@typescript-eslint/consistent-type-imports` and the test was reworked (reported by the author; the refused line is not in a commit, because the rewrite replaced it before the commit).
+- cause: `app/eslint.config.js` sets `"@typescript-eslint/consistent-type-imports": "error"` with the rule's default `disallowTypeAnnotations: true`, which forbids the `import("x").T` form.
+- rule: a type from a module the test loads with `await import(...)` is named by `import type { T } from "..."` at the top of the file, or inferred from the awaited value; never written as `import("...").T`.
+- proof: `grep -n "consistent-type-imports" app/eslint.config.js` → line 160 `"@typescript-eslint/consistent-type-imports": "error"`; `cd app && bunx eslint tests/unit/assets/templates.test.ts` → no output, exit 0 (2026-10-07).
+- added: 2026-10-07
+
+## P-736 · A module imported directly before `vi.doMock` keeps the real dependency: import it dynamically after `vi.resetModules()`
+- symptom: while B9 c5n tested the edge build of `@react-email/render` (G-251), a direct import of the module path that `vi.doMock` replaces ran the real module and skipped the mock; that is what made the author drop the premise test (reported by the author; the dropped test is not in a commit).
+- cause: `vi.doMock` is not hoisted and replaces a specifier only for modules loaded after the call. A static import, or a direct import of the replaced path, binds the real module when it first loads, and the mock cannot reach it. The mock factory itself must import the edge file by its own path, because importing the mocked specifier from inside it would recurse.
+- rule: a test that replaces a dependency with `vi.doMock` calls `vi.resetModules()`, registers the mock, then loads the module under test with `await import(...)`; `afterEach` runs `vi.doUnmock` and `vi.resetModules()`. A mocked test is watched-fail on the mock itself (point it at the wrong path and see it red).
+- proof: `cd app && grep -nE "underEdge|doMock|resetModules" tests/unit/assets/templates.test.ts` shows `underEdge` (resetModules, doMock, dynamic imports); `node scripts/watchfail.mjs --registry tests/mutations --only c5n-edge-build` → `WATCHED-FAIL OK` (the mocked path changed to `dist/node`) (2026-10-07).
+- added: 2026-10-07
 
 ## G-1100 · Resend contacts are global and `POST /contacts` on a known address subscribes it again
 - paths: app/src/server/channels/resend.ts, app/docs/runbooks/newsletter.md
