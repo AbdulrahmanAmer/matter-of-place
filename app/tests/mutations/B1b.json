@@ -2571,8 +2571,8 @@
     "id": "mg-rebase",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
-    "find": "if (ancestor.status === 1) return refuse(\"rebase first\");",
-    "replace": "if (ancestor.status === 99) return refuse(\"rebase first\");",
+    "find": "if (ancestor.status === 1) {",
+    "replace": "if (ancestor.status === 99) {",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "refuses a draft and a head that does not contain origin/main"
   },
@@ -2697,8 +2697,8 @@
     "id": "mg-docs-every",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
-    "find": "return other === undefined ? \"\" : ",
-    "replace": "return true ? \"\" : ",
+    "find": "return other === undefined ? \"\" : `merge-gate: no checks reported",
+    "replace": "return true ? \"\" : `merge-gate: no checks reported",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "refuses a pull request with no check that changes app/src/start"
   },
@@ -2724,8 +2724,8 @@
     "id": "mg-docs-main",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
-    "find": "`origin/main:${CI_YML}`",
-    "replace": "`HEAD:${CI_YML}`",
+    "find": "`origin/main:${CI_YML}`]);\n  if (ci.status !== 0) return `merge-gate: no checks,",
+    "replace": "`HEAD:${CI_YML}`]);\n  if (ci.status !== 0) return `merge-gate: no checks,",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "merges a documents-only pull request"
   },
@@ -2733,8 +2733,8 @@
     "id": "mg-docs-ci-read",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
-    "find": "if (ci.status !== 0) return",
-    "replace": "if (ci.status === 99) return",
+    "find": "if (ci.status !== 0) return `merge-gate: no checks, and ci.yml cannot be read",
+    "replace": "if (ci.status === 99) return `merge-gate: no checks, and ci.yml cannot be read",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "refuses when ci.yml cannot be read on origin/main"
   },
@@ -3736,5 +3736,23 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/one-database.test.ts",
     "expect": "× ci.yml sets the switch at the workflow level"
+  },
+  {
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "id": "mg-behind-docs-path",
+    "find": "return other === undefined ? \"\" : `rebase first (main gained ${other})`;",
+    "replace": "return \"\";",
+    "expect": "refuses when main gained app/src/start"
+  },
+  {
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "id": "mg-behind-docs-empty",
+    "find": "if (paths.length === 0) return \"rebase first\";",
+    "replace": "if (paths.length === -1) return \"rebase first\";",
+    "expect": "refuses when main gained nothing it can list"
   }
 ]

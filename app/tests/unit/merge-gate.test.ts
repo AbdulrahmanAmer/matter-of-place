@@ -282,6 +282,8 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     checks: Answer;
     view?: string;
     ancestor?: number;
+    /** What main gained since the merge base, as `git diff --name-only` prints it. */
+    gained?: string[];
     jobs?: Record<string, Answer>;
     ci?: Answer;
     files?: Answer;
@@ -306,6 +308,7 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     checks,
     view = `${HEAD_SHA}\tfalse`,
     ancestor = 0,
+    gained = ["app/src/start.ts"],
     jobs = {},
     ci = { status: 0, out: CI_TEXT },
     files = listed(DOCS),
@@ -318,7 +321,13 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       calls.push(call);
       const answer = (given: Answer) => ({ out: "", err: "", ...given });
       if (call === CI_SHOW) return answer(ci);
-      if (command === "git") return answer({ status: args[0] === "merge-base" ? ancestor : 0 });
+      if (command === "git") {
+        if (args[0] === "merge-base" && args[1] === "--is-ancestor")
+          return answer({ status: ancestor });
+        if (args[0] === "merge-base") return answer({ status: 0, out: "b45e" });
+        if (args[0] === "diff") return answer({ status: 0, out: gained.join("\n") });
+        return answer({ status: 0 });
+      }
       if (call === "gh pr view") {
         return answer(args.includes("changedFiles,files") ? files : { status: 0, out: view });
       }
@@ -371,7 +380,53 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     expect({
       lines: [draft.lines, behind.lines],
       readChecks: [...draft.calls, ...behind.calls].includes("gh pr checks"),
-    }).toEqual({ lines: [["mark ready first"], ["rebase first"]], readChecks: false });
+    }).toEqual({
+      lines: [["mark ready first"], ["rebase first (main gained app/src/start.ts)"]],
+      readChecks: false,
+    });
+  });
+
+  describe("a head behind main (H65)", () => {
+    it("proceeds when main gained documents only since the merge base, and says so", () => {
+      const { code, lines, writes } = gate({ checks: GREEN, ancestor: 1, gained: DOCS });
+      expect({ code, lines, writes }).toEqual({
+        code: 0,
+        lines: ["behind main by documents only: no check reads them, proceeding", ""],
+        writes: WRITES,
+      });
+    });
+
+    it.each(["app/src/start.ts", ".github/workflows/ci.yml", "app/a.mdx"])(
+      "refuses when main gained %s",
+      (path) => {
+        const { code, lines, writes } = gate({
+          checks: GREEN,
+          ancestor: 1,
+          gained: [...DOCS, path],
+        });
+        expect({ code, lines, writes }).toEqual({
+          code: 1,
+          lines: [`rebase first (main gained ${path})`],
+          writes: [],
+        });
+      },
+    );
+
+    it("refuses when main gained nothing it can list, or ci.yml cannot be read", () => {
+      const empty = gate({ checks: GREEN, ancestor: 1, gained: [] });
+      const noCi = gate({
+        checks: GREEN,
+        ancestor: 1,
+        gained: DOCS,
+        ci: { status: 128, err: "x" },
+      });
+      expect([empty.lines, noCi.lines, empty.writes, noCi.writes]).toEqual([
+        ["rebase first"],
+        ["rebase first"],
+        [],
+        [],
+      ]);
+    });
   });
 
   it("prints a passed job whose steps were all skipped, and still merges", () => {
