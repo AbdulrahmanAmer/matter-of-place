@@ -2229,8 +2229,8 @@
     "id": "hy-workflow-env",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
-    "find": "\npermissions: {}\n",
-    "replace": "\npermissions: {}\n\nenv:\n  DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
+    "find": "\nenv:\n  E2E_STACK: \"1\"\n",
+    "replace": "\nenv:\n  E2E_STACK: \"1\"\n  DB_PW: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "ci\\.yml \\(workflow\\): secrets\\.DEV_SUPABASE_"
   },
@@ -2238,8 +2238,8 @@
     "id": "hy-workflow-ref",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
-    "find": "\npermissions: {}\n",
-    "replace": "\npermissions: {}\n\nenv:\n  REF: ${{ vars.DEV_SUPABASE_PROJECT_REF }}\n",
+    "find": "\nenv:\n  E2E_STACK: \"1\"\n",
+    "replace": "\nenv:\n  E2E_STACK: \"1\"\n  REF: ${{ vars.DEV_SUPABASE_PROJECT_REF }}\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "no ci\\.yml job reads or writes mop-dev"
   },
@@ -3228,8 +3228,8 @@
     "id": "hy-preview-api-base",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "workers.dev\n          VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
-    "replace": "workers.dev\n          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
+    "find": "VITE_API_BASE_URL: ${{ env.HAS_DB == 'true' && vars.VITE_API_BASE_URL || '' }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # A preview carries no cron trigger",
+    "replace": "VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}\n          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # A preview carries no cron trigger",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
   },
@@ -3255,8 +3255,8 @@
     "id": "hy-preview-turnstile",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # On a pull request",
-    "replace": "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build\n      # On a pull request",
+    "find": "VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA\n        run: bun run build\n      # A preview carries no cron trigger",
+    "replace": "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build\n      # A preview carries no cron trigger",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× preview builds and deploys pr-<n> on the HAS_DB switch"
   },
