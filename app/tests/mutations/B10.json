@@ -288,5 +288,455 @@
     "replace": "\"source\": \"guess\"",
     "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
     "expect": "FAIL .*> the reel against Meta's recorded limits > says where the limits were read"
+  },
+  {
+    "id": "b10g3-now-inside",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "    : now;",
+    "replace": "    : nextOpening(now, window, alreadyPostedToday);",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > answers now inside the window"
+  },
+  {
+    "id": "b10g3-today-later",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "if (offset === 0 && alreadyPostedToday >= window.daily_cap) continue;",
+    "replace": "if (offset === 0) continue;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > waits for the window to open later the same day"
+  },
+  {
+    "id": "b10g3-cap-next-day",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "  if (alreadyPostedToday >= window.daily_cap) return null;",
+    "replace": "  if (alreadyPostedToday < 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > goes to the next day's opening once the daily cap"
+  },
+  {
+    "id": "b10g3-dst",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "start: new Date(toUtc(`${day}T${window.from}`, window.tz)),",
+    "replace": "start: new Date(toUtc(`${day}T${window.from}`, \"UTC\")),",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > keeps 09:00 local across both daylight-saving changes"
+  },
+  {
+    "id": "b10g3-week-on",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "offset <= 7;",
+    "replace": "offset < 7;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > skips closed weekdays"
+  },
+  {
+    "id": "b10g3-retry-inside",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "nextDelayMs(attempt, 1)",
+    "replace": "nextDelayMs(attempt, 0)",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > retries inside the window with 40 minutes left"
+  },
+  {
+    "id": "b10g3-window-moved",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": " && retryAt < today.end) {",
+    "replace": ") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next slot with 1 minute left"
+  },
+  {
+    "id": "b10g3-last-attempt",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "if (attempt < maxAttempts && today !== null",
+    "replace": "if (today !== null",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next slot on the last attempt"
+  },
+  {
+    "id": "b10g3-retry-cap",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "  if (alreadyPostedToday >= window.daily_cap) return null;",
+    "replace": "  if (alreadyPostedToday < 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next day when the daily cap has no room"
+  },
+  {
+    "id": "b10g3-human",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (actor.kind === \"human\") return true;",
+    "replace": "if (actor.kind === \"agent\") return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > lets a person approve whatever the mode"
+  },
+  {
+    "id": "b10g3-agent-manual",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (actor.kind === \"human\") return true;",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent in manual mode"
+  },
+  {
+    "id": "b10g3-auto-after",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every((row) => effectiveApprovalMode(row, tier, today) === \"auto\")",
+    "replace": "enabled.every((row) => row.approval_mode[tier] === \"auto\")",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > allows an agent in auto mode from auto_after on"
+  },
+  {
+    "id": "b10g3-null-auto-after",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every((row) => effectiveApprovalMode(row, tier, today) === \"auto\")",
+    "replace": "enabled.every((row) => row.approval_mode[tier] === \"auto\")",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > reads a null auto_after with Feature auto as manual"
+  },
+  {
+    "id": "b10g3-every-channel",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every(",
+    "replace": "enabled.some(",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when one of two enabled target channels"
+  },
+  {
+    "id": "b10g3-enabled-only",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "channelRows.filter((row) => row.enabled)",
+    "replace": "channelRows.filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when one of two enabled target channels"
+  },
+  {
+    "id": "b10g3-no-target",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.length > 0 && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when no target channel is enabled"
+  },
+  {
+    "id": "b10g3-recheck-human",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "approver?.actor_kind === \"human\"",
+    "replace": "approver?.actor_kind === \"agent\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> approvalStillValid > keeps a person's approval in manual mode"
+  },
+  {
+    "id": "b10g3-recheck-agent",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (asset.approved_by !== null && approver?.actor_kind === \"human\") return true;",
+    "replace": "if (approver?.actor_kind !== \"agent\") return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> approvalStillValid > voids an agent's, the system's and a roleless approval"
+  },
+  {
+    "id": "b10g3-token-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 190, class: \"token_dead\" },",
+    "replace": "{ code: 190, class: \"retryable\" },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > treats code 190 as a dead token"
+  },
+  {
+    "id": "b10g3-rate-613",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 613, class: \"retry_at\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits for the rate limits 4, 17, 32 and 613"
+  },
+  {
+    "id": "b10g3-publish-limit",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 9, subcode: 2207042, class: \"retry_at\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits for the rate limits 4, 17, 32 and 613"
+  },
+  {
+    "id": "b10g3-not-ready",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 9007, subcode: 2207027, class: \"retryable\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-transient",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "transient === true || status >= 500",
+    "replace": "status >= 500",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-unparsed-5xx",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": ": status >= 500 ? \"retryable\"",
+    "replace": ": false ? \"retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-subcode-only",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "(entry.subcode === undefined || entry.subcode === subcode)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > fails any other error at once"
+  },
+  {
+    "id": "b10g3-unparsed-429",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "status === 429 ? \"retry_at\"",
+    "replace": "status === -1 ? \"retry_at\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits on a 429 whose body is not a Graph error"
+  },
+  {
+    "id": "b10g3-fixture-map",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "reach: \"reach\",",
+    "replace": "reach: \"views\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > maps every table name in the recorded fixture"
+  },
+  {
+    "id": "b10g3-unknown-raw",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "? META_METRICS[item.name] : undefined;",
+    "replace": "? META_METRICS[item.name] : \"clicks\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > puts an unknown name only in raw"
+  },
+  {
+    "id": "b10g3-impressions",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "reach: \"reach\",",
+    "replace": "reach: \"reach\",\n  impressions: \"views\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > holds only names Meta documents for new media"
+  },
+  {
+    "id": "b10g3-vault-first",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const token = data || readVar(\"META_PAGE_TOKEN\");",
+    "replace": "const token = readVar(\"META_PAGE_TOKEN\") || data;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > takes the Vault token over META_PAGE_TOKEN"
+  },
+  {
+    "id": "b10g3-no-token",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (token === undefined || token === \"\") {",
+    "replace": "if (token === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > falls back to META_PAGE_TOKEN while Vault holds none"
+  },
+  {
+    "id": "b10g3-one-scope-list",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "export { META_REQUIRED_SCOPES } from \"../jobs/system/meta-token-refresh.ts\";",
+    "replace": "export const META_REQUIRED_SCOPES = [\"instagram_basic\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > re-exports B8's list of required scopes"
+  },
+  {
+    "id": "b10g3-amber-14",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const AMBER_DAYS = 14;",
+    "replace": "const AMBER_DAYS = 13;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber at 14 days left and red at 7"
+  },
+  {
+    "id": "b10g3-red-7",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const RED_DAYS = 7;",
+    "replace": "const RED_DAYS = 6;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber at 14 days left and red at 7"
+  },
+  {
+    "id": "b10g3-dead-never",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (meta?.token_state !== \"ok\" || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > reads a null expiry as never, red when the token is dead"
+  },
+  {
+    "id": "b10g3-never",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "expiresAt ?? \"never\"",
+    "replace": "expiresAt ?? \"none\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > reads a null expiry as never, red when the token is dead"
+  },
+  {
+    "id": "b10g3-scopes-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (meta?.token_state !== \"ok\" || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is red for missing scopes and for a check that never ran"
+  },
+  {
+    "id": "b10g3-data-access",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "(dataAccessDays !== null && dataAccessDays <= AMBER_DAYS)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber when data access ends within 14 days"
+  },
+  {
+    "id": "b10g3-checked-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (Number.isNaN(checkedAt) || Date.now()",
+    "replace": "if (Date.now()",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses x without token_checked_at and with a check 3 days old"
+  },
+  {
+    "id": "b10g3-checked-48h",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "const CHECK_MAX_AGE_MS = 48 * 60 * 60 * 1000;",
+    "replace": "const CHECK_MAX_AGE_MS = 96 * 60 * 60 * 1000;",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses x without token_checked_at and with a check 3 days old"
+  },
+  {
+    "id": "b10g3-checked-fresh",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "- checkedAt > CHECK_MAX_AGE_MS)",
+    "replace": "- checkedAt > 0)",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > allows x with a check an hour old"
+  },
+  {
+    "id": "b10g3-ids",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "for (const id of need.ids) {",
+    "replace": "for (const id of need.ids.slice(1)) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > names a missing id"
+  },
+  {
+    "id": "b10g3-token-state",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (need.tokenState && text(\"token_state\") !== \"ok\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses instagram with a fresh check and token_state dead"
+  },
+  {
+    "id": "b10g3-locked",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (!(await getFlags(db)).new_channels) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > keeps facebook and youtube locked while new_channels is false"
+  },
+  {
+    "id": "b10g3-no-adapter",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (channel === \"youtube\") {",
+    "replace": "if (channel === \"x\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > answers no_adapter for youtube with the flag on"
   }
 ]
