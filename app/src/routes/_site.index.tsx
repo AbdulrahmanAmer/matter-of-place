@@ -6,6 +6,7 @@ import { ContentTag } from "../components/site/content-tag";
 import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { MarketGrid } from "../components/site/market-card";
 import { OfferCard } from "../components/site/offer-card";
+import { Picture } from "../components/site/picture";
 import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
@@ -210,10 +211,12 @@ function Hero({ properties }: { properties: PropertyCard[] }) {
 
   return (
     <section className="hero" aria-label="Selected properties">
-      <img
+      <Picture
         className="hero-image"
         key={property.slug}
         src={property.heroImage}
+        sizes="100vw"
+        priority
         width={1600}
         height={1104}
         alt={`${illustrative ? "Illustrative residence" : "Residence"} in ${property.city}`}

@@ -45,6 +45,8 @@ const staticPaths: [string, RouteClass][] = [
   ["/faq", "faq"],
   ["/place-notes", "page"],
   ["/legal", "page"],
+  ["/cookies", "page"],
+  ["/privacy-choices", "page"],
 ];
 
 export const staticRoutes: SweepRoute[] = staticPaths.map(([path, routeClass]) => ({
@@ -101,6 +103,8 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.contact.tsx": "/contact",
   "_site.faq.tsx": "/faq",
   "_site.legal.tsx": "/legal",
+  "_site.cookies.tsx": "/cookies",
+  "_site.privacy-choices.tsx": "/privacy-choices",
   "_site.place-notes.tsx": "/place-notes",
   "_site.$market.index.tsx": "/$market",
   "_site.$market.guide.tsx": "/$market/guide",
@@ -111,6 +115,11 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.markets.$.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
   "media.$.ts": "server",
+  "[.]well-known.security[.]txt.ts": "server",
+  "[.]well-known.change-password.ts": "server",
+  "[.]well-known.mta-sts[.]txt.ts": "server",
+  "feed[.]xml.ts": "server",
+  "feed[.]json.ts": "server",
   "sitemap[.]xml.ts": sitemapRoute,
 };
 

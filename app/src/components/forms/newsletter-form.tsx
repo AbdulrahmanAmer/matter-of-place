@@ -1,6 +1,7 @@
 import type { SyntheticEvent } from "react";
 import { honeypotFieldName, subscriberSchema } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
+import { useFieldErrors } from "../../hooks/use-field-errors";
 import { track } from "../../lib/analytics";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
@@ -15,8 +16,11 @@ export function NewsletterForm({ source }: { source: string }) {
     ),
   );
 
+  const { validate, clear, field, control } = useFieldErrors();
+
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!validate(event.currentTarget)) return;
     const data = new FormData(event.currentTarget);
     const email = formText(data, "email");
     void run({ email, trap: formText(data, honeypotFieldName) }).then((receipt) => {
@@ -33,7 +37,13 @@ export function NewsletterForm({ source }: { source: string }) {
   }
 
   return (
-    <form className="newsletter-form" onSubmit={onSubmit} aria-busy={pending}>
+    <form
+      className="newsletter-form"
+      onSubmit={onSubmit}
+      onInput={clear}
+      aria-busy={pending}
+      noValidate
+    >
       <input
         type="email"
         name="email"
@@ -41,12 +51,16 @@ export function NewsletterForm({ source }: { source: string }) {
         autoComplete="email"
         placeholder={t.common.emailAddress}
         aria-label={t.common.emailAddress}
+        {...control("email")}
       />
       <Honeypot />
       <button type="submit" disabled={pending}>
         {pending ? t.common.sending : t.common.subscribe}
       </button>
-      <FormError message={state.status === "error" ? state.message : null} />
+      <FormError
+        id={field("email").errorId}
+        message={field("email").error ?? (state.status === "error" ? state.message : null)}
+      />
     </form>
   );
 }

@@ -2,7 +2,7 @@
 // Checks the gotcha bank itself, so a stale or malformed entry cannot mislead a builder.
 // usage: node workspace/05-plans/check-gotchas.mjs        exit 1 on any ERROR; WARN lines do not fail
 // ERROR: a number used twice, an entry without rule, proof or added, a G entry without paths or severity,
-//        a severity that is not warn or block.
+//        a severity that is not warn or block, a NUL byte anywhere in GOTCHAS.md.
 // WARN:  a path glob that matches no tracked file and that no plan names (it may be a file a later slice creates).
 import { readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -12,6 +12,11 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
 const md = readFileSync(join(root, "GOTCHAS.md"), "utf8");
+const nulAt = md.indexOf("\0");
+if (nulAt >= 0) {
+  console.log(`ERROR GOTCHAS.md holds a NUL byte at line ${md.slice(0, nulAt).split("\n").length}: grep prints "Binary file matches" for the whole bank (P-1910)`);
+  process.exit(1);
+}
 const tracked = execFileSync("git", ["-C", root, "ls-files"], { encoding: "utf8", maxBuffer: 1 << 26 }).split("\n").filter(Boolean);
 const plans = readdirSync(here).filter((f) => /^(B|H|L)\S*\.md$/.test(f) || f === "STANDARDS.md").map((f) => readFileSync(join(here, f), "utf8")).join("\n");
 

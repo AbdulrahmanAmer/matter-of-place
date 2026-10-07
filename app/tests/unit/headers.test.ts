@@ -1,3 +1,4 @@
+import "../fixtures/worker-env";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cspFor, securityHeaders } from "../../src/server/lib/headers";
@@ -31,10 +32,14 @@ describe("securityHeaders", () => {
     expect(Object.keys(production).sort()).toEqual(
       [
         CSP,
+        "Cross-Origin-Opener-Policy",
+        "Cross-Origin-Resource-Policy",
         "Permissions-Policy",
         "Referrer-Policy",
+        "Reporting-Endpoints",
         "Strict-Transport-Security",
         "X-Content-Type-Options",
+        "X-DNS-Prefetch-Control",
         "X-Frame-Options",
       ].sort(),
     );
@@ -50,10 +55,11 @@ describe("securityHeaders", () => {
     expect(production["Strict-Transport-Security"]).toBe("max-age=31536000; includeSubDomains");
   });
 
-  it("ships the policy as report only, with no report endpoint yet", () => {
+  it("ships the policy as report only, with both report endpoints", () => {
     expect(production[CSP]).toBeDefined();
     expect(production["Content-Security-Policy"]).toBeUndefined();
-    expect(production[CSP]).not.toMatch(/report-uri|report-to/);
+    expect(production[CSP]).toContain("report-uri /api/public/csp-report; report-to csp");
+    expect(production["Reporting-Endpoints"]).toBe('csp="/api/public/csp-report"');
   });
 
   it("holds no newline in any header", () => {
@@ -93,11 +99,11 @@ describe("cspFor", () => {
   });
 
   it("never uses a nonce, because HTML is cached", () => {
-    expect(cspFor("production", {}, ["abc"])).not.toContain("nonce-");
+    expect(cspFor("production", {}, { scripts: ["abc"] })).not.toContain("nonce-");
   });
 
   it("allows an inline script by its hash", () => {
-    expect(cspFor("production", {}, ["abc"])).toContain("'sha256-abc'");
+    expect(cspFor("production", {}, { scripts: ["abc"] })).toContain("'sha256-abc'");
     expect(cspFor("production", {})).not.toContain("sha256-");
   });
 });
