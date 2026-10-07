@@ -3937,7 +3937,7 @@
     "find": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES)",
     "replace": ".filter((size) => size.bytes > SCRIPT_BUDGET_BYTES * 2)",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
-    "expect": "× .*fails one of 160 KB"
+    "expect": "× .*fails one of 170 KB"
   },
   {
     "id": "b3-bc-nesting",
