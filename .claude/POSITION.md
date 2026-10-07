@@ -1364,8 +1364,11 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   they stood. Finished groups are safe: every accepted group is committed on its lane and recorded in the run's
   journal. Cut mid-flight and lost as agent work, not as files: builders B7 step 7, B11 step 7, B10 step 8, B16 step 3
   fix round, B6 step 7 fix round; reviews B16 step 4, B9 step 10, B6 steps 8-9. Their uncommitted files stay in the
-  lane trees (counts below). DO NOT stash, reset or clean any lane; the resumed builder verifies what is there
-  (P-2130: reuse of an earlier attempt's tree worked).
+  lane trees and were then COMMITTED AND PUSHED as WIP commits (12:05, over the Dell's desktop bridge), so the
+  resumed builders start from committed work and the brief's merge of main does not refuse: B7 slice/b7 b1a638b
+  (69 paths), B6 slice/b6 09913e9 (4), B11 slice/b11 b6a6986 (7), B10 slice/b10 7b43eab (19), B16 slice/b16 6f3ccd9e
+  (5). Each message says "not reviewed, not a hand-in". DO NOT stash, reset or clean any lane. The cut work is about
+  seven agent-hours (B11's step 7 builder alone ran two and a half hours); the reviews re-run in full on resume.
 - RESUME THE RIGHT WAY, after `/login` on both machines: resume each run BY RUN ID in the SAME session folder, so every
   finished agent replays from cache and only the cut agents run again. On the Dell (`claude --remote-control dell` in
   `D:/mop/Matter Of Place`, session folder `C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/33ddf8d3-d640-434d-a419-fadf9fa72221`;
