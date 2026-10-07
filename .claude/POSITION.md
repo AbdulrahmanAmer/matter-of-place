@@ -1353,3 +1353,38 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Dell memory floor tonight 172 MB (03:38), no OOM or crash in any transcript; hygiene 20 s timeouts were the only
   symptom, fixed by PR 190. Journals mirrored here every five minutes (task bibqds20x). Watches: stall, lane results,
   board, 30-minute re-arms.
+
+## 2026-10-07 11:45 PARKED at 94 percent usage (operator): every run stopped, resume after the account switch
+
+- Operator (11:40): "We are at 94% of usage prepare everything for parking and I will do the slash login to change
+  account when I wake up." All six runs stopped by TaskStop at 11:43 to 11:45; the Dell's sweep deleted; the Dell
+  session `dell [c737b5]` idles until written to. Board at park: 170 of 259 (65.6 percent), 89 to go. Dell accepts
+  tonight 25, lane merges 5 (B17 PR 142, B6 g1 PR 185, B11 g3 PR 200, B7 g2 PR 197, B10 g6 PR 214).
+- WHAT THE STOP COST (honest): the operator's standing rule was a pause at group boundaries; I stopped the runs where
+  they stood. Finished groups are safe: every accepted group is committed on its lane and recorded in the run's
+  journal. Cut mid-flight and lost as agent work, not as files: builders B7 step 7, B11 step 7, B10 step 8, B16 step 3
+  fix round, B6 step 7 fix round; reviews B16 step 4, B9 step 10, B6 steps 8-9. Their uncommitted files stay in the
+  lane trees (counts below). DO NOT stash, reset or clean any lane; the resumed builder verifies what is there
+  (P-2130: reuse of an earlier attempt's tree worked).
+- RESUME THE RIGHT WAY, after `/login` on both machines: resume each run BY RUN ID in the SAME session folder, so every
+  finished agent replays from cache and only the cut agents run again. On the Dell (`claude --remote-control dell` in
+  `D:/mop/Matter Of Place`, session folder `C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/33ddf8d3-d640-434d-a419-fadf9fa72221`;
+  if the session id changes, copy each run's `workflows/<id>.json` and `subagents/workflows/<id>/` into the new folder
+  first, P-533), the runner resumes with `Workflow({ scriptPath: ".claude/workflows/build-slice.js", resumeFromRunId: "<id>", args: <the same args> })`:
+  - B7 wf_4cc465b2-17e: args `{"slice":"B7","root":"D:/mop-build/admin","previewPort":8948,"bankBase":{"P":2000,"G":900},"steps":["7","7a","8","9","10","11","11a","12","13","14","15","15a","16"],"mergeEach":true,"closeOut":{...the c6m object as launched, see 09:33...}}` (c6m replays accepted from cache; build:B7:g1:7 re-runs; lane head 0d2f660 with 28 modified and about 40 untracked files of step 7).
+  - B6 wf_3a6fdda0-d03: `{"slice":"B6","root":"D:/mop-build/b6","previewPort":8978,"bankBase":{"P":2300,"G":1050},"steps":["7","8","9"],"mergeEach":true}` (fix1 of step 7 and the review of 8-9 re-run; head 4f8fcad, 4 modified files).
+  - B11 wf_8d8f3276-412: `{"slice":"B11","root":"D:/mop-build/b11","previewPort":8988,"bankBase":{"P":2400,"G":1100},"steps":["1","2","3","4","5","6","7","8","9","10","11","12","13"]}` (build of step 7 re-runs; head 11a2437, 5 modified, 2 untracked).
+  - B10 wf_023873a9-fb0: `{"slice":"B10","root":"D:/mop-build/social","previewPort":8968,"bankBase":{"P":2200,"G":1000},"steps":["0","3","4","5","5a"]}` (build of step 8 re-runs; head 98787bd, 7 modified, 12 untracked).
+  Here, in this session (folder `C:/Users/DELL/.claude/projects/E--Matter-Of-Place/bdd9245b-a217-4a62-859d-18b11075b310`):
+  - B16 wf_3d33ed2c-a5d: `{"slice":"B16","root":"E:/mop-build/legal","branch":"slice/b16","base":"origin/main","previewPort":8848,"bankBase":{"P":1000,"G":400},"steps":["3","4","5","6","7","8"]}` (fix1 of step 3 and the review of step 4 re-run; head eca1e2f7, 5 modified files).
+  - B9 wf_19158ea6-880: `{"slice":"B9","root":"E:/mop-build/design","branch":"slice/b9","base":"origin/main","previewPort":8818,"bankBase":{"P":700,"G":250},"steps":["10","11"]}` (review of step 10 re-runs; head cba5fdd0, clean).
+  The stall watch will list the cut agents as stalls until their re-runs write; ignore those ids (the Dell knows the shape).
+- Fallback only if a resume by id is refused: a fresh launch with the undone steps and a closeOut for the cut fix
+  rounds (B6 step 7: the toolbar `data-print="hide"`, review ad47ec0d; B16 step 3: `getPublicSite` must force
+  `illustrativeContent` false under MOP_ENV production, review a81bdaff677bc6808).
+- Open chores at park: PR 163 (B13, slice/b13 at b001d14 plus my H64 allowlist commit in E:/mop-build/seo, UNPUSHED,
+  its registry replay was running at the stop: run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` in E:/mop-build/seo/app, push slice/b13, wait CI, run the illustrative-build smoke (merge-chores.md B13 first line), gate); PR 211 (slice/b9 c5n, conflicts with main, merges with the B9 run's merge step or by hand with bank-merge in E:/mop-build/design); PR 213 (B7, open, merges at B7's step 8 stop); B6 steps 2 to 9 need a new PR at B6's stop; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.
+- Rulings tonight: H64 to H68, H66a, H66b, H67a. Bank: P-534 to P-538 (and the lanes' own). Workflow follow-ups for the
+  next run boundary in merge-chores.md (Workflow section) including: mergeEach merges only at a run's end.
+- Watches here all stopped with the pause (stall, lane results, board, journal mirror bibqds20x still runs and costs
+  nothing; the board server b9x0ukbqz keeps serving). Nothing else is live.
