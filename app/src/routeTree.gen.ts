@@ -45,6 +45,7 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
@@ -67,6 +68,7 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
@@ -85,6 +87,10 @@ import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/pe
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
+import { Route as ApiAdminChannelsPostsIdCancelRouteImport } from './routes/api/admin/channels.posts.$id.cancel'
+import { Route as ApiAdminChannelsPostsIdMetricsRefreshRouteImport } from './routes/api/admin/channels.posts.$id.metrics-refresh'
+import { Route as ApiAdminChannelsPostsIdRetryRouteImport } from './routes/api/admin/channels.posts.$id.retry'
+import { Route as ApiAdminChannelsPostsIdWithdrawnRouteImport } from './routes/api/admin/channels.posts.$id.withdrawn'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
 const SiteRoute = SiteRouteImport.update({
@@ -269,6 +275,13 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
+  id: '/channels/',
+  path: '/channels/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/channels.index.lazy').then((d) => d.Route),
+)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -383,6 +396,11 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminChannelsHealthRoute = ApiAdminChannelsHealthRouteImport.update({
+  id: '/api/admin/channels/health',
+  path: '/api/admin/channels/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   id: '/api/admin/channels/posts',
   path: '/api/admin/channels/posts',
@@ -480,6 +498,30 @@ const ApiPublicSubmissionsIdUploadsRoute =
     path: '/$id/uploads',
     getParentRoute: () => ApiPublicSubmissionsRoute,
   } as any)
+const ApiAdminChannelsPostsIdCancelRoute =
+  ApiAdminChannelsPostsIdCancelRouteImport.update({
+    id: '/$id/cancel',
+    path: '/$id/cancel',
+    getParentRoute: () => ApiAdminChannelsPostsRoute,
+  } as any)
+const ApiAdminChannelsPostsIdMetricsRefreshRoute =
+  ApiAdminChannelsPostsIdMetricsRefreshRouteImport.update({
+    id: '/$id/metrics-refresh',
+    path: '/$id/metrics-refresh',
+    getParentRoute: () => ApiAdminChannelsPostsRoute,
+  } as any)
+const ApiAdminChannelsPostsIdRetryRoute =
+  ApiAdminChannelsPostsIdRetryRouteImport.update({
+    id: '/$id/retry',
+    path: '/$id/retry',
+    getParentRoute: () => ApiAdminChannelsPostsRoute,
+  } as any)
+const ApiAdminChannelsPostsIdWithdrawnRoute =
+  ApiAdminChannelsPostsIdWithdrawnRouteImport.update({
+    id: '/$id/withdrawn',
+    path: '/$id/withdrawn',
+    getParentRoute: () => ApiAdminChannelsPostsRoute,
+  } as any)
 const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
   ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
     id: '/media/$mediaId/original',
@@ -539,13 +581,15 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -563,6 +607,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
+  '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
+  '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
+  '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
@@ -614,13 +662,15 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -638,6 +688,10 @@ export interface FileRoutesByTo {
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
+  '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
+  '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
+  '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesById {
@@ -694,13 +748,15 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
@@ -718,6 +774,10 @@ export interface FileRoutesById {
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
+  '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
+  '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
+  '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRouteTypes {
@@ -774,12 +834,14 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/channels/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
@@ -798,6 +860,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/channels/posts/$id/cancel'
+    | '/api/admin/channels/posts/$id/metrics-refresh'
+    | '/api/admin/channels/posts/$id/retry'
+    | '/api/admin/channels/posts/$id/withdrawn'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -849,12 +915,14 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/channels'
     | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
@@ -873,6 +941,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/channels/posts/$id/cancel'
+    | '/api/admin/channels/posts/$id/metrics-refresh'
+    | '/api/admin/channels/posts/$id/retry'
+    | '/api/admin/channels/posts/$id/withdrawn'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
     | '__root__'
@@ -928,12 +1000,14 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/channels/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
     | '/api/admin/submissions/$id'
@@ -952,6 +1026,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/channels/posts/$id/cancel'
+    | '/api/admin/channels/posts/$id/metrics-refresh'
+    | '/api/admin/channels/posts/$id/retry'
+    | '/api/admin/channels/posts/$id/withdrawn'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
 }
@@ -983,7 +1061,8 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
-  ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRoute
+  ApiAdminChannelsHealthRoute: typeof ApiAdminChannelsHealthRoute
+  ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
@@ -1249,6 +1328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/channels/': {
+      id: '/admin/channels/'
+      path: '/channels'
+      fullPath: '/admin/channels/'
+      preLoaderRoute: typeof AdminChannelsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/people/': {
       id: '/admin/people/'
       path: '/people'
@@ -1403,6 +1489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/channels/health': {
+      id: '/api/admin/channels/health'
+      path: '/api/admin/channels/health'
+      fullPath: '/api/admin/channels/health'
+      preLoaderRoute: typeof ApiAdminChannelsHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/channels/posts': {
       id: '/api/admin/channels/posts'
       path: '/api/admin/channels/posts'
@@ -1529,6 +1622,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubmissionsIdUploadsRouteImport
       parentRoute: typeof ApiPublicSubmissionsRoute
     }
+    '/api/admin/channels/posts/$id/cancel': {
+      id: '/api/admin/channels/posts/$id/cancel'
+      path: '/$id/cancel'
+      fullPath: '/api/admin/channels/posts/$id/cancel'
+      preLoaderRoute: typeof ApiAdminChannelsPostsIdCancelRouteImport
+      parentRoute: typeof ApiAdminChannelsPostsRoute
+    }
+    '/api/admin/channels/posts/$id/metrics-refresh': {
+      id: '/api/admin/channels/posts/$id/metrics-refresh'
+      path: '/$id/metrics-refresh'
+      fullPath: '/api/admin/channels/posts/$id/metrics-refresh'
+      preLoaderRoute: typeof ApiAdminChannelsPostsIdMetricsRefreshRouteImport
+      parentRoute: typeof ApiAdminChannelsPostsRoute
+    }
+    '/api/admin/channels/posts/$id/retry': {
+      id: '/api/admin/channels/posts/$id/retry'
+      path: '/$id/retry'
+      fullPath: '/api/admin/channels/posts/$id/retry'
+      preLoaderRoute: typeof ApiAdminChannelsPostsIdRetryRouteImport
+      parentRoute: typeof ApiAdminChannelsPostsRoute
+    }
+    '/api/admin/channels/posts/$id/withdrawn': {
+      id: '/api/admin/channels/posts/$id/withdrawn'
+      path: '/$id/withdrawn'
+      fullPath: '/api/admin/channels/posts/$id/withdrawn'
+      preLoaderRoute: typeof ApiAdminChannelsPostsIdWithdrawnRouteImport
+      parentRoute: typeof ApiAdminChannelsPostsRoute
+    }
     '/api/admin/submissions/$id/media/$mediaId/original': {
       id: '/api/admin/submissions/$id/media/$mediaId/original'
       path: '/media/$mediaId/original'
@@ -1632,6 +1753,7 @@ interface AdminRouteChildren {
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
@@ -1641,6 +1763,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
@@ -1702,6 +1825,26 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminChannelsPostsRouteChildren {
+  ApiAdminChannelsPostsIdCancelRoute: typeof ApiAdminChannelsPostsIdCancelRoute
+  ApiAdminChannelsPostsIdMetricsRefreshRoute: typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
+  ApiAdminChannelsPostsIdRetryRoute: typeof ApiAdminChannelsPostsIdRetryRoute
+  ApiAdminChannelsPostsIdWithdrawnRoute: typeof ApiAdminChannelsPostsIdWithdrawnRoute
+}
+
+const ApiAdminChannelsPostsRouteChildren: ApiAdminChannelsPostsRouteChildren = {
+  ApiAdminChannelsPostsIdCancelRoute: ApiAdminChannelsPostsIdCancelRoute,
+  ApiAdminChannelsPostsIdMetricsRefreshRoute:
+    ApiAdminChannelsPostsIdMetricsRefreshRoute,
+  ApiAdminChannelsPostsIdRetryRoute: ApiAdminChannelsPostsIdRetryRoute,
+  ApiAdminChannelsPostsIdWithdrawnRoute: ApiAdminChannelsPostsIdWithdrawnRoute,
+}
+
+const ApiAdminChannelsPostsRouteWithChildren =
+  ApiAdminChannelsPostsRoute._addFileChildren(
+    ApiAdminChannelsPostsRouteChildren,
+  )
+
 interface ApiAdminPeopleIdRouteChildren {
   ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
 }
@@ -1759,7 +1902,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
-  ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRoute,
+  ApiAdminChannelsHealthRoute: ApiAdminChannelsHealthRoute,
+  ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,

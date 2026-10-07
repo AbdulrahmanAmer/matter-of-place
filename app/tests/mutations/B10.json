@@ -2658,5 +2658,305 @@
     "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
     "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
     "expect": "FAIL .*post-meta.test.ts > post_meta > a temporary error while an earlier container is published, near the window end, moves the post"
+  },
+  {
+    "id": "b10g8-cards-tone",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  red: \"danger\",\n",
+    "replace": "  red: \"warning\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*draws a card per live channel"
+  },
+  {
+    "id": "b10g8-cards-disabled",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "<p>Not enabled yet</p>",
+    "replace": "<p>Soon</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows Facebook and YouTube as not enabled yet"
+  },
+  {
+    "id": "b10g8-cards-disabled-state",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "{health === undefined || !isLive(channel) ? null : (",
+    "replace": "{health === undefined ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows Facebook and YouTube as not enabled yet"
+  },
+  {
+    "id": "b10g8-cards-ids-role",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "canEditIds={actions.includes(\"channels.ids_put\")}",
+    "replace": "canEditIds",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the Account ids form on each live card"
+  },
+  {
+    "id": "b10g8-cards-ids-body",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/AccountIdsForm.tsx",
+    "find": "save.mutate(parsed.data, {",
+    "replace": "save.mutate({ ...body, token: \"x\" }, {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*sends only the fields filled in"
+  },
+  {
+    "id": "b10g8-cards-ids-parse",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/AccountIdsForm.tsx",
+    "find": "const parsed = channelIdsSchema[idsKey].safeParse(body);",
+    "replace": "const parsed = { success: true as const, data: body };",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*refuses a handle with an @"
+  },
+  {
+    "id": "b10g8-posts-red",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "  failed: \"danger\",\n",
+    "replace": "  failed: \"info\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*marks a failed row red"
+  },
+  {
+    "id": "b10g8-posts-commercial",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "const canAct = [",
+    "replace": "const canAct = true || [",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*gives commercial no action at all"
+  },
+  {
+    "id": "b10g8-posts-by-status",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "{post.status === \"scheduled\" && actions.includes(\"channels.cancel\") ? (",
+    "replace": "{actions.includes(\"channels.cancel\") ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*offers each row only the action of its status"
+  },
+  {
+    "id": "b10g8-posts-metrics",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/MetricsCell.tsx",
+    "find": "[\"reach\", \"Reach\"],",
+    "replace": "[\"reach\", \"Range\"],",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the numbers a platform returned"
+  },
+  {
+    "id": "b10g8-metrics-null",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/MetricsCell.tsx",
+    "find": "typeof value === \"number\"",
+    "replace": "value !== undefined",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*leaves out a field the platform did not return"
+  },
+  {
+    "id": "b10g8-withdraw-links",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/Permalink.tsx",
+    "find": "url.startsWith(\"https://\")",
+    "replace": "url.startsWith(\"http://\")",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*lists the two flagged posts with their permalinks"
+  },
+  {
+    "id": "b10g8-withdraw-done",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-api.ts",
+    "find": "`${postPath(id)}/withdrawn`",
+    "replace": "`${postPath(id)}/withdrawn-now`",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*posts Done once to the withdrawn route"
+  },
+  {
+    "id": "b10g8-withdraw-role",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "if (actions.includes(\"channels.mark_withdrawn\")) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*hides Done from commercial"
+  },
+  {
+    "id": "b10g8-withdraw-empty",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "<p>Nothing to delete by hand</p>",
+    "replace": "<p>Nothing</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*says nothing is waiting when the list is empty"
+  },
+  {
+    "id": "b10g8-page-post",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-queries.ts",
+    "find": ": { post_id: post };",
+    "replace": ": { post_id: post, page: String(page) };",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*loads one row, with its error and Retry"
+  },
+  {
+    "id": "b10g8-page-filters",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-queries.ts",
+    "find": "{ ...filters, page: String(page) }",
+    "replace": "{ ...filters }",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks for the first page with the filters of the address"
+  },
+  {
+    "id": "b10g8-tile-amber",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  amber: \"warning\",\n",
+    "replace": "  amber: \"ok\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*shows amber at 14 days left and red at 6"
+  },
+  {
+    "id": "b10g8-tile-never",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "return \"Never expires\";",
+    "replace": "return \"Unknown\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*says never for a token with no expiry"
+  },
+  {
+    "id": "b10g8-tile-unconnected",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  if (!health.connected) return \"Not connected\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*says not connected while a channel has no ids"
+  },
+  {
+    "id": "b10g8-tile-dead",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "tone={levelTone[row.level]}",
+    "replace": "tone={levelTone[row.token.level]}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*is red for a dead token whatever days are left"
+  },
+  {
+    "id": "b10g8-tile-facts",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/HealthFacts.tsx",
+    "find": "{health.lastError.error}",
+    "replace": "{health.lastError.error.length}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*shows the last post and the last error of each channel"
+  },
+  {
+    "id": "b10g8-tile-facebook",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "{liveChannels.flatMap((channel) => {",
+    "replace": "{[...liveChannels, \"facebook\" as const].flatMap((channel) => {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*leaves out Facebook"
+  },
+  {
+    "id": "b10g8-tile-error",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "<p role=\"alert\">",
+    "replace": "<p role=\"note\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*names the failure when the health cannot be read"
+  },
+  {
+    "id": "b10g8-health-connected",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "return typeof field === \"string\" && field !== \"\";",
+    "replace": "return typeof field === \"string\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "× .*is connected once the channel's account ids are stored"
+  },
+  {
+    "id": "b10g8-withdrawn-route-plain",
+    "kind": "file",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/channels.posts.$id.withdrawn.ts",
+    "find": "POST: defineAdminRoute({",
+    "replace": "POST: ((definition: unknown) => () => Promise.resolve(Response.json(definition)))({",
+    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "expect": "channels\\.posts\\.\\$id\\.withdrawn\\.ts"
+  },
+  {
+    "id": "b10g8-e2e-commercial",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "canEditIds={actions.includes(\"channels.ids_put\")}",
+    "replace": "canEditIds",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"commercial sees\"",
+    "expect": "Account ids|toHaveCount"
+  },
+  {
+    "id": "b10g8-e2e-retry",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/channels-api.ts",
+    "find": "`${postPath(id)}/retry`",
+    "replace": "`${postPath(id)}/cancel`",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"Retry enqueues\"",
+    "expect": "waitForResponse|Test timeout"
+  },
+  {
+    "id": "b10g8-e2e-disabled",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "<p>Not enabled yet</p>",
+    "replace": "<p>Soon</p>",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"Facebook and YouTube\"",
+    "expect": "Not enabled yet"
+  },
+  {
+    "id": "b10g8-e2e-no-store",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "headers.set(\"cache-control\", \"no-store\");",
+    "replace": "headers.set(\"cache-control\", \"private, no-store\");",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"no-store\"",
+    "expect": "toBe|Expected|private, no-store"
   }
 ]
