@@ -1,6 +1,9 @@
 import type { PDFDocument, PDFFont } from "pdf-lib";
-import { z } from "zod";
-import { paymentMethodSchema, requiredInvoiceFields } from "../../domain/payments.ts";
+import {
+  invoiceSnapshotSchema,
+  requiredInvoiceFields,
+  type InvoiceSnapshot,
+} from "../../domain/payments.ts";
 import type { themeRgb } from "../../templates/theme.gen.ts";
 import { AppError } from "../lib/errors.ts";
 import { logLine } from "../lib/log.ts";
@@ -9,33 +12,8 @@ import { logLine } from "../lib/log.ts";
 // (B6 invariant 5). The layout is a list of positioned text runs, so the legal fields (GP-06) can be tested without
 // a PDF reader; `invoice-pdf.ts` draws the runs. Widths come from pdf-lib's standard-font metrics.
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-
-/** The snapshot `buildInvoiceSnapshot` writes, with the number and the two dates `issue_invoice` adds. */
-export const invoiceSnapshotSchema = z.object({
-  invoice_number: z.string(),
-  issue_date: isoDate,
-  due_date: isoDate,
-  entity: z.string(),
-  address: z.string(),
-  contact: z.object({ email: z.string(), phone: z.string().nullable() }),
-  description: z.string(),
-  amount: z.number(),
-  currency: z.string(),
-  tax_line: z.string(),
-  instructions: z.array(paymentMethodSchema),
-  preferred_method: z.string(),
-  terms: z.string(),
-  late_terms: z.string(),
-  billing_email: z.string(),
-  bill_to: z.object({
-    name: z.string(),
-    email: z.string(),
-    brokerage: z.string().nullable(),
-    property: z.string(),
-  }),
-});
-export type InvoiceSnapshot = z.infer<typeof invoiceSnapshotSchema>;
+// The snapshot's shape lives in the domain, where the admin preview reads it too.
+export { invoiceSnapshotSchema, type InvoiceSnapshot };
 
 /** Times Roman for the display word and the wordmark, Helvetica for the text (the brand fonts are a follow-up). */
 type InvoiceFont = "serif" | "sans" | "sansBold";

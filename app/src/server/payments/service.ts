@@ -1,15 +1,17 @@
 import { z, type ZodType, type ZodTypeDef } from "zod";
 import { adminPageSchema } from "../../domain/admin-page.ts";
 import {
+  invoiceListRowSchema,
   issueInvoiceInput,
   markPaidInput,
   paidAtIsFuture,
+  paymentStatuses,
   voidInput,
   waiveInput,
   waiveWithoutInvoiceInput,
+  type InvoiceListRow,
   type PaymentRow,
 } from "../../domain/payments.ts";
-import type { PaymentStatus } from "../../domain/rows.ts";
 import { fanoutEvent } from "../automation/fanout.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
@@ -28,13 +30,6 @@ import { priceFor } from "./pricing.ts";
 // (invariant 6): the runner renders the PDF, sends the email and copies the photographs.
 
 const id = z.string().uuid();
-const statuses = [
-  "due",
-  "paid",
-  "waived",
-  "refunded",
-  "void",
-] as const satisfies readonly PaymentStatus[];
 
 /** A path's `:id`, merged into every input by `defineAdminRoute`. */
 export const pathId = z.object({ id });
@@ -44,7 +39,7 @@ export const voidRequest = voidInput.extend({ id });
 /** `POST /api/admin/submissions/:id/waive`: `id` is the submission (invariant 12). */
 export const waiveWithoutInvoiceRequest = waiveWithoutInvoiceInput.extend({ id });
 export const listPaymentsInput = adminPageSchema.extend({
-  status: z.enum(statuses).optional(),
+  status: z.enum(paymentStatuses).optional(),
   // A query string says "true"; the service parses the route's output again, which is already a boolean.
   overdue: z
     .preprocess(
@@ -142,26 +137,9 @@ export async function issueInvoiceCore(
   );
 }
 
-const invoiceListRow = z.object({
-  id: z.string(),
-  invoice_number: z.string().nullable(),
-  submission_id: z.string(),
-  submitter_name: z.string(),
-  submitter_email: z.string(),
-  product: z.string(),
-  amount: z.number(),
-  status: z.enum(statuses),
-  issued_at: z.string().nullable(),
-  due_at: z.string().nullable(),
-  paid_at: z.string().nullable(),
-  overdue: z.boolean().nullable(),
-  days_open: z.number().nullable(),
-});
-
 const CURSOR = /^(null|\d{4}-\d\d-\d\dT[\d:.]+(?:Z|[+-]\d\d:\d\d))~([0-9a-f-]{36})$/;
 
 type ListInput = z.output<typeof listPaymentsInput>;
-type InvoiceListRow = z.infer<typeof invoiceListRow>;
 
 function filtered(db: Db, input: ListInput) {
   let query = db.from("invoice_list").select("*");
@@ -179,7 +157,7 @@ async function newestFirst(
     .order("id", { ascending: false })
     .limit(take);
   if (error !== null) throw fromRpcError(error);
-  return z.array(invoiceListRow).parse(data);
+  return z.array(invoiceListRowSchema).parse(data);
 }
 
 /** The rows after the cursor's `(issued_at, id)`, with only AND filters (R44): its ties, then older, then unissued. */

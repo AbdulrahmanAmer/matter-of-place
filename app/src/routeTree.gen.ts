@@ -45,6 +45,9 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
+import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
+import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
@@ -276,6 +279,27 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInvoicesIndexRoute = AdminInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.index.lazy').then((d) => d.Route),
+)
+const AdminInvoicesIdRoute = AdminInvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.$id.lazy').then((d) => d.Route),
+)
+const AdminInvoicesNewRoute = AdminInvoicesNewRouteImport.update({
+  id: '/invoices/new',
+  path: '/invoices/new',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.new.lazy').then((d) => d.Route),
+)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -566,6 +590,8 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -585,6 +611,7 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -648,6 +675,8 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -667,6 +696,7 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -735,6 +765,8 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
@@ -754,6 +786,7 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -822,6 +855,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -841,6 +876,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/invoices/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
@@ -904,6 +940,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -923,6 +961,7 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/invoices'
     | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
@@ -990,6 +1029,8 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
@@ -1009,6 +1050,7 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/invoices/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
@@ -1336,6 +1378,27 @@ declare module '@tanstack/react-router' {
       path: '/auth/confirm'
       fullPath: '/admin/auth/confirm'
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invoices/': {
+      id: '/admin/invoices/'
+      path: '/invoices'
+      fullPath: '/admin/invoices/'
+      preLoaderRoute: typeof AdminInvoicesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invoices/$id': {
+      id: '/admin/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/admin/invoices/$id'
+      preLoaderRoute: typeof AdminInvoicesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invoices/new': {
+      id: '/admin/invoices/new'
+      path: '/invoices/new'
+      fullPath: '/admin/invoices/new'
+      preLoaderRoute: typeof AdminInvoicesNewRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/people/': {
@@ -1768,8 +1831,11 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
+  AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
@@ -1777,8 +1843,11 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminInvoicesIdRoute: AdminInvoicesIdRoute,
+  AdminInvoicesNewRoute: AdminInvoicesNewRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }

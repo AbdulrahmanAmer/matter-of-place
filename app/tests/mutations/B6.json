@@ -1045,5 +1045,320 @@
     "expect": "sets the small wordmark and the display word on one baseline",
     "find": "const note: Style = { size: 9, font: \"sans\", color: \"mutedForeground\" };",
     "replace": "const note: Style = { size: 9, font: \"sans\", color: \"accent\" };"
+  },
+  {
+    "id": "b6-s7-table-loading",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "{...table}",
+    "replace": "{...table} loading={false}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "draws loading rows while the list is on its way"
+  },
+  {
+    "id": "b6-s7-table-empty",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "{...table}",
+    "replace": "{...table} empty={null}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "shows the empty state when there are no invoices"
+  },
+  {
+    "id": "b6-s7-table-overdue",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "row.status === \"due\" && row.overdue === true",
+    "replace": "row.status === \"due\" && row.overdue === false",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "marks a due invoice overdue after its 14 days"
+  },
+  {
+    "id": "b6-s7-table-no-invoice",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "row.invoice_number ?? \"No invoice\"",
+    "replace": "row.invoice_number ?? \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "reads No invoice for a waiver recorded without a number"
+  },
+  {
+    "id": "b6-s7-table-states",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "label={paymentStatusLabels[row.status]}",
+    "replace": "label={row.status}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "names the state of a paid, a waived and a void invoice"
+  },
+  {
+    "id": "b6-s7-filters-overdue",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoiceFilters.tsx",
+    "find": "checked={values.overdue === \"true\"}",
+    "replace": "checked={false}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "offers every status and carries the overdue box"
+  },
+  {
+    "id": "b6-s7-picker-url",
+    "test": "src/admin/invoices/IssuePicker.test.tsx",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "{ workflow_state: \"Accepted\" }",
+    "replace": "{ workflow_state: \"Submitted\" }",
+    "run": "bunx vitest run --project component src/admin/invoices/IssuePicker.test.tsx",
+    "expect": "asks the request list for the accepted requests"
+  },
+  {
+    "id": "b6-s7-picker-empty",
+    "test": "src/admin/invoices/IssuePicker.test.tsx",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "list.data.items.length === 0",
+    "replace": "list.data.items.length === -1",
+    "run": "bunx vitest run --project component src/admin/invoices/IssuePicker.test.tsx",
+    "expect": "says so when no accepted request is waiting"
+  },
+  {
+    "id": "b6-s7-detail-due",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "{payment.status === \"due\" ? (",
+    "replace": "{payment.status === \"paid\" ? (",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "shows a due invoice with its preview"
+  },
+  {
+    "id": "b6-s7-detail-paid",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "(payment.status === \"paid\" || payment.status === \"waived\")",
+    "replace": "(payment.status === \"waived\")",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "offers Activate on a paid invoice"
+  },
+  {
+    "id": "b6-s7-detail-waiver",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "payment.invoice_number ?? \"No invoice\"",
+    "replace": "payment.invoice_number ?? \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "reads No invoice for a waiver without one"
+  },
+  {
+    "id": "b6-s7-detail-void",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "{payment.status === \"void\" ? (",
+    "replace": "{payment.status === \"due\" ? (",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "links a void invoice to its corrected one"
+  },
+  {
+    "id": "b6-s7-detail-activated",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "label=\"Activated\"",
+    "replace": "label=\"Done\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "names an activated invoice"
+  },
+  {
+    "id": "b6-s7-detail-copy-job",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": ": [{ id: copyId, type: COPY_JOB, status: \"queued\" }];",
+    "replace": ": [];",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "activates after a confirmation and lists the copy job"
+  },
+  {
+    "id": "b6-s7-detail-future",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/MarkPaidDialog.tsx",
+    "find": "if (Date.parse(toUtc(`${day}T00:00`, ZONE)) > now) return { future: true };",
+    "replace": "if (Date.parse(toUtc(`${day}T00:00`, ZONE)) > now + Infinity) return { future: true };",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "refuses a payment date in the future"
+  },
+  {
+    "id": "b6-s7-detail-waive",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "waive.mutateAsync(reason).then(done(\"Invoice waived.\"))",
+    "replace": "waive.mutateAsync(\"none\").then(done(\"Invoice waived.\"))",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "waives with a reason"
+  },
+  {
+    "id": "b6-s7-void-role",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/VoidDialog.tsx",
+    "find": "<RoleGate action=\"payments.void\">",
+    "replace": "<RoleGate action=\"payments.waive\">",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "is hidden for a managing editor and shown for an admin"
+  },
+  {
+    "id": "b6-s7-void-min",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/ReasonDialog.tsx",
+    "find": "trimmed.length < MIN",
+    "replace": "trimmed.length < 0",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps its submit off below 3 characters"
+  },
+  {
+    "id": "b6-s7-void-refused",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/use-submit.ts",
+    "find": "setError(failure instanceof Error ? failure.message : \"The change did not go through.\");",
+    "replace": "setError(null);",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "stays open with the server's message when the void is refused"
+  },
+  {
+    "id": "b6-s7-draft-waive-beside",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "        {children}\n      </div>\n      <ConfirmDialog",
+    "replace": "      </div>\n      {children}\n      <ConfirmDialog",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "shows Waive without invoice beside Issue"
+  },
+  {
+    "id": "b6-s7-draft-accepted",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDraft.tsx",
+    "find": "canIssue={detail.accepted_at !== null && issuable}",
+    "replace": "canIssue",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps Issue off until the request is accepted"
+  },
+  {
+    "id": "b6-s7-draft-no-amount",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "issueInvoice({ submissionId, ...input }),",
+    "replace": "issueInvoice({ submissionId, amount: 1, ...input }),",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "issues with the product and method only"
+  },
+  {
+    "id": "b6-s7-draft-not-ready",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "error.code !== \"invoice_not_ready\"",
+    "replace": "error.code !== \"wrong_state\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "lists the missing settings and turns Issue off"
+  },
+  {
+    "id": "b6-s7-form-missing",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "canIssue && missing.length === 0 && product !== \"\" && method !== \"\"",
+    "replace": "canIssue && product !== \"\" && method !== \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "turns Issue off and names every missing setting"
+  },
+  {
+    "id": "b6-s7-form-ready",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "canIssue && missing.length === 0 && product !== \"\" && method !== \"\"",
+    "replace": "canIssue && missing.length === 0 && product !== \"\" && method === \"never\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "turns Issue on once the product"
+  },
+  {
+    "id": "b6-s7-queries-refetch",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "adminKeys.payments.all(),",
+    "replace": "adminKeys.payments.detail(\"none\"),",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "refetches the invoices list once the mark-paid mutation settles"
+  },
+  {
+    "id": "b6-s7-queries-invalidate",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "queryClient.invalidateQueries({ queryKey: adminKeys.submissions.detail(submissionId) }),",
+    "replace": "Promise.resolve(),",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "also invalidates the dashboard"
+  },
+  {
+    "id": "b6-s7-queries-missing",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "error.code !== \"invoice_not_ready\"",
+    "replace": "error.code !== \"wrong_state\"",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "reads the missing settings from a 409"
+  },
+  {
+    "id": "b6-s7-print-link",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/index.css",
+    "find": "@import \"./invoices.css\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "is linked from the admin entry stylesheet"
+  },
+  {
+    "id": "b6-s7-print-page",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "size: letter;",
+    "replace": "size: A4;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "sets the page to US Letter with literal margins"
+  },
+  {
+    "id": "b6-s7-print-hide",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "display: none !important;",
+    "replace": "display: block;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "hides every element marked data-print hide"
+  },
+  {
+    "id": "b6-s7-print-invoice",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "    break-inside: avoid;",
+    "replace": "    break-inside: auto;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "shows the invoice in the foreground on the background"
+  },
+  {
+    "id": "b6-s7-print-shadow",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "    position: static;",
+    "replace": "    position: static;\n    text-shadow: 0 0 1px var(--border);",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "shows the invoice in the foreground on the background"
+  },
+  {
+    "id": "b6-s7-print-literal",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": ".admin-picker__meta {\n  color: var(--muted-foreground);",
+    "replace": ".admin-picker__meta {\n  color: #575751;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "uses no fixed positioning and no colour but the tokens in print"
+  },
+  {
+    "id": "b6-s7-nav-invoices",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "routeId: \"/admin/invoices/\",",
+    "replace": "routeId: \"/admin/invoices\",",
+    "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
+    "expect": "renders the Invoices link now that invoices.index.tsx exists"
   }
 ]

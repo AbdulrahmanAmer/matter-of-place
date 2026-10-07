@@ -1,6 +1,7 @@
 // Invoices and payments (B6, architecture 3.4). Field names are the API JSON and the database columns (G-004);
 // `settings.invoice` keeps its snake_case keys because the jsonb value and this schema are the same shape.
 import { z } from "zod";
+import { adminPageAnswer } from "./admin-page.ts";
 import { exposurePackages } from "./contracts.ts";
 import type { PaymentStatus } from "./rows.ts";
 
@@ -9,6 +10,7 @@ export type { PaymentRow } from "./rows.ts";
 /** A product that can be invoiced: every `exposure_package` except `Not sure yet`, which has no price. */
 const invoiceProduct = z.enum(exposurePackages).exclude(["Not sure yet"]);
 type InvoiceProduct = z.infer<typeof invoiceProduct>;
+export const invoiceProducts = invoiceProduct.options;
 
 const reason = z.string().trim().min(3).max(500);
 const methodId = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
@@ -46,6 +48,34 @@ export const paymentMethodSchema = z.object({
   label: z.string().trim().min(1).max(60),
   instructions: z.string().trim().max(2000),
 });
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** The snapshot `buildInvoiceSnapshot` writes, with the number and the two dates `issue_invoice` adds. */
+export const invoiceSnapshotSchema = z.object({
+  invoice_number: z.string(),
+  issue_date: isoDate,
+  due_date: isoDate,
+  entity: z.string(),
+  address: z.string(),
+  contact: z.object({ email: z.string(), phone: z.string().nullable() }),
+  description: z.string(),
+  amount: z.number(),
+  currency: z.string(),
+  tax_line: z.string(),
+  instructions: z.array(paymentMethodSchema),
+  preferred_method: z.string(),
+  terms: z.string(),
+  late_terms: z.string(),
+  billing_email: z.string(),
+  bill_to: z.object({
+    name: z.string(),
+    email: z.string(),
+    brokerage: z.string().nullable(),
+    property: z.string(),
+  }),
+});
+export type InvoiceSnapshot = z.infer<typeof invoiceSnapshotSchema>;
 
 const days = z.number().int().positive().nullable();
 
@@ -88,6 +118,34 @@ export const requiredInvoiceFields = [
 
 /** The snapshot fields SQL fills inside `issue_invoice`: the number and the two dates. */
 export const sqlAssignedFields = ["invoice_number", "issue_date", "due_date"] as const;
+
+export const paymentStatuses = [
+  "due",
+  "paid",
+  "waived",
+  "refunded",
+  "void",
+] as const satisfies readonly PaymentStatus[];
+
+/** One row of the view `invoice_list` (screen 5); a waiver recorded without an invoice has a null number and no dates. */
+export const invoiceListRowSchema = z.object({
+  id: z.string(),
+  invoice_number: z.string().nullable(),
+  submission_id: z.string(),
+  submitter_name: z.string(),
+  submitter_email: z.string(),
+  product: z.string(),
+  amount: z.number(),
+  status: z.enum(paymentStatuses),
+  issued_at: z.string().nullable(),
+  due_at: z.string().nullable(),
+  paid_at: z.string().nullable(),
+  overdue: z.boolean().nullable(),
+  days_open: z.number().nullable(),
+});
+export type InvoiceListRow = z.infer<typeof invoiceListRowSchema>;
+
+export const invoiceListSchema = adminPageAnswer(invoiceListRowSchema);
 
 export const paymentStatusLabels: Record<PaymentStatus, string> = {
   due: "Due",
