@@ -950,5 +950,140 @@
     "replace": "  market_url: \"https://elsewhere.example/california\",",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts -t \"market_open renders\"",
     "expect": "× .*market_open renders with its sample variables[\\s\\S]*url_off_site"
+  },
+  {
+    "id": "b11-g4-utm-source-kept",
+    "test": "tests/unit/newsletter/utm.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "address.searchParams.set(\"utm_source\", \"place_notes\");",
+    "replace": "address.searchParams.set(\"utm_source\", \"newsletter\");",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/utm.test.ts",
+    "expect": "FAIL.*replaces the parameters of B9's newsletter link"
+  },
+  {
+    "id": "b11-g4-utm-campaign-fixed",
+    "test": "tests/unit/newsletter/utm.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "address.searchParams.set(\"utm_campaign\", campaign);",
+    "replace": "address.searchParams.set(\"utm_campaign\", \"issue-1\");",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/utm.test.ts",
+    "expect": "FAIL.*names a standalone email by its slug"
+  },
+  {
+    "id": "b11-g4-utm-other-utm-kept",
+    "test": "tests/unit/newsletter/utm.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "if (UTM.test(key)) address.searchParams.delete(key);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/utm.test.ts",
+    "expect": "FAIL.*keeps the other query parameters and the fragment, and drops any other utm parameter"
+  },
+  {
+    "id": "b11-g4-utm-content-missing",
+    "test": "tests/unit/newsletter/utm.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "address.searchParams.set(\"utm_content\", slug);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/utm.test.ts",
+    "expect": "FAIL.*sets the parameters on an address that has none"
+  },
+  {
+    "id": "b11-g4-utm-bad-link-retries",
+    "test": "tests/unit/newsletter/utm.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "if (!URL.canParse(url)) throw new NonRetryableError(\"invalid_link\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/utm.test.ts",
+    "expect": "FAIL.*refuses an address it cannot read, without a retry"
+  },
+  {
+    "id": "b11-g4-render-unsubscribe-inert",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/blocks/footer.tsx",
+    "find": "<Link href={UNSUBSCRIBE_URL}",
+    "replace": "<Link href=\"#\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*keeps Resend's unsubscribe variable as the unsubscribe link"
+  },
+  {
+    "id": "b11-g4-render-story-link-bare",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "href: withUtm(`${site.siteUrl}/stories/${block.slug}`, campaign, block.slug),",
+    "replace": "href: `${site.siteUrl}/stories/${block.slug}`,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*gives every other link the UTM set, with the issue number and the slug of its block"
+  },
+  {
+    "id": "b11-g4-render-footer-no-entity",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/blocks/footer.tsx",
+    "find": "{footerLines(site).map((text) => (",
+    "replace": "{footerLines(site).slice(0, 1).map((text) => (",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*shows the legal entity and the postal address of the site context"
+  },
+  {
+    "id": "b11-g4-render-blocks-reversed",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/place-notes.tsx",
+    "find": "{blocks.map((block) => (",
+    "replace": "{[...blocks].reverse().map((block) => (",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*draws the masthead, the intro lines and the stories in reading order"
+  },
+  {
+    "id": "b11-g4-render-hex-typed",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/blocks/masthead.tsx",
+    "find": "color: themeHex.foreground,",
+    "replace": "color: \"#ff0000\",",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*has no em dash and takes every inline colour from the theme"
+  },
+  {
+    "id": "b11-g4-render-intro-unescaped",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/blocks/intro.tsx",
+    "find": "<Text key={index} style={paragraph}>\n            {line}\n          </Text>",
+    "replace": "<Text key={index} style={paragraph} dangerouslySetInnerHTML={{ __html: line }} />",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*escapes what a person typed"
+  },
+  {
+    "id": "b11-g4-render-property-drawn-blank",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "throw new NonRetryableError(\"property_block_unavailable\");",
+    "replace": "return { type: \"intro\", id: block.id, text: block.title };",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*refuses a property block until B9's NewsletterBlock is on main"
+  },
+  {
+    "id": "b11-g4-render-campaign-fixed",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "const campaign = `issue-${String(issue.number)}`;",
+    "replace": "const campaign = `issue-1`;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*takes the campaign from the number of its own issue"
+  },
+  {
+    "id": "b11-g4-render-phone-width",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "phone: 390",
+    "replace": "phone: 680",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*is the same issue at a desktop and a phone width"
+  },
+  {
+    "id": "b11-g4-render-preview-unsubscribe",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "html.replaceAll(UNSUBSCRIBE_URL, \"#\")",
+    "replace": "html",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*points the unsubscribe link at nothing, since only Resend fills the variable"
   }
 ]
