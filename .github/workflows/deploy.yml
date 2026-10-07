@@ -181,6 +181,7 @@ jobs:
         run: |
           urls=$(node scripts/lhci-urls.mjs "$PREVIEW_URL")
           bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/')
+          node scripts/perf-targets.mjs .lighthouseci
       - name: comment
         env:
           GH_TOKEN: ${{ github.token }}

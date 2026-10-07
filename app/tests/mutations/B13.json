@@ -1465,5 +1465,365 @@
     "replace": "title",
     "run": "bunx vitest run --project unit tests/unit/llms.test.ts",
     "expect": "FAIL .*names a property and a story without the full stop of its headline"
+  },
+  {
+    "id": "b13-g4-head-pass",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "const DESCRIPTION_MAX = 155;",
+    "replace": "const DESCRIPTION_MAX = 90;",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts -t \"passes a complete head\"",
+    "expect": "FAIL .*checkHead > passes a complete head"
+  },
+  {
+    "id": "b13-g4-head-two-titles",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (titles.length !== 1) problems",
+    "replace": "if (titles.length < 1) problems",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails two titles"
+  },
+  {
+    "id": "b13-g4-head-brand-twice",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "split(BRAND).length !== 2",
+    "replace": "split(BRAND).length === 0",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a title that holds the brand twice"
+  },
+  {
+    "id": "b13-g4-head-desc-max",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "length > DESCRIPTION_MAX)",
+    "replace": "length > DESCRIPTION_MAX + 5)",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a description over 155"
+  },
+  {
+    "id": "b13-g4-head-desc-min",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "length < DESCRIPTION_MIN ||",
+    "replace": "length < DESCRIPTION_MIN - 5 ||",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a description over 155"
+  },
+  {
+    "id": "b13-g4-head-desc-missing",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (descriptions.length !== 1)",
+    "replace": "if (descriptions.length > 1)",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a missing description"
+  },
+  {
+    "id": "b13-g4-head-canonical-query",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "else if (canonicals[0]?.[\"href\"] !== expected)",
+    "replace": "else if (canonicals[0]?.[\"href\"]?.split(\"?\")[0] !== expected)",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a canonical with a query string"
+  },
+  {
+    "id": "b13-g4-head-canonical-home",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "return trimmed === \"\" ? \"/\" : trimmed;",
+    "replace": "return trimmed;",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > expects the apex home canonical"
+  },
+  {
+    "id": "b13-g4-head-canonical-slash",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "const trimmed = pathname.replace(/\\/+$/, \"\");",
+    "replace": "const trimmed = pathname;",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > expects the apex home canonical"
+  },
+  {
+    "id": "b13-g4-head-og-image",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "content.startsWith(\"https://\")",
+    "replace": "content !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > fails a relative og:image"
+  },
+  {
+    "id": "b13-g4-head-entity",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "(ENTITIES[name] ?? whole)",
+    "replace": "whole",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > reads an entity in a description"
+  },
+  {
+    "id": "b13-g4-head-jsonld",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "      validateHtml(html);\n",
+    "replace": "      html.length;\n",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkHead > names a structured data block"
+  },
+  {
+    "id": "b13-g4-robots-open",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (!has(line)) problems.push",
+    "replace": "if (has(line)) problems.push",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkRobots > expects the allow block"
+  },
+  {
+    "id": "b13-g4-robots-closed-prod",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (has(\"Disallow: /\")) problems.push",
+    "replace": "if (!has(\"Disallow: /\")) problems.push",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkRobots > fails a production body that closes the site"
+  },
+  {
+    "id": "b13-g4-robots-preview",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "    if (!has(\"Disallow: /\")) problems.push('robots.txt lacks",
+    "replace": "    if (has(\"Disallow: /\")) problems.push('robots.txt lacks",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkRobots > expects Disallow: / and nothing open"
+  },
+  {
+    "id": "b13-g4-robots-header",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "? null : \"noindex, nofollow\";",
+    "replace": "? \"noindex, nofollow\" : null;",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkRobotsHeader > expects no header"
+  },
+  {
+    "id": "b13-g4-prod-fails",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (publishedCount > 0) return [];",
+    "replace": "if (publishedCount >= 0) return [];",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkProductionSitemap > fails a property address"
+  },
+  {
+    "id": "b13-g4-prod-passes",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (publishedCount > 0) return [];",
+    "replace": "if (publishedCount > 1) return [];",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkProductionSitemap > passes the same sitemap"
+  },
+  {
+    "id": "b13-g4-run-names",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "    \"llms\",",
+    "replace": "    \"llm\",",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > passes a site whose pages"
+  },
+  {
+    "id": "b13-g4-run-status",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "(page) => page.status !== 200",
+    "replace": "(page) => page.status >= 400",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails a page that redirects"
+  },
+  {
+    "id": "b13-g4-run-query",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": ".filter((url) => url.search !== \"\")",
+    "replace": ".filter((url) => url.search === \"?\")",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails a sitemap url with a query string"
+  },
+  {
+    "id": "b13-g4-run-noindex",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "content.includes(\"noindex\")",
+    "replace": "content.includes(\"noindexx\")",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails a noindex page"
+  },
+  {
+    "id": "b13-g4-run-unique",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": ".filter((paths) => paths.length > 1)",
+    "replace": ".filter((paths) => paths.length > 2)",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails two pages that share one description"
+  },
+  {
+    "id": "b13-g4-run-forbidden",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "\"google-analytics\", \"fonts.googleapis\"]",
+    "replace": "\"google-analytics\"]",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails initial HTML that holds"
+  },
+  {
+    "id": "b13-g4-run-host-sent",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "{ headers: { host: options.host } }",
+    "replace": "{}",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > sends the Host header"
+  },
+  {
+    "id": "b13-g4-run-host-effective",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "const host = options.host ?? new URL(root).host;",
+    "replace": "const host = new URL(root).host;",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > fails a workers\\.dev host that answers like production"
+  },
+  {
+    "id": "b13-g4-run-gone",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "gone.status === 410 ?",
+    "replace": "gone.status === 200 ?",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > checks the 410 of --gone-slug"
+  },
+  {
+    "id": "b13-g4-run-production",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "publishedList.parse(await list.json()).length",
+    "replace": "1",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > with --production fails a property"
+  },
+  {
+    "id": "b13-g4-run-sitemap-throws",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "if (sitemapResponse.status !== 200)",
+    "replace": "if (sitemapResponse.status === 0)",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*runChecks > throws when the sitemap does not answer"
+  },
+  {
+    "id": "b13-g4-perf-inside",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "const TARGETS = { lcpMs: 2000,",
+    "replace": "const TARGETS = { lcpMs: 1000,",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > prints nothing for a page inside every target"
+  },
+  {
+    "id": "b13-g4-perf-each",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "cls: 0.02,",
+    "replace": "cls: 0.5,",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > warns once per missed target"
+  },
+  {
+    "id": "b13-g4-perf-font-once",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": ".map((item) => item.url),",
+    "replace": ".map((item) => item.url + String(Math.random())),",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > accepts two font files"
+  },
+  {
+    "id": "b13-g4-perf-median",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "const middle = Math.floor(sorted.length / 2);",
+    "replace": "const middle = sorted.length - 1;",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > reduces three runs of one page to their median"
+  },
+  {
+    "id": "b13-g4-perf-hero",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "const HERO_VARIANT = /\\/media\\/v\\/.+\\/hero\\.webp$/;",
+    "replace": "const HERO_VARIANT = /\\/media\\//;",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > weighs only the hero variant"
+  },
+  {
+    "id": "b13-g4-perf-pages",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "pages.set(parsed.finalDisplayedUrl,",
+    "replace": "pages.set(\"all\",",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > reports each page on its own line"
+  },
+  {
+    "id": "b13-g4-perf-analytics-once",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "analytics: [...new Set(analytics)]",
+    "replace": "analytics",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > lists a request to Google Tag Manager"
+  },
+  {
+    "id": "b13-g4-perf-analytics-host",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "hostname === host || hostname.endsWith(`.${host}`)",
+    "replace": "url.includes(host)",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > lists a request to Google Tag Manager"
+  },
+  {
+    "id": "b13-g4-perf-empty",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "if (names.length === 0) throw",
+    "replace": "if (names.length === -1) throw",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*measure > throws on a folder with no report"
+  },
+  {
+    "id": "b13-g4-perf-cli-warn",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "    for (const line of warnings) console.log(line);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*the command > exits 0 and prints a warn line"
+  },
+  {
+    "id": "b13-g4-perf-cli-exit",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "find": "process.exitCode = analytics.length === 0 ? 0 : 1;",
+    "replace": "process.exitCode = 0;",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "expect": "FAIL .*the command > exits 1 and prints an error line"
   }
 ]
