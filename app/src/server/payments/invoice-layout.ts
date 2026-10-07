@@ -112,7 +112,7 @@ export function sanitizeWinAnsi(text: string): { text: string; replaced: number 
   return { text: chars.join(""), replaced };
 }
 
-export interface InvoiceDocument {
+interface InvoiceDocument {
   doc: PDFDocument;
   fonts: Record<InvoiceFont, PDFFont>;
 }
@@ -182,7 +182,10 @@ export function isBlank(value: unknown): boolean {
 export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[]> {
   const missing = requiredInvoiceFields.find((field) => isBlank(Reflect.get(snapshot, field)));
   if (missing !== undefined) throw new AppError("server", undefined, `${missing}_missing`);
-  measuring ??= newInvoiceDocument();
+  measuring ??= newInvoiceDocument().catch((error: unknown) => {
+    measuring = undefined;
+    throw error;
+  });
   const { fonts } = await measuring;
   const runs: TextRun[] = [];
   let replaced = 0;
@@ -198,7 +201,8 @@ export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[
   /** The lines of a text inside `maxWidth`: each paragraph wraps at spaces, a word longer than a line breaks. */
   function wrap(text: string, style: Style, maxWidth: number): string[] {
     const lines: string[] = [];
-    for (const paragraph of clean(text).split(/\r\n|\r|\n/)) {
+    for (const raw of text.split(/\r\n|\r|\n/)) {
+      const paragraph = clean(raw);
       let line = "";
       for (const word of paragraph.split(" ").filter((part) => part !== "")) {
         for (const piece of breakWord(word, style, maxWidth)) {

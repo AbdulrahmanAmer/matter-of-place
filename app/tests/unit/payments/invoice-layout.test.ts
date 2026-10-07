@@ -131,6 +131,29 @@ describe("layoutInvoice", () => {
     );
   });
 
+  it("starts a new line at each line break of the address and the payment instructions", async () => {
+    const runs = await layoutInvoice(
+      invoiceSnapshot({
+        address: "1 Main St\nSuite 4\r\nNew York, NY 10001",
+        instructions: [
+          { id: "wire", label: "Wire transfer", instructions: "Bank: Example Bank\nAccount 000" },
+        ],
+        preferred_method: "wire",
+      }),
+    );
+    const text = lines(runs);
+    expect(text).toEqual(
+      expect.arrayContaining([
+        "1 Main St",
+        "Suite 4",
+        "New York, NY 10001",
+        "Bank: Example Bank",
+        "Account 000",
+      ]),
+    );
+    expect(text.filter((line) => line.includes("?"))).toEqual([]);
+  });
+
   it("holds no brokerage line in the Bill to runs of an owner's invoice", async () => {
     const billTo = async (brokerage: string | null): Promise<string[]> => {
       const runs = await layoutInvoice(

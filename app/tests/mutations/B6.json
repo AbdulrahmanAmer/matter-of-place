@@ -822,6 +822,15 @@
     "expect": "keeps every run inside the page margins"
   },
   {
+    "id": "b6-g5-line-break",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "for (const raw of text.split(/\\r\\n|\\r|\\n/)) {\n      const paragraph = clean(raw);",
+    "replace": "for (const paragraph of clean(text).split(/\\r\\n|\\r|\\n/)) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "starts a new line at each line break"
+  },
+  {
     "id": "b6-g5-overflow",
     "test": "tests/unit/payments/invoice-layout.test.ts",
     "file": "src/server/payments/invoice-layout.ts",
