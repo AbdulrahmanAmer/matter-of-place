@@ -698,7 +698,7 @@ async function rowOf(db: Db, table: string): Promise<string> {
   const submission = () => one(SUBMISSION, ["owner", null, null, null]);
   const payment = async () =>
     one(
-      "insert into public.payments (submission_id, product, amount) values ($1, 'The Feature', 1000)",
+      "insert into public.payments (submission_id, product, amount, invoice_number) values ($1, 'The Feature', 1000, 'TEST-' || gen_random_uuid())",
       [await submission()],
     );
   switch (table) {

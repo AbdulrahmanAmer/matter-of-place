@@ -855,8 +855,8 @@
     "id": "fa-states",
     "test": "tests/unit/factories.test.ts",
     "file": "tests/fixtures/dataset.ts",
-    "find": "  submissions: states.map((state, index) => ({ state, n: index + 1 })),",
-    "replace": "  submissions: states.map((state) => ({ state, n: 1 })),",
+    "find": "const submissions = states.map((state, index) => ({ state, n: index + 1 }));",
+    "replace": "const submissions = states.map((state) => ({ state, n: 1 }));",
     "run": "bunx vitest run --project unit tests/unit/factories.test.ts",
     "expect": "holds one submission per workflow state, each with its own n"
   },
@@ -891,8 +891,8 @@
     "id": "fd-dbnow",
     "test": "tests/db/factories.db.test.ts",
     "file": "tests/fixtures/dataset.ts",
-    "find": "    ids.push(await createSubmission(db, { ...submission, base }));",
-    "replace": "    ids.push(await createSubmission(db, { ...submission, base: new Date() }));",
+    "find": "    ids.set(submission.n, await createSubmission(db, { ...submission, base }));",
+    "replace": "    ids.set(submission.n, await createSubmission(db, { ...submission, base: new Date() }));",
     "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves the same rows when it runs twice\"",
     "expect": "× .*leaves the same rows when it runs twice"
   },
