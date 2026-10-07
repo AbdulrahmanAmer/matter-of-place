@@ -2641,6 +2641,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: with the prefix, `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8828/` on the built Worker prints `200` and `node scripts/cache-proof.mjs http://127.0.0.1:8828` exits 0; without it, the same two print `500` and exit 1 (measured 2026-10-04, B3 c12).
 - added: 2026-10-04
 - hit again: 2026-10-05, B15 g4: B15 step 5a's `bun run dev` recipe lacks the prefix, so the first submit through the real form sent no request and showed "This did not go through" (`services` stayed the local adapter). The recipe needs `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`; the form then answers `201`. Banked with the other three plan lines in P-1706.
+- hit again: 2026-10-07, B7 c6m step 6: the plan's build proof `bun run build && node scripts/bundle-check.mjs .output` has no `VITE_API_BASE_URL` or `VITE_TURNSTILE_SITE_KEY`, so run as written it makes a demo build and `bundle-check` fails on the seed title and the budget; the author lost one build to it and banked it under P-2019 (a different entry, a db fixture). Run the proof with the prefix of this entry's rule.
 
 ## P-832 · The plan's proof key `__proof/photo.00000000.jpg` fails the media route's own key rule, so the object is stored and never served
 - symptom: after the plan's `curl -X POST .../storage/v1/object/media/__proof/photo.00000000.jpg` printed `200`, `node scripts/cache-proof.mjs http://127.0.0.1:8828 --media-key __proof/photo.00000000.jpg` failed with `GET /media/__proof/photo.00000000.jpg: 404 none`, no `x-mop-cache` header and a body of 127 characters.
@@ -4559,4 +4560,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the scratchpad is shared by every session of the project, and folders such as `reg` and `reg2` are reused by name; a replay of a folder replays every registry file in it (P-536 holds the shared-folder fact, this is the reused-name case).
 - rule: a scratch registry goes in a folder made fresh for the replay, `mktemp -d "<scratchpad>/reg.XXXXXX"`, never a short name someone may have used; replay with `--registry` on that folder and check the replayed count equals the entries written.
 - proof: `ls <scratchpad>/reg` → `B10.json B10g3.json B11.json B7.json B8.json B8b.json` (measured by the B7 g3 review, 2026-10-07; scratchpad = the session's `scratchpad/` folder).
+- added: 2026-10-07
+
+## P-2134 · A review snapshot is a worktree of the lane's repository, so `origin/main` moves under it while the builder fetches and `watchfail --changed origin/main` selects against a moving base
+- symptom: during the B7 c6m review, `git rev-parse origin/main` in the snapshot (`D:/mop-build/admin-review`) printed `9c462f5` at the start, `e6f10d9` mid-review and `3ecb616` later, because the builder in `D:/mop-build/admin` fetched meanwhile; a `--changed origin/main` replay in a frozen snapshot picked different entries at different minutes (a few minutes lost to a count that did not repeat).
+- cause: a worktree shares the refs of its repository, so a fetch in any tree moves `origin/main` in every tree (P-051 holds the worktree fact, this is the shared-ref case).
+- rule: a replay in a review snapshot names the base commit from the author's log (`--changed <sha>`), never `origin/main`; the review states the sha it used.
+- proof: `git -C D:/mop-build/admin rev-parse origin/main; git -C D:/mop-build/admin-review rev-parse origin/main` → the same sha twice, and after a `git fetch -q origin` in either tree both print the new one (measured by the B7 c6m review, 2026-10-07: 9c462f5, then e6f10d9, then 3ecb616).
 - added: 2026-10-07

@@ -439,3 +439,31 @@ what: The decision dialogs and the sandbox='' srcDoc letter preview have only be
 evidence: author's unproven list; component tests only
 
 blocking: false
+
+## c6m · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups whose file is GOTCHAS.md are banked in the gotcha bank (P-831 hit again, P-2134), not listed here.
+
+### 1. workspace/05-plans/B7.md
+
+what: Step 6's proof line says 'bun run build && node scripts/bundle-check.mjs .output' without the live-mode VITE variables. Run exactly as written, it makes a demo build that fails bundle-check, which is the cost the author paid. This is a stale plan line, so it is the orchestrator's to fold.
+
+evidence: The plan-brief output for step 6 quotes the build proof without VITE_API_BASE_URL or VITE_TURNSTILE_SITE_KEY. The c6m log, Proof 3, records that the first build without them failed bundle-check.
+
+blocking: false
+
+### 2. app/tests/unit/admin-route-shells.test.ts
+
+what: The H66 half of step 6 is still NOT DONE. LEGACY lines 15-21 still list 5 route files. The step's proof is 'green with the list empty', and c6m reports the shells test as a passing step 6 proof without restating that condition or the NOT DONE. Ruling H66b (08:55) unblocked the conversion and gives it to 'B7's next group'. c6m's brief limited it to the two integration edits, so this is not this group's regression, but the orchestrator must schedule it or it stays hidden behind a green test.
+
+evidence: sed -n 14,21p app/tests/unit/admin-route-shells.test.ts in the snapshot shows the 5 LEGACY entries. ASSUMED.md H66b: 'The builder's revert of the shells is undone in B7's next group'.
+
+blocking: false
+
+### 3. workspace/05-plans/logs/B7.md
+
+what: The c6m Proof 4 numbers ('replayed 119: ok 93, bad 26') come from the tree before the commit, not from the commit handed in. Run from 1c59021 against the same base, the replay gives 'replayed 123: ok 93, bad 30'. The 4 extra entries are the registry entries whose test is the edited tests/db/actor.db.test.ts, and the author's run did not select them. I replayed them with the dev profile and all four print WATCHED-FAIL OK, so nothing is hidden, but the log line is draft output.
+
+evidence: env -u DEV_DB_URL node scripts/watchfail.mjs --registry tests/mutations --changed 9c462f5 gives replayed 123, bad 30. grep -c '"test": "tests/db/actor.db.test.ts"' tests/mutations/*.json totals 4.
+
+blocking: false
