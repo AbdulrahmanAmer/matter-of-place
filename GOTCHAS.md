@@ -4640,3 +4640,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a lane that adds a G entry counts first (the proof below) and says in its log when the count is above 40; the orchestrator gardens the bank (merge or retire entries a test now enforces) when the gardening pass runs, and does not leave it to a worker's group. Teaching `check-gotchas.mjs` the cap is a change to its own file and goes through the orchestrator.
 - proof: `grep -c '^## G-[0-9][0-9][0-9]' GOTCHAS.md` → `42` on slice/b7 and `git show origin/main:GOTCHAS.md | grep -c '^## G-[0-9][0-9][0-9]'` → `41` (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-2319 · `watchfail.mjs --changed origin/main` after a merge of main replays main's entries too: 134 entries, over eight minutes
+- symptom: g6 touched one layout file and three registry entries, ran the step (c) replay after merging origin/main into the lane, and the run replayed 134 entries of B6, B7, B11 and others for more than 500 seconds (the Bash call moved to the background); `--only a,b,c` answered `no entry with id a,b,c`.
+- cause: `--changed <ref>` selects the entries of every file that differs from the ref, and a lane that merged main differs from the ref in files other lanes changed after the merge base; `--only` takes one exact id.
+- rule: replay the entries of your own files with one `--only <id>` call per new entry in a single command line (`for id in ...; do node scripts/watchfail.mjs --registry tests/mutations --only "$id"; done`), and use `--changed` only when the lane has not merged main since its last replay or when a long window is free; then list your file's ids against the log (the loop in P-2319's proof) to see none is missing.
+- proof: `cd app && for id in b6-g6-baseline b6-g6-label-weight b6-g6-two-inks; do node scripts/watchfail.mjs --registry tests/mutations --only "$id" | tail -1; done` → three `replayed 1: ok 1, bad 0, stale 0` lines (measured 2026-10-07).
+- added: 2026-10-07
+
+## P-2320 · No PDF rasteriser on this laptop, and `bun` plus Playwright hangs: the eye check of a PDF is the layout runs drawn in Chromium by `node`
+- symptom: g6's design review needs to see `out/invoice.pdf`; `pdftoppm`, `mutool`, `gs` and ImageMagick are not installed, headless Chromium does not show PDFs, and a bun script that imported `playwright` ran past 120 seconds with no output.
+- cause: nothing here converts a PDF to pixels; bun's loader and Playwright's browser launch do not finish together on this laptop (cause not isolated).
+- rule: dump `layoutInvoice(snapshot)` to JSON with a bun script, and draw those runs as absolutely positioned text in a 612 x 792 page with a plain `node` Playwright script imported by `file:///` URL (Times New Roman and Arial stand in for the standard fonts, same metrics); say in the log that the picture is a stand-in for the PDF.
+- proof: `node --input-type=module -e "import('file:///D:/mop-build/b6/app/node_modules/playwright/index.mjs').then(m=>console.log(typeof m.chromium.launch))"` → `function`.
+- added: 2026-10-07

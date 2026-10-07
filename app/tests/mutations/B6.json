@@ -1009,5 +1009,32 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
     "expect": "gives what the PDF layout parses once SQL adds the number and the two dates"
+  },
+  {
+    "id": "b6-g6-baseline",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "top + (display.size - wordmark.size) * LEADING",
+    "replace": "top"
+  },
+  {
+    "id": "b6-g6-label-weight",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "const label: Style = { size: 8.5, font: \"sans\",",
+    "replace": "const label: Style = { size: 8.5, font: \"sansBold\","
+  },
+  {
+    "id": "b6-g6-two-inks",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "const note: Style = { size: 9, font: \"sans\", color: \"mutedForeground\" };",
+    "replace": "const note: Style = { size: 9, font: \"sans\", color: \"accent\" };"
   }
 ]

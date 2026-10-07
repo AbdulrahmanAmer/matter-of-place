@@ -83,6 +83,30 @@ describe("layoutInvoice", () => {
     expect(text).toContain("Editorial acceptance precedes this invoice.");
   });
 
+  it("sets the small wordmark and the display word on one baseline, labels light, only two inks", async () => {
+    const runs = await layoutInvoice(invoiceSnapshot());
+    const run = (text: string): TextRun => {
+      const found = runs.find((entry) => entry.text === text);
+      if (found === undefined) throw new Error(`no run ${text}`);
+      return found;
+    };
+    expect(run("Matter of Place").y).toBeCloseTo(run("Invoice").y, 5);
+    expect(run("Matter of Place").size).toBeLessThan(run("Invoice").size);
+    const labels = [
+      "From",
+      "Bill to",
+      "Property",
+      "Description",
+      "Amount",
+      "Payment terms",
+      "How to pay",
+    ];
+    expect(labels.map((text) => run(text).font)).toEqual(labels.map(() => "sans"));
+    expect(new Set(runs.map((entry) => entry.color))).toEqual(
+      new Set(["foreground", "mutedForeground"]),
+    );
+  });
+
   it("keeps every run inside the page margins, long text wrapped", async () => {
     const long = "Wire to the account named here, quoting the invoice number. ".repeat(3).trim();
     const runs = await layoutInvoice(

@@ -37,7 +37,7 @@ export const invoiceSnapshotSchema = z.object({
 });
 export type InvoiceSnapshot = z.infer<typeof invoiceSnapshotSchema>;
 
-/** Times Roman for the headings, Helvetica for the text (the brand fonts are a follow-up). */
+/** Times Roman for the display word and the wordmark, Helvetica for the text (the brand fonts are a follow-up). */
 type InvoiceFont = "serif" | "sans" | "sansBold";
 type InvoiceColor = keyof typeof themeRgb;
 
@@ -66,8 +66,9 @@ const COLUMN_WIDTH = 240;
 const RIGHT_COLUMN_X = PAGE.margin + CONTENT_WIDTH - COLUMN_WIDTH;
 const AMOUNT_WIDTH = 110;
 
-const heading: Style = { size: 24, font: "serif", color: "foreground" };
-const label: Style = { size: 8.5, font: "sansBold", color: "mutedForeground" };
+const display: Style = { size: 28, font: "serif", color: "foreground" };
+const wordmark: Style = { size: 15, font: "serif", color: "foreground" };
+const label: Style = { size: 8.5, font: "sans", color: "mutedForeground" };
 const body: Style = { size: 10, font: "sans", color: "foreground" };
 const strong: Style = { size: 10, font: "sansBold", color: "foreground" };
 const total: Style = { size: 13, font: "sansBold", color: "foreground" };
@@ -252,12 +253,16 @@ export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[
     );
   }
 
-  // Header: the wordmark left, the invoice facts right.
+  // Header: the small wordmark left and the display word right, on one baseline; the invoice facts under the word.
   let top: number = PAGE.margin;
-  const wordmark = put("Matter of Place", heading, top, { x: PAGE.margin });
-  const sub = put("A product of Omnikom.", note, wordmark, { x: PAGE.margin });
-  let facts = put("Invoice", heading, top, { right: PAGE.width - PAGE.margin });
-  facts = put(clean(snapshot.invoice_number), strong, facts, { right: PAGE.width - PAGE.margin });
+  const mark = put("Matter of Place", wordmark, top + (display.size - wordmark.size) * LEADING, {
+    x: PAGE.margin,
+  });
+  const sub = put("A product of Omnikom.", note, mark + 2, { x: PAGE.margin });
+  let facts = put("Invoice", display, top, { right: PAGE.width - PAGE.margin });
+  facts = put(clean(snapshot.invoice_number), strong, facts + 4, {
+    right: PAGE.width - PAGE.margin,
+  });
   facts = put(`Issued ${longDate(snapshot.issue_date)}`, body, facts, {
     right: PAGE.width - PAGE.margin,
   });
@@ -305,7 +310,7 @@ export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[
   const preferred = snapshot.instructions.find((method) => method.id === snapshot.preferred_method);
   top = block(
     `Preferred method: ${preferred?.label ?? snapshot.preferred_method}`,
-    strong,
+    body,
     top,
     PAGE.margin,
     CONTENT_WIDTH,
@@ -321,7 +326,7 @@ export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[
     PAGE.margin,
     CONTENT_WIDTH,
   );
-  block("Editorial acceptance precedes this invoice.", note, top, PAGE.margin, CONTENT_WIDTH);
+  block("Editorial acceptance precedes this invoice.", note, top + 8, PAGE.margin, CONTENT_WIDTH);
 
   if (replaced > 0) logLine("info", "invoice_glyph_replaced", { count: replaced });
   return runs;
