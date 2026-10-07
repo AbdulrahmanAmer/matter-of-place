@@ -29,8 +29,6 @@ export type PageHeadInput = {
   noindex?: boolean;
 };
 
-const suffix = ` | ${siteConfig.name}`;
-
 /**
  * The one writer of a structured-data script body (SEC-03). Titles and stories arrive from the public
  * submission form, so `<`, `>` and `&` are escaped, which keeps a payload from closing its own script
@@ -77,6 +75,7 @@ export function pageHead({
 }: PageHeadInput) {
   // The brand appears exactly once. Routes pass bare titles; the home route passes a title
   // that starts with the brand, and the root passes the brand alone (GOTCHAS G-003).
+  const suffix = ` | ${siteConfig.name}`;
   const hasBrand =
     title === siteConfig.name ||
     title.startsWith(`${siteConfig.name} | `) ||

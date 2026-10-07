@@ -1932,5 +1932,23 @@
     "replace": "if (false) {",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
     "expect": "× .*refuses an account with no address"
+  },
+  {
+    "id": "b11-g6-site-config-jsonld",
+    "test": "tests/unit/site-config-lazy.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "const publisher = (): Organization => ({ \"@type\": \"Organization\", name: siteConfig.name });",
+    "replace": "const publisher = { \"@type\": \"Organization\", name: siteConfig.name };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/site-config-lazy.test.ts",
+    "expect": "× .*is read inside functions"
+  },
+  {
+    "id": "b11-g6-site-config-seo",
+    "test": "tests/unit/site-config-lazy.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "type PageHeadInput = {",
+    "replace": "const suffix = ` | ${siteConfig.name}`;\n\ntype PageHeadInput = {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/site-config-lazy.test.ts",
+    "expect": "× .*is read inside functions"
   }
 ]
