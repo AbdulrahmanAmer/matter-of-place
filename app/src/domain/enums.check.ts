@@ -13,6 +13,7 @@ import type {
   submitterKinds,
 } from "./contracts.ts";
 import type { assetKinds, assetStatuses } from "./assets.ts";
+import type { socialPostStatuses } from "./channels.ts";
 import type { GalleryImage, Property } from "./property.ts";
 import type { Story } from "./story.ts";
 import type { propertyEditorialTransitions, WorkflowState } from "./workflow.ts";
@@ -39,4 +40,5 @@ export type EnumPairs = [
   Expect<Equal<GalleryImage["orientation"], Enums<"media_orientation">>>,
   Expect<Equal<(typeof assetKinds)[number] | "variants", Enums<"asset_kind">>>,
   Expect<Equal<(typeof assetStatuses)[number], Enums<"asset_status">>>,
+  Expect<Equal<(typeof socialPostStatuses)[number], Enums<"social_post_status">>>,
 ];

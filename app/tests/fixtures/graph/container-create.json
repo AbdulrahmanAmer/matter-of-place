@@ -1,0 +1,7 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media, Sample Response",
+  "request": "POST /{ig-user-id}/media",
+  "response": { "id": "17889455560051444" }
+}

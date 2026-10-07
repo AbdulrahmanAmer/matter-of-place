@@ -80,6 +80,16 @@ const routesPending: readonly ActionId[] = [
   "automation.flags_put",
   "automation.templates_preview",
   "automation.templates_send_test",
+  // B10: steps 8 and 9 add these routes. reports.export is the browser's print and never gets a route (G22).
+  "channels.health",
+  "channels.retry",
+  "channels.cancel",
+  "channels.metrics_refresh",
+  "channels.mark_withdrawn",
+  "reports.list",
+  "reports.get",
+  "reports.export",
+  "reports.email",
 ];
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");

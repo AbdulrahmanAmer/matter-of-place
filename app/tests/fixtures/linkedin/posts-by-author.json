@@ -1,0 +1,54 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.linkedin.com/rest/posts",
+  "response": {
+    "paging": {
+      "start": 0,
+      "count": 10,
+      "links": []
+    },
+    "elements": [
+      {
+        "id": "urn:li:share:7380000000000000003",
+        "author": "urn:li:organization:100000001",
+        "commentary": "Elm Court, Sag Harbor \\(East End\\).",
+        "content": {
+          "multiImage": {
+            "images": [
+              {
+                "id": "urn:li:image:D4E10AQOther1"
+              },
+              {
+                "id": "urn:li:image:D4E10AQExample2"
+              }
+            ]
+          }
+        },
+        "lifecycleState": "PUBLISHED",
+        "visibility": "PUBLIC"
+      },
+      {
+        "id": "urn:li:share:7380000000000000001",
+        "author": "urn:li:organization:100000001",
+        "commentary": "Oak Hill, Larchmont \\(Westchester\\).",
+        "content": {
+          "media": {
+            "id": "urn:li:image:D4E10AQExample1",
+            "altText": ""
+          }
+        },
+        "lifecycleState": "PUBLISHED",
+        "visibility": "PUBLIC"
+      },
+      {
+        "id": "urn:li:share:7380000000000000000",
+        "author": "urn:li:organization:100000001",
+        "commentary": "A note without an image.",
+        "lifecycleState": "PUBLISHED",
+        "visibility": "PUBLIC"
+      }
+    ]
+  }
+}

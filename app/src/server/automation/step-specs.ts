@@ -277,6 +277,7 @@ export const stepSpecs: Record<StepType, StepSpec> = {
       respectWindowField,
     ],
     maxAttempts: providerMaxAttempts,
+    timeoutMs: 40_000,
     sideEffect: "begin_row",
   },
   post_x: {
@@ -287,6 +288,7 @@ export const stepSpecs: Record<StepType, StepSpec> = {
     paramsSchema: z.object({ respect_window: respectWindow }).strict(),
     fields: [respectWindowField],
     maxAttempts: providerMaxAttempts,
+    timeoutMs: 40_000,
     sideEffect: "begin_row",
   },
   post_linkedin: {
@@ -297,6 +299,7 @@ export const stepSpecs: Record<StepType, StepSpec> = {
     paramsSchema: z.object({ respect_window: respectWindow }).strict(),
     fields: [respectWindowField],
     maxAttempts: providerMaxAttempts,
+    timeoutMs: 40_000,
     sideEffect: "begin_row",
   },
   render_og_static: {

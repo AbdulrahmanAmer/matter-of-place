@@ -834,6 +834,37 @@ isOneToOne: false
       referencedColumns: ["property_id"]
     }
                   ]
+                },"social_posts": {
+                  Row: {
+                    "asset_id": string,"channel": string,"created_at": string,"error": string | null,"id": string,"metrics": NonNullable<Json>,"permalink": string | null,"posted_at": string | null,"property_id": string,"remote_id": string | null,"scheduled_at": string,"status": Database["public"]['Enums']["social_post_status"],"updated_at": string,"withdraw_required_at": string | null,"withdrawn_at": string | null
+                  }
+                  Insert: {
+                    "asset_id": string,"channel": string,"created_at"?: string,"error"?: string | null,"id"?: string,"metrics"?: NonNullable<Json>,"permalink"?: string | null,"posted_at"?: string | null,"property_id": string,"remote_id"?: string | null,"scheduled_at": string,"status"?: Database["public"]['Enums']["social_post_status"],"updated_at"?: string,"withdraw_required_at"?: string | null,"withdrawn_at"?: string | null
+                  }
+                  Update: {
+                    "asset_id"?: string,"channel"?: string,"created_at"?: string,"error"?: string | null,"id"?: string,"metrics"?: NonNullable<Json>,"permalink"?: string | null,"posted_at"?: string | null,"property_id"?: string,"remote_id"?: string | null,"scheduled_at"?: string,"status"?: Database["public"]['Enums']["social_post_status"],"updated_at"?: string,"withdraw_required_at"?: string | null,"withdrawn_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "social_posts_asset_id_fkey"
+      columns: ["asset_id"]
+isOneToOne: false
+      referencedRelation: "assets"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "social_posts_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "properties"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "social_posts_property_id_fkey"
+      columns: ["property_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["property_id"]
+    }
+                  ]
                 },"stories": {
                   Row: {
                     "archived_at": string | null,"author_id": string | null,"body": (string)[],"category": Database["public"]['Enums']["story_category"],"created_at": string,"deck": string,"editorial_state": Database["public"]['Enums']["editorial_state"],"id": string,"image": string | null,"image_variants": NonNullable<Json>,"market_slug": string,"properties": (string)[],"published_at": string | null,"slug": string,"title": string,"updated_at": string
@@ -1060,7 +1091,7 @@ isOneToOne: false
 { Args: { "p_items": Json }; Returns: Json
                            },
 "approve_asset":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_request_id"?: string }; Returns: string
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_evidence"?: Json,"p_request_id"?: string }; Returns: string
                            },
 "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
@@ -1073,6 +1104,9 @@ isOneToOne: false
                            },
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
+                           },
+"auto_approve_asset":
+{ Args: { "p_asset_id": string,"p_evidence": Json,"p_request_id"?: string }; Returns: string
                            },
 "automation_put_channel":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_channel": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
@@ -1106,6 +1140,9 @@ isOneToOne: false
                            },
 "cancel_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string,"p_message"?: string }; Returns: boolean
+                           },
+"cancel_social_post":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: undefined
                            },
 "claim_job":
 { Args: { "p_job_id": string }; Returns: {
@@ -1193,6 +1230,9 @@ isOneToOne: false
 "editorial_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["editorial_state"],"p_to": Database["public"]['Enums']["editorial_state"] }; Returns: boolean
                            },
+"email_campaign_report":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_report_id": string,"p_request_id": string }; Returns: string
+                           },
 "email_message_begin":
 { Args: { "p_content_hash": string,"p_entity"?: string,"p_entity_id"?: string,"p_job_id": string,"p_kind": string,"p_subject": string,"p_template_key": string,"p_to_email": string }; Returns: {
               "content_hash": string,"id": string,"status": string
@@ -1221,6 +1261,9 @@ isOneToOne: false
                            },
 "fail_job":
 { Args: { "p_claim": string,"p_dead"?: boolean,"p_error": string,"p_job_id": string,"p_run_url"?: string }; Returns: boolean
+                           },
+"fail_social_post":
+{ Args: { "p_error": string,"p_id": string }; Returns: boolean
                            },
 "fanout_insert_jobs":
 { Args: { "p_event_id": string,"p_jobs": Json }; Returns: number
@@ -1328,6 +1371,12 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_method": string,"p_paid_at": string,"p_payment_id": string,"p_reference": string,"p_request_id": string }; Returns: {
               "event_id": string,"payment_id": string
             }[]
+                           },
+"mark_social_post_posted":
+{ Args: { "p_id": string,"p_permalink": string,"p_remote_id": string,"p_targets": (string)[] }; Returns: string
+                           },
+"mark_social_post_withdrawn":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: undefined
                            },
 "market_timezone":
 { Args: { "p_market_slug": string }; Returns: string
@@ -1449,6 +1498,9 @@ isOneToOne: false
 "publish_property":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_request_id": string }; Returns: Json
                            },
+"put_channel_ids":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_key": string,"p_request_id": string,"p_value": Json }; Returns: Json
+                           },
 "queue_digest_add":
 { Args: { "p_asset": string,"p_property": string }; Returns: string
                            },
@@ -1463,6 +1515,12 @@ isOneToOne: false
 "record_analytics_events":
 { Args: { "p_rows": Json }; Returns: number
                            },
+"record_channel_check":
+{ Args: { "p_channel": string,"p_checked_at": string,"p_expires_at": string,"p_state": string }; Returns: undefined
+                           },
+"record_channel_usage":
+{ Args: { "p_channel": string,"p_reads": number }; Returns: number
+                           },
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
                            },
@@ -1473,6 +1531,9 @@ isOneToOne: false
                            },
 "record_webhook_receipt":
 { Args: { "p_id": string,"p_provider": string }; Returns: boolean
+                           },
+"refresh_social_post_metrics":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: string
                            },
 "reject_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_note": string,"p_request_id"?: string }; Returns: string
@@ -1490,6 +1551,9 @@ isOneToOne: false
                            },
 "rerender_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_request_id"?: string }; Returns: Json
+                           },
+"reschedule_social_post":
+{ Args: { "p_id": string,"p_note": string,"p_scheduled_at": string }; Returns: boolean
                            },
 "retention_accepted_media":
 { Args: { "p_keep": string }; Returns: {
@@ -1521,6 +1585,9 @@ isOneToOne: false
                            },
 "retention_log_run":
 { Args: { "p_after": Json }; Returns: number
+                           },
+"retry_social_post":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_force": boolean,"p_id": string,"p_request_id": string }; Returns: string
                            },
 "rollup_analytics_daily":
 { Args: { "p_from": string,"p_to": string }; Returns: number
@@ -1584,6 +1651,30 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"schedule_social_post":
+{ Args: { "p_asset_id": string,"p_channel": string,"p_scheduled_at": string }; Returns: {
+              "asset_id": string,
+"channel": string,
+"created_at": string,
+"error": string | null,
+"id": string,
+"metrics": NonNullable<Json>,
+"permalink": string | null,
+"posted_at": string | null,
+"property_id": string,
+"remote_id": string | null,
+"scheduled_at": string,
+"status": Database["public"]['Enums']["social_post_status"],
+"updated_at": string,
+"withdraw_required_at": string | null,
+"withdrawn_at": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "social_posts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "set_asset_caption":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt_text"?: string,"p_asset": string,"p_captions"?: Json,"p_request_id"?: string }; Returns: undefined
                            },
@@ -1614,6 +1705,12 @@ isOneToOne: false
 "set_related":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_related": (string)[],"p_request_id": string }; Returns: number
                            },
+"set_social_post_inflight":
+{ Args: { "p_id": string,"p_marker"?: string }; Returns: boolean
+                           },
+"set_social_post_metrics":
+{ Args: { "p_id": string,"p_metrics": Json }; Returns: undefined
+                           },
 "set_target_image":
 { Args: { "p_image": string,"p_slug": string,"p_target": string,"p_variants": Json }; Returns: undefined
                            },
@@ -1631,6 +1728,9 @@ isOneToOne: false
                            },
 "start_review":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_ids": (string)[] }; Returns: number
+                           },
+"store_channel_token":
+{ Args: { "p_channel": string,"p_token_set": Json,"p_used_refresh_sha256": string }; Returns: string
                            },
 "submission_event_payload":
 { Args: { "p_submission": Database["public"]['Tables']["submissions"]['Row'] }; Returns: Json
@@ -1677,6 +1777,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"upsert_campaign_report":
+{ Args: { "p_campaign_id": string,"p_period_start": string,"p_row": Json }; Returns: string
+                           },
 "upsert_representative":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_fields": Json,"p_id"?: string,"p_request_id": string }; Returns: string
                            },
@@ -1698,7 +1801,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "accepted_state": "California"|"New York"|"Florida","actor_kind": "human"|"agent","app_role": "chief_editor"|"managing_editor"|"visual_editor"|"media_ops"|"commercial"|"admin","asset_kind": "variants"|"cover"|"carousel"|"story"|"reel"|"newsletter_block"|"standalone_email","asset_status": "pending"|"approved"|"rejected"|"published","campaign_tier": "Editorial"|"Feature"|"Reach"|"Campaign","channel_status": "none"|"planned"|"active"|"done","editorial_state": "draft"|"review"|"agent_review"|"published"|"archived","exposure_package": "The Feature"|"The Reach"|"The Campaign"|"Five Features"|"Not sure yet","inquiry_intent": "showing"|"ask"|"similar"|"sell"|"invest"|"agent"|"general","inquiry_state": "new"|"in_progress"|"forwarded"|"closed","job_status": "queued"|"running"|"done"|"failed"|"dead"|"waiting_approval"|"cancelled","listing_status": "Illustrative"|"Active"|"Off-market"|"Under offer"|"Sold","media_orientation": "landscape"|"portrait","payment_method": "invoice_manual"|"stripe","payment_status": "due"|"paid"|"waived"|"refunded"|"void","property_type": "Estate"|"Residence"|"Townhouse"|"Waterfront"|"Farmhouse"|"Apartment"|"Penthouse","story_category": "Architecture"|"Interiors"|"Places"|"Stories","submission_source": "Editorial"|"Submission","submission_state": "Submitted"|"Under Review"|"Accepted"|"Declined"|"Awaiting Assets"|"Invoice Issued"|"Scheduled"|"Published"|"Distribution Active"|"Completed"|"Withdrawn","submitter_kind": "agent"|"owner"
+            "accepted_state": "California"|"New York"|"Florida","actor_kind": "human"|"agent","app_role": "chief_editor"|"managing_editor"|"visual_editor"|"media_ops"|"commercial"|"admin","asset_kind": "variants"|"cover"|"carousel"|"story"|"reel"|"newsletter_block"|"standalone_email","asset_status": "pending"|"approved"|"rejected"|"published","campaign_tier": "Editorial"|"Feature"|"Reach"|"Campaign","channel_status": "none"|"planned"|"active"|"done","editorial_state": "draft"|"review"|"agent_review"|"published"|"archived","exposure_package": "The Feature"|"The Reach"|"The Campaign"|"Five Features"|"Not sure yet","inquiry_intent": "showing"|"ask"|"similar"|"sell"|"invest"|"agent"|"general","inquiry_state": "new"|"in_progress"|"forwarded"|"closed","job_status": "queued"|"running"|"done"|"failed"|"dead"|"waiting_approval"|"cancelled","listing_status": "Illustrative"|"Active"|"Off-market"|"Under offer"|"Sold","media_orientation": "landscape"|"portrait","payment_method": "invoice_manual"|"stripe","payment_status": "due"|"paid"|"waived"|"refunded"|"void","property_type": "Estate"|"Residence"|"Townhouse"|"Waterfront"|"Farmhouse"|"Apartment"|"Penthouse","social_post_status": "scheduled"|"posted"|"failed","story_category": "Architecture"|"Interiors"|"Places"|"Stories","submission_source": "Editorial"|"Submission","submission_state": "Submitted"|"Under Review"|"Accepted"|"Declined"|"Awaiting Assets"|"Invoice Issued"|"Scheduled"|"Published"|"Distribution Active"|"Completed"|"Withdrawn","submitter_kind": "agent"|"owner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1814,7 +1917,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "accepted_state": ["California", "New York", "Florida"],"actor_kind": ["human", "agent"],"app_role": ["chief_editor", "managing_editor", "visual_editor", "media_ops", "commercial", "admin"],"asset_kind": ["variants", "cover", "carousel", "story", "reel", "newsletter_block", "standalone_email"],"asset_status": ["pending", "approved", "rejected", "published"],"campaign_tier": ["Editorial", "Feature", "Reach", "Campaign"],"channel_status": ["none", "planned", "active", "done"],"editorial_state": ["draft", "review", "agent_review", "published", "archived"],"exposure_package": ["The Feature", "The Reach", "The Campaign", "Five Features", "Not sure yet"],"inquiry_intent": ["showing", "ask", "similar", "sell", "invest", "agent", "general"],"inquiry_state": ["new", "in_progress", "forwarded", "closed"],"job_status": ["queued", "running", "done", "failed", "dead", "waiting_approval", "cancelled"],"listing_status": ["Illustrative", "Active", "Off-market", "Under offer", "Sold"],"media_orientation": ["landscape", "portrait"],"payment_method": ["invoice_manual", "stripe"],"payment_status": ["due", "paid", "waived", "refunded", "void"],"property_type": ["Estate", "Residence", "Townhouse", "Waterfront", "Farmhouse", "Apartment", "Penthouse"],"story_category": ["Architecture", "Interiors", "Places", "Stories"],"submission_source": ["Editorial", "Submission"],"submission_state": ["Submitted", "Under Review", "Accepted", "Declined", "Awaiting Assets", "Invoice Issued", "Scheduled", "Published", "Distribution Active", "Completed", "Withdrawn"],"submitter_kind": ["agent", "owner"]
+            "accepted_state": ["California", "New York", "Florida"],"actor_kind": ["human", "agent"],"app_role": ["chief_editor", "managing_editor", "visual_editor", "media_ops", "commercial", "admin"],"asset_kind": ["variants", "cover", "carousel", "story", "reel", "newsletter_block", "standalone_email"],"asset_status": ["pending", "approved", "rejected", "published"],"campaign_tier": ["Editorial", "Feature", "Reach", "Campaign"],"channel_status": ["none", "planned", "active", "done"],"editorial_state": ["draft", "review", "agent_review", "published", "archived"],"exposure_package": ["The Feature", "The Reach", "The Campaign", "Five Features", "Not sure yet"],"inquiry_intent": ["showing", "ask", "similar", "sell", "invest", "agent", "general"],"inquiry_state": ["new", "in_progress", "forwarded", "closed"],"job_status": ["queued", "running", "done", "failed", "dead", "waiting_approval", "cancelled"],"listing_status": ["Illustrative", "Active", "Off-market", "Under offer", "Sold"],"media_orientation": ["landscape", "portrait"],"payment_method": ["invoice_manual", "stripe"],"payment_status": ["due", "paid", "waived", "refunded", "void"],"property_type": ["Estate", "Residence", "Townhouse", "Waterfront", "Farmhouse", "Apartment", "Penthouse"],"social_post_status": ["scheduled", "posted", "failed"],"story_category": ["Architecture", "Interiors", "Places", "Stories"],"submission_source": ["Editorial", "Submission"],"submission_state": ["Submitted", "Under Review", "Accepted", "Declined", "Awaiting Assets", "Invoice Issued", "Scheduled", "Published", "Distribution Active", "Completed", "Withdrawn"],"submitter_kind": ["agent", "owner"]
           }
         }
 } as const
