@@ -379,3 +379,63 @@ what: The emails list matches `lower(e.to_email) = lower(v_contact.email)`, and 
 evidence: person_detail.sql emails subquery; B7.md log g2 'Choices to check': 'this read does not use it (UNPROVEN cost, a follow-up for a lower(to_email) index)'
 
 blocking: false
+
+## g3 · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The eighth follow-up of the review (a scratch registry in a reused folder) is a GOTCHAS.md cost and is banked as P-2133.
+
+### 1. app/src/routes/admin.tsx (plus admin/auth.confirm.tsx, admin/sign-in.tsx, admin/requests.index.tsx, admin/requests.$id.tsx, tests/unit/admin-route-shells.test.ts)
+
+what: The first half of step 6 (ruling H66, the shell conversion with LEGACY emptied) is NOT DONE. The author built it, saw bundle-check FAILED 9, and reverted it, so these files are as on main and nothing regressed. By reading app/scripts/bundle-check.mjs I confirmed the author's cause. Lines 59 and 94 walk every public route chunk with reach(manifest, key, true). Each route chunk imports the client entry, so the walk follows every dynamicImports target of the entry, and any await import() of src/admin/** lands in a forbidden chunk. H66 and gate G16 contradict each other, and the orchestrator has to choose between them. I did not rebuild the conversion myself, because I have no edit tool.
+
+evidence: scripts/bundle-check.mjs:54-60 and :94; log block 'NOT DONE, BLOCKED' in workspace/05-plans/logs/B7.md; GOTCHAS P-2021
+
+blocking: false
+
+### 2. app/supabase/migrations/20261007042201_admin_submissions_decisions.sql
+
+what: The step's CI db proof is UNPROVEN. PR 213 is a draft, so its db job is skipped (P-2001). There is also a likely type-drift failure. submission_event_payload(public.submissions) is a new function whose argument is a row type, and src/db/types.ts has no entry for it. No function in types.ts has this shape, so I cannot predict what the generator emits. When the PR is marked ready, the db job's type-drift step may go red. In that case bun run types:from-ci -- 213 takes the generated types.
+
+evidence: grep 'submission_event_payload' src/db/types.ts finds nothing; no other function in types.ts takes a table row as its argument
+
+blocking: false
+
+### 3. app/src/server/lib/permissions/submissions.ts / app/supabase/sql/functions/request_assets.sql
+
+what: This is a gap in the plan, not in this group's code. An agent with an editor role and the submissions scope can loop request_assets and assets_received (Accepted, then Awaiting Assets, then Accepted again) without limit. Every request_assets sends the awaiting_assets letter to the submitter, which spends the 100-a-day Resend quota. request_assets is neither humanOnly nor counted by assert_agent_daily_cap. STANDARDS R12 says an agent-reachable action that changes outbound content must be one or the other. The plan's Contract caps only decline and accept, so the orchestrator should rule on this.
+
+evidence: assert_agent_daily_cap's v_actions covers only submissions.decline/accept and properties/stories.publish; request_assets.sql never calls it; the permissions entry for submissions.request_assets has no humanOnly
+
+blocking: false
+
+### 4. app/supabase/sql/functions/assert_agent_daily_cap.sql
+
+what: The daily cap fails open. If settings.agent_daily_limits is missing, or lacks the <group>_per_day key, v_limit is null, 'v_count >= null' is null, and no limit is enforced. Separately, the tests only count accepts, so removing 'submissions.decline' from the decisions array would stay green. I found both by reading; neither was run.
+
+evidence: lines: select (s.value ->> (p_group || '_per_day'))::integer into v_limit ...; if v_count >= v_limit then raise; the cap db cases call accept_submission only
+
+blocking: false
+
+### 5. app/src/server/submissions/service.ts
+
+what: emailPreview has no not-found path (found by reading). For an unknown submission id or an unknown decline_reason_id, the resolver throws NonRetryableError('submission_missing' or 'decline_reason_missing'). defineAdminRoute maps that to 500 and sends it to Sentry instead of answering 404 or 422. The UI only offers listed reasons, so the main trigger is an API caller or a stale id.
+
+evidence: variables.ts:94-96 found() throws NonRetryableError; admin-route.ts:213-219 logs unhandled_error and captures for code 'server'
+
+blocking: false
+
+### 6. app/scripts/admin-smoke.ts
+
+what: The script checks ADMIN_SMOKE_KEY only after it has committed a test submission to mop-dev, inside post(). The cleanup deletes the row (I confirmed 0 rows remain), but a run without the key still writes and deletes on the shared database. Checking requiredEnv('ADMIN_SMOKE_KEY') before the write would avoid that. The leg that prints 'declined skipped dry_' is UNPROVEN: it needs the key, bun run dev and the migration pushed by main.
+
+evidence: re-run printed 'admin-smoke: ADMIN_SMOKE_KEY is not set', exit 1, after createSubmission had run inside committed()
+
+blocking: false
+
+### 7. app/src/admin/requests/EmailPreview.tsx
+
+what: The decision dialogs and the sandbox='' srcDoc letter preview have only been tested in jsdom (UNPROVEN, as the author says). A srcdoc frame inherits the admin page's CSP, so once csp_enforce is on, the letter's inline styles may not render. Axe has not been run on screen 4 with a dialog open (R47).
+
+evidence: author's unproven list; component tests only
+
+blocking: false

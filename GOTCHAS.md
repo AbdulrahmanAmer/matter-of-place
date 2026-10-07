@@ -4539,3 +4539,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a lane that adds a G entry counts first (the proof below) and says in its log when the count is above 40; the orchestrator gardens the bank (merge or retire entries a test now enforces) when the gardening pass runs, and does not leave it to a worker's group. Teaching `check-gotchas.mjs` the cap is a change to its own file and goes through the orchestrator.
 - proof: `grep -c '^## G-[0-9][0-9][0-9]' GOTCHAS.md` → `42` on slice/b7 and `git show origin/main:GOTCHAS.md | grep -c '^## G-[0-9][0-9][0-9]'` → `41` (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-2133 · A scratch registry written to a reused short folder name (`reg`) replays other sessions' entries and overwrites their file
+- symptom: B7 g3's review wrote a scratch registry to `<scratchpad>/reg` and `watchfail` replayed 147 entries, `ok 7, bad 4, stale 136`, when only 7 were meant. The folder already held B10.json, B10g3.json, B11.json, B8.json and B8b.json from other lanes, and the write replaced whatever B7.json stood there.
+- cause: the scratchpad is shared by every session of the project, and folders such as `reg` and `reg2` are reused by name; a replay of a folder replays every registry file in it (P-536 holds the shared-folder fact, this is the reused-name case).
+- rule: a scratch registry goes in a folder made fresh for the replay, `mktemp -d "<scratchpad>/reg.XXXXXX"`, never a short name someone may have used; replay with `--registry` on that folder and check the replayed count equals the entries written.
+- proof: `ls <scratchpad>/reg` → `B10.json B10g3.json B11.json B7.json B8.json B8b.json` (measured by the B7 g3 review, 2026-10-07; scratchpad = the session's `scratchpad/` folder).
+- added: 2026-10-07
