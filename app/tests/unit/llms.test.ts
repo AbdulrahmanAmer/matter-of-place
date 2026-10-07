@@ -1,3 +1,4 @@
+import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import type { Json } from "../../src/db";
 import { applyVisibility } from "../../src/server/catalog/visibility";

@@ -1,3 +1,4 @@
+import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import { properties as bundledProperties } from "../../src/data/properties";
 import { stories as bundledStories } from "../../src/data/stories";

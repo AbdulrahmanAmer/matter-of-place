@@ -2125,5 +2125,131 @@
     "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8928 --var CATALOG_VERSION_TTL_MS:0, then E2E_BASE_URL=http://127.0.0.1:8928 bunx vitest run --project db tests/api/gone.api.test.ts",
     "expect": "expected 200 to be 410",
     "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g2-warm-zero",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "Date.now() - stateMemo.checkedAt < ttlMs()",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*a warm read > costs no database call"
+  },
+  {
+    "id": "b13-g2-warm-ttl",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "Date.now() - stateMemo.checkedAt < ttlMs()",
+    "replace": "Date.now() - stateMemo.checkedAt < 1",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*a warm read > moves the counter by state checks only"
+  },
+  {
+    "id": "b13-g2-bump-one-read",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "catalogMemo !== undefined && catalogFor === state.catalogVersion",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*a catalog version bump > costs one snapshot read"
+  },
+  {
+    "id": "b13-g2-flag-off",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/seo/archive.ts",
+    "find": "state.flags[\"archive_pages\"] === true",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*switching the archive_pages flag off"
+  },
+  {
+    "id": "b13-g2-redirect-row",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": ".filter(({ path }) => !redirected.has(path))",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*adding a redirects row"
+  },
+  {
+    "id": "b13-g2-coming-soon",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/catalog/visibility.ts",
+    "find": "!state.comingSoonGlobal && state.comingSoonMarkets[market] !== true",
+    "replace": "!state.comingSoonGlobal",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*moving a market out of coming_soon_markets"
+  },
+  {
+    "id": "b13-g2-stale-held",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "stateStale ? \"stale\" : \"hit\"",
+    "replace": "\"hit\"",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*serves the last good copy as stale while the state is held"
+  },
+  {
+    "id": "b13-g2-stale-new-isolate",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "return answer(request, kept, kind, \"stale\");",
+    "replace": "return answer(request, kept, kind, \"hit\");",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*in a new isolate that cannot read the database"
+  },
+  {
+    "id": "b13-g2-query-key",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "const { pathname } = new URL(request.url);\n  const cache = edgeCache();",
+    "replace": "const pathname = new URL(request.url).pathname + new URL(request.url).search;\n  const cache = edgeCache();",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*drops the query string"
+  },
+  {
+    "id": "b13-g2-kind-doc",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/routes/llms[.]txt.ts",
+    "find": "          \"doc\",\n",
+    "replace": "          \"json\",\n",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*stores the documents as kind doc"
+  },
+  {
+    "id": "b13-g2-tag-seo",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/routes/sitemap[.]xml.ts",
+    "find": "tags: [\"seo\"]",
+    "replace": "tags: []",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*tags the documents seo"
+  },
+  {
+    "id": "b13-g2-robots-workers",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "if (!isIndexableHost(host, env.MOP_ENV)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*is not stored for a workers.dev host"
+  },
+  {
+    "id": "b13-g2-robots-cookie",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/routes/robots[.]txt.ts",
+    "find": "() => Promise.resolve(buildRobots(host, env.MOP_ENV)),",
+    "replace": "() => Promise.resolve(buildRobots(request.headers.has(\"cookie\") ? \"x.workers.dev\" : host, env.MOP_ENV)),",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*answers the indexable body the same with and without a cookie"
+  },
+  {
+    "id": "b13-g2-set-cookie",
+    "test": "tests/unit/seo-cache.test.ts",
+    "file": "src/routes/sitemap[.]xml.ts",
+    "find": "headers: { \"content-type\": \"application/xml; charset=utf-8\" },",
+    "replace": "headers: { \"content-type\": \"application/xml; charset=utf-8\", \"set-cookie\": \"a=b\" },",
+    "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
+    "expect": "FAIL .*no document or page of the slice sets a cookie"
   }
 ]

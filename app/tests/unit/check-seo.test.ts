@@ -1,4 +1,5 @@
 // scripts/check-seo.ts (B13 step 9): the pure checks, then the crawl driven through a stub fetch that serves a small site.
+import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import {
   checkHead,
