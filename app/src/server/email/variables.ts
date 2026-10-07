@@ -516,14 +516,19 @@ const digestResult = z.union([
 ]);
 
 const DIGEST_WAIT_MS = 60 * 1000;
+const DIGEST_GIVE_UP_MS = 60 * 60 * 1000;
 
-/** The `digest.due` notice says what the `queue_digest` job of the same event found, and waits while it has not ended. */
+/**
+ * The `digest.due` notice says what the `queue_digest` job of the same event found, and waits while it has not ended.
+ * An hour after the job was made it stops waiting and tells the admins the draft is not ready, so a job held for
+ * approval or failing again does not leave the cycle without a word.
+ */
 async function digestAlert({ db, job }: Resolve): Promise<Alert> {
   if (job === undefined || job.eventId === null) throw new NonRetryableError("event_id_missing");
   const rows = rowsOf(
     await db
       .from("jobs")
-      .select("status, result")
+      .select("status, result, created_at")
       .eq("event_id", job.eventId)
       .eq("type", "queue_digest")
       .limit(1),
@@ -534,6 +539,16 @@ async function digestAlert({ db, job }: Resolve): Promise<Alert> {
     return notice(
       "Place Notes draft could not be built",
       "The digest job ended without a draft. Its job record says why.",
+      `/admin/jobs?event_id=${job.eventId}`,
+    );
+  }
+  if (
+    sibling.status !== "done" &&
+    job.now.getTime() - Date.parse(sibling.created_at) >= DIGEST_GIVE_UP_MS
+  ) {
+    return notice(
+      "Place Notes draft is not ready",
+      "The digest job has not finished an hour after it was made. Its job record says where it stands.",
       `/admin/jobs?event_id=${job.eventId}`,
     );
   }

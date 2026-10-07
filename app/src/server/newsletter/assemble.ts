@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   issueStatuses,
+  clipWords,
   newsletterBlocksSchema,
   type NewsletterBlock,
 } from "../../domain/newsletter.ts";
@@ -203,8 +204,8 @@ async function propertyCandidates(db: Db, since: string | null): Promise<Candida
           type: "property" as const,
           property_id: property.id,
           asset_id: asset.id,
-          title,
-          deck,
+          title: clipWords(title),
+          deck: clipWords(deck),
         },
         publishedAt: property.published_at ?? "",
         campaign: property.campaign_tier === "Campaign",
@@ -228,8 +229,8 @@ async function storyCandidates(db: Db, since: string | null): Promise<Candidate[
       id: `story:${story.id}`,
       type: "story" as const,
       story_id: story.id,
-      title: story.title,
-      deck: story.deck,
+      title: clipWords(story.title),
+      deck: clipWords(story.deck),
     },
     publishedAt: story.published_at ?? "",
     campaign: false,

@@ -1950,5 +1950,59 @@
     "replace": "const suffix = ` | ${siteConfig.name}`;\n\ntype PageHeadInput = {",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/site-config-lazy.test.ts",
     "expect": "× .*is read inside functions"
+  },
+  {
+    "id": "b11-assemble-story-deck-uncut",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "deck: clipWords(story.deck),",
+    "replace": "deck: story.deck,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*cuts a story deck and a property deck that are longer than a block holds, and still saves the issue"
+  },
+  {
+    "id": "b11-assemble-property-deck-uncut",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "deck: clipWords(deck),",
+    "replace": "deck,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*cuts a story deck and a property deck that are longer than a block holds, and still saves the issue"
+  },
+  {
+    "id": "b11-assemble-title-uncut",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/server/newsletter/assemble.ts",
+    "find": "title: clipWords(story.title),",
+    "replace": "title: story.title,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*cuts a story deck and a property deck that are longer than a block holds, and still saves the issue"
+  },
+  {
+    "id": "b11-newsletter-cap-in-units",
+    "test": "tests/unit/newsletter/assemble.test.ts",
+    "file": "src/domain/newsletter.ts",
+    "find": "Array.from(text).length <= WORDS_MAX",
+    "replace": "text.length <= WORDS_MAX",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/assemble.test.ts",
+    "expect": "FAIL.*cuts a story deck and a property deck that are longer than a block holds, and still saves the issue"
+  },
+  {
+    "id": "b11-digest-never-gives-up",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "sibling.status !== \"done\" &&\n    job.now",
+    "replace": "sibling.status === \"nothing\" &&\n    job.now",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*stops waiting an hour after the job was made and says the draft is not ready"
+  },
+  {
+    "id": "b11-digest-gives-up-late",
+    "test": "tests/unit/newsletter/digest-notify.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "Date.parse(sibling.created_at) >= DIGEST_GIVE_UP_MS",
+    "replace": "Date.parse(sibling.created_at) > DIGEST_GIVE_UP_MS",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
+    "expect": "FAIL.*stops waiting an hour after the job was made and says the draft is not ready"
   }
 ]
