@@ -87,3 +87,35 @@ Review of group g4: no blocking defect. Four follow-ups below, word for word wit
 4. File: `app/scripts/set-invoice.ts`. Blocking: no.
    What: UNPROVEN (the author already said so): the two 'ready' outputs of step 4 and the exact line 'missing: payment_methods.instructions' on mop-dev. They wait on B16's set-site.ts and site.example.json/site.empty.json. The only evidence that the example fixture is ready and the seed lacks only payment_methods.instructions is the fake-db unit test, against a site object the test builds itself.
    Evidence: On mop-dev, set-invoice.ts --file invoice.example.json printed 'missing: legal.entity, legal.address' (the site row has legal.entity and legal.address null).
+
+## g5 · steps 5
+
+Review of group g5: no blocking defect. Seven follow-ups below, word for word with their evidence; none concerns GOTCHAS.md, so no entry is added to the bank.
+
+1. File: `app/src/server/payments/invoice-layout.ts`. Blocking: no.
+   What: Follow-up. Failures that will happen the same way every time are thrown as retryable errors. layoutInvoice throws AppError("server", ..., "<field>_missing") at line 184 and "invoice_overflow" at line 237, and neither is a NonRetryableError. So the invoice_pdf job (maxAttempts 12) and the send_email attachment resolver (which calls ensureInvoicePdf) retry a failure that cannot change until they go dead. By contrast, payment_missing, snapshot_missing and snapshot_invalid are final. This is also how the author's overflow follow-up shows up in the product: settings.invoice has no length bound, so long payment instructions make every later invoice's PDF job and invoice email go dead after the full backoff, and nobody sees it until screen 16. The plan does not ask this step for either the bound or the classification.
+   Evidence: Read: invoice-layout.ts:184 and :237 throw AppError; invoice-pdf.ts:70-74 use NonRetryableError for the other final cases; system/invoice-pdf.ts:10 maxAttempts 12. Not run against a runner (suspected by reading).
+
+2. File: `workspace/05-plans/B6.md`. Blocking: no.
+   What: Follow-up for the orchestrator to fold into the plan. Three plan lines no longer match the code: (1) the plan has localInvoiceStore(dir) exported from invoice-pdf.ts, but it does not exist and --out writes the file in the script (R07, P-2312); (2) the plan puts sanitizeWinAnsi in invoice-pdf.ts, but it lives in invoice-layout.ts; (3) the plan says assertNotProduction is the first call of invoice-smoke.ts, but guardEnv() runs first (line 107). Each deviation is recorded in the g5 log.
+   Evidence: grep -n localInvoiceStore app/src -r gives no hits; scripts/invoice-smoke.ts:107-108
+
+3. File: `app/scripts/invoice-smoke.ts`. Blocking: no.
+   What: Follow-up. When the wait times out, waitForUpload ignores the error from its jobs query (lines 97-102: job.data ?? []) and prints 'invoice_pdf job: none'. A failed read then looks like a job that was never enqueued. The exit code is still 1, so nothing passes that should fail.
+   Evidence: Read: scripts/invoice-smoke.ts:97-102 never checks job.error
+
+4. File: `app/supabase/migrations/20261007051516_action_roles.sql`. Blocking: no.
+   What: Follow-up and UNPROVEN. The g5 work commit bc65f84 also carries a regenerated action_roles migration and a restamp of g3's migration, which is merge fallout outside the group's file list (P-2314). It is proven only by bun run check's sync test here. Its database proof is the CI db job on the pull request, which has not run for this commit.
+   Evidence: git show --stat bc65f84 -- app/supabase/migrations: one rename plus one new 101-line file
+
+5. File: `app/tests/mutations/B6.json`. Blocking: no.
+   What: Follow-up, noted by the author too. The registry entry b6-g5-g-live-settings hardcodes an entity instead of reading settings.site, so watchfail does not replay the realistic mutation (g). The test itself would still go red if ensureInvoicePdf read the fake settings row, which holds 'Another Entity Inc.'.
+   Evidence: tests/unit/payments/invoice-pdf.test.ts 'renders from the stored snapshot, not from settings changed after the issue'; watchfail --only b6-g5-g-live-settings is OK
+
+6. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: Follow-up. The fix-round log calls the BAD replay of B2:f-matrix 'an entry of main'. When replayed, that entry fails for an environmental reason: the db test refuses without DEV_DB_URL, so the mutation never ran. Also, the file it mutates (src/domain/workflow.ts) was changed by this lane in g2 (dba3118, adds 'void' to PaymentStatus). So this lane's own change has never been checked by f-matrix in a valid replay.
+   Evidence: node scripts/watchfail.mjs --registry tests/mutations --only f-matrix prints 'WATCHED-FAIL BAD: wrong reason' and 'refusing: DEV_DB_URL is not set'; git log origin/main..HEAD -- app/src/domain/workflow.ts shows dba3118
+
+7. File: `app/src/server/payments/invoice-pdf.ts`. Blocking: no.
+   What: UNPROVEN, not a defect. Nothing has been checked against a real Storage, database or Edge runtime. The 409 'already exists' handling, the set_invoice_key race, the attachment resolver and the job all ran only against the author's own fake-db fixture (tests/fixtures/invoice-snapshot.ts). The Edge-runtime render of the dynamic import("pdf-lib") and the mop-dev smoke (--print-text, --out, --upload) have not run. My read-only query confirms that mop-dev settings.site has no legal.entity or legal.address, so readiness fails today.
+   Evidence: read-only transaction on mop-dev: [{"key":"site","entity":false,"address":false},{"key":"invoice","methods":3}]
