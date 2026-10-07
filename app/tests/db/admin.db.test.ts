@@ -1,12 +1,15 @@
 // B7: the admin side of the database. Step 1: `write_audit`, the agent key lookups, `staff_can_sign_in`,
 // `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Step 4: `start_review`,
-// `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Every case runs in one
-// rolled-back transaction (F22).
+// `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Step 5: the one payments read of
+// `getSubmission`. Every case but that one runs in one rolled-back transaction (F22).
+import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
 import { createSubmission, publishedProperty } from "../fixtures/factories";
+import { serviceClient } from "../fixtures/service";
+import { newestPaymentId } from "../../src/server/submissions/service";
 
 async function one<T extends object>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
   const row = (await db.query<T>(sql, params)).rows[0];
@@ -454,5 +457,11 @@ describe("list_submissions", () => {
         wildcard: wildcard.rowCount,
       }).toEqual({ first: ids.slice(0, 2), second: ids.slice(2), wildcard: 0 });
     });
+  });
+});
+
+describe("getSubmission", () => {
+  it("reads the newest payment through the service client, and answers null without error for a request with none", async () => {
+    expect(await newestPaymentId(serviceClient(), randomUUID())).toBeNull();
   });
 });

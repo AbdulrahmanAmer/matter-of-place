@@ -34,13 +34,9 @@ const ROUTE_IDS: Record<number, string> = {
 };
 
 const everyRoute = () => true;
-// `people.list` belongs to all six roles but is registered by step 5a; until then the test adds it by hand.
-const PEOPLE_LIST = "people.list";
-const everyAction = () => [...matrix.map((entry) => entry.action), PEOPLE_LIST];
-const actionsOf = (role: AppRole) => [
-  ...matrix.filter((entry) => entry.roles.includes(role)).map((entry) => entry.action),
-  PEOPLE_LIST,
-];
+const everyAction = () => matrix.map((entry) => entry.action);
+const actionsOf = (role: AppRole) =>
+  matrix.filter((entry) => entry.roles.includes(role)).map((entry) => entry.action);
 const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
