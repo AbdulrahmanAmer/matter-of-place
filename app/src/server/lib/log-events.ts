@@ -39,6 +39,7 @@ export const LogEvent = [
   "email_content_changed",
   "email_event_foreign_env",
   "resend_quota_daily",
+  "social_dry_run",
   "thumbnail_sign_failed",
 ] as const;
 

@@ -1,0 +1,7 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/content-publishing, Publish the container",
+  "request": "POST /{ig-user-id}/media_publish?creation_id={container-id}",
+  "response": { "id": "17895695668004550" }
+}

@@ -104,6 +104,17 @@ newsletter.send_test                CE ME MO
 newsletter.unapprove                CE ME MO
 newsletter.approve                  CE ME MO | H
 newsletter.subscribers_export       CE ME MO
+channels.posts_list                CE ME VE MO CO AD
+channels.health                    CE ME VE MO CO AD
+channels.retry                     CE MO AD
+channels.cancel                    CE MO AD
+channels.metrics_refresh           CE MO AD
+channels.mark_withdrawn            CE MO AD | H
+channels.ids_put                   MO AD | H
+reports.list                       CE ME VE MO CO AD
+reports.get                        CE ME VE MO CO AD
+reports.export                     CE ME VE MO CO AD
+reports.email                      CE ME | H
 me                                 CE ME VE MO CO AD | S
 people.list                        CE ME VE MO CO AD
 people.get                         CE ME VE MO CO AD

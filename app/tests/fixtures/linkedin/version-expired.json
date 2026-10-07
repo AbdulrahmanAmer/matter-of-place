@@ -1,0 +1,12 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.linkedin.com/rest/organizationAcls",
+  "status": 426,
+  "response": {
+    "status": 426,
+    "code": "NONEXISTENT_VERSION",
+    "message": "Requested version 20240101 is not active"
+  }
+}

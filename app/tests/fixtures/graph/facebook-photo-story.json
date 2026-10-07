@@ -1,0 +1,7 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5 (the Facebook Stories API page names the path, photo_id on photo_stories; the answer's shape is the plan's and UNPROVEN; the ids are made up)",
+  "request": "POST /{page-id}/photo_stories",
+  "response": { "success": true, "post_id": "1000000000000003" }
+}

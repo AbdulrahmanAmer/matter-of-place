@@ -2,7 +2,8 @@ create or replace function public.approve_asset(
   p_asset uuid,
   p_actor uuid,
   p_actor_kind public.actor_kind,
-  p_request_id text default null
+  p_request_id text default null,
+  p_evidence jsonb default null
 )
 returns uuid
 language plpgsql
@@ -14,8 +15,9 @@ declare
   v_tier public.campaign_tier;
   v_market text;
 begin
-  -- Until B10 replaces this check with mayApprove, only a human approves.
-  if p_actor_kind = 'agent' then
+  -- B10 invariant 4: an agent, or the system (a null actor and kind, G43), approves only with the evidence of
+  -- mayApprove; that evidence is kept in the audit row's note.
+  if p_actor_kind is distinct from 'human' and p_evidence is null then
     raise exception 'manual_approval' using errcode = '42501';
   end if;
   select * into v_asset from public.assets a where a.id = p_asset for update;
@@ -42,10 +44,11 @@ begin
     where p.id = v_asset.property_id;
   end if;
 
-  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)
+  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)
   values (
     p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,
-    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id
+    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id,
+    p_evidence::text
   );
   return public.emit_event(
     'asset.approved', 'asset', p_asset,
@@ -57,6 +60,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text)
+revoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text, jsonb)
   from public, anon, authenticated;
-grant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text) to service_role;
+grant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text, jsonb) to service_role;

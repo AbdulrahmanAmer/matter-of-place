@@ -1,0 +1,12 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media, Reel Specifications",
+  "video_codecs": ["h264", "hevc"],
+  "audio_codecs": ["aac"],
+  "aspect": { "min": 0.01, "max": 10 },
+  "max_width_px": 1920,
+  "fps": { "min": 23, "max": 60 },
+  "duration_s": { "min": 3, "max": 900 },
+  "max_size_mb": 300
+}

@@ -1,0 +1,28 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.linkedin.com/rest/organizationalEntityShareStatistics",
+  "response": {
+    "paging": {
+      "start": 0,
+      "count": 10,
+      "links": []
+    },
+    "elements": [
+      {
+        "organizationalEntity": "urn:li:organization:100000001",
+        "share": "urn:li:share:7380000000000000001",
+        "totalShareStatistics": {
+          "uniqueImpressionsCount": 41,
+          "shareCount": 2,
+          "engagement": 0.12,
+          "clickCount": 5,
+          "likeCount": 7,
+          "impressionCount": 58,
+          "commentCount": 1
+        }
+      }
+    ]
+  }
+}

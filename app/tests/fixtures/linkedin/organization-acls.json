@@ -1,0 +1,21 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "GET https://api.linkedin.com/rest/organizationAcls",
+  "response": {
+    "paging": {
+      "start": 0,
+      "count": 10,
+      "links": []
+    },
+    "elements": [
+      {
+        "role": "ADMINISTRATOR",
+        "roleAssignee": "urn:li:person:Example0",
+        "organization": "urn:li:organization:100000001",
+        "state": "APPROVED"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/error-codes (HTTP status, code, subcode and message as the table gives them; type and fbtrace_id are placeholders)",
+  "request": "POST /{ig-user-id}/media_publish?creation_id={container-id} above the daily publishing limit",
+  "status": 400,
+  "response": {
+    "error": {
+      "message": "You reached maximum number of posts that is allowed to be published by Content Publishing API.",
+      "type": "OAuthException",
+      "code": 9,
+      "error_subcode": 2207042,
+      "fbtrace_id": "A0000000000000000000000"
+    }
+  }
+}

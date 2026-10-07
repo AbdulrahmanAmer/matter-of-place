@@ -69,6 +69,7 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminNewsletterIssuesRouteImport } from './routes/api/admin/newsletter.issues'
 import { Route as ApiAdminNewsletterSubscribersRouteImport } from './routes/api/admin/newsletter.subscribers'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
@@ -83,6 +84,7 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
 import { Route as ApiAdminNewsletterIssuesIdRouteImport } from './routes/api/admin/newsletter.issues.$id'
 import { Route as ApiAdminNewsletterIssuesBuildRouteImport } from './routes/api/admin/newsletter.issues.build'
 import { Route as ApiAdminNewsletterSubscribersExportRouteImport } from './routes/api/admin/newsletter.subscribers.export'
@@ -406,6 +408,11 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
+  id: '/api/admin/channels/posts',
+  path: '/api/admin/channels/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminNewsletterIssuesRoute =
   ApiAdminNewsletterIssuesRouteImport.update({
     id: '/api/admin/newsletter/issues',
@@ -482,6 +489,11 @@ const ApiPublicSubscribersConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
   } as any)
+const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
+  id: '/api/admin/channels/ids/$key',
+  path: '/api/admin/channels/ids/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminNewsletterIssuesIdRoute =
   ApiAdminNewsletterIssuesIdRouteImport.update({
     id: '/$id',
@@ -614,6 +626,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -628,6 +641,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
   '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
@@ -698,6 +712,7 @@ export interface FileRoutesByTo {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -712,6 +727,7 @@ export interface FileRoutesByTo {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
   '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
@@ -787,6 +803,7 @@ export interface FileRoutesById {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -801,6 +818,7 @@ export interface FileRoutesById {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
+  '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
   '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
@@ -876,6 +894,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
@@ -890,6 +909,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
     | '/api/admin/newsletter/subscribers/export'
@@ -960,6 +980,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
@@ -974,6 +995,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people'
     | '/api/admin/submissions'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
     | '/api/admin/newsletter/subscribers/export'
@@ -1048,6 +1070,7 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/people/$id'
@@ -1062,6 +1085,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/people/'
     | '/api/admin/submissions/'
+    | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
     | '/api/admin/newsletter/subscribers/export'
@@ -1104,6 +1128,7 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRoute
   ApiAdminNewsletterIssuesRoute: typeof ApiAdminNewsletterIssuesRouteWithChildren
   ApiAdminNewsletterSubscribersRoute: typeof ApiAdminNewsletterSubscribersRouteWithChildren
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
@@ -1114,6 +1139,7 @@ export interface RootRouteChildren {
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
+  ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1538,6 +1564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/channels/posts': {
+      id: '/api/admin/channels/posts'
+      path: '/api/admin/channels/posts'
+      fullPath: '/api/admin/channels/posts'
+      preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/newsletter/issues': {
       id: '/api/admin/newsletter/issues'
       path: '/api/admin/newsletter/issues'
@@ -1635,6 +1668,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/subscribers/confirm'
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
+    }
+    '/api/admin/channels/ids/$key': {
+      id: '/api/admin/channels/ids/$key'
+      path: '/api/admin/channels/ids/$key'
+      fullPath: '/api/admin/channels/ids/$key'
+      preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/newsletter/issues/$id': {
       id: '/api/admin/newsletter/issues/$id'
@@ -2003,6 +2043,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRoute,
   ApiAdminNewsletterIssuesRoute: ApiAdminNewsletterIssuesRouteWithChildren,
   ApiAdminNewsletterSubscribersRoute:
     ApiAdminNewsletterSubscribersRouteWithChildren,
@@ -2014,6 +2055,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
+  ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
