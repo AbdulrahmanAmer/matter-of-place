@@ -5,6 +5,7 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- Step 5a: the no-vendor-host grep proof cannot fail for two of its three paths; a costTime line mis-banked under P-076; `oauth-consent.ts:164` still says STUB(B10 step 5a) (re-point to step 6); all 17 X and LinkedIn fixtures are source "plan". (g5 review a958e54f)
 - `GRAPH_ERROR_TABLE` has no row for the Business Use Case rate-limit codes 80001, 80002 and the 800xx family, so a 4xx without `is_transient` from them classifies wrong (suspected by reading). (g3 review2 af512bc3)
 - B8's `meta-token-refresh.ts` (lines 72-74) keeps its own Vault-first, env-second token read instead of importing `getMetaToken`; the rule lives in two places.
 - g4: no test proves every Graph call passes `ctx.signal` (replacing it with undefined keeps 34 tests green); `findRecentPost` calls `media_publish` on a FINISHED container while invariant 2 says reconcile never publishes; PUBLISHED adoption reads `/{ig-user-id}/media` where stories list under `/stories`; `graph()` throws `AppError('server')` when `liveSideEffects('social')` is false instead of the dry-run answer of invariant 5; `health()` says "expires on <date>" for a dead token; two costTime items without a bank entry; `debug_token` in the plan's Files line that `meta-token.ts` does not read; `alt_text` not sent. (g4 review af6636e5)
@@ -40,6 +41,8 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- Step 4 PARTIAL on B9 step 5's missing half (NewsletterBlock, standalone block, object variables in render.ts): B9 close-out c5n runs here (wf_e0dc4410-89b); when it merges, the standalone row update, variablesByKey and the sample-block changes of B11 step 4 complete in B11's next group or a B11 close-out. (g3 build a24a5183)
+- Step 4 bank: `types.ts` hand-typed for the newsletter functions and STUB casts in `assemble.ts` and `resend.ts` until `bun run types:from-ci -- 200` (PR 200 marked ready 05:45).
 - `variables.ts` ~525 `digestAlert`: removing `.eq("event_id", job.eventId)` turns nothing red; the digest-notify fixture holds one queue_digest job, so the filter is never exercised (registry entry BAD as a follow-up). (g2 review a313c3a1)
 - `assemble.ts` 286 and `readIssues` 155 apply the 300-character deck/title caps on read as well as write (suspected from reading).
 - A digest.due recipe using send_email with the admin_notify template fails `NonRetryableError event_id_missing`: `send-email.ts:342` calls `resolveVariables` without the seventh job argument (author-disclosed).
