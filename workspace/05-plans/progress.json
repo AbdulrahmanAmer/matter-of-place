@@ -260,6 +260,14 @@
       ],
       "inReview": [],
       "note": "All steps on main (PR 161, merged 2026-10-06 07:46; step 7 under ruling H63, the attach audit row is a system row)."
+    },
+    "B10": {
+      "blocked": [
+        "1",
+        "2",
+        "3a",
+        "3b"
+      ]
     }
   },
   "lanes": [
