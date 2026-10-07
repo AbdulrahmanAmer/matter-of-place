@@ -742,8 +742,8 @@
     "id": "i",
     "test": "tests/e2e/forms.spec.ts",
     "file": "src/components/forms/contact-form.tsx",
-    "find": "<textarea required rows={5} name=\"message\" />",
-    "replace": "<textarea required rows={5} name=\"note\" />",
+    "find": "<textarea required rows={5} name=\"message\" {...control(\"message\")} />",
+    "replace": "<textarea required rows={5} name=\"note\" {...control(\"message\")} />",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"contact:\"",
     "expect": "toBeVisible\\(\\) failed[\\s\\S]*A person will reply within one working day",
     "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
@@ -775,8 +775,8 @@
     "id": "hh",
     "test": "tests/e2e/forms.spec.ts",
     "file": "src/components/layout/header.tsx",
-    "find": "  useModal(menuOpen || searchOpen, closeAll);",
-    "replace": "  useModal(menuOpen, closeAll);",
+    "find": "  useModal(menuOpen || searchOpen, closeAll, menuOpen ? menuRef : searchRef);",
+    "replace": "  useModal(menuOpen, closeAll, menuOpen ? menuRef : searchRef);",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test forms.spec.ts --project=desktop --grep \"search overlay: Escape closes it\"",
     "expect": "locator\\('\\.search-overlay'\\)[\\s\\S]*Expected: 0[\\s\\S]*Received: 1",
     "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build",
@@ -1356,14 +1356,5 @@
     "replace": "",
     "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
     "expect": "admin\\.tsx imports .*\\.\\./admin/ui/AdminShell"
-  },
-  {
-    "id": "shells-component",
-    "test": "tests/unit/admin-route-shells.test.ts",
-    "file": "tests/unit/admin-route-shells.test.ts",
-    "find": "  \"src/routes/admin/requests.index.tsx\",\n",
-    "replace": "",
-    "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
-    "expect": "requests\\.index\\.tsx defines a component"
   }
 ]

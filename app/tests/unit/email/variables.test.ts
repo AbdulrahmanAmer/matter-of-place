@@ -332,13 +332,6 @@ describe("resolveVariables admin_notify", () => {
       headline: "New inquiry",
     },
     {
-      event: "digest.due",
-      data: {},
-      summary: "Place Notes draft ready for review",
-      path: "/admin/newsletter",
-      headline: "Place Notes draft ready",
-    },
-    {
       event: "health.failed",
       data: {
         date: "2026-10-04",

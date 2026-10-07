@@ -69,6 +69,10 @@ export const errorCodes = {
   not_accepted: 409,
   invoice_not_ready: 409,
   pdf_not_ready: 404,
+  // B11: an issue to approve holds blocks, one draft at a time, and the four audience keys.
+  issue_empty: 422,
+  draft_open: 409,
+  unknown_audience: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

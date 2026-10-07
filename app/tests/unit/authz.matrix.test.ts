@@ -103,6 +103,9 @@ payments.waive                     ME AD | H
 payments.void                      AD | H
 submissions.activate               ME AD | H
 me                                 CE ME VE MO CO AD | S
+people.list                        CE ME VE MO CO AD
+people.get                         CE ME VE MO CO AD
+people.note                        CE ME VE MO
 `;
 
 const ROLE: Record<string, AppRole> = {

@@ -11,11 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as FeedDotjsonRouteImport } from './routes/feed[.]json'
+import { Route as FeedDotxmlRouteImport } from './routes/feed[.]xml'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as DotwellKnownChangePasswordRouteImport } from './routes/[.]well-known.change-password'
+import { Route as DotwellKnownMtaStsDottxtRouteImport } from './routes/[.]well-known.mta-sts[.]txt'
+import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well-known.security[.]txt'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
+import { Route as SiteCookiesRouteImport } from './routes/_site.cookies'
 import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
 import { Route as SiteExposureRouteImport } from './routes/_site.exposure'
 import { Route as SiteFaqRouteImport } from './routes/_site.faq'
@@ -23,10 +29,12 @@ import { Route as SiteLegalRouteImport } from './routes/_site.legal'
 import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
 import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SitePrivacyChoicesRouteImport } from './routes/_site.privacy-choices'
 import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
+import { Route as ApiConsentRouteImport } from './routes/api/consent'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
 import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
@@ -37,12 +45,16 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
+import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
+import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiPublicClientErrorRouteImport } from './routes/api/public/client-error'
 import { Route as ApiPublicConciergeRouteImport } from './routes/api/public/concierge'
+import { Route as ApiPublicCspReportRouteImport } from './routes/api/public/csp-report'
 import { Route as ApiPublicEventsRouteImport } from './routes/api/public/events'
 import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inquiries'
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
@@ -55,10 +67,10 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
-import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
-import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
-import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
+import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
+import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
+import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api/admin/submissions.start-review'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
 import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
@@ -67,13 +79,11 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
-import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
-import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
-import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
-import { Route as ApiAdminPaymentsIdWaiveRouteImport } from './routes/api/admin/payments.$id.waive'
-import { Route as ApiAdminSubmissionsIdActivateRouteImport } from './routes/api/admin/submissions.$id.activate'
-import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
+import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
+import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
+import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
@@ -84,11 +94,39 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedDotjsonRoute = FeedDotjsonRouteImport.update({
+  id: '/feed.json',
+  path: '/feed.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedDotxmlRoute = FeedDotxmlRouteImport.update({
+  id: '/feed.xml',
+  path: '/feed.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownChangePasswordRoute =
+  DotwellKnownChangePasswordRouteImport.update({
+    id: '/.well-known/change-password',
+    path: '/.well-known/change-password',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownMtaStsDottxtRoute =
+  DotwellKnownMtaStsDottxtRouteImport.update({
+    id: '/.well-known/mta-sts.txt',
+    path: '/.well-known/mta-sts.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownSecurityDottxtRoute =
+  DotwellKnownSecurityDottxtRouteImport.update({
+    id: '/.well-known/security.txt',
+    path: '/.well-known/security.txt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -107,6 +145,11 @@ const SiteAboutRoute = SiteAboutRouteImport.update({
 const SiteContactRoute = SiteContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteCookiesRoute = SiteCookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteEditorialStandardRoute = SiteEditorialStandardRouteImport.update({
@@ -144,6 +187,11 @@ const SitePricingRoute = SitePricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => SiteRoute,
 } as any)
+const SitePrivacyChoicesRoute = SitePrivacyChoicesRouteImport.update({
+  id: '/privacy-choices',
+  path: '/privacy-choices',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SitePropertiesRoute = SitePropertiesRouteImport.update({
   id: '/properties',
   path: '/properties',
@@ -163,6 +211,11 @@ const AdminSignInRoute = AdminSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiConsentRoute = ApiConsentRouteImport.update({
+  id: '/api/consent',
+  path: '/api/consent',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
   id: '/media/$',
@@ -214,9 +267,28 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
+  id: '/people/',
+  path: '/people/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/people.index.lazy').then((d) => d.Route),
+)
+const AdminPeopleIdRoute = AdminPeopleIdRouteImport.update({
+  id: '/people/$id',
+  path: '/people/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/people.$id.lazy').then((d) => d.Route),
+)
 const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
   id: '/requests/',
   path: '/requests/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRequestsIdRoute = AdminRequestsIdRouteImport.update({
+  id: '/requests/$id',
+  path: '/requests/$id',
   getParentRoute: () => AdminRoute,
 } as any)
 const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
@@ -242,6 +314,11 @@ const ApiPublicClientErrorRoute = ApiPublicClientErrorRouteImport.update({
 const ApiPublicConciergeRoute = ApiPublicConciergeRouteImport.update({
   id: '/api/public/concierge',
   path: '/api/public/concierge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCspReportRoute = ApiPublicCspReportRouteImport.update({
+  id: '/api/public/csp-report',
+  path: '/api/public/csp-report',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEventsRoute = ApiPublicEventsRouteImport.update({
@@ -304,28 +381,27 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
-  id: '/api/admin/payments/',
-  path: '/api/admin/payments/',
+const ApiAdminPeopleIndexRoute = ApiAdminPeopleIndexRouteImport.update({
+  id: '/api/admin/people/',
+  path: '/api/admin/people/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminPaymentsIdRoute = ApiAdminPaymentsIdRouteImport.update({
-  id: '/api/admin/payments/$id',
-  path: '/api/admin/payments/$id',
+const ApiAdminPeopleIdRoute = ApiAdminPeopleIdRouteImport.update({
+  id: '/api/admin/people/$id',
+  path: '/api/admin/people/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminPaymentsIssueInvoiceRoute =
-  ApiAdminPaymentsIssueInvoiceRouteImport.update({
-    id: '/api/admin/payments/issue-invoice',
-    path: '/api/admin/payments/issue-invoice',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiAdminSubmissionsIndexRoute =
   ApiAdminSubmissionsIndexRouteImport.update({
     id: '/api/admin/submissions/',
     path: '/api/admin/submissions/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
+  id: '/api/admin/submissions/$id',
+  path: '/api/admin/submissions/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSubmissionsStartReviewRoute =
   ApiAdminSubmissionsStartReviewRouteImport.update({
     id: '/api/admin/submissions/start-review',
@@ -369,38 +445,22 @@ const ApiPublicSubscribersConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
   } as any)
-const ApiAdminPaymentsIdMarkPaidRoute =
-  ApiAdminPaymentsIdMarkPaidRouteImport.update({
-    id: '/mark-paid',
-    path: '/mark-paid',
-    getParentRoute: () => ApiAdminPaymentsIdRoute,
+const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => ApiAdminPeopleIdRoute,
+} as any)
+const ApiAdminSubmissionsIdNoteRoute =
+  ApiAdminSubmissionsIdNoteRouteImport.update({
+    id: '/note',
+    path: '/note',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
-const ApiAdminPaymentsIdPdfRoute = ApiAdminPaymentsIdPdfRouteImport.update({
-  id: '/pdf',
-  path: '/pdf',
-  getParentRoute: () => ApiAdminPaymentsIdRoute,
-} as any)
-const ApiAdminPaymentsIdVoidRoute = ApiAdminPaymentsIdVoidRouteImport.update({
-  id: '/void',
-  path: '/void',
-  getParentRoute: () => ApiAdminPaymentsIdRoute,
-} as any)
-const ApiAdminPaymentsIdWaiveRoute = ApiAdminPaymentsIdWaiveRouteImport.update({
-  id: '/waive',
-  path: '/waive',
-  getParentRoute: () => ApiAdminPaymentsIdRoute,
-} as any)
-const ApiAdminSubmissionsIdActivateRoute =
-  ApiAdminSubmissionsIdActivateRouteImport.update({
-    id: '/api/admin/submissions/$id/activate',
-    path: '/api/admin/submissions/$id/activate',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAdminSubmissionsIdWaiveRoute =
-  ApiAdminSubmissionsIdWaiveRouteImport.update({
-    id: '/api/admin/submissions/$id/waive',
-    path: '/api/admin/submissions/$id/waive',
-    getParentRoute: () => rootRouteImport,
+const ApiAdminSubmissionsIdTimelineRoute =
+  ApiAdminSubmissionsIdTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
@@ -408,14 +468,26 @@ const ApiPublicSubmissionsIdUploadsRoute =
     path: '/$id/uploads',
     getParentRoute: () => ApiPublicSubmissionsRoute,
   } as any)
+const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
+    id: '/media/$mediaId/original',
+    path: '/media/$mediaId/original',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
+  '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
@@ -423,10 +495,12 @@ export interface FileRoutesByFullPath {
   '/markets': typeof SiteMarketsRouteWithChildren
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy-choices': typeof SitePrivacyChoicesRoute
   '/properties': typeof SitePropertiesRoute
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
   '/admin/sign-in': typeof AdminSignInRoute
+  '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
@@ -434,11 +508,14 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -450,13 +527,14 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
-  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -465,30 +543,36 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
-  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
+  '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
-  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
-  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
-  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
-  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
-  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
-  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
+  '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
   '/legal': typeof SiteLegalRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy-choices': typeof SitePrivacyChoicesRoute
   '/properties': typeof SitePropertiesRoute
   '/submit': typeof SiteSubmitRoute
   '/admin/sign-in': typeof AdminSignInRoute
+  '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
   '/': typeof SiteIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
@@ -497,11 +581,14 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -513,13 +600,14 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
-  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -528,24 +616,28 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
-  '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
+  '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
-  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
-  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
-  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
-  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
-  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
-  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_site': typeof SiteRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/feed.json': typeof FeedDotjsonRoute
+  '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
+  '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
+  '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
   '/_site/contact': typeof SiteContactRoute
+  '/_site/cookies': typeof SiteCookiesRoute
   '/_site/editorial-standard': typeof SiteEditorialStandardRoute
   '/_site/exposure': typeof SiteExposureRoute
   '/_site/faq': typeof SiteFaqRoute
@@ -553,10 +645,12 @@ export interface FileRoutesById {
   '/_site/markets': typeof SiteMarketsRouteWithChildren
   '/_site/place-notes': typeof SitePlaceNotesRoute
   '/_site/pricing': typeof SitePricingRoute
+  '/_site/privacy-choices': typeof SitePrivacyChoicesRoute
   '/_site/properties': typeof SitePropertiesRoute
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
   '/admin/sign-in': typeof AdminSignInRoute
+  '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
   '/_site/': typeof SiteIndexRoute
   '/_site/$market/$region': typeof SiteMarketRegionRoute
@@ -565,11 +659,14 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/people/$id': typeof AdminPeopleIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
   '/api/public/concierge': typeof ApiPublicConciergeRoute
+  '/api/public/csp-report': typeof ApiPublicCspReportRoute
   '/api/public/events': typeof ApiPublicEventsRoute
   '/api/public/inquiries': typeof ApiPublicInquiriesRoute
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
@@ -581,13 +678,14 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
-  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
-  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
+  '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
@@ -596,25 +694,29 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
-  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
+  '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
-  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
-  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
-  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
-  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
-  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
-  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
+  '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin'
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/$market'
     | '/about'
     | '/contact'
+    | '/cookies'
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
@@ -622,10 +724,12 @@ export interface FileRouteTypes {
     | '/markets'
     | '/place-notes'
     | '/pricing'
+    | '/privacy-choices'
     | '/properties'
     | '/stories'
     | '/submit'
     | '/admin/sign-in'
+    | '/api/consent'
     | '/media/$'
     | '/$market/$region'
     | '/$market/guide'
@@ -633,11 +737,14 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -649,13 +756,14 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
-    | '/api/admin/payments/$id'
-    | '/api/admin/payments/issue-invoice'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -664,30 +772,36 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
-    | '/api/admin/payments/'
+    | '/api/admin/people/'
     | '/api/admin/submissions/'
-    | '/api/admin/payments/$id/mark-paid'
-    | '/api/admin/payments/$id/pdf'
-    | '/api/admin/payments/$id/void'
-    | '/api/admin/payments/$id/waive'
-    | '/api/admin/submissions/$id/activate'
-    | '/api/admin/submissions/$id/waive'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/admin'
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/about'
     | '/contact'
+    | '/cookies'
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
     | '/legal'
     | '/place-notes'
     | '/pricing'
+    | '/privacy-choices'
     | '/properties'
     | '/submit'
     | '/admin/sign-in'
+    | '/api/consent'
     | '/media/$'
     | '/'
     | '/$market/$region'
@@ -696,11 +810,14 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -712,13 +829,14 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
-    | '/api/admin/payments/$id'
-    | '/api/admin/payments/issue-invoice'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -727,23 +845,27 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
-    | '/api/admin/payments'
+    | '/api/admin/people'
     | '/api/admin/submissions'
-    | '/api/admin/payments/$id/mark-paid'
-    | '/api/admin/payments/$id/pdf'
-    | '/api/admin/payments/$id/void'
-    | '/api/admin/payments/$id/waive'
-    | '/api/admin/submissions/$id/activate'
-    | '/api/admin/submissions/$id/waive'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
     | '__root__'
     | '/_site'
     | '/admin'
+    | '/feed.json'
+    | '/feed.xml'
     | '/sitemap.xml'
+    | '/.well-known/change-password'
+    | '/.well-known/mta-sts.txt'
+    | '/.well-known/security.txt'
     | '/_site/$market'
     | '/_site/about'
     | '/_site/contact'
+    | '/_site/cookies'
     | '/_site/editorial-standard'
     | '/_site/exposure'
     | '/_site/faq'
@@ -751,10 +873,12 @@ export interface FileRouteTypes {
     | '/_site/markets'
     | '/_site/place-notes'
     | '/_site/pricing'
+    | '/_site/privacy-choices'
     | '/_site/properties'
     | '/_site/stories'
     | '/_site/submit'
     | '/admin/sign-in'
+    | '/api/consent'
     | '/media/$'
     | '/_site/'
     | '/_site/$market/$region'
@@ -763,11 +887,14 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/people/$id'
+    | '/admin/requests/$id'
     | '/api/admin/me'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
     | '/api/public/concierge'
+    | '/api/public/csp-report'
     | '/api/public/events'
     | '/api/public/inquiries'
     | '/api/public/markets'
@@ -779,13 +906,14 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
-    | '/api/admin/payments/$id'
-    | '/api/admin/payments/issue-invoice'
+    | '/api/admin/people/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
@@ -794,27 +922,32 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
-    | '/api/admin/payments/'
+    | '/api/admin/people/'
     | '/api/admin/submissions/'
-    | '/api/admin/payments/$id/mark-paid'
-    | '/api/admin/payments/$id/pdf'
-    | '/api/admin/payments/$id/void'
-    | '/api/admin/payments/$id/waive'
-    | '/api/admin/submissions/$id/activate'
-    | '/api/admin/submissions/$id/waive'
+    | '/api/admin/people/$id/notes'
+    | '/api/admin/submissions/$id/note'
+    | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  FeedDotjsonRoute: typeof FeedDotjsonRoute
+  FeedDotxmlRoute: typeof FeedDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  DotwellKnownChangePasswordRoute: typeof DotwellKnownChangePasswordRoute
+  DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
+  DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
+  ApiConsentRoute: typeof ApiConsentRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiAdminMeRoute: typeof ApiAdminMeRoute
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiPublicClientErrorRoute: typeof ApiPublicClientErrorRoute
   ApiPublicConciergeRoute: typeof ApiPublicConciergeRoute
+  ApiPublicCspReportRoute: typeof ApiPublicCspReportRoute
   ApiPublicEventsRoute: typeof ApiPublicEventsRoute
   ApiPublicInquiriesRoute: typeof ApiPublicInquiriesRoute
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
@@ -826,16 +959,14 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
-  ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
-  ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
+  ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
+  ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsStartReviewRoute: typeof ApiAdminSubmissionsStartReviewRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
-  ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
+  ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
-  ApiAdminSubmissionsIdActivateRoute: typeof ApiAdminSubmissionsIdActivateRoute
-  ApiAdminSubmissionsIdWaiveRoute: typeof ApiAdminSubmissionsIdWaiveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -854,11 +985,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feed.json': {
+      id: '/feed.json'
+      path: '/feed.json'
+      fullPath: '/feed.json'
+      preLoaderRoute: typeof FeedDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed.xml': {
+      id: '/feed.xml'
+      path: '/feed.xml'
+      fullPath: '/feed.xml'
+      preLoaderRoute: typeof FeedDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/change-password': {
+      id: '/.well-known/change-password'
+      path: '/.well-known/change-password'
+      fullPath: '/.well-known/change-password'
+      preLoaderRoute: typeof DotwellKnownChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/mta-sts.txt': {
+      id: '/.well-known/mta-sts.txt'
+      path: '/.well-known/mta-sts.txt'
+      fullPath: '/.well-known/mta-sts.txt'
+      preLoaderRoute: typeof DotwellKnownMtaStsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/security.txt': {
+      id: '/.well-known/security.txt'
+      path: '/.well-known/security.txt'
+      fullPath: '/.well-known/security.txt'
+      preLoaderRoute: typeof DotwellKnownSecurityDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_site/': {
@@ -887,6 +1053,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof SiteContactRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/cookies': {
+      id: '/_site/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof SiteCookiesRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/editorial-standard': {
@@ -938,6 +1111,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePricingRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/privacy-choices': {
+      id: '/_site/privacy-choices'
+      path: '/privacy-choices'
+      fullPath: '/privacy-choices'
+      preLoaderRoute: typeof SitePrivacyChoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/properties': {
       id: '/_site/properties'
       path: '/properties'
@@ -965,6 +1145,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/sign-in'
       preLoaderRoute: typeof AdminSignInRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/consent': {
+      id: '/api/consent'
+      path: '/api/consent'
+      fullPath: '/api/consent'
+      preLoaderRoute: typeof ApiConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/media/$': {
       id: '/media/$'
@@ -1036,11 +1223,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/people/': {
+      id: '/admin/people/'
+      path: '/people'
+      fullPath: '/admin/people/'
+      preLoaderRoute: typeof AdminPeopleIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/people/$id': {
+      id: '/admin/people/$id'
+      path: '/people/$id'
+      fullPath: '/admin/people/$id'
+      preLoaderRoute: typeof AdminPeopleIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/requests/': {
       id: '/admin/requests/'
       path: '/requests'
       fullPath: '/admin/requests/'
       preLoaderRoute: typeof AdminRequestsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/requests/$id': {
+      id: '/admin/requests/$id'
+      path: '/requests/$id'
+      fullPath: '/admin/requests/$id'
+      preLoaderRoute: typeof AdminRequestsIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/api/admin/me': {
@@ -1076,6 +1284,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/concierge'
       fullPath: '/api/public/concierge'
       preLoaderRoute: typeof ApiPublicConciergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/csp-report': {
+      id: '/api/public/csp-report'
+      path: '/api/public/csp-report'
+      fullPath: '/api/public/csp-report'
+      preLoaderRoute: typeof ApiPublicCspReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/events': {
@@ -1162,25 +1377,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/payments/': {
-      id: '/api/admin/payments/'
-      path: '/api/admin/payments'
-      fullPath: '/api/admin/payments/'
-      preLoaderRoute: typeof ApiAdminPaymentsIndexRouteImport
+    '/api/admin/people/': {
+      id: '/api/admin/people/'
+      path: '/api/admin/people'
+      fullPath: '/api/admin/people/'
+      preLoaderRoute: typeof ApiAdminPeopleIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/payments/$id': {
-      id: '/api/admin/payments/$id'
-      path: '/api/admin/payments/$id'
-      fullPath: '/api/admin/payments/$id'
-      preLoaderRoute: typeof ApiAdminPaymentsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/payments/issue-invoice': {
-      id: '/api/admin/payments/issue-invoice'
-      path: '/api/admin/payments/issue-invoice'
-      fullPath: '/api/admin/payments/issue-invoice'
-      preLoaderRoute: typeof ApiAdminPaymentsIssueInvoiceRouteImport
+    '/api/admin/people/$id': {
+      id: '/api/admin/people/$id'
+      path: '/api/admin/people/$id'
+      fullPath: '/api/admin/people/$id'
+      preLoaderRoute: typeof ApiAdminPeopleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/submissions/': {
@@ -1188,6 +1396,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/submissions'
       fullPath: '/api/admin/submissions/'
       preLoaderRoute: typeof ApiAdminSubmissionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/submissions/$id': {
+      id: '/api/admin/submissions/$id'
+      path: '/api/admin/submissions/$id'
+      fullPath: '/api/admin/submissions/$id'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/submissions/start-review': {
@@ -1246,47 +1461,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
     }
-    '/api/admin/payments/$id/mark-paid': {
-      id: '/api/admin/payments/$id/mark-paid'
-      path: '/mark-paid'
-      fullPath: '/api/admin/payments/$id/mark-paid'
-      preLoaderRoute: typeof ApiAdminPaymentsIdMarkPaidRouteImport
-      parentRoute: typeof ApiAdminPaymentsIdRoute
+    '/api/admin/people/$id/notes': {
+      id: '/api/admin/people/$id/notes'
+      path: '/notes'
+      fullPath: '/api/admin/people/$id/notes'
+      preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
+      parentRoute: typeof ApiAdminPeopleIdRoute
     }
-    '/api/admin/payments/$id/pdf': {
-      id: '/api/admin/payments/$id/pdf'
-      path: '/pdf'
-      fullPath: '/api/admin/payments/$id/pdf'
-      preLoaderRoute: typeof ApiAdminPaymentsIdPdfRouteImport
-      parentRoute: typeof ApiAdminPaymentsIdRoute
+    '/api/admin/submissions/$id/note': {
+      id: '/api/admin/submissions/$id/note'
+      path: '/note'
+      fullPath: '/api/admin/submissions/$id/note'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdNoteRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
-    '/api/admin/payments/$id/void': {
-      id: '/api/admin/payments/$id/void'
-      path: '/void'
-      fullPath: '/api/admin/payments/$id/void'
-      preLoaderRoute: typeof ApiAdminPaymentsIdVoidRouteImport
-      parentRoute: typeof ApiAdminPaymentsIdRoute
-    }
-    '/api/admin/payments/$id/waive': {
-      id: '/api/admin/payments/$id/waive'
-      path: '/waive'
-      fullPath: '/api/admin/payments/$id/waive'
-      preLoaderRoute: typeof ApiAdminPaymentsIdWaiveRouteImport
-      parentRoute: typeof ApiAdminPaymentsIdRoute
-    }
-    '/api/admin/submissions/$id/activate': {
-      id: '/api/admin/submissions/$id/activate'
-      path: '/api/admin/submissions/$id/activate'
-      fullPath: '/api/admin/submissions/$id/activate'
-      preLoaderRoute: typeof ApiAdminSubmissionsIdActivateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/submissions/$id/waive': {
-      id: '/api/admin/submissions/$id/waive'
-      path: '/api/admin/submissions/$id/waive'
-      fullPath: '/api/admin/submissions/$id/waive'
-      preLoaderRoute: typeof ApiAdminSubmissionsIdWaiveRouteImport
-      parentRoute: typeof rootRouteImport
+    '/api/admin/submissions/$id/timeline': {
+      id: '/api/admin/submissions/$id/timeline'
+      path: '/timeline'
+      fullPath: '/api/admin/submissions/$id/timeline'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdTimelineRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
@@ -1294,6 +1488,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/submissions/$id/uploads'
       preLoaderRoute: typeof ApiPublicSubmissionsIdUploadsRouteImport
       parentRoute: typeof ApiPublicSubmissionsRoute
+    }
+    '/api/admin/submissions/$id/media/$mediaId/original': {
+      id: '/api/admin/submissions/$id/media/$mediaId/original'
+      path: '/media/$mediaId/original'
+      fullPath: '/api/admin/submissions/$id/media/$mediaId/original'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
   }
 }
@@ -1346,6 +1547,7 @@ interface SiteRouteChildren {
   SiteMarketRoute: typeof SiteMarketRouteWithChildren
   SiteAboutRoute: typeof SiteAboutRoute
   SiteContactRoute: typeof SiteContactRoute
+  SiteCookiesRoute: typeof SiteCookiesRoute
   SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
   SiteExposureRoute: typeof SiteExposureRoute
   SiteFaqRoute: typeof SiteFaqRoute
@@ -1353,6 +1555,7 @@ interface SiteRouteChildren {
   SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
   SitePlaceNotesRoute: typeof SitePlaceNotesRoute
   SitePricingRoute: typeof SitePricingRoute
+  SitePrivacyChoicesRoute: typeof SitePrivacyChoicesRoute
   SitePropertiesRoute: typeof SitePropertiesRoute
   SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
   SiteSubmitRoute: typeof SiteSubmitRoute
@@ -1365,6 +1568,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketRoute: SiteMarketRouteWithChildren,
   SiteAboutRoute: SiteAboutRoute,
   SiteContactRoute: SiteContactRoute,
+  SiteCookiesRoute: SiteCookiesRoute,
   SiteEditorialStandardRoute: SiteEditorialStandardRoute,
   SiteExposureRoute: SiteExposureRoute,
   SiteFaqRoute: SiteFaqRoute,
@@ -1372,6 +1576,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketsRoute: SiteMarketsRouteWithChildren,
   SitePlaceNotesRoute: SitePlaceNotesRoute,
   SitePricingRoute: SitePricingRoute,
+  SitePrivacyChoicesRoute: SitePrivacyChoicesRoute,
   SitePropertiesRoute: SitePropertiesRoute,
   SiteStoriesRoute: SiteStoriesRouteWithChildren,
   SiteSubmitRoute: SiteSubmitRoute,
@@ -1385,12 +1590,18 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminPeopleIdRoute: typeof AdminPeopleIdRoute
+  AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminPeopleIdRoute: AdminPeopleIdRoute,
+  AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
 
@@ -1451,33 +1662,52 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
-interface ApiAdminPaymentsIdRouteChildren {
-  ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
-  ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
-  ApiAdminPaymentsIdVoidRoute: typeof ApiAdminPaymentsIdVoidRoute
-  ApiAdminPaymentsIdWaiveRoute: typeof ApiAdminPaymentsIdWaiveRoute
+interface ApiAdminPeopleIdRouteChildren {
+  ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
 }
 
-const ApiAdminPaymentsIdRouteChildren: ApiAdminPaymentsIdRouteChildren = {
-  ApiAdminPaymentsIdMarkPaidRoute: ApiAdminPaymentsIdMarkPaidRoute,
-  ApiAdminPaymentsIdPdfRoute: ApiAdminPaymentsIdPdfRoute,
-  ApiAdminPaymentsIdVoidRoute: ApiAdminPaymentsIdVoidRoute,
-  ApiAdminPaymentsIdWaiveRoute: ApiAdminPaymentsIdWaiveRoute,
+const ApiAdminPeopleIdRouteChildren: ApiAdminPeopleIdRouteChildren = {
+  ApiAdminPeopleIdNotesRoute: ApiAdminPeopleIdNotesRoute,
 }
 
-const ApiAdminPaymentsIdRouteWithChildren =
-  ApiAdminPaymentsIdRoute._addFileChildren(ApiAdminPaymentsIdRouteChildren)
+const ApiAdminPeopleIdRouteWithChildren =
+  ApiAdminPeopleIdRoute._addFileChildren(ApiAdminPeopleIdRouteChildren)
+
+interface ApiAdminSubmissionsIdRouteChildren {
+  ApiAdminSubmissionsIdNoteRoute: typeof ApiAdminSubmissionsIdNoteRoute
+  ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
+}
+
+const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
+  ApiAdminSubmissionsIdNoteRoute: ApiAdminSubmissionsIdNoteRoute,
+  ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
+  ApiAdminSubmissionsIdMediaMediaIdOriginalRoute:
+    ApiAdminSubmissionsIdMediaMediaIdOriginalRoute,
+}
+
+const ApiAdminSubmissionsIdRouteWithChildren =
+  ApiAdminSubmissionsIdRoute._addFileChildren(
+    ApiAdminSubmissionsIdRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  FeedDotjsonRoute: FeedDotjsonRoute,
+  FeedDotxmlRoute: FeedDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  DotwellKnownChangePasswordRoute: DotwellKnownChangePasswordRoute,
+  DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
+  DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
+  ApiConsentRoute: ApiConsentRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiAdminMeRoute: ApiAdminMeRoute,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiPublicClientErrorRoute: ApiPublicClientErrorRoute,
   ApiPublicConciergeRoute: ApiPublicConciergeRoute,
+  ApiPublicCspReportRoute: ApiPublicCspReportRoute,
   ApiPublicEventsRoute: ApiPublicEventsRoute,
   ApiPublicInquiriesRoute: ApiPublicInquiriesRoute,
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
@@ -1489,16 +1719,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
-  ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
-  ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
+  ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
+  ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsStartReviewRoute: ApiAdminSubmissionsStartReviewRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
-  ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
+  ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
-  ApiAdminSubmissionsIdActivateRoute: ApiAdminSubmissionsIdActivateRoute,
-  ApiAdminSubmissionsIdWaiveRoute: ApiAdminSubmissionsIdWaiveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
