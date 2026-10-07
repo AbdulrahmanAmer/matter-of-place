@@ -201,3 +201,27 @@ Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHA
 7. File `workspace/05-plans/sizing/B13.json` (not blocking).
    What: The sizing entry for g4 names app/docs/runbooks/seo.md and app/lighthouserc.json. The plan and the brief name docs/runbooks/search.md, and B13 never edits lighthouserc.json. The orchestrator owns this file and should correct it.
    Evidence: workspace/05-plans/sizing/B13.json:9 "files": [..., "app/docs/runbooks/seo.md", ..., "app/lighthouserc.json"]
+
+## g1 · steps 10
+
+Source: the fresh reviewer of group g1, none blocking. The one item that names GOTCHAS.md (the third costTime item, the first e2e mutation of ga4.ts that never applied) went into the bank as a hit-again line of P-008 with a pointer in P-1827 and is not repeated here.
+
+1. File `app/src/lib/ga4.ts` (not blocking).
+   What: Follow-up. In a real browser, nothing tests that the script waits for idle. jsdom has no requestIdleCallback, so the unit test 'waits for idle' (and its mutation b13-g1-ga4-idle) only covers the setTimeout fallback on line 19. The e2e Allow test checks the request count, not the timing. If line 18 were replaced with run(), every test would stay green (found by reading, not by running a mutation). The plan's 'loads the script once after idle' is UNPROVEN in a browser. This affects performance only, not consent.
+   Evidence: grep -rn requestIdleCallback tests/setup src finds only src/lib/ga4.ts:17-18. The registry entry b13-g1-ga4-idle mutates only 'else setTimeout(run, 1);'
+
+2. File `.github/workflows/ci.yml` (not blocking).
+   What: Follow-up for the orchestrator. CI never runs ga4.spec.ts. The e2e job runs desktop, phone, live-desktop, edge, coming-soon and admin projects plus the check-seo scripts, but no --project=seo, and its build has no GA4 id. So in CI the consent gate is guarded only by the unit tests. The same applies to B7's admin-signin googletagmanager check: on a build with no id the loader does nothing, so that check passes without testing anything, and FE-02 has no CI proof that can fail.
+   Evidence: grep -n 'seo\|ga4' .github/workflows/ci.yml: line 316 runs desktop/phone/live-desktop/edge; the seo steps at 344-372 run scripts/check-seo.ts only
+
+3. File `app/src/components/site/ga4-loader.tsx` (not blocking).
+   What: Follow-up (C06/C07). In trackGpcOverride, `catch { return; }` (lines 20-22) silently drops the GPC consent_set when sessionStorage throws (storage blocked), and no comment says this is deliberate. Not tracking is the safe result, but the reason should be written down, as consent.ts does for its own catch.
+   Evidence: lines 17-23 of ga4-loader.tsx
+
+4. File `app/src/lib/ga4.ts` (not blocking).
+   What: Follow-up. Clicking Decline (from the footer settings) after Allow in the same page view leaves gtag.js running until the next full load. Nothing sets window['ga-disable-<id>']. The author lists this as UNPROVEN. The plan does not ask this step to handle it, but B16's privacy wording or B17 should.
+   Evidence: Ga4Loader's onConsentChange only calls loadGa4, which returns early once consent is not granted. Nothing undoes a loaded script
+
+5. File `workspace/05-plans/B13.md` (not blocking).
+   What: Follow-up. The step 10 proof `curl -s http://localhost:8080/ | grep -c googletagmanager` cannot be reproduced as written. bun run dev answers 500 on / when the public reads have no database env (already banked). The author replaced it with the built-Worker HTML test, which does run and can fail (mutation b13-g1-e2e-html). The plan line should name the built-Worker check.
+   Evidence: vite dev --port 8949: curl / returned 500, and the dev log showed 118 public reads with status 503
