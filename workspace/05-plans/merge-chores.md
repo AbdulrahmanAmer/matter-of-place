@@ -5,6 +5,7 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- Step 5a: no test covers `linkedin.ts`'s ugcPosts statistics branch; nothing checks the abort signal reaches fetch in `oauth-tokens.ts` (same gap as g4); two runs can refresh the same X token at once and X rotates refresh tokens, so the second gets `invalid_grant` and marks the token dead; `resetAt` takes the latest of three X reset headers, which could push a plain 429 to the 24-hour reset; a dead X refresh answered as a 400 with another code is not recognised; `social.md` line 66 and `oauth-consent.ts` 164-165 still say step 5a is missing; `callApi` throws `AppError("server")` when posting is off instead of invariant 5's dry-run answer. (g5 review2 a08c8b4b)
 - Step 5a: the no-vendor-host grep proof cannot fail for two of its three paths; a costTime line mis-banked under P-076; `oauth-consent.ts:164` still says STUB(B10 step 5a) (re-point to step 6); all 17 X and LinkedIn fixtures are source "plan". (g5 review a958e54f)
 - `GRAPH_ERROR_TABLE` has no row for the Business Use Case rate-limit codes 80001, 80002 and the 800xx family, so a 4xx without `is_transient` from them classifies wrong (suspected by reading). (g3 review2 af512bc3)
 - B8's `meta-token-refresh.ts` (lines 72-74) keeps its own Vault-first, env-second token read instead of importing `getMetaToken`; the rule lives in two places.
@@ -19,6 +20,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `tests/unit/reels-limits.test.ts` copies the REEL constants instead of reading `render-reel.mjs` exports; a B12 reel change would not turn it red. (g2)
 
 ## B7 (slice/b7, Dell)
+- Step 5a: `/admin/people/<non-uuid>` answers a 400 validation error from the API, not the 404 `PersonPage` expects (suspected by reading); `person_detail.sql` matches `lower(e.to_email) = lower(contact email)` with no index (C11, same as the g1 note). (g2 review aff57f16)
 - Public bundle: the largest public route is 137 gzip bytes under 153,600 after step 5 and every admin route file adds to the entry; see ruling H66 before step 6. (g1 review2 a0757fcf)
 - `RequestDetail.tsx` errors and toasts show the message without the request id (C17).
 - `originalUrl` turns every `createSignedUrl` error into 503 `storage_unavailable`; a never-uploaded object should be a 404-class answer.
@@ -41,6 +43,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- Step 5 PARTIAL on the same B9 gap: `renderIssueHtml` throws `NonRetryableError("property_block_unavailable")` under one STUB and one test, the `--dry` sample has an intro and two story blocks; nobody has looked at the `--dry` layout in a browser. Completes with B9 c5n (fix round running here). (g4 build a3bd9fea)
 - Step 4: the newsletter migration's down path cannot be followed (`drop table newsletter_issues` fails on 2BP01, `newsletter_open_draft` depends on it; "re-run db:fn from the previous commit" restores nothing since 19 of 21 functions are new); `standalone_approve_job.sql` queues the waiting `send_email(standalone)` job at once while the row stays disabled (suspected by reading); several `newsletter.db` cases assume mop-dev holds no open draft; line 154's `Promise.all` on one pg client is not concurrent, only the second insert's 23505 measures the index; two audience cases sit at the 30 s limit on shared mop-dev (P-312 shape); the log's UNPROVEN list predates the CI run. (g3 review a4a83cb8)
 - Step 4 PARTIAL on B9 step 5's missing half (NewsletterBlock, standalone block, object variables in render.ts): B9 close-out c5n runs here (wf_e0dc4410-89b); when it merges, the standalone row update, variablesByKey and the sample-block changes of B11 step 4 complete in B11's next group or a B11 close-out. (g3 build a24a5183)
 - Step 4 bank: `types.ts` hand-typed for the newsletter functions and STUB casts in `assemble.ts` and `resend.ts` until `bun run types:from-ci -- 200` (PR 200 marked ready 05:45).
