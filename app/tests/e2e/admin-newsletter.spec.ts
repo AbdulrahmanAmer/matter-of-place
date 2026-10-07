@@ -8,7 +8,7 @@ import { signInAs } from "./helpers/session";
 // B11 step 7, screen 13 (Place Notes). Signed in as the seeded managing editor, it opens the one draft or builds it
 // with the Build button, then reorders blocks with the keyboard, looks at the phone preview, finds Approve off with
 // no blocks, approves for 30 days ahead and takes it back, and reads the subscriber counts. It leaves the issue a
-// draft and deletes nothing. It commits rows (a build, an approval, an unapproval, one export audit row), so it
+// draft and deletes nothing. It commits rows (a build, a save, an approval, an unapproval, one export audit row), so it
 // refuses a production database and holds the one-writer lock of mop-dev from the start of beforeAll to the end of
 // afterAll (ASSUMED H35 (5), G34).
 
@@ -24,13 +24,17 @@ let issuePath = "";
 
 const read = <T>(fn: (db: Db) => Promise<T>): Promise<T> => committed(fn, () => Promise.resolve());
 
+// axe cannot enter the sandboxed mail preview (P-2412), so the scans of the editor leave the frame out.
+const PREVIEW_FRAME = 'iframe[title="Issue preview"]';
+
 const blockList = () => page.getByRole("list", { name: "Blocks, in reading order" });
 const blockNames = () => blockList().getByRole("heading", { level: 3 }).allTextContents();
 
 async function openIssuesList(): Promise<void> {
   await page.goto("/admin/newsletter");
   await expect(page.getByRole("heading", { name: "Newsletter", level: 1 })).toBeVisible();
-  await expect(page.getByRole("table", { name: "Place Notes issues" })).toBeVisible();
+  // The list is drawn when the table stops being busy: a list with no issue has an empty state, not a table.
+  await expect(page.getByRole("tabpanel").locator('[aria-busy="false"]')).toBeVisible();
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -62,7 +66,7 @@ test("the issues list opens the one draft, or the Build button makes it from the
   issuePath = new URL(page.url()).pathname;
   expect(issuePath).toMatch(/^\/admin\/newsletter\/[0-9a-f-]{36}$/);
   expect((await blockNames()).length).toBeGreaterThanOrEqual(2);
-  await checkpoint(page, "/admin/newsletter/:id");
+  await checkpoint(page, "/admin/newsletter/:id", [PREVIEW_FRAME]);
 });
 
 test("a block moved with the keyboard stays moved after a reload", async () => {
@@ -83,11 +87,8 @@ test("a block moved with the keyboard stays moved after a reload", async () => {
 test("the phone preview draws the saved issue in a frame 390 pixels wide", async () => {
   const [title] = await blockNames();
   await page.getByRole("button", { name: "Phone" }).click();
-  const frame = page.locator('iframe[title="Issue preview"]');
-  await expect(frame).toHaveAttribute("width", "390");
-  await expect(page.frameLocator('iframe[title="Issue preview"]').locator("body")).toContainText(
-    title ?? "",
-  );
+  await expect(page.locator(PREVIEW_FRAME)).toHaveAttribute("width", "390");
+  await expect(page.frameLocator(PREVIEW_FRAME).locator("body")).toContainText(title ?? "");
 });
 
 test("Approve is off while the editor holds no blocks, though none of that is saved", async () => {
@@ -98,6 +99,7 @@ test("Approve is off while the editor holds no blocks, though none of that is sa
   await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
   await expect(page.getByText("Add a block before approving.")).toBeVisible();
   await page.reload();
+  await expect(blockList()).toBeVisible();
   expect(await blockNames()).toEqual(names);
 });
 
@@ -115,7 +117,7 @@ test("approving for 30 days ahead queues the send and its preview, and unapprovi
 
   await page.getByRole("button", { name: "Approve" }).click();
   const approving = page.getByRole("dialog", { name: "Approve this issue" });
-  await checkpoint(page, "/admin/newsletter/:id approve");
+  await checkpoint(page, "/admin/newsletter/:id approve", [PREVIEW_FRAME]);
   await approving.getByLabel("Send at (Eastern time)").fill(local);
   await approving.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText("Approved. The send and its preview are queued.")).toBeVisible();
@@ -172,7 +174,7 @@ test("the subscribers tab counts each market as the database counts its audience
   await openIssuesList();
   await page.getByRole("tab", { name: "Subscribers" }).click();
   expect(new URL(page.url()).searchParams.get("tab")).toBe("subscribers");
-  const audiences = page.getByRole("table", { name: "Who a send reaches" });
+  const audiences = page.getByRole("table", { name: "Subscribers by audience" });
   await expect(audiences).toBeVisible();
   await checkpoint(page, "/admin/newsletter subscribers");
   const expected = await read(async (db) => {

@@ -143,6 +143,29 @@ export async function sendTest(
   return { job_id: jobId };
 }
 
+/** The sign-in address of the person who asked, for the one mail an action sends to them. */
+async function signInAddress(db: Db, userId: string): Promise<string> {
+  const { data, error } = await db.auth.admin.getUserById(userId);
+  if (error !== null) {
+    throw new AppError(
+      "unavailable",
+      undefined,
+      "The service is busy. Please try again in a moment.",
+    );
+  }
+  const email = data.user.email;
+  if (email === undefined || email === "") {
+    throw new AppError("validation", undefined, "This account has no email address.");
+  }
+  return email;
+}
+
+/** `sendTest` to the sign-in address of the person who asked, which is what screen 13's button means. */
+export async function sendTestToActor(actor: AdminActor, db: Db, input: { id: string }) {
+  authorize(actor, "newsletter.send_test");
+  return sendTest(actor, db, { id: input.id, to: await signInAddress(db, actor.userId) });
+}
+
 export async function approveIssue(
   actor: AdminActor,
   db: Db,

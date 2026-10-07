@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { issueIdInputSchema, sendTestSchema } from "../../../domain/admin-newsletter";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
-import { staffEmail } from "../../../server/lib/staff-email";
-import { sendTest } from "../../../server/newsletter/service";
+import { sendTestToActor } from "../../../server/newsletter/service";
 
 export const Route = createFileRoute("/api/admin/newsletter/issues/$id/send-test")({
   server: {
@@ -12,8 +11,7 @@ export const Route = createFileRoute("/api/admin/newsletter/issues/$id/send-test
         action: "newsletter.send_test",
         input: issueIdInputSchema,
         output: sendTestSchema,
-        handler: async (ctx, { id }) =>
-          sendTest(ctx.actor, ctx.db, { id, to: await staffEmail(ctx.db, ctx.actor.userId) }),
+        handler: (ctx, input) => sendTestToActor(ctx.actor, ctx.db, input),
       }),
     },
   },

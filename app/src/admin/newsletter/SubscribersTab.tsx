@@ -36,7 +36,8 @@ function CountTable({
 
 /**
  * Screen 13, second tab: how many people are in each state and each audience, never an address. An audience counts
- * only confirmed, still subscribed people (the Inputs rule of `audiencesFor`), so its number is what a send reaches.
+ * confirmed, still subscribed people by the rule of `audiencesFor`; an address on the suppression list is dropped
+ * only when a send is made, so a send can reach fewer.
  */
 export function SubscribersTab({
   counts,
@@ -66,7 +67,7 @@ export function SubscribersTab({
           ]}
         />
         <CountTable
-          caption="Who a send reaches"
+          caption="Subscribers by audience"
           rows={[
             { label: "Place Notes, all markets", value: counts.audiences["place-notes"] },
             { label: "California", value: counts.audiences["market-ca"] },

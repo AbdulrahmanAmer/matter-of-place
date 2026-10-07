@@ -27,10 +27,17 @@ const keyOf = (entry: { route: string; rule: string; target: string }) =>
 /**
  * Scans the page and compares serious and critical violations with `axe-baseline.json` under the key `route`: a
  * violation not in the baseline is a new problem, a baseline entry that no longer occurs is a fixed problem that
- * must leave the list, so the file can only shrink.
+ * must leave the list, so the file can only shrink. `exclude` names what axe cannot enter, such as the sandboxed mail
+ * preview of screen 13 (P-2412).
  */
-export async function runAxe(page: Page, route: string): Promise<void> {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+export async function runAxe(
+  page: Page,
+  route: string,
+  exclude: readonly string[] = [],
+): Promise<void> {
+  const builder = new AxeBuilder({ page }).withTags(TAGS);
+  for (const selector of exclude) builder.exclude(selector);
+  const results = await builder.analyze();
   const found = results.violations
     .filter((violation) => violation.impact != null && BLOCKING.has(violation.impact))
     .flatMap((violation) =>
@@ -50,6 +57,10 @@ export async function runAxe(page: Page, route: string): Promise<void> {
 }
 
 /** `runAxe` for an admin screen or dialog, keyed by `label` (T-05): call it after each screen loads and each dialog opens. */
-export function checkpoint(page: Page, label: string): Promise<void> {
-  return runAxe(page, label);
+export function checkpoint(
+  page: Page,
+  label: string,
+  exclude: readonly string[] = [],
+): Promise<void> {
+  return runAxe(page, label, exclude);
 }

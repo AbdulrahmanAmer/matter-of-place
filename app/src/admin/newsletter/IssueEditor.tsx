@@ -178,8 +178,8 @@ function Metrics({ metrics }: { metrics: Issue["metrics"] }) {
 
 /**
  * Screen 13, one issue. A draft is edited here and saved whole; an approved one can be taken back to draft; a sending
- * or sent one is read only. Approve stays off while nothing is saved to approve: no blocks, a change not saved yet,
- * or an introduction left empty. Each action reports success or failure to its caller and shows a refusal inline.
+ * or sent one is read only. Approve stays off while the editor holds no blocks or a change that is not saved. An
+ * action that fails shows the refusal inline.
  */
 export function IssueEditor({
   issue,

@@ -1861,33 +1861,6 @@
     "expect": "× .*shows a zero for every group"
   },
   {
-    "id": "b11-g6-email-read",
-    "test": "tests/unit/staff-email.test.ts",
-    "file": "src/server/lib/staff-email.ts",
-    "find": "const email = data.user.email;",
-    "replace": "const email = \"someone@example.test\";",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
-    "expect": "× .*reads the sign-in address"
-  },
-  {
-    "id": "b11-g6-email-unavailable",
-    "test": "tests/unit/staff-email.test.ts",
-    "file": "src/server/lib/staff-email.ts",
-    "find": "if (error !== null) {",
-    "replace": "if (false) {",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
-    "expect": "× .*answers unavailable when the lookup fails"
-  },
-  {
-    "id": "b11-g6-email-none",
-    "test": "tests/unit/staff-email.test.ts",
-    "file": "src/server/lib/staff-email.ts",
-    "find": "if (email === undefined || email === \"\") {",
-    "replace": "if (false) {",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/staff-email.test.ts",
-    "expect": "× .*refuses an account with no address"
-  },
-  {
     "id": "b11-g6-routes-plain",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "src/routes/api/admin/newsletter.issues.ts",
@@ -1914,5 +1887,50 @@
     "run": "E2E_TARGET=built E2E_PORT=8988 bunx playwright test --project=admin tests/e2e/admin-newsletter.spec.ts --grep \"subscribers tab counts\"",
     "expect": "getByRole\\('row', \\{ name: 'California' \\}\\)",
     "kind": "manual"
+  },
+  {
+    "id": "b11-g6-address-actor",
+    "test": "tests/unit/newsletter/send-test-address.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "return sendTest(actor, db, { id: input.id, to: await signInAddress(db, actor.userId) });",
+    "replace": "return sendTest(actor, db, { id: input.id, to: \"someone@example.test\" });",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
+    "expect": "× .*queues the test for the sign-in address"
+  },
+  {
+    "id": "b11-g6-address-authorize",
+    "test": "tests/unit/newsletter/send-test-address.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "authorize(actor, \"newsletter.send_test\");\n  return sendTest(actor, db, { id: input.id, to: await signInAddress",
+    "replace": "return sendTest(actor, db, { id: input.id, to: await signInAddress",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
+    "expect": "× .*refuses a role that may not send a test"
+  },
+  {
+    "id": "b11-g6-address-read",
+    "test": "tests/unit/newsletter/send-test-address.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "const email = data.user.email;",
+    "replace": "const email = \"someone@example.test\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
+    "expect": "× .*queues the test for the sign-in address"
+  },
+  {
+    "id": "b11-g6-address-unavailable",
+    "test": "tests/unit/newsletter/send-test-address.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "const { data, error } = await db.auth.admin.getUserById(userId);\n  if (error !== null) {",
+    "replace": "const { data, error } = await db.auth.admin.getUserById(userId);\n  if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
+    "expect": "× .*answers unavailable when the address cannot be read"
+  },
+  {
+    "id": "b11-g6-address-none",
+    "test": "tests/unit/newsletter/send-test-address.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "if (email === undefined || email === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/send-test-address.test.ts",
+    "expect": "× .*refuses an account with no address"
   }
 ]

@@ -263,7 +263,7 @@ describe("SubscribersTab", () => {
 
   it("counts each audience by market", () => {
     render(<SubscribersTab counts={counts} />);
-    const audiences = within(screen.getByRole("table", { name: "Who a send reaches" }));
+    const audiences = within(screen.getByRole("table", { name: "Subscribers by audience" }));
     expect(audiences.getByRole("row", { name: /California/ }).textContent).toContain("12");
     expect(audiences.getByRole("row", { name: /New York/ }).textContent).toContain("9");
     expect(audiences.getByRole("row", { name: /Florida/ }).textContent).toContain("7");
@@ -296,9 +296,9 @@ describe("SubscribersTab", () => {
         }}
       />,
     );
-    const cells = within(screen.getByRole("table", { name: "Who a send reaches" })).getAllByRole(
-      "cell",
-    );
+    const cells = within(
+      screen.getByRole("table", { name: "Subscribers by audience" }),
+    ).getAllByRole("cell");
     expect(cells.map((cell) => cell.textContent)).toEqual(["0", "0", "0", "0"]);
   });
 });

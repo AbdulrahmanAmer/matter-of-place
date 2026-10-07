@@ -6,7 +6,7 @@ const LABEL: Readonly<Record<Viewport, string>> = { desktop: "Desktop", phone: "
 
 /**
  * The saved issue as a subscriber gets it, in a frame as wide as the chosen device. The frame is sandboxed with no
- * permission at all: the mail has no script, and a link inside it opens nothing from here.
+ * permission: the mail runs no script and cannot open a window or move the page around it.
  */
 export function PreviewFrame({
   html,
