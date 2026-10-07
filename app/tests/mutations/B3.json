@@ -3944,8 +3944,8 @@
     "kind": "file",
     "test": "tests/unit/bundle-check.test.ts",
     "file": "scripts/bundle-check.mjs",
-    "find": "if (other === id || id.startsWith(`${other}.`)) reach(manifest, otherKey, false, loaded);",
-    "replace": "if (other === id) reach(manifest, otherKey, false, loaded);",
+    "find": "if (other === id || id.startsWith(`${other}.`))",
+    "replace": "if (other === id)",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
     "expect": "× .*sums the entry, the route's chunk and the chunk of each route it nests in"
   },
@@ -3994,8 +3994,8 @@
     "kind": "file",
     "test": "tests/unit/bundle-check.test.ts",
     "file": "scripts/bundle-check.mjs",
-    "find": "    for (const reachable of reach(manifest, key, true, new Set())) everything.add(reachable);\n",
-    "replace": "    for (const reachable of reach(manifest, key, false, new Set())) everything.add(reachable);\n",
+    "find": "reach(manifest, key, true, new Set(), entry)",
+    "replace": "reach(manifest, key, false, new Set(), entry)",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
     "expect": "× .*fails a chunk that lists src/data/properties.ts"
   },
