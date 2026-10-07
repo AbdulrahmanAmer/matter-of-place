@@ -1,0 +1,212 @@
+[
+  {
+    "id": "b6-g1-b-counter",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create sequence public.wf_invoice_seq;\ncreate or replace function public.next_invoice_number(p_prefix text default 'MOP')\nreturns text\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  select p_prefix || '-' || extract(year from now() at time zone 'utc')::integer::text || '-' || lpad(nextval('public.wf_invoice_seq')::text, 4, '0');\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"are gapless across a rolled-back issue\"",
+    "expect": "× .*are gapless across a rolled-back issue"
+  },
+  {
+    "id": "b6-g1-parallel",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.next_invoice_number(p_prefix text default 'MOP')\nreturns text\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  select p_prefix || '-' || extract(year from now() at time zone 'utc')::integer::text || '-' || lpad((coalesce((select max(split_part(p.invoice_number, '-', 3)::integer) from public.payments p where p.invoice_number like p_prefix || '-%' and split_part(p.invoice_number, '-', 3) ~ '^[0-9]+$' and split_part(p.invoice_number, '-', 3)::integer < 9000), 0) + 1)::text, 4, '0');\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"gives two parallel issues two consecutive numbers\"",
+    "expect": "× .*gives two parallel issues two consecutive numbers"
+  },
+  {
+    "id": "b6-g1-snapshot-dates",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.issue_invoice(\n  p_submission_id uuid,\n  p_product public.exposure_package,\n  p_amount numeric,\n  p_preferred_method text,\n  p_snapshot jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state public.submission_state;\n  v_settings jsonb;\n  v_issued_at timestamptz := now();\n  v_due_at timestamptz;\n  v_number text;\n  v_payment public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 8: from Accepted, or from Invoice Issued once the earlier invoice is void.\n  select s.workflow_state into v_state from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_state = 'Invoice Issued' and exists (\n    select 1 from public.payments p\n    where p.submission_id = p_submission_id and p.status in ('due', 'paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- Invariant 1: B2's enforce_editorial_gate refuses every other starting state and an unaccepted request.\n  update public.submissions s set workflow_state = 'Invoice Issued' where s.id = p_submission_id;\n\n  select s.value into v_settings from public.settings s where s.key = 'invoice';\n  -- Stored, so a later change of due_days never moves an issued invoice.\n  v_due_at := v_issued_at + make_interval(days => (v_settings ->> 'due_days')::integer);\n  v_number := public.next_invoice_number(v_settings ->> 'prefix');\n  insert into public.payments (\n    submission_id, product, amount, method, invoice_number, preferred_method, status, issued_by, issued_at, due_at,\n    invoice_snapshot\n  ) values (\n    p_submission_id, p_product, p_amount, 'invoice_manual', v_number, p_preferred_method, 'due', p_actor,\n    v_issued_at, v_due_at,\n    -- Invariant 5: the frozen snapshot is complete once SQL adds the three fields it assigns.\n    p_snapshot || jsonb_build_object(\n      'invoice_number', v_number,\n      'issue_date', to_char(v_issued_at at time zone 'utc', 'YYYY-MM-DD'),\n      'due_date', to_char(v_issued_at at time zone 'utc', 'YYYY-MM-DD')\n    )\n  )\n  returning * into v_payment;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.issue', 'payments', v_payment.id, null, to_jsonb(v_payment), p_request_id\n  );\n  v_event := public.emit_event(\n    'invoice.issued', 'payment', v_payment.id,\n    jsonb_build_object(\n      'submission_id', p_submission_id, 'payment_id', v_payment.id, 'invoice_number', v_number,\n      'tier', public.payment_tier(p_product)\n    ),\n    p_actor\n  );\n  -- Invariant 6: the PDF job commits or rolls back with the invoice.\n  perform public.enqueue_job(\n    'invoice_pdf',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('payment_id', v_payment.id)),\n    'invoice_pdf:' || v_payment.id::text,\n    p_max_attempts => 12\n  );\n  return query select v_payment.id, v_event;\nend;\n$$;\n\nrevoke execute on function public.issue_invoice(\n  uuid, public.exposure_package, numeric, text, jsonb, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.issue_invoice(\n  uuid, public.exposure_package, numeric, text, jsonb, uuid, public.actor_kind, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"are stored in the frozen snapshot\"",
+    "expect": "× .*are stored in the frozen snapshot"
+  },
+  {
+    "id": "b6-g1-a-gate-issue",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "drop trigger enforce_editorial_gate on public.submissions;",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"refuses to issue on Under Review\"",
+    "expect": "× .*refuses to issue on Under Review"
+  },
+  {
+    "id": "b6-g1-a-gate-scheduled",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "drop trigger enforce_editorial_gate on public.submissions;",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"refuses Scheduled with no paid or waived payment\"",
+    "expect": "× .*refuses Scheduled with no paid or waived payment"
+  },
+  {
+    "id": "b6-g1-e-live-index",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "drop index public.payments_one_live_idx;",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"refuses a second live payment\"",
+    "expect": "× .*refuses a second live payment"
+  },
+  {
+    "id": "b6-g1-n-void-paid",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.void_payment(\n  p_payment_id uuid,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.payments;\n  v_after public.payments;\n  v_event uuid;\nbegin\n  -- ASSUMED A3: an invoice issued in error is voided with a reason; its number is never reused, and the request stays\n  -- in Invoice Issued until a corrected invoice is issued. A paid or waived payment is never voided.\n  if char_length(coalesce(btrim(p_reason), '')) not between 3 and 500 then\n    raise exception 'validation';\n  end if;\n  select * into v_before from public.payments p where p.id = p_payment_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.status not in ('due', 'paid') then\n    raise exception 'wrong_state';\n  end if;\n  update public.payments p\n  set status = 'void', notes = p_reason\n  where p.id = p_payment_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.void', 'payments', p_payment_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'invoice.voided', 'payment', p_payment_id,\n    jsonb_build_object(\n      'submission_id', v_after.submission_id, 'payment_id', p_payment_id,\n      'invoice_number', v_after.invoice_number, 'reason', p_reason\n    ),\n    p_actor\n  );\n  return query select p_payment_id, v_event;\nend;\n$$;\n\nrevoke execute on function public.void_payment(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.void_payment(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"issues the next number after a due payment is voided\"",
+    "expect": "× .*issues the next number after a due payment is voided"
+  },
+  {
+    "id": "b6-g1-number-check",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "alter table public.payments drop constraint payments_number_unless_waived;",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"refuses a due row without a number\"",
+    "expect": "× .*refuses a due row without a number"
+  },
+  {
+    "id": "b6-g1-v-mark-void",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.mark_payment_paid(\n  p_payment_id uuid,\n  p_paid_at timestamptz,\n  p_method text,\n  p_reference text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.payments;\n  v_after public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 3: due to paid only. A null actor is the future Stripe webhook (invariant 9).\n  select * into v_before from public.payments p where p.id = p_payment_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.status not in ('due', 'void') then\n    raise exception 'wrong_state';\n  end if;\n  if p_paid_at is null then\n    raise exception 'validation';\n  end if;\n  if p_paid_at > now() then\n    raise exception 'paid_at_future';\n  end if;\n  update public.payments p\n  set status = 'paid', paid_at = p_paid_at, paid_method = p_method, paid_reference = p_reference,\n    paid_marked_by = p_actor\n  where p.id = p_payment_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.mark_paid', 'payments', p_payment_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'payment.marked', 'payment', p_payment_id,\n    jsonb_build_object(\n      'submission_id', v_after.submission_id, 'payment_id', p_payment_id, 'status', 'paid', 'amount', v_after.amount,\n      'tier', public.payment_tier(v_after.product), 'invoiced', v_after.invoice_number is not null\n    ),\n    p_actor\n  );\n  return query select p_payment_id, v_event;\nend;\n$$;\n\nrevoke execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"raise wrong_state for mark paid on void\"",
+    "expect": "× .*raise wrong_state for mark paid on void"
+  },
+  {
+    "id": "b6-g1-paid-future",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.mark_payment_paid(\n  p_payment_id uuid,\n  p_paid_at timestamptz,\n  p_method text,\n  p_reference text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.payments;\n  v_after public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 3: due to paid only. A null actor is the future Stripe webhook (invariant 9).\n  select * into v_before from public.payments p where p.id = p_payment_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.status <> 'due' then\n    raise exception 'wrong_state';\n  end if;\n  if p_paid_at is null then\n    raise exception 'validation';\n  end if;\n  if false then\n    raise exception 'paid_at_future';\n  end if;\n  update public.payments p\n  set status = 'paid', paid_at = p_paid_at, paid_method = p_method, paid_reference = p_reference,\n    paid_marked_by = p_actor\n  where p.id = p_payment_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.mark_paid', 'payments', p_payment_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'payment.marked', 'payment', p_payment_id,\n    jsonb_build_object(\n      'submission_id', v_after.submission_id, 'payment_id', p_payment_id, 'status', 'paid', 'amount', v_after.amount,\n      'tier', public.payment_tier(v_after.product), 'invoiced', v_after.invoice_number is not null\n    ),\n    p_actor\n  );\n  return query select p_payment_id, v_event;\nend;\n$$;\n\nrevoke execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"raises paid_at_future\"",
+    "expect": "× .*raises paid_at_future"
+  },
+  {
+    "id": "b6-g1-q-pdf-job",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.issue_invoice(\n  p_submission_id uuid,\n  p_product public.exposure_package,\n  p_amount numeric,\n  p_preferred_method text,\n  p_snapshot jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state public.submission_state;\n  v_settings jsonb;\n  v_issued_at timestamptz := now();\n  v_due_at timestamptz;\n  v_number text;\n  v_payment public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 8: from Accepted, or from Invoice Issued once the earlier invoice is void.\n  select s.workflow_state into v_state from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_state = 'Invoice Issued' and exists (\n    select 1 from public.payments p\n    where p.submission_id = p_submission_id and p.status in ('due', 'paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- Invariant 1: B2's enforce_editorial_gate refuses every other starting state and an unaccepted request.\n  update public.submissions s set workflow_state = 'Invoice Issued' where s.id = p_submission_id;\n\n  select s.value into v_settings from public.settings s where s.key = 'invoice';\n  -- Stored, so a later change of due_days never moves an issued invoice.\n  v_due_at := v_issued_at + make_interval(days => (v_settings ->> 'due_days')::integer);\n  v_number := public.next_invoice_number(v_settings ->> 'prefix');\n  insert into public.payments (\n    submission_id, product, amount, method, invoice_number, preferred_method, status, issued_by, issued_at, due_at,\n    invoice_snapshot\n  ) values (\n    p_submission_id, p_product, p_amount, 'invoice_manual', v_number, p_preferred_method, 'due', p_actor,\n    v_issued_at, v_due_at,\n    -- Invariant 5: the frozen snapshot is complete once SQL adds the three fields it assigns.\n    p_snapshot || jsonb_build_object(\n      'invoice_number', v_number,\n      'issue_date', to_char(v_issued_at at time zone 'utc', 'YYYY-MM-DD'),\n      'due_date', to_char(v_due_at at time zone 'utc', 'YYYY-MM-DD')\n    )\n  )\n  returning * into v_payment;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.issue', 'payments', v_payment.id, null, to_jsonb(v_payment), p_request_id\n  );\n  v_event := public.emit_event(\n    'invoice.issued', 'payment', v_payment.id,\n    jsonb_build_object(\n      'submission_id', p_submission_id, 'payment_id', v_payment.id, 'invoice_number', v_number,\n      'tier', public.payment_tier(p_product)\n    ),\n    p_actor\n  );\n  -- Invariant 6: the PDF job commits or rolls back with the invoice.\n  perform public.enqueue_job(\n    'invoice_pdf',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('payment_id', v_payment.id)),\n    'invoice_pdf_elsewhere:' || v_payment.id::text,\n    p_max_attempts => 12\n  );\n  return query select v_payment.id, v_event;\nend;\n$$;\n\nrevoke execute on function public.issue_invoice(\n  uuid, public.exposure_package, numeric, text, jsonb, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.issue_invoice(\n  uuid, public.exposure_package, numeric, text, jsonb, uuid, public.actor_kind, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"issue_invoice writes payments.issue\"",
+    "expect": "× .*issue_invoice writes payments.issue"
+  },
+  {
+    "id": "b6-g1-ah-pii-row",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "delete from public.pii_columns where table_name = 'payments' and column_name = 'invoice_snapshot';",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"issue_invoice writes payments.issue\"",
+    "expect": "× .*issue_invoice writes payments.issue"
+  },
+  {
+    "id": "b6-g1-x-audit-action",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.mark_payment_paid(\n  p_payment_id uuid,\n  p_paid_at timestamptz,\n  p_method text,\n  p_reference text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.payments;\n  v_after public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 3: due to paid only. A null actor is the future Stripe webhook (invariant 9).\n  select * into v_before from public.payments p where p.id = p_payment_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.status <> 'due' then\n    raise exception 'wrong_state';\n  end if;\n  if p_paid_at is null then\n    raise exception 'validation';\n  end if;\n  if p_paid_at > now() then\n    raise exception 'paid_at_future';\n  end if;\n  update public.payments p\n  set status = 'paid', paid_at = p_paid_at, paid_method = p_method, paid_reference = p_reference,\n    paid_marked_by = p_actor\n  where p.id = p_payment_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payment.marked', 'payments', p_payment_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'payment.marked', 'payment', p_payment_id,\n    jsonb_build_object(\n      'submission_id', v_after.submission_id, 'payment_id', p_payment_id, 'status', 'paid', 'amount', v_after.amount,\n      'tier', public.payment_tier(v_after.product), 'invoiced', v_after.invoice_number is not null\n    ),\n    p_actor\n  );\n  return query select p_payment_id, v_event;\nend;\n$$;\n\nrevoke execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.mark_payment_paid(\n  uuid, timestamptz, text, text, uuid, public.actor_kind, text\n) to service_role;\ninsert into public.action_roles (action, roles, human_only) values ('payment.marked', array['managing_editor', 'admin']::public.app_role[], true) on conflict (action) do nothing;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"mark paid, waive and void each write one audit row\"",
+    "expect": "× .*mark paid, waive and void each write one audit row"
+  },
+  {
+    "id": "b6-g1-o-void-event",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.void_payment(\n  p_payment_id uuid,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.payments;\n  v_after public.payments;\n  v_event uuid;\nbegin\n  -- ASSUMED A3: an invoice issued in error is voided with a reason; its number is never reused, and the request stays\n  -- in Invoice Issued until a corrected invoice is issued. A paid or waived payment is never voided.\n  if char_length(coalesce(btrim(p_reason), '')) not between 3 and 500 then\n    raise exception 'validation';\n  end if;\n  select * into v_before from public.payments p where p.id = p_payment_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.status <> 'due' then\n    raise exception 'wrong_state';\n  end if;\n  update public.payments p\n  set status = 'void', notes = p_reason\n  where p.id = p_payment_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.void', 'payments', p_payment_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := null;\n  perform jsonb_build_array(\n    'invoice.voided', 'payment', p_payment_id,\n    jsonb_build_object(\n      'submission_id', v_after.submission_id, 'payment_id', p_payment_id,\n      'invoice_number', v_after.invoice_number, 'reason', p_reason\n    ),\n    p_actor\n  );\n  return query select p_payment_id, v_event;\nend;\n$$;\n\nrevoke execute on function public.void_payment(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.void_payment(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"mark paid, waive and void each write one audit row\"",
+    "expect": "× .*mark paid, waive and void each write one audit row"
+  },
+  {
+    "id": "b6-g1-t-campaign",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.activate_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (property_id uuid, event_id uuid, copy_job_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_payment public.payments;\n  v_property uuid;\n  v_copy uuid;\n  v_created jsonb;\n  v_tier text;\n  v_event uuid;\nbegin\n  -- B6 invariant 8 (DL-02): a double click, a retry or Create property on screen 4 waits here and then sees the\n  -- committed row.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  select * into v_before from public.submissions s where s.id = p_submission_id;\n  select * into v_payment from public.payments p\n  where p.submission_id = p_submission_id and p.status in ('paid', 'waived');\n\n  -- Idempotent: once the payment has its campaign, a second call returns the same property and writes nothing.\n  select c.property_id into v_property from public.campaigns c where c.payment_id = v_payment.id;\n  if found then\n    return query select v_property, null::uuid, (\n      select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_property::text\n    );\n    return;\n  end if;\n  if v_before.workflow_state <> 'Invoice Issued' or v_payment.id is null then\n    raise exception 'wrong_state';\n  end if;\n\n  v_property := v_before.property_id;\n  if v_property is null then\n    -- B7 enqueues the copy_submission_media job in this transaction; the photographs are copied by the runner.\n    v_created := public.create_property_from_submission(p_submission_id, p_actor, p_actor_kind, p_request_id);\n    v_property := (v_created ->> 'property_id')::uuid;\n    v_copy := (v_created ->> 'copy_job_id')::uuid;\n  else\n    -- Null once B8's prune has removed the finished job.\n    select j.id into v_copy from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_property::text;\n  end if;\n\n  update public.submissions s\n  set workflow_state = 'Scheduled', property_id = v_property, activated_by = p_actor, activated_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  update public.payments p set property_id = v_property where p.id = v_payment.id;\n  -- Dates stay null until B7's publish_property sets them from package_duration_days (invariant 13).\n  v_tier := public.payment_tier(v_payment.product);\n  if v_tier is not null then\n    update public.properties pr set campaign_tier = v_tier::public.campaign_tier where pr.id = v_property;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.activate', 'submissions', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  v_event := public.emit_event(\n    'submission.activated', 'submission', p_submission_id,\n    jsonb_build_object(\n      'submission_id', p_submission_id, 'property_id', v_property, 'tier', v_tier,\n      'market', lower(replace(v_before.state::text, ' ', '-'))\n    ),\n    p_actor\n  );\n  return query select v_property, v_event, v_copy;\nend;\n$$;\n\nrevoke execute on function public.activate_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.activate_submission(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"activate_submission writes submissions.activate\"",
+    "expect": "× .*activate_submission writes submissions.activate"
+  },
+  {
+    "id": "b6-g1-tier",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.activate_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (property_id uuid, event_id uuid, copy_job_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_payment public.payments;\n  v_property uuid;\n  v_copy uuid;\n  v_created jsonb;\n  v_tier text;\n  v_event uuid;\nbegin\n  -- B6 invariant 8 (DL-02): a double click, a retry or Create property on screen 4 waits here and then sees the\n  -- committed row.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  select * into v_before from public.submissions s where s.id = p_submission_id;\n  select * into v_payment from public.payments p\n  where p.submission_id = p_submission_id and p.status in ('paid', 'waived');\n\n  -- Idempotent: once the payment has its campaign, a second call returns the same property and writes nothing.\n  select c.property_id into v_property from public.campaigns c where c.payment_id = v_payment.id;\n  if found then\n    return query select v_property, null::uuid, (\n      select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_property::text\n    );\n    return;\n  end if;\n  if v_before.workflow_state <> 'Invoice Issued' or v_payment.id is null then\n    raise exception 'wrong_state';\n  end if;\n\n  v_property := v_before.property_id;\n  if v_property is null then\n    -- B7 enqueues the copy_submission_media job in this transaction; the photographs are copied by the runner.\n    v_created := public.create_property_from_submission(p_submission_id, p_actor, p_actor_kind, p_request_id);\n    v_property := (v_created ->> 'property_id')::uuid;\n    v_copy := (v_created ->> 'copy_job_id')::uuid;\n  else\n    -- Null once B8's prune has removed the finished job.\n    select j.id into v_copy from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_property::text;\n  end if;\n\n  update public.submissions s\n  set workflow_state = 'Scheduled', property_id = v_property, activated_by = p_actor, activated_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  update public.payments p set property_id = v_property where p.id = v_payment.id;\n  -- Dates stay null until B7's publish_property sets them from package_duration_days (invariant 13).\n  insert into public.campaigns (property_id, submission_id, payment_id, package, media_budget)\n  values (v_property, p_submission_id, v_payment.id, v_payment.product, coalesce(v_before.media_budget, 0));\n  v_tier := public.payment_tier(v_payment.product);\n  if v_tier is not null then\n    null;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.activate', 'submissions', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  v_event := public.emit_event(\n    'submission.activated', 'submission', p_submission_id,\n    jsonb_build_object(\n      'submission_id', p_submission_id, 'property_id', v_property, 'tier', v_tier,\n      'market', lower(replace(v_before.state::text, ' ', '-'))\n    ),\n    p_actor\n  );\n  return query select v_property, v_event, v_copy;\nend;\n$$;\n\nrevoke execute on function public.activate_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.activate_submission(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"activate_submission sets campaign_tier Feature\"",
+    "expect": "× .*activate_submission sets campaign_tier Feature"
+  },
+  {
+    "id": "b6-g1-ae-waiver-issues",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.record_waiver(\n  p_submission_id uuid,\n  p_product public.exposure_package,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state public.submission_state;\n  v_payment public.payments;\n  v_event uuid;\nbegin\n  -- B6 invariant 12 (DL-01): a credit or a comp is waived without an invoice, so nobody is mailed a bill they do not\n  -- owe: no number, no snapshot, no invoice_pdf job and no invoice.issued event.\n  if char_length(coalesce(btrim(p_reason), '')) not between 3 and 500 then\n    raise exception 'validation';\n  end if;\n  select s.workflow_state into v_state from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_state not in ('Accepted', 'Invoice Issued') or exists (\n    select 1 from public.payments p\n    where p.submission_id = p_submission_id and p.status in ('due', 'paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  insert into public.payments (submission_id, product, amount, method, status, waived_by, notes)\n  values (p_submission_id, p_product, p_amount, 'invoice_manual', 'waived', p_actor, p_reason)\n  returning * into v_payment;\n  -- Invoice Issued, so activate_submission works unchanged.\n  update public.submissions s set workflow_state = 'Invoice Issued' where s.id = p_submission_id;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'payments', v_payment.id, null, to_jsonb(v_payment), p_request_id\n  );\n  v_event := public.emit_event(\n    'payment.marked', 'payment', v_payment.id,\n    jsonb_build_object(\n      'submission_id', p_submission_id, 'payment_id', v_payment.id, 'status', 'waived', 'amount', v_payment.amount,\n      'tier', public.payment_tier(p_product), 'invoiced', false\n    ),\n    p_actor\n  );\n  perform public.emit_event('invoice.issued', 'payment', v_payment.id, '{}'::jsonb, p_actor);\n  return query select v_payment.id, v_event;\nend;\n$$;\n\nrevoke execute on function public.record_waiver(\n  uuid, public.exposure_package, numeric, text, uuid, public.actor_kind, text\n) from public, anon, authenticated;\ngrant execute on function public.record_waiver(\n  uuid, public.exposure_package, numeric, text, uuid, public.actor_kind, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"record_waiver writes a waived payment without an invoice\"",
+    "expect": "× .*record_waiver writes a waived payment without an invoice"
+  },
+  {
+    "id": "b6-g1-ad-copy-job",
+    "kind": "manual",
+    "test": "tests/db/payments.db.test.ts",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"leaves one copy_submission_media job\"",
+    "expect": "× .*leaves one copy_submission_media job",
+    "what": "skipped until B7 step 7's create_property_from_submission is on the database; then replayed with its copy_submission_media enqueue removed (watched-fail ad)"
+  },
+  {
+    "id": "b6-g1-af-concurrent",
+    "kind": "manual",
+    "test": "tests/db/payments.db.test.ts",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"concurrent activate and create property\"",
+    "expect": "× .*concurrent activate and create property",
+    "what": "skipped until B7 step 7's create_property_from_submission is on the database; then replayed with the submission lock removed from activate_submission and properties_submission_id_key dropped, applied in the second connection (watched-fail af, P-901)"
+  },
+  {
+    "id": "b6-g1-ai-campaign-days",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "update public.settings set value = jsonb_set(value, '{campaign_days}', (value -> 'campaign_days') - 'The Reach') where key = 'invoice';",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"campaign_days names every product\"",
+    "expect": "× .*campaign_days names every product"
+  },
+  {
+    "id": "b6-g1-w-tier",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.payment_tier(p_product public.exposure_package)\nreturns text\nlanguage sql\nimmutable\nset search_path = ''\nas $$\n  -- B6 invariant 3: the `tier` of the payment events and `properties.campaign_tier`, mirrored by `tierOf` in\n  -- `src/domain/payments.ts`. ASSUMED: a Five Features credit buys one Feature per property.\n  select case p_product::text\n    when 'The Feature' then 'Feature'\n    when 'Five Features' then 'Feature'\n    when 'The Reach' then 'Feature'\n    when 'The Campaign' then 'Campaign'\n  end;\n$$;\n\nrevoke execute on function public.payment_tier(public.exposure_package) from public, anon, authenticated;\ngrant execute on function public.payment_tier(public.exposure_package) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"payment_tier gives the tier of every product\"",
+    "expect": "× .*payment_tier gives the tier of every product"
+  },
+  {
+    "id": "b6-g1-z-anon",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "grant select on public.invoice_list to anon;",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"invoice_list reads overdue and days_open\"",
+    "expect": "× .*invoice_list reads overdue and days_open"
+  },
+  {
+    "id": "b6-g1-settings-version",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "create or replace function public.settings_put_invoice(\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before jsonb;\nbegin\n  -- G21: `invoice` is not a public key, so B2's trigger leaves catalog_version alone.\n  select s.value into v_before from public.settings s where s.key = 'invoice' for update;\n  insert into public.settings (key, value, updated_by)\n  values ('invoice', p_value, p_actor)\n  on conflict (key) do update set value = excluded.value, updated_by = excluded.updated_by;\n\n  perform public.bump_catalog_version();\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'settings.invoice_put', 'settings.invoice', null, v_before, p_value, p_request_id, p_note\n  );\nend;\n$$;\n\nrevoke execute on function public.settings_put_invoice(jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.settings_put_invoice(jsonb, uuid, public.actor_kind, text, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"settings_put_invoice writes one audit row\"",
+    "expect": "× .*settings_put_invoice writes one audit row"
+  },
+  {
+    "id": "b6-g1-documents-private",
+    "kind": "sql",
+    "test": "tests/db/payments.db.test.ts",
+    "sql": "update storage.buckets set public = true where id = 'documents';",
+    "run": "bunx vitest run --project db tests/db/payments.db.test.ts -t \"keeps the PDFs in B2's private bucket documents\"",
+    "expect": "× .*keeps the PDFs in B2's private bucket documents"
+  },
+  {
+    "id": "b6-g1-ag-fixed-now",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/factories.ts",
+    "find": "  const base = await dbNow(db);\n  const product = overrides.product ?? \"The Feature\";",
+    "replace": "  const base = new Date(\"2026-10-01T12:00:00Z\");\n  const product = overrides.product ?? \"The Feature\";",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"writes a payment the constraints accept\"",
+    "expect": "× .*writes a payment the constraints accept"
+  },
+  {
+    "id": "b6-g1-dataset-invoices",
+    "test": "tests/db/factories.db.test.ts",
+    "file": "tests/fixtures/dataset.ts",
+    "find": "{ table: \"invoices\", count: row?.invoices ?? 0 },",
+    "replace": "{ table: \"invoices\", count: 0 },",
+    "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves the same rows when it runs twice\"",
+    "expect": "× .*leaves the same rows when it runs twice"
+  }
+]

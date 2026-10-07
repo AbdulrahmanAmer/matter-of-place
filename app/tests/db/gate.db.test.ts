@@ -44,7 +44,7 @@ async function submission(db: Db, state: WorkflowState, accepted = true): Promis
 
 async function payment(db: Db, submissionId: string, status: string): Promise<void> {
   await db.query(
-    "insert into public.payments (submission_id, product, amount, status) values ($1, 'The Feature', 1000, $2)",
+    "insert into public.payments (submission_id, product, amount, status, invoice_number) values ($1, 'The Feature', 1000, $2, 'TEST-' || gen_random_uuid())",
     [submissionId, status],
   );
 }
@@ -169,8 +169,8 @@ describe("submission gate", () => {
             '1 Test Way', 'Berkeley', 'California', '94702', 'Residence', 'owner', 'Test Person',
             'person@example.test', 'x', 'x', 'The Feature', '/submit', 'test-v1', now(), 'test-hash', p_from, now()
           ) returning id into v_id;
-          insert into public.payments (submission_id, product, amount, status)
-          values (v_id, 'The Feature', 1000, p_payment);
+          insert into public.payments (submission_id, product, amount, status, invoice_number)
+          values (v_id, 'The Feature', 1000, p_payment, 'TEST-' || gen_random_uuid());
           begin
             update public.submissions set workflow_state = p_to where id = v_id;
             return 'ok';

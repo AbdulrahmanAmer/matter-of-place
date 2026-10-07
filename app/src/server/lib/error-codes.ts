@@ -63,6 +63,8 @@ export const errorCodes = {
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
   reel_files_missing: 422,
+  // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
+  paid_at_future: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
