@@ -122,6 +122,7 @@ describe("newsletter service", () => {
     expect(jobs).toMatchObject([
       {
         p_type: "newsletter_preview",
+        p_max_attempts: 12,
         p_payload: {
           params: {},
           data: { issue_id: ISSUE, test: true, to: "editor@matterofplace.com" },

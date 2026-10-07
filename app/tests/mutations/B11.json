@@ -1447,6 +1447,15 @@
     "expect": "FAIL.*exports a CSV for managing_editor"
   },
   {
+    "id": "b11-g5-svc-test-attempts",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "    maxAttempts: 12,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/service.test.ts",
+    "expect": "FAIL.*queues one newsletter_preview job with data\\.test"
+  },
+  {
     "id": "b11-g5-svc-list-order",
     "test": "tests/unit/newsletter/service.test.ts",
     "file": "src/server/newsletter/service.ts",

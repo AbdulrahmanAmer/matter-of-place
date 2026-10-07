@@ -138,6 +138,7 @@ export async function sendTest(
     type: "newsletter_preview",
     idempotencyKey: `newsletter_preview:${input.id}:test:${actor.userId}:${minute}`,
     data: { issue_id: input.id, test: true, to: input.to },
+    maxAttempts: 12,
   });
   return { job_id: jobId };
 }
