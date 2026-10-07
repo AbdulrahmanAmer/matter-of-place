@@ -893,7 +893,7 @@ isOneToOne: false
                   ]
                 },"submissions": {
                   Row: {
-                    "accepted_at": string | null,"accepted_by": string | null,"activated_at": string | null,"activated_by": string | null,"address": string,"architect": string | null,"baths": number | null,"beds": number | null,"brokerage": string | null,"city": string,"contact_id": string | null,"currency": string,"decline_note": string | null,"decline_reason_id": string | null,"designer": string | null,"duplicate_of": string | null,"id": string,"interior_sq_ft": number | null,"ip_hash": string | null,"listed_with_agent": boolean | null,"listing_agent_brokerage": string | null,"listing_agent_name": string | null,"listing_url": string | null,"media_budget": number | null,"notes": (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url": string | null,"price": number | null,"property_id": string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at": string,"reviewed_at": string | null,"reviewed_by": string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url": string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone": string | null,"turnstile_ok": boolean,"updated_at": string,"video_url": string | null,"workflow_state": Database["public"]['Enums']["submission_state"],"year_built": number | null,"year_renovated": number | null,"zip": string
+                    "accepted_at": string | null,"accepted_by": string | null,"activated_at": string | null,"activated_by": string | null,"address": string,"architect": string | null,"baths": number | null,"beds": number | null,"brokerage": string | null,"city": string,"contact_id": string | null,"currency": string,"decline_note": string | null,"decline_reason_id": string | null,"designer": string | null,"duplicate_of": string | null,"id": string,"interior_sq_ft": number | null,"ip_hash": string | null,"listed_with_agent": boolean | null,"listing_agent_brokerage": string | null,"listing_agent_name": string | null,"listing_url": string | null,"media_budget": number | null,"notes": (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url": string | null,"price": number | null,"property_id": string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at": string,"reviewed_at": string | null,"reviewed_by": string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url": string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone": string | null,"turnstile_ok": boolean,"updated_at": string,"video_url": string | null,"workflow_state": Database["public"]['Enums']["submission_state"],"year_built": number | null,"year_renovated": number | null,"zip": string,"submission_event_payload": Json | null
                   }
                   Insert: {
                     "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address": string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city": string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url"?: string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"updated_at"?: string,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip": string
@@ -1037,13 +1037,13 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "activate_submission":
+            "accept_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"activate_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: {
               "copy_job_id": string,"event_id": string,"property_id": string
             }[]
-                           },
-"accept_submission":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
 "add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
@@ -1597,6 +1597,9 @@ isOneToOne: false
                            },
 "start_review":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_ids": (string)[] }; Returns: number
+                           },
+"submission_event_payload":
+{ Args: { "p_submission": Database["public"]['Tables']["submissions"]['Row'] }; Returns: Json
                            },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean
