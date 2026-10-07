@@ -241,3 +241,15 @@ Source: the fresh reviewer of group g1, none blocking. The two items that name G
 3. File `app/tests/api/gone.api.test.ts` (not blocking).
    What: STANDARDS R48 says a conditional skip uses `it.skipIf` with a printed reason. This file uses `describe.skipIf` and puts the reason in the describe title, which the default reporter does not print when the file is skipped. The repo already does the same in tests/unit/hygiene.test.ts:450 and :845, and in observatory.test.ts:215, and lint passes. So this is a wording gap between R48 and practice, not a broken gate.
    Evidence: app/tests/api/gone.api.test.ts:63 `describe.skipIf(BASE === "")(`; STANDARDS.md:298 (R48). The non-verbose run printed only 'Tests 1 skipped (1)', with no reason.
+
+## g2 · steps 12
+
+Source: the fresh reviewer of group g2, none blocking. The two items that name GOTCHAS.md (the wrong G-103 citation for the `Reflect.get` lint cost, the `ps -o winpid` miss) went into the bank as hit-again lines on P-076 and P-042 and are not repeated here.
+
+1. File `app/tests/unit/seo-cache.test.ts` (not blocking).
+   What: The case 'serves the last good copy as stale in a new isolate that cannot read the database at all' (lines 348-362) checks the four documents and the archive page but not the gone slug (GONE). The plan's database-error clause covers the 410 body as well. I confirmed by running a temporary probe that the behaviour already holds (410, x-mop-cache stale, same body). This is only a coverage gap: adding GONE to that case would lock it in.
+   Evidence: Lines 353-361 loop over DOCUMENTS, then ARCHIVE only. The probe copy with `booted.ask(GONE)` expecting 410/stale passed: 'Tests 1 passed | 13 skipped'
+
+2. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: The UNPROVEN items stand as the author recorded them. The archive page and the 410 page have never been seen as `hit` on a real Worker: the unit test uses a stand-in render, and mop-dev has no archive facet and no planted gone row. The indexable robots.txt has never been stored on a Worker (MOP_ENV=local makes it bypass). The custom-domain hit ratio and the pg_stat_statements count wait for L1. These should be carried to L1 or H1 so they are not lost.
+   Evidence: curl of /sitemap.xml on 8929 lists no /archive/ URL; /robots.txt with host matterofplace.com answers x-mop-cache: bypass under MOP_ENV=local
