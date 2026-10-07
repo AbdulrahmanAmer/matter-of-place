@@ -131,7 +131,7 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B8 | in progress | | lane `E:/mop-build/ops` (branch `slice/b8`, port 8838, bank numbers from P-900 and G-350); steps 1 to 8a on `main` (PRs #101, #109, #113); 2a open, 9 to 10a wait on B7 and B8b. |
 | B8b | in progress | | started 2026-10-04 14:40 in the lane `E:/mop-build/auto` (branch `slice/b8b`, port 8908, bank numbers from P-1600 and G-700); step 1 on `main` (PR #115). |
 | B9 | in progress | | lane `E:/mop-build/design`; steps 1 to 6 on `main` (PRs #92, #99); direction S65; 7 to 11 wait on B8 and B7. |
-| B10 | not started | | |
+| B10 | in progress | | started 2026-10-07 01:30 on the Dell (worktree `D:/mop-build/social`, branch `slice/b10`, run wf_023873a9-fb0); groups 0 and 1 to 3b accepted by the reviewer; steps 1, 2, 3a and 3b wait on the operator's Meta, X and LinkedIn apps (S59, E9), the rest of the slice builds without them. |
 | B11 | not started | | |
 | B12 | closed | 2026-10-06 | lane `E:/mop-build/video` (branch `slice/b12`); 9 steps accepted and on `main` (PR #161, merged 2026-10-06 07:46; step 7 under ruling H63, the attach audit row is a system row). |
 | B13 | in progress | | started 2026-10-05 00:30 in the lane `E:/mop-build/seo` (branch `slice/b13`, port 8928, bank numbers from P-1800 and G-800). |
