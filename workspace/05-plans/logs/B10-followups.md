@@ -215,3 +215,19 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: NOT DONE, and stated honestly: the putChannelSettings and restoreRevision assertMayEnable lines, their tests/unit/automation/service.test.ts cases, and B9's approveAsset passing evidence all wait for service files that origin/main does not have. Until they land, approve_asset's evidence path is only reached through auto_approve_asset.
 - evidence: git ls-tree origin/main app/src/server/automation/ app/src/server/assets/ lists no service.ts.
 - blocking: false
+
+## g2 · steps 1-3b
+
+Second review round of the group (a fresh reviewer on the frozen snapshot), recorded word for word with their evidence. The two that concern GOTCHAS.md are banked as P-2405 and P-2406. The reels-limits constants and the v23.0 text also appear in the first g2 block above.
+
+### app/tests/mutations/B10.json
+
+- what: Follow-up, not blocking. Five fields of reels-limits.json have no watched-fail entry: aspect.min/max, max_width_px, fps.min and audio_codecs. The four tests do assert them, and changing aspect.max to 0.5 would turn the test red, but no registry entry proves it. Separately, the REEL constants in the test copy render-reel.mjs's W, H, FPS and MAX_BYTES (the plan asks for constants in the test). If B12 changes FPS, this test stays green without noticing.
+- evidence: Read: the B10.json entries b10g2-* mutate only video_codecs, fps.max, duration_s.max, max_size_mb and source. scripts/render-reel.mjs:23-27 declares W=1080, H=1920, FPS=30 and exports MAX_BYTES=12_000_000.
+- blocking: false
+
+### workspace/05-plans/B10.md
+
+- what: Follow-up for the orchestrator, not blocking. Line 17 of the plan still says 'ASSUMED placeholder v23.0; step 3 replaces it with the newest version', but the runbook now records v26.0. The hint text in src/domain/channels.ts:57 ('Use a version such as v23.0', a g1 file) also still names v23.0. Neither line is false, but the plan line is stale.
+- evidence: git grep -n 'v23.0' gives only src/domain/channels.ts:57, tests/unit/channels/ids.test.ts and workspace/05-plans/B10.md:17
+- blocking: false

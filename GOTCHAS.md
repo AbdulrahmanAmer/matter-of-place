@@ -4700,3 +4700,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the root checkout `E:/Matter Of Place` stays detached on `origin/main` and nobody runs `git checkout` or `git merge` in it; records branches and branch syncs are worked in the orchestrator's worktree `E:/mop-build/orch` (`git -C`), a lane branch in its own lane worktree, and a background chain that must bring main into a branch does it there too. The board reads the root; it never changes under it.
 - proof: `git -C "E:/Matter Of Place" branch --show-current` prints nothing (detached) and `git -C E:/mop-build/orch branch --show-current` names the records branch in work.
 - added: 2026-10-07
+
+## P-2405 · A review snapshot taken after the group's pull request merged has an empty `git diff origin/main...HEAD`; the diff base is the log's "Branch started from" commit
+- symptom: the B10 g2 reviewer ran `git diff origin/main...slice/b10 --stat` from the brief and it printed nothing, although the group had changed files. PR #214 had already merged the reviewed commit b8e8d9f into origin/main, so there was nothing to compare.
+- cause: a three-dot diff is the commits of HEAD that origin/main lacks. Once the group is merged, origin/main is a descendant of HEAD and the set is empty. P-838 is the other half (the branch moved on past the frozen commit); this is the frozen commit already in main.
+- rule: in a review snapshot take the diff base from the log block's "Branch started from" line or from `git log --first-parent --oneline`, never from origin/main; when `git diff origin/main...HEAD --stat` prints nothing, check `git merge-base --is-ancestor HEAD origin/main` before reading it as "no change". The brief template's owner names the base commit instead of origin/main.
+- proof: `git merge-base --is-ancestor b8e8d9f origin/main && echo ancestor` → `ancestor`, and `git diff origin/main...b8e8d9f --stat | wc -l` → `0` (measured 2026-10-08, B10 g2 follow-ups; the group's real range was 64ab67b..8236af0 from the first-parent log).
+- added: 2026-10-08
+
+## P-2406 · `plan-brief.mjs --steps "1,3b"` reads a list, not a range: the brief for steps 1-3b quoted steps 1 and 3b and left out step 3
+- symptom: the B10 g2 review brief called `node workspace/05-plans/plan-brief.mjs B10 --steps "1,3b" ...` for a group whose plan steps are 1-3b. Under "The steps, verbatim" the output holds only the lines starting `1. Owner setup` and `3b. LinkedIn confirmation`; step 3, the only step the group ran, is missing and the reviewer grepped its text from B10.md.
+- cause: `plan-brief.mjs` splits `--steps` on commas and spaces into a set of exact step ids (lines 17 and 31); it has no range syntax, and the sizing step wrote the group's first and last step ids only.
+- rule: a brief names every step id of the group (`--steps "1,2,3,3a,3b"`), taken from the plan's step list, never the two ends of a range. The same brief also tells the reviewer to run plan-brief from the lane folder while forbidding any run there (P-706); the reviewer ran it in the snapshot.
+- proof: `node workspace/05-plans/plan-brief.mjs B10 --steps "1,3b" 2>&1 | grep -nE "^(1|2|3|3b)\. " | cut -c1-30` → two lines, `4:1. Owner setup` and `5:3b. LinkedIn confirmat`, none for step 3 (measured 2026-10-08).
+- added: 2026-10-08
