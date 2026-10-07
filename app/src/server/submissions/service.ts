@@ -8,9 +8,16 @@ import {
 import {
   savedViews,
   submissionListRowSchema,
+  submissionNoteSchema,
   type ListSubmissionsInput,
+  type SubmissionDetail,
   type SubmissionListRow,
+  type SubmissionNote,
+  type TimelineEntry,
+  type noteInputSchema,
+  type originalInputSchema,
   type startReviewInputSchema,
+  type submissionIdInputSchema,
 } from "../../domain/admin-submissions";
 import { submissionStates } from "../../domain/contracts";
 import type { WorkflowState } from "../../domain/workflow";
@@ -20,6 +27,8 @@ import { auditContext } from "../lib/audit";
 import { authorize } from "../lib/authz";
 import type { Db } from "../lib/db";
 import { AppError } from "../lib/errors";
+import { logLine } from "../lib/log";
+import { entityTimeline } from "../lib/timeline";
 import type { PublicCtx } from "../public/routes";
 import { uploadToken, verifyUploadToken } from "./upload-token";
 
@@ -238,4 +247,147 @@ export async function startReview(
   });
   if (error !== null) throw fromRpcError(error);
   return { started: data };
+}
+
+const THUMB_SECONDS = 3600;
+const ORIGINAL_SECONDS = 600;
+
+const detailColumns =
+  "id, received_at, workflow_state, accepted_at, decline_note, duplicate_of, address, city, state, zip, property_type, price, currency, beds, baths, interior_sq_ft, year_built, year_renovated, architect, designer, package, media_budget, contact_id, submitter_kind, submitter_name, submitter_email, submitter_phone, brokerage, listed_with_agent, listing_agent_name, listing_agent_brokerage, listing_url, source_url, photography_url, video_url, story, significance, notes" as const;
+
+/** The id of the newest payment of a request that is not void, or null: the target of screen 4's invoice link. */
+export async function newestPaymentId(db: Db, submissionId: string): Promise<string | null> {
+  const { data, error } = await db
+    .from("payments")
+    .select("id")
+    .eq("submission_id", submissionId)
+    .in("status", ["due", "paid", "waived", "refunded"])
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error !== null) throw fromRpcError(error);
+  return data[0]?.id ?? null;
+}
+
+/** One hour of signed thumbnails in one call; a path with no object, or a failed call, has none (PERF-08). */
+async function signThumbnails(
+  db: Db,
+  submissionId: string,
+  mediaIds: readonly string[],
+): Promise<Map<string, string>> {
+  const signed = new Map<string, string>();
+  if (mediaIds.length === 0) return signed;
+  const { data, error } = await db.storage.from(BUCKET).createSignedUrls(
+    mediaIds.map((mediaId) => thumbPath(submissionId, mediaId)),
+    THUMB_SECONDS,
+  );
+  if (error !== null) {
+    logLine("warn", "thumbnail_sign_failed", {
+      submission_id: submissionId,
+      photos: mediaIds.length,
+    });
+    return signed;
+  }
+  for (const entry of data) {
+    if (entry.path !== null && entry.signedUrl !== null) {
+      signed.set(entry.path, entry.signedUrl);
+    }
+  }
+  return signed;
+}
+
+/** `GET /api/admin/submissions/:id`: the request as submitted, its photographs with thumbnails, notes and links onward. */
+export async function getSubmission(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof submissionIdInputSchema>,
+): Promise<SubmissionDetail> {
+  authorize(actor, "submissions.get");
+  const [row, media, property, paymentId] = await Promise.all([
+    db.from("submissions").select(detailColumns).eq("id", input.id).maybeSingle(),
+    db
+      .from("submission_media")
+      .select("id, name, mime, bytes, sort_order, uploaded_at")
+      .eq("submission_id", input.id)
+      .order("sort_order")
+      .order("id"),
+    db.from("properties").select("id").eq("submission_id", input.id).maybeSingle(),
+    newestPaymentId(db, input.id),
+  ]);
+  if (row.error !== null) throw fromRpcError(row.error);
+  if (media.error !== null) throw fromRpcError(media.error);
+  if (property.error !== null) throw fromRpcError(property.error);
+  if (row.data === null) {
+    throw new AppError("not_found", undefined, "This request could not be found.");
+  }
+  const thumbs = await signThumbnails(
+    db,
+    input.id,
+    media.data.map((photo) => photo.id),
+  );
+  const { notes, ...fields } = row.data;
+  return {
+    ...fields,
+    notes: z.array(submissionNoteSchema).parse(notes),
+    property_id: property.data?.id ?? null,
+    payment_id: paymentId,
+    media: media.data.map((photo) => ({
+      ...photo,
+      thumb_url: thumbs.get(thumbPath(input.id, photo.id)) ?? null,
+    })),
+  };
+}
+
+/** `GET /api/admin/submissions/:id/media/:mediaId/original`: the one original, signed for ten minutes (PERF-08). */
+export async function originalUrl(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof originalInputSchema>,
+): Promise<{ url: string }> {
+  authorize(actor, "submissions.get");
+  const { data, error } = await db
+    .from("submission_media")
+    .select("storage_path")
+    .eq("id", input.mediaId)
+    .eq("submission_id", input.id)
+    .maybeSingle();
+  if (error !== null) throw fromRpcError(error);
+  if (data === null) {
+    throw new AppError("not_found", undefined, "This photograph is not on this request.");
+  }
+  const signed = await db.storage.from(BUCKET).createSignedUrl(data.storage_path, ORIGINAL_SECONDS);
+  if (signed.error !== null) {
+    throw new AppError(
+      "storage_unavailable",
+      undefined,
+      "The photograph could not be opened just now. Please try again in a moment.",
+    );
+  }
+  return { url: signed.data.signedUrl };
+}
+
+/** `POST /api/admin/submissions/:id/note`: one internal note, kept on the request (`add_submission_note`). */
+export async function addNote(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof noteInputSchema>,
+): Promise<SubmissionNote> {
+  authorize(actor, "submissions.note");
+  const { data, error } = await db.rpc("add_submission_note", {
+    p_submission_id: input.id,
+    p_text: input.text,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return submissionNoteSchema.parse(data);
+}
+
+/** `GET /api/admin/submissions/:id/timeline`: audit rows and job events of the request, newest first. */
+export async function timeline(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof submissionIdInputSchema>,
+): Promise<{ items: TimelineEntry[] }> {
+  authorize(actor, "submissions.timeline");
+  return { items: await entityTimeline(db, "submission", input.id) };
 }

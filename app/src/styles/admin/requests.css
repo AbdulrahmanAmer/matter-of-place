@@ -1,0 +1,186 @@
+/* Screen 4, one request: the submitted record in a wide column, its status, notes and history in a narrow one. */
+
+.admin-request {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--admin-space-6);
+  align-items: start;
+}
+
+.admin-request__main,
+.admin-request__side {
+  display: grid;
+  gap: var(--admin-space-6);
+  min-width: 0;
+}
+
+.admin-request__crumb {
+  margin-bottom: var(--admin-space-2);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-request__sub {
+  margin-top: var(--admin-space-1);
+  color: var(--muted-foreground);
+}
+
+.admin-request__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--admin-space-3);
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-fields h2,
+.admin-photos h2,
+.admin-decision h2,
+.admin-notes h2,
+.admin-history h2 {
+  margin-bottom: var(--admin-space-3);
+  padding-bottom: var(--admin-space-2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-fields + .admin-fields {
+  margin-top: calc(-1 * var(--admin-space-2));
+}
+
+.admin-fields dl {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-fields dl > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
+  gap: var(--admin-space-4);
+}
+
+.admin-fields dt {
+  color: var(--muted-foreground);
+}
+
+.admin-fields dd {
+  overflow-wrap: anywhere;
+}
+
+.admin-fields p + p,
+.admin-fields dl + p {
+  margin-top: var(--admin-space-3);
+}
+
+.admin-prose {
+  max-width: 68ch;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.admin-photos ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--admin-space-4);
+  list-style: none;
+  padding: 0;
+}
+
+.admin-photos img,
+.admin-photos__placeholder {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--secondary);
+}
+
+.admin-photos__placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-photos__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--admin-space-2);
+  margin-top: var(--admin-space-2);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-photos__meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-photos__none,
+.admin-notes__none,
+.admin-history__none,
+.admin-decision__meta,
+.admin-notes__meta {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-notes__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+  margin-top: var(--admin-space-1);
+  font-size: 12px;
+}
+
+.admin-notes ul {
+  display: grid;
+  gap: var(--admin-space-4);
+  margin-bottom: var(--admin-space-4);
+  list-style: none;
+  padding: 0;
+}
+
+.admin-notes form {
+  display: grid;
+  gap: var(--admin-space-3);
+  justify-items: start;
+}
+
+.admin-notes .admin-field {
+  width: 100%;
+}
+
+.admin-decision {
+  display: grid;
+  gap: var(--admin-space-3);
+  justify-items: start;
+}
+
+.admin-decision h2 {
+  justify-self: stretch;
+}
+
+@media (max-width: 960px) {
+  .admin-request {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-fields dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
