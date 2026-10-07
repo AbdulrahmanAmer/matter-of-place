@@ -3610,6 +3610,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: write the project with an equals sign, `--project=admin`, in every Playwright command, as the B4 and B13 proofs already do.
 - proof: `cd app && bunx playwright test --project admin tests/e2e/admin-signin.spec.ts --list` → `Project(s) "tests/e2e/admin-signin.spec.ts" not found`; `bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts --list` → `Total: 4 tests in 1 file` (measured 2026-10-05, B7 g2).
 - added: 2026-10-05
+- hit again: 2026-10-07, B6 g3: step 9's proof line is written `--project admin tests/e2e/admin-invoice.spec.ts`; it answered `Project(s) "tests/e2e/admin-invoice.spec.ts" not found` and the first run was lost; `--project=admin` ran it.
 
 ## P-2005 · Playwright's `page.request` does not send a `Secure` cookie to `http://127.0.0.1`, which the browser does
 - symptom: the admin sign-in spec landed on `/admin` after the confirm POST, and `page.request.get("/api/admin/me")` answered 401 while `fetch("/api/admin/me")` inside the page answered 200; `context.cookies()` held `mop_csrf` and the session cookie, both `secure=true`, domain `127.0.0.1`.
@@ -4223,6 +4224,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: right after the merge commit run `bun run migrations:check`, `bun run migrations:restamp` when it asks, commit the rename, then `bun run scripts/gen-action-roles.mjs` (rows are only upserted, so a second file is safe) and commit that before the first `bun run check`.
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
+- hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261007082141_action_roles.sql` and `action-roles.sync.test.ts` went green.
 
 ## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
 - symptom: a reviewer ran `bun run scripts/gen-action-roles.mjs --check` to see whether the file was in sync. It printed `wrote supabase/migrations/20261007043422_action_roles.sql 91 actions` and `git status` showed `?? supabase/migrations/20261007043422_action_roles.sql`: a read-only check had added a migration to the snapshot, which was deleted by hand.
@@ -4690,6 +4692,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the plan lines were written before H66 and B7's list input, and no screen-24 read exists yet.
 - rule: follow the shell pattern of `people.index.tsx` and its `.lazy.tsx`, read the list input in `src/domain/admin-submissions.ts` before naming a filter, treat a missing read as a follow-up (a select of methods once `settings.get` is built) and not as a hard-coded list, and keep admin sheets free of the word `shadow`.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-route-shells.test.ts tests/unit/admin-motion.test.ts` passes on slice/b6; `grep -n "workflow_state" src/domain/admin-submissions.ts` → the filter's real name.
+- added: 2026-10-07
+
+## P-2323 · A live admin spec on mop-dev needs `CSRF_SECRET` in the shell and the lane's `action_roles` migration pushed: without them every admin write is a 503 or a 403
+- symptom: B6 step 9's spec reached the "Issue and email" confirmation and the dialog answered `Saving is unavailable at the moment. Please try again later.` (503 `csrf_secret_missing`); with the secret exported it answered `This change could not be made.` (403 `forbidden`, body `{"error":{"code":"forbidden",...}}` read from the trace's resource file). Each run is a minute of `vite dev` plus the fixture setup.
+- cause: `eval "$(node scripts/load-env.mjs --profile dev)"` exports the six dev names and not `CSRF_SECRET`, and the dev server inherits the shell, so `verifyCsrf` has no key. The 403 is `write_audit` (DB-04): `public.action_roles` on mop-dev has no `payments.*` row until main pushes the lane's `action_roles` migration (`select action from action_roles where action like 'payments.%'` returns no row), and a lane may not push it (ruling H57).
+- rule: before a live admin e2e export the key without printing it, `export CSRF_SECRET="$(grep '^CSRF_SECRET=' ../.env | cut -d= -f2- | tr -d '
+')"`, and read an admin write answer from the trace (`trace.zip`, `resources/*.json`), not from the dialog's calm copy; a write that answers 403 on a fresh action is the unpushed `action_roles` migration, so the proof is UNPROVEN until main pushes it.
+- proof: `cd app && node scripts/load-env.mjs --profile dev | grep -c CSRF_SECRET` → `0`, and `grep -n "csrf_secret_missing" src/server/lib/csrf.ts` → the 503 branch; the two answers were measured 2026-10-07 on mop-dev with `E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts`.
 - added: 2026-10-07
 
 ## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour

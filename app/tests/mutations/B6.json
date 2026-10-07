@@ -1360,5 +1360,59 @@
     "replace": "routeId: \"/admin/invoices\",",
     "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
     "expect": "renders the Invoices link now that invoices.index.tsx exists"
+  },
+  {
+    "id": "b6-g3-snapshot-missing",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (payment.invoice_snapshot === null) throw new NonRetryableError(\"snapshot_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice falls back to every method"
+  },
+  {
+    "id": "b6-g3-snapshot-malformed",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "throw new NonRetryableError(\"snapshot_malformed\")",
+    "replace": "throw new NonRetryableError(\"snapshot_missing\")",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice falls back to every method"
+  },
+  {
+    "id": "b6-g3-terms-frozen",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "    amount: formatUsd(payment.amount),\n    terms,\n",
+    "replace": "    amount: formatUsd(payment.amount),\n    terms: \"\",\n",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "b6-g3-billing-frozen",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "    billing_email,\n  };\n}\n\nasync function inquiryAck",
+    "replace": "    billing_email: \"\",\n  };\n}\n\nasync function inquiryAck",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "b6-g3-e2e-picker",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "aria-label=\"Accepted requests\"",
+    "replace": "aria-label=\"Requests\"",
+    "run": "E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"issues the next invoice number\" --reporter=line",
+    "expect": "name: 'Accepted requests'"
+  },
+  {
+    "id": "b6-g3-e2e-unaccepted",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "Accept this request before issuing an invoice.",
+    "replace": "This request is not ready.",
+    "run": "E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"cannot be invoiced from the screen\" --reporter=line",
+    "expect": "Accept this request before issuing an invoice"
   }
 ]

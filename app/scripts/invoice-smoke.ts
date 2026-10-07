@@ -6,6 +6,8 @@
 //   --out <file>   renders the PDF from the stored snapshot, here, and saves it (no network call)
 //   --upload       waits for the runner's `invoice_pdf` job, downloads the object and prints `pdf documents/<key>`
 //   --email <addr> the fixture submitter's address (default smoke@example.invalid, a reserved domain)
+//   --wait-email   (needs --email) waits for the `invoice` email of the issue and prints `invoice <status> <resend id>`
+//                  and `attachment <key>`; exits 1 unless it was sent, or skipped with a `dry_` id under EMAIL_DRY_RUN
 //   --cleanup      voids the payment at the end (rows are never deleted)
 // From `app/`:
 //   eval "$(node scripts/load-env.mjs --profile dev)"; env -u CLOUDFLARE_API_TOKEN bun run scripts/invoice-smoke.ts
@@ -103,6 +105,57 @@ async function waitForUpload(db: Db, paymentId: string): Promise<string | null> 
   return null;
 }
 
+/** What the `invoice.issued` event's send_email job left behind: `undefined` while it is still running. */
+async function emailOutcome(db: Db, eventId: string): Promise<EmailOutcome | undefined> {
+  const jobs = await db.from("jobs").select("id, status, error").eq("event_id", eventId);
+  if (jobs.error !== null) throw new Error(jobs.error.message);
+  const dead = jobs.data.find((job) => job.status === "dead");
+  if (dead !== undefined) return { failed: `job dead: ${dead.error ?? "no error"}` };
+  const mails = await db
+    .from("email_messages")
+    .select("template_key, status, resend_id, error")
+    .eq("template_key", "invoice")
+    .in(
+      "job_id",
+      jobs.data.map((job) => job.id),
+    );
+  if (mails.error !== null) throw new Error(mails.error.message);
+  const [mail] = mails.data;
+  if (mail === undefined) return undefined;
+  const dry = mail.status === "skipped" && mail.resend_id?.startsWith("dry_") === true;
+  if (mail.status === "sent" || mail.status === "delivered" || dry) {
+    return { line: `${mail.template_key} ${mail.status} ${mail.resend_id ?? ""}`.trim() };
+  }
+  if (mail.status === "queued") return undefined;
+  return { failed: `${mail.status} ${mail.error ?? "no error"}` };
+}
+
+type EmailOutcome = { line: string } | { failed: string };
+
+/** Polls like `waitForUpload`; the attachment key is read after the mail, because the resolver ran before the send. */
+async function waitForEmail(db: Db, eventId: string, paymentId: string): Promise<boolean> {
+  for (let poll = 0; poll < POLLS; poll += 1) {
+    const outcome = await emailOutcome(db, eventId);
+    if (outcome !== undefined && "failed" in outcome) {
+      console.error(`invoice email: ${outcome.failed}`);
+      return false;
+    }
+    if (outcome !== undefined) {
+      const { invoice_file_key: key } = await readPayment(db, paymentId);
+      if (key === null) {
+        console.error("invoice email: sent without a PDF on the payment");
+        return false;
+      }
+      console.log(outcome.line);
+      console.log(`attachment ${key}`);
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+  }
+  console.error(`invoice email: no invoice message within ${String((POLLS * POLL_MS) / 1000)} s`);
+  return false;
+}
+
 async function main(): Promise<number> {
   guardEnv();
   await assertNotProduction({ dbUrl: process.env["DEV_DB_URL"] });
@@ -111,6 +164,7 @@ async function main(): Promise<number> {
     upload,
     cleanup,
     email,
+    "wait-email": waitEmail,
     "print-text": printText,
   } = parseArgs({
     args: process.argv.slice(2),
@@ -118,10 +172,15 @@ async function main(): Promise<number> {
       out: { type: "string" },
       upload: { type: "boolean", default: false },
       cleanup: { type: "boolean", default: false },
-      email: { type: "string", default: "smoke@example.invalid" },
+      email: { type: "string" },
+      "wait-email": { type: "boolean", default: false },
       "print-text": { type: "boolean", default: false },
     },
   }).values;
+  if (waitEmail && email === undefined) {
+    console.error("invoice-smoke: --wait-email needs --email");
+    return 1;
+  }
   // The dev profile's own names, never SUPABASE_URL (P-331); the key is read here and never printed (E10).
   const db: Db = createClient(
     `https://${requiredEnv("DEV_SUPABASE_PROJECT_REF")}.supabase.co`,
@@ -137,7 +196,7 @@ async function main(): Promise<number> {
       console.log(`invoice_not_ready: ${missing.join(", ")}`);
       return 1;
     }
-    const submissionId = await createFixtureSubmission(email);
+    const submissionId = await createFixtureSubmission(email ?? "smoke@example.invalid");
     const audit = {
       p_actor: actorArg(null),
       p_actor_kind: "human",
@@ -165,6 +224,7 @@ async function main(): Promise<number> {
       if (key === null) return 1;
       console.log(`pdf ${INVOICE_BUCKET}/${key}`);
     }
+    if (waitEmail && !(await waitForEmail(db, issued.event_id, paymentId))) return 1;
     return 0;
   } finally {
     if (cleanup && paymentId !== null) {
