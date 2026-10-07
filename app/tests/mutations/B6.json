@@ -428,7 +428,7 @@
   {
     "id": "b6-g3-ready-late-terms",
     "test": "tests/unit/payments/service.test.ts",
-    "file": "src/server/payments/invoice-snapshot.ts",
+    "file": "src/server/payments/invoice-settings.ts",
     "find": "[\"terms\", \"late_terms\", \"tax_line\"] as const",
     "replace": "[\"terms\", \"tax_line\"] as const",
     "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
@@ -649,5 +649,77 @@
     "replace": "{ action: \"payments.void\", group: \"payments\", roles: [\"admin\"] }",
     "run": "bunx vitest run --project unit tests/unit/authz.matrix.test.ts",
     "expect": "FAIL .*> the authorization matrix > equals the hand-typed fixture, row for row"
+  },
+  {
+    "id": "b6-g4-fixture-example",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "scripts/fixtures/invoice.example.json",
+    "find": "\"tax_line\": \"No sales tax is charged on this invoice.\"",
+    "replace": "\"tax_line\": \"\"",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoice fixtures > the example is test text that makes invoicing ready and the seed lacks only payment instructions"
+  },
+  {
+    "id": "b6-g4-ready-order",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "[\"terms\", \"late_terms\", \"tax_line\"] as const",
+    "replace": "[\"terms\", \"tax_line\"] as const",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > lists every blank setting by its dotted name, in the order of invariant 7"
+  },
+  {
+    "id": "b6-g4-ready-one-method",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "invoice.payment_methods.some((method) => method.instructions !== \"\")",
+    "replace": "invoice.payment_methods.every((method) => method.instructions !== \"\")",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > is ready with one method that has instructions, however many do not"
+  },
+  {
+    "id": "b6-g4-ready-invoice-null",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "if (invoice === null) return [...missing, \"invoice\"];",
+    "replace": "if (invoice === null) return missing;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > names invoice when the stored value does not parse"
+  },
+  {
+    "id": "b6-g4-read-inputs",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "invoiceSettingsSchema.safeParse(valueOf(\"invoice\"))",
+    "replace": "invoiceSettingsSchema.safeParse(valueOf(\"site\"))",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> readInvoiceInputs > parses the site and invoice rows and reads an unparseable invoice as null"
+  },
+  {
+    "id": "b6-g4-apply-value",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "p_value: parsed.data,",
+    "replace": "p_value: input,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > calls settings_put_invoice once with the validated value and the actor"
+  },
+  {
+    "id": "b6-g4-apply-422",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "  if (!parsed.success) throw fromZod(parsed.error);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > refuses a value the schema rejects with 422 and its issues, and calls nothing"
+  },
+  {
+    "id": "b6-g4-apply-rpc-error",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "  });\n  if (error !== null) throw fromRpcError(error);\n  return parsed.data;",
+    "replace": "  });\n  void error;\n  return parsed.data;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > throws the database's error code when the function raises"
   }
 ]

@@ -238,7 +238,13 @@ describe("issueInvoice", () => {
         )
       : [];
     expect(described(failure)).toBe("409 invoice_not_ready");
-    expect(paths).toEqual(["legal,address", "payment_methods", "terms", "late_terms", "tax_line"]);
+    expect(paths).toEqual([
+      "legal,address",
+      "payment_methods,instructions",
+      "terms",
+      "late_terms",
+      "tax_line",
+    ]);
     expect(rpcCalls(db, "issue_invoice")).toEqual([]);
   });
 
