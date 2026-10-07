@@ -225,3 +225,19 @@ Source: the fresh reviewer of group g1, none blocking. The one item that names G
 5. File `workspace/05-plans/B13.md` (not blocking).
    What: Follow-up. The step 10 proof `curl -s http://localhost:8080/ | grep -c googletagmanager` cannot be reproduced as written. bun run dev answers 500 on / when the public reads have no database env (already banked). The author replaced it with the built-Worker HTML test, which does run and can fail (mutation b13-g1-e2e-html). The plan line should name the built-Worker check.
    Evidence: vite dev --port 8949: curl / returned 500, and the dev log showed 118 public reads with status 503
+
+## g1 · steps 11
+
+Source: the fresh reviewer of group g1, none blocking. The two items that name GOTCHAS.md (the wrong failure text in the proof of P-2022, the missing hit-again line of P-027) went into the bank and are not repeated here.
+
+1. File `app/tests/api/gone.api.test.ts` (not blocking).
+   What: After the fix, no CI job runs the only end-to-end proof of invariant 10's page 410. The db job of ci.yml sets no E2E_BASE_URL, and deploy.yml sets it only for Playwright (essentials, overflow), never for the vitest db project. So the 410 on a real server is proven only by hand on a laptop and by the manual registry entry b13-g1-gone-api-start. If start.ts stopped calling withGoneStatus, CI would catch it only through the stand-in render in gone.test.ts and seo-cache.test.ts. This is not a regression: before the fix the file would have turned the db job red. It is a coverage gap for a later step (for example a check-seo --gone-slug run or an e2e case against the preview).
+   Evidence: grep -rn E2E_BASE_URL .github/workflows/*.yml app/vitest.config.ts finds only deploy.yml:168 and :195, both Playwright steps. Running the file with no E2E_BASE_URL prints 'Tests 1 skipped (1)'.
+
+2. File `workspace/05-plans/B13.md` (not blocking).
+   What: The plan and trace are stale for the orchestrator to fold (not this group's files). Step 11 (line 115) still says the test's E2E_BASE_URL has the default http://localhost:8080, so the proof command as written now prints '1 skipped', which reads like a pass. Files lines 72-73 and trace.json (ids around 9762, 10638, 13389) still name markGone in src/lib/gone.ts and a fallback inside src/server/lib/pipeline.ts. The code has withGoneStatus in src/server/seo/gone.ts, called from src/start.ts. The author named this deviation in the log (B13.md log lines 747 and 830).
+   Evidence: grep -rn "markGone\|src/lib/gone" workspace/05-plans/B13.md workspace/05-plans/trace.json returns B13.md:72, 73, 115 and trace.json:9762, 10638, 10641, 13389.
+
+3. File `app/tests/api/gone.api.test.ts` (not blocking).
+   What: STANDARDS R48 says a conditional skip uses `it.skipIf` with a printed reason. This file uses `describe.skipIf` and puts the reason in the describe title, which the default reporter does not print when the file is skipped. The repo already does the same in tests/unit/hygiene.test.ts:450 and :845, and in observatory.test.ts:215, and lint passes. So this is a wording gap between R48 and practice, not a broken gate.
+   Evidence: app/tests/api/gone.api.test.ts:63 `describe.skipIf(BASE === "")(`; STANDARDS.md:298 (R48). The non-verbose run printed only 'Tests 1 skipped (1)', with no reason.

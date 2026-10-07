@@ -347,6 +347,7 @@ Entry template
 - hit again: 2026-10-04, B3 g8: `bun run typecheck`, `bun run build` and `bun run lint` each ran past the 120 second foreground limit (other lanes were running) and moved to the background; they were started with a background shell writing to a file and read with a bounded `timeout 110 bash -c 'until ...; do sleep 5; done'`.
 - hit again: 2026-10-06, B5 g2 review: a full `bun run check` under load ran 1033 s in its test phase (see G-031, same date) and three of the reviewer's wait loops ran out the tool ceiling, about 40 minutes. Start such a run in the background through `node workspace/05-plans/quiet.mjs -- bun run check` writing to a file, and poll it with a loop bounded under nine minutes.
 - hit again: 2026-10-06, B12 g3 review: `quiet.mjs` prints nothing until the wrapped command exits, so the output file of a backgrounded `quiet.mjs -- bun run check` stayed empty for about 15 minutes (01:55 to 02:11) and then printed all at once, and a full reel capture had all 540 frames on disk four minutes before its process printed `done`. Wait on the exit notification of the background call, or on the artefact the command writes, never on the quiet output file; an empty file means running, not hung.
+- hit again: 2026-10-07, B13 g1 step 11: a Bash call hit the 120 s foreground limit twice (the author's costTime item); the bank got no line then. Run such a command through `node workspace/05-plans/quiet.mjs -- <command>` in the background and wait with a bounded loop.
 
 ## P-021 · Full-page screenshots misplace `position: fixed` UI and hide real defects
 - symptom: the phone sticky action bar and the desktop Ask button appeared mid-page over the fact row and Save/Share in `before/*.png`, and a footer line covered by the bar at page end was invisible.
@@ -579,6 +580,7 @@ Entry template
 - rule: the orchestrator re-runs every proof before accepting a unit. For determinism, three runs. For "no leftover", a search across the whole repository with `git grep`, not the folder the worker looked at (P-039). A red re-run goes back to the same worker with the real output, and the fix must remove the cause, not hide it (no skip-if-exists, no tolerance).
 - proof: `node launch/tools/brand-build.mjs` → `5 written or changed`, `2 written or changed`, `5 written or changed` before the fix; `0`, `0`, `0` after.
 - added: 2026-10-02
+- hit again: 2026-10-07, B13 g1 step 11 review: a proof's expected failure text (P-2022) was copied from the first, rejected form of the code and not re-run after the fix round; the reviewer found the wrong text by replaying it.
 
 ## P-060 · Merging and cleaning branches from this machine
 - symptom: `git push origin --delete <branch>` printed `error: failed to push some refs` for branches GitHub had already removed; a stale local list of remote branches made merged branches look alive.
@@ -4621,7 +4623,8 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: B13 g1's `tests/api/gone.api.test.ts` planted its rows and fetched `http://localhost:8080`; a review run against a closed port printed `TypeError: fetch failed ... connect ECONNREFUSED`. No CI run had shown it yet, because the file landed with the step.
 - cause: `vitest.config.ts` puts every `tests/api/**/*.api.test.ts` into the `db` project, and the `db` job of `ci.yml` runs `bun run test:db` with a database and no server and no `E2E_BASE_URL`. Every other `tests/api` file runs the Worker code inside the test process; this one needs a server outside it.
 - rule: a `tests/api` file that needs a running site reads `E2E_BASE_URL` with an empty default and wraps its `describe` in `describe.skipIf(BASE === "")` whose title says why (R48); its proof sets the variable to the server it started.
-- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN -u E2E_BASE_URL bunx vitest run --project db tests/api/gone.api.test.ts` → `1 skipped`; with the `skipIf` taken out it fails `Failed to parse URL from undefined/property/test-b13-taken-down`.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN -u E2E_BASE_URL bunx vitest run --project db tests/api/gone.api.test.ts` → `1 skipped`; with the `skipIf` taken out it fails `Failed to parse URL from /property/test-b13-taken-down` (the shipped default is `?? ""`; the text with `undefined/` came from the first, rejected form).
+- hit again: 2026-10-07, B13 g1 step 11 review: the proof line above was written from the rejected form and kept after the fix round, so a replay printed other text than it promised; a proof's expected output is copied from a run of the final code (see P-059).
 - added: 2026-10-07
 
 ## P-535 · A slice launch that lists a step the lane's log already shows as done fails at the P-516 coverage check: the sizer leaves done steps out, the check then says the sizing omits them
