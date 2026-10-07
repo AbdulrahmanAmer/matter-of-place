@@ -3754,5 +3754,14 @@
     "find": "if (paths.length === 0) return \"rebase first\";",
     "replace": "if (paths.length === -1) return \"rebase first\";",
     "expect": "refuses when main gained nothing it can list"
+  },
+  {
+    "test": "tests/unit/hygiene.test.ts",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "id": "hy-deploy-overflow-advisory",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "        id: overflow\n        continue-on-error: true\n",
+    "replace": "        id: overflow\n",
+    "expect": "overflow step is advisory"
   }
 ]
