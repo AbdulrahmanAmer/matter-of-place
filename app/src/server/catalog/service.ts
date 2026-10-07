@@ -4,6 +4,7 @@ import type { Story } from "../../domain/story";
 import type { Db } from "../lib/db";
 import { AppError } from "../lib/errors";
 import { getCatalog } from "../public/state";
+import { goneState } from "../seo/gone";
 
 // Every function filters the memoised mapped snapshot in memory (invariant 15), so a list or a detail
 // costs no query. The same memo serves search and concierge.
@@ -20,7 +21,11 @@ export async function listProperties(db: Db): Promise<PropertyCard[]> {
 }
 
 export async function getProperty(db: Db, slug: string): Promise<Property> {
-  return bySlug((await getCatalog(db)).properties, slug);
+  const catalog = await getCatalog(db);
+  if (goneState(catalog, "property", slug) === "gone") {
+    throw new AppError("gone", undefined, "This property is no longer listed");
+  }
+  return bySlug(catalog.properties, slug);
 }
 
 export async function listMarkets(db: Db): Promise<Market[]> {

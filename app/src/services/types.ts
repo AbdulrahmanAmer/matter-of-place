@@ -24,7 +24,7 @@ type ServiceMode = "local" | "live";
 
 export interface CatalogService {
   listProperties(): Promise<PropertyCard[]>;
-  getProperty(slug: string): Promise<Property | null>;
+  getProperty(slug: string): Promise<Property | { gone: true } | null>;
   listMarkets(): Promise<Market[]>;
   getMarket(slug: string): Promise<Market | null>;
   listStories(): Promise<Story[]>;
@@ -79,7 +79,7 @@ export type Services = {
   concierge: ConciergeService;
 };
 
-export type ServiceErrorKind = "network" | "validation" | "server" | "not-found";
+export type ServiceErrorKind = "network" | "validation" | "server" | "not-found" | "gone";
 
 /** Thrown by adapters; forms map `kind` to a calm message. */
 export class ServiceError extends Error {

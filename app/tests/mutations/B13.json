@@ -1997,5 +1997,133 @@
     "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA VITE_GA4_MEASUREMENT_ID=G-TEST000000 && bun run build && VITE_GA4_MEASUREMENT_ID=G-TEST000000 E2E_TARGET=built E2E_MODE=live E2E_PORT=8928 bunx playwright test --project=seo tests/e2e/ga4.spec.ts",
     "expect": "✘.*the server-rendered page never names Google Tag Manager",
     "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
+  },
+  {
+    "id": "b13-g1-gone-list",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "snapshot.gone.includes(slug)) return \"gone\";",
+    "replace": "snapshot.gone.includes(slug)) return \"missing\";",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*goneState > calls a slug in the gone list gone"
+  },
+  {
+    "id": "b13-g1-gone-story",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "kind === \"property\" && snapshot.gone.includes(slug)",
+    "replace": "snapshot.gone.includes(slug)",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*goneState > never calls a story gone"
+  },
+  {
+    "id": "b13-g1-gone-missing",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "? \"live\" : \"missing\"",
+    "replace": "? \"live\" : \"live\"",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*goneState > calls an unpublished draft missing"
+  },
+  {
+    "id": "b13-g1-gone-service",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "=== \"gone\"",
+    "replace": "=== \"never\"",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*getProperty over a snapshot with a taken-down slug > throws AppError gone"
+  },
+  {
+    "id": "b13-g1-gone-route-cache",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "!(error.code === \"gone\" && mayBeGone)",
+    "replace": "!(false && mayBeGone)",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*the public route of a property > answers a taken-down slug 410"
+  },
+  {
+    "id": "b13-g1-gone-route-row",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "{ tag: \"property\", gone: true }",
+    "replace": "{ tag: \"property\" }",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*the public route of a property > answers a taken-down slug 410"
+  },
+  {
+    "id": "b13-g1-gone-adapter",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "error.kind === \"gone\"",
+    "replace": "error.kind === \"none\"",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*the http catalog adapter > maps a 410"
+  },
+  {
+    "id": "b13-g1-gone-client",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  if (status === 410) return \"gone\" as const;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*the http catalog adapter > maps a 410"
+  },
+  {
+    "id": "b13-g1-gone-rewrite",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "status: 410, headers",
+    "replace": "status: 200, headers",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*withGoneStatus > makes the rendered page"
+  },
+  {
+    "id": "b13-g1-gone-only-ok",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "response.status !== 200",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*withGoneStatus > leaves a live property"
+  },
+  {
+    "id": "b13-g1-gone-router-path",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "routePath(new URL(request.url).pathname)",
+    "replace": "new URL(request.url).pathname",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*withGoneStatus > finds the slug the way the router does"
+  },
+  {
+    "id": "b13-g1-gone-lazy",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "slug === undefined || goneState(await readSnapshot(), \"property\", slug)",
+    "replace": "goneState(await readSnapshot(), \"property\", slug ?? \"\")",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts",
+    "expect": "FAIL .*withGoneStatus > reads the snapshot only for a property page"
+  },
+  {
+    "id": "b13-g1-gone-state",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/mappers.ts",
+    "find": "gone: snapshot.gone,",
+    "replace": "gone: [],",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "FAIL .*carries the snapshot's gone slugs"
+  },
+  {
+    "id": "b13-g1-gone-api-start",
+    "kind": "manual",
+    "test": "tests/api/gone.api.test.ts",
+    "file": "src/start.ts",
+    "find": "() => getCatalog(getDb())",
+    "replace": "() => getCatalog(getDb()).then((catalog) => ({ ...catalog, gone: [] }))",
+    "run": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8928 --var CATALOG_VERSION_TTL_MS:0, then E2E_BASE_URL=http://127.0.0.1:8928 bunx vitest run --project db tests/api/gone.api.test.ts",
+    "expect": "expected 200 to be 410",
+    "after": "export MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
   }
 ]

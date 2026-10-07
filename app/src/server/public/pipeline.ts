@@ -160,15 +160,17 @@ async function read(match: Match, request: Request, db: Db, ctx: PublicCtx): Pro
   }
   const input = route.schema === undefined ? undefined : route.schema.parse(params[0]);
   const tags = route.cache.tags.map((tag) => tag.replace("$slug", params[0] ?? ""));
+  const mayBeGone = route.cache.gone === true;
   const build = async (): Promise<Response> => {
     try {
       return Response.json(await route.service(db, input, ctx), { status: route.status });
     } catch (error) {
-      if (!(error instanceof AppError) || error.code !== "not_found") throw error;
-      // The cacheable 404 names no request: the same body answers every visitor (invariant 16).
+      if (!(error instanceof AppError)) throw error;
+      if (error.code !== "not_found" && !(error.code === "gone" && mayBeGone)) throw error;
+      // The cacheable 404 and 410 name no request: the same body answers every visitor (invariant 16).
       return Response.json(
         { error: { code: error.code, message: error.message } },
-        { status: 404, headers: { "cache-control": MISSING_CONTROL } },
+        { status: error.status, headers: { "cache-control": MISSING_CONTROL } },
       );
     }
   };

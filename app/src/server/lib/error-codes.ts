@@ -9,6 +9,8 @@ export const errorCodes = {
   unauthorized: 401,
   forbidden: 403,
   not_found: 404,
+  // B13: a taken-down property answers 410, a stronger "gone" than 404 (invariant 10, GP-03).
+  gone: 410,
   method_not_allowed: 405,
   not_acceptable: 406,
   payload_too_large: 413,

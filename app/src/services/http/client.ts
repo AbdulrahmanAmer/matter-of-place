@@ -46,6 +46,7 @@ const withHeaders = (defaults: Record<string, string>, extra: HeadersInit | unde
 
 const kindForStatus = (status: number) => {
   if (status === 404) return "not-found" as const;
+  if (status === 410) return "gone" as const;
   if (status === 400 || status === 422) return "validation" as const;
   return "server" as const;
 };

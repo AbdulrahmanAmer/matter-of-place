@@ -39,6 +39,16 @@ const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
   }
 };
 
+/** A taken-down page answers 410: the caller gets `{ gone: true }` and shows the calm page (invariant 10). */
+const goneOnGone = async <T>(promise: Promise<T>): Promise<T | { gone: true }> => {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ServiceError && error.kind === "gone") return { gone: true };
+    throw error;
+  }
+};
+
 /**
  * A form write carries Turnstile's token, named for the route's bucket (G72, INT-02), when the browser has one, and
  * the honeypot field `website`, empty unless a bot filled it.
@@ -57,7 +67,9 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
   const catalog: CatalogService = {
     listProperties: () => api.get("/properties", z.array(propertyCardSchema)),
     getProperty: (slug) =>
-      nullOnNotFound(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
+      nullOnNotFound(
+        goneOnGone(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
+      ),
     listMarkets: () => api.get("/markets", z.array(marketSchema)),
     getMarket: (slug) =>
       nullOnNotFound(api.get(`/markets/${encodeURIComponent(slug)}`, marketSchema)),
