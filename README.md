@@ -6,7 +6,7 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 **Where we are:** the build is running. The website shell, the deploy pipeline, the database (33 tables, policies, functions, seeded with illustrative properties), the public write functions, the job system (runner, cron, health) and the creative render scripts are on `main` and deploy themselves to a dev address on every merge. The public API, the admin portal, email, social posting, the newsletter and the audit robot are being built now, one proven step at a time; every step is reviewed by a fresh agent and merged through a gate. Production shows nothing until the launch switch. The numbers below come from the build board and are rewritten with every update.
 
 <!-- progress:start -->
-**Progress (updated 2026-10-07 05:05, from the build board):** 159 of 259 planned steps accepted (61%; 17 accepted by the reviewer and waiting for the orchestrator's re-run), 9 of 22 slices closed, 11 steps in work on two machines.
+**Progress (updated 2026-10-07 11:45, from the build board; parked at 94 percent usage):** 170 of 259 planned steps accepted (66%; 28 accepted by the reviewer and waiting for the orchestrator's re-run), 9 of 22 slices closed, 0 steps in work until the account switch.
 
 | Arm | To launch | What it covers |
 |---|---|---|

@@ -1353,3 +1353,29 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Dell memory floor tonight 172 MB (03:38), no OOM or crash in any transcript; hygiene 20 s timeouts were the only
   symptom, fixed by PR 190. Journals mirrored here every five minutes (task bibqds20x). Watches: stall, lane results,
   board, 30-minute re-arms.
+
+## 2026-10-07 11:45 PARKED at 94 percent usage (operator): every run stopped, resume after the account switch
+
+- Operator (11:40): "We are at 94% of usage prepare everything for parking and I will do the slash login to change
+  account when I wake up." All six runs stopped by TaskStop at 11:43 to 11:45; the Dell's sweep deleted; the Dell
+  session `dell [c737b5]` idles until written to. Board at park: 170 of 259 (65.6 percent), 89 to go. Dell accepts
+  tonight 25, lane merges 5 (B17 PR 142, B6 g1 PR 185, B11 g3 PR 200, B7 g2 PR 197, B10 g6 PR 214).
+- RESUME, after `/login` on both machines (the same account on both, or the Dell's own): on the Dell, in
+  `D:/mop/Matter Of Place`, `claude --remote-control dell`; here, this session continues. Then relaunch each run
+  as a FRESH run with the args below (the stopped builders' work is uncommitted in each lane, so a fresh builder
+  re-runs that group from the lane's last commit; pass only undone steps, P-535):
+  - B7 (Dell, lane D:/mop-build/admin, head 0d2f660, 28 modified and about 40 untracked files of step 7 in the tree):
+    `{"slice":"B7","root":"D:/mop-build/admin","previewPort":8948,"bankBase":{"P":2000,"G":900},"steps":["7","7a","8","9","10","11","11a","12","13","14","15","15a","16"],"mergeEach":true}` (c6m is done and banked, no closeOut). Before the launch: `git -C D:/mop-build/admin stash -u` so the builder starts clean (or let it reuse; P-2130 says reuse worked once).
+  - B6 (Dell, D:/mop-build/b6, head 4f8fcad, steps 2 to 9 unmerged on slice/b6, no PR): fix round of step 7 was running;
+    relaunch `{"slice":"B6","root":"D:/mop-build/b6","previewPort":8978,"bankBase":{"P":2300,"G":1050},"steps":["7","8","9"],"mergeEach":true}` with `closeOut: { id: "c7p", steps: "7", title: "B6 close-out c7p: the print block leaves the filter toolbar on paper", defects: [{ file: "app/src/admin/invoices/InvoiceFilters.tsx", blocking: true, what: "line 16's toolbar form carries no data-print=\"hide\" and invoices.index.lazy.tsx line 37 renders it outside DataTable's wrapper, so Ctrl+P at /admin/invoices prints the Status select and the Overdue checkbox (review ad47ec0d)" }] }`; the g3 (8-9) review was running, its builder commit 4f8fcad stands.
+  - B11 (Dell, D:/mop-build/b11, head 11a2437, steps 4 to 6 unmerged): `{"slice":"B11","root":"D:/mop-build/b11","previewPort":8988,"bankBase":{"P":2400,"G":1100},"steps":["7","8","9","10","11","12","13"]}`; B9 c5n (PR 211) must merge first for steps 4 and 5's property block.
+  - B10 (Dell, D:/mop-build/social, head 98787bd, everything through step 6 on main): `{"slice":"B10","root":"D:/mop-build/social","previewPort":8968,"bankBase":{"P":2200,"G":1000},"steps":["8","9"]}` (7, 7a, 7b wait on the operator's apps; sizer marks them).
+  - B16 (here, E:/mop-build/legal, head eca1e2f7, 5 modified files of the step 3 fix round): `{"slice":"B16","root":"E:/mop-build/legal","branch":"slice/b16","base":"origin/main","previewPort":8848,"bankBase":{"P":1000,"G":400},"steps":["5","6","7","8"]}` with `closeOut: { id: "c3i", steps: "3", title: "B16 close-out c3i: GET /api/public/site must force illustrativeContent false when MOP_ENV is production (F26 c, invariant 6)", defects: [{ file: "app/src/server/settings/service.ts", blocking: true, what: "getPublicSite (lines 31-37) copies state.illustrativeContent through; the route path checks MOP_ENV nowhere, unlike src/server/catalog/visibility.ts:16 (review a81bdaff677bc6808)" }] }`; step 4 built (f40cfc43) and its review was running, so include "4" in steps only if the review's verdict is not in the journal (it is not: re-review by listing 4).
+  - B9 (here, E:/mop-build/design, head cba5fdd0, clean): step 10 built, review running; relaunch
+    `{"slice":"B9","root":"E:/mop-build/design","branch":"slice/b9","base":"origin/main","previewPort":8818,"bankBase":{"P":700,"G":250},"steps":["10","11"]}`.
+- Open chores at park: PR 163 (B13, slice/b13 at b001d14 plus my H64 allowlist commit in E:/mop-build/seo, UNPUSHED,
+  its registry replay was running at the stop: run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` in E:/mop-build/seo/app, push slice/b13, wait CI, run the illustrative-build smoke (merge-chores.md B13 first line), gate); PR 211 (slice/b9 c5n, conflicts with main, merges with the B9 run's merge step or by hand with bank-merge in E:/mop-build/design); PR 213 (B7, open, merges at B7's step 8 stop); B6 steps 2 to 9 need a new PR at B6's stop; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.
+- Rulings tonight: H64 to H68, H66a, H66b, H67a. Bank: P-534 to P-538 (and the lanes' own). Workflow follow-ups for the
+  next run boundary in merge-chores.md (Workflow section) including: mergeEach merges only at a run's end.
+- Watches here all stopped with the pause (stall, lane results, board, journal mirror bibqds20x still runs and costs
+  nothing; the board server b9x0ukbqz keeps serving). Nothing else is live.
