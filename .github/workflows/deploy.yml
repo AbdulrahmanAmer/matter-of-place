@@ -155,22 +155,19 @@ jobs:
       # B17 step 12: the essentials spec on the deployed build. B4's install below runs only for a front-end change,
       # so this step installs the browser itself. E2E_MODE=live runs the cases that skip on a local build; only a
       # preview built with a database is live (HAS_DB), the one built after the launch switch is local.
-      # CI is emptied and the retries are given on the command line because playwright.config.ts turns a case that
-      # passes on its one retry into a failed run (failOnFlakyTests). The preview Worker sometimes sends no answer for
-      # 6 s or more to a page, an API read or a /media image (measured, root cause not found, GOTCHAS P-1936), so a
-      # page.goto(networkidle) times out now and then and passes at once on a retry. A case that fails three times, or
-      # a stall while the spec lists its live routes (no retry there), still fails the job.
+      # CI stays set, so playwright.config.ts keeps its one retry, forbidOnly and failOnFlakyTests: a case that passes
+      # only on the retry fails the job, so a retry cannot hide a defect. A stall of the Worker that clears on a retry
+      # is such a case and fails here too (GOTCHAS P-1936).
       # Cost (C22, P-009): about 2 minutes of runner time a preview run (run 37550497051 of the first version of this
       # step: e2e 2.1 min, install not timed), free on a public repository; the Worker requests and Storage egress of the
       # pages it loads are not counted (UNPROVEN).
       - run: bun run test:e2e:install
       - name: essentials
         env:
-          CI: ""
           E2E_TARGET: url
           E2E_BASE_URL: ${{ env.PREVIEW_URL }}
           E2E_MODE: ${{ env.HAS_DB == 'true' && 'live' || 'local' }}
-        run: bun run test:e2e -- --retries=2 --forbid-only tests/e2e/essentials.spec.ts
+        run: bun run test:e2e -- tests/e2e/essentials.spec.ts
       # Prints the grade; it fails the job below A only once the policy is enforcing (flags.csp_enforce).
       - name: observatory
         run: node scripts/observatory.mjs pr-${{ github.event.number }}.holy-meadow-4327.workers.dev
