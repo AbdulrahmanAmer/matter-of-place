@@ -4057,3 +4057,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when the gate says `rebase first`, merge origin/main and push once, wait for green, and run the gate at once; since ruling H65 a head behind main by documents only passes the gate, so a second round happens only when main gained code. Never wait on a clock between the green checks and the gate.
 - proof: `grep -c "behind main by documents only" workspace/05-plans/merge-gate.mjs` → 1; PR 185 merged at ec1b4f0 after the third merge, the fourth main advance being documents only.
 - added: 2026-10-07
+
+## P-2306 · B6 g2: three plan lines met a gate that already stood (a server file reading src/data, a schema reading the clock, a state type without void)
+- symptom: `bun run check` would have failed three ways on the plan text as written: `pricing.ts` imports `src/data/exposure.ts` and `tests/unit/boundaries.test.ts` bans every `src/data` import from `src/server`; `markPaidInput` "refuses a future paid_at" but `src/domain/**` may not call `Date.now()` or `new Date()` (R29, eslint `WALL_CLOCK`); `void` in the state-machine test does not typecheck while `workflow.ts` types `PaymentStatus` without `void`. Knip also refuses an export only a later group imports (`PreparedPayment`).
+- cause: the plan was written against the rule text, not against the gate files; the plan names the exception for `exposure.ts` (R06 prose) but the test has no row for it.
+- rule: `boundaries.test.ts` allows `src/server/payments/pricing.ts` to read `src/data/exposure` and nothing else; a domain schema takes `now` as an argument (`paidAtIsFuture(paidAt, now)`, the service passes its clock) instead of reading the wall clock; widen `PaymentStatus` in `workflow.ts` when the enum gains a value; an export no file imports yet is file-local until the step that imports it.
+- proof: `cd app && bunx vitest run --project unit tests/unit/boundaries.test.ts tests/unit/payments/domain.test.ts tests/unit/state-machine.test.ts` → all pass; `node scripts/watchfail.mjs --registry tests/mutations --only b6-g2-price-reader` → `WATCHED-FAIL OK B6:b6-g2-price-reader`.
+- added: 2026-10-07

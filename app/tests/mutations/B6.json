@@ -208,5 +208,176 @@
     "replace": "{ table: \"invoices\", count: 0 },",
     "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves the same rows when it runs twice\"",
     "expect": "× .*leaves the same rows when it runs twice"
+  },
+  {
+    "id": "b6-g2-price",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/data/exposure.ts",
+    "find": "    price: \"$295\",",
+    "replace": "    price: \"$296\",",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > prices each product at its S3 amount in whole dollars"
+  },
+  {
+    "id": "b6-g2-offering",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "candidate.name === product",
+    "replace": "candidate.id === product",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > finds the offering that carries the product name"
+  },
+  {
+    "id": "b6-g2-not-sure",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "if (offering === undefined) {",
+    "replace": "if (offering === undefined && product === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > refuses Not sure yet, which has no price"
+  },
+  {
+    "id": "b6-g2-tier",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  \"Five Features\": \"Feature\",",
+    "replace": "  \"Five Features\": \"Reach\",",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > maps the four products to their tier"
+  },
+  {
+    "id": "b6-g2-registry",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/index.ts",
+    "find": "  invoice_manual: invoiceManual,\n};",
+    "replace": "  invoice_manual: invoiceManual,\n  stripe: invoiceManual,\n};",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > registers invoice_manual and nothing else"
+  },
+  {
+    "id": "b6-g2-get-stripe",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/index.ts",
+    "find": "if (adapter === undefined) throw new NotImplementedError(`The ${method} payment method`);",
+    "replace": "if (adapter === undefined) return invoiceManual;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > refuses to hand out the Stripe method"
+  },
+  {
+    "id": "b6-g2-preferred",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "const shown = preferred.length > 0 ? preferred : methods;",
+    "replace": "const shown = methods;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > gives the instructions of the preferred method from the frozen snapshot"
+  },
+  {
+    "id": "b6-g2-fallback",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "const shown = preferred.length > 0 ? preferred : methods;",
+    "replace": "const shown = preferred;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > lists every method when the preferred one is not in the snapshot"
+  },
+  {
+    "id": "b6-g2-no-invoice",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "if (payment.invoice_snapshot === null) {",
+    "replace": "if (payment.invoice_snapshot === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > refuses a payment that has no invoice"
+  },
+  {
+    "id": "b6-g2-stripe-stub",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/stripe.ts",
+    "find": "throw new NotImplementedError(\"Stripe prepare\");",
+    "replace": "throw new Error(\"Stripe prepare\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > makes the Stripe stub throw NotImplementedError from every method"
+  },
+  {
+    "id": "b6-g2-amount",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  submissionId: z.string().uuid(),",
+    "replace": "  submissionId: z.string().uuid(),\n  amount: z.number().optional(),",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > strips an amount sent with the issue input and refuses Not sure yet"
+  },
+  {
+    "id": "b6-g2-reason",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "const reason = z.string().trim().min(3).max(500);",
+    "replace": "const reason = z.string().trim().min(2).max(500);",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > bounds a reason to 3 to 500 characters on waive, void and a waiver without an invoice"
+  },
+  {
+    "id": "b6-g2-paid-at",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "return Date.parse(paidAt) > now.getTime();",
+    "replace": "return Date.parse(paidAt) >= now.getTime();",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > takes a payment date with an offset and finds one later than now"
+  },
+  {
+    "id": "b6-g2-campaign-days",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  .strict();",
+    "replace": "  ;",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > names exactly the four products in campaign_days, each a positive whole number or null"
+  },
+  {
+    "id": "b6-g2-method-ids",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "new Set(methods.map((method) => method.id)).size === methods.length",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > accepts the seeded invoice settings and refuses a repeated method id or a long billing email"
+  },
+  {
+    "id": "b6-g2-transitions",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  due: [\"paid\", \"waived\", \"void\"],",
+    "replace": "  due: [\"paid\", \"waived\"],",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > lets a payment leave due only, once, and labels every status"
+  },
+  {
+    "id": "b6-g2-sql-assigned",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "[\"invoice_number\", \"issue_date\", \"due_date\"] as const;",
+    "replace": "[\"invoice_number\", \"issue_date\", \"due_date\", \"contact\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > keeps the fields SQL assigns inside the required invoice fields"
+  },
+  {
+    "id": "b6-g2-void-gate",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "status === \"paid\" || status === \"waived\";",
+    "replace": "status === \"paid\" || status === \"waived\" || status === \"void\";",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > allows Scheduled only when accepted and the payment is paid or waived"
+  },
+  {
+    "id": "b6-g2-price-reader",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "tests/unit/boundaries.test.ts",
+    "find": "i.file === \"src/server/payments/pricing.ts\" &&",
+    "replace": "i.file === \"src/server/payments/never.ts\" &&",
+    "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
+    "expect": "FAIL .*> layers \\(R06, G-005\\) > keeps server and domain code away from the browser layers[\\s\\S]*src/server/payments/pricing.ts"
   }
 ]

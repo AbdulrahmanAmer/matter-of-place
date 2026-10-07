@@ -40,7 +40,14 @@ const grid: Record<WorkflowState, string> = {
 };
 
 const SET = "2026-10-01T00:00:00Z";
-const payments: TransitionContext["paymentStatus"][] = [null, "due", "paid", "waived", "refunded"];
+const payments: TransitionContext["paymentStatus"][] = [
+  null,
+  "due",
+  "paid",
+  "waived",
+  "refunded",
+  "void",
+];
 const contexts: TransitionContext[] = [null, SET].flatMap((acceptedAt) =>
   payments.map((paymentStatus) => ({ acceptedAt, paymentStatus })),
 );
@@ -111,10 +118,10 @@ describe("submission state machine against the spec", () => {
   });
 
   it("allows Scheduled only when accepted and the payment is paid or waived", () => {
-    // payments in the order null, due, paid, waived, refunded
+    // payments in the order null, due, paid, waived, refunded, void
     const expected = {
-      "not accepted": [false, false, false, false, false],
-      accepted: [false, false, true, true, false],
+      "not accepted": [false, false, false, false, false, false],
+      accepted: [false, false, true, true, false, false],
     };
     const observed = {
       "not accepted": payments.map((paymentStatus) =>
@@ -128,8 +135,8 @@ describe("submission state machine against the spec", () => {
   });
 
   it("refuses Withdrawn once a payment is paid or waived, and needs no acceptance", () => {
-    // payments in the order null, due, paid, waived, refunded
-    const expected = [true, true, false, false, true];
+    // payments in the order null, due, paid, waived, refunded, void
+    const expected = [true, true, false, false, true, true];
     const observed = withdrawals.flatMap(([from, to]) =>
       [null, SET].map((acceptedAt) => ({
         move: `${from}>${to} (${acceptedAt === null ? "not accepted" : "accepted"})`,
