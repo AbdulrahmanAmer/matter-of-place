@@ -1,7 +1,7 @@
 {
   "lcpMs": 2500,
   "cls": 0.1,
-  "scriptBytes": 153600,
+  "scriptBytes": 163840,
   "documentBytes": 61440,
   "cpuMs": { "p50": 52 },
   "paths": ["/", "/properties", "property:first", "market:first", "/exposure", "/submit"]

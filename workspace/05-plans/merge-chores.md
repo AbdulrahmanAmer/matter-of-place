@@ -5,6 +5,9 @@ the orchestrator when that lane's branch reaches `main`, never pushed onto a run
 struck through, with the PR number, when it lands. The lane runner never works this list.
 
 ## B10 (slice/b10, Dell)
+- `GRAPH_ERROR_TABLE` has no row for the Business Use Case rate-limit codes 80001, 80002 and the 800xx family, so a 4xx without `is_transient` from them classifies wrong (suspected by reading). (g3 review2 af512bc3)
+- B8's `meta-token-refresh.ts` (lines 72-74) keeps its own Vault-first, env-second token read instead of importing `getMetaToken`; the rule lives in two places.
+- g4: no test proves every Graph call passes `ctx.signal` (replacing it with undefined keeps 34 tests green); `findRecentPost` calls `media_publish` on a FINISHED container while invariant 2 says reconcile never publishes; PUBLISHED adoption reads `/{ig-user-id}/media` where stories list under `/stories`; `graph()` throws `AppError('server')` when `liveSideEffects('social')` is false instead of the dry-run answer of invariant 5; `health()` says "expires on <date>" for a dead token; two costTime items without a bank entry; `debug_token` in the plan's Files line that `meta-token.ts` does not read; `alt_text` not sent. (g4 review af6636e5)
 - STANDARDS R34 still says "exported error table" while knip refuses the unused export (P-2204). (g3 review ac85eb06)
 - `classifyGraphError` returns class `retry_at` with no time: codes 9/2207042 and 4/17/32/613 retry on B8's backoff and the next window, not Meta's reset time (steps 5-6).
 - enable-guard reads `new_channels` through the public-state memo with no reset: facebook answers `channel_locked` up to 15 s after the flag flips.
@@ -57,3 +60,6 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - Flip `check-seo` from the H64 allowlist to hard once B16 and B17 are on main (privacy, terms, accessibility, cookies pages; fonts.googleapis gone from `__root.tsx`; og:image on /place-notes). (g1 build a9266883)
 - `lhci:local` waits for B17 step 8.
 - Review brief's vitest shorthand is not reproducible in a plain shell (db global-setup refuses without `DEV_DB_URL`); brief should give the dev-profile form. (c7b review a188e66b)
+
+## Registry (main)
+- `B2:p` and `B8:p` replay BAD (wrong reason) on main today; CI replays them only when their test files change. Re-anchor when those files are next touched (seen 2026-10-07 while adding B4 shells entries).
