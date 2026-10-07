@@ -25,6 +25,10 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- `variables.ts` ~525 `digestAlert`: removing `.eq("event_id", job.eventId)` turns nothing red; the digest-notify fixture holds one queue_digest job, so the filter is never exercised (registry entry BAD as a follow-up). (g2 review a313c3a1)
+- `assemble.ts` 286 and `readIssues` 155 apply the 300-character deck/title caps on read as well as write (suspected from reading).
+- A digest.due recipe using send_email with the admin_notify template fails `NonRetryableError event_id_missing`: `send-email.ts:342` calls `resolveVariables` without the seventh job argument (author-disclosed).
+- `mergeDraft` human-edit detection (lines 138-145) needs care when step 4's `queue_digest_add` replaces blocks.
 - tech-stack.md 324 and B11.md 63 channel pattern: ~~named exports, not a `{ publish, metrics }` adapter~~ (PR 187).
 
 ## B17 (slice/b17, this laptop)
