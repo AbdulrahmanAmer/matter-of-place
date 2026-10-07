@@ -955,7 +955,9 @@ describe("the orchestrator's merge script is under the app's gates (H42 (2), G-0
       2,
       z.record(Value).parse(JSON.parse(read(join(APP, ".prettierrc")))),
     ]);
-  }, 20_000);
+    // Resolving the flat config loads every plugin and the TypeScript parser; on a lane machine with five builders
+    // up this took more than 20 s three times in one night (P-1821). CPU-bound, not a hang, so the cap is wide.
+  }, 90_000);
 });
 
 describe.skipIf(!existsSync(JOB_RUNNER))("job runner (skipped until B8 writes it)", () => {
