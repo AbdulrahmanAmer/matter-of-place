@@ -2330,6 +2330,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx tsc --noEmit -p tsconfig.json` exits 0 on slice/b16 at B16 g2; `grep -n '"settings_put_site"' -A2 src/db/types.ts` shows `"p_actor": string`.
 - added: 2026-10-07
 
+## P-1005 · The CI `db` job skips a draft pull request, so a builder told to open a draft and never mark it ready cannot get the `db` proof
+- severity: warn
+- symptom: B16 g2's brief made "the CI `db` job is green on the pull request" the group's proof and also said to open a draft and never mark it ready; on draft PR 209 `gh pr checks 209` listed `db	skipping` (with `e2e` and `merge-gate`) while `check` and `build` passed.
+- cause: `.github/workflows/ci.yml` gates the job with `if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'`, which saves Actions minutes on drafts; the brief template predates that line or ignores it.
+- rule: a builder of a draft pull request runs the db test file itself on mop-dev against the pushed function (or inside rolled-back transactions for an unpushed migration, P-312) and reports the CI `db` job UNPROVEN until the orchestrator marks the PR ready; it never marks the PR ready to get the run. Do not wait on a `db` check of a draft.
+- proof: `grep -n "draft == false" .github/workflows/ci.yml` prints the `db:` job's `if:` line (line 151 at bc9ed11); `gh pr checks 209` lists `db	skipping` while the PR is a draft (measured 2026-10-07, B16 g2).
+- added: 2026-10-07
+
 ## P-512 · An accepted migration sat on a lane branch while another slice's migration merged first; the lane's own push and main's push then disagreed
 - symptom: see P-511 for the two refusals; the deeper cause was the order: B3's migration reached mop-dev from the branch on 2026-10-03 18:46 and reached main only on 2026-10-04 00:20, after B8's.
 - cause: the single-writer exception let a lane push before merging, and the slice merged only at its end (H50), so main lagged the database by hours.
