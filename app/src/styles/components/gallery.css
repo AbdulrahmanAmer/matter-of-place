@@ -82,7 +82,12 @@
 .film-play:hover,
 .film-play:focus-visible {
   background: color-mix(in oklab, var(--foreground) 36%, transparent);
-  outline: none;
+}
+
+/* The button fills the clipped figure, so its ring sits inside it, in Bone over the photograph. */
+.film-play:focus-visible {
+  outline-color: var(--background);
+  outline-offset: -8px;
 }
 
 .film-play-ring {

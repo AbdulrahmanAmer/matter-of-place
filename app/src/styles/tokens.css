@@ -24,10 +24,16 @@
   --primary: var(--foreground);
   --primary-foreground: var(--background);
 
-  --font-sans: "Jost", sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-ui: "Urbanist", sans-serif;
-  --font-ui-alt: "Epilogue", sans-serif;
+  /* Keyboard focus: Obsidian on Bone, Bone on Obsidian (a dark surface sets --focus-ring to --background). */
+  --focus-ring: var(--foreground);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --z-skip-link: 120;
+
+  --font-sans: "Jost", "Jost Fallback", sans-serif;
+  --font-serif: "Cormorant Garamond", "Cormorant Garamond Fallback", Georgia, serif;
+  --font-ui: "Urbanist", "Urbanist Fallback", sans-serif;
+  --font-ui-alt: "Epilogue", "Epilogue Fallback", sans-serif;
 
   /* admin: status colours, muted and never gold, always shown beside a word (B7 step 3). Each is 4.5:1 or more
      on --background and on a 12% tint of itself over it. */

@@ -55,15 +55,12 @@
   text-underline-offset: 4px;
 }
 
-.footer-col .consent-change {
-  padding: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  text-underline-offset: 4px;
-}
-
-.footer-col .consent-change:hover {
-  text-decoration: underline;
+/* The two choices are links where they reach /api/consent (the noscript notice, /privacy-choices): same size and reach. */
+a.consent-allow,
+a.consent-decline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 700px) {

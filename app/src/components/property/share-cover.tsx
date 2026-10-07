@@ -2,6 +2,7 @@ import type { Property } from "../../domain/property";
 import { formatPrice } from "../../lib/catalog";
 import { formatNumber } from "../../lib/format";
 import { Wordmark } from "../brand/wordmark";
+import { Picture } from "../site/picture";
 import { TextButton } from "../site/text-link";
 
 /** Square social cover for the property, with the share action beneath. */
@@ -22,9 +23,10 @@ export function ShareCover({
           <Wordmark />
         </div>
         <div className="share-cover-image">
-          <img
+          <Picture
             src={property.gallery[0]?.src ?? property.heroImage}
-            loading="lazy"
+            variants={property.gallery[0]?.variants}
+            sizes="(max-width: 700px) 100vw, 500px"
             width={800}
             height={800}
             alt=""

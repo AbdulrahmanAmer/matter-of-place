@@ -5,6 +5,7 @@ import { inquiries } from "./inquiries.ts";
 import { markets } from "./markets.ts";
 import { media } from "./media.ts";
 import { newsletter } from "./newsletter.ts";
+import { people } from "./people.ts";
 import { properties } from "./properties.ts";
 import { settings } from "./settings.ts";
 import { stories } from "./stories.ts";
@@ -25,4 +26,5 @@ export const permissions = [
   ...automation,
   ...dashboard,
   ...newsletter,
+  ...people,
 ] as const;

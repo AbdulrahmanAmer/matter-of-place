@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { t } from "../../lib/strings";
 import { NavLink } from "./nav-link";
 import { primaryLinks, secondaryLinks, submitLink } from "./nav-links";
@@ -6,12 +7,21 @@ import { primaryLinks, secondaryLinks, submitLink } from "./nav-links";
 export function MenuPanel({
   onNavigate,
   onSearch,
+  ref,
 }: {
   onNavigate: () => void;
   onSearch: () => void;
+  ref: Ref<HTMLDivElement>;
 }) {
   return (
-    <div id="mobile-menu" className="menu-panel" role="dialog" aria-modal="true" aria-label="Menu">
+    <div
+      ref={ref}
+      id="mobile-menu"
+      className="menu-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+    >
       <nav aria-label="Mobile navigation">
         {[...primaryLinks, ...secondaryLinks, submitLink].map((link) => (
           <NavLink item={link} key={link.label} onClick={onNavigate} />

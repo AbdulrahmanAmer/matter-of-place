@@ -105,6 +105,9 @@ newsletter.unapprove                CE ME MO
 newsletter.approve                  CE ME MO | H
 newsletter.subscribers_export       CE ME MO
 me                                 CE ME VE MO CO AD | S
+people.list                        CE ME VE MO CO AD
+people.get                         CE ME VE MO CO AD
+people.note                        CE ME VE MO
 `;
 
 const ROLE: Record<string, AppRole> = {
