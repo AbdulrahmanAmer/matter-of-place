@@ -1,14 +1,15 @@
 // Gone pages (GP-03, invariant 10) against a running site: a taken-down property answers 410 from its page and from
 // the API, an unpublished draft and an unknown slug answer 404. The site is the live-mode dev server on
-// E2E_BASE_URL (default http://localhost:8080), started with `VITE_API_BASE_URL=/api/public` and
+// E2E_BASE_URL (for example http://localhost:8080), started with `VITE_API_BASE_URL=/api/public` and
 // `CATALOG_VERSION_TTL_MS=0` so the fixture rows show at once. The rows are committed (`committed`, F22) because
-// that server is another connection, and they are deleted again in `cleanup`.
+// that server is another connection, and they are deleted again in `cleanup`. The CI db job starts no web server and
+// sets no E2E_BASE_URL, so without it the file is skipped (R48); the proof sets it.
 import "./env";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { committed, type Db } from "../fixtures/db";
 
-const BASE = process.env["E2E_BASE_URL"] ?? "http://localhost:8080";
+const BASE = process.env["E2E_BASE_URL"] ?? "";
 const TAKEN_DOWN = "test-b13-taken-down";
 const DRAFT = "test-b13-draft";
 const UNKNOWN = "test-b13-never-existed";
@@ -59,29 +60,32 @@ async function cleanup(pg: Db): Promise<void> {
 
 const errorBody = z.object({ error: z.object({ code: z.string() }) });
 
-describe("a taken-down property", () => {
-  it("answers 410 from its page, with noindex, and 410 gone from the API; a draft and an unknown slug answer 404", async () => {
-    await committed(async (pg) => {
-      await plant(pg);
-      const page = await fetch(`${BASE}/property/${TAKEN_DOWN}`, {
-        headers: { accept: "text/html" },
-      });
-      expect(page.status).toBe(410);
-      expect(await page.text()).toContain("noindex");
-
-      const api = await fetch(`${BASE}/api/public/properties/${TAKEN_DOWN}`);
-      expect(api.status).toBe(410);
-      expect(errorBody.parse(await api.json()).error.code).toBe("gone");
-
-      for (const slug of [DRAFT, UNKNOWN]) {
-        const missing = await fetch(`${BASE}/api/public/properties/${slug}`);
-        expect(missing.status).toBe(404);
-        expect(errorBody.parse(await missing.json()).error.code).toBe("not_found");
-        const missingPage = await fetch(`${BASE}/property/${slug}`, {
+describe.skipIf(BASE === "")(
+  "a taken-down property (skipped without E2E_BASE_URL, the site it fetches)",
+  () => {
+    it("answers 410 from its page, with noindex, and 410 gone from the API; a draft and an unknown slug answer 404", async () => {
+      await committed(async (pg) => {
+        await plant(pg);
+        const page = await fetch(`${BASE}/property/${TAKEN_DOWN}`, {
           headers: { accept: "text/html" },
         });
-        expect(missingPage.status).toBe(404);
-      }
-    }, cleanup);
-  });
-});
+        expect(page.status).toBe(410);
+        expect(await page.text()).toContain("noindex");
+
+        const api = await fetch(`${BASE}/api/public/properties/${TAKEN_DOWN}`);
+        expect(api.status).toBe(410);
+        expect(errorBody.parse(await api.json()).error.code).toBe("gone");
+
+        for (const slug of [DRAFT, UNKNOWN]) {
+          const missing = await fetch(`${BASE}/api/public/properties/${slug}`);
+          expect(missing.status).toBe(404);
+          expect(errorBody.parse(await missing.json()).error.code).toBe("not_found");
+          const missingPage = await fetch(`${BASE}/property/${slug}`, {
+            headers: { accept: "text/html" },
+          });
+          expect(missingPage.status).toBe(404);
+        }
+      }, cleanup);
+    });
+  },
+);
