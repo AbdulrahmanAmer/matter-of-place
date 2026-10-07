@@ -55,6 +55,12 @@ through GitHub (branches, pull requests, the merge gate) and the shared mop-dev 
   is run as the lane's own copy from inside the lane (the clone's copy points at the clone and fails with "GOTCHAS.md is in
   the index, but not at stage 1"); `stall-watch.mjs` defaults its transcript folder to the first laptop's session, so on
   any other machine it takes `--dir <that machine's subagents/workflows folder>`.
+- A session restart on a lane machine (needed when `.claude/agents/` changes) gives a new session folder; before the first
+  resume, copy (`cp -n`) each run's `workflows/<id>.json` and `subagents/workflows/<id>/` from the old session folder into
+  the new one, then resume (P-533).
+- The board on the orchestrator's machine reads only that machine's journals; the orchestrator mirrors the lane machine's
+  `subagents/workflows/<run>/journal.jsonl` files there every five minutes (`scp -p`, P-534). Dell session folder today:
+  `C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/33ddf8d3-d640-434d-a419-fadf9fa72221/subagents/workflows`.
 - Answers the orchestrator's messages with facts: run ids, group states, PR numbers, the exact failing line.
 - Never fixes a failing or unparsable script of ours (the workflow, a lane file, check-plans, stall-watch, the merge gate,
   bank-merge, a helper): it stops that step and sends the orchestrator the exact command, the full error text and the file
