@@ -119,3 +119,25 @@ Review of group g5: no blocking defect. Seven follow-ups below, word for word wi
 7. File: `app/src/server/payments/invoice-pdf.ts`. Blocking: no.
    What: UNPROVEN, not a defect. Nothing has been checked against a real Storage, database or Edge runtime. The 409 'already exists' handling, the set_invoice_key race, the attachment resolver and the job all ran only against the author's own fake-db fixture (tests/fixtures/invoice-snapshot.ts). The Edge-runtime render of the dynamic import("pdf-lib") and the mop-dev smoke (--print-text, --out, --upload) have not run. My read-only query confirms that mop-dev settings.site has no legal.entity or legal.address, so readiness fails today.
    Evidence: read-only transaction on mop-dev: [{"key":"site","entity":false,"address":false},{"key":"invoice","methods":3}]
+
+## g6 · steps 6
+
+Review of group g6: no blocking defect. Five follow-ups below, word for word with their evidence. Two concern GOTCHAS.md (P-2319 and P-2320, both corrected in place in the bank, not listed again here as open work); the other three are below.
+
+1. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: The g6 log says the one bad entry in the --changed replay is 'an entry of another group's file that main brought'. That is wrong. `watchfail.mjs --changed origin/main` diffs from merge-base(origin/main, HEAD), which is 35dfdc5, the main the lane merged. So every selected file is one that slice B6 itself changed, not one main brought. I identified the entry. It is B2:f-matrix, a B2 entry on src/domain/workflow.ts (B6 g2 added 'void' to PaymentStatus there). It runs `--project db`, and that project refuses at global-setup without DEV_DB_URL. So it fails because of the environment and is not a regression. The log's conclusion holds (not this group's, harmless), but its stated cause is false. Not blocking: no product behaviour, data or proof depends on it.
+   Evidence: Confirmed by running. `git merge-base origin/main HEAD` gives 35dfdc56. Filtering the registry on `git diff --name-only 35dfdc5...98e045f` selects 135 entries, all on files B6 changed. `node scripts/watchfail.mjs --registry tests/mutations --only f-matrix` prints 'Error: refusing: DEV_DB_URL is not set' and then 'ok 0, bad 1'.
+   Handling: the g6 log block is append-only, so the correct cause is stated in the "## g6 · follow-ups recorded" block of B6.md and in P-2319.
+
+2. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: UNPROVEN: the design review covered only a stand-in, the layout runs drawn in Chromium with Times New Roman and Arial. The real out/invoice.pdf was not rendered or viewed, and invoice-smoke.ts was not run. The log says 'mop-designer, run now', but nothing in the commit shows a mop-designer review took place (no transcript, no reference). The author says all of this openly. It stays open until the smoke PDF exists on mop-dev and someone looks at it.
+   Evidence: Read in the g6 log block. Commit 98e045f touches only invoice-layout.ts, its test, B6.json, GOTCHAS.md and the log.
+
+3. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: Some of the adjustments have no test: 'Preferred method' changed from strong to body, the closing note moved 8 pt lower, and the invoice number moved 4 pt lower. Reverting any of them leaves every test green. These are design choices and the plan asks for no test of them, so this is a note, not a defect.
+   Evidence: Read in the git show 98e045f diff. The new test checks only baseline alignment, label font and the set of inks.
+
+The two GOTCHAS.md follow-ups, kept here word for word for the record:
+
+- P-2319 gives the wrong cause, so its rule is wrong too. It says a lane that merged main 'differs from the ref in files other lanes changed after the merge base'. In fact --changed selects the whole slice's diff since the merge base: 92 B6 entries plus 43 other-slice entries on files B6 edited. Merging main does not grow that set. The rule ('use --changed only when the lane has not merged main') therefore steers lanes away from the one replay that catches cross-slice regressions on shared files, for a reason that is not true. The entry should also say that db-project entries (for example B2:f-matrix) go BAD in a unit shell without the dev profile, so that 'bad 1' does not look like a regression. Evidence: Confirmed by running (see follow-up 1). Banked: P-2319 rewritten.
+- P-2320's proof is `import('file:///D:/mop-build/b6/app/node_modules/playwright/index.mjs')`. That only shows node can import playwright, from a lane path that disappears when the lane is removed. It does not show the claimed symptom (bun plus Playwright hangs, no PDF rasteriser). A proof should be runnable from any tree, and it should show the thing the rule depends on. Evidence: Suspected by reading the entry text in the diff; not run by the reviewer. Banked: P-2320 proof replaced by one that runs from any tree (no rasteriser on the PATH; Playwright loads under node).
