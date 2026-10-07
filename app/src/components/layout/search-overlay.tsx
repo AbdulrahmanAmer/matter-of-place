@@ -1,4 +1,4 @@
-import type { SyntheticEvent } from "react";
+import type { Ref, SyntheticEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, X } from "lucide-react";
 import { focusOnMount } from "../../hooks/use-modal";
@@ -7,7 +7,7 @@ import { formText } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 
 /** Site-wide search: one field, sends the term to the Properties collection. */
-export function SearchOverlay({ onClose }: { onClose: () => void }) {
+export function SearchOverlay({ onClose, ref }: { onClose: () => void; ref: Ref<HTMLDivElement> }) {
   const navigate = useNavigate();
 
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -26,7 +26,13 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="search-panel" role="dialog" aria-modal="true" aria-label={t.header.search}>
+      <div
+        ref={ref}
+        className="search-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.header.search}
+      >
         <div className="search-panel-head">
           <span className="eyebrow">{t.header.findAPlace}</span>
           <button

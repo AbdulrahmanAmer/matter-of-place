@@ -16,6 +16,7 @@ const LEGACY = new Set([
   "src/routes/admin.tsx",
   "src/routes/admin/auth.confirm.tsx",
   "src/routes/admin/requests.index.tsx",
+  "src/routes/admin/requests.$id.tsx",
   "src/routes/admin/sign-in.tsx",
 ]);
 const STATIC_IMPORT = /^import\s[^;]*?from\s+"([^"]+)";?$/gm;

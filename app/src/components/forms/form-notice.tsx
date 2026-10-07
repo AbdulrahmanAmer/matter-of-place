@@ -9,10 +9,10 @@ export function DeliveryNotice() {
 }
 
 /** Inline error beneath a form's actions. */
-export function FormError({ message }: { message: string | null }) {
+export function FormError({ message, id }: { message: string | null; id?: string }) {
   if (!message) return null;
   return (
-    <p className="form-error" role="alert">
+    <p className="form-error" role="alert" id={id}>
       {message}
     </p>
   );

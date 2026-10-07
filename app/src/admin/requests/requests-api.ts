@@ -1,7 +1,16 @@
-import { startReviewAnswerSchema, submissionListSchema } from "../../domain/admin-submissions";
+import {
+  originalAnswerSchema,
+  startReviewAnswerSchema,
+  submissionDetailSchema,
+  submissionListSchema,
+  submissionNoteSchema,
+  timelineAnswerSchema,
+} from "../../domain/admin-submissions";
 import { adminFetch } from "../ui/admin-fetch";
 
-// The browser side of screen 3. Components reach these through `requests-queries.ts`.
+// The browser side of screens 3 and 4. Components reach these through `requests-queries.ts`.
+
+const submissionPath = (id: string) => `/api/admin/submissions/${id}`;
 
 /** One page of requests; `query` holds the filters and the cursor exactly as the address has them. */
 export function fetchSubmissions(query: Readonly<Record<string, string>>) {
@@ -19,4 +28,25 @@ export function startReview(ids: readonly string[]) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ids }),
   });
+}
+
+export function fetchSubmission(id: string) {
+  return adminFetch(submissionPath(id), submissionDetailSchema);
+}
+
+export function fetchTimeline(id: string) {
+  return adminFetch(`${submissionPath(id)}/timeline`, timelineAnswerSchema);
+}
+
+export function addNote(id: string, text: string) {
+  return adminFetch(`${submissionPath(id)}/note`, submissionNoteSchema, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
+
+/** The ten-minute address of one original, asked for only when the editor opens it. */
+export function fetchOriginal(id: string, mediaId: string) {
+  return adminFetch(`${submissionPath(id)}/media/${mediaId}/original`, originalAnswerSchema);
 }

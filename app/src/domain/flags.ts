@@ -3,7 +3,12 @@ import { z } from "zod";
 // `settings.flags` (GQ-05): boolean feature flags, snake_case in the database and in code (G18). Adding a flag is
 // one name in `featureFlags` and one default in `defaultFlags`. `coming_soon` is not stored here: it is read from
 // `settings.coming_soon_global`, so the code sees it as a flag without a second stored copy.
-export const featureFlags = ["new_channels", "archive_pages"] as const;
+export const featureFlags = [
+  "new_channels",
+  "archive_pages",
+  "csp_enforce",
+  "maintenance",
+] as const;
 export type FeatureFlag = (typeof featureFlags)[number];
 
 const isFeatureFlag = (key: string): key is FeatureFlag =>
@@ -21,6 +26,8 @@ export const flagsSchema = z.preprocess(
 export const defaultFlags: Record<FeatureFlag, boolean> = {
   new_channels: false,
   archive_pages: false,
+  csp_enforce: false,
+  maintenance: false,
 };
 
 export type Flags = Record<FeatureFlag | "coming_soon", boolean>;

@@ -22,7 +22,16 @@ describe("settings.flags", () => {
           )
         ).rows,
     );
-    expect(rows).toEqual([{ value: { new_channels: false, archive_pages: false } }]);
+    expect(rows).toEqual([
+      {
+        value: {
+          new_channels: false,
+          archive_pages: false,
+          csp_enforce: false,
+          maintenance: false,
+        },
+      },
+    ]);
   });
 
   it("an update of the row bumps catalog_version once", async () => {

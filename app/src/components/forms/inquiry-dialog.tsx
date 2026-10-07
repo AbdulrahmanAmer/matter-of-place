@@ -1,4 +1,4 @@
-import { useEffect, useId, type SyntheticEvent } from "react";
+import { useEffect, useId, useRef, type SyntheticEvent } from "react";
 import { X } from "lucide-react";
 import {
   honeypotFieldName,
@@ -7,6 +7,7 @@ import {
   type InquirySubject,
 } from "../../domain/contracts";
 import { useAsyncAction } from "../../hooks/use-async-action";
+import { useFieldErrors } from "../../hooks/use-field-errors";
 import { focusOnMount, useModal } from "../../hooks/use-modal";
 import { track, type AnalyticsEvent } from "../../lib/analytics";
 import { readAttribution } from "../../lib/attribution";
@@ -171,16 +172,20 @@ export function InquiryDialog({
     ),
   );
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const { validate, clear, clearAll, field, control } = useFieldErrors();
   const open = intent !== null;
-  useModal(open, onClose);
+  useModal(open, onClose, dialogRef);
   useEffect(() => {
     reset();
-  }, [intent, reset]);
+    clearAll();
+  }, [intent, reset, clearAll]);
 
   if (!intent || !copy) return null;
 
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!validate(event.currentTarget)) return;
     void run(event.currentTarget).then((receipt) => {
       if (receipt) track(copy.event, { intent, subject: subject?.slug });
     });
@@ -194,7 +199,13 @@ export function InquiryDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="inquiry-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div
+        ref={dialogRef}
+        className="inquiry-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <div className="inquiry-dialog-head">
           <span className="eyebrow">{copy.eyebrow}</span>
           <button
@@ -217,14 +228,33 @@ export function InquiryDialog({
         ) : (
           <>
             <h2 id={titleId}>{copy.title}</h2>
-            <form className="inquiry-form" onSubmit={onSubmit} aria-busy={pending}>
+            <form
+              className="inquiry-form"
+              onSubmit={onSubmit}
+              onInput={clear}
+              aria-busy={pending}
+              noValidate
+            >
               <p className="inquiry-lede">{copy.lede}</p>
               <div className="field-grid">
-                <Field label="Your name">
-                  <input required ref={focusOnMount} type="text" name="name" autoComplete="name" />
+                <Field label="Your name" {...field("name")}>
+                  <input
+                    required
+                    ref={focusOnMount}
+                    type="text"
+                    name="name"
+                    autoComplete="name"
+                    {...control("name")}
+                  />
                 </Field>
-                <Field label="Email">
-                  <input required type="email" name="email" autoComplete="email" />
+                <Field label="Email" {...field("email")}>
+                  <input
+                    required
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    {...control("email")}
+                  />
                 </Field>
                 <Field label="Phone (optional)">
                   <input type="tel" name="phone" autoComplete="tel" />
@@ -235,8 +265,14 @@ export function InquiryDialog({
                   </Field>
                 ))}
               </div>
-              <Field label="Message">
-                <textarea name="message" rows={4} required defaultValue={copy.message} />
+              <Field label="Message" {...field("message")}>
+                <textarea
+                  name="message"
+                  rows={4}
+                  required
+                  defaultValue={copy.message}
+                  {...control("message")}
+                />
               </Field>
               <Honeypot />
               <div className="form-actions">
