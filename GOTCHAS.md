@@ -3958,8 +3958,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - severity: warn
 - symptom: B7 g1 step 5: `tests/db/admin.db.test.ts` imported `newestPaymentId` from `src/server/submissions/service.ts`; `bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission` ended `Error: Invalid environment: RATE_LIMIT_SALT Required` (`src/server/lib/env.ts:70`, reached through `upload-token.ts:2`) and `Tests  no tests`.
 - cause: `service.ts` imports `upload-token.ts`, which parses `env.ts` at import. Unit tests set the variable by importing `tests/fixtures/worker-env.ts` first; the db project has no setup file for it.
-- rule: a db or api test that loads any `src/server` module imports `../fixtures/worker-env` as its first import (it sets `MOP_ENV` to `local`, the salt, and deletes `SUPABASE_URL`, so it cannot point a client at another project, G-901).
-- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission` → `Tests  1 passed | 16 skipped`; with the import line deleted → `Invalid environment: RATE_LIMIT_SALT Required` (measured 2026-10-07).
+- rule: a db or api test that loads any `src/server` module imports `../fixtures/worker-env` as its first import (it sets `MOP_ENV` to `local` and the salt). It deletes the ambient `SUPABASE_URL` so a unit test cannot reach another project (G-901), except under `E2E_STACK=1`: that is CI's own stack, `serviceClient()` reads `SUPABASE_URL` there, and a db test that deleted it fails with `SUPABASE_URL is not set`. A db proof runs once in the laptop shape (dev profile) and once in the CI shape (below).
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission` → `Tests  1 passed | 16 skipped`; with the import line deleted → `Invalid environment: RATE_LIMIT_SALT Required` (measured 2026-10-07). CI shape, after the dev profile: `U="https://$DEV_SUPABASE_PROJECT_REF.supabase.co"; K="$DEV_SUPABASE_SERVICE_ROLE_KEY"; env -u DEV_SUPABASE_SERVICE_ROLE_KEY -u CLOUDFLARE_API_TOKEN E2E_STACK=1 SUPABASE_URL="$U" SUPABASE_SERVICE_ROLE_KEY="$K" bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission` → `Tests  1 passed | 16 skipped`; with the unguarded fixture delete → `Error: SUPABASE_URL is not set`, `Tests  1 failed | 16 skipped` (measured 2026-10-07, B7 g1 review).
+- added: 2026-10-07
+
+## P-2131 · A db case proven only under the laptop's dev profile can fail in CI's `E2E_STACK` shape
+- symptom: B7 g1's getSubmission db case passed on the laptop and failed in the review's CI-shaped run with `SUPABASE_URL is not set`; the author's check (`echo $SUPABASE_URL` shows the dev ref) never exercised the path CI takes.
+- cause: `serviceClient()` reads the dev names on the laptop and `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` only under `E2E_STACK=1`; the dev-profile run never reads the second pair, so anything that deletes or renames it stays hidden until CI.
+- rule: a new db or api case is run twice, in the laptop shape and in the CI shape of G-902; a fixture that edits `process.env` names which of the two shapes it serves.
+- proof: the CI-shape command in G-902 → `Tests  1 passed | 16 skipped` (measured 2026-10-07).
 - added: 2026-10-07
 
 ## P-1212 · Resend's `GET /domains` list carries no record status, so a plan line that prints `spf pass` and `dkim pass` from that one call cannot be built

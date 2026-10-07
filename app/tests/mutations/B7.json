@@ -2188,5 +2188,14 @@
     "replace": ".eq(\"submission_idx\", submissionId)",
     "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission",
     "expect": "× .*reads the newest payment through the service client"
+  },
+  {
+    "id": "b7-g5-db-payments-status",
+    "test": "tests/db/admin.db.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": ".in(\"status\", [\"due\", \"paid\", \"waived\", \"refunded\"])",
+    "replace": ".neq(\"status\", \"void\")",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t getSubmission",
+    "expect": "× .*reads the newest payment through the service client"
   }
 ]
