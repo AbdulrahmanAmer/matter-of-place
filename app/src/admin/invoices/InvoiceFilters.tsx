@@ -16,6 +16,7 @@ export function InvoiceFilters({
     <form
       className="admin-toolbar"
       role="search"
+      data-print="hide"
       onSubmit={(event) => {
         event.preventDefault();
       }}

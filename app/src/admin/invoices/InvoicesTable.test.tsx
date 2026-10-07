@@ -46,7 +46,7 @@ describe("InvoicesTable", () => {
     expect(screen.getByRole("heading", { name: "No invoices" })).toBeTruthy();
   });
 
-  it("marks a due invoice overdue after its 14 days and leaves a younger one alone", () => {
+  it("marks a due invoice the server calls overdue and leaves a younger one alone", () => {
     render(
       <InvoicesTable
         rows={[row(1, { days_open: 15, overdue: true }), row(2, { days_open: 13, overdue: false })]}
@@ -104,6 +104,11 @@ describe("InvoicesTable", () => {
 });
 
 describe("InvoiceFilters", () => {
+  it("stays off the printed page", () => {
+    render(<InvoiceFilters values={{}} onChange={() => undefined} />);
+    expect(screen.getByRole("search").getAttribute("data-print")).toBe("hide");
+  });
+
   it("offers every status and carries the overdue box", () => {
     render(<InvoiceFilters values={{ overdue: "true" }} onChange={() => undefined} />);
     expect({

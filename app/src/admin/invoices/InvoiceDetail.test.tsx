@@ -188,6 +188,16 @@ describe("InvoiceDetail states", () => {
     });
   });
 
+  it("draws the tax line and the late terms of the frozen snapshot in the preview", async () => {
+    serve({ [`GET ${PAYMENT_PATH}`]: payment() });
+    mount(ADMIN, <InvoiceDetail id={ID} />);
+    const preview = await screen.findByRole("article", { name: "Invoice preview" });
+    expect({
+      tax: within(preview).getByText("No sales tax is charged on this invoice.").tagName,
+      late: within(preview).getByText("Overdue amounts may be subject to a late charge.").tagName,
+    }).toEqual({ tax: "TH", late: "P" });
+  });
+
   it("offers Activate on a paid invoice and no payment move", async () => {
     serve({
       [`GET ${PAYMENT_PATH}`]: payment({
@@ -380,6 +390,32 @@ describe("the draft", () => {
     const issue = screen.getByRole("button", { name: "Issue and email" });
     const waive = screen.getByRole("button", { name: "Waive without invoice" });
     expect(issue.parentElement).toBe(waive.parentElement);
+  });
+
+  it("waives without an invoice with the product chosen and the reason", async () => {
+    const requested = serve({
+      [`GET ${REQUEST_PATH}`]: request(),
+      [`POST ${REQUEST_PATH}/waive`]: written,
+    });
+    mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Waive without invoice" }));
+    const dialog = screen.getByRole("dialog", { name: "Waive without an invoice" });
+    fireEvent.change(within(dialog).getByLabelText("Product"), { target: { value: "The Reach" } });
+    fireEvent.change(within(dialog).getByLabelText("Reason"), { target: { value: "Credit" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Waive without invoice" }));
+    await waitFor(() => {
+      expect(requested.some((line) => line.startsWith("POST"))).toBe(true);
+    });
+    expect(requested.filter((line) => line.startsWith("POST"))).toEqual([
+      `POST ${REQUEST_PATH}/waive {"product":"The Reach","reason":"Credit"}`,
+    ]);
+  });
+
+  it("hides Waive without invoice from a role that cannot waive", async () => {
+    serve({ [`GET ${REQUEST_PATH}`]: request() });
+    mount(["payments.issue", "payments.void"], <InvoiceDraft submissionId={SUBMISSION} />);
+    await screen.findByRole("heading", { level: 1, name: "New invoice" });
+    expect(screen.queryByRole("button", { name: "Waive without invoice" })).toBeNull();
   });
 
   it("keeps Issue off until the request is accepted", async () => {

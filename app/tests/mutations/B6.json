@@ -1071,7 +1071,7 @@
     "find": "row.status === \"due\" && row.overdue === true",
     "replace": "row.status === \"due\" && row.overdue === false",
     "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
-    "expect": "marks a due invoice overdue after its 14 days"
+    "expect": "marks a due invoice the server calls overdue"
   },
   {
     "id": "b6-s7-table-no-invoice",
@@ -1414,5 +1414,50 @@
     "replace": "This request is not ready.",
     "run": "E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"cannot be invoiced from the screen\" --reporter=line",
     "expect": "Accept this request before issuing an invoice"
+  },
+  {
+    "id": "b6-s7-filters-print",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoiceFilters.tsx",
+    "find": "      data-print=\"hide\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "stays off the printed page"
+  },
+  {
+    "id": "b6-s7-preview-tax",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoicePreview.tsx",
+    "find": "<th scope=\"row\">{snapshot.tax_line}</th>",
+    "replace": "<th scope=\"row\" />",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "draws the tax line and the late terms"
+  },
+  {
+    "id": "b6-s7-preview-late",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoicePreview.tsx",
+    "find": "<p>{snapshot.late_terms}</p>",
+    "replace": "<p />",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "draws the tax line and the late terms"
+  },
+  {
+    "id": "b6-s7-wwi-product",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx",
+    "find": "onSubmit={(reason) => onWaive({ product, reason })}",
+    "replace": "onSubmit={(reason) => onWaive({ product: \"The Campaign\", reason })}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "waives without an invoice with the product chosen"
+  },
+  {
+    "id": "b6-s7-wwi-gate",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx",
+    "find": "<RoleGate action=\"payments.waive\">",
+    "replace": "<RoleGate action=\"payments.void\">",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "hides Waive without invoice from a role that cannot waive"
   }
 ]
