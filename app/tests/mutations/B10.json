@@ -738,5 +738,385 @@
     "replace": "if (channel === \"x\") {",
     "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
     "expect": "FAIL .*> assertMayEnable > answers no_adapter for youtube with the flag on"
+  },
+  {
+    "id": "b10g4-image-branch",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (others.length === 0) {",
+    "replace": "if (others.length === -1) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates an image container, waits for FINISHED"
+  },
+  {
+    "id": "b10g4-image-permalink",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "{ fields: \"permalink\" },",
+    "replace": "{ fields: \"link\" },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates an image container, waits for FINISHED"
+  },
+  {
+    "id": "b10g4-carousel-children",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "is_carousel_item: \"true\" }",
+    "replace": "is_carousel_item: \"false\" }",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates the children of a carousel, then the parent"
+  },
+  {
+    "id": "b10g4-story-type",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "media_type: \"STORIES\",",
+    "replace": "media_type: \"STORY\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates a story container with media_type STORIES"
+  },
+  {
+    "id": "b10g4-reel-share",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "share_to_feed: \"true\",",
+    "replace": "share_to_feed: \"false\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates a reel container with video_url"
+  },
+  {
+    "id": "b10g4-marker-hook",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "await onContainer?.(`${CONTAINER_PREFIX}${containerId}`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > hands the container marker to onContainer"
+  },
+  {
+    "id": "b10g4-poll-finished",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status !== \"IN_PROGRESS\" || asked === POLL_CALLS) return status;",
+    "replace": "if (asked === POLL_CALLS) return status;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > stops polling at FINISHED"
+  },
+  {
+    "id": "b10g4-fail-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"EXPIRED\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on ERROR and never calls media_publish"
+  },
+  {
+    "id": "b10g4-fail-expired",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"ERROR\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on EXPIRED and never calls media_publish"
+  },
+  {
+    "id": "b10g4-fail-throws",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (settled.status === \"restart\") {",
+    "replace": "if (settled.status === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on ERROR and never calls media_publish"
+  },
+  {
+    "id": "b10g4-poll-five",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "const POLL_CALLS = 5;",
+    "replace": "const POLL_CALLS = 6;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > returns in_progress after 5 status calls in 20 seconds"
+  },
+  {
+    "id": "b10g4-in-progress",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"IN_PROGRESS\") return { status: \"in_progress\", containerId };",
+    "replace": "if (status === \"IN_PROGRESS\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > returns in_progress after 5 status calls in 20 seconds"
+  },
+  {
+    "id": "b10g4-finished-publishes",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"FINISHED\") return publishContainer(session, containerId);",
+    "replace": "if (status === \"FINISHED\") return adoptInstagramMedia(session, since);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > publishes a FINISHED container once and creates no container"
+  },
+  {
+    "id": "b10g4-published-adopts",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "return adoptInstagramMedia(session, since);\n}",
+    "replace": "return publishContainer(session, containerId);\n}",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-since-bound",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "time >= since.getTime()",
+    "replace": "time > since.getTime()",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-since-older",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "time >= since.getTime()",
+    "replace": "time >= 0",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts nothing from a PUBLISHED container when every media is older than since"
+  },
+  {
+    "id": "b10g4-newest-first",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": ".sort((a, b) => b.time - a.time);",
+    "replace": ".sort((a, b) => a.time - b.time);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-restart-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"EXPIRED\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > answers restart for a container that ended ERROR"
+  },
+  {
+    "id": "b10g4-marker-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!marker.startsWith(CONTAINER_PREFIX)) {",
+    "replace": "if (marker === CONTAINER_PREFIX) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > refuses a marker that is not a container marker"
+  },
+  {
+    "id": "b10g4-proof-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "appsecret_proof: session.proof,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > puts the token and an appsecret_proof of"
+  },
+  {
+    "id": "b10g4-token-in-url",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": ": await fetch(`${session.base}/${path}`, { method, body: form, signal });",
+    "replace": ": await fetch(`${session.base}/${path}?${form.toString()}`, { method, body: form, signal });",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > keeps the token and the proof out of the url of every write call"
+  },
+  {
+    "id": "b10g4-live-dry-run",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > sends no write call when SOCIAL_DRY_RUN is 1 in production"
+  },
+  {
+    "id": "b10g4-live-env",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (method === \"POST\" && process.env[\"SOCIAL_DRY_RUN\"] === \"1\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > sends no write call when MOP_ENV is not production"
+  },
+  {
+    "id": "b10g4-reads-stay-on",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (!liveSideEffects(\"social\")) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > still reads insights when posting is switched off"
+  },
+  {
+    "id": "b10g4-graph-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "throw new GraphError(classifyGraphError(response.status, body));",
+    "replace": "throw new AppError(\"server\", undefined, \"Graph refused.\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > throws a GraphError that carries the class of the answer"
+  },
+  {
+    "id": "b10g4-network-quote",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "throw new AppError(\"unavailable\", undefined, \"Graph did not answer.\");",
+    "replace": "throw new AppError(\"unavailable\", undefined, `Graph did not answer ${session.base}.`);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > does not quote the url, the token or the proof"
+  },
+  {
+    "id": "b10g4-kind-refused",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!supports(asset.kind)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses a kind the channel does not post"
+  },
+  {
+    "id": "b10g4-main-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (main === undefined) throw incomplete(\"main\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses an asset without the file its kind needs"
+  },
+  {
+    "id": "b10g4-video-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (video === undefined) throw incomplete(\"video\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses an asset without the file its kind needs"
+  },
+  {
+    "id": "b10g4-settings-ids",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!settings.success) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > names the settings it needs when settings.meta holds no ids"
+  },
+  {
+    "id": "b10g4-insight-names",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "metric: Object.keys(META_METRICS).join(\",\"),",
+    "replace": "metric: \"reach\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > reads insights with the metric names of the table"
+  },
+  {
+    "id": "b10g4-health-level",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "state: level,",
+    "replace": "state: \"ok\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > reports the token health from settings.meta"
+  },
+  {
+    "id": "b10g4-supports-targets",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "targetsFor(kind, {}).includes(channel)",
+    "replace": "targetsFor(kind, {}).length > 0",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > supports the kinds that targetsFor sends to the channel"
+  },
+  {
+    "id": "b10g4-registry-instagram",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "instagram: () => createMetaChannel(\"instagram\"),",
+    "replace": "instagram: () => createMetaChannel(\"facebook\"),",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the registry > hands out the Meta adapter of instagram and of facebook"
+  },
+  {
+    "id": "b10g4-fb-post-id",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "postId = photo.post_id ?? photo.id;",
+    "replace": "postId = photo.id;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > posts a cover as a Page photo with the url and the caption"
+  },
+  {
+    "id": "b10g4-fb-story-unpublished",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "{ url, published: \"false\" },",
+    "replace": "{ url },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > uploads a story photo unpublished, then publishes it to photo_stories"
+  },
+  {
+    "id": "b10g4-fb-adopt",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (channel === \"facebook\") return adoptFacebookPost(session, since);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > adopts the newest Page post at or after since"
+  },
+  {
+    "id": "b10g4-fb-metrics",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (channel === \"facebook\") return { status: \"skipped_disabled\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > answers metrics with skipped_disabled"
   }
 ]

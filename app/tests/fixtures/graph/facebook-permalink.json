@@ -1,0 +1,10 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5 (GET /{post-id}?fields=permalink_url is the plan's, not confirmed against the reference in step 3, UNPROVEN; the values are made up)",
+  "request": "GET /{post-id}?fields=permalink_url",
+  "response": {
+    "permalink_url": "https://www.facebook.com/example/posts/1000000000000002",
+    "id": "1000000000000002_1000000000000001"
+  }
+}

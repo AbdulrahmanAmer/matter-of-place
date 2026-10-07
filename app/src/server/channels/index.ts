@@ -3,6 +3,7 @@ import { assetFileSchema, type AssetFile, type AssetKind } from "../../domain/as
 import type { SocialChannel } from "../../domain/channels.ts";
 import { propertyLink } from "../assets/links.ts";
 import { AppError } from "../lib/errors.ts";
+import { createMetaChannel } from "./meta.ts";
 import type { Channel, SocialAsset } from "./types.ts";
 
 // Which asset goes where (B10 Contract). Every function here is pure: a step reads a file or a caption only through
@@ -88,8 +89,13 @@ function disabledBlock(id: SocialChannel): Channel {
   };
 }
 
-// STUB(B10 step 5): `createMetaChannel` registers instagram and facebook here, step 5a adds x, linkedin and youtube
-const adapters: Partial<Record<SocialChannel, Channel>> = {};
+// Adapters are built on demand: `meta.ts` imports the pure functions above, so a registry that built them at load
+// would read this module half evaluated.
+// STUB(B10 step 5a): x, linkedin and youtube register here
+const adapters: Partial<Record<SocialChannel, () => Channel>> = {
+  instagram: () => createMetaChannel("instagram"),
+  facebook: () => createMetaChannel("facebook"),
+};
 
 /** The adapter of `name`, or the disabled block when its `channel_settings` row is `enabled = false`. */
 export function getChannel(name: SocialChannel, enabled: boolean): Channel {
@@ -98,5 +104,5 @@ export function getChannel(name: SocialChannel, enabled: boolean): Channel {
   if (adapter === undefined) {
     throw new AppError("server", undefined, `No adapter is registered for ${name}.`);
   }
-  return adapter;
+  return adapter();
 }

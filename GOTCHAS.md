@@ -919,6 +919,7 @@ Entry template
 - hit again: 2026-10-04, B3b g5 repair round: an empty `python3 - <<'EOF'` typed after a bank append hung 120 seconds in the background; the append itself had run; it was ended with `taskkill //IM python3.exe` instead of by its id, which the rule above forbids.
 - hit again: 2026-10-04, B3b g4: an empty `python - <<EOF` at the end of a file-writing command held the call until the 120 s timeout and moved it to the background; kill it with `taskkill //F //IM python.exe`, and never type `python` here.
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
+- hit again: 2026-10-07, B10 g4: a `python3 -` typed after a `node - <<'EOF'` patch (no heredoc of its own) opened the prompt, the call moved to the background at 120 s and the node patch ran when python was killed (`taskkill //F //IM python3.exe`). About 2 minutes.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -1203,6 +1204,7 @@ Entry template
 - added: 2026-10-03
 - hit again: 2026-10-04, B3 g8: five new tests failed lint with the same rule on `JSON.parse(...) as T`, `await response.json() as T` and `... as Property`; parse with a Zod schema (`beaconBody.parse(JSON.parse(text))`) and give a helper the narrow `Pick<>` type it reads instead of casting a partial object.
 - hit again: 2026-10-04, B9 c6u: `bun run lint` refused `no-unsafe-type-assertion` on a cast in the new `tests/unit/assets/variants-upload.test.ts`; the cast was replaced by a type guard as above, and the group's costTime named this entry.
+- hit again: 2026-10-07, B10 g4: `tests/unit/channels/meta.test.ts` was refused for `kind as never`, `(error as Error).message`, `z.any().parse(...)` and `Array.isArray(unknown) ? [...value]`; a `failure(promise): Promise<Error>` helper (instanceof check), a typed `AssetKind[]`, a `Json` parameter and `value.map((item: unknown) => item)` replaced them.
 
 ## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
 - symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
@@ -2181,6 +2183,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `ls E:/tmp_unused` → exists, size 0 (the operator may delete it).
 - added: 2026-10-04
 - hit again: 2026-10-04, B8 g6: the same stray `cat > ../../../../tmp/nothing 2>/dev/null; node - <<'EOF'` opened a patch call; it blocked past the 600 s ceiling and went to the background until the `cat` was killed by its own process id (`ps -ef | grep cat`, then `kill <pid>`), after which the heredoc ran. The empty `/tmp/nothing` it made was removed. Patch with Write or Edit, or a heredoc that starts with `node -`, never with a leading redirect. Proof: `ls /tmp/nothing` → `No such file or directory`.
+- hit again: 2026-10-07, B10 g4: `cat > ../../../tmp_edit.cjs` (meant as a scratch file) read the terminal for 120 s, left an empty `D:/tmp_edit.cjs`, and the heredoc script after it never ran; `grep -c nextPoll` printed 0 where the edit had been expected. The scratch script went in with Write and the stray file was removed.
 
 ## P-1105 · Tests that build a throwaway git repository on this laptop: `core.autocrlf` prints a warning on stderr, and `git mv` needs the target folder
 - symptom: a helper that asserted `stderr` empty after `git add -A` failed with `warning: in the working copy of 'app/wrangler.toml', LF will be replaced by CRLF`; `git mv` into a folder that did not exist exited 128.
@@ -4055,4 +4058,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the plan was written for a fixture recorded from the step 7 test post, which is BLOCKED until the Meta app exists (S59); g2 wrote the fixture from the docs in its place.
 - rule: until step 7 records a live insights answer, `meta-metrics.test.ts` checks that every table name in the fixture lands in its field, that `total_interactions` and any other unknown name land only in `raw`, and that every table name is on Meta's documented list for new media (read 2026-10-07, held in the test), which is what turns (f) red. Step 7 replaces the fixture with the recorded answer and tightens the first case to "every name in the answer is a table name".
 - proof: `cd app && bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts` passes 3 tests on B10 g3; `node -e "console.log(require('./tests/fixtures/graph/media-insights.json').source)"` prints `docs`.
+- added: 2026-10-07
+
+## P-2206 · A fake-timer test of code that awaits Web Crypto before its sleep moves the clock too early and hangs
+- symptom: B10 g4's first run of `tests/unit/channels/meta.test.ts`: "stops polling at FINISHED" timed out at 5000 ms, "returns in_progress after 5 status calls" saw 0 status calls after `vi.advanceTimersByTimeAsync(19_999)`, and the publish promise left running turned into an unhandled rejection that failed the next test (its `sent` list began with a stale `POST .../media`).
+- cause: `meta.ts` computes `appsecret_proof` with `crypto.subtle` before its first call, and Web Crypto answers on a real tick, not as a microtask. `advanceTimersByTimeAsync` flushes microtasks only, so it ran before the adapter reached its `setTimeout`; the sleep it started later was never advanced.
+- rule: for code that awaits Web Crypto, a Response body or any real I/O before a timer, fake only `setTimeout` (`vi.useFakeTimers({ toFake: ["setTimeout"] })`, so `setImmediate` stays real), wait with a real-tick loop until `vi.getTimerCount() > 0`, then advance one interval (`nextPoll` in the test); assert a call count only after that wait, and never after one advance taken before the sleep exists.
+- proof: `cd app && bunx vitest run tests/unit/channels/meta.test.ts` → `Tests  34 passed (34)`; with the `while (vi.getTimerCount() === 0) await tick();` line of `nextPoll` removed, "stops polling at FINISHED" times out (verified 2026-10-07, B10 g4).
+- added: 2026-10-07
+
+## G-1000 · `index.ts` registers the Meta adapter and `meta.ts` imports the pure functions of `index.ts`: build adapters on demand, never at load
+- paths: app/src/server/channels/index.ts, app/src/server/channels/meta.ts
+- severity: warn
+- symptom: the plan's STUB(B10 step 5) in `index.ts` says `createMetaChannel` registers instagram and facebook "here", while `filesFor`, `captionFor` and `targetsFor` (which `meta.ts` calls) live in `index.ts`. A registry that calls `createMetaChannel("instagram")` when `index.ts` loads reads `meta.ts` half evaluated whenever `meta.ts` is imported first, as its own test does. No gate catches it (no cycle rule in eslint or knip); it was found by reading before writing.
+- cause: two files the plan gave to different steps import each other.
+- rule: `adapters` in `index.ts` holds factories (`() => createMetaChannel("instagram")`) and `getChannel` calls the factory; step 5a registers x, linkedin and youtube the same way. Do not move `filesFor`, `captionFor` or `targetsFor` into the adapter files.
+- proof: `cd app && bunx vitest run tests/unit/channels/meta.test.ts -t "hands out the Meta adapter"` → 1 passed; registry entry `b10g4-registry-instagram` goes red when the instagram factory builds the facebook adapter.
 - added: 2026-10-07
