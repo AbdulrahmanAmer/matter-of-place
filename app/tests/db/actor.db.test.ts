@@ -104,6 +104,33 @@ describe("write_audit's actor check", () => {
     });
   });
 
+  it("newsletter_approve_issue with an agent's id passed as human raises 42501 and the issue stays a draft", async () => {
+    await withRollback(async (db) => {
+      const id = await agent(db, ["managing_editor"]);
+      // The matrix row B11 step 6 generates, so only the kind comparison refuses this actor.
+      await db.query(`
+        insert into public.action_roles (action, roles, human_only)
+        values ('newsletter.approve', array['chief_editor', 'managing_editor', 'media_ops']::public.app_role[], true)
+        on conflict (action) do nothing`);
+      const { issue } = await one<{ issue: { id: string } }>(
+        db,
+        `select public.newsletter_save_draft('[{"id": "intro:1", "type": "intro", "text": "A note."}]', 's', 'p',
+           null, null, 'req-build') as issue`,
+      );
+      const outcome = await attempt(
+        db,
+        "select public.newsletter_approve_issue($1, null, $2, 'human', 'req-approve')",
+        [issue.id, id],
+      );
+      const { status } = await one<{ status: string }>(
+        db,
+        "select status from public.newsletter_issues where id = $1",
+        [issue.id],
+      );
+      expect({ outcome, status }).toEqual({ outcome: "42501 forbidden", status: "draft" });
+    });
+  });
+
   it("is called by every public function with a p_actor argument, apart from the listed ones", async () => {
     await withRollback(async (db) => {
       const { rows } = await db.query<{ name: string }>(`

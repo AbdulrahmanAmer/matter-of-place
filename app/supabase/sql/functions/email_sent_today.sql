@@ -5,11 +5,13 @@ stable
 security definer
 set search_path = ''
 as $$
-  -- Invariant 5: every row Resend accepted in the current UTC day, whatever happened to it since. B11 replaces this
-  -- body with the same signature to add broadcast recipients.
-  select count(*)::int
-  from public.email_messages
-  where sent_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc';
+  -- Invariant 5: every row Resend accepted in the current UTC day, whatever happened to it since, plus the recipients
+  -- of the broadcasts sent that day (B11), so the daily cap sees a Place Notes issue.
+  select (
+    select count(*)::int
+    from public.email_messages
+    where sent_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'
+  ) + public.broadcast_recipients_since(date_trunc('day', now() at time zone 'utc') at time zone 'utc');
 $$;
 
 revoke execute on function public.email_sent_today() from public, anon, authenticated;

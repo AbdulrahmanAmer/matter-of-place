@@ -83,11 +83,13 @@ type Row = Record<string, unknown>;
 interface FakeQuery extends Promise<{ data: Row[]; error: null }> {
   eq: (column: string, value: unknown) => FakeQuery;
   in: (column: string, values: unknown[]) => FakeQuery;
+  is: (column: string, value: null) => FakeQuery;
+  gt: (column: string, value: string) => FakeQuery;
   limit: (count: number) => FakeQuery;
 }
 
-/** Tables that answer `eq`, `in` and `limit` as Postgres would (P-905), recorded in `calls` like `fakeDb`'s. */
-function filteredFrom(tables: Record<string, Row[]>, calls: FakeDb["calls"]) {
+/** Tables that answer `eq`, `in`, `is`, `gt` and `limit` as Postgres would (P-905), recorded in `calls` like `fakeDb`'s. */
+export function filteredFrom(tables: Record<string, Row[]>, calls: FakeDb["calls"]) {
   return (name: string) => {
     calls.push({ kind: "from", name, args: [] });
     const rows = tables[name];
@@ -98,6 +100,15 @@ function filteredFrom(tables: Record<string, Row[]>, calls: FakeDb["calls"]) {
           query(current.filter((row) => row[column] === value)),
         in: (column: string, values: unknown[]) =>
           query(current.filter((row) => values.includes(row[column]))),
+        is: (column: string, value: null) =>
+          query(current.filter((row) => (row[column] ?? null) === value)),
+        gt: (column: string, value: string) =>
+          query(
+            current.filter((row) => {
+              const cell = row[column];
+              return typeof cell === "string" && cell > value;
+            }),
+          ),
         limit: (count: number) => query(current.slice(0, count)),
       });
     return { select: () => query(rows) };
