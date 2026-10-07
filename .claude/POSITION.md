@@ -1367,7 +1367,16 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   lane trees and were then COMMITTED AND PUSHED as WIP commits (12:05, over the Dell's desktop bridge), so the
   resumed builders start from committed work and the brief's merge of main does not refuse: B7 slice/b7 b1a638b
   (69 paths), B6 slice/b6 09913e9 (4), B11 slice/b11 b6a6986 (7), B10 slice/b10 7b43eab (19), B16 slice/b16 6f3ccd9e
-  (5). Each message says "not reviewed, not a hand-in". DO NOT stash, reset or clean any lane. The cut work is about
+  (5). Each message says "not reviewed, not a hand-in". Then (12:25) each cut builder's transcript was read and a
+  label written into the lane's own log (`workspace/05-plans/logs/<slice>.md`, heading "CUT BY THE PARK"): what was
+  done, the last edit with its time, the last command, what remains; lane heads now B7 36847927, B6 f3403863,
+  B11 9f84e787, B10 a088ab41, B16 eddc70d3. The resumed builder reads the log tail (its brief says so), starts from
+  the committed tree and finishes the proof pass; nothing is rebuilt. All five builders were already in their final
+  proof pass at the stop (last code edits 08:32 to 08:40 Dell clock), so the redo is the pass, not the build. The
+  three cut reviews (B16 step 4, B9 step 10, B6 steps 8-9) run again in full on the committed hand-ins.
+  Finding from the transcripts: B11, B16 and the B13 reviewer each hit `src/lib/seo.ts` building `suffix` from
+  `siteConfig` at module load, which a chunk order change turns into "Cannot read properties of undefined" and 500s
+  (P-1832's cause); B11 and B16 lanes carry the same lazy fix; the first to merge wins, the other re-merges. DO NOT stash, reset or clean any lane. The cut work is about
   seven agent-hours (B11's step 7 builder alone ran two and a half hours); the reviews re-run in full on resume.
 - RESUME THE RIGHT WAY, after `/login` on both machines: resume each run BY RUN ID in the SAME session folder, so every
   finished agent replays from cache and only the cut agents run again. On the Dell (`claude --remote-control dell` in
