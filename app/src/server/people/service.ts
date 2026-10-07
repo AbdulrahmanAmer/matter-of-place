@@ -33,7 +33,7 @@ function afterCursor(cursor: string): { p_cursor_id: string; p_cursor_name: stri
 
 /**
  * `GET /api/admin/people`: one page in name order through `people_list` (invariant 17c, R44). The function caps a page
- * at 50 rows, so a full page carries a cursor and the page after the last full one is empty.
+ * at 50 rows, so a full page carries a cursor, and when no row follows it the next page is empty.
  */
 export async function listPeople(
   actor: AdminActor,
