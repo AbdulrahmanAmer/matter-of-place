@@ -50,14 +50,19 @@ export function validateLlms(text: string): string[] {
   if (!(lines[summary] ?? "").startsWith("> ")) fail(Math.max(summary, 1), "no blockquote summary");
   if (!lines.some((line) => line.startsWith("## "))) fail(0, "no section");
 
+  let inEntry = false;
   lines.forEach((line, index) => {
+    if (line.startsWith("## ")) inEntry = false;
     for (const target of linksOf(line)) {
       if (!isAbsoluteHttps(target))
         fail(index, `link is not an absolute https address (${target})`);
     }
-    if ((line.startsWith("- ") || line.startsWith("### ")) && linksOf(line).length === 0) {
+    const heading = line.startsWith("### ");
+    // The paragraphs under a "###" heading are editorial text and may start with a dash; only a list line needs a link.
+    if ((heading || (!inEntry && line.startsWith("- "))) && linksOf(line).length === 0) {
       fail(index, "an entry without a link");
     }
+    if (heading) inEntry = true;
   });
 
   if (new TextEncoder().encode(text).length > MAX_BYTES) {

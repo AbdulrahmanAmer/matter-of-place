@@ -89,6 +89,16 @@ describe("a document broken in one place", () => {
     ]);
   });
 
+  it("reads a dash at the start of an editorial paragraph as text", () => {
+    const base = propertyJson("p1");
+    if (typeof base !== "object" || base === null || Array.isArray(base)) {
+      throw new Error("propertyJson returned a value that is not an object");
+    }
+    const text = built(buildLlmsFull, [{ ...base, story: ["- three acres of oak."] }]);
+    expect(text).toContain("\n- three acres of oak.");
+    expect(validateLlms(text)).toEqual([]);
+  });
+
   it("takes the size cap of the builder: its last byte passes and the next one does not", () => {
     const room = MAX_BYTES - new TextEncoder().encode(sample).length;
     expect(validateLlms(`${sample}${"a".repeat(room - 1)}\n`)).toEqual([]);

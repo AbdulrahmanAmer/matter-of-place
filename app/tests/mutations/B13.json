@@ -2316,6 +2316,15 @@
     "expect": "FAIL .*a document broken in one place > reports a list entry with no link"
   },
   {
+    "id": "b13-g3-llms-entry-body",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "!inEntry && line.startsWith(\"- \")",
+    "replace": "line.startsWith(\"- \")",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reads a dash at the start of an editorial paragraph as text"
+  },
+  {
     "id": "b13-g3-llms-cap",
     "test": "tests/unit/validate-llms.test.ts",
     "file": "scripts/validate-llms.ts",
