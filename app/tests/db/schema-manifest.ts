@@ -398,6 +398,16 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     notes: "text?",
     created_at: "timestamptz",
     updated_at: "timestamptz",
+    // B6 migration invoicing.
+    due_at: "timestamptz?",
+    paid_method: "text?",
+    paid_reference: "text?",
+    waived_by: "uuid?",
+    invoice_snapshot: "jsonb?",
+  },
+  invoice_counters: {
+    year: "integer",
+    last: "integer",
   },
   campaigns: {
     id: "uuid",
@@ -768,4 +778,7 @@ export const notPii = [
   // A view stores nothing: its source columns, submissions.address and submissions.submitter_name, have rows.
   "submission_list.address",
   "submission_list.submitter_name",
+  // B6: invoice_list stores nothing either; submissions.submitter_name and submitter_email have rows.
+  "invoice_list.submitter_name",
+  "invoice_list.submitter_email",
 ];
