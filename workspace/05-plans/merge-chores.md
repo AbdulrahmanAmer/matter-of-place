@@ -41,6 +41,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - `gotchasAdded` undercounts the branch's entries.
 
 ## B11 (slice/b11, Dell)
+- Step 4: the newsletter migration's down path cannot be followed (`drop table newsletter_issues` fails on 2BP01, `newsletter_open_draft` depends on it; "re-run db:fn from the previous commit" restores nothing since 19 of 21 functions are new); `standalone_approve_job.sql` queues the waiting `send_email(standalone)` job at once while the row stays disabled (suspected by reading); several `newsletter.db` cases assume mop-dev holds no open draft; line 154's `Promise.all` on one pg client is not concurrent, only the second insert's 23505 measures the index; two audience cases sit at the 30 s limit on shared mop-dev (P-312 shape); the log's UNPROVEN list predates the CI run. (g3 review a4a83cb8)
 - Step 4 PARTIAL on B9 step 5's missing half (NewsletterBlock, standalone block, object variables in render.ts): B9 close-out c5n runs here (wf_e0dc4410-89b); when it merges, the standalone row update, variablesByKey and the sample-block changes of B11 step 4 complete in B11's next group or a B11 close-out. (g3 build a24a5183)
 - Step 4 bank: `types.ts` hand-typed for the newsletter functions and STUB casts in `assemble.ts` and `resend.ts` until `bun run types:from-ci -- 200` (PR 200 marked ready 05:45).
 - `variables.ts` ~525 `digestAlert`: removing `.eq("event_id", job.eventId)` turns nothing red; the digest-notify fixture holds one queue_digest job, so the filter is never exercised (registry entry BAD as a follow-up). (g2 review a313c3a1)
@@ -50,6 +51,7 @@ struck through, with the PR number, when it lands. The lane runner never works t
 - tech-stack.md 324 and B11.md 63 channel pattern: ~~named exports, not a `{ publish, metrics }` adapter~~ (PR 187).
 
 ## B17 (slice/b17, this laptop)
+- P-1936 preview stall, cause named by the g10 fix round: the `media` bucket on mop-dev is empty, and missing-object lookups through the Worker's `/media/<key>` route are slow under parallel load (6 to 20 s), so essentials can go red on any preview under load. Decide before B17 merges: seed the preview's images from main, or (better, architecture 13) the media route remembers a missing key for a short time so one miss is paid once per key. Owner: orchestrator, with B3's media route.
 - Review brief says "No CI run exists for this commit" when a descendant commit's preview run on the lane's PR exists; `build-slice.js` should point the reviewer at `gh run list --workflow deploy.yml --branch <slice>` for descendants whose diff leaves `app/` and `.github` untouched. (g10 review a63987521141769f5)
 - `deploy.yml` `E2E_MODE: live` on the essentials and B4 overflow steps fails every preview once `HAS_DB` is false after the launch switch; `${{ env.HAS_DB == 'true' && 'live' || 'local' }}` on both.
 - `app/scripts/observatory.mjs` policy check fails open on a non-OK HEAD; the `!scan.ok` guard branch has no test of its own; C22 cost line for the two new preview steps.
