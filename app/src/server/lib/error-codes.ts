@@ -63,6 +63,15 @@ export const errorCodes = {
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
   reel_files_missing: 422,
+  // B10: a social channel is enabled only with proof of its credentials (invariant 9).
+  credentials_unverified: 422,
+  channel_locked: 422,
+  no_adapter: 422,
+  // B10 step 6: a withdrawn mark on a row with nothing to withdraw, a job the queue did not take (DB-09), and a report
+  // whose campaign has no submitter.
+  invalid_state: 409,
+  enqueue_failed: 503,
+  recipient_missing: 422,
   // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
   paid_at_future: 422,
   // B6: issuing waits for acceptance and complete invoice settings (invariants 1 and 7); the PDF is made by the runner.

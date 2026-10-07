@@ -1,0 +1,12 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the LinkedIn REST shape as the plan names the call; UNPROVEN until step 3b records a live answer (the ids and texts are made up)",
+  "request": "POST https://www.linkedin.com/oauth/v2/accessToken",
+  "response": {
+    "access_token": "linkedin-access-fresh",
+    "expires_in": 5184000,
+    "refresh_token": "linkedin-refresh-fresh",
+    "refresh_token_expires_in": 31536000
+  }
+}

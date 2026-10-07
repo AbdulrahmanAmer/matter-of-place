@@ -1,0 +1,11 @@
+{
+  "source": "plan",
+  "recorded_at": "2026-10-07",
+  "from": "B10 step 5a: the X API v2 shape as the plan names the call; UNPROVEN until step 3a records a live answer (the ids and texts are made up)",
+  "request": "POST https://api.x.com/2/oauth2/token",
+  "status": 400,
+  "response": {
+    "error": "invalid_grant",
+    "error_description": "The refresh token was refused."
+  }
+}

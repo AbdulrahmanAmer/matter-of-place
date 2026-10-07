@@ -11,6 +11,7 @@ import {
   waitForVariants,
 } from "../../assets/render-run.ts";
 import { buildRenderSpec, loadMedia, loadProperty } from "../../assets/spec.ts";
+import { maybeAutoApprove } from "../../channels/auto-approve.ts";
 import type { JsonObject, StepContext, StepDefinition, StepResult } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 import { renderSpecs } from "./render-specs.ts";
@@ -21,6 +22,8 @@ import { renderSpecs } from "./render-specs.ts";
 
 const TIER_KINDS: readonly AssetKind[] = ["cover", "carousel", "story", "newsletter_block"];
 const CAMPAIGN_KINDS: readonly AssetKind[] = ["reel", "standalone_email"];
+// The kinds a post step publishes and the system may approve; a reel is Campaign only, which is never automatic.
+const AUTO_KINDS: readonly AssetKind[] = ["cover", "carousel", "story"];
 
 export type CliComplete = (
   prompt: string,
@@ -121,6 +124,7 @@ export async function runWriteCaptions(
   const { instagram, x, linkedin, alt_text: altText, slide_alts: slideAlts } = written.captions;
   const withAlt = params.alt_text !== false;
   const edited = await typedByHand(ctx, writing);
+  const updatedAssetIds: string[] = [];
   for (const stub of writing) {
     if (edited.has(stub.id)) continue;
     // The newsletter block holds only the alt text of its image; its copy is `build_newsletter_block`'s.
@@ -141,7 +145,10 @@ export async function runWriteCaptions(
           },
     );
     if (error !== null) throw unavailable("set_asset_text");
+    if (AUTO_KINDS.includes(stub.kind)) updatedAssetIds.push(stub.id);
   }
+  // B10 invariant 4a: a social asset this run completed may go out without a person, if its tier's mode allows it.
+  for (const id of updatedAssetIds) await maybeAutoApprove(ctx.db, id, ctx.now);
   return { status: "done", result: { usage: written.usage } };
 }
 
