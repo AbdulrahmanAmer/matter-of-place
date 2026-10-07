@@ -253,3 +253,23 @@ Source: the fresh reviewer of group g2, none blocking. The two items that name G
 2. File `workspace/05-plans/logs/B13.md` (not blocking).
    What: The UNPROVEN items stand as the author recorded them. The archive page and the 410 page have never been seen as `hit` on a real Worker: the unit test uses a stand-in render, and mop-dev has no archive facet and no planted gone row. The indexable robots.txt has never been stored on a Worker (MOP_ENV=local makes it bypass). The custom-domain hit ratio and the pg_stat_statements count wait for L1. These should be carried to L1 or H1 so they are not lost.
    Evidence: curl of /sitemap.xml on 8929 lists no /archive/ URL; /robots.txt with host matterofplace.com answers x-mop-cache: bypass under MOP_ENV=local
+
+## g3 · steps 13
+
+Source: the fresh reviewer of group g3, none blocking. The one item that names GOTCHAS.md (reading the log of a finished job inside a running CI run) went into the bank as P-1834 and is not repeated here.
+
+1. File `app/docs/runbooks/search.md` (not blocking).
+   What: Lines 125-126 still say the `seo llms` step 'prints a note and passes while scripts/validate-llms.ts does not exist'. This group removed that guard from ci.yml, so the runbook line is now false. The file belongs to g4, not this group, and the author flagged it for the orchestrator.
+   Evidence: grep -n llms app/docs/runbooks/search.md -> line 126 'and passes while `scripts/validate-llms.ts` does not exist'; git show 016c3ee -- .github/workflows/ci.yml removes the if [ -f ] guard
+
+2. File `workspace/05-plans/B13.md` (not blocking).
+   What: The Files line, and trace.json, still say validate-llms.ts takes NO_PROPERTIES_SENTENCE, MAX_BYTES and the truncation line from src/server/seo/llms.ts. The script repeats them on purpose (P-1830, confirmed: importing llms.ts without env throws). Drift is caught by the registry entries b13-g3-llms-cap-value and b13-g3-llms-sentence-value plus the builder round-trip tests, and I re-ran all three. The plan text is the orchestrator's to fold.
+   Evidence: env -i PATH=$PATH bun -e 'await import("./src/server/seo/llms.ts")' throws; validate-llms.ts lines 6-10
+
+3. File `app/scripts/validate-llms.ts` (not blocking).
+   What: Line 55 (`if (line.startsWith("## ")) inEntry = false;`) has no test that fails if it is removed. Every llms.txt fixture has no `###`, and the llms-full builder outputs have no link-less list line after a `###` section. Without the reset, a link-less `- ` line in the llms-full Archives section would pass. The code is correct today; only the coverage is missing. I found this by reading and did not run a mutation (read-only).
+   Evidence: By reading tests/unit/validate-llms.test.ts: 'reports a list entry with no link' appends to the llms.txt sample, which has no ### line. No b13-g3 registry entry mutates line 55.
+
+4. File `app/scripts/validate-llms.ts` (not blocking).
+   What: Editorial text in llms-full that starts with '### ', '## ' or 'List truncated' (plain() in llms.ts escapes only brackets) is still read as structure, so a good document could fail CI or B14's crawl. The author declared this and banked it in P-1833 with the owner named (the llms.ts group, which should escape a leading marker in plain()).
+   Evidence: GOTCHAS.md P-1833 rule; llms.ts line 59-60 plain() escapes only [ and ]
