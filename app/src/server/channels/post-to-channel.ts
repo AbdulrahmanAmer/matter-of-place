@@ -361,7 +361,8 @@ async function onFailure(
 /**
  * A marker left by an earlier run (INT-01). A Meta container is polled again; an X or LinkedIn marker younger than
  * 2 minutes may belong to a run still between its create call and the mark, and an older one is looked up and adopted,
- * never posted again by itself. `publish` means the container failed and a new one may be made.
+ * never posted again by itself. `restart` means the container failed and a new one may be made. A platform error of
+ * the container's poll or publish is thrown, and the caller applies the failure rules of a publish to it.
  */
 async function resolveMarker(
   ctx: StepContext,
@@ -450,7 +451,12 @@ export async function postToChannel(
     post.error?.startsWith("inflight:") === true ||
     post.error?.startsWith("container:") === true
   ) {
-    const resolved = await resolveMarker(ctx, adapter, post, post.error);
+    let resolved: Awaited<ReturnType<typeof resolveMarker>>;
+    try {
+      resolved = await resolveMarker(ctx, adapter, post, post.error);
+    } catch (error) {
+      return onFailure(run, error, row, today);
+    }
     if ("result" in resolved) return resolved.result;
     const { found } = resolved;
     if (found.status === "posted") return markPosted(run, liveTargets, found);

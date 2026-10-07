@@ -240,6 +240,7 @@ Entry template
 - hit again: 2026-10-05, B12 g2: a heredoc that wrote five test files in one Bash call ended in `unexpected EOF` and wrote none of them (`ls tests/unit/reel` then failed); each file was written again with the Write tool.
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
+- hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -4300,6 +4301,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the heavy jobs skip drafts to save Actions minutes.
 - rule: while the pull request is a draft, report the CI `db` proof as UNPROVEN and prove the migration on mop-dev inside rolled-back transactions (P-312), file by file; the orchestrator's ready-for-review starts the job, and a type drift it finds is fixed with `bun run types:from-ci -- <pr>`.
 - proof: `grep -n "draft == false" .github/workflows/ci.yml` → the `if:` line of the `db` job, and `gh pr checks 214` on the draft lists `db` as `skipping` while `check` and `build` run (measured 2026-10-07).
+- added: 2026-10-07
+
+## P-2216 · Changing a SQL function's signature turns other slices' `sql` watched-fails into overloads, and the find-count cannot see them
+- symptom: B10 g6 gave `approve_asset` a fifth parameter (`p_evidence jsonb default null`). B9's `sql` entries `b9g6-approve-event`, `-agent`, `-not-pending`, `-og-cover` and `-og-none` still ran `create or replace function public.approve_asset(` with four parameters, which creates a second overload, so every four-argument call in `assets.db.test.ts` failed with `function public.approve_asset(unknown, unknown, actor_kind, unknown) is not unique`, and `b9g6-auth-approve_asset` granted on a signature that no longer existed. The review's replay printed `WATCHED-FAIL BAD: wrong reason (B9:b9g6-approve-event)`. The group's H60 find-count (331 entries, 0 stale) passed, and CI's `--changed` replay did not select them because `assets.db.test.ts` was unchanged.
+- cause: a `sql` entry carries a whole copy of the function under its old signature; Postgres matches `create or replace` by argument types, so a new signature is a new function. The find-count reads only `file` entries.
+- rule: when a migration changes a function's arguments, `grep -o "function public.<name>([^)]*)" tests/mutations/*.json | sort | uniq -c` and rebuild every entry still on the old signature from the new function file with the entry's own one-line mutation (a script that checks the find occurs once), then replay those entries with the unpushed migrations as the P-312 prelude through a scratch registry holding only them (P-1305).
+- proof: from `app/` on slice/b10 after the fix, the grep above lists only `(uuid, uuid, public.actor_kind, text, jsonb)` and the five-parameter header, and the six B9 entries replayed with the three B10 migrations in front gave `watchfail: replayed 6: ok 6, bad 0, stale 0` (mop-dev inside rolled-back transactions, measured 2026-10-07).
+- added: 2026-10-07
+
+## P-2217 · A module-level fixture object handed to `channelWorld` is mutated by the fake RPCs, so the next test starts from the earlier test's row
+- symptom: B10 g6's new post-meta case "a temporary error while an earlier container is published, near the window end, moves the post" passed alone (`-t`) and failed in the whole file with `{ status: 'done', result: { instagram: { result: 'failed', error: 'token_dead' } } }`: the case before it had failed the same row.
+- cause: `const MARKED = { posts: [postRow(...)] }` built the row once; `tests/fixtures/channel-db.ts` keeps the row objects it is given and `fail_social_post` assigns `status` and `error` onto them.
+- rule: give each test its own rows: a factory (`const marked = () => ({ posts: [postRow(...)] })`), never a shared constant, for anything a fake database writes to.
+- proof: from `app/`, `bunx vitest run tests/unit/channels/post-meta.test.ts` → `Tests  9 passed (9)` with the factory; with the constant the run printed `Tests  1 failed | 8 passed (9)` (measured 2026-10-07).
 - added: 2026-10-07
 
 ## P-1900 · The real page carries an inline script that is not marked `class="$tsr"`: the plan's SEC-03 rule would flag it on every render and an enforcing policy would block scroll restoration

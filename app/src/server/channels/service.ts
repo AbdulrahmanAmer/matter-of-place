@@ -138,10 +138,11 @@ async function newest(
 }
 
 /**
- * `GET /api/admin/channels/health` for screens 2 and 12: per channel the last post, the last error and the token's
+ * @public `GET /api/admin/channels/health` for screens 2 and 12: per channel the last post, the last error and the token's
  * state from `settings` (GS-01, INT-06). A dead token is red whatever its expiry, and so is a channel whose newest
  * failure is `token_dead` until a later post goes out. Reads `settings` and `social_posts` only.
  */
+// STUB(B10 step 8): the health route and the screen 2 tile call it
 export async function channelHealth(
   actor: AdminActor,
   db: Db,
@@ -190,7 +191,8 @@ export async function channelHealth(
 
 const postAudit = (actor: AdminActor, id: string) => ({ p_id: id, ...auditContext(actor) });
 
-/** `POST /api/admin/channels/posts/:id/retry`: the failed row back to scheduled and one step job (DB-09). */
+/** @public `POST /api/admin/channels/posts/:id/retry`: the failed row back to scheduled and one step job (DB-09). */
+// STUB(B10 step 8): channels.posts.$id.retry.ts calls it
 export async function retryPost(
   actor: AdminActor,
   db: Db,
@@ -205,7 +207,8 @@ export async function retryPost(
   return { job_id: data };
 }
 
-/** `POST /api/admin/channels/posts/:id/cancel`: a scheduled row becomes failed with `cancelled`. */
+/** @public `POST /api/admin/channels/posts/:id/cancel`: a scheduled row becomes failed with `cancelled`. */
+// STUB(B10 step 8): channels.posts.$id.cancel.ts calls it
 export async function cancelPost(
   actor: AdminActor,
   db: Db,
@@ -217,7 +220,8 @@ export async function cancelPost(
   return { cancelled: true };
 }
 
-/** `POST /api/admin/channels/posts/:id/metrics-refresh`: the reconcile job reads it; answers 202 (invariant 1). */
+/** @public `POST /api/admin/channels/posts/:id/metrics-refresh`: the reconcile job reads it; answers 202 (invariant 1). */
+// STUB(B10 step 8): channels.posts.$id.metrics-refresh.ts calls it
 export async function refreshMetrics(
   actor: AdminActor,
   db: Db,
@@ -229,7 +233,8 @@ export async function refreshMetrics(
   return adminJson({ job_id: data }, { status: 202 });
 }
 
-/** `POST /api/admin/channels/posts/:id/withdrawn`: a person deleted the taken-down post by hand (invariant 10). */
+/** @public `POST /api/admin/channels/posts/:id/withdrawn`: a person deleted the taken-down post by hand (invariant 10). */
+// STUB(B10 step 8): channels.posts.$id.withdrawn.ts calls it
 export async function markWithdrawn(
   actor: AdminActor,
   db: Db,

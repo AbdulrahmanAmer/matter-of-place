@@ -50,6 +50,19 @@ const TOKEN_DEAD = new Answer(
   400,
 );
 
+const NOT_READY = new Answer(
+  {
+    error: {
+      message: "The media is not ready for publishing, please wait for a moment.",
+      type: "OAuthException",
+      code: 9007,
+      error_subcode: 2207027,
+    },
+  },
+  400,
+);
+const marked = () => ({ posts: [postRow("instagram", { error: `container:${CONTAINER}` })] });
+
 const happy = () => ({
   [CREATE]: new Answer({ id: CONTAINER }),
   [STATUS]: new Answer({ status_code: "FINISHED", id: CONTAINER }),
@@ -217,5 +230,33 @@ describe("post_meta", () => {
     });
     expect(posts[0]).toMatchObject({ status: "failed", error: "token_dead" });
     expect(audit).toEqual([]);
+  });
+
+  it("a code 190 while an earlier container is published fails at once and asks for a reconnect", async () => {
+    const api = stubPlatform({ ...happy(), [PUBLISH]: TOKEN_DEAD });
+    const { db, posts, jobs } = world(marked());
+    expect(await run(ctxOf(db))).toMatchObject({
+      status: "done",
+      result: { instagram: { result: "failed", error: "token_dead" } },
+    });
+    expect(api.calls()).not.toContain(CREATE);
+    expect(posts[0]).toMatchObject({ status: "failed", error: "token_dead" });
+    expect(jobs.map((job) => job.key)).toEqual(["token_dead:instagram:2026-10-06"]);
+  });
+
+  it("a temporary error while an earlier container is published, near the window end, moves the post", async () => {
+    stubPlatform({ ...happy(), [PUBLISH]: NOT_READY });
+    const { db, posts, audit } = world(marked());
+    expect(await run(ctxOf(db, NEAR_END))).toMatchObject({
+      status: "retry_at",
+      at: new Date("2026-10-07T13:00:00.000Z"),
+      reason: "window_moved",
+    });
+    expect(audit).toHaveLength(1);
+    expect(posts[0]).toMatchObject({
+      status: "scheduled",
+      scheduled_at: "2026-10-07T13:00:00.000Z",
+      error: `container:${CONTAINER}`,
+    });
   });
 });

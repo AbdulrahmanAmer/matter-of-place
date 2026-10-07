@@ -2638,5 +2638,25 @@
     "sql": "create or replace function public.email_campaign_report(\n  p_report_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_submission uuid;\n  v_job uuid;\nbegin\n  -- G22: the report goes to the person who submitted the property. A double click in one minute makes one job.\n  select c.submission_id into v_submission\n  from public.campaign_reports r\n  join public.campaigns c on c.id = r.campaign_id\n  where r.id = p_report_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_submission is null then\n    raise exception 'recipient_missing' using errcode = '22023';\n  end if;\n  v_job := public.enqueue_job(\n    'send_email',\n    jsonb_build_object(\n      'params', jsonb_build_object('template', 'campaign_report', 'to', 'submitter'),\n      'data', jsonb_build_object('submission_id', v_submission, 'report_id', p_report_id)\n    ),\n    format('send_email:report:%s:%s', p_report_id, gen_random_uuid()),\n    p_max_attempts => 12\n  );\n  if v_job is not null then\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'reports.email', 'campaign_reports', p_report_id, null,\n      jsonb_build_object('job_id', v_job), p_request_id\n    );\n  end if;\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.email_campaign_report(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.email_campaign_report(uuid, uuid, public.actor_kind, text) to service_role;\n",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"email_campaign_report twice in one minute\"",
     "expect": "FAIL .*social\\.db\\.test\\.ts > campaign reports \\(G22\\) > email_campaign_report twice in one minute"
+  },
+  {
+    "id": "b10g6-marker-token-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      return onFailure(run, error, row, today);",
+    "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta.test.ts > post_meta > a code 190 while an earlier container is published fails at once and asks for a reconnect"
+  },
+  {
+    "id": "b10g6-marker-moved",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      return onFailure(run, error, row, today);",
+    "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta.test.ts > post_meta > a temporary error while an earlier container is published, near the window end, moves the post"
   }
 ]
