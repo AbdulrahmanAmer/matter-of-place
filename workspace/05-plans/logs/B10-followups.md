@@ -181,3 +181,37 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: Two smaller points. (1) When X or LinkedIn posting is switched off (liveSideEffects false), callApi throws AppError("server") instead of returning the dry-run answer the plan's invariant 5 describes. meta.ts does the same, and the g4 follow-up already records it; it should be settled for all three adapters at once in step 6. (2) recordXRead adds one read per callApi call, but a 401 followed by a refresh and a resend makes two GETs, so settings.x.usage counts one read too few each time that happens.
 - evidence: oauth-tokens.ts lines 354-360 (the throw) and lines 368-373 (the second attempt, then one recordXRead).
 - blocking: false
+
+## g6 · steps 6
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. None names GOTCHAS.md, so no gotcha entry is added; the cost the third one mentions is already banked as P-2216.
+
+### app/src/server/channels/post-to-channel.ts
+
+- what: X and LinkedIn write their inflight marker before the create call (lines 473-486), and onFailure never clears it (lines 316-359). So when the create call is plainly refused with a 429 or the free-tier write limit (class retry_at, meaning no post was made), the next run finds the marker. It waits 2 minutes, then looks the post up, finds nothing and fails the row as outcome_unknown with a social_failed alert. As a result, x.ts's mapping of 429 to retry_at never gives an automatic retry. Nothing is posted twice, but on a day X rate-limits, every X post needs a person to press Retry. The plan text produces this outcome, so it belongs to the plan owner. The author already listed it as a follow-up.
+- evidence: Found by reading: resolveMarker lines 376-385 turn an old inflight marker with no match into not_found, and line 469 turns that into fail(run, 'outcome_unknown', true). No test covers a create refused after the marker was written.
+- blocking: false
+
+### app/src/server/jobs/steps/render-cover.ts
+
+- what: onResult now calls maybeAutoApprove, and the same holds for render-carousel.ts and render-story.ts. That adds 1 to 5 database calls plus fanoutEvent's calls to the render callback. STANDARDS R60 caps a render callback at 5 calls (JOB-03). The render-hook budget test cannot see the extra calls, and tests/unit/assets/steps.test.ts mocks maybeAutoApprove out. A second effect: src/server/hooks/render.ts lines 73-80 fail the render job when onResult throws. A transient read error inside maybeAutoApprove, or the auto_approve_asset RPC raising because a person approved first, now fails a render whose files were already stored, and B8 re-runs it. The plan orders these call lines, so the conflict is the orchestrator's to settle. The author already listed it.
+- evidence: Found by reading: the render.ts lines above; render-hook.test.ts:291 asserts at most 5 calls with a fixture onResult. In auto-approve.ts the eligible path makes 1 assets read, then properties, settings and channel_settings, then the auto_approve_asset RPC, then fanoutEvent.
+- blocking: false
+
+### app/tests/mutations/B9.json
+
+- what: CI did not replay the six rebuilt approve_asset sql entries. Run 37585086451's `watchfail --changed origin/main` selection never names b9g6-approve-event, -agent, -not-pending, -og-cover, -og-none or -auth-approve_asset. Their only red-for-the-right-reason proof is the author's mop-dev stand-in. I confirmed statically that each is a one-line mutation of the current five-parameter file, so they look right, but the CI selection misses a changed registry entry whose test file did not change. P-2216 records the symptom, but no rule makes CI select changed entries.
+- evidence: grep -oE 'B9:[a-z0-9_-]+' on the db job log of run 37585086451 lists only b9g6-approved-*, -og-pages, -og-result, -og-twice and b9g7-*, none of the six.
+- blocking: false
+
+### app/src/server/channels/post-to-channel.ts
+
+- what: notifyAdmin passes `env: readVar("MOP_ENV") ?? "production"` (line 128). The plan says `env: readVar("MOP_ENV")`, so a runner without MOP_ENV tags its Sentry alerts as production. The author already listed this follow-up ('the MOP_ENV default'), together with the dry-run log carrying ids instead of the request payload (line 445).
+- evidence: Found by reading line 128 and line 445.
+- blocking: false
+
+### app/src/server/automation/service.ts
+
+- what: NOT DONE, and stated honestly: the putChannelSettings and restoreRevision assertMayEnable lines, their tests/unit/automation/service.test.ts cases, and B9's approveAsset passing evidence all wait for service files that origin/main does not have. Until they land, approve_asset's evidence path is only reached through auto_approve_asset.
+- evidence: git ls-tree origin/main app/src/server/automation/ app/src/server/assets/ lists no service.ts.
+- blocking: false
