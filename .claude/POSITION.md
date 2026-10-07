@@ -1301,3 +1301,25 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   exact command, error and file to the orchestrator; lanes on the Dell are measured, not gated on memory.
 - Standing: report, never fix, applies to the runner; the orchestrator fixes. Watches here: stall, lane results and
   board (30-minute re-arms). Board server restarted with the phone layout (task b9x0ukbqz).
+
+## 2026-10-07 03:10 First accepts on the Dell; records caught up
+
+- Dell session restarted once to load `unit-reviewer` (PR 183 put `.claude/agents/unit-reviewer.md` in the repository; the
+  agent registry loads at session start) and runs as `dell [c737b5]`; the five runs resumed after their journals were
+  copied into the new session folder (P-533, PR 184): B13 wf_b52b8501-a01, B7 wf_9056e71b-55a, B6 wf_a5dd49ae-e6b,
+  B11 wf_8d8f3276-412, B10 wf_023873a9-fb0. Dell task ids: wwv7n2kmz, wpbov0gay, wrtmln7lb, wszlymx3n, wve34ul7f.
+- Accepted since 02:40: here B17 c8, c9 and step 12 (reviewer accepts; the orchestrator's own re-run is pending, so the
+  ledger stays at 142 while the board counts 145 of 259); on the Dell B11 g1 (steps 1 to 2, 03:04) and B10 g1 (step 0,
+  03:11), both with every proof re-run by the reviewer. B13 c7b built (property route 153,708 to 151,177 gzip bytes by
+  lazy-loading the inquiry dialog, P-1822), its review and B13 steps 8 to 9 run together.
+- Records: PR 186 closed the stale B5 and B12 rows in PLAN.md (the board showed two ledger errors, now `board: OK`);
+  PR 187 corrected the email channel pattern in tech-stack.md and B11.md (named exports, no `{ publish, metrics }`
+  adapter; defect from the B11 g1 review). Pending merge chore: on slice/b10, P-2200's symptom sentence wrongly lists
+  `get_vault_secret` as a missing generated type; correct it when B10's PR arrives (the lane is live, not touched).
+- Dell measured at 03:11: 836 MB free of 7,952 with five runs up, no memory symptom; one P-1821 (full `bun run check`
+  times out the prettier hygiene test on the loaded machine, the file passes alone). Stall lines for agents of the dead
+  session are ignored; the runner reports only live agents.
+- Pace: two Dell accepts in the first 31 minutes after the resume; the six-lane accepts per hour is UNPROVEN until a
+  full hour of results exists. The operator (03:00) confirmed grind mode: pipelines are fixed, workflows run, replies short.
+- Board republished as artifact version 66 (phone layout live). Watches re-armed at 03:08 (stall byyu4vw8b, lane results
+  bu5fi2aq8, board birswq9x4).
