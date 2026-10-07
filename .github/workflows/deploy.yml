@@ -198,7 +198,11 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
       # Real fonts here, so the overflow check of invariant 5 runs on the deployed build.
+      # Advisory under ruling H67 like the essentials step: the same runner-side stall (P-1936) failed three
+      # overflow cases on PR 211 while the whole sweep passed from a laptop against the same preview.
       - name: overflow
+        id: overflow
+        continue-on-error: true
         if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
         env:
           E2E_TARGET: url
@@ -207,6 +211,11 @@ jobs:
         run: |
           bun run test:e2e:install
           bunx playwright test --project=phone --grep @overflow
+      - name: overflow verdict
+        if: ${{ steps.overflow.outcome == 'failure' }}
+        run: |
+          echo "::warning title=overflow red on the preview::advisory under ruling H67 until GOTCHAS P-1936 is closed; read the overflow step"
+          echo "overflow: red on the preview (advisory, H67, P-1936)" >> "$GITHUB_STEP_SUMMARY"
       - name: lighthouse
         if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
         run: |

@@ -3944,8 +3944,8 @@
     "kind": "file",
     "test": "tests/unit/bundle-check.test.ts",
     "file": "scripts/bundle-check.mjs",
-    "find": "if (other === id || id.startsWith(`${other}.`)) reach(manifest, otherKey, false, loaded);",
-    "replace": "if (other === id) reach(manifest, otherKey, false, loaded);",
+    "find": "if (other === id || id.startsWith(`${other}.`))",
+    "replace": "if (other === id)",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
     "expect": "× .*sums the entry, the route's chunk and the chunk of each route it nests in"
   },
@@ -3994,8 +3994,8 @@
     "kind": "file",
     "test": "tests/unit/bundle-check.test.ts",
     "file": "scripts/bundle-check.mjs",
-    "find": "    for (const reachable of reach(manifest, key, true, new Set())) everything.add(reachable);\n",
-    "replace": "    for (const reachable of reach(manifest, key, false, new Set())) everything.add(reachable);\n",
+    "find": "reach(manifest, key, true, new Set(), entry)",
+    "replace": "reach(manifest, key, false, new Set(), entry)",
     "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
     "expect": "× .*fails a chunk that lists src/data/properties.ts"
   },
@@ -4178,5 +4178,15 @@
     "replace": "cache: (page, render) => (hasDatabase && page.method === \"NONE\" ? cachedResponse(page, \"html\", render) : render()),",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, wrangler dev on a fresh --persist-to folder, then node scripts/cache-proof.mjs http://127.0.0.1:8828",
     "expect": "FAIL GET /: 200 none"
+  },
+  {
+    "kind": "file",
+    "test": "tests/unit/bundle-check.test.ts",
+    "file": "scripts/bundle-check.mjs",
+    "run": "bunx vitest run --project unit tests/unit/bundle-check.test.ts",
+    "id": "b3-bc-entry-lazy",
+    "find": "const lazy = dynamic && key !== entry ? (chunk.dynamicImports ?? []) : [];",
+    "replace": "const lazy = dynamic ? (chunk.dynamicImports ?? []) : [];",
+    "expect": "does not follow the entry's own lazy loads"
   }
 ]
