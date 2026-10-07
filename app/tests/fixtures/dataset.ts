@@ -3,14 +3,29 @@
 import pg from "pg";
 import { submissionTransitions, type WorkflowState } from "../../src/domain/workflow";
 import { dbNow, type Db } from "./db";
-import { createSubmission, removeFixtureRows } from "./factories";
+import { createInvoice, createSubmission, removeFixtureRows } from "./factories";
 
 const states = Object.keys(submissionTransitions).filter(
   (state): state is WorkflowState => state in submissionTransitions,
 );
 
+const submissions = states.map((state, index) => ({ state, n: index + 1 }));
+
+/** The `n` of the data set's submission in `state`. */
+function submissionIn(state: WorkflowState): number {
+  const found = submissions.find((submission) => submission.state === state);
+  if (found === undefined) throw new Error(`the data set has no ${state} submission`);
+  return found.n;
+}
+
 export const fixtureDataset = {
-  submissions: states.map((state, index) => ({ state, n: index + 1 })),
+  submissions,
+  // B6: one invoice per payment state a request in that workflow state holds.
+  invoices: [
+    { status: "due", submission: submissionIn("Invoice Issued"), n: 1 },
+    { status: "paid", submission: submissionIn("Scheduled"), n: 2 },
+    { status: "waived", submission: submissionIn("Published"), n: 3 },
+  ] as const,
 };
 
 export interface TableCount {
@@ -21,15 +36,27 @@ export interface TableCount {
 /** Upserts the data set by its deterministic ids, dated from one `dbNow(db)`; returns the rows now present per table. */
 export async function loadDataset(db: Db): Promise<TableCount[]> {
   const base = await dbNow(db);
-  const ids: string[] = [];
+  const ids = new Map<number, string>();
   for (const submission of fixtureDataset.submissions) {
-    ids.push(await createSubmission(db, { ...submission, base }));
+    ids.set(submission.n, await createSubmission(db, { ...submission, base }));
   }
-  const present = await db.query<{ count: number }>(
-    "select count(*)::int as count from public.submissions where id = any($1::uuid[])",
-    [ids],
+  const invoiceIds: string[] = [];
+  for (const { submission, ...invoice } of fixtureDataset.invoices) {
+    const submissionId = ids.get(submission);
+    if (submissionId === undefined)
+      throw new Error(`no submission ${String(submission)} for an invoice`);
+    invoiceIds.push(await createInvoice(db, { ...invoice, submission: submissionId }));
+  }
+  const present = await db.query<{ submissions: number; invoices: number }>(
+    `select (select count(*)::int from public.submissions where id = any($1::uuid[])) as submissions,
+       (select count(*)::int from public.payments where id = any($2::uuid[])) as invoices`,
+    [[...ids.values()], invoiceIds],
   );
-  return [{ table: "submissions", count: present.rows[0]?.count ?? 0 }];
+  const row = present.rows[0];
+  return [
+    { table: "submissions", count: row?.submissions ?? 0 },
+    { table: "invoices", count: row?.invoices ?? 0 },
+  ];
 }
 
 /** Removes every fixture row first, in the same transaction, then loads the data set again. */

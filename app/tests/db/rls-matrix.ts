@@ -60,6 +60,8 @@ export const rlsMatrix: Record<string, Access> = {
   },
   campaigns: staffRead,
   campaign_reports: staffRead,
+  // B6: written only by next_invoice_number under the service role.
+  invoice_counters: {},
   // B3: only the service role reaches the first two; privacy requests are for admin and chief_editor (admin screens 25).
   rate_limits: {},
   webhook_receipts: {},

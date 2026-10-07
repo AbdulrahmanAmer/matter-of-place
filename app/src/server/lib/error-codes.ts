@@ -63,6 +63,8 @@ export const errorCodes = {
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
   reel_files_missing: 422,
+  // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
+  paid_at_future: 422,
   // B11: an issue to approve holds blocks, one draft at a time, and the four audience keys.
   issue_empty: 422,
   draft_open: 409,

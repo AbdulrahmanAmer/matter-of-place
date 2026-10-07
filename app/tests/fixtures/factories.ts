@@ -1,6 +1,7 @@
 // Row factories for the database tests and the e2e data set (B4 invariants 8 and 9, GQ-03, T-08). Every timestamp is
 // `atFrom(base, days)` from a `base` the caller read once with `dbNow(db)`, every id comes from `deterministicUuid`,
 // and every row carries an address on the reserved domain fixtures.invalid, the marker `removeFixtureRows` deletes by.
+import { offerings } from "../../src/data/exposure";
 import type { TablesInsert } from "../../src/db/types";
 import type { WorkflowState } from "../../src/domain/workflow";
 import { atFrom, deterministicUuid } from "./clock";
@@ -119,6 +120,60 @@ export async function createSubmission(db: Db, input: SubmissionFactoryInput): P
   );
   const id = inserted.rows[0]?.id;
   if (id === undefined) throw new Error(`createSubmission ${String(input.n)} returned no row`);
+  return id;
+}
+
+type PaymentInsert = TablesInsert<"payments">;
+
+export type InvoiceFactoryInput = Omit<Partial<PaymentInsert>, "submission_id" | "status"> & {
+  submission: string;
+  status: "due" | "paid" | "waived";
+  n: number;
+};
+
+/** The amount of `product` from the one price source, `src/data/exposure.ts` (S3). */
+function priceOf(product: PaymentInsert["product"]): number {
+  const price = offerings.find((offering) => offering.name === product)?.price;
+  if (price === undefined) throw new Error(`no offering is named ${product}`);
+  return Number(price.replace(/[$,]/g, ""));
+}
+
+/**
+ * Upserts one `payments` row by its deterministic id (G24: B6 owns it, `due_at` is its column). The number
+ * `MOP-2026-9NNN` sits above the real counter, which the factory never calls; the dates are from `dbNow(db)` (T-08).
+ * Returns the payment id.
+ */
+export async function createInvoice(
+  db: Db,
+  { submission, status, n, ...overrides }: InvoiceFactoryInput,
+): Promise<string> {
+  const base = await dbNow(db);
+  const product = overrides.product ?? "The Feature";
+  const row = {
+    id: deterministicUuid("fixtures:payment", n),
+    submission_id: submission,
+    product,
+    amount: priceOf(product),
+    invoice_number: `MOP-2026-${String(9000 + n)}`,
+    preferred_method: "bank_transfer",
+    status,
+    issued_at: atFrom(base, 0).toISOString(),
+    due_at: atFrom(base, 14).toISOString(),
+    paid_at: status === "paid" ? atFrom(base, 0).toISOString() : null,
+    ...overrides,
+  } satisfies PaymentInsert;
+  const entries = Object.entries(row);
+  const columns = entries.map(([column]) => column);
+  const inserted = await db.query<{ id: string }>(
+    `insert into public.payments (${columns.join(", ")})
+     values (${columns.map((_, index) => `$${String(index + 1)}`).join(", ")})
+     on conflict (id) do update
+     set ${columns.map((column) => `${column} = excluded.${column}`).join(", ")}
+     returning id`,
+    entries.map(([, value]) => value),
+  );
+  const id = inserted.rows[0]?.id;
+  if (id === undefined) throw new Error(`createInvoice ${String(n)} returned no row`);
   return id;
 }
 

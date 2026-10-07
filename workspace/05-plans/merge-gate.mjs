@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The orchestrator's only merge path (B1b invariant 6b, STANDARDS R55, GOTCHAS P-028).
 // usage: node workspace/05-plans/merge-gate.mjs <pr>
-// In order: refuses a draft, a head that does not contain origin/main, and any check that is
+// In order: refuses a draft, a head that does not contain origin/main (unless main gained only
+// documents since the head's merge base, which no check reads), and any check that is
 // failed, pending or cancelled, and prints every job that passed with all its steps skipped; then
 // posts the commit status merge-gate=success on the head and merges with a merge commit pinned
 // to that head. A pull request with no check at all merges only when every changed path is in the
@@ -114,6 +115,30 @@ function documentsOnly(pr, run) {
 }
 
 /**
+ * A head behind origin/main (ruling H65): every path main gained since the head's merge base must
+ * match a `paths-ignore` pattern of ci.yml on origin/main, or the head carries a merge no check ran
+ * on. Six lanes and the records pull requests move main every few minutes; a lane that re-merges
+ * main for a GOTCHAS line restarts its whole CI clock for nothing.
+ * @param {string} headSha
+ * @param {Run} run
+ * @returns {string} the refusal, or "" when main gained documents only
+ */
+function behindByDocumentsOnly(headSha, run) {
+  const ci = run("git", ["show", `origin/main:${CI_YML}`]);
+  if (ci.status !== 0) return "rebase first";
+  const patterns = pathsIgnore(ci.out);
+  if (patterns === null) return "rebase first";
+  const base = run("git", ["merge-base", "origin/main", headSha]);
+  if (base.status !== 0 || base.out === "") return "rebase first";
+  const gained = run("git", ["diff", "--name-only", base.out, "origin/main"]);
+  if (gained.status !== 0) return "rebase first";
+  const paths = gained.out.split("\n").filter(Boolean);
+  if (paths.length === 0) return "rebase first";
+  const other = paths.find((path) => !patterns.some((pattern) => pattern.test(path)));
+  return other === undefined ? "" : `rebase first (main gained ${other})`;
+}
+
+/**
  * @param {string} text
  * @returns {string[][]}
  */
@@ -156,8 +181,13 @@ export function mergeGate(pr, run) {
   const fetched = run("git", ["fetch", "--quiet", "origin", "main", `pull/${pr}/head`]);
   if (fetched.status !== 0) return refuse(`merge-gate: git fetch failed: ${fetched.err}`);
   const ancestor = run("git", ["merge-base", "--is-ancestor", "origin/main", headSha]);
-  if (ancestor.status === 1) return refuse("rebase first");
-  if (ancestor.status !== 0) return refuse(`merge-gate: git merge-base failed: ${ancestor.err}`);
+  if (ancestor.status === 1) {
+    const refusal = behindByDocumentsOnly(headSha, run);
+    if (refusal !== "") return refuse(refusal);
+    lines.push("behind main by documents only: no check reads them, proceeding");
+  } else if (ancestor.status !== 0) {
+    return refuse(`merge-gate: git merge-base failed: ${ancestor.err}`);
+  }
 
   const checks = run("gh", [
     "pr",
