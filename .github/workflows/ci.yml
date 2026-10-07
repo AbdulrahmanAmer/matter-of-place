@@ -358,12 +358,7 @@ jobs:
         run: bun run scripts/validate-jsonld.ts http://127.0.0.1:8788
       - name: seo llms
         if: steps.fe.outputs.changed == 'true'
-        run: |
-          if [ -f scripts/validate-llms.ts ]; then
-            bun run scripts/validate-llms.ts http://127.0.0.1:8788
-          else
-            echo "validate-llms.ts absent (B13 step 12 not landed)"
-          fi
+        run: bun run scripts/validate-llms.ts http://127.0.0.1:8788
       - name: seo preview host
         if: steps.fe.outputs.changed == 'true'
         run: bun run scripts/check-seo.ts http://127.0.0.1:8788 --host pr-1.holy-meadow-4327.workers.dev

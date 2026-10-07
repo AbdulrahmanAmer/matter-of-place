@@ -2251,5 +2251,167 @@
     "replace": "headers: { \"content-type\": \"application/xml; charset=utf-8\", \"set-cookie\": \"a=b\" },",
     "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
     "expect": "FAIL .*no document or page of the slice sets a cookie"
+  },
+  {
+    "id": "b13-g3-llms-heading",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (!/^# \\S/.test(lines[0] ?? \"\"))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a first line that is not a heading"
+  },
+  {
+    "id": "b13-g3-llms-summary",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": ".startsWith(\"> \"))",
+    "replace": ".startsWith(\"\"))",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a missing blockquote summary"
+  },
+  {
+    "id": "b13-g3-schema-dts-field",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": "    datePosted: property.publishedAt,\n",
+    "replace": "    datePosted: property.publishedAt,\n    squareFootage: property.interiorSqFt,\n",
+    "run": "bun run typecheck",
+    "expect": "src/lib/jsonld.ts.*error TS2353.*squareFootage"
+  },
+  {
+    "id": "b13-g3-llms-relative",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (!isAbsoluteHttps(target))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a relative link with its line"
+  },
+  {
+    "id": "b13-g3-llms-http",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "protocol === \"https:\"",
+    "replace": "protocol !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports an http link"
+  },
+  {
+    "id": "b13-g3-llms-escaped",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "(?:[^\\]\\\\]|\\\\.)*",
+    "replace": "(?:[^\\]])*",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reads an escaped bracket as text"
+  },
+  {
+    "id": "b13-g3-llms-entry-link",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "linksOf(line).length === 0",
+    "replace": "linksOf(line).length === -1",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a list entry with no link"
+  },
+  {
+    "id": "b13-g3-llms-cap",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "> MAX_BYTES",
+    "replace": "> MAX_BYTES * 4",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > takes the size cap of the builder"
+  },
+  {
+    "id": "b13-g3-llms-cap-value",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "const MAX_BYTES = 500 * 1024;",
+    "replace": "const MAX_BYTES = 500 * 1000;",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > takes the size cap of the builder"
+  },
+  {
+    "id": "b13-g3-llms-sentence-value",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "const NO_PROPERTIES_SENTENCE = \"No properties are published yet.\";",
+    "replace": "const NO_PROPERTIES_SENTENCE = \"No properties yet.\";",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*as the builder writes it > has no problem with nothing published"
+  },
+  {
+    "id": "b13-g3-llms-trunc-last",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "truncatedAt !== lastIndex",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a truncation line that is not last"
+  },
+  {
+    "id": "b13-g3-llms-trunc-form",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "!TRUNCATED.test(lines[truncatedAt] ?? \"\") ||",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a truncation line in the wrong form"
+  },
+  {
+    "id": "b13-g3-llms-final-break",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "!text.endsWith(\"\\n\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a missing final line break"
+  },
+  {
+    "id": "b13-g3-llms-no-section",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (!lines.some((line) => line.startsWith(\"## \")))",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a document with no section"
+  },
+  {
+    "id": "b13-g3-llms-sentence-beside",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (listed && sentence)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports the zero-property sentence beside a listed property"
+  },
+  {
+    "id": "b13-g3-llms-neither",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (!listed && !sentence)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*a document broken in one place > reports a Properties section with neither"
+  },
+  {
+    "id": "b13-g3-llms-property-link",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "startsWith(\"/property/\")",
+    "replace": "startsWith(\"/propertyx/\")",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*as the builder writes it > has no problem with a property listed"
+  },
+  {
+    "id": "b13-g3-llms-no-properties",
+    "test": "tests/unit/validate-llms.test.ts",
+    "file": "scripts/validate-llms.ts",
+    "find": "if (truncatedAt < 0) fail(0,",
+    "replace": "if (true) fail(0,",
+    "run": "bunx vitest run --project unit tests/unit/validate-llms.test.ts",
+    "expect": "FAIL .*as the builder writes it > has no problem when the list is cut at the size cap"
   }
 ]
