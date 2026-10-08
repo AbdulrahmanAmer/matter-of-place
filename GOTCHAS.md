@@ -261,6 +261,7 @@ Entry template
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 - hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
 - hit again: 2026-10-08, B7 g3: a `node -e '...'` that repointed a registry `find` holding `\"` and `\n` lost the backslashes and found nothing (`Error: count 0`); a JSON round trip of `tests/mutations/B7.json` (`JSON.stringify(r, null, 2)` equals the file byte for byte) changed the field instead.
+- hit again: 2026-10-09, B7 g2: two heredocs that appended a SQL function and a test block, both holding an apostrophe in prose (`story's`), ended in `unexpected EOF` and wrote nothing; the text went in with the Write tool into a scratch file and a plain `cat` appended it.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -1587,6 +1588,7 @@ Entry template
 - proof: `cd app && bun run knip` prints nothing on slice/b8b at B8b g2; exporting `scheduleKeys` again prints `Unused exports (1)`.
 - added: 2026-10-04
 - hit again: 2026-10-07, B9 g1 step 10: the first full `bun run check` stopped at knip on `adminAssetFileSchema` (`src/domain/admin-assets.ts`), a part schema only its own file uses; run `bun run knip` right after writing a new domain file, as the rule says.
+- hit again: 2026-10-09, B7 g2: `bun run check` stopped at knip on `export const emptyValues` in `src/admin/stories/story-values.ts`, exported by habit and read only inside its own file; the export was dropped.
 
 ## P-1605 · STANDARDS R27 says every spec declares `timeoutMs` and `maxAttempts`; the B8b Contract leaves both absent for most steps and `timeoutMs` for `write_captions`
 - symptom: reading R27 against the Contract's retry section for B8b g2: the standard demands an explicit `timeoutMs` on every `step-specs.ts` entry, the Contract says absent means the runner's 20000 ms and a `local` step has none because the job runner never runs it.
@@ -5290,6 +5292,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before adding a field to `EmailProps`, grep `createElement(Message` and `EmailProps` under `app/src` and `app/scripts` and give every caller the field; a prop that receives a zod-optional value is typed `alt?: string | undefined`, as `NewsletterBlockProps` does.
 - proof: `grep -n "variables: {}" app/scripts/build-auth-templates.ts` → one hit, and `cd app && bun run typecheck` exits 0 (measured 2026-10-07).
 - added: 2026-10-07
+- hit again: 2026-10-09, B7 g2: a service input typed `expected_updated_at?: string` refused the Zod output `string | undefined` of the route (`TS2379` under `exactOptionalPropertyTypes`); a service that takes a Zod output type writes `?: string | undefined`.
 
 ## P-734 · An email block was drawn without running the email gate on it: B5's `lintEmail` found `img-width` and `link-text` on the first Campaign block
 - symptom: the first c5n build of `NewsletterBlock` passed its tests and was rejected on review: `lintEmail(html, text, "standalone")` of a row with a block gave `img-width` (the `<img>` had only a CSS width, which Outlook ignores) and `link-text` (the image link held no visible text). The sample row of B5 has no block, so `tests/unit/email/lint.test.ts` stayed green.
@@ -5687,6 +5690,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run jscpd` -> `Found 0 clones.` on slice/b8 (2026-10-08); with `listJobs` carrying `listPayments`' page block again it prints the clone.
 - hit again: P-2121 and P-1221 name the same gate for a render step and a script; none covers a list service.
 - added: 2026-10-08
+- hit again: 2026-10-09, B7 g2 (screen 14 `listStories`): the inline `rows.length > limit` slice and cursor tail was a 101-token clone of `listInquiries`, and after one rewrite a 75-token clone of `submissions/service.ts`; the version that returns early for a short page and builds the cursor in a named helper passed `bun run jscpd`.
 
 ## P-2601 · A registry `sql` mutant that replaces a function must keep the parameter defaults the migration gives, or the replay is WATCHED-FAIL BAD
 - symptom: PR 238's `db` job, step mutation replay: `WATCHED-FAIL BAD: wrong reason (B8:emit-entity)`, expected `+ "entity_id": null`, got `error: cannot remove parameter defaults from existing function` from `withRollback`.
@@ -5783,3 +5787,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bun run db:fn ... < /dev/null`. If a run hung, stop only its own processes by id (`taskkill //F //PID <id>` for `supabase.exe migration new`, its `bun x` parent and the two `bun` above it) and delete the empty migration before running it again.
 - proof: from `app/`, `timeout 100 bun run db:fn --name admin_withdraw withdraw_submission < /dev/null` → `wrote supabase/migrations/20261008192001_admin_withdraw.sql` in seconds (measured 2026-10-08, B7 g1).
 - added: 2026-10-08
+
+## P-2610 · Editing a test file that many registry entries anchor on makes `watchfail --changed origin/main` a long run, and killing it mid-replay leaves a shared source file mutated
+- symptom: 2026-10-09, B7 g2: the first replay of the group's entries ran `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` in the foreground; after two minutes it was still on `b7-g1-*` entries of `src/server/lib/admin-route.ts`, the Bash call moved to the background, and the run was killed. The kill left `src/server/lib/admin-route.ts` and then `src/server/lib/admin-response.ts` in their mutated state (`git status` showed both modified) until `git checkout -- <file>` restored them.
+- cause: the group had edited `tests/unit/admin-routes-parity.test.ts` (it removes five `routesPending` entries), and dozens of entries of B7, B8 and later slices name that file as their test, so `--changed` selects all of them (about 20 s each, P-537); `watchfail` writes each mutation into the real source file for the length of its replay.
+- rule: before editing a test file, count the entries that name it (`grep -c <file> app/tests/mutations/*.json`). To replay one group's own entries, write a scratch registry folder holding only those entries (outside the repository) and run `node scripts/watchfail.mjs --registry <folder>`; for `sql` entries prepend the unpushed migration and rewrite `bunx vitest run` to `node node_modules/vitest/vitest.mjs run` (P-312). The full `--changed origin/main` pass of P-537 starts after `eval "$(node scripts/load-env.mjs --profile dev)"` (its first run without the profile printed `bad 24`, every one a db-project entry that stopped on `DEV_DB_URL is not set`; the second run with it printed `ok 24`), goes in `run_in_background` with its output in a file, and is never killed while a replay runs: wait for it, or after a kill run `git status` and restore every file you did not edit with `git checkout -- <file>`.
+- proof: `cd app && git status --short | grep -v '^??'` right after a killed replay lists the mutated file; `git checkout -- <file>` empties the list (measured 2026-10-09, B7 g2).
+- added: 2026-10-09
+
+## P-2611 · `bun run db:psql` needs `psql` on PATH, and this machine has none although ASSUMED E11 lists psql 18.4
+- symptom: 2026-10-09, B7 g2: `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select 1"` printed `Executable not found in $PATH: "psql"` and exited 1, so the plan's catalog checks against `mop-dev` (`to_regproc`, `pg_indexes`) could not run that way.
+- cause: `scripts/psql-dev.mjs` spawns `psql`; the laptop of this session (user `ka`) has no PostgreSQL client installed (`command -v psql pg_ctl` prints nothing), unlike the machine ASSUMED E11 measured.
+- rule: a catalog check on `mop-dev` is a db test case or a node `pg` script that reads `DEV_DB_URL` after `eval "$(node scripts/load-env.mjs --profile dev)"`; the db vitest project needs no `psql`. Do not install a client to make one command work.
+- proof: `command -v psql || echo none` prints `none`, and `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin-cache.db.test.ts -t "stories list index"` still runs (it fails on `mop-dev` before the migration is pushed and passes with `MOP_MUTATION_SQL` set to the migration, P-312).
+- added: 2026-10-09

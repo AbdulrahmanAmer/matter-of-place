@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"stories.list\",\n",
+    "find": "  \"markets.list\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
@@ -4438,5 +4438,364 @@
     "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Distribution Active', 'Published')\n  );\n$$;\n",
     "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"a terminal state\"",
     "expect": "× .*a terminal state, Declined, Withdrawn or Completed, is reachable"
+  },
+  {
+    "id": "b7-12-svc-list-limit",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "p_limit: input.limit + 1,",
+    "replace": "p_limit: input.limit,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*lists one page in one list_stories call"
+  },
+  {
+    "id": "b7-12-svc-cursor",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "return { p_after_updated_at: at, p_after_id: id };",
+    "replace": "return { p_after_updated_at: id, p_after_id: at };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*hands a cursor back as updated_at and id"
+  },
+  {
+    "id": "b7-12-svc-bad-cursor",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "throw new AppError(\"validation\", undefined, \"This page link is no longer valid.\");",
+    "replace": "return { p_after_updated_at: cursor, p_after_id: cursor };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*hands a cursor back as updated_at and id"
+  },
+  {
+    "id": "b7-12-svc-next-cursor",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "return last === undefined ? null : `${last.updated_at}~${last.id}`;",
+    "replace": "return last === undefined ? null : `${last.id}~${last.updated_at}`;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*lists one page in one list_stories call"
+  },
+  {
+    "id": "b7-12-svc-get-image",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "row.image === null ? null : `/media/${row.image}`",
+    "replace": "null",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*answers the story with the address of its image"
+  },
+  {
+    "id": "b7-12-svc-get-404",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "if (data === null) throw new AppError(\"not_found\"",
+    "replace": "if (data === undefined) throw new AppError(\"not_found\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*answers the story with the address of its image"
+  },
+  {
+    "id": "b7-12-svc-expected",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "p_expected_updated_at: input.expected_updated_at ?? null,",
+    "replace": "p_expected_updated_at: null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*a PATCH sends the id and the updated_at the editor read"
+  },
+  {
+    "id": "b7-12-svc-sniff",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "if (input.image_staging_path !== undefined) await sniffStaged(db, input.image_staging_path);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*removes a staged file that is not a photograph"
+  },
+  {
+    "id": "b7-12-svc-path-arg",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": ": { p_image_staging_path: input.image_staging_path }",
+    "replace": ": {}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*reads the first bytes of a staged image"
+  },
+  {
+    "id": "b7-12-svc-write-auth",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "authorize(actor, \"stories.write\");",
+    "replace": "authorize(actor, \"stories.list\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*commercial gets 403 on a save"
+  },
+  {
+    "id": "b7-12-svc-publish-auth",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "authorize(actor, \"stories.publish\");",
+    "replace": "authorize(actor, \"stories.write\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*a visual editor gets 403 on publish and on unpublish"
+  },
+  {
+    "id": "b7-12-svc-unpublish-auth",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "authorize(actor, \"stories.unpublish\");",
+    "replace": "authorize(actor, \"stories.write\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*a visual editor gets 403 on publish and on unpublish"
+  },
+  {
+    "id": "b7-12-svc-publish-expected",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/server/stories/service.ts",
+    "find": "p_expected_updated_at: input.expected_updated_at,\n",
+    "replace": "p_expected_updated_at: input.id,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*a managing editor publishes at the updated_at they read"
+  },
+  {
+    "id": "b7-12-ui-link",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoriesTable.tsx",
+    "find": "href={`/admin/stories/${row.id}`}",
+    "replace": "href={`/admin/story/${row.id}`}",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*lists each story with a link to its editor"
+  },
+  {
+    "id": "b7-12-ui-create-gate",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "(story !== null || isComplete(values))",
+    "replace": "(story !== null || !isComplete(values) || true)",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*keeps Create draft off until title"
+  },
+  {
+    "id": "b7-12-ui-patch-changed",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/story-values.ts",
+    "find": "if (values.title !== saved.title) patch.title = values.title.trim();",
+    "replace": "patch.title = values.title.trim();",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*PATCHes only the changed fields"
+  },
+  {
+    "id": "b7-12-ui-next-updated-at",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "      setSaved(values);\n      setUpdatedAt(answer.updated_at);",
+    "replace": "      setSaved(values);",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*PATCHes only the changed fields"
+  },
+  {
+    "id": "b7-12-ui-stale",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "failure.code === \"stale\"",
+    "replace": "failure.code === \"stale_\"",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*a 409 stale save shows Reload"
+  },
+  {
+    "id": "b7-12-ui-publish-image",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "disabled={pending || dirty || stale || !hasImage}",
+    "replace": "disabled={pending || dirty || stale}",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*keeps Publish off while the story has no image"
+  },
+  {
+    "id": "b7-12-ui-publish-gate",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "<RoleGate action=\"stories.publish\">",
+    "replace": "<RoleGate action=\"stories.write\">",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*keeps Publish off while the story has no image"
+  },
+  {
+    "id": "b7-12-ui-publish-body",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "await publish.mutateAsync({ id: story.id, expected_updated_at: updatedAt })",
+    "replace": "await publish.mutateAsync({ id: story.id, expected_updated_at: \"\" })",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*Publish posts the updated_at it read"
+  },
+  {
+    "id": "b7-12-ui-unpublish-confirm",
+    "test": "src/admin/stories/stories.test.tsx",
+    "file": "src/admin/stories/StoryEditor.tsx",
+    "find": "setUnpublishing(true);",
+    "replace": "void move(\"archived\");",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/stories/stories.test.tsx",
+    "expect": "× .*Unpublish asks first"
+  },
+  {
+    "id": "b7-12-db-jj-no-enqueue",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if false then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with a staged image queues exactly one\"",
+    "expect": "× .*save_story with a staged image queues exactly one heavy render_variants job"
+  },
+  {
+    "id": "b7-12-db-heavy",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => false\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with a staged image queues exactly one\"",
+    "expect": "× .*save_story with a staged image queues exactly one heavy render_variants job"
+  },
+  {
+    "id": "b7-12-db-path-prefix",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if false then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story without a staging path queues none\"",
+    "expect": "× .*save_story without a staging path queues none"
+  },
+  {
+    "id": "b7-12-db-image-allowed",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties', 'image'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story refuses a patch that carries image\"",
+    "expect": "× .*save_story refuses a patch that carries image"
+  },
+  {
+    "id": "b7-12-db-deck-required",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with no id inserts one draft\"",
+    "expect": "× .*save_story with no id inserts one draft"
+  },
+  {
+    "id": "b7-12-db-audit-entity",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', null,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with no id inserts one draft\"",
+    "expect": "× .*save_story with no id inserts one draft"
+  },
+  {
+    "id": "b7-12-db-save-stale",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if false then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if v_new.slug <> v_old.slug and v_old.editorial_state <> 'draft' then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with a stale updated_at\"",
+    "expect": "× .*save_story with a stale updated_at raises stale"
+  },
+  {
+    "id": "b7-12-db-slug-lock",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.save_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_image_staging_path text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The columns an editor writes. `image` and `image_variants` are written by B9's render and B2's seed alone (G55),\n  -- the state and its dates by publish_story and unpublish_story.\n  v_allowed constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug', 'body', 'properties'];\n  v_required constant text[] := array['slug', 'title', 'deck', 'category', 'market_slug'];\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12, screen 14: with p_id null a draft is inserted (B2 keeps `not null` on deck, category and market_slug, so\n  -- a missing one is refused before the insert); otherwise the row is locked and the editor's copy must be the stored one.\n  if p_patch is null or jsonb_typeof(p_patch) <> 'object'\n    or exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (v_allowed)) then\n    raise exception 'invalid_key';\n  end if;\n\n  if p_id is null then\n    if exists (select 1 from unnest(v_required) k where btrim(coalesce(p_patch ->> k, '')) = '') then\n      raise exception 'invalid_key';\n    end if;\n    v_new := jsonb_populate_record(null::public.stories, p_patch);\n    insert into public.stories (slug, title, deck, category, market_slug, body, properties, author_id)\n    values (\n      v_new.slug, v_new.title, v_new.deck, v_new.category, v_new.market_slug, coalesce(v_new.body, '{}'),\n      coalesce(v_new.properties, '{}'), p_actor\n    )\n    returning * into v_new;\n  else\n    select * into v_old from public.stories s where s.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    if v_old.updated_at is distinct from p_expected_updated_at then\n      raise exception 'stale';\n    end if;\n    v_new := jsonb_populate_record(v_old, p_patch);\n    -- A story that has been public keeps its address; the properties table has a trigger for this, stories have none.\n    if false then\n      raise exception 'slug_immutable';\n    end if;\n    update public.stories s\n    set slug = v_new.slug,\n      title = v_new.title,\n      deck = v_new.deck,\n      category = v_new.category,\n      market_slug = v_new.market_slug,\n      body = v_new.body,\n      properties = v_new.properties\n    where s.id = p_id\n    returning * into v_new;\n  end if;\n\n  -- G51: the staged image of this story, queued in the same transaction, whatever the story's state; the row keeps its\n  -- current image until the job's onResult writes the new one. The same path twice queues once.\n  if p_image_staging_path is not null then\n    if left(p_image_staging_path, length('staging/story/' || v_new.slug || '/')) <> 'staging/story/' || v_new.slug || '/' then\n      raise exception 'invalid_key';\n    end if;\n    perform public.enqueue_job(\n      'render_variants',\n      jsonb_build_object(\n        'params', '{}'::jsonb,\n        'data', jsonb_build_object('target', 'story', 'slug', v_new.slug, 'staging_path', p_image_staging_path)\n      ),\n      'render_variants:story:' || v_new.slug || ':' || p_image_staging_path,\n      p_heavy => true\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.write', 'story', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.save_story(uuid, timestamptz, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"save_story with a stale updated_at\"",
+    "expect": "× .*save_story with a stale updated_at raises stale"
+  },
+  {
+    "id": "b7-12-db-publish-image",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: counted against an agent's daily publishes, then the lock and the copy the editor read. A story that\n  -- was unpublished (archived) may be published again; one that is live may not (R22).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  if v_old.editorial_state = 'published' then\n    raise exception 'wrong_state';\n  end if;\n  -- G55: the public pages show the image, so a story without one is not published.\n  if false then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: image';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a).\n  update public.stories s\n  set editorial_state = 'published', published_at = now(), archived_at = null\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.publish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"publish_story on a draft without an image\"",
+    "expect": "× .*publish_story on a draft without an image raises publish_incomplete"
+  },
+  {
+    "id": "b7-12-db-publish-live",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: counted against an agent's daily publishes, then the lock and the copy the editor read. A story that\n  -- was unpublished (archived) may be published again; one that is live may not (R22).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  if false then\n    raise exception 'wrong_state';\n  end if;\n  -- G55: the public pages show the image, so a story without one is not published.\n  if v_old.image is null then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: image';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a).\n  update public.stories s\n  set editorial_state = 'published', published_at = now(), archived_at = null\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.publish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"publish_story publishes a story with an image once\"",
+    "expect": "× .*publish_story publishes a story with an image once"
+  },
+  {
+    "id": "b7-12-db-publish-stale",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: counted against an agent's daily publishes, then the lock and the copy the editor read. A story that\n  -- was unpublished (archived) may be published again; one that is live may not (R22).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    raise exception 'stale';\n  end if;\n  if v_old.editorial_state = 'published' then\n    raise exception 'wrong_state';\n  end if;\n  -- G55: the public pages show the image, so a story without one is not published.\n  if v_old.image is null then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: image';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a).\n  update public.stories s\n  set editorial_state = 'published', published_at = now(), archived_at = null\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.publish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"publish_story publishes a story with an image once\"",
+    "expect": "× .*publish_story publishes a story with an image once"
+  },
+  {
+    "id": "b7-12-db-publish-archived-at",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_story(\n  p_id uuid,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: counted against an agent's daily publishes, then the lock and the copy the editor read. A story that\n  -- was unpublished (archived) may be published again; one that is live may not (R22).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  if v_old.editorial_state = 'published' then\n    raise exception 'wrong_state';\n  end if;\n  -- G55: the public pages show the image, so a story without one is not published.\n  if v_old.image is null then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: image';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a).\n  update public.stories s\n  set editorial_state = 'published', published_at = now()\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.publish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_story(uuid, timestamptz, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"publish_story publishes a story with an image once\"",
+    "expect": "× .*publish_story publishes a story with an image once"
+  },
+  {
+    "id": "b7-12-db-unpublish-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_story(\n  p_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: a live story is archived. B2's `stories_archived_pairing` wants `archived_at` set with the state and\n  -- `stories_published_pairing` wants `published_at` cleared.\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    raise exception 'wrong_state';\n  end if;\n\n  update public.stories s\n  set editorial_state = 'archived', published_at = null, archived_at = now()\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.unpublish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.unpublish_story(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_story(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"unpublish_story archives a live story\"",
+    "expect": "× .*unpublish_story archives a live story"
+  },
+  {
+    "id": "b7-12-db-unpublish-archived-at",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_story(\n  p_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.stories;\n  v_new public.stories;\nbegin\n  -- B7 step 12: a live story is archived. B2's `stories_archived_pairing` wants `archived_at` set with the state and\n  -- `stories_published_pairing` wants `published_at` cleared.\n  select * into v_old from public.stories s where s.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_old.editorial_state <> 'published' then\n    raise exception 'wrong_state';\n  end if;\n\n  update public.stories s\n  set editorial_state = 'archived', published_at = null, archived_at = null\n  where s.id = p_id\n  returning * into v_new;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'stories.unpublish', 'story', p_id, to_jsonb(v_old), to_jsonb(v_new), p_request_id\n  );\n  return jsonb_build_object('id', v_new.id, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.unpublish_story(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_story(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"unpublish_story archives a live story\"",
+    "expect": "× .*unpublish_story archives a live story"
+  },
+  {
+    "id": "b7-12-db-list-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.list_stories(\n  p_limit integer,\n  p_state public.editorial_state default null,\n  p_after_updated_at timestamptz default null,\n  p_after_id uuid default null\n)\nreturns table (\n  id uuid,\n  slug text,\n  title text,\n  category public.story_category,\n  market_slug text,\n  editorial_state public.editorial_state,\n  image text,\n  published_at timestamptz,\n  updated_at timestamptz\n)\nlanguage sql\nstable\nset search_path = ''\nas $$\n  -- Screen 14 (invariant 17c): one keyset page, last edited first, ordered as the list index `stories_list_idx` is.\n  select s.id, s.slug, s.title, s.category, s.market_slug, s.editorial_state, s.image, s.published_at, s.updated_at\n  from public.stories s\n  where true\n    and (\n      p_after_updated_at is null\n      or s.updated_at < p_after_updated_at\n      or (s.updated_at = p_after_updated_at and s.id > p_after_id)\n    )\n  order by s.updated_at desc, s.id\n  limit least(greatest(p_limit, 1), 51);\n$$;\n\nrevoke execute on function public.list_stories(integer, public.editorial_state, timestamptz, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.list_stories(integer, public.editorial_state, timestamptz, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"list_stories filters by state\"",
+    "expect": "× .*list_stories filters by state and pages"
+  },
+  {
+    "id": "b7-12-db-list-cursor",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.list_stories(\n  p_limit integer,\n  p_state public.editorial_state default null,\n  p_after_updated_at timestamptz default null,\n  p_after_id uuid default null\n)\nreturns table (\n  id uuid,\n  slug text,\n  title text,\n  category public.story_category,\n  market_slug text,\n  editorial_state public.editorial_state,\n  image text,\n  published_at timestamptz,\n  updated_at timestamptz\n)\nlanguage sql\nstable\nset search_path = ''\nas $$\n  -- Screen 14 (invariant 17c): one keyset page, last edited first, ordered as the list index `stories_list_idx` is.\n  select s.id, s.slug, s.title, s.category, s.market_slug, s.editorial_state, s.image, s.published_at, s.updated_at\n  from public.stories s\n  where (p_state is null or s.editorial_state = p_state)\n    and (\n      p_after_updated_at is null\n      or s.updated_at > p_after_updated_at\n      or (s.updated_at = p_after_updated_at and s.id > p_after_id)\n    )\n  order by s.updated_at desc, s.id\n  limit least(greatest(p_limit, 1), 51);\n$$;\n\nrevoke execute on function public.list_stories(integer, public.editorial_state, timestamptz, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.list_stories(integer, public.editorial_state, timestamptz, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"list_stories filters by state\"",
+    "expect": "× .*list_stories filters by state and pages"
+  },
+  {
+    "id": "b7-12-db-list-index",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop index public.stories_list_idx;\ncreate index stories_list_idx on public.stories (updated_at desc, id);\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"stories list index\"",
+    "expect": "× .*the stories list index leads with the state"
+  },
+  {
+    "id": "b7-12-db-s-publish-bump",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "alter table public.stories disable trigger stories_bump_catalog_version_upd;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"publish_story and unpublish_story each raise\"",
+    "expect": "× .*publish_story and unpublish_story each raise it by exactly one"
+  },
+  {
+    "id": "b7-12-db-x-draft-bump",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop trigger stories_bump_catalog_version_upd on public.stories;\ncreate trigger stories_bump_catalog_version_upd\nafter update on public.stories\nfor each row execute function public.tg_bump_catalog_version();\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"save_story on a draft leaves it\"",
+    "expect": "× .*save_story on a draft leaves it, and on a live story raises it by exactly one"
+  },
+  {
+    "id": "b7-12-domain-strict",
+    "test": "tests/unit/stories.service.test.ts",
+    "file": "src/domain/admin-stories.ts",
+    "find": "const storyPatchSchema = storyFieldsSchema.partial().strict();",
+    "replace": "const storyPatchSchema = storyFieldsSchema.partial();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/stories.service.test.ts",
+    "expect": "× .*lets a create body without a deck through"
   }
 ]

@@ -5,6 +5,7 @@
 // Step 7: the property functions (migration `admin_properties`). Step 7a: unpublish, takedown and agent preview
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
 // `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
+// Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -2189,6 +2190,357 @@ describe("inquiries (step 11)", () => {
         [old, [old, older, taken]],
       );
       expect(page.rows.map((found) => found.id)).toEqual([older]);
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 12's migration (P-328). */
+async function assertStep12(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.save_story') is not null and to_regproc('public.publish_story') is not null
+       and to_regproc('public.unpublish_story') is not null and to_regproc('public.list_stories') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const SAVE_STORY =
+  "select public.save_story($1::uuid, $2::timestamptz, $3::jsonb, $4, 'human', 'req-stories', $5) as answer";
+const PUBLISH_STORY =
+  "select public.publish_story($1, $2::timestamptz, $3, 'human', 'req-stories') as answer";
+const UNPUBLISH_STORY = "select public.unpublish_story($1, $2, 'human', 'req-stories') as answer";
+
+interface StoryAnswer {
+  answer: { id: string; updated_at: string };
+}
+
+interface StoryRow {
+  id: string;
+  updated_at: string;
+}
+
+/** A draft story as B2's seed or an earlier save leaves it; `updated_at` as text keeps its microseconds. */
+async function createStory(
+  db: Db,
+  slug: string,
+  over: { image?: string | null; updatedAt?: string; state?: string } = {},
+): Promise<StoryRow> {
+  await markets(db);
+  return one<StoryRow>(
+    db,
+    `insert into public.stories (slug, title, deck, category, market_slug, image, updated_at, editorial_state)
+     values ($1, 'Fixture story', 'A deck.', 'Places', 'california', $2, coalesce($3::timestamptz, now()),
+       coalesce($4::public.editorial_state, 'draft'))
+     returning id, updated_at::text as updated_at`,
+    [slug, over.image ?? null, over.updatedAt ?? null, over.state ?? null],
+  );
+}
+
+const stagedPath = (slug: string) => `staging/story/${slug}/${randomUUID()}.jpg`;
+
+async function storyJobs(db: Db, slug: string) {
+  return (
+    await db.query<{ heavy: boolean; payload: unknown; key: string }>(
+      `select heavy, payload, idempotency_key as key from public.jobs
+       where type = 'render_variants' and payload -> 'data' ->> 'slug' = $1`,
+      [slug],
+    )
+  ).rows;
+}
+
+async function storyOf(db: Db, id: string) {
+  return one<{ image: string | null; state: string; published: boolean; archived: boolean }>(
+    db,
+    `select image, editorial_state::text as state, published_at is not null as published,
+       archived_at is not null as archived from public.stories where id = $1`,
+    [id],
+  );
+}
+
+const fullPatch = (slug: string) => ({
+  title: "A quiet house",
+  slug,
+  deck: "A house kept by one family.",
+  category: "Places",
+  market_slug: "california",
+});
+
+describe("stories (step 12)", () => {
+  it("save_story with a staged image queues exactly one heavy render_variants job keyed by the story and the path, and leaves image unchanged", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "queued-story", { image: "old/key.webp" });
+      const path = stagedPath("queued-story");
+      const first = await one<StoryAnswer>(db, SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        "{}",
+        editor,
+        path,
+      ]);
+      await db.query(SAVE_STORY, [story.id, first.answer.updated_at, "{}", editor, path]);
+      expect({
+        jobs: await storyJobs(db, "queued-story"),
+        stored: await storyOf(db, story.id),
+      }).toEqual({
+        jobs: [
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "story", slug: "queued-story", staging_path: path },
+            },
+            key: `render_variants:story:queued-story:${path}`,
+          },
+        ],
+        stored: { image: "old/key.webp", state: "draft", published: false, archived: false },
+      });
+    });
+  });
+
+  it("save_story without a staging path queues none, and a path under another story folder raises invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "plain-story");
+      await db.query(SAVE_STORY, [story.id, story.updated_at, '{"title": "Edited"}', editor, null]);
+      const refused = await attempt(db, SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        "{}",
+        editor,
+        stagedPath("another-story"),
+      ]);
+      expect({ jobs: await storyJobs(db, "plain-story"), refused }).toEqual({
+        jobs: [],
+        refused: "P0001 invalid_key",
+      });
+    });
+  });
+
+  it("save_story refuses a patch that carries image, image_variants or an unknown key with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "guarded-story", { image: "old/key.webp" });
+      const refused = async (patch: string) =>
+        attempt(db, SAVE_STORY, [story.id, story.updated_at, patch, editor, null]);
+      expect({
+        refusals: [
+          await refused('{"image": "other/key.webp"}'),
+          await refused('{"image_variants": {}}'),
+          await refused('{"editorial_state": "published"}'),
+        ],
+        stored: (await storyOf(db, story.id)).image,
+      }).toEqual({
+        refusals: ["P0001 invalid_key", "P0001 invalid_key", "P0001 invalid_key"],
+        stored: "old/key.webp",
+      });
+    });
+  });
+
+  it("save_story with no id inserts one draft with a null image and one stories.write audit row, and refuses a missing slug or deck with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      await markets(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const slug = "new-story";
+      const { slug: _slug, ...withoutSlug } = fullPatch(slug);
+      const { deck: _deck, ...withoutDeck } = fullPatch(slug);
+      const refusals = [
+        await attempt(db, SAVE_STORY, [null, null, JSON.stringify(withoutSlug), editor, null]),
+        await attempt(db, SAVE_STORY, [null, null, JSON.stringify(withoutDeck), editor, null]),
+      ];
+      const inserted = await one<StoryAnswer>(db, SAVE_STORY, [
+        null,
+        null,
+        JSON.stringify(fullPatch(slug)),
+        editor,
+        null,
+      ]);
+      const rows = await db.query<{
+        id: string;
+        image: string | null;
+        state: string;
+        author: string;
+      }>(
+        "select id, image, editorial_state::text as state, author_id as author from public.stories where slug = $1",
+        [slug],
+      );
+      expect({
+        refusals,
+        rows: rows.rows,
+        audits: await auditCount(db, "stories.write", inserted.answer.id),
+      }).toEqual({
+        refusals: ["P0001 invalid_key", "P0001 invalid_key"],
+        rows: [{ id: inserted.answer.id, image: null, state: "draft", author: editor }],
+        audits: 1,
+      });
+    });
+  });
+
+  it("save_story with a stale updated_at raises stale and changes nothing; a slug changes while the story is a draft and is locked once it is not", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "stale-story");
+      const stale = await attempt(db, SAVE_STORY, [
+        story.id,
+        "2000-01-01T00:00:00Z",
+        '{"title": "Late"}',
+        editor,
+        null,
+      ]);
+      await db.query(SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        '{"slug": "renamed-story"}',
+        editor,
+        null,
+      ]);
+      const live = await createStory(db, "live-story", { image: "old/key.webp" });
+      await db.query(
+        "update public.stories set editorial_state = 'published', published_at = now() where id = $1",
+        [live.id],
+      );
+      const current = await one<StoryRow>(
+        db,
+        "select id, updated_at::text as updated_at from public.stories where id = $1",
+        [live.id],
+      );
+      const locked = await attempt(db, SAVE_STORY, [
+        live.id,
+        current.updated_at,
+        '{"slug": "moved-story"}',
+        editor,
+        null,
+      ]);
+      const names = await db.query<{ slug: string; title: string }>(
+        "select slug, title from public.stories where id = any ($1::uuid[]) order by slug",
+        [[story.id, live.id]],
+      );
+      expect({ stale, locked, names: names.rows }).toEqual({
+        stale: "P0001 stale",
+        locked: "P0001 slug_immutable",
+        names: [
+          { slug: "live-story", title: "Fixture story" },
+          { slug: "renamed-story", title: "Fixture story" },
+        ],
+      });
+    });
+  });
+
+  it("publish_story on a draft without an image raises publish_incomplete naming the image, and changes nothing", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const created = await one<StoryAnswer>(db, SAVE_STORY, [
+        null,
+        null,
+        JSON.stringify(fullPatch("no-image-story")),
+        await createStaffUser(db, ["visual_editor"]),
+        null,
+      ]);
+      const refused = await attempt(db, PUBLISH_STORY, [
+        created.answer.id,
+        created.answer.updated_at,
+        editor,
+      ]);
+      expect({ refused, stored: (await storyOf(db, created.answer.id)).state }).toEqual({
+        refused: "23514 publish_incomplete",
+        stored: "draft",
+      });
+    });
+  });
+
+  it("publish_story publishes a story with an image once with one stories.publish row, refuses a live one with wrong_state and a stale copy with stale, and publishes an archived one again", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const story = await createStory(db, "ready-story", { image: "s/ready-0a1b2c3d.webp" });
+      const stale = await attempt(db, PUBLISH_STORY, [story.id, "2000-01-01T00:00:00Z", editor]);
+      const published = await one<StoryAnswer>(db, PUBLISH_STORY, [
+        story.id,
+        story.updated_at,
+        editor,
+      ]);
+      const live = await storyOf(db, story.id);
+      const again = await attempt(db, PUBLISH_STORY, [
+        story.id,
+        published.answer.updated_at,
+        editor,
+      ]);
+      const audits = await auditCount(db, "stories.publish", story.id);
+      const unpublished = await one<StoryAnswer>(db, UNPUBLISH_STORY, [story.id, editor]);
+      await db.query(PUBLISH_STORY, [story.id, unpublished.answer.updated_at, editor]);
+      expect({ stale, live, again, audits, republished: await storyOf(db, story.id) }).toEqual({
+        stale: "P0001 stale",
+        live: {
+          image: "s/ready-0a1b2c3d.webp",
+          state: "published",
+          published: true,
+          archived: false,
+        },
+        again: "P0001 wrong_state",
+        audits: 1,
+        republished: {
+          image: "s/ready-0a1b2c3d.webp",
+          state: "published",
+          published: true,
+          archived: false,
+        },
+      });
+    });
+  });
+
+  it("unpublish_story archives a live story with archived_at and one stories.unpublish row, and refuses a draft with wrong_state", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const story = await createStory(db, "live-one", { image: "s/live-0a1b2c3d.webp" });
+      await db.query(PUBLISH_STORY, [story.id, story.updated_at, editor]);
+      const draft = await createStory(db, "draft-one");
+      await db.query(UNPUBLISH_STORY, [story.id, editor]);
+      expect({
+        archived: await storyOf(db, story.id),
+        audits: await auditCount(db, "stories.unpublish", story.id),
+        draft: await attempt(db, UNPUBLISH_STORY, [draft.id, editor]),
+      }).toEqual({
+        archived: {
+          image: "s/live-0a1b2c3d.webp",
+          state: "archived",
+          published: false,
+          archived: true,
+        },
+        audits: 1,
+        draft: "P0001 wrong_state",
+      });
+    });
+  });
+
+  it("list_stories filters by state and pages last edited first after a cursor", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const newest = await createStory(db, "list-newest", { updatedAt: "2000-01-03T00:00:00Z" });
+      const middle = await createStory(db, "list-middle", { updatedAt: "2000-01-02T00:00:00Z" });
+      const oldest = await createStory(db, "list-oldest", {
+        updatedAt: "2000-01-01T00:00:00Z",
+        state: "review",
+      });
+      const ids = [newest.id, middle.id, oldest.id];
+      const page = async (state: string) =>
+        (
+          await db.query<{ id: string }>(
+            `select id from public.list_stories(10, $1::public.editorial_state, '2000-01-03T00:00:00Z', $2)
+             where id = any ($3::uuid[])`,
+            [state, newest.id, ids],
+          )
+        ).rows.map((found) => found.id);
+      expect({ drafts: await page("draft"), reviews: await page("review") }).toEqual({
+        drafts: [middle.id],
+        reviews: [oldest.id],
+      });
     });
   });
 });
