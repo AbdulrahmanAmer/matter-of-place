@@ -4760,6 +4760,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run scripts/gen-action-roles.mjs && bun run test -- tests/unit/action-roles.sync.test.ts` → the generator prints `wrote supabase/migrations/<ts>_action_roles.sql 115 actions` and the test passes (2026-10-08).
 - added: 2026-10-08 B11 merge
 
+## P-2426 · CI's e2e job fails on a flaky first attempt of `admin-signin.spec.ts` (`state=expired`) because `failOnFlakyTests` is on, twice in a row on the B11 merge
+- symptom: PR 227 (B11 merged with main at 6eda9a41), runs 37741531482 and its rerun: `[admin] admin-signin.spec.ts:16 a magic link opened in a new browser context signs the managing editor in` waits 2.0m at `helpers/session.ts:71 page.waitForURL(/admin)` after the page `navigated to /admin/sign-in?state=expired`, passes on retry #1 in 1.9 s, and the job ends `1 flaky, 10 passed, 7 skipped` with exit 1 (playwright.config.ts: `failOnFlakyTests: Boolean(process.env[CI])`). Main's own CI run 37741950353 is green.
+- cause: UNPROVEN. The failed attempt is the first test of its worker and runs at the same second as `admin-newsletter.spec.ts` on the other worker; both sign in as `staff+managing@matterofplace.com`, and a second `generateLink` for one user probably voids the first token hash. The B11 spec `admin-invoice.spec.ts` (all seven tests skipped without `E2E_FULL_STACK`) shifts the order so the two sign-ins overlap.
+- rule: a rerun does not help (the first attempt fails the same way); the fix is in the e2e files (give the sign-in spec its own staff user, or run the two specs in one worker), which a merge-only run must not touch. Check `grep -n "signInAs(browser" app/tests/e2e/admin-newsletter.spec.ts` before deciding.
+- proof: `gh run view 37741531482 --log-failed | grep -E "state=expired|1 flaky"` → the `navigated to` line and `1 flaky` (2026-10-08).
+- added: 2026-10-08 B11 merge
+
 ## P-2200 · A B10 script cannot call the RPCs and tables of `social.sql` through the typed client before that migration merges
 - symptom: B10 g1 (step 0) has to write scripts that call `store_channel_token`, `put_channel_ids`, `get_vault_secret` and read `social_posts`, but `src/db/types.ts` lists none of `store_channel_token`, `put_channel_ids` and `record_channel_check` and no `social_posts` table (`get_vault_secret` is there since B8's retention migration) until step 6's migration is merged and `bun run gen:types` has run. A typed `createClient<Database>` call fails `bun run typecheck`, an untyped client fails the lint (P-810), and a cast fails `no-unsafe-type-assertion`.
 - cause: the plan puts the scripts in step 0 and the migration in step 6; "through the service role" assumed the generated types would already name them.
