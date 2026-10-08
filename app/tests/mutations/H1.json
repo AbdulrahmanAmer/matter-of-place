@@ -1,0 +1,152 @@
+[
+  {
+    "id": "h1g2-a-turnstile-off",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    turnstile: true,\n    form: true,\n    status: 201,\n    service: inquiries.create,",
+    "replace": "    turnstile: false,\n    form: true,\n    status: 201,\n    service: inquiries.create,",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*every POST row checks Turnstile or is exempt with a reason[\\s\\S]*\"/api/public/inquiries\""
+  },
+  {
+    "id": "h1g2-s-turnstile-after-db",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*refuses /api/public/inquiries with a token the always-fail secret fails"
+  },
+  {
+    "id": "h1g2-q-nonce",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [...hashSources(hashes.scripts ?? []), \"'nonce-h1'\"],",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*is the enforcing header stored with the entry, with hashes and no nonce or unsafe-inline"
+  },
+  {
+    "id": "h1g2-z-unsafe-inline",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"script-src\": [\n    \"'self'\",\n",
+    "replace": "  \"script-src\": [\n    \"'self'\",\n    \"'unsafe-inline'\",\n",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*is the report-only header stored with the entry, with hashes and no nonce or unsafe-inline"
+  },
+  {
+    "id": "h1g2-404-unhashed",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      response.body === null ||\n",
+    "replace": "      response.status !== 200 ||\n      response.body === null ||\n",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*hashes the inline scripts of a not-found page too"
+  },
+  {
+    "id": "h1g2-rule6-admin",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*answers an admin API read with exactly no-store"
+  },
+  {
+    "id": "h1g2-guard-rate-probe",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/rate-probe.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/rate-probe.ts"
+  },
+  {
+    "id": "h1g2-k-ratelimit-fixture",
+    "test": "scripts/harden/waf-check.ts",
+    "file": "scripts/harden/fixtures/zone-rules.json",
+    "find": "\"expression\": \"(starts_with(http.request.uri.path, \\\"/api/public/\\\") or starts_with(http.request.uri.path, \\\"/api/admin/auth/\\\"))\"",
+    "replace": "\"expression\": \"(starts_with(http.request.uri.path, \\\"/api/admin/auth/\\\"))\"",
+    "run": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+    "expect": "rate limit: 0 enabled rules name both /api/public/ and /api/admin/auth/, expected 1"
+  },
+  {
+    "id": "h1g2-k-country-fixture",
+    "test": "scripts/harden/waf-check.ts",
+    "file": "scripts/harden/fixtures/zone-rules.json",
+    "find": "      \"phase\": \"http_request_firewall_custom\",\n      \"rules\": []",
+    "replace": "      \"phase\": \"http_request_firewall_custom\",\n      \"rules\": [{ \"action\": \"block\", \"description\": \"admin outside the United States\", \"expression\": \"(starts_with(http.request.uri.path, \\\"/admin\\\") and ip.src.country ne \\\"US\\\")\", \"enabled\": true }]",
+    "run": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+    "expect": "custom rule decides by country: admin outside the United States"
+  },
+  {
+    "id": "h1g2-ss-preview-db-password",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    # False once L1's launch switch removes the database pair from the bundle (invariant 13a).\n    env:\n",
+    "replace": "    # False once L1's launch switch removes the database pair from the bundle (invariant 13a).\n    env:\n      H1_PROBE: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts",
+    "expect": "×[\\s\\S]*preview"
+  },
+  {
+    "id": "h1g2-b-hsts",
+    "kind": "manual",
+    "test": "scripts/harden/check-headers.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"Strict-Transport-Security\": \"max-age=31536000; includeSubDomains\",\n",
+    "replace": "",
+    "run": "rebuild, cp .dev.vars .output/server/.dev.vars, bunx wrangler dev --config .output/server/wrangler.json --port 8878, then bun run scripts/harden/check-headers.ts http://127.0.0.1:8878",
+    "expect": "strict-transport-security: expected \"max-age=31536000; includeSubDomains\", found null"
+  },
+  {
+    "id": "h1g2-uu-gtag-wildcard",
+    "kind": "manual",
+    "test": "scripts/harden/check-headers.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"https://www.googletagmanager.com/gtag/js\",\n  ],",
+    "replace": "    \"https://*.googletagmanager.com\",\n  ],",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then bun run scripts/harden/check-headers.ts http://127.0.0.1:8878",
+    "expect": "csp script-src: unexpected https://\\*\\.googletagmanager\\.com"
+  },
+  {
+    "id": "h1g2-v-checkdb-allows",
+    "kind": "manual",
+    "test": "scripts/harden/rate-probe.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "  return row.allowed ? { ok: true } : { ok: false, retryAfter: row.retry_after };",
+    "replace": "  return { ok: true };",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile bun run scripts/harden/rate-probe.ts http://127.0.0.1:8878/api/public/subscribers 12",
+    "expect": "expected 3 then 2 x 201 before each 429, got no 429 then no 429"
+  },
+  {
+    "id": "h1g2-rr-csrf-skipped",
+    "kind": "manual",
+    "test": "tests/e2e/admin-csrf.spec.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "        if (WRITES.includes(request.method)) await deps.verifyCsrf(request, actor);\n",
+    "replace": "",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/admin-csrf.spec.ts",
+    "expect": "POST /api/admin/assets/\\$id/approve 404 not_found"
+  },
+  {
+    "id": "h1g2-y-commercial-write",
+    "kind": "manual",
+    "test": "tests/e2e/admin-authz.spec.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "  { action: \"payments.mark_paid\", group: \"payments\", roles: issuers, humanOnly: true },",
+    "replace": "  { action: \"payments.mark_paid\", group: \"payments\", roles: [...issuers, \"commercial\"], humanOnly: true },",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/admin-authz.spec.ts --grep commercial",
+    "expect": "POST /api/admin/payments/\\$id/mark-paid \\(payments.mark_paid, refused\\): 422 validation"
+  },
+  {
+    "id": "h1g2-z-hash-dropped",
+    "kind": "manual",
+    "test": "tests/e2e/csp.spec.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    scripts: [...new Set(hashed.slice(0, scripts.length))],",
+    "replace": "    scripts: [...new Set(hashed.slice(1, scripts.length))],",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then E2E_TARGET=url E2E_MODE=local E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/csp.spec.ts",
+    "expect": "\"directive\": \"script-src-elem\""
+  }
+]

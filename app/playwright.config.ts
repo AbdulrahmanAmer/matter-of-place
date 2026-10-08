@@ -100,6 +100,19 @@ export default defineConfig({
       expect: { timeout: 30_000 },
       use: desktop,
     },
+    // H1's checks: the CSP listener on every page, the error states and the admin authorization and CSRF walks.
+    {
+      name: "harden",
+      testMatch: [
+        "**/states.spec.ts",
+        "**/csp.spec.ts",
+        "**/admin-authz.spec.ts",
+        "**/admin-csrf.spec.ts",
+      ],
+      timeout: 300_000,
+      expect: { timeout: 30_000 },
+      use: desktop,
+    },
   ],
   ...(target === "url"
     ? {}

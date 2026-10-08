@@ -5,14 +5,14 @@
       "lane": "Security",
       "item": "Turnstile on every public write",
       "expectation": "coverage test passes; the token-less POST /inquiries answers 403 (zero database statements: H1-40 mode writes)",
-      "command": "bunx vitest run tests/unit/security/turnstile-coverage.test.ts && [ \"$(curl -s -o /dev/null -w '%{http_code}' -X POST <dev>/api/public/inquiries -H 'content-type: application/json' -d @tests/fixtures/inquiry.json)\" = 403 ]"
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/security/turnstile-coverage.test.ts && [ \"$(curl -s -o /dev/null -w '%{http_code}' -X POST <dev>/api/public/inquiries -H 'content-type: application/json' -d @tests/fixtures/inquiry.json)\" = 403 ]"
     },
     {
       "id": "H1-02",
       "lane": "Security",
       "item": "Per-IP and per-email rate limits in the API",
       "expectation": "phase 1: 3 x 201 then 429; phase 2: 2 x 201 then 429; both B7 tests pass; Supabase auth email_sent reads 10",
-      "command": "(<load-dev> && bun run scripts/harden/rate-probe.ts <dev>/api/public/subscribers 30) && bunx vitest run tests/unit/auth-send-link.test.ts tests/unit/agent-keys.test.ts && [ \"$(<load-ops>; curl -s -H \"Authorization: Bearer $SUPABASE_ACCESS_TOKEN\" https://api.supabase.com/v1/projects/hbokkmpgpqhrnemgsqra/config/auth | jq .rate_limit_email_sent)\" = 10 ]"
+      "command": "(<load-dev> && bun run scripts/harden/rate-probe.ts <dev>/api/public/subscribers 30) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/auth-send-link.test.ts tests/unit/agent-keys.test.ts && [ \"$(<load-ops>; curl -s -H \"Authorization: Bearer $SUPABASE_ACCESS_TOKEN\" https://api.supabase.com/v1/projects/hbokkmpgpqhrnemgsqra/config/auth | jq .rate_limit_email_sent)\" = 10 ]"
     },
     {
       "id": "H1-03",
@@ -29,14 +29,14 @@
       "lane": "Security",
       "item": "Security headers, CSP enforced with script hashes",
       "expectation": "each header present with the expected value; no nonce, no unsafe-inline; CSP host sources are the exact set of B17 invariant 1; HSTS max-age=31536000; includeSubDomains",
-      "command": "bun run scripts/harden/check-headers.ts <prod-config> && bunx vitest run tests/unit/security/headers.test.ts tests/unit/csp-inline.test.ts"
+      "command": "bun run scripts/harden/check-headers.ts <prod-config> && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/security/headers.test.ts tests/unit/csp-inline.test.ts"
     },
     {
       "id": "H1-05",
       "lane": "Security",
       "item": "CSP does not break the site",
       "expectation": "zero securitypolicyviolation events on every route",
-      "command": "bunx playwright test --project=harden tests/e2e/csp.spec.ts"
+      "command": "E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live bunx playwright test --project=harden tests/e2e/csp.spec.ts"
     },
     {
       "id": "H1-06",
@@ -81,7 +81,7 @@
       "lane": "Security",
       "item": "Signed upload URLs, MIME sniffing, size cap",
       "expectation": "B3 and B2 tests pass; the probe prints upload ok (oversize and svg refused, the .exe object removed by reconcile)",
-      "command": "(<load-dev> && bunx vitest run --project db tests/api/submissions.api.test.ts tests/db/uploads.db.test.ts && bun run scripts/harden/upload-probe.ts <dev>) && bunx vitest run tests/unit/reconcile.test.ts",
+      "command": "(<load-dev> && bunx vitest run --project db tests/api/submissions.api.test.ts tests/db/uploads.db.test.ts && bun run scripts/harden/upload-probe.ts <dev>) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/reconcile.test.ts",
       "expectOutput": ["upload ok"]
     },
     {
@@ -89,14 +89,14 @@
       "lane": "Security",
       "item": "HMAC hooks refuse bad, old and replayed calls",
       "expectation": "tests pass; a stale timestamp gets 401",
-      "command": "bunx vitest run tests/unit/jobs/hmac.test.ts tests/unit/jobs/render-hook.test.ts tests/unit/resend-signature.test.ts && (<load-dev> && bunx vitest run --project db tests/api/resend.api.test.ts)"
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/jobs/hmac.test.ts tests/unit/jobs/render-hook.test.ts tests/unit/resend-signature.test.ts && (<load-dev> && bunx vitest run --project db tests/api/resend.api.test.ts)"
     },
     {
       "id": "H1-13",
       "lane": "Security",
       "item": "Agent keys hashed, scoped, revocable",
       "expectation": "0 rows with a key_hash that is not 64 hex characters; the B7 tests pass",
-      "command": "(<load-dev> && [ \"$(bun run db:psql -- -Atc \"select count(*) from agent_keys where key_hash !~ '^[0-9a-f]{64}$'\")\" = 0 ]) && bunx vitest run tests/unit/agent-keys.test.ts tests/unit/team.service.test.ts tests/unit/authz.matrix.test.ts"
+      "command": "(<load-dev> && [ \"$(bun run db:psql -- -Atc \"select count(*) from agent_keys where key_hash !~ '^[0-9a-f]{64}$'\")\" = 0 ]) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/agent-keys.test.ts tests/unit/team.service.test.ts tests/unit/authz.matrix.test.ts"
     },
     {
       "id": "H1-14",
@@ -110,7 +110,7 @@
       "lane": "Security",
       "item": "Admin authorization matrix",
       "expectation": "pass: one session per role over every route of loadAdminRoutes(); the B7 parity, sweep and local-session tests pass",
-      "command": "(<load-dev> && bunx playwright test --project=harden tests/e2e/admin-authz.spec.ts) && bunx vitest run tests/unit/admin-routes-parity.test.ts tests/unit/admin-authz-sweep.test.ts tests/unit/session-local.test.ts"
+      "command": "(<load-dev> && E2E_TARGET=url E2E_BASE_URL=<prod-config> bunx playwright test --project=harden tests/e2e/admin-authz.spec.ts) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/admin-routes-parity.test.ts tests/unit/admin-authz-sweep.test.ts tests/unit/session-local.test.ts"
     },
     {
       "id": "H1-16",
@@ -389,14 +389,14 @@
       "lane": "Liveness, admin routes and CI exposure",
       "item": "Every admin write verifies CSRF",
       "expectation": "every non-GET admin route without X-MOP-CSRF answers 403 csrf; the spec prints the number of routes probed",
-      "command": "<load-dev> && bunx playwright test --project=harden tests/e2e/admin-csrf.spec.ts"
+      "command": "<load-dev> && E2E_TARGET=url E2E_BASE_URL=<prod-config> bunx playwright test --project=harden tests/e2e/admin-csrf.spec.ts"
     },
     {
       "id": "H1-46",
       "lane": "Liveness, admin routes and CI exposure",
       "item": "Pull request jobs hold no production, backup or account-wide credential",
       "expectation": "pass",
-      "command": "bunx vitest run tests/unit/hygiene.test.ts"
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/hygiene.test.ts"
     }
   ],
   "manualItems": [

@@ -1,6 +1,12 @@
 {
   "path": ["src", "scripts", "supabase/functions"],
-  "ignore": ["src/data/**", "src/routeTree.gen.ts", "src/db/types.ts", "**/*.css"],
+  "ignore": [
+    "src/data/**",
+    "src/routeTree.gen.ts",
+    "src/db/types.ts",
+    "**/*.css",
+    "scripts/harden/fixtures/**"
+  ],
   "minTokens": 70,
   "threshold": 0,
   "reporters": ["console"]
