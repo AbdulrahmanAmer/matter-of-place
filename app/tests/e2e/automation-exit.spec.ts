@@ -20,12 +20,14 @@ import { adminClient, signInAs } from "./helpers/session";
 // session's switch is checked by the dry-run panel and by a real submission from /submit, and screen 21 undoes each.
 // It commits rows to mop-dev, so it runs before the launch switch only: `assertNotProduction` refuses once
 // `settings.environment` is `production` (ruling H35 (5)), and the writer lock is held from the start of `beforeAll`
-// to the end of `afterAll` (G34). The recipe is back to its seeded steps at the end. The submission, its contact and
-// its media rows are deleted; its `events` row stays, because `events` is append-only (B2 invariant 3).
-// Needs the live build (`VITE_API_BASE_URL=/api/public`) so /submit posts to the Worker, a deployed job runner on
-// mop-dev to plan the event, and `.dev.vars` with Cloudflare's always-pass Turnstile secret (E10).
-// UNPROVEN until B7 step 14 lands: the agent key is inserted into `agent_keys` the way `scripts/seed-admin-users.ts`
-// does it, and revoked in `afterAll`, where the plan has B7's team service create and revoke it.
+// to the end of `afterAll` (G34). The step is on again at the end. `removeFixtureRows` deletes the submission and its
+// contact; its `events` row stays, because `events` is append-only (B2 invariant 3).
+// Screen 16 shows the same jobs by `/admin/jobs?entity=<submission id>`.
+// Needs the live build with the Turnstile test key (`VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`,
+// G-1151) so /submit posts to the Worker, a deployed job runner on mop-dev to plan the event, and `.dev.vars` with
+// Cloudflare's always-pass Turnstile secret (E10). The plan has B7's team service (step 14) create and revoke the agent
+// key; it is not on main yet, so the key is inserted into `agent_keys` the way `scripts/seed-admin-users.ts` does it and
+// revoked in `afterAll`. Replace both when step 14 lands.
 
 const TRIGGER = "submission.received";
 const STEP = "notify_admin_received";
@@ -237,6 +239,7 @@ test("a session switches the step off on screen 17 and the dry run lists it skip
 });
 
 test("a submission from /submit queues the received email and no notify_admin job", async ({
+  browser,
   page,
 }) => {
   // A local browser reaches the Worker as 0.0.0.0, one rate-limit bucket that earlier runs have filled (429); a TEST-NET-3 address gives this run its own.
@@ -321,6 +324,19 @@ test("a submission from /submit queues the received email and no notify_admin jo
   );
   expect(rows.map((row) => row.step_id)).toEqual(["send_received"]);
   expect(rows.filter((row) => row.type === "notify_admin")).toEqual([]);
+
+  // Screen 16 lists the jobs of that submission: the received email, and no admin notice.
+  const submission = await db.query<{ id: string }>(
+    "select id from public.submissions where submitter_email = $1",
+    [SUBMITTER],
+  );
+  const staff = await signInAs(browser, CHIEF);
+  await closing(staff.context, async () => {
+    await staff.page.goto(`/admin/jobs?entity=${submission.rows[0]?.id ?? ""}`);
+    const jobs = staff.page.getByRole("table", { name: "Jobs" });
+    await expect(jobs).toContainText(/send email/i);
+    await expect(jobs).not.toContainText(/notify admin/i);
+  });
 });
 
 test("a restore from screen 21 brings the step back", async ({ browser }) => {

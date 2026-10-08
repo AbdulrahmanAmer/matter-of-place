@@ -407,7 +407,7 @@ describe("listRevisions", () => {
     expect(page.next_cursor).toBe(`${AT}~3f2a9c1d-0000-4000-8000-000000000049`);
   });
 
-  it("continues from a cursor with the rest of that instant, then older rows, and shows no row twice", async () => {
+  it("pages on the cursor of the page before, with no row twice and no cursor on the last page", async () => {
     const stamped = (n: number, minute: number) => ({
       ...revisionRow("automation_recipes", null),
       id: `3f2a9c1d-0000-4000-8000-00000000000${String(n)}`,

@@ -318,7 +318,7 @@
   {
     "id": "b8b-g2-catalog-youtube",
     "test": "tests/unit/automation/catalog.test.ts",
-    "file": "src/server/automation/catalog.ts",
+    "file": "src/domain/automation.ts",
     "find": "youtube: null,",
     "replace": "youtube: \"post_meta\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
@@ -2915,13 +2915,13 @@
     "expect": "FAIL .*restoring > shows the server's words when the restore is refused"
   },
   {
-    "id": "b8b-g10-cursor-order",
+    "id": "b8b-g10-cursor-older",
     "test": "tests/unit/automation/service.test.ts",
     "file": "src/server/automation/service.ts",
-    "find": "    page = [\n      ...(await take(newestFirst().eq(\"at\", at).lt(\"id\", id))),\n      ...(await take(newestFirst().lt(\"at\", at))),\n    ];",
-    "replace": "    page = [\n      ...(await take(newestFirst().lt(\"at\", at))),\n      ...(await take(newestFirst().eq(\"at\", at).lt(\"id\", id))),\n    ];",
+    "find": "      ...(await take(newestFirst().lt(\"at\", at))),\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
-    "expect": "× .*continues from a cursor with the rest of that instant"
+    "expect": "× .*pages on the cursor of the page before"
   },
   {
     "id": "b8b-g10-cursor-value",
@@ -2930,7 +2930,7 @@
     "find": "`${last.at}~${last.id}`",
     "replace": "`${last.at}~${last.at}`",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
-    "expect": "× .*continues from a cursor with the rest of that instant"
+    "expect": "× .*pages on the cursor of the page before"
   },
   {
     "id": "b8b-g10-limit-clamp",
