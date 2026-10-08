@@ -247,3 +247,23 @@ Second review of g3 (the resume run of 2026-10-08): no blocking defect, two foll
 - what: The plan asks that 'every metric in the recorded fixtures maps to a normalised field'. The test first filters the fixture names down to those in META_METRICS, so a fixture name with no field (total_interactions in media-insights.json) is never checked. This is acceptable today: total_interactions has no normalised field and the plan accepts that it lands in raw. The fixture is documentation-sourced, not a live recording, so META_METRICS stays UNPROVEN against a real Graph answer until step 7 (the author says so, P-2205). Suspected by reading; not a code defect.
 - evidence: tests/fixtures/graph/media-insights.json lists reach, likes and total_interactions. The test asserts names.filter(name in META_METRICS) equals ['reach','likes'].
 - blocking: false
+
+## g4 · steps 5
+
+Reviewer's follow-ups of the resume run, none blocking, recorded word for word with their evidence. The two that concern GOTCHAS.md are banked as hit-again lines on P-152, P-066 and P-027 (see "## g4 · follow-ups recorded" in `logs/B10.md`).
+
+### app/tests/unit/channels/meta.test.ts
+
+- what: The 'newest' part of the PUBLISHED adoption is not proven. tests/fixtures/graph/media-list.json lists the newest media first, so deleting the sort in newestSince (meta.ts:278) leaves every test green. The code comment says 'the order Graph lists them in is not relied on', but no test checks that. The reversed-sort mutation b10g4-newest-first does go red, and the code is correct today. Fix: put the older media first in a list the test builds itself, or reorder the fixture.
+- evidence: Confirmed by running: watchfail --file src/server/channels/meta.ts --find '.sort((a, b) => b.time - a.time);' --replace ';' -> 'WATCHED-FAIL BAD: stayed green'.
+- blocking: false
+
+### app/src/server/channels/meta.ts
+
+- what: Suspected by reading, not run. graph() lines 172-177: 'catch { body = null; }'. A non-JSON body on a non-2xx answer is classified correctly by HTTP status. But a 2xx answer with a non-JSON body on the insights call makes metrics() return { status: 'fetched' } with every field null and raw null (normaliseMetaInsights(null)). Through set_social_post_metrics that would overwrite earlier numbers. Every other call fails safely with 'unexpected shape' via parsed(). This brushes against R10/C06 (a catch that turns a failure into success) on one path only. Graph normally answers JSON, so no realistic trigger was found. Fix: in metrics(), refuse a null or unparsed body before normalising.
+- evidence: meta.ts:172-179 (catch sets body = null, then returns body when response.ok); meta.ts:453-460 (metrics passes the result straight to normaliseMetaInsights); meta-metrics.ts:39-56 (null answer -> all-null Metrics with raw: null).
+- blocking: false
+
+- what: Suspected by reading. In publishInstagram (lines 360-367), a freshly created container that ends ERROR is always thrown as GraphError class non_retryable, and the row then fails at once (invariant 3b). It is never classified through meta-errors.ts. A container ERROR is often Meta failing to fetch the media, which can be transient (Risks: a Cloudflare rule or a slow /media URL). The plan only specifies ERROR for a stored marker: clear it and create a new container. The post-to-channel group (step 6) should decide whether a fresh-container ERROR retries inside the window. This is a plan fold, not a contract break.
+- evidence: meta.ts:360-367; plan invariant 2 ('ERROR or EXPIRED clears the marker ... and creates a new container in the same run') and invariant 5 ('Meta's own fetch failing comes back as a Graph media error and is classified by meta-errors.ts').
+- blocking: false
