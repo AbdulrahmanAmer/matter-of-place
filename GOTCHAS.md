@@ -1205,6 +1205,7 @@ Entry template
 - hit again: 2026-10-04, B8b g3 rework: the brief's proof list still names "the CI `db` job green with tests/db/automation.db.test.ts", and `ci.yml` on main has only `check`, `build` and `merge-gate` (`grep -n "^  [a-z-]*:$" .github/workflows/ci.yml`); `deploy.yml`'s `preview-db` runs against main's schema. The database proof stays the local dev-profile run inside rolled-back transactions, and the CI db line is reported UNPROVEN, not green.
 - added: 2026-10-03
 - hit again: 2026-10-05, B5 g1 (step 2): two replays of `tests/db/email.db.test.ts` with the B5 prelude went red on `canceling statement due to lock timeout` while another worktree's `actor.db.test.ts` run was active; which lock it held was not measured (UNPROVEN: the prelude's `alter table` on `subscribers` and `settings` is the likely waiter). The red was the wrong reason and both were replayed once the other run ended.
+- hit again: 2026-10-08, B10 g9: with the two g9 migrations (3,060 characters) as `MOP_MUTATION_SQL`, `social.db.test.ts` ran 21 of 22 green and the two-connection `store_channel_token answers busy` case failed with `canceling statement due to lock timeout` (the second connection runs the prelude while the first holds its locks); run without the prelude that case passed (`Tests  1 passed`). Run a two-connection case without the prelude and say so in the log.
 
 ## P-315 · A plan's proof grep for the old `agent_*` names matches the `listing_agent_name` column the same step creates, and `git grep` cannot see the new migration
 - symptom: B2 step 5's proof `grep -rn "agentName\|...\|agent_name\|agent_email\|agent_phone" src/domain supabase/migrations` printed three lines of `20261001090400_intake.sql`, all `listing_agent_name`, although no `agent_name` column exists; `git grep` of the same pattern printed nothing because the new migration was still untracked.
@@ -4861,4 +4862,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a pipeline's status is its last command's; `&&` after `| tail` tests tail.
 - rule: never pipe a gate before `&&`: run `node ../workspace/05-plans/quiet.mjs -- bun run check` on its own line and test `$?`, or `set -o pipefail` first; the gate's exit decides the push, not its last line.
 - proof: `bash -c 'false | tail -1 && echo pushed'` prints `pushed`; with `set -o pipefail` it prints nothing.
+- added: 2026-10-08
+
+## P-2225 · A db case that counts `audit_log` rows by action alone passes on CI's empty database and fails on mop-dev once an e2e spec has saved real rows
+- symptom: `tests/db/social.db.test.ts` "raises enqueue_failed and changes nothing when no job is made (DB-09)" failed on mop-dev with `"audit": 5` where 0 was expected, with no prelude and no change of this group in its path, after g8's `admin-channels.spec.ts` had committed `channels.retry` rows.
+- cause: the case summed `auditRows(db, "channels.retry")` and `auditRows(db, "channels.metrics_refresh")` with no entity, so every committed row of those actions on the shared database counted, not the rows of the transaction.
+- rule: a db case counts audit rows by the `entity_id` it made (`auditRows(db, action, id)`); mop-dev holds committed rows from e2e specs and other lanes, and CI's fresh database hides the difference.
+- proof: `cd app && grep -c 'auditRows(db, "channels.retry")' tests/db/social.db.test.ts` → `0`; with the dev profile, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t "raises enqueue_failed"` → `Tests  1 passed | 21 skipped (22)` (measured 2026-10-08, B10 g9).
 - added: 2026-10-08

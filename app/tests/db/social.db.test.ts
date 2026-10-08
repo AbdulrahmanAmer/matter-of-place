@@ -401,8 +401,8 @@ describe("retry and metrics refresh", () => {
         ),
         status: await statusOf(db, "social_posts", failed),
         audit:
-          (await auditRows(db, "channels.retry")).length +
-          (await auditRows(db, "channels.metrics_refresh")).length,
+          (await auditRows(db, "channels.retry", failed)).length +
+          (await auditRows(db, "channels.metrics_refresh", posted)).length,
       };
     });
     expect(result).toEqual({
