@@ -365,3 +365,23 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: UNPROVEN, as the author says: the SOCIAL_DRY_RUN branch (post-to-channel.ts line 444, social_dry_run) was never reached. Both real runs returned retry_at outside the posting window before the dry-run check, so 'dry run posts nothing' rests on reading the code. Each run also leaves a queued post_meta job for a fixture carousel with made-up media keys on the one database that becomes production (H35): 707e1b18 runs at 2026-10-08T13:00Z and edde7374 (from my re-run) at 2026-10-13T13:00Z. If step 7 or the launch switch has enabled instagram and unset the flag by then, the job gets past skipped_disabled. It is then stopped by stillApproved (human_approval_required) unless Feature has been set to auto. The orchestrator should have step 7 or L1 cancel the rehearsal's queued post jobs, or confirm they have finished, before the flag is unset.
 - evidence: pg: select type,status,result,run_after from jobs where payload::text like '%edde7374%' gives post_meta queued {instagram: retry_at} run_after 2026-10-13T13:00Z; the same query for 707e1b18 gives run_after 2026-10-08T13:00Z
 - blocking: false
+
+## g9 · steps 9
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The one that names GOTCHAS.md is banked as hit-again lines on P-094 and P-537, so it is not repeated here.
+
+### app/src/server/channels/reconcile-social.ts
+
+- what: Follow-up. The `.is("withdrawn_at", null)` added to the `params.post_ids` query in refreshNamed (around line 195) has no test and no registry entry. Only the daily query's filter is covered (by b10g9-rs-withdrawn). If you delete the refreshNamed filter, every test stays green. Nothing breaks today: a withdrawn post refreshed by hand now hits the counted PLATFORM_UNAVAILABLE path instead of throwing. Still, the line is unproven, which falls short of C08.
+- evidence: grep -n withdrawn tests/unit/channels/reconcile.test.ts finds only the daily-run case at line 267. The b10g9-rs-withdrawn find string is the daily query's '.is("withdrawn_at", null)\n      .gte("posted_at"'.
+- blocking: false
+
+- what: Follow-up (suspected from reading, already stated by the author). PLATFORM_UNAVAILABLE separates platform failures from database failures by message wording. A future adapter that words a database failure as '<OneWord> did not answer.' or 'answered an unexpected shape' would be counted instead of retried. The proper fix is a separate error class in the adapters (g4/g5 files), which is out of this group's scope.
+- evidence: Line 78: const PLATFORM_UNAVAILABLE = /^[A-Za-z]+ did not answer\.$|answered an unexpected shape/. Today every database wording in src/server/channels misses it.
+- blocking: false
+
+### app/src/server/jobs/system/reconcile.ts
+
+- what: Follow-up. Line 61 adds `timeoutMs: 40_000` to B8's job definition. The plan says this file gets one appended call and 'B8's own part is not changed' (C01). The value raises the runner's 20 s DEFAULT_TIMEOUT_MS to LIGHT_TIMEOUT_CAP_MS, so it is a sensible change. But no test pins it: removing the line leaves every test green. The author already marks the 40 s as unmeasured (UNPROVEN). The orchestrator should fold the plan line, or a test should pin the value.
+- evidence: grep -rn timeoutMs tests/unit/jobs/*.test.ts finds hits only in runner.test.ts and none for reconcile. runner.ts:32-33 has DEFAULT_TIMEOUT_MS = 20_000 and LIGHT_TIMEOUT_CAP_MS = 40_000.
+- blocking: false
