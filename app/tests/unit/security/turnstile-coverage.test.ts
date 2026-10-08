@@ -18,11 +18,13 @@ const TURNSTILE_EXEMPT: Readonly<Record<string, string>> = {
   "/api/hooks/resend": "signature-checked over the raw body",
 };
 
+const inquiry: unknown = JSON.parse(
+  readFileSync(new URL("../../fixtures/inquiry.json", import.meta.url), "utf8"),
+);
+
 // A valid body for each checked write, so a refusal below is Turnstile's and never the schema's.
 const VALID: Readonly<Record<string, unknown>> = {
-  "/api/public/inquiries": JSON.parse(
-    readFileSync(new URL("../../fixtures/inquiry.json", import.meta.url), "utf8"),
-  ),
+  "/api/public/inquiries": inquiry,
   "/api/public/submissions": {
     address: "1 Probe Lane",
     city: "Los Angeles",
