@@ -424,7 +424,7 @@
   {
     "id": "ef-keys",
     "test": "tests/unit/jobs/entity-filter.test.ts",
-    "file": "src/server/lib/jobs.ts",
+    "file": "src/domain/job-entities.ts",
     "find": "  \"request_id\",\n] as const;",
     "replace": "] as const;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/entity-filter.test.ts",
@@ -2567,5 +2567,225 @@
     "sql": "drop index public.jobs_admin_status_list_idx;",
     "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"keyset indexes\"",
     "expect": "× .*keyset indexes on jobs[\\s\\S]*jobs_admin_status_list_idx"
+  },
+  {
+    "id": "b8g1-entity-prefix",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsTable.tsx",
+    "find": "entity.id.slice(0, ID_PREFIX)",
+    "replace": "entity.id.slice(0, 4)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*names the property of a job"
+  },
+  {
+    "id": "b8g1-entity-system",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsTable.tsx",
+    "find": "if (entity === null) return \"system\";",
+    "replace": "if (entity === null) return \"none\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*shows system for a job"
+  },
+  {
+    "id": "b8g1-entity-first-key",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/domain/job-entities.ts",
+    "find": "\"submission_id\",\n  \"property_id\",\n  \"payment_id\",\n  \"asset_id\",",
+    "replace": "\"asset_id\",\n  \"property_id\",\n  \"payment_id\",\n  \"submission_id\",",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*takes the first entity key"
+  },
+  {
+    "id": "b8g1-runner-wait",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobStatus.tsx",
+    "find": "job.run_local && (",
+    "replace": "false && (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*reads a queued job for the laptop runner"
+  },
+  {
+    "id": "b8g1-dead-red",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobStatus.tsx",
+    "find": "dead: { label: \"Dead\", tone: \"danger\" },",
+    "replace": "dead: { label: \"Dead\", tone: \"warning\" },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*marks a dead job red"
+  },
+  {
+    "id": "b8g1-banner-red",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/DeadLetterBanner.tsx",
+    "find": "data-tone=\"danger\"",
+    "replace": "data-tone=\"warning\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*pins the dead jobs in red"
+  },
+  {
+    "id": "b8g1-banner-empty",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/DeadLetterBanner.tsx",
+    "find": "if (jobs.length === 0) return null;",
+    "replace": "if (jobs.length < 0) return null;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*draws no banner when no job is dead"
+  },
+  {
+    "id": "b8g1-refetch",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/jobs-queries.ts",
+    "find": "adminKeys.jobs.all(),",
+    "replace": "adminKeys.jobs.detail(\"none\"),",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*reads the list again after Retry"
+  },
+  {
+    "id": "b8g1-reader",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/DeadLetterBanner.tsx",
+    "find": "{actions.includes(\"jobs.retry\") ? (",
+    "replace": "{true ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*gives a reader the jobs and no action"
+  },
+  {
+    "id": "b8g1-bulk-type",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/DeadLetterBanner.tsx",
+    "find": "bulk.mutate(type, {",
+    "replace": "bulk.mutate(\"health\", {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*offers Retry all matching only for a type"
+  },
+  {
+    "id": "b8g1-bulk-hint",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/DeadLetterBanner.tsx",
+    "find": "type === undefined ? (",
+    "replace": "false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*tells the person to filter by a type"
+  },
+  {
+    "id": "b8g1-filter-form",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsTable.tsx",
+    "find": "name=\"status\"",
+    "replace": "name=\"state\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*asks the list for the filters of the form"
+  },
+  {
+    "id": "b8g1-entity-chip",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsPage.tsx",
+    "find": "<a href=\"/admin/jobs\">Show every job</a>",
+    "replace": "<a href=\"/admin/jobs?all\">Show every job</a>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*keeps the entity filter of the address"
+  },
+  {
+    "id": "b8g1-next-page",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsPage.tsx",
+    "find": "hasNext: nextCursor !== null,",
+    "replace": "hasNext: false,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*walks to the next page"
+  },
+  {
+    "id": "b8g1-drawer-payload",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobDrawer.tsx",
+    "find": "{json(job.payload)}",
+    "replace": "{json(job.result)}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*opens from a row, shows the payload"
+  },
+  {
+    "id": "b8g1-drawer-address",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsPage.tsx",
+    "find": "{openJob.id === null ? null : (",
+    "replace": "{true ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*opens from the job in the address"
+  },
+  {
+    "id": "b8g1-drawer-cancel",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobDrawer.tsx",
+    "find": "new Set([\"queued\", \"failed\", \"waiting_approval\"])",
+    "replace": "new Set([\"failed\", \"waiting_approval\"])",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*asks before it cancels a queued job"
+  },
+  {
+    "id": "b8g1-drawer-approve",
+    "kind": "file",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobDrawer.tsx",
+    "find": "job.status === \"waiting_approval\" && actions.includes(\"jobs.approve\")",
+    "replace": "false && actions.includes(\"jobs.approve\")",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*offers Approve, not Retry"
+  },
+  {
+    "id": "b8g1-e2e-retry",
+    "kind": "manual",
+    "test": "tests/e2e/admin-jobs.spec.ts",
+    "file": "src/admin/jobs/jobs-api.ts",
+    "find": "export const retryJob = (id: string) => act(id, \"retry\");",
+    "replace": "export const retryJob = (id: string) => act(id, \"cancel\");",
+    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep \"System, Jobs lands\"",
+    "expect": "Expected: 200"
+  },
+  {
+    "id": "b8g1-e2e-entity",
+    "kind": "manual",
+    "test": "tests/e2e/admin-jobs.spec.ts",
+    "file": "src/admin/jobs/jobs-queries.ts",
+    "find": "{ ...filters, ...(cursor === null",
+    "replace": "{ ...(cursor === null",
+    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep \"entity filter lists\"",
+    "expect": "Locator: getByText.*No jobs match"
+  },
+  {
+    "id": "b8g1-e2e-drawer",
+    "kind": "manual",
+    "test": "tests/e2e/admin-jobs.spec.ts",
+    "file": "src/admin/jobs/JobDrawer.tsx",
+    "find": "<h3>History</h3>",
+    "replace": "<h3>Log</h3>",
+    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep \"opens the job in a drawer\"",
+    "expect": "Locator: .*heading.*History"
+  },
+  {
+    "id": "b8g1-guard-spec",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/e2e/admin-jobs.spec.ts",
+    "find": "  await assertNotProduction({ dbUrl: process.env[\"DEV_DB_URL\"] });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts -t \"every listed file exists, imports the guard\"",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\("
   }
 ]

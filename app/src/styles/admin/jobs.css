@@ -1,0 +1,84 @@
+/* Screen 16, jobs: the dead jobs pinned above the table, its filter form and the open job's drawer. */
+
+.admin-dead {
+  display: grid;
+  gap: var(--admin-space-3);
+  margin-bottom: var(--admin-space-5);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--status-danger);
+}
+
+.admin-dead h2 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--status-danger);
+}
+
+.admin-dead ul {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-dead li {
+  display: grid;
+  grid-template-columns: minmax(160px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--admin-space-3);
+}
+
+.admin-dead__what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+}
+
+.admin-dead__error {
+  overflow-wrap: anywhere;
+  color: var(--muted-foreground);
+}
+
+.admin-job-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--admin-space-3);
+}
+
+.admin-job__facts {
+  display: grid;
+  gap: var(--admin-space-2);
+  margin-bottom: var(--admin-space-4);
+}
+
+.admin-job__facts > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 110px) minmax(0, 1fr);
+  gap: var(--admin-space-3);
+}
+
+.admin-job__facts dt {
+  color: var(--muted-foreground);
+}
+
+.admin-job__facts dd {
+  overflow-wrap: anywhere;
+}
+
+.admin-job__json {
+  margin-bottom: var(--admin-space-4);
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .admin-dead li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

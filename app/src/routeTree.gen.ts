@@ -49,6 +49,7 @@ import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
 import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
+import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs.index'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
@@ -342,6 +343,13 @@ const AdminInvoicesNewRoute = AdminInvoicesNewRouteImport.update({
   getParentRoute: () => AdminRoute,
 } as any).lazy(() =>
   import('./routes/admin/invoices.new.lazy').then((d) => d.Route),
+)
+const AdminJobsIndexRoute = AdminJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/jobs.index.lazy').then((d) => d.Route),
 )
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
@@ -857,6 +865,7 @@ export interface FileRoutesByFullPath {
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -978,6 +987,7 @@ export interface FileRoutesByTo {
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
+  '/admin/jobs': typeof AdminJobsIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
@@ -1104,6 +1114,7 @@ export interface FileRoutesById {
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1230,6 +1241,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/jobs/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1351,6 +1363,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/admin/channels'
     | '/admin/invoices'
+    | '/admin/jobs'
     | '/admin/people'
     | '/admin/properties'
     | '/admin/reports'
@@ -1476,6 +1489,7 @@ export interface FileRouteTypes {
     | '/_site/stories/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/jobs/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1876,6 +1890,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices/new'
       fullPath: '/admin/invoices/new'
       preLoaderRoute: typeof AdminInvoicesNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jobs/': {
+      id: '/admin/jobs/'
+      path: '/jobs'
+      fullPath: '/admin/jobs/'
+      preLoaderRoute: typeof AdminJobsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/people/': {
@@ -2560,6 +2581,7 @@ interface AdminRouteChildren {
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
+  AdminJobsIndexRoute: typeof AdminJobsIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
@@ -2576,6 +2598,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRequestsIdRoute: AdminRequestsIdRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
+  AdminJobsIndexRoute: AdminJobsIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
