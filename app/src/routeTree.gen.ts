@@ -80,6 +80,14 @@ import { Route as ApiAdminAssetsIdRouteImport } from './routes/api/admin/assets.
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
+import { Route as ApiAdminAutomationChannelSettingsRouteImport } from './routes/api/admin/automation.channel-settings'
+import { Route as ApiAdminAutomationDryRunRouteImport } from './routes/api/admin/automation.dry-run'
+import { Route as ApiAdminAutomationFlagsRouteImport } from './routes/api/admin/automation.flags'
+import { Route as ApiAdminAutomationReasonsRouteImport } from './routes/api/admin/automation.reasons'
+import { Route as ApiAdminAutomationRecipesRouteImport } from './routes/api/admin/automation.recipes'
+import { Route as ApiAdminAutomationRevisionsRouteImport } from './routes/api/admin/automation.revisions'
+import { Route as ApiAdminAutomationScheduleSettingsRouteImport } from './routes/api/admin/automation.schedule-settings'
+import { Route as ApiAdminAutomationTemplatesRouteImport } from './routes/api/admin/automation.templates'
 import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminNewsletterIssuesRouteImport } from './routes/api/admin/newsletter.issues'
@@ -109,6 +117,13 @@ import { Route as ApiAdminAssetsIdApproveRouteImport } from './routes/api/admin/
 import { Route as ApiAdminAssetsIdCaptionRouteImport } from './routes/api/admin/assets.$id.caption'
 import { Route as ApiAdminAssetsIdRejectRouteImport } from './routes/api/admin/assets.$id.reject'
 import { Route as ApiAdminAssetsIdRerenderRouteImport } from './routes/api/admin/assets.$id.rerender'
+import { Route as ApiAdminAutomationChannelSettingsChannelRouteImport } from './routes/api/admin/automation.channel-settings.$channel'
+import { Route as ApiAdminAutomationReasonsIdRouteImport } from './routes/api/admin/automation.reasons.$id'
+import { Route as ApiAdminAutomationReasonsOrderRouteImport } from './routes/api/admin/automation.reasons.order'
+import { Route as ApiAdminAutomationRecipesTriggerRouteImport } from './routes/api/admin/automation.recipes.$trigger'
+import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './routes/api/admin/automation.schedule-settings.$key'
+import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
+import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
 import { Route as ApiAdminNewsletterIssuesIdRouteImport } from './routes/api/admin/newsletter.issues.$id'
 import { Route as ApiAdminNewsletterIssuesBuildRouteImport } from './routes/api/admin/newsletter.issues.build'
@@ -135,6 +150,7 @@ import { Route as ApiAdminSubmissionsIdRequestAssetsRouteImport } from './routes
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
+import { Route as ApiAdminAutomationRevisionsIdRestoreRouteImport } from './routes/api/admin/automation.revisions.$id.restore'
 import { Route as ApiAdminChannelsPostsIdCancelRouteImport } from './routes/api/admin/channels.posts.$id.cancel'
 import { Route as ApiAdminChannelsPostsIdMetricsRefreshRouteImport } from './routes/api/admin/channels.posts.$id.metrics-refresh'
 import { Route as ApiAdminChannelsPostsIdRetryRouteImport } from './routes/api/admin/channels.posts.$id.retry'
@@ -526,6 +542,53 @@ const ApiAdminAuthVerifyRoute = ApiAdminAuthVerifyRouteImport.update({
   path: '/api/admin/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAutomationChannelSettingsRoute =
+  ApiAdminAutomationChannelSettingsRouteImport.update({
+    id: '/api/admin/automation/channel-settings',
+    path: '/api/admin/automation/channel-settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationDryRunRoute =
+  ApiAdminAutomationDryRunRouteImport.update({
+    id: '/api/admin/automation/dry-run',
+    path: '/api/admin/automation/dry-run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationFlagsRoute = ApiAdminAutomationFlagsRouteImport.update({
+  id: '/api/admin/automation/flags',
+  path: '/api/admin/automation/flags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAutomationReasonsRoute =
+  ApiAdminAutomationReasonsRouteImport.update({
+    id: '/api/admin/automation/reasons',
+    path: '/api/admin/automation/reasons',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationRecipesRoute =
+  ApiAdminAutomationRecipesRouteImport.update({
+    id: '/api/admin/automation/recipes',
+    path: '/api/admin/automation/recipes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationRevisionsRoute =
+  ApiAdminAutomationRevisionsRouteImport.update({
+    id: '/api/admin/automation/revisions',
+    path: '/api/admin/automation/revisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationScheduleSettingsRoute =
+  ApiAdminAutomationScheduleSettingsRouteImport.update({
+    id: '/api/admin/automation/schedule-settings',
+    path: '/api/admin/automation/schedule-settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminAutomationTemplatesRoute =
+  ApiAdminAutomationTemplatesRouteImport.update({
+    id: '/api/admin/automation/templates',
+    path: '/api/admin/automation/templates',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminChannelsHealthRoute = ApiAdminChannelsHealthRouteImport.update({
   id: '/api/admin/channels/health',
   path: '/api/admin/channels/health',
@@ -682,6 +745,48 @@ const ApiAdminAssetsIdRerenderRoute =
     path: '/rerender',
     getParentRoute: () => ApiAdminAssetsIdRoute,
   } as any)
+const ApiAdminAutomationChannelSettingsChannelRoute =
+  ApiAdminAutomationChannelSettingsChannelRouteImport.update({
+    id: '/$channel',
+    path: '/$channel',
+    getParentRoute: () => ApiAdminAutomationChannelSettingsRoute,
+  } as any)
+const ApiAdminAutomationReasonsIdRoute =
+  ApiAdminAutomationReasonsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminAutomationReasonsRoute,
+  } as any)
+const ApiAdminAutomationReasonsOrderRoute =
+  ApiAdminAutomationReasonsOrderRouteImport.update({
+    id: '/order',
+    path: '/order',
+    getParentRoute: () => ApiAdminAutomationReasonsRoute,
+  } as any)
+const ApiAdminAutomationRecipesTriggerRoute =
+  ApiAdminAutomationRecipesTriggerRouteImport.update({
+    id: '/$trigger',
+    path: '/$trigger',
+    getParentRoute: () => ApiAdminAutomationRecipesRoute,
+  } as any)
+const ApiAdminAutomationScheduleSettingsKeyRoute =
+  ApiAdminAutomationScheduleSettingsKeyRouteImport.update({
+    id: '/$key',
+    path: '/$key',
+    getParentRoute: () => ApiAdminAutomationScheduleSettingsRoute,
+  } as any)
+const ApiAdminAutomationTemplatesKeyRoute =
+  ApiAdminAutomationTemplatesKeyRouteImport.update({
+    id: '/$key',
+    path: '/$key',
+    getParentRoute: () => ApiAdminAutomationTemplatesRoute,
+  } as any)
+const ApiAdminAutomationTemplatesPreviewRoute =
+  ApiAdminAutomationTemplatesPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ApiAdminAutomationTemplatesRoute,
+  } as any)
 const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   id: '/api/admin/channels/ids/$key',
   path: '/api/admin/channels/ids/$key',
@@ -832,6 +937,12 @@ const ApiPublicSubmissionsIdUploadsRoute =
     path: '/$id/uploads',
     getParentRoute: () => ApiPublicSubmissionsRoute,
   } as any)
+const ApiAdminAutomationRevisionsIdRestoreRoute =
+  ApiAdminAutomationRevisionsIdRestoreRouteImport.update({
+    id: '/$id/restore',
+    path: '/$id/restore',
+    getParentRoute: () => ApiAdminAutomationRevisionsRoute,
+  } as any)
 const ApiAdminChannelsPostsIdCancelRoute =
   ApiAdminChannelsPostsIdCancelRouteImport.update({
     id: '/$id/cancel',
@@ -957,6 +1068,14 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/automation/channel-settings': typeof ApiAdminAutomationChannelSettingsRouteWithChildren
+  '/api/admin/automation/dry-run': typeof ApiAdminAutomationDryRunRoute
+  '/api/admin/automation/flags': typeof ApiAdminAutomationFlagsRoute
+  '/api/admin/automation/reasons': typeof ApiAdminAutomationReasonsRouteWithChildren
+  '/api/admin/automation/recipes': typeof ApiAdminAutomationRecipesRouteWithChildren
+  '/api/admin/automation/revisions': typeof ApiAdminAutomationRevisionsRouteWithChildren
+  '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
+  '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
@@ -987,6 +1106,13 @@ export interface FileRoutesByFullPath {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/automation/channel-settings/$channel': typeof ApiAdminAutomationChannelSettingsChannelRoute
+  '/api/admin/automation/reasons/$id': typeof ApiAdminAutomationReasonsIdRoute
+  '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
+  '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
+  '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
@@ -1013,6 +1139,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -1090,6 +1217,14 @@ export interface FileRoutesByTo {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/automation/channel-settings': typeof ApiAdminAutomationChannelSettingsRouteWithChildren
+  '/api/admin/automation/dry-run': typeof ApiAdminAutomationDryRunRoute
+  '/api/admin/automation/flags': typeof ApiAdminAutomationFlagsRoute
+  '/api/admin/automation/reasons': typeof ApiAdminAutomationReasonsRouteWithChildren
+  '/api/admin/automation/recipes': typeof ApiAdminAutomationRecipesRouteWithChildren
+  '/api/admin/automation/revisions': typeof ApiAdminAutomationRevisionsRouteWithChildren
+  '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
+  '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
@@ -1120,6 +1255,13 @@ export interface FileRoutesByTo {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/automation/channel-settings/$channel': typeof ApiAdminAutomationChannelSettingsChannelRoute
+  '/api/admin/automation/reasons/$id': typeof ApiAdminAutomationReasonsIdRoute
+  '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
+  '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
+  '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
@@ -1146,6 +1288,7 @@ export interface FileRoutesByTo {
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -1228,6 +1371,14 @@ export interface FileRoutesById {
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
+  '/api/admin/automation/channel-settings': typeof ApiAdminAutomationChannelSettingsRouteWithChildren
+  '/api/admin/automation/dry-run': typeof ApiAdminAutomationDryRunRoute
+  '/api/admin/automation/flags': typeof ApiAdminAutomationFlagsRoute
+  '/api/admin/automation/reasons': typeof ApiAdminAutomationReasonsRouteWithChildren
+  '/api/admin/automation/recipes': typeof ApiAdminAutomationRecipesRouteWithChildren
+  '/api/admin/automation/revisions': typeof ApiAdminAutomationRevisionsRouteWithChildren
+  '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
+  '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
@@ -1258,6 +1409,13 @@ export interface FileRoutesById {
   '/api/admin/assets/$id/caption': typeof ApiAdminAssetsIdCaptionRoute
   '/api/admin/assets/$id/reject': typeof ApiAdminAssetsIdRejectRoute
   '/api/admin/assets/$id/rerender': typeof ApiAdminAssetsIdRerenderRoute
+  '/api/admin/automation/channel-settings/$channel': typeof ApiAdminAutomationChannelSettingsChannelRoute
+  '/api/admin/automation/reasons/$id': typeof ApiAdminAutomationReasonsIdRoute
+  '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
+  '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
+  '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
   '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
@@ -1284,6 +1442,7 @@ export interface FileRoutesById {
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -1366,6 +1525,14 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/automation/channel-settings'
+    | '/api/admin/automation/dry-run'
+    | '/api/admin/automation/flags'
+    | '/api/admin/automation/reasons'
+    | '/api/admin/automation/recipes'
+    | '/api/admin/automation/revisions'
+    | '/api/admin/automation/schedule-settings'
+    | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
@@ -1396,6 +1563,13 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/automation/channel-settings/$channel'
+    | '/api/admin/automation/reasons/$id'
+    | '/api/admin/automation/reasons/order'
+    | '/api/admin/automation/recipes/$trigger'
+    | '/api/admin/automation/schedule-settings/$key'
+    | '/api/admin/automation/templates/$key'
+    | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
@@ -1422,6 +1596,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -1499,6 +1674,14 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/automation/channel-settings'
+    | '/api/admin/automation/dry-run'
+    | '/api/admin/automation/flags'
+    | '/api/admin/automation/reasons'
+    | '/api/admin/automation/recipes'
+    | '/api/admin/automation/revisions'
+    | '/api/admin/automation/schedule-settings'
+    | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
@@ -1529,6 +1712,13 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/automation/channel-settings/$channel'
+    | '/api/admin/automation/reasons/$id'
+    | '/api/admin/automation/reasons/order'
+    | '/api/admin/automation/recipes/$trigger'
+    | '/api/admin/automation/schedule-settings/$key'
+    | '/api/admin/automation/templates/$key'
+    | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
@@ -1555,6 +1745,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -1636,6 +1827,14 @@ export interface FileRouteTypes {
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
+    | '/api/admin/automation/channel-settings'
+    | '/api/admin/automation/dry-run'
+    | '/api/admin/automation/flags'
+    | '/api/admin/automation/reasons'
+    | '/api/admin/automation/recipes'
+    | '/api/admin/automation/revisions'
+    | '/api/admin/automation/schedule-settings'
+    | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/newsletter/issues'
@@ -1666,6 +1865,13 @@ export interface FileRouteTypes {
     | '/api/admin/assets/$id/caption'
     | '/api/admin/assets/$id/reject'
     | '/api/admin/assets/$id/rerender'
+    | '/api/admin/automation/channel-settings/$channel'
+    | '/api/admin/automation/reasons/$id'
+    | '/api/admin/automation/reasons/order'
+    | '/api/admin/automation/recipes/$trigger'
+    | '/api/admin/automation/schedule-settings/$key'
+    | '/api/admin/automation/templates/$key'
+    | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/newsletter/issues/$id'
     | '/api/admin/newsletter/issues/build'
@@ -1692,6 +1898,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -1733,6 +1940,14 @@ export interface RootRouteChildren {
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
+  ApiAdminAutomationChannelSettingsRoute: typeof ApiAdminAutomationChannelSettingsRouteWithChildren
+  ApiAdminAutomationDryRunRoute: typeof ApiAdminAutomationDryRunRoute
+  ApiAdminAutomationFlagsRoute: typeof ApiAdminAutomationFlagsRoute
+  ApiAdminAutomationReasonsRoute: typeof ApiAdminAutomationReasonsRouteWithChildren
+  ApiAdminAutomationRecipesRoute: typeof ApiAdminAutomationRecipesRouteWithChildren
+  ApiAdminAutomationRevisionsRoute: typeof ApiAdminAutomationRevisionsRouteWithChildren
+  ApiAdminAutomationScheduleSettingsRoute: typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
+  ApiAdminAutomationTemplatesRoute: typeof ApiAdminAutomationTemplatesRouteWithChildren
   ApiAdminChannelsHealthRoute: typeof ApiAdminChannelsHealthRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
   ApiAdminNewsletterIssuesRoute: typeof ApiAdminNewsletterIssuesRouteWithChildren
@@ -2256,6 +2471,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/automation/channel-settings': {
+      id: '/api/admin/automation/channel-settings'
+      path: '/api/admin/automation/channel-settings'
+      fullPath: '/api/admin/automation/channel-settings'
+      preLoaderRoute: typeof ApiAdminAutomationChannelSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/dry-run': {
+      id: '/api/admin/automation/dry-run'
+      path: '/api/admin/automation/dry-run'
+      fullPath: '/api/admin/automation/dry-run'
+      preLoaderRoute: typeof ApiAdminAutomationDryRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/flags': {
+      id: '/api/admin/automation/flags'
+      path: '/api/admin/automation/flags'
+      fullPath: '/api/admin/automation/flags'
+      preLoaderRoute: typeof ApiAdminAutomationFlagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/reasons': {
+      id: '/api/admin/automation/reasons'
+      path: '/api/admin/automation/reasons'
+      fullPath: '/api/admin/automation/reasons'
+      preLoaderRoute: typeof ApiAdminAutomationReasonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/recipes': {
+      id: '/api/admin/automation/recipes'
+      path: '/api/admin/automation/recipes'
+      fullPath: '/api/admin/automation/recipes'
+      preLoaderRoute: typeof ApiAdminAutomationRecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/revisions': {
+      id: '/api/admin/automation/revisions'
+      path: '/api/admin/automation/revisions'
+      fullPath: '/api/admin/automation/revisions'
+      preLoaderRoute: typeof ApiAdminAutomationRevisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/schedule-settings': {
+      id: '/api/admin/automation/schedule-settings'
+      path: '/api/admin/automation/schedule-settings'
+      fullPath: '/api/admin/automation/schedule-settings'
+      preLoaderRoute: typeof ApiAdminAutomationScheduleSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/automation/templates': {
+      id: '/api/admin/automation/templates'
+      path: '/api/admin/automation/templates'
+      fullPath: '/api/admin/automation/templates'
+      preLoaderRoute: typeof ApiAdminAutomationTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/channels/health': {
       id: '/api/admin/channels/health'
       path: '/api/admin/channels/health'
@@ -2459,6 +2730,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAssetsIdRerenderRouteImport
       parentRoute: typeof ApiAdminAssetsIdRoute
     }
+    '/api/admin/automation/channel-settings/$channel': {
+      id: '/api/admin/automation/channel-settings/$channel'
+      path: '/$channel'
+      fullPath: '/api/admin/automation/channel-settings/$channel'
+      preLoaderRoute: typeof ApiAdminAutomationChannelSettingsChannelRouteImport
+      parentRoute: typeof ApiAdminAutomationChannelSettingsRoute
+    }
+    '/api/admin/automation/reasons/$id': {
+      id: '/api/admin/automation/reasons/$id'
+      path: '/$id'
+      fullPath: '/api/admin/automation/reasons/$id'
+      preLoaderRoute: typeof ApiAdminAutomationReasonsIdRouteImport
+      parentRoute: typeof ApiAdminAutomationReasonsRoute
+    }
+    '/api/admin/automation/reasons/order': {
+      id: '/api/admin/automation/reasons/order'
+      path: '/order'
+      fullPath: '/api/admin/automation/reasons/order'
+      preLoaderRoute: typeof ApiAdminAutomationReasonsOrderRouteImport
+      parentRoute: typeof ApiAdminAutomationReasonsRoute
+    }
+    '/api/admin/automation/recipes/$trigger': {
+      id: '/api/admin/automation/recipes/$trigger'
+      path: '/$trigger'
+      fullPath: '/api/admin/automation/recipes/$trigger'
+      preLoaderRoute: typeof ApiAdminAutomationRecipesTriggerRouteImport
+      parentRoute: typeof ApiAdminAutomationRecipesRoute
+    }
+    '/api/admin/automation/schedule-settings/$key': {
+      id: '/api/admin/automation/schedule-settings/$key'
+      path: '/$key'
+      fullPath: '/api/admin/automation/schedule-settings/$key'
+      preLoaderRoute: typeof ApiAdminAutomationScheduleSettingsKeyRouteImport
+      parentRoute: typeof ApiAdminAutomationScheduleSettingsRoute
+    }
+    '/api/admin/automation/templates/$key': {
+      id: '/api/admin/automation/templates/$key'
+      path: '/$key'
+      fullPath: '/api/admin/automation/templates/$key'
+      preLoaderRoute: typeof ApiAdminAutomationTemplatesKeyRouteImport
+      parentRoute: typeof ApiAdminAutomationTemplatesRoute
+    }
+    '/api/admin/automation/templates/preview': {
+      id: '/api/admin/automation/templates/preview'
+      path: '/preview'
+      fullPath: '/api/admin/automation/templates/preview'
+      preLoaderRoute: typeof ApiAdminAutomationTemplatesPreviewRouteImport
+      parentRoute: typeof ApiAdminAutomationTemplatesRoute
+    }
     '/api/admin/channels/ids/$key': {
       id: '/api/admin/channels/ids/$key'
       path: '/api/admin/channels/ids/$key'
@@ -2640,6 +2960,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/submissions/$id/uploads'
       preLoaderRoute: typeof ApiPublicSubmissionsIdUploadsRouteImport
       parentRoute: typeof ApiPublicSubmissionsRoute
+    }
+    '/api/admin/automation/revisions/$id/restore': {
+      id: '/api/admin/automation/revisions/$id/restore'
+      path: '/$id/restore'
+      fullPath: '/api/admin/automation/revisions/$id/restore'
+      preLoaderRoute: typeof ApiAdminAutomationRevisionsIdRestoreRouteImport
+      parentRoute: typeof ApiAdminAutomationRevisionsRoute
     }
     '/api/admin/channels/posts/$id/cancel': {
       id: '/api/admin/channels/posts/$id/cancel'
@@ -2930,6 +3257,99 @@ const ApiAdminAssetsIdRouteChildren: ApiAdminAssetsIdRouteChildren = {
 const ApiAdminAssetsIdRouteWithChildren =
   ApiAdminAssetsIdRoute._addFileChildren(ApiAdminAssetsIdRouteChildren)
 
+interface ApiAdminAutomationChannelSettingsRouteChildren {
+  ApiAdminAutomationChannelSettingsChannelRoute: typeof ApiAdminAutomationChannelSettingsChannelRoute
+}
+
+const ApiAdminAutomationChannelSettingsRouteChildren: ApiAdminAutomationChannelSettingsRouteChildren =
+  {
+    ApiAdminAutomationChannelSettingsChannelRoute:
+      ApiAdminAutomationChannelSettingsChannelRoute,
+  }
+
+const ApiAdminAutomationChannelSettingsRouteWithChildren =
+  ApiAdminAutomationChannelSettingsRoute._addFileChildren(
+    ApiAdminAutomationChannelSettingsRouteChildren,
+  )
+
+interface ApiAdminAutomationReasonsRouteChildren {
+  ApiAdminAutomationReasonsIdRoute: typeof ApiAdminAutomationReasonsIdRoute
+  ApiAdminAutomationReasonsOrderRoute: typeof ApiAdminAutomationReasonsOrderRoute
+}
+
+const ApiAdminAutomationReasonsRouteChildren: ApiAdminAutomationReasonsRouteChildren =
+  {
+    ApiAdminAutomationReasonsIdRoute: ApiAdminAutomationReasonsIdRoute,
+    ApiAdminAutomationReasonsOrderRoute: ApiAdminAutomationReasonsOrderRoute,
+  }
+
+const ApiAdminAutomationReasonsRouteWithChildren =
+  ApiAdminAutomationReasonsRoute._addFileChildren(
+    ApiAdminAutomationReasonsRouteChildren,
+  )
+
+interface ApiAdminAutomationRecipesRouteChildren {
+  ApiAdminAutomationRecipesTriggerRoute: typeof ApiAdminAutomationRecipesTriggerRoute
+}
+
+const ApiAdminAutomationRecipesRouteChildren: ApiAdminAutomationRecipesRouteChildren =
+  {
+    ApiAdminAutomationRecipesTriggerRoute:
+      ApiAdminAutomationRecipesTriggerRoute,
+  }
+
+const ApiAdminAutomationRecipesRouteWithChildren =
+  ApiAdminAutomationRecipesRoute._addFileChildren(
+    ApiAdminAutomationRecipesRouteChildren,
+  )
+
+interface ApiAdminAutomationRevisionsRouteChildren {
+  ApiAdminAutomationRevisionsIdRestoreRoute: typeof ApiAdminAutomationRevisionsIdRestoreRoute
+}
+
+const ApiAdminAutomationRevisionsRouteChildren: ApiAdminAutomationRevisionsRouteChildren =
+  {
+    ApiAdminAutomationRevisionsIdRestoreRoute:
+      ApiAdminAutomationRevisionsIdRestoreRoute,
+  }
+
+const ApiAdminAutomationRevisionsRouteWithChildren =
+  ApiAdminAutomationRevisionsRoute._addFileChildren(
+    ApiAdminAutomationRevisionsRouteChildren,
+  )
+
+interface ApiAdminAutomationScheduleSettingsRouteChildren {
+  ApiAdminAutomationScheduleSettingsKeyRoute: typeof ApiAdminAutomationScheduleSettingsKeyRoute
+}
+
+const ApiAdminAutomationScheduleSettingsRouteChildren: ApiAdminAutomationScheduleSettingsRouteChildren =
+  {
+    ApiAdminAutomationScheduleSettingsKeyRoute:
+      ApiAdminAutomationScheduleSettingsKeyRoute,
+  }
+
+const ApiAdminAutomationScheduleSettingsRouteWithChildren =
+  ApiAdminAutomationScheduleSettingsRoute._addFileChildren(
+    ApiAdminAutomationScheduleSettingsRouteChildren,
+  )
+
+interface ApiAdminAutomationTemplatesRouteChildren {
+  ApiAdminAutomationTemplatesKeyRoute: typeof ApiAdminAutomationTemplatesKeyRoute
+  ApiAdminAutomationTemplatesPreviewRoute: typeof ApiAdminAutomationTemplatesPreviewRoute
+}
+
+const ApiAdminAutomationTemplatesRouteChildren: ApiAdminAutomationTemplatesRouteChildren =
+  {
+    ApiAdminAutomationTemplatesKeyRoute: ApiAdminAutomationTemplatesKeyRoute,
+    ApiAdminAutomationTemplatesPreviewRoute:
+      ApiAdminAutomationTemplatesPreviewRoute,
+  }
+
+const ApiAdminAutomationTemplatesRouteWithChildren =
+  ApiAdminAutomationTemplatesRoute._addFileChildren(
+    ApiAdminAutomationTemplatesRouteChildren,
+  )
+
 interface ApiAdminChannelsPostsRouteChildren {
   ApiAdminChannelsPostsIdCancelRoute: typeof ApiAdminChannelsPostsIdCancelRoute
   ApiAdminChannelsPostsIdMetricsRefreshRoute: typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
@@ -3120,6 +3540,18 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
+  ApiAdminAutomationChannelSettingsRoute:
+    ApiAdminAutomationChannelSettingsRouteWithChildren,
+  ApiAdminAutomationDryRunRoute: ApiAdminAutomationDryRunRoute,
+  ApiAdminAutomationFlagsRoute: ApiAdminAutomationFlagsRoute,
+  ApiAdminAutomationReasonsRoute: ApiAdminAutomationReasonsRouteWithChildren,
+  ApiAdminAutomationRecipesRoute: ApiAdminAutomationRecipesRouteWithChildren,
+  ApiAdminAutomationRevisionsRoute:
+    ApiAdminAutomationRevisionsRouteWithChildren,
+  ApiAdminAutomationScheduleSettingsRoute:
+    ApiAdminAutomationScheduleSettingsRouteWithChildren,
+  ApiAdminAutomationTemplatesRoute:
+    ApiAdminAutomationTemplatesRouteWithChildren,
   ApiAdminChannelsHealthRoute: ApiAdminChannelsHealthRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
   ApiAdminNewsletterIssuesRoute: ApiAdminNewsletterIssuesRouteWithChildren,
