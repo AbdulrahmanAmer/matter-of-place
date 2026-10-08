@@ -180,3 +180,21 @@
 5. File: `workspace/05-plans/B8b.md`. Blocking: no.
    - What: Stale plan prose that the orchestrator needs to update. B8b.md line 55 still describes the scheduler branch that 'advances only next_run_at ... and logs schedule_not_implemented' and the STUB(B11) marker. Line 141 still lists schedule_not_implemented among the LogEvent names. This group deleted both, as it was meant to.
    - Evidence: Confirmed by running `git grep -n schedule_not_implemented -- . ':!GOTCHAS.md'`: B8b.md:55, B8b.md:141 and B11.md:94,144. No code, runbook or test still references it.
+
+## c11s · steps 7
+
+1. File: `workspace/05-plans/B11.md`. Blocking: no.
+- What: Step 7's proof text (line 138) still says the spec runs "signed in as the seeded `managing_editor`". The spec now signs in as the chief editor, as the c11s brief asked. This plan line is now stale and belongs to the orchestrator to fold.
+- Evidence: `grep -n "signed in as the seeded" workspace/05-plans/B11.md` shows line 138 naming managing_editor; `tests/e2e/admin-newsletter.spec.ts:16` is `CHIEF_EDITOR = "staff+chief@matterofplace.com"`.
+
+2. File: `app/tests/unit/e2e-staff-isolation.test.ts`. Blocking: no.
+- What: The guard protects only the newsletter spec's literal address. Three cases get past it. (1) `admin-signin.spec.ts` and `admin-invoice.spec.ts` still share `staff+managing@`, so they would hit the same token-voiding race if invoice ran beside signin (E2E_FULL_STACK). (2) Several fullyParallel tests in `admin-invoice.spec.ts` sign in as `managing@` themselves (lines 301, 366, 388, 442, 510). (3) An address built with a template string (`staff+${role}@`) would not match the STAFF regex. The P-2426 rule says "one seeded staff user per e2e spec file that signs in", but no test enforces that across all spec files.
+- Evidence: `grep -rn "signInAs(browser" app/tests/e2e` shows `admin-invoice.spec.ts` lines 301, 366, 388, 442, 510 on MANAGING_EDITOR and `admin-signin.spec.ts:19` on MANAGING_EDITOR. CI (`ci.yml:337`) does not set E2E_FULL_STACK, so these do not run side by side today.
+
+3. File: `GOTCHAS.md`. Blocking: no. Recorded as a bank edit, not a follow-up left open.
+- What: costTime listed P-2409 as "already banked, hit again", but the diff added no "Hit again" sentence to P-2409; the bank's rule says a lesson it already holds gets one. Only P-2426 changed.
+- Evidence: `git diff d6095e8~1 d6095e8 -- GOTCHAS.md` changes only the P-2426 cause and rule lines. Now added to P-2409 as a "Hit again 2026-10-08, B11 c11s" line.
+
+4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
+- What: UNPROVEN: the admin project's exit 0, and the fix's effect in CI's e2e job on PR 227. The local evidence is 2 clean runs after the fix (2 more clean in this review, 4 in total) against 1 flaky run in 2 before. That shows the race is gone in these runs but gives no rate. The `:102` failure and the 5 serial tests after it can only pass on mop-dev once main pushes the `action_roles` migration (H57). The branch is also not merged with origin/main, so the PR may show as conflicting and start no CI run (P-136).
+- Evidence: Reviewer re-run: two runs exit 1, "1 failed, 7 skipped, 5 did not run, 5 passed", no flaky line; mop-dev newsletter `action_roles` count 0.
