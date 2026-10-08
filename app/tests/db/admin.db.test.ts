@@ -1450,7 +1450,7 @@ describe("unpublish_property", () => {
     });
   });
 
-  it("a takedown sets taken_down_at, lists the slug under gone, cancels the property's queued posts and queues one takedown_media job", async () => {
+  it("a takedown sets taken_down_at, lists the slug under gone, takes a new preview_nonce, cancels the property's queued posts and queues one takedown_media job", async () => {
     await withRollback(async (db) => {
       await assertStep7a(db);
       const editor = await createStaffUser(db, ["chief_editor"]);
@@ -1465,8 +1465,11 @@ describe("unpublish_property", () => {
         await postJob(db, "post_x", other, "queued"),
         await postJob(db, "post_meta", id, "running"),
       ];
+      const NONCE = "select preview_nonce::text as nonce from public.properties where id = $1";
+      const before = await one<{ nonce: string }>(db, NONCE, [id]);
       await db.query(UNPUBLISH, [id, "rights_takedown", true, editor, null]);
       expect({
+        nonceRotated: (await one<{ nonce: string }>(db, NONCE, [id])).nonce !== before.nonce,
         row: await unpublishedRow(db, id),
         posts: await jobStatuses(db, posts),
         untouched: await jobStatuses(db, untouched),
@@ -1477,6 +1480,7 @@ describe("unpublish_property", () => {
           [id],
         ),
       }).toEqual({
+        nonceRotated: true,
         row: {
           editorial_state: "archived",
           published: false,
@@ -1684,7 +1688,7 @@ describe("agent preview", () => {
     });
   });
 
-  it("after rotate_preview_nonce the old agent token gets 404, another property's link still verifies, and one properties.revoke_previews audit row holds no nonce", async () => {
+  it("after rotate_preview_nonce the old agent token no longer verifies, another property's link still verifies, and one properties.revoke_previews audit row holds no nonce", async () => {
     await withRollback(async (db) => {
       await assertStep7a(db);
       const editor = await createStaffUser(db, ["visual_editor"]);

@@ -39,6 +39,7 @@ begin
   end if;
 
   -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.
+  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.
   update public.properties p
   set editorial_state = 'archived',
     published_at = null,
@@ -46,6 +47,7 @@ begin
     unpublish_reason = p_reason,
     unpublished_at = now(),
     taken_down_at = case when p_takedown then now() else p.taken_down_at end,
+    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,
     updated_by = p_actor
   where p.id = p_property_id
   returning * into v_after;
