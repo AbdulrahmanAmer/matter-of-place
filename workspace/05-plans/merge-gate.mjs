@@ -9,17 +9,26 @@
 // paths-ignore of ci.yml on origin/main (ASSUMED H42 (1)). The post-merge ci job `merge-gate`
 // (app/scripts/merge-gate.mjs) verifies the status and the required checks again, so a merge that
 // skipped this script cannot deploy.
+// `--local-preview <log>` (ruling H73): while the edge answers Cloudflare's 429 (GOTCHAS P-543), a log written by
+// app/scripts/preview-local.mjs for this head stands in for the `preview` check of deploy.yml; every other check is
+// read as without the flag.
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { devNull } from "node:os";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { localPreviewProblem } from "../../app/scripts/preview-local.mjs";
 
 const REPO = "AbdulrahmanAmer/matter-of-place";
 const CI_YML = ".github/workflows/ci.yml";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+// The dev Worker: while it answers Cloudflare's 429, so does every preview on the same workers.dev subdomain.
+const EDGE = "https://matter-of-place-dev.holy-meadow-4327.workers.dev/";
 
 /**
  * @typedef {{ status: number | null, out: string, err: string }} Result
  * @typedef {(command: string, args: string[]) => Result} Run
+ * @typedef {{ path: string, read: (path: string) => string }} LocalPreview
  */
 
 /** @type {Run} */
@@ -139,6 +148,34 @@ function behindByDocumentsOnly(headSha, run) {
 }
 
 /**
+ * Ruling H73: the edge must answer Cloudflare's own 429 now (its code is printed either way), and the log must be
+ * for this pull request and head with every hard step passed.
+ * @param {string} pr
+ * @param {string} headSha
+ * @param {LocalPreview} local
+ * @param {Run} run
+ * @param {string[]} lines
+ * @returns {string} the refusal, or "" when the log stands in for the preview check
+ */
+function localPreviewRefusal(pr, headSha, local, run, lines) {
+  const probe = run("curl", ["-s", "-o", devNull, "-D", "-", "-m", "20", EDGE]);
+  const code = /^HTTP\/\S+ (\d{3})/m.exec(probe.out)?.[1] ?? "none";
+  const server = /^server:[ \t]*(\S+)/im.exec(probe.out)?.[1] ?? "none";
+  lines.push(`edge: ${EDGE} answered ${code} (server ${server})`);
+  if (code !== "429" || server.toLowerCase() !== "cloudflare") {
+    return "merge-gate: --local-preview refused: ruling H73 holds only while the edge answers Cloudflare's 429";
+  }
+  let text = "";
+  try {
+    text = local.read(local.path);
+  } catch (error) {
+    return `merge-gate: cannot read ${local.path}: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  const problem = localPreviewProblem(text, pr, headSha);
+  return problem === "" ? "" : `merge-gate: --local-preview refused: ${problem}`;
+}
+
+/**
  * @param {string} text
  * @returns {string[][]}
  */
@@ -155,11 +192,14 @@ function tsv(text) {
  * and 8 for a pending check), so the verdict is read from the buckets: only `pass` and `skipping`
  * let a merge through. A job that passed with every step skipped looks like any other pass in
  * that list (DO-04), so the steps of each passed job are read and such a job is printed.
+ * With `local` (ruling H73) the `preview` job of deploy.yml may be red, cancelled or pending: the local run's log
+ * stands in for it once `localPreviewRefusal` accepts it, and a `preview-local` status on the head records that.
  * @param {string} pr
  * @param {Run} run
+ * @param {LocalPreview} [local]
  * @returns {{ code: number, lines: string[] }}
  */
-export function mergeGate(pr, run) {
+export function mergeGate(pr, run, local) {
   /** @type {string[]} */
   const lines = [];
   /** @param {string} message */
@@ -189,6 +229,11 @@ export function mergeGate(pr, run) {
     return refuse(`merge-gate: git merge-base failed: ${ancestor.err}`);
   }
 
+  if (local !== undefined) {
+    const refusal = localPreviewRefusal(pr, headSha, local, run, lines);
+    if (refusal !== "") return refuse(refusal);
+  }
+
   const checks = run("gh", [
     "pr",
     "checks",
@@ -209,7 +254,13 @@ export function mergeGate(pr, run) {
     );
   }
   let blocked = false;
+  let standIn = false;
   for (const [bucket = "", workflow = "", name = "", link = ""] of rows) {
+    if (local !== undefined && workflow === "deploy" && name === "preview" && bucket !== "pass") {
+      lines.push(`${bucket}: ${workflow} ${name}`);
+      standIn = true;
+      continue;
+    }
     if (bucket === "pass") {
       const jobId = /\/actions\/runs\/\d+\/job\/(\d+)/.exec(link)?.[1];
       if (jobId === undefined) continue;
@@ -233,6 +284,25 @@ export function mergeGate(pr, run) {
   }
   if (blocked) return refuse("merge-gate: checks are not all green");
 
+  if (local !== undefined && standIn) {
+    const recorded = run("gh", [
+      "api",
+      "-X",
+      "POST",
+      `repos/${REPO}/statuses/${headSha}`,
+      "-f",
+      "state=success",
+      "-f",
+      "context=preview-local",
+      "-f",
+      `description=H73: preview behaviour run on the laptop, ${basename(local.path)}`,
+    ]);
+    if (recorded.status !== 0) {
+      return refuse(`merge-gate: posting the preview-local status failed: ${recorded.err}`);
+    }
+    lines.push(`merge-gate: preview accepted from local run ${local.path} (ruling H73, edge 429)`);
+  }
+
   const status = run("gh", [
     "api",
     "-X",
@@ -251,12 +321,19 @@ export function mergeGate(pr, run) {
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const pr = process.argv[2];
-  if (!/^\d+$/.test(pr ?? "")) {
-    process.stdout.write("usage: node workspace/05-plans/merge-gate.mjs <pr>\n");
+  const [pr, flag, logPath, ...extra] = process.argv.slice(2);
+  const withLog = flag === "--local-preview" && logPath !== undefined && logPath !== "";
+  if (!/^\d+$/.test(pr ?? "") || extra.length > 0 || (flag !== undefined && !withLog)) {
+    process.stdout.write(
+      "usage: node workspace/05-plans/merge-gate.mjs <pr> [--local-preview <log>]\n",
+    );
     process.exit(2);
   }
-  const { code, lines } = mergeGate(pr ?? "", runHere);
+  /** @type {LocalPreview | undefined} */
+  const local = withLog
+    ? { path: logPath, read: (path) => readFileSync(resolve(path), "utf8") }
+    : undefined;
+  const { code, lines } = mergeGate(pr ?? "", runHere, local);
   for (const line of lines) {
     process.stdout.write(`${line}\n`);
   }
