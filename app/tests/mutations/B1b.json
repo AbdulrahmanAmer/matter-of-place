@@ -3772,5 +3772,50 @@
     "replace": "if (collisions.length > 99) {",
     "run": "bunx vitest run tests/unit/bank-merge.test.ts",
     "expect": "refuses two different entries under one number"
+  },
+  {
+    "id": "bank-merge-superseded-lane",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "if (m === b && l !== b) superseded.push",
+    "replace": "if (m === b && l !== b && false) superseded.push",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "is superseded, not lost"
+  },
+  {
+    "id": "bank-merge-superseded-conflict-replace",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "if (at >= 0) mainLines[at] = s.line;",
+    "replace": "if (at >= 0) mainLines[at] = s.old;",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "replaces main's copy in an entry both sides changed"
+  },
+  {
+    "id": "bank-merge-superseded-main",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "else if (l === b && m !== b) superseded.push",
+    "replace": "else if (l === b && m !== b && false) superseded.push",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "lets main's rewrite supersede the lane's untouched copy"
+  },
+  {
+    "id": "bank-merge-superseded-both-changed",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "if (m === b && l !== b) superseded.push",
+    "replace": "if (l !== b) superseded.push",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "supersedes nothing when both sides changed the same line differently"
+  },
+  {
+    "id": "bank-merge-superseded-no-base",
+    "test": "tests/unit/bank-merge.test.ts",
+    "file": "../workspace/05-plans/bank-merge.mjs",
+    "find": "readFileSync(opt(\"--merge-base\") ?? opt(\"--base\"), \"utf8\")",
+    "replace": "readFileSync(opt(\"--base\"), \"utf8\")",
+    "run": "bunx vitest run tests/unit/bank-merge.test.ts",
+    "expect": "keeps today's refusal when the merge base cannot be read"
   }
 ]
