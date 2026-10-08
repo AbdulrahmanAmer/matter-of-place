@@ -2,6 +2,7 @@ import { useState } from "react";
 import { z } from "zod";
 import type { AdminAsset } from "../../domain/admin-assets";
 import { assetKindLabels, assetStatusLabels } from "../../domain/assets";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { RoleGate } from "../ui/RoleGate";
 import { LocalTime } from "../ui/LocalTime";
 import { StatusPill, type Tone } from "../ui/StatusPill";
@@ -71,7 +72,28 @@ function Preview({ asset }: { asset: AdminAsset }) {
   );
 }
 
-type Open = { dialog: "reject" | "caption"; asset: AdminAsset } | null;
+type Dialogs = "reject" | "caption" | "approve" | "rerender";
+type Open = { [Name in Dialogs]: { dialog: Name; asset: AdminAsset } }[Dialogs] | null;
+
+const cardLabel = (asset: AdminAsset) =>
+  `${assetKindLabels[asset.kind]}, revision ${String(asset.revision)}`;
+
+/** What each confirmed move tells the person before it runs, from what the database does with it. */
+const confirmCopy = {
+  approve: {
+    verb: "Approve",
+    done: "approved",
+    body: () => "Once approved, this revision cannot go back to pending.",
+  },
+  rerender: {
+    verb: "Re-render",
+    done: "sent to render again",
+    body: (asset: AdminAsset) =>
+      `A new revision is rendered and this one is marked rejected as superseded${
+        asset.status === "approved" ? ", so its approval is lost" : ""
+      }. The caption and alt text carry over.`,
+  },
+} as const;
 
 /** The pending, approved and rejected creative of the properties, one card each, with the moves open to the actor. */
 export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
@@ -82,16 +104,32 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
   const caption = useEditCaption();
   const [open, setOpen] = useState<Open>(null);
   const busy = approve.isPending || reject.isPending || rerender.isPending;
+  const confirming = open?.dialog === "approve" || open?.dialog === "rerender" ? open : null;
+  const copy = confirming === null ? confirmCopy.approve : confirmCopy[confirming.dialog];
 
   const fail = (error: Error) => {
     toast({ message: error.message, tone: "danger" });
+  };
+
+  const confirm = () => {
+    if (confirming === null) return;
+    const { asset } = confirming;
+    const result = {
+      onSuccess: () => {
+        setOpen(null);
+        toast({ message: `${cardLabel(asset)} ${copy.done}.` });
+      },
+      onError: fail,
+    };
+    if (confirming.dialog === "approve") approve.mutate(asset.id, result);
+    else rerender.mutate([asset.id], result);
   };
 
   return (
     <>
       <ul className="admin-assets">
         {items.map((asset) => {
-          const label = `${assetKindLabels[asset.kind]}, revision ${String(asset.revision)}`;
+          const label = cardLabel(asset);
           return (
             <li key={asset.id}>
               <article className="admin-asset" aria-label={label}>
@@ -134,12 +172,7 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                         className="admin-button"
                         disabled={busy}
                         onClick={() => {
-                          approve.mutate(asset.id, {
-                            onSuccess: () => {
-                              toast({ message: `${label} approved.` });
-                            },
-                            onError: fail,
-                          });
+                          setOpen({ dialog: "approve", asset });
                         }}
                       >
                         Approve
@@ -167,12 +200,7 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                         className="admin-button admin-button--quiet"
                         disabled={busy}
                         onClick={() => {
-                          rerender.mutate([asset.id], {
-                            onSuccess: () => {
-                              toast({ message: `${label} sent to render again.` });
-                            },
-                            onError: fail,
-                          });
+                          setOpen({ dialog: "rerender", asset });
                         }}
                       >
                         Re-render
@@ -199,6 +227,22 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
           );
         })}
       </ul>
+      <ConfirmDialog
+        open={confirming !== null}
+        title={
+          confirming === null
+            ? copy.verb
+            : `${copy.verb} ${cardLabel(confirming.asset).toLowerCase()}`
+        }
+        confirmLabel={copy.verb}
+        pending={approve.isPending || rerender.isPending}
+        onConfirm={confirm}
+        onCancel={() => {
+          setOpen(null);
+        }}
+      >
+        <p>{confirming === null ? "" : copy.body(confirming.asset)}</p>
+      </ConfirmDialog>
       <RejectDialog
         open={open?.dialog === "reject"}
         title={
@@ -227,7 +271,6 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
       {open?.dialog === "caption" ? (
         <CaptionEditor
           asset={open.asset}
-          open
           pending={caption.isPending}
           error={caption.error?.message ?? null}
           onSave={(edit) => {

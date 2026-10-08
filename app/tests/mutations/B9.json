@@ -2987,5 +2987,52 @@
     "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"Work group\"",
     "expect": "getByRole\\('link', \\{ name: 'Assets', exact: true \\}\\)",
     "what": "by hand with the dev profile loaded: move src/routes/admin/assets.index.tsx and assets.index.lazy.tsx out of the folder, build, run the case; with no route the navigation draws no Assets link (restore the files and build again)"
+  },
+  {
+    "id": "b9g2-confirm-approve",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "setOpen({ dialog: \"approve\", asset });",
+    "replace": "approve.mutate(asset.id);",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"asks before it approves\"",
+    "expect": "Unable to find an accessible element with the role \"dialog\" and name \"Approve cover, revision 1\""
+  },
+  {
+    "id": "b9g2-confirm-rerender",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "setOpen({ dialog: \"rerender\", asset });",
+    "replace": "rerender.mutate([asset.id]);",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"asks before it approves\"",
+    "expect": "Unable to find an accessible element with the role \"dialog\" and name \"Re-render cover, revision 1\""
+  },
+  {
+    "id": "b9g2-confirm-approval-lost",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "asset.status === \"approved\" ? \", so its approval is lost\" : \"\"",
+    "replace": "\"\"",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"warns that an approved card\"",
+    "expect": "Unable to find an element with the text: /so its approval is lost/"
+  },
+  {
+    "id": "b9g2-button-asks",
+    "test": "src/admin/properties/RerenderAssetsButton.test.tsx",
+    "file": "src/admin/properties/RerenderAssetsButton.tsx",
+    "find": "setAsking(true);",
+    "replace": "request();",
+    "run": "bunx vitest run --project component src/admin/properties/RerenderAssetsButton.test.tsx -t \"one call for each current asset\"",
+    "expect": "Unable to find an accessible element with the role \"dialog\" and name \"Request re-render of assets\""
+  },
+  {
+    "id": "b9g2-e2e-approve-asks",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "setOpen({ dialog: \"approve\", asset });",
+    "replace": "approve.mutate(asset.id);",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"approving\"",
+    "expect": "Expected: \"pending\"",
+    "what": "by hand with the dev profile loaded: the Approve button sends the approve at once, so the row is already approved when the dialog should still be asking"
   }
 ]

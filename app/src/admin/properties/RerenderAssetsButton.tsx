@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AdminAsset } from "../../domain/admin-assets";
 import { useAssets, useRerenderAssets } from "../assets/assets-queries";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { JobWatcher, type WatchedJob } from "../ui/JobWatcher";
 import { RoleGate } from "../ui/RoleGate";
 import { useToast } from "../ui/use-toast";
@@ -32,6 +33,7 @@ export function RerenderAssetsButton({ propertyId }: { propertyId: string }) {
   const assets = useAssets({ property_id: propertyId });
   const rerender = useRerenderAssets();
   const [jobs, setJobs] = useState<WatchedJob[]>([]);
+  const [asking, setAsking] = useState(false);
   const current = currentAssets(assets.data?.items ?? []);
 
   const request = () => {
@@ -52,6 +54,9 @@ export function RerenderAssetsButton({ propertyId }: { propertyId: string }) {
         onError: (error) => {
           toast({ message: error.message, tone: "danger" });
         },
+        onSettled: () => {
+          setAsking(false);
+        },
       },
     );
   };
@@ -62,10 +67,28 @@ export function RerenderAssetsButton({ propertyId }: { propertyId: string }) {
         type="button"
         className="admin-button admin-button--quiet"
         disabled={current.length === 0 || rerender.isPending}
-        onClick={request}
+        onClick={() => {
+          setAsking(true);
+        }}
       >
         Request re-render of assets
       </button>
+      <ConfirmDialog
+        open={asking}
+        title="Request re-render of assets"
+        confirmLabel="Re-render"
+        pending={rerender.isPending}
+        onConfirm={request}
+        onCancel={() => {
+          setAsking(false);
+        }}
+      >
+        <p>
+          Each of the {current.length} current assets gets a new revision, and the revision it
+          replaces is marked rejected as superseded, an approved one included. Captions and alt text
+          carry over.
+        </p>
+      </ConfirmDialog>
       {assets.data !== undefined && current.length === 0 ? (
         <span className="admin-asset__note">No assets yet.</span>
       ) : null}

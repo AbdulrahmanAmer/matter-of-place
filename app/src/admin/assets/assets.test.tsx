@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AdminAsset } from "../../domain/admin-assets";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
+import { standInForDialogs } from "../ui/test-dialog";
 import { ToastProvider } from "../ui/Toast";
 import { AssetCards } from "./AssetCards";
 import { useAssets } from "./assets-queries";
@@ -11,15 +12,7 @@ import { useAssets } from "./assets-queries";
 const PROPERTY = "00000000-0000-4000-8000-0000000000a1";
 const ALL_ACTIONS = ["assets.approve", "assets.reject", "assets.re_render", "assets.caption"];
 
-// jsdom has no showModal or close on <dialog>; these stand in for the browser's, which only toggle `open`.
-beforeAll(() => {
-  HTMLDialogElement.prototype.showModal = function showModal() {
-    this.setAttribute("open", "");
-  };
-  HTMLDialogElement.prototype.close = function close() {
-    this.removeAttribute("open");
-  };
-});
+beforeAll(standInForDialogs);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -266,9 +259,41 @@ describe("AssetCards", () => {
       waiting: cover.getByText("Waiting for the caption runner.").tagName,
     }).toEqual({ error: "chromium exited 1", waiting: "P" });
     fireEvent.click(cover.getByRole("button", { name: "Re-render" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Re-render cover, revision 1" })).getByRole(
+        "button",
+        { name: "Re-render" },
+      ),
+    );
     await waitFor(() => {
       expect(requested).toEqual([`POST /api/admin/assets/${COVER}/rerender`]);
     });
+  });
+
+  it("asks before it approves or re-renders, says what follows, and sends nothing on Cancel", () => {
+    const requested = serve();
+    mount(<AssetCards items={[asset({ id: COVER, kind: "cover", status: "pending" })]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    const approving = within(screen.getByRole("dialog", { name: "Approve cover, revision 1" }));
+    const approveText = approving.getByText(/cannot go back to pending/).tagName;
+    fireEvent.click(approving.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Re-render" }));
+    const rerendering = within(screen.getByRole("dialog", { name: "Re-render cover, revision 1" }));
+    const rerenderText = rerendering.getByText(/marked rejected as superseded./).tagName;
+    fireEvent.click(rerendering.getByRole("button", { name: "Cancel" }));
+    expect({ approveText, rerenderText, requested, open: screen.queryByRole("dialog") }).toEqual({
+      approveText: "P",
+      rerenderText: "P",
+      requested: [],
+      open: null,
+    });
+  });
+
+  it("warns that an approved card loses its approval when it is re-rendered", () => {
+    serve();
+    mount(<AssetCards items={[asset({ id: COVER, kind: "cover", status: "approved" })]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Re-render" }));
+    expect(screen.getByText(/so its approval is lost/).tagName).toBe("P");
   });
 
   it("turns a pending card to approved after the approve answers", async () => {
@@ -291,6 +316,12 @@ describe("AssetCards", () => {
     mount(<Page />);
     const before = await screen.findByText("Pending");
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Approve cover, revision 1" })).getByRole(
+        "button",
+        { name: "Approve" },
+      ),
+    );
     const after = await screen.findByText("Approved");
     expect({
       before: before.tagName,

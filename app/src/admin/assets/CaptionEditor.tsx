@@ -128,14 +128,12 @@ function CaptionForm({
 /** The three caption variants and the alt text of one asset. The server checks each variant against the house voice. */
 export function CaptionEditor({
   asset,
-  open,
   pending,
   error,
   onSave,
   onCancel,
 }: {
   asset: AdminAsset;
-  open: boolean;
   pending: boolean;
   /** The server's refusal of the last save, shown under the alt text. */
   error: string | null;
@@ -143,7 +141,7 @@ export function CaptionEditor({
   onCancel: () => void;
 }) {
   return (
-    <Dialog open={open} onClose={onCancel} label="Edit caption">
+    <Dialog open onClose={onCancel} label="Edit caption">
       <CaptionForm
         asset={asset}
         pending={pending}

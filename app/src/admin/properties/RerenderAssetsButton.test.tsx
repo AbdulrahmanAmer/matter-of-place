@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AdminAsset } from "../../domain/admin-assets";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
+import { standInForDialogs } from "../ui/test-dialog";
 import { ToastProvider } from "../ui/Toast";
 import { RerenderAssetsButton } from "./RerenderAssetsButton";
 
@@ -68,6 +69,8 @@ function serve(items: AdminAsset[]) {
   return requested;
 }
 
+beforeAll(standInForDialogs);
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -97,7 +100,11 @@ describe("RerenderAssetsButton", () => {
       expect(button).toHaveProperty("disabled", false);
     });
     fireEvent.click(button);
+    const dialog = within(screen.getByRole("dialog", { name: "Request re-render of assets" }));
+    const before = requested.filter((line) => line.startsWith("POST"));
+    fireEvent.click(dialog.getByRole("button", { name: "Re-render" }));
     expect(await screen.findByText("render cover")).toBeTruthy();
+    expect(before).toEqual([]);
     expect(requested.filter((line) => line.startsWith("POST")).sort()).toEqual([
       `POST /api/admin/assets/${idOf(2)}/rerender`,
       `POST /api/admin/assets/${idOf(4)}/rerender`,

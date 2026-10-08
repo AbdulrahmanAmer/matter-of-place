@@ -8,6 +8,7 @@ import type { TablesInsert } from "../../src/db";
 import { publishedPropertyRow } from "../fixtures/factories";
 import { holdDevLock } from "../fixtures/dev-lock";
 import { serviceClient } from "../fixtures/service";
+import { checkpoint } from "./fixtures/a11y";
 import { signInAs } from "./helpers/session";
 
 // B9 step 11, screen 10. The rows are a property of its own, `__e2e-assets`, and assets whose files are keys that no
@@ -233,6 +234,7 @@ test("screen 10 draws a card for each kind of the open property, with its pictur
     await expect(image).toBeVisible();
     expect(await image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0);
   }
+  await checkpoint(page, "/admin/assets");
 });
 
 test("the carousel goes through all eight slides by button and back by a swipe", async () => {
@@ -258,6 +260,10 @@ test("approving a pending card turns it to approved", async () => {
   const email = card("Standalone email, revision 1");
   await expect(email.getByText("Pending")).toBeVisible();
   await email.getByRole("button", { name: "Approve" }).click();
+  const dialog = page.getByRole("dialog", { name: "Approve standalone email, revision 1" });
+  await checkpoint(page, "/admin/assets approve dialog");
+  expect((await rowOf(ids.email))?.status).toBe("pending");
+  await dialog.getByRole("button", { name: "Approve" }).click();
   await expect(email.getByText("Approved")).toBeVisible();
   await expect(email.getByRole("button", { name: "Approve" })).toHaveCount(0);
   expect((await rowOf(ids.email))?.status).toBe("approved");
@@ -268,6 +274,7 @@ test("a reject asks for a note and turns the card to rejected once it has one", 
   const story = card("Story, revision 1");
   await story.getByRole("button", { name: "Reject" }).click();
   const dialog = page.getByRole("dialog", { name: "Reject story, revision 1" });
+  await checkpoint(page, "/admin/assets reject dialog");
   await dialog.getByRole("button", { name: "Reject" }).click();
   await expect(dialog.getByRole("alert")).toHaveText("A reject needs a note.");
   expect((await rowOf(ids.story))?.status).toBe("pending");
