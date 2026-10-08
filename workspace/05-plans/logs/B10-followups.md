@@ -345,3 +345,23 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: The proofs include no bundle check (G16) for this commit. The WIP ran one on a live build, but the fix commit adds a ConfirmDialog import to admin-only files and was not re-checked. My local build without VITE_API_BASE_URL fails bundle-check on seed titles. That is expected for a non-live build, so it says nothing either way. The PR's CI build job is the judge: UNPROVEN until it runs.
 - evidence: cd app && node scripts/bundle-check.mjs after a plain bun run build prints 'FAIL ... holds the seed title ... of src/data/properties.ts', 'bundle-check: FAILED 7'. CI sets VITE_API_BASE_URL before its build (.github/workflows/ci.yml line 99).
 - blocking: false
+
+## g10 · steps 10
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The two that name GOTCHAS.md are banked as P-2457 and P-2458, so they are not repeated here.
+
+### app/tests/unit/scripts/auto-approve-rehearsal.test.ts
+
+- what: The group's main departure from the plan (keep the instagram row open until the Feature asset's social_posts row exists, then restore it; P-2452) is not pinned by any test. The stub's social_posts answer does not depend on channel_settings, and the events list records writes but not the poll, so moving the restore back before the poll (the plan's original order, which P-2452 shows cannot work) leaves all ten cases green. P-2452's proof is a grep for awaitInstagramPost, which cannot show the order either. Not blocking: the real mop-dev run (which I re-ran) proves the current order works, and a regression would show up as 'social_posts instagram none after 150 seconds' with exit 1, not as silent damage. Fix: make the stub's social_posts read return a row only while channel_settings instagram is enabled, and add a b10g10 entry that moves the restore.
+- evidence: watchfail.mjs --file scripts/auto-approve-rehearsal.ts --find '<the poll line, return exit, finally { await writeInstagram(db, before); }>' --replace '<await writeInstagram(db, before); then the poll; catch restores and rethrows>' --expect FAIL gave 'WATCHED-FAIL BAD: stayed green', exit 1
+- blocking: false
+
+- what: STANDARDS R50 (unit tests reach a database only through tests/fixtures/fake-db.ts, which throws on any unregistered table) and C05 (no second copy of a fixture helper): lines 42-105 build a second filter-honouring stub client next to tableDb in tests/fixtures/channel-db.ts. Unlike fakeDb/tableDb it answers [] for any table it does not know (line 83, `tables[this.table] ?? []`). Line 107 also adds a second cast labelled 'the one cast of the stub client (CS-12)'. The probable reason is that fakeDb and tableDb only support select, while the script needs update and insert. That should become one shared fixture extension, not a private stub. Not blocking: I could not name an input where this lets a wrong script pass, because readInstagram's zod parse would fail on an unknown table.
+- evidence: line 83 of the test: (tables[this.table] ?? []); grep -n 'unexpected table' tests/fixtures/fake-db.ts tests/fixtures/channel-db.ts shows that the shared fixtures throw
+- blocking: false
+
+### app/scripts/auto-approve-rehearsal.ts
+
+- what: UNPROVEN, as the author says: the SOCIAL_DRY_RUN branch (post-to-channel.ts line 444, social_dry_run) was never reached. Both real runs returned retry_at outside the posting window before the dry-run check, so 'dry run posts nothing' rests on reading the code. Each run also leaves a queued post_meta job for a fixture carousel with made-up media keys on the one database that becomes production (H35): 707e1b18 runs at 2026-10-08T13:00Z and edde7374 (from my re-run) at 2026-10-13T13:00Z. If step 7 or the launch switch has enabled instagram and unset the flag by then, the job gets past skipped_disabled. It is then stopped by stillApproved (human_approval_required) unless Feature has been set to auto. The orchestrator should have step 7 or L1 cancel the rehearsal's queued post jobs, or confirm they have finished, before the flag is unset.
+- evidence: pg: select type,status,result,run_after from jobs where payload::text like '%edde7374%' gives post_meta queued {instagram: retry_at} run_after 2026-10-13T13:00Z; the same query for 707e1b18 gives run_after 2026-10-08T13:00Z
+- blocking: false
