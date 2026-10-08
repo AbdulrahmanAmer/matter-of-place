@@ -20,6 +20,7 @@ import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
+import { Route as SiteAccessibilityRouteImport } from './routes/_site.accessibility'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
 import { Route as SiteCookiesRouteImport } from './routes/_site.cookies'
 import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
@@ -29,10 +30,13 @@ import { Route as SiteLegalRouteImport } from './routes/_site.legal'
 import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
 import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
 import { Route as SitePrivacyChoicesRouteImport } from './routes/_site.privacy-choices'
+import { Route as SitePrivacyRequestRouteImport } from './routes/_site.privacy-request'
 import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
+import { Route as SiteTermsRouteImport } from './routes/_site.terms'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
@@ -71,6 +75,7 @@ import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inqu
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
 import { Route as ApiPublicSearchRouteImport } from './routes/api/public/search'
+import { Route as ApiPublicSiteRouteImport } from './routes/api/public/site'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
@@ -221,6 +226,11 @@ const SiteAboutRoute = SiteAboutRouteImport.update({
   path: '/about',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteAccessibilityRoute = SiteAccessibilityRouteImport.update({
+  id: '/accessibility',
+  path: '/accessibility',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteContactRoute = SiteContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -266,9 +276,19 @@ const SitePricingRoute = SitePricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => SiteRoute,
 } as any)
+const SitePrivacyRoute = SitePrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SitePrivacyChoicesRoute = SitePrivacyChoicesRouteImport.update({
   id: '/privacy-choices',
   path: '/privacy-choices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePrivacyRequestRoute = SitePrivacyRequestRouteImport.update({
+  id: '/privacy-request',
+  path: '/privacy-request',
   getParentRoute: () => SiteRoute,
 } as any)
 const SitePropertiesRoute = SitePropertiesRouteImport.update({
@@ -284,6 +304,11 @@ const SiteStoriesRoute = SiteStoriesRouteImport.update({
 const SiteSubmitRoute = SiteSubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteTermsRoute = SiteTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => SiteRoute,
 } as any)
 const AdminSignInRoute = AdminSignInRouteImport.update({
@@ -498,6 +523,11 @@ const ApiPublicPropertiesRoute = ApiPublicPropertiesRouteImport.update({
 const ApiPublicSearchRoute = ApiPublicSearchRouteImport.update({
   id: '/api/public/search',
   path: '/api/public/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSiteRoute = ApiPublicSiteRouteImport.update({
+  id: '/api/public/site',
+  path: '/api/public/site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicStoriesRoute = ApiPublicStoriesRouteImport.update({
@@ -1030,6 +1060,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
+  '/accessibility': typeof SiteAccessibilityRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1039,10 +1070,13 @@ export interface FileRoutesByFullPath {
   '/markets': typeof SiteMarketsRouteWithChildren
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
+  '/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1070,6 +1104,7 @@ export interface FileRoutesByFullPath {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1183,6 +1218,7 @@ export interface FileRoutesByTo {
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/about': typeof SiteAboutRoute
+  '/accessibility': typeof SiteAccessibilityRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1191,9 +1227,12 @@ export interface FileRoutesByTo {
   '/legal': typeof SiteLegalRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/submit': typeof SiteSubmitRoute
+  '/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1222,6 +1261,7 @@ export interface FileRoutesByTo {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1338,6 +1378,7 @@ export interface FileRoutesById {
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
+  '/_site/accessibility': typeof SiteAccessibilityRoute
   '/_site/contact': typeof SiteContactRoute
   '/_site/cookies': typeof SiteCookiesRoute
   '/_site/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1347,10 +1388,13 @@ export interface FileRoutesById {
   '/_site/markets': typeof SiteMarketsRouteWithChildren
   '/_site/place-notes': typeof SitePlaceNotesRoute
   '/_site/pricing': typeof SitePricingRoute
+  '/_site/privacy': typeof SitePrivacyRoute
   '/_site/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/_site/privacy-request': typeof SitePrivacyRequestRoute
   '/_site/properties': typeof SitePropertiesRoute
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
+  '/_site/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1379,6 +1423,7 @@ export interface FileRoutesById {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1496,6 +1541,7 @@ export interface FileRouteTypes {
     | '/.well-known/security.txt'
     | '/$market'
     | '/about'
+    | '/accessibility'
     | '/contact'
     | '/cookies'
     | '/editorial-standard'
@@ -1505,10 +1551,13 @@ export interface FileRouteTypes {
     | '/markets'
     | '/place-notes'
     | '/pricing'
+    | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/stories'
     | '/submit'
+    | '/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1536,6 +1585,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1649,6 +1699,7 @@ export interface FileRouteTypes {
     | '/.well-known/mta-sts.txt'
     | '/.well-known/security.txt'
     | '/about'
+    | '/accessibility'
     | '/contact'
     | '/cookies'
     | '/editorial-standard'
@@ -1657,9 +1708,12 @@ export interface FileRouteTypes {
     | '/legal'
     | '/place-notes'
     | '/pricing'
+    | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/submit'
+    | '/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1688,6 +1742,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1803,6 +1858,7 @@ export interface FileRouteTypes {
     | '/.well-known/security.txt'
     | '/_site/$market'
     | '/_site/about'
+    | '/_site/accessibility'
     | '/_site/contact'
     | '/_site/cookies'
     | '/_site/editorial-standard'
@@ -1812,10 +1868,13 @@ export interface FileRouteTypes {
     | '/_site/markets'
     | '/_site/place-notes'
     | '/_site/pricing'
+    | '/_site/privacy'
     | '/_site/privacy-choices'
+    | '/_site/privacy-request'
     | '/_site/properties'
     | '/_site/stories'
     | '/_site/submit'
+    | '/_site/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1844,6 +1903,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1972,6 +2032,7 @@ export interface RootRouteChildren {
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRouteWithChildren
   ApiPublicSearchRoute: typeof ApiPublicSearchRoute
+  ApiPublicSiteRoute: typeof ApiPublicSiteRoute
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
@@ -2090,6 +2151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteAboutRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/accessibility': {
+      id: '/_site/accessibility'
+      path: '/accessibility'
+      fullPath: '/accessibility'
+      preLoaderRoute: typeof SiteAccessibilityRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/contact': {
       id: '/_site/contact'
       path: '/contact'
@@ -2153,11 +2221,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePricingRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/privacy': {
+      id: '/_site/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof SitePrivacyRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/privacy-choices': {
       id: '/_site/privacy-choices'
       path: '/privacy-choices'
       fullPath: '/privacy-choices'
       preLoaderRoute: typeof SitePrivacyChoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/privacy-request': {
+      id: '/_site/privacy-request'
+      path: '/privacy-request'
+      fullPath: '/privacy-request'
+      preLoaderRoute: typeof SitePrivacyRequestRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/properties': {
@@ -2179,6 +2261,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SiteSubmitRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/terms': {
+      id: '/_site/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof SiteTermsRouteImport
       parentRoute: typeof SiteRoute
     }
     '/admin/sign-in': {
@@ -2445,6 +2534,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/search'
       fullPath: '/api/public/search'
       preLoaderRoute: typeof ApiPublicSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/site': {
+      id: '/api/public/site'
+      path: '/api/public/site'
+      fullPath: '/api/public/site'
+      preLoaderRoute: typeof ApiPublicSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/stories': {
@@ -3141,6 +3237,7 @@ const SiteStoriesRouteWithChildren = SiteStoriesRoute._addFileChildren(
 interface SiteRouteChildren {
   SiteMarketRoute: typeof SiteMarketRouteWithChildren
   SiteAboutRoute: typeof SiteAboutRoute
+  SiteAccessibilityRoute: typeof SiteAccessibilityRoute
   SiteContactRoute: typeof SiteContactRoute
   SiteCookiesRoute: typeof SiteCookiesRoute
   SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
@@ -3150,10 +3247,13 @@ interface SiteRouteChildren {
   SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
   SitePlaceNotesRoute: typeof SitePlaceNotesRoute
   SitePricingRoute: typeof SitePricingRoute
+  SitePrivacyRoute: typeof SitePrivacyRoute
   SitePrivacyChoicesRoute: typeof SitePrivacyChoicesRoute
+  SitePrivacyRequestRoute: typeof SitePrivacyRequestRoute
   SitePropertiesRoute: typeof SitePropertiesRoute
   SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
   SiteSubmitRoute: typeof SiteSubmitRoute
+  SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
@@ -3162,6 +3262,7 @@ interface SiteRouteChildren {
 const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketRoute: SiteMarketRouteWithChildren,
   SiteAboutRoute: SiteAboutRoute,
+  SiteAccessibilityRoute: SiteAccessibilityRoute,
   SiteContactRoute: SiteContactRoute,
   SiteCookiesRoute: SiteCookiesRoute,
   SiteEditorialStandardRoute: SiteEditorialStandardRoute,
@@ -3171,10 +3272,13 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketsRoute: SiteMarketsRouteWithChildren,
   SitePlaceNotesRoute: SitePlaceNotesRoute,
   SitePricingRoute: SitePricingRoute,
+  SitePrivacyRoute: SitePrivacyRoute,
   SitePrivacyChoicesRoute: SitePrivacyChoicesRoute,
+  SitePrivacyRequestRoute: SitePrivacyRequestRoute,
   SitePropertiesRoute: SitePropertiesRoute,
   SiteStoriesRoute: SiteStoriesRouteWithChildren,
   SiteSubmitRoute: SiteSubmitRoute,
+  SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
@@ -3600,6 +3704,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRouteWithChildren,
   ApiPublicSearchRoute: ApiPublicSearchRoute,
+  ApiPublicSiteRoute: ApiPublicSiteRoute,
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,

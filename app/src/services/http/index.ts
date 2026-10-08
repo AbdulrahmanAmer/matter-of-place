@@ -8,6 +8,7 @@ import {
   submissionReceiptSchema,
 } from "../../domain/contracts";
 import { marketSchema } from "../../domain/market";
+import type { PublicSite } from "../../domain/settings";
 import { propertySchema } from "../../domain/property";
 import { prepareImage, type PreparedImage } from "../../lib/image-prep";
 import { getTurnstileToken } from "../../lib/turnstile";
@@ -22,6 +23,8 @@ import {
   type InquiryService,
   type NewsletterService,
   type SearchService,
+  type SiteService,
+  type SubjectsService,
   type SubmissionService,
 } from "../types";
 
@@ -38,6 +41,15 @@ const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
     throw error;
   }
 };
+
+const text = z.string().nullable();
+/** The body the server already validated; the type ties it to `PublicSite`, which the server builds. */
+const publicSiteSchema: z.ZodType<PublicSite> = z.object({
+  contact: z.object({ email: text, phone: text, privacy_email: text }),
+  legal: z.object({ entity: text, address: text }),
+  social: z.object({ instagram: text, x: text, linkedin: text }),
+  illustrativeContent: z.boolean(),
+});
 
 /**
  * A form write carries Turnstile's token, named for the route's bucket (G72, INT-02), when the browser has one, and
@@ -127,5 +139,17 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
     answer: (question) => api.post("/concierge", question, conciergeAnswerSchema),
   };
 
-  return { catalog, inquiries, submissions, newsletter, search, concierge };
+  const site: SiteService = {
+    get: () => api.get("/site", publicSiteSchema),
+  };
+
+  const subjects: SubjectsService = {
+    request: async (input) => {
+      const { body, init } = await guarded("subjects-request", input);
+      await api.post("/subjects/request", body, receiptSchema, init);
+      return { ok: true };
+    },
+  };
+
+  return { catalog, inquiries, submissions, newsletter, search, concierge, site, subjects };
 }

@@ -30,6 +30,7 @@ const guardedScripts = [
   "scripts/email-chain.ts",
   "scripts/with-maintenance.ts",
   "scripts/auth-invite-test.ts",
+  "scripts/set-site.ts",
   "scripts/admin-smoke.ts",
   "scripts/lib/test-post.ts",
   "scripts/newsletter-test-send.ts",

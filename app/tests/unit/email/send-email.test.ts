@@ -16,6 +16,7 @@ import {
   FROM,
   FROM_BULK,
   JOB_KEY,
+  PRODUCTION_SHARE,
   resendError,
   stepCtx,
   SUBMISSION_ID,
@@ -300,6 +301,20 @@ describe("send_email", () => {
     expect(
       [withContact, withoutContact].map(({ fetch }) => fetch.requests[0]?.body.reply_to),
     ).toEqual([CONTACT, ADMIN]);
+  });
+
+  it("reply to: a malformed settings.site reads as unset", async () => {
+    const malformed = setup({
+      contact: null,
+      tables: {
+        settings: [
+          { key: "email", value: PRODUCTION_SHARE },
+          { key: "site", value: "not an object" },
+        ],
+      },
+    });
+    await malformed.run();
+    expect(malformed.fetch.requests[0]?.body.reply_to).toBe(ADMIN);
   });
 
   it("with EMAIL_DRY_RUN=1 makes no fetch and records skipped with a dry_ id", async () => {

@@ -2,8 +2,10 @@ import { vi } from "vitest";
 import { z } from "zod";
 import { definitionRow, definitions } from "../../src/templates/email/index";
 import { captureException } from "../../src/server/lib/sentry";
+import { resetPublicStateMemo } from "../../src/server/public/state";
 import type { Reporter, StepContext } from "../../src/server/jobs/types";
 import { fakeDb, type FakeDb, type FakeDbOptions } from "./fake-db";
+import { stateJson } from "./snapshot";
 
 // The world a send runs in for the email unit tests (B5 step 4): the message rows as `email_message_begin` and
 // `email_message_finish` keep them, tables that answer their filters, a Resend that keeps Idempotency-Keys like the
@@ -182,8 +184,13 @@ export interface World {
 export function emailWorld(world: World = {}) {
   const messages: MessageRow[] = [];
   let finishFails = world.finishFails ?? 0;
+  const contact = world.contact === undefined ? CONTACT : world.contact;
+  // The identity lines come from the shared public state, memoised per isolate: a new world starts without the last one's.
+  resetPublicStateMemo();
   const db = fakeDb({
     rpc: {
+      public_state: () =>
+        stateJson(7, { site: contact === null ? null : { contact: { email: contact } } }),
       email_sent_today: () => world.sentToday ?? 0,
       email_sent_month: () => world.sentMonth ?? 0,
       email_message_begin: (args) => {
@@ -227,7 +234,6 @@ export function emailWorld(world: World = {}) {
       ...world.rpc,
     },
   });
-  const contact = world.contact === undefined ? CONTACT : world.contact;
   const seeded = definitions.map(({ definition }) => ({
     ...definitionRow(definition),
     class: definition.class,
