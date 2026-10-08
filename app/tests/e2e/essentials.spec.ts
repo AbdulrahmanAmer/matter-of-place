@@ -152,7 +152,7 @@ test.describe("consent", () => {
   }) => {
     const render = async (headers: Record<string, string>) => {
       const response = await request.get("/?preview=consent", { headers });
-      expect(response.headers()["x-mop-cache"]).toBeUndefined();
+      expect(response.headers()["x-mop-cache"]).toBe("bypass");
       expect(response.headers()["cache-control"]).toBe("no-store");
       return (await response.text()).replace(/\b\d{13}\b/g, "0");
     };
