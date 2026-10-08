@@ -5171,3 +5171,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run jscpd` -> `Found 0 clones.` on slice/b8 (2026-10-08); with `listJobs` carrying `listPayments`' page block again it prints the clone.
 - hit again: P-2121 and P-1221 name the same gate for a render step and a script; none covers a list service.
 - added: 2026-10-08
+
+## P-2601 · A registry `sql` mutant that replaces a function must keep the parameter defaults the migration gives, or the replay is WATCHED-FAIL BAD
+- symptom: PR 238's `db` job, step mutation replay: `WATCHED-FAIL BAD: wrong reason (B8:emit-entity)`, expected `+ "entity_id": null`, got `error: cannot remove parameter defaults from existing function` from `withRollback`.
+- cause: the entry's `create or replace function public.emit_event(...)` was written against an older signature without `default null` on `p_entity_id` and `default '{}'` on `p_payload`; the branch's migration `20261004060603_system_jobs.sql` gives both, and Postgres refuses a replacement that drops a default, so the mutant never ran.
+- rule: copy the mutant's signature from the migration as it stands on the branch (defaults included) and change only the line the mutant is about; when a migration changes a function a registry entry replaces, re-read the entry in the same commit.
+- proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only emit-entity` -> `WATCHED-FAIL OK B8:emit-entity`; the PR's `db` job runs the replay against a from-zero database where the defaults exist.
+- added: 2026-10-08

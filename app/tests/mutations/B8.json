@@ -219,7 +219,7 @@
     "id": "emit-entity",
     "kind": "sql",
     "test": "tests/db/jobs.db.test.ts",
-    "sql": "create or replace function public.emit_event(\n  p_type text,\n  p_entity text,\n  p_entity_id uuid,\n  p_payload jsonb,\n  p_actor_id uuid default null\n)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- A type outside the catalog fails the check constraint, so the caller's write rolls back with it.\n  insert into public.events (type, entity, entity_id, payload, actor_id)\n  values (p_type, p_entity, null, coalesce(p_payload, '{}'::jsonb), p_actor_id)\n  returning id\n$$;",
+    "sql": "create or replace function public.emit_event(\n  p_type text,\n  p_entity text,\n  p_entity_id uuid default null,\n  p_payload jsonb default '{}',\n  p_actor_id uuid default null\n)\nreturns uuid\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- A type outside the catalog fails the check constraint, so the caller's write rolls back with it.\n  insert into public.events (type, entity, entity_id, payload, actor_id)\n  values (p_type, p_entity, null, coalesce(p_payload, '{}'::jsonb), p_actor_id)\n  returning id\n$$;",
     "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"emit_event inserts a row\"",
     "expect": "× .*emit_event inserts a row of a catalog type[\\s\\S]*\\+   \"entity_id\": null"
   },
