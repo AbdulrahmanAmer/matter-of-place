@@ -27,12 +27,13 @@
         "5b",
         "6",
         "7",
+        "7b",
         "8",
         "9",
         "10"
       ],
       "inReview": [],
-      "note": "Steps 1 to 10 accepted and on main (PR 43 merged 2026-10-03, e6f05e9); step 7b running; step 9 is recorded BLOCKED on GitHub Pro (H5) with the merge gate as the substitute; step 11 waits on L1."
+      "note": "Steps 1 to 10 and 7b accepted and on main (PR 43 merged 2026-10-03, e6f05e9; 7b, the rollback rehearsal, reviewed in g8 with no blocking defect, ledger corrected 2026-10-08); step 9 is recorded BLOCKED on GitHub Pro (H5) with the merge gate as the substitute; step 11 (edge rules on the custom domain) waits on L1 by design."
     },
     "B2": {
       "accepted": [
