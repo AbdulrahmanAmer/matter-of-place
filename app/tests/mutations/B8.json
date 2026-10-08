@@ -2403,5 +2403,169 @@
     "run": "bunx vitest run --project db tests/api/subjects.api.test.ts",
     "expect": "× .*answers 201 with a Receipt and stores one received request",
     "procedure": "The event is emitted inside create_subject_request; mutations r and g2-subject-kind only (G20); its mutations are replayed in the rolled-back tests/db/jobs.db.test.ts step 2a cases. Here the write is reached through supabase-js, which cannot see a rolled-back function (P-901), and only main may change mop-dev (R18): the CI db job runs this file against the branch's own migrations."
+  },
+  {
+    "id": "s9-retry-roles",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/lib/permissions/jobs.ts",
+    "find": "{ action: \"jobs.retry\", group: \"jobs\", roles: operators },",
+    "replace": "{ action: \"jobs.retry\", group: \"jobs\", roles: appRoles },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses commercial a retry"
+  },
+  {
+    "id": "s9-operators",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/lib/permissions/jobs.ts",
+    "find": "const operators = [\"media_ops\", \"admin\"] as const;",
+    "replace": "const operators = [\"admin\"] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*lets media_ops retry a dead job"
+  },
+  {
+    "id": "s9-retry-agent",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/lib/permissions/jobs.ts",
+    "find": "{ action: \"jobs.retry\", group: \"jobs\", roles: operators },",
+    "replace": "{ action: \"jobs.retry\", group: \"jobs\", roles: operators, humanOnly: true },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*lets an agent key scoped to jobs retry"
+  },
+  {
+    "id": "s9-approve-human",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/lib/permissions/jobs.ts",
+    "find": "{ action: \"jobs.approve\", group: \"jobs\", roles: operators, humanOnly: true },",
+    "replace": "{ action: \"jobs.approve\", group: \"jobs\", roles: operators },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses an agent key an approve and a retry-bulk"
+  },
+  {
+    "id": "s9-bulk-human",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/lib/permissions/jobs.ts",
+    "find": "{ action: \"jobs.retry_bulk\", group: \"jobs\", roles: operators, humanOnly: true },",
+    "replace": "{ action: \"jobs.retry_bulk\", group: \"jobs\", roles: operators },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses an agent key an approve and a retry-bulk"
+  },
+  {
+    "id": "s9-one-rpc",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "return act(actor, db, \"admin_cancel_job\", input.id, \"cancelled\");",
+    "replace": "return act(actor, db, \"admin_retry_job\", input.id, \"cancelled\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*makes exactly one RPC for each of retry, cancel and approve"
+  },
+  {
+    "id": "s9-bulk-args",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "...(input.error_like === undefined ? {} : { p_error_like: input.error_like }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*retries every matching dead job with one admin_retry_jobs RPC"
+  },
+  {
+    "id": "s9-bulk-filter",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/domain/jobs.ts",
+    "find": "input.type !== undefined || input.error_like !== undefined || input.since !== undefined,",
+    "replace": "true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses a retry-bulk with no filter"
+  },
+  {
+    "id": "s9-limit",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/domain/jobs.ts",
+    "find": "export const jobListSchema = adminPageSchema.extend({",
+    "replace": "export const jobListSchema = adminPageSchema.extend({\n  limit: z.coerce.number().int().min(1).default(50),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses limit=51 with 422"
+  },
+  {
+    "id": "s9-page",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "const items = rows.slice(0, limit);",
+    "replace": "const items = rows;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*answers 50 of 51 matching rows"
+  },
+  {
+    "id": "s9-or-once",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "query = query.or(entityJobsFilter(input.entity));",
+    "replace": "query = query.or(entityJobsFilter(input.entity)).or(entityJobsFilter(input.entity));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*passes entityJobsFilter"
+  },
+  {
+    "id": "s9-entity-uuid",
+    "test": "tests/unit/jobs/service.test.ts",
+    "file": "src/domain/jobs.ts",
+    "find": "entity: uuid.optional(),",
+    "replace": "entity: z.string().optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/service.test.ts",
+    "expect": "× .*refuses entity=abc with 422"
+  },
+  {
+    "id": "s9-retry-audit",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_retry_job(\n  p_job_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_status public.job_status;\nbegin\n  -- Screen 16 (B8 step 9): a dead or failed job runs again from attempt 0, audited in the same transaction.\n  select j.status into v_status from public.jobs j where j.id = p_job_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_status not in ('dead', 'failed') then\n    raise exception 'invalid_state';\n  end if;\n  perform public.requeue_job(p_job_id => p_job_id, p_claim => null, p_run_after => now(), p_kind => 'manual_retry');\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'jobs.cancel', 'job', p_job_id,\n    jsonb_build_object('id', p_job_id, 'status', v_status),\n    jsonb_build_object('id', p_job_id, 'status', 'queued'),\n    p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.admin_retry_job(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.admin_retry_job(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"admin_retry_job queues a dead job\"",
+    "expect": "× .*admin_retry_job queues a dead job[\\s\\S]*jobs\\.cancel"
+  },
+  {
+    "id": "s9-cancel-audit",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_cancel_job(\n  p_job_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_status public.job_status;\nbegin\n  -- Screen 16 (B8 step 9): a job that has not run yet, or waits for its next attempt, is cancelled and audited.\n  select j.status into v_status from public.jobs j where j.id = p_job_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_status not in ('queued', 'failed', 'waiting_approval') then\n    raise exception 'invalid_state';\n  end if;\n  perform public.cancel_job(p_job_id => p_job_id, p_actor_id => p_actor);\nend;\n$$;\n\nrevoke execute on function public.admin_cancel_job(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.admin_cancel_job(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"admin_cancel_job cancels a waiting job\"",
+    "expect": "× .*admin_cancel_job cancels a waiting job[\\s\\S]*\"audit\": \\[\\]"
+  },
+  {
+    "id": "s9-approve-actor",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_approve_job(\n  p_job_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_status public.job_status;\nbegin\n  -- Screen 16 (B8 step 9): the human gate of S23 and S46. `write_audit` refuses an agent, `jobs.approve` is human-only.\n  select j.status into v_status from public.jobs j where j.id = p_job_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_status <> 'waiting_approval' then\n    raise exception 'invalid_state';\n  end if;\n  perform public.approve_job(p_job_id => p_job_id, p_actor_id => null);\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'jobs.approve', 'job', p_job_id,\n    jsonb_build_object('id', p_job_id, 'status', v_status),\n    jsonb_build_object('id', p_job_id, 'status', 'queued'),\n    p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.admin_approve_job(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.admin_approve_job(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"admin_approve_job queues a waiting job\"",
+    "expect": "× .*admin_approve_job queues a waiting job[\\s\\S]*\"approvedBy\": null"
+  },
+  {
+    "id": "s9-retry-state",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_retry_job(\n  p_job_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_status public.job_status;\nbegin\n  -- Screen 16 (B8 step 9): a dead or failed job runs again from attempt 0, audited in the same transaction.\n  select j.status into v_status from public.jobs j where j.id = p_job_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_status not in ('dead', 'failed', 'queued') then\n    raise exception 'invalid_state';\n  end if;\n  perform public.requeue_job(p_job_id => p_job_id, p_claim => null, p_run_after => now(), p_kind => 'manual_retry');\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'jobs.retry', 'job', p_job_id,\n    jsonb_build_object('id', p_job_id, 'status', v_status),\n    jsonb_build_object('id', p_job_id, 'status', 'queued'),\n    p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.admin_retry_job(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.admin_retry_job(uuid, uuid, public.actor_kind, text) to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"a wrong state raises invalid_state\"",
+    "expect": "× .*a wrong state raises invalid_state[\\s\\S]*\"retry\": \"ok\""
+  },
+  {
+    "id": "s9-bulk-dead",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_retry_jobs(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_type text default null,\n  p_error_like text default null,\n  p_since timestamptz default null\n)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\n  v_count int := 0;\nbegin\n  -- Screen 16's \"Retry all matching\" (E2E-03): every dead job that matches each filter given, one audit row for all.\n  -- The filters default to null and follow the actor (P-915). `jobs_status_run_after_idx` serves `status = 'dead'`.\n  for v_id in\n    select j.id\n    from public.jobs j\n    where j.status in ('dead', 'failed')\n      and (p_type is null or j.type = p_type)\n      and (p_error_like is null or j.error ilike p_error_like)\n      and (p_since is null or j.finished_at >= p_since)\n    order by j.created_at, j.id\n    for update\n  loop\n    if public.requeue_job(p_job_id => v_id, p_claim => null, p_run_after => now(), p_kind => 'manual_retry') then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'jobs.retry_bulk', 'job', null, null,\n    jsonb_build_object('count', v_count, 'type', p_type, 'error_like', p_error_like, 'since', p_since),\n    p_request_id\n  );\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.admin_retry_jobs(uuid, public.actor_kind, text, text, text, timestamptz)\n  from public, anon, authenticated;\ngrant execute on function public.admin_retry_jobs(uuid, public.actor_kind, text, text, text, timestamptz)\n  to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"retry_bulk\"",
+    "expect": "× .*retry_bulk: admin_retry_jobs requeues[\\s\\S]*\"count\": 3"
+  },
+  {
+    "id": "s9-bulk-type",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "create or replace function public.admin_retry_jobs(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_type text default null,\n  p_error_like text default null,\n  p_since timestamptz default null\n)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\n  v_count int := 0;\nbegin\n  -- Screen 16's \"Retry all matching\" (E2E-03): every dead job that matches each filter given, one audit row for all.\n  -- The filters default to null and follow the actor (P-915). `jobs_status_run_after_idx` serves `status = 'dead'`.\n  for v_id in\n    select j.id\n    from public.jobs j\n    where j.status = 'dead'\n      and (p_type is null or j.type like p_type || '%')\n      and (p_error_like is null or j.error ilike p_error_like)\n      and (p_since is null or j.finished_at >= p_since)\n    order by j.created_at, j.id\n    for update\n  loop\n    if public.requeue_job(p_job_id => v_id, p_claim => null, p_run_after => now(), p_kind => 'manual_retry') then\n      v_count := v_count + 1;\n    end if;\n  end loop;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'jobs.retry_bulk', 'job', null, null,\n    jsonb_build_object('count', v_count, 'type', p_type, 'error_like', p_error_like, 'since', p_since),\n    p_request_id\n  );\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.admin_retry_jobs(uuid, public.actor_kind, text, text, text, timestamptz)\n  from public, anon, authenticated;\ngrant execute on function public.admin_retry_jobs(uuid, public.actor_kind, text, text, text, timestamptz)\n  to service_role;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"retry_bulk\"",
+    "expect": "× .*retry_bulk: admin_retry_jobs requeues[\\s\\S]*\"count\": 3"
+  },
+  {
+    "id": "s9-keyset-index",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "drop index public.jobs_admin_status_list_idx;",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"keyset indexes\"",
+    "expect": "× .*keyset indexes on jobs[\\s\\S]*jobs_admin_status_list_idx"
   }
 ]

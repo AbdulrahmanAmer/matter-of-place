@@ -117,6 +117,12 @@ me                                 CE ME VE MO CO AD | S
 people.list                        CE ME VE MO CO AD
 people.get                         CE ME VE MO CO AD
 people.note                        CE ME VE MO
+jobs.list                          CE ME VE MO CO AD
+jobs.get                           CE ME VE MO CO AD
+jobs.retry                         MO AD
+jobs.cancel                        MO AD
+jobs.approve                       MO AD | H
+jobs.retry_bulk                    MO AD | H
 `;
 
 const ROLE: Record<string, AppRole> = {

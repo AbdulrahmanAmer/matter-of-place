@@ -73,6 +73,9 @@ import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/aut
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
+import { Route as ApiAdminJobsIndexRouteImport } from './routes/api/admin/jobs.index'
+import { Route as ApiAdminJobsIdRouteImport } from './routes/api/admin/jobs.$id'
+import { Route as ApiAdminJobsRetryBulkRouteImport } from './routes/api/admin/jobs.retry-bulk'
 import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
 import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
 import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
@@ -94,6 +97,9 @@ import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/st
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminJobsIdApproveRouteImport } from './routes/api/admin/jobs.$id.approve'
+import { Route as ApiAdminJobsIdCancelRouteImport } from './routes/api/admin/jobs.$id.cancel'
+import { Route as ApiAdminJobsIdRetryRouteImport } from './routes/api/admin/jobs.$id.retry'
 import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
 import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
 import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
@@ -453,6 +459,21 @@ const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   path: '/api/admin/channels/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminJobsIndexRoute = ApiAdminJobsIndexRouteImport.update({
+  id: '/api/admin/jobs/',
+  path: '/api/admin/jobs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminJobsIdRoute = ApiAdminJobsIdRouteImport.update({
+  id: '/api/admin/jobs/$id',
+  path: '/api/admin/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminJobsRetryBulkRoute = ApiAdminJobsRetryBulkRouteImport.update({
+  id: '/api/admin/jobs/retry-bulk',
+  path: '/api/admin/jobs/retry-bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
   id: '/api/admin/payments/',
   path: '/api/admin/payments/',
@@ -565,6 +586,21 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   id: '/api/admin/channels/ids/$key',
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminJobsIdApproveRoute = ApiAdminJobsIdApproveRouteImport.update({
+  id: '/approve',
+  path: '/approve',
+  getParentRoute: () => ApiAdminJobsIdRoute,
+} as any)
+const ApiAdminJobsIdCancelRoute = ApiAdminJobsIdCancelRouteImport.update({
+  id: '/cancel',
+  path: '/cancel',
+  getParentRoute: () => ApiAdminJobsIdRoute,
+} as any)
+const ApiAdminJobsIdRetryRoute = ApiAdminJobsIdRetryRouteImport.update({
+  id: '/retry',
+  path: '/retry',
+  getParentRoute: () => ApiAdminJobsIdRoute,
 } as any)
 const ApiAdminPaymentsIdMarkPaidRoute =
   ApiAdminPaymentsIdMarkPaidRouteImport.update({
@@ -759,6 +795,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -775,11 +813,15 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
+  '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
+  '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -864,6 +906,8 @@ export interface FileRoutesByTo {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -880,11 +924,15 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/jobs': typeof ApiAdminJobsIndexRoute
   '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
+  '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
+  '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -974,6 +1022,8 @@ export interface FileRoutesById {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -990,11 +1040,15 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
+  '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
+  '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1084,6 +1138,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/retry-bulk'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1100,11 +1156,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/jobs/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/jobs/$id/approve'
+    | '/api/admin/jobs/$id/cancel'
+    | '/api/admin/jobs/$id/retry'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1189,6 +1249,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/retry-bulk'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1205,11 +1267,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/jobs'
     | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
     | '/api/admin/submissions'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/jobs/$id/approve'
+    | '/api/admin/jobs/$id/cancel'
+    | '/api/admin/jobs/$id/retry'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1298,6 +1364,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/retry-bulk'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1314,11 +1382,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/jobs/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/jobs/$id/approve'
+    | '/api/admin/jobs/$id/cancel'
+    | '/api/admin/jobs/$id/retry'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1372,6 +1444,8 @@ export interface RootRouteChildren {
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRoute
+  ApiAdminJobsIdRoute: typeof ApiAdminJobsIdRouteWithChildren
+  ApiAdminJobsRetryBulkRoute: typeof ApiAdminJobsRetryBulkRoute
   ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
   ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
@@ -1384,6 +1458,7 @@ export interface RootRouteChildren {
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
+  ApiAdminJobsIndexRoute: typeof ApiAdminJobsIndexRoute
   ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
@@ -1841,6 +1916,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/jobs/': {
+      id: '/api/admin/jobs/'
+      path: '/api/admin/jobs'
+      fullPath: '/api/admin/jobs/'
+      preLoaderRoute: typeof ApiAdminJobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/jobs/$id': {
+      id: '/api/admin/jobs/$id'
+      path: '/api/admin/jobs/$id'
+      fullPath: '/api/admin/jobs/$id'
+      preLoaderRoute: typeof ApiAdminJobsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/jobs/retry-bulk': {
+      id: '/api/admin/jobs/retry-bulk'
+      path: '/api/admin/jobs/retry-bulk'
+      fullPath: '/api/admin/jobs/retry-bulk'
+      preLoaderRoute: typeof ApiAdminJobsRetryBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/payments/': {
       id: '/api/admin/payments/'
       path: '/api/admin/payments'
@@ -1987,6 +2083,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/jobs/$id/approve': {
+      id: '/api/admin/jobs/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/jobs/$id/approve'
+      preLoaderRoute: typeof ApiAdminJobsIdApproveRouteImport
+      parentRoute: typeof ApiAdminJobsIdRoute
+    }
+    '/api/admin/jobs/$id/cancel': {
+      id: '/api/admin/jobs/$id/cancel'
+      path: '/cancel'
+      fullPath: '/api/admin/jobs/$id/cancel'
+      preLoaderRoute: typeof ApiAdminJobsIdCancelRouteImport
+      parentRoute: typeof ApiAdminJobsIdRoute
+    }
+    '/api/admin/jobs/$id/retry': {
+      id: '/api/admin/jobs/$id/retry'
+      path: '/retry'
+      fullPath: '/api/admin/jobs/$id/retry'
+      preLoaderRoute: typeof ApiAdminJobsIdRetryRouteImport
+      parentRoute: typeof ApiAdminJobsIdRoute
     }
     '/api/admin/payments/$id/mark-paid': {
       id: '/api/admin/payments/$id/mark-paid'
@@ -2318,6 +2435,22 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminJobsIdRouteChildren {
+  ApiAdminJobsIdApproveRoute: typeof ApiAdminJobsIdApproveRoute
+  ApiAdminJobsIdCancelRoute: typeof ApiAdminJobsIdCancelRoute
+  ApiAdminJobsIdRetryRoute: typeof ApiAdminJobsIdRetryRoute
+}
+
+const ApiAdminJobsIdRouteChildren: ApiAdminJobsIdRouteChildren = {
+  ApiAdminJobsIdApproveRoute: ApiAdminJobsIdApproveRoute,
+  ApiAdminJobsIdCancelRoute: ApiAdminJobsIdCancelRoute,
+  ApiAdminJobsIdRetryRoute: ApiAdminJobsIdRetryRoute,
+}
+
+const ApiAdminJobsIdRouteWithChildren = ApiAdminJobsIdRoute._addFileChildren(
+  ApiAdminJobsIdRouteChildren,
+)
+
 interface ApiAdminPaymentsIdRouteChildren {
   ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
   ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
@@ -2431,6 +2564,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRoute,
+  ApiAdminJobsIdRoute: ApiAdminJobsIdRouteWithChildren,
+  ApiAdminJobsRetryBulkRoute: ApiAdminJobsRetryBulkRoute,
   ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
   ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
@@ -2445,6 +2580,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
+  ApiAdminJobsIndexRoute: ApiAdminJobsIndexRoute,
   ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,

@@ -1,10 +1,11 @@
 // B8 steps 1, 2 and 2a: the jobs migration, the SQL lifecycle functions (invariants 1, 2, 4 and 5, JOB-02, DB-09,
-// DL-10, ruling H34 (2)) and the events B3's public writes emit in their own transaction (G20). Every case runs in a rolled-back transaction except the parallel claim, which needs two
+// DL-10, ruling H34 (2)), the events B3's public writes emit in their own transaction (G20) and screen 16's audited
+// admin actions (step 9). Every case runs in a rolled-back transaction except the parallel claim, which needs two
 // connections and so commits rows keyed `test:<uuid>` that its cleanup removes (F22).
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
-import { asRole, committed, withRollback, type Db } from "../fixtures/db";
+import { asRole, committed, createStaffUser, withRollback, type Db } from "../fixtures/db";
 
 interface Job {
   status: string;
@@ -1119,5 +1120,226 @@ describe("public write events (step 2a)", () => {
       return emitted(db, "subscriber.created");
     });
     expect(rows).toEqual([]);
+  });
+});
+
+describe("admin job actions (step 9)", () => {
+  interface Audit {
+    action: string;
+    entity: string;
+    entity_id: string | null;
+    actor_kind: string;
+    before: unknown;
+    after: unknown;
+  }
+
+  const audits = async (db: Db, requestId: string): Promise<Audit[]> =>
+    (
+      await db.query<Audit>(
+        `select action, entity, entity_id, actor_kind, before, after
+         from public.audit_log where request_id = $1 order by id`,
+        [requestId],
+      )
+    ).rows;
+
+  async function enqueueOf(db: Db, type: string, status = "queued"): Promise<string> {
+    const { id } = await one<{ id: string | null }>(
+      db,
+      `select public.enqueue_job($1, '{"params": {}, "data": {}}', $2, p_status => $3::public.job_status) as id`,
+      [type, testKey(), status],
+    );
+    if (id === null) throw new Error("enqueue_job returned null for a new key");
+    return id;
+  }
+
+  /** A job of `type` that ran and failed with `error`: `dead` at once, or `failed` with attempts left. */
+  async function failedJob(db: Db, type: string, error: string, dead: boolean): Promise<string> {
+    const id = await enqueueOf(db, type);
+    await one(db, "select public.fail_job($1, $2, $3, p_dead => $4) as ok", [
+      id,
+      await claim(db, id),
+      error,
+      dead,
+    ]);
+    return id;
+  }
+
+  const call = (db: Db, fn: string, id: string, actor: string, requestId: string) =>
+    outcome(db, `select public.${fn}($1, $2, 'human', $3)`, [id, actor, requestId]);
+
+  const statusOf = async (db: Db, id: string): Promise<string> => (await job(db, id)).status;
+
+  it("admin_retry_job queues a dead job from attempt 0 and writes one jobs.retry audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const actor = await createStaffUser(db, ["media_ops"]);
+      const id = await failedJob(db, "test.job", "boom", true);
+      const requestId = `req-${randomUUID()}`;
+      const ran = await call(db, "admin_retry_job", id, actor, requestId);
+      const row = await job(db, id);
+      return {
+        id,
+        ran,
+        status: row.status,
+        attempts: row.attempts,
+        audit: await audits(db, requestId),
+      };
+    });
+    expect(result).toEqual({
+      id: result.id,
+      ran: "ok",
+      status: "queued",
+      attempts: 0,
+      audit: [
+        {
+          action: "jobs.retry",
+          entity: "job",
+          entity_id: result.id,
+          actor_kind: "human",
+          before: { id: result.id, status: "dead" },
+          after: { id: result.id, status: "queued" },
+        },
+      ],
+    });
+  });
+
+  it("admin_cancel_job cancels a waiting job and writes one jobs.cancel audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const actor = await createStaffUser(db, ["admin"]);
+      const id = await enqueueOf(db, "test.job", "waiting_approval");
+      const requestId = `req-${randomUUID()}`;
+      const ran = await call(db, "admin_cancel_job", id, actor, requestId);
+      return { id, ran, status: await statusOf(db, id), audit: await audits(db, requestId) };
+    });
+    expect(result).toEqual({
+      id: result.id,
+      ran: "ok",
+      status: "cancelled",
+      audit: [
+        {
+          action: "jobs.cancel",
+          entity: "job",
+          entity_id: result.id,
+          actor_kind: "human",
+          before: { id: result.id, status: "waiting_approval" },
+          after: { id: result.id, status: "cancelled" },
+        },
+      ],
+    });
+  });
+
+  it("admin_approve_job queues a waiting job and writes one jobs.approve audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const actor = await createStaffUser(db, ["media_ops"]);
+      const id = await enqueueOf(db, "test.job", "waiting_approval");
+      const requestId = `req-${randomUUID()}`;
+      const ran = await call(db, "admin_approve_job", id, actor, requestId);
+      return {
+        id,
+        ran,
+        status: await statusOf(db, id),
+        approvedBy: (await events(db, id)).at(-1)?.actor_id,
+        actor,
+        audit: await audits(db, requestId),
+      };
+    });
+    expect(result).toEqual({
+      id: result.id,
+      ran: "ok",
+      status: "queued",
+      approvedBy: result.actor,
+      actor: result.actor,
+      audit: [
+        {
+          action: "jobs.approve",
+          entity: "job",
+          entity_id: result.id,
+          actor_kind: "human",
+          before: { id: result.id, status: "waiting_approval" },
+          after: { id: result.id, status: "queued" },
+        },
+      ],
+    });
+  });
+
+  it("a wrong state raises invalid_state in admin_retry_job, admin_cancel_job and admin_approve_job and writes no audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const actor = await createStaffUser(db, ["admin"]);
+      const queued = await enqueueOf(db, "test.job");
+      const running = await enqueueOf(db, "test.job");
+      await claim(db, running);
+      const requestId = `req-${randomUUID()}`;
+      return {
+        retry: await call(db, "admin_retry_job", queued, actor, requestId),
+        cancel: await call(db, "admin_cancel_job", running, actor, requestId),
+        approve: await call(db, "admin_approve_job", queued, actor, requestId),
+        statuses: [await statusOf(db, queued), await statusOf(db, running)],
+        audit: await audits(db, requestId),
+      };
+    });
+    expect(result).toEqual({
+      retry: "P0001 invalid_state",
+      cancel: "P0001 invalid_state",
+      approve: "P0001 invalid_state",
+      statuses: ["queued", "running"],
+      audit: [],
+    });
+  });
+
+  it("retry_bulk: admin_retry_jobs requeues exactly the matching dead jobs, leaves failed and other-type jobs alone, and writes one jobs.retry_bulk audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const actor = await createStaffUser(db, ["media_ops"]);
+      const type = `test.bulk.${randomUUID()}`;
+      const jobs = {
+        deadOne: await failedJob(db, type, "provider timeout one", true),
+        deadTwo: await failedJob(db, type, "Provider Timeout two", true),
+        deadOther: await failedJob(db, type, "quota exceeded", true),
+        failed: await failedJob(db, type, "provider timeout", false),
+        otherType: await failedJob(db, `${type}.other`, "provider timeout", true),
+      };
+      const requestId = `req-${randomUUID()}`;
+      const { count } = await one<{ count: number }>(
+        db,
+        `select public.admin_retry_jobs($1, 'human', $2, p_type => $3, p_error_like => '%timeout%') as count`,
+        [actor, requestId, type],
+      );
+      const statuses: Record<string, string> = {};
+      for (const [name, id] of Object.entries(jobs)) statuses[name] = await statusOf(db, id);
+      return { type, count, statuses, audit: await audits(db, requestId) };
+    });
+    expect(result).toEqual({
+      type: result.type,
+      count: 2,
+      statuses: {
+        deadOne: "queued",
+        deadTwo: "queued",
+        deadOther: "dead",
+        failed: "failed",
+        otherType: "dead",
+      },
+      audit: [
+        {
+          action: "jobs.retry_bulk",
+          entity: "job",
+          entity_id: null,
+          actor_kind: "human",
+          before: null,
+          after: { count: 2, type: result.type, error_like: "%timeout%", since: null },
+        },
+      ],
+    });
+  });
+
+  it("keeps screen 16's keyset indexes on jobs", async () => {
+    const names = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ indexname: string }>(
+            "select indexname from pg_indexes where tablename = 'jobs' order by indexname",
+          )
+        ).rows,
+    );
+    expect(names.map((row) => row.indexname)).toEqual(
+      expect.arrayContaining(["jobs_admin_list_idx", "jobs_admin_status_list_idx"]),
+    );
   });
 });
