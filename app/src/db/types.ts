@@ -1079,6 +1079,18 @@ isOneToOne: false
 "add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
                            },
+"admin_approve_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_cancel_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_retry_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_retry_jobs":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_error_like"?: string,"p_request_id": string,"p_since"?: string,"p_type"?: string }; Returns: number
+                           },
 "agent_key_by_hash":
 { Args: { "p_hash": string }; Returns: {
               "key_id": string,"last_used_at": string,"revoked_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"scopes": (string)[],"user_id": string
@@ -1772,6 +1784,12 @@ isOneToOne: false
 { Args: { "p_media_ids": (string)[],"p_submission_id": string }; Returns: {
               "media_id": string,"storage_path": string
             }[]
+                           },
+"takedown_mark_posts":
+{ Args: { "p_property_id": string }; Returns: number
+                           },
+"takedown_media_keys":
+{ Args: { "p_property_id": string }; Returns: (string)[]
                            },
 "touch_agent_key":
 { Args: { "p_key_id": string }; Returns: undefined

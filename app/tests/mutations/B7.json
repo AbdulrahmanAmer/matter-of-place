@@ -3103,8 +3103,8 @@
     "id": "b7-g7-copy-registered",
     "test": "tests/unit/jobs/copy-submission-media.test.ts",
     "file": "src/server/jobs/system/index.ts",
-    "find": "  copySubmissionMedia,\n];",
-    "replace": "];",
+    "find": "  copySubmissionMedia,\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
     "expect": "× .*is registered as a system job"
   },

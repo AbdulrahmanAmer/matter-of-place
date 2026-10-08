@@ -6,6 +6,7 @@ import { metaTokenRefresh } from "./meta-token-refresh.ts";
 import { prune } from "./prune.ts";
 import { reconcile } from "./reconcile.ts";
 import { retention } from "./retention.ts";
+import { takedownMedia } from "./takedown-media.ts";
 
 // System jobs (health, prune, reconcile, retention and the rest): each slice appends one import and one entry. They
 // are runnable but never selectable in a recipe.
@@ -17,6 +18,7 @@ const systemJobs: readonly SystemJobDefinition[] = [
   metaTokenRefresh,
   invoicePdf,
   copySubmissionMedia,
+  takedownMedia,
 ];
 
 export function listSystemJobs(): readonly SystemJobDefinition[] {
