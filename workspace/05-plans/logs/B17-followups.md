@@ -185,3 +185,20 @@ Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (a watche
    Evidence: Confirmed by running, three times: bun run lhci:local -- --collect.url=http://127.0.0.1:8939/... -> 'Run #1...failed! ... (NO_NAVSTART)', exit 1. The same error appeared with a single URL and numberOfRuns=1, so it does not depend on the page. Two approaches failed, so this is BLOCKED. It would unblock with a Lighthouse run from the operator's normal shell, or a check of whether the agent shell's sandbox blocks Chrome tracing.
 
 Recorded in the bank, not here: three follow-ups whose file is GOTCHAS.md became P-1940 (Lighthouse NO_NAVSTART from an agent shell), a hit-again line of P-068 (a hand `git checkout` during a registry replay) and a rewording of the point-in-time count in P-1939.
+
+## c9 · steps 9-10
+
+Second review round of c9 (the review of the fix round, snapshot c25e232, hand-in a17fe8df). The earlier block of this name above is the first round.
+
+1. File `GOTCHAS.md` (not blocking).
+   What: The beacon-capture cost the author lists under costTime is filed under the wrong entry. They name P-1919, but P-1919 is about knip flagging public/sw.js as an unused file. The gotcha they actually hit again is P-1316 ('Playwright reports a sendBeacon request without its body', where postData() is null for a Blob beacon). P-1316 has no hit-again line for c9, so this cost is not banked anywhere. Next step: add a 2026-10-08 B17 c9 hit-again line under P-1316. It should say that page.route plus postDataBuffer() plus route.continue() reads the body and still lets the beacon reach the Worker, and the proof is the by-id select.
+   Evidence: Confirmed by running: grep -n -A14 '^## P-1919' GOTCHAS.md shows the title 'A script the browser loads by URL (public/sw.js) is an unused file to knip'. grep -n -i 'postData|sendBeacon' GOTCHAS.md finds only P-1316 (line 3128) and related lines. The 7-line P-1919 block has no c9 line. P-1316's block ends at 'added: 2026-10-04' with no hit-again line.
+   Recorded in the bank, not here: the hit-again line now sits under P-1316.
+
+2. File `app/docs/runbooks/essentials.md` (not blocking).
+   What: Line 65 is now partly stale. It says the flags route is B8b's and 'UNPROVEN until B8b lands'. The merge 4e5ba273 brought in B8b's PUT /api/admin/automation/flags (automation.flags.ts, putFlags, action automation.flags_put), so the route has landed. The Admin, Settings, Flags editor (FlagsSection) is still not in the tree, so step 1 still cannot be done by hand. Line 59 ('B13 loader src/lib/ga4.ts is not on the branch') is still true. The c9 log line 'automation.flags.ts does not exist' was true at c25e232 when written, so it is not a false log line. This is a stale line for whoever next edits the runbook: it should say the route has landed and the UI is pending.
+   Evidence: Confirmed by running: git ls-tree on c25e2326 and a17fe8df prints flags:0, on 4e5ba273 and e527164a it prints flags:1. src/routes/api/admin/automation.flags.ts defines PUT with action automation.flags_put. grep -rln FlagsSection app/src finds nothing.
+
+3. File `app/tests/e2e/essentials.spec.ts` (not blocking).
+   What: The step 9 database-count proof is still a scratch script outside the repo. The repo's web-vitals e2e answers /api/public/events with 204 inside the browser, so no replayable proof in the repository shows a beacon reaching analytics_events. The plan's 'no more than one beacon per 10 seconds' is also still not measured by this e2e. The author already lists both as UNPROVEN. Recorded so the open item is not lost.
+   Evidence: Suspected by reading, with the author's own log quote: 'the web-vitals e2e answers the events route with 204 inside the browser, so it writes no row'. My independent scratch browse with route.continue() did reach the database (2 rows by id). That confirms the behaviour, not a repository proof.
