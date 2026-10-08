@@ -3398,6 +3398,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a Worker is created through `secret put`, the first deploy may need one re-run (`gh run rerun <id> --failed`); H1 adds a short retry to the smoke step for a first version (follow-up). Never put secrets through `wrangler secret put` on a Worker that is meant to be created by a deploy unless the next step is that deploy.
 - proof: re-run of 37235569634: production success; `curl -s -o /dev/null -w '%{http_code}' https://matter-of-place.holy-meadow-4327.workers.dev/` → 200; `/properties | grep -ci illustrative` → 0.
 - added: 2026-10-05
+- hit again: 2026-10-08, B7 g1 (step 8): the first deploy of the new preview Worker pr-245 (run 37775917827) failed its smoke on one route, `FAIL .../stories: status 404; no x-request-id; no nosniff`, every other route ok; `curl -D -` on `/stories` six minutes later answered 200 with our headers, and `gh run rerun 37775917827 --failed` passed `preview` in 8m11s. A first preview deploy of a pull request is the same edge race as a first production deploy.
 
 ## P-521 · Typing a long text into a Google console page can fire its single-key shortcuts and navigate away; set field values directly
 - symptom: typing a service-account description with the `type` action on the Cloud console left the create form (the page jumped to the welcome page); the field had lost focus and the keys acted as shortcuts.
