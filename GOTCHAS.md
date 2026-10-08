@@ -4739,3 +4739,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a `preview` failure at the lighthouse step is one rerun (`gh run rerun <id> --failed`) before anything else; read the step timestamps first, a run #1 that takes minutes is the signal. Only a second hang on the same page is reported as a defect with the log lines.
 - proof: `gh run view 37708860863 --json jobs --jq '.jobs[]|select(.name=="preview")|.conclusion'` → success after the rerun
 - added: 2026-10-08
+
+## P-2219 · A full-stack e2e spec that saves through `/api/admin` answers 503 `csrf_secret_missing` under the dev profile
+- symptom: `bunx playwright test tests/e2e/admin-channels.spec.ts` after `eval "$(node scripts/load-env.mjs --profile dev)"`: the sign-in and read cases passed, the Retry click got `503 {"error":{"code":"csrf_secret_missing","message":"Saving is unavailable at the moment. Please try again later."}}`, found only by reading the response body in `trace.zip` (the page shows the message, the test shows the status).
+- cause: `verifyCsrf` answers 503 for a session write when `CSRF_SECRET` is undefined, and the dev profile exports only the `DEV_*` names, so the `vite dev` server that Playwright starts has no key. Loading the whole `.env` instead would export `SUPABASE_URL` and the service role key of the other business (G-901).
+- rule: before a spec that saves through a session, export that one value without printing it: `export CSRF_SECRET="$(grep '^CSRF_SECRET=' ../.env | cut -d= -f2- | tr -d '\r')"` in `app/`, after the dev profile. For a 503 from a route, read the body (`unzip` the trace, `*.network`, `resources/<sha>.json`) before reading SQL.
+- proof: from `app/`, with the dev profile and that export, `E2E_PORT=8968 env -u CLOUDFLARE_API_TOKEN bunx playwright test tests/e2e/admin-channels.spec.ts` → `4 passed`; without the export → `1 failed`, `Received: 503`.
+- added: 2026-10-08
