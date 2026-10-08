@@ -48,10 +48,7 @@ export function ConsentNotice() {
   return (
     <section className="consent-notice" aria-label={t.consent.label}>
       <p className="consent-text">
-        {t.consent.text}{" "}
-        <Link to="/legal" hash="privacy">
-          {t.consent.link}
-        </Link>
+        {t.consent.text} <Link to="/privacy">{t.consent.link}</Link>
       </p>
       <div className="consent-actions">
         <button type="button" className="consent-allow" onClick={choose(true)}>

@@ -12,6 +12,7 @@ import { sendEmail } from "../../../src/server/jobs/steps/send-email";
 import { emailEnv, emailWorld, fakeFetch, NOW, stepCtx } from "../../fixtures/email-send";
 import type { Db } from "../../../src/server/lib/db";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
+import { stateJson } from "../../fixtures/snapshot";
 
 const SUBMISSION = "11111111-1111-4111-8111-111111111111";
 
@@ -44,7 +45,10 @@ const submission = row<Tables<"submissions">>({
 });
 
 const dbWith = (tables: NonNullable<FakeDbOptions["tables"]>) =>
-  fakeDb({ tables: { email_templates: [template], settings: [], ...tables } });
+  fakeDb({
+    tables: { email_templates: [template], settings: [], ...tables },
+    rpc: { public_state: () => stateJson(7) },
+  });
 
 const site: SiteContext = {
   siteUrl: siteConfig.url,

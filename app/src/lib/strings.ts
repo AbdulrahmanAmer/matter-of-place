@@ -27,8 +27,12 @@ const en = {
     faq: "FAQ",
     contact: "Contact",
     privacy: "Privacy",
-    terms: "Terms",
+    terms: "Terms for Professionals",
+    accessibility: "Accessibility",
+    doNotSell: "Do Not Sell or Share",
     instagram: "Instagram",
+    x: "X",
+    linkedin: "LinkedIn",
   },
   header: {
     home: "Matter of Place home",
@@ -52,7 +56,7 @@ const en = {
     },
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
-    line: "An Omnikom company.",
+    line: "A product of Omnikom.",
   },
   common: {
     illustrative: "ILLUSTRATIVE",
@@ -76,6 +80,8 @@ const en = {
     localSent: "Delivery opens with the live service, so this stays with you for now.",
     /** Confirmation once the API is configured. */
     liveSent: "A person will reply within one working day.",
+    /** Directly above the send button of the two inquiry forms (B15 invariant 1). */
+    sharedWithOmnikom: "We share your message with Omnikom, which operates Matter of Place.",
     error: "This did not go through. Please try once more.",
     invalid: "Please check the highlighted details.",
     /** Beside a field the browser found empty or malformed when the form was sent. */
@@ -153,11 +159,32 @@ const en = {
     link: "Read our privacy policy",
     change: "Cookie settings",
   },
+  privacyRequest: {
+    title: "Privacy request",
+    eyebrow: "PRIVACY",
+    heading: "Ask about your information",
+    intro:
+      "Tell us what you would like and where to write back. We confirm receipt by email and reply within 45 days.",
+    kindLegend: "What would you like?",
+    kinds: {
+      access: "Know what you hold about me",
+      deletion: "Delete my information",
+      opt_out: "Do not sell or share",
+      correction: "Correct my information",
+    },
+    emailLabel: "Email address",
+    noteLabel: "Anything we should know (optional)",
+    confirmation:
+      "We received your request. A confirmation is on its way to your email. We will reply within 45 days.",
+  },
   privacyChoices: {
     title: "Privacy choices",
     on: "Analytics are on.",
     off: "Analytics are off.",
     none: "You have not chosen yet.",
+  },
+  privacy: {
+    cookiesLink: "The full list of cookies is on the Cookies page.",
   },
   cookies: {
     title: "Cookies",

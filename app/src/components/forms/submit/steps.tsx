@@ -10,6 +10,7 @@ import {
 } from "../../../domain/contracts";
 import { track } from "../../../lib/analytics";
 import { formatMoney, pluralize } from "../../../lib/format";
+import { t } from "../../../lib/strings";
 import { ChoiceGroup } from "../choice-group";
 import { Field } from "../field";
 import {
@@ -286,7 +287,11 @@ export function ExposureStep({ draft, update }: StepProps) {
           checked={draft.rightsConfirmed}
           onChange={(e) => update("rightsConfirmed", e.target.checked)}
         />
-        I confirm I have the rights to share this property's photography and media.
+        I confirm I have the rights to share this property's photography and media, under the{" "}
+        <Link to="/terms" hash="rights-to-photographs" className="text-link">
+          {t.nav.terms}
+        </Link>
+        .
       </label>
       <Link
         to="/exposure"

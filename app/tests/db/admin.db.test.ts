@@ -3,7 +3,8 @@
 // `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Step 5: the one payments read of
 // `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
 // Step 7: the property functions (migration `admin_properties`). Step 7a: unpublish, takedown and agent preview
-// (migration `admin_takedown`).
+// (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
+// `admin_media`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -1726,6 +1727,316 @@ describe("agent preview", () => {
         audits: audits.rows.length,
         nonceAudited: audits.rows.some((row) => row.keys.includes("preview_nonce")),
       }).toEqual({ before: true, after: false, other: true, audits: 1, nonceAudited: false });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 8's migration (P-328). */
+async function assertStep8(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.attach_media') is not null
+       and to_regproc('public.request_property_render') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const ATTACH = "select public.attach_media($1, $2, $3, $4, 'human', 'req-am') as answer";
+const REPLACE = "select public.replace_media($1, $2, $3, 'human', 'req-rm') as answer";
+const DELETE_MEDIA = "select public.delete_media($1, $2, 'human', 'req-dm') as path";
+const REORDER = "select public.reorder_media($1, $2::uuid[], $3, 'human', 'req-ro')";
+
+/** Attaches a new photograph staged as `createStagingUpload` names it; returns its id. */
+async function attach(db: Db, property: string, actor: string): Promise<string> {
+  const id = randomUUID();
+  await db.query(ATTACH, [id, property, `staging/${property}/${id}.jpg`, actor]);
+  return id;
+}
+
+interface RenderJob {
+  id: string;
+  heavy: boolean;
+  max_attempts: number;
+  key: string;
+  property: string;
+  slug: string;
+  seconds: number;
+}
+
+/** The queued render_variants jobs of a property, with their run_after as seconds after the transaction's now(). */
+async function renderJobs(db: Db, property: string): Promise<RenderJob[]> {
+  return (
+    await db.query<RenderJob>(
+      `select id, heavy, max_attempts, idempotency_key as key, payload -> 'data' ->> 'property_id' as property,
+         payload -> 'data' ->> 'slug' as slug, extract(epoch from run_after - now())::float8 as seconds
+       from public.jobs
+       where type = 'render_variants' and status = 'queued' and payload -> 'data' ->> 'property_id' = $1`,
+      [property],
+    )
+  ).rows;
+}
+
+/** A stored photograph (a render has run) that an earlier job claimed. */
+async function storedPhoto(db: Db, property: string): Promise<string> {
+  const { id } = await one<{ id: string }>(
+    db,
+    `insert into public.property_media (property_id, media_key, alt, orientation, sort_order, render_job_id)
+     values ($1, 'o/fixture/1-0a1b2c3d.webp', 'The hall', 'landscape', 3, gen_random_uuid()) returning id`,
+    [property],
+  );
+  return id;
+}
+
+const draftOrPublished = (db: Db, n: number, state: "draft" | "published") =>
+  publishedProperty(
+    db,
+    state === "draft" ? { n, editorial_state: "draft", published_at: null } : { n },
+  );
+
+interface Replaced {
+  answer: { previous_staging_path: string | null; render_job_id: string };
+}
+
+describe("media", () => {
+  const attachQueuesOne = (n: number, state: "draft" | "published") =>
+    withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const property = await draftOrPublished(db, n, state);
+      // A live page keeps a stored hero (B2's publish gate), so the new photograph comes after six stored ones.
+      await sixPhotographs(db, property.id);
+      const id = await attach(db, property.id, editor);
+      const row = await one<Record<string, unknown>>(
+        db,
+        "select staging_path, media_key, orientation, variants, sort_order from public.property_media where id = $1",
+        [id],
+      );
+      const jobs = await renderJobs(db, property.id);
+      return {
+        actual: {
+          row,
+          jobs: jobs.map((job) => ({
+            heavy: job.heavy,
+            max_attempts: job.max_attempts,
+            keyed: job.key.startsWith(`render_variants:${property.id}:`),
+            property: job.property,
+            slug: job.slug,
+            about90: job.seconds >= 89 && job.seconds <= 91,
+          })),
+        },
+        wanted: {
+          row: {
+            staging_path: `staging/${property.id}/${id}.jpg`,
+            media_key: null,
+            orientation: null,
+            variants: {},
+            sort_order: 7,
+          },
+          jobs: [
+            {
+              heavy: true,
+              max_attempts: 12,
+              keyed: true,
+              property: property.id,
+              slug: property.slug,
+              about90: true,
+            },
+          ],
+        },
+      };
+    });
+
+  it("attach_media on a draft stages a row with no key and no orientation, and queues one render_variants job (G63, G66)", async () => {
+    const { actual, wanted } = await attachQueuesOne(9984, "draft");
+    expect(actual).toEqual(wanted);
+  });
+
+  it("attach_media on a published property queues one render_variants job too (G66)", async () => {
+    const { actual, wanted } = await attachQueuesOne(9985, "published");
+    expect(actual).toEqual(wanted);
+  });
+
+  it("40 attach_media calls in a row on one property leave exactly one queued render_variants job (coalesce, E2E-08)", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { id } = await draftOrPublished(db, 9986, "draft");
+      for (let n = 0; n < 40; n += 1) await attach(db, id, editor);
+      const positions = await db.query<{ sort_order: number }>(
+        "select sort_order from public.property_media where property_id = $1 order by sort_order",
+        [id],
+      );
+      expect({
+        jobs: (await renderJobs(db, id)).length,
+        positions: positions.rows.map((row) => row.sort_order),
+      }).toEqual({ jobs: 1, positions: Array.from({ length: 40 }, (_, n) => n) });
+    });
+  });
+
+  it("attach_media refuses the path of another photograph with invalid_image and writes nothing", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const { id } = await draftOrPublished(db, 9987, "draft");
+      const answer = await attempt(db, ATTACH, [
+        randomUUID(),
+        id,
+        `staging/${id}/${randomUUID()}.jpg`,
+        editor,
+      ]);
+      expect({
+        answer,
+        rows: await count(
+          db,
+          "select count(*)::int as n from public.property_media where property_id = $1",
+          [id],
+        ),
+      }).toEqual({ answer: "22023 invalid_image", rows: 0 });
+    });
+  });
+
+  const replaceKeeps = (n: number, state: "draft" | "published") =>
+    withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const property = await draftOrPublished(db, n, state);
+      const id = await storedPhoto(db, property.id);
+      const firstPath = `staging/${property.id}/${id}.0a1b2c3d.jpg`;
+      const secondPath = `staging/${property.id}/${id}.4e5f6a7b.jpg`;
+      const first = await one<Replaced>(db, REPLACE, [id, firstPath, editor]);
+      const row = await one<Record<string, unknown>>(
+        db,
+        "select sort_order, alt, media_key, staging_path, render_job_id from public.property_media where id = $1",
+        [id],
+      );
+      const second = await one<Replaced>(db, REPLACE, [id, secondPath, editor]);
+      const jobs = await renderJobs(db, property.id);
+      return {
+        actual: {
+          row,
+          audits: await count(
+            db,
+            "select count(*)::int as n from public.audit_log where action = 'media.replace' and entity_id = $1",
+            [id],
+          ),
+          previous: [first.answer.previous_staging_path, second.answer.previous_staging_path],
+          jobs: jobs.map((job) => job.id),
+          reused: second.answer.render_job_id === first.answer.render_job_id,
+        },
+        wanted: {
+          row: {
+            sort_order: 3,
+            alt: "The hall",
+            media_key: "o/fixture/1-0a1b2c3d.webp",
+            staging_path: firstPath,
+            render_job_id: null,
+          },
+          audits: 2,
+          previous: [null, firstPath],
+          jobs: [first.answer.render_job_id],
+          reused: true,
+        },
+      };
+    });
+
+  it("replace_media on a draft keeps order, alt and key, stages the new path, audits media.replace and queues one render a second replace reuses", async () => {
+    const { actual, wanted } = await replaceKeeps(9988, "draft");
+    expect(actual).toEqual(wanted);
+  });
+
+  it("replace_media on a published property does the same with one queued render (G66)", async () => {
+    const { actual, wanted } = await replaceKeeps(9989, "published");
+    expect(actual).toEqual(wanted);
+  });
+
+  it("a render storing the hero's key moves hero_image and not version, so update_property at the version read before succeeds (DB-16)", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { id } = await publishedProperty(db, {
+        n: 9990,
+        editorial_state: "draft",
+        published_at: null,
+        hero_image: null,
+      });
+      const media = await attach(db, id, editor);
+      const before = await versionOf(db, id);
+      await db.query(
+        `update public.property_media set media_key = 'o/fixture/1-0a1b2c3d.webp', staging_path = null,
+           variants = '{"hero": {"w": 1600, "h": 1067}}' where id = $1`,
+        [media],
+      );
+      const hero = await one<{ hero_image: string | null }>(
+        db,
+        "select hero_image from public.properties where id = $1",
+        [id],
+      );
+      const saved = await attempt(
+        db,
+        `select public.update_property($1, $2, '{"title": "Edited"}', $3, 'human', 'req-db16')`,
+        [id, before, editor],
+      );
+      expect({ hero: hero.hero_image, saved }).toEqual({
+        hero: "o/fixture/1-0a1b2c3d.webp",
+        saved: "ok",
+      });
+    });
+  });
+
+  it("delete_media succeeds while assets is absent, and is refused on a published property and for a photograph an asset uses", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const { id: draft } = await draftOrPublished(db, 9991, "draft");
+      const published = await draftOrPublished(db, 9992, "published");
+      const used = await storedPhoto(db, draft);
+      await db.query(
+        `insert into public.assets (property_id, kind, files)
+         values ($1, 'cover', '[{"media_key": "o/fixture/1-0a1b2c3d.webp", "role": "cover"}]')`,
+        [draft],
+      );
+      const live = await storedPhoto(db, published.id);
+      const refusedInUse = await attempt(db, DELETE_MEDIA, [used, editor]);
+      const refusedLive = await attempt(db, DELETE_MEDIA, [live, editor]);
+      const staged = await attach(db, draft, editor);
+      // B9's table hidden for the rest of the rolled-back transaction: the function must not need it.
+      await db.query("alter table public.assets rename to assets_hidden_for_test");
+      const { path } = await one<{ path: string | null }>(db, DELETE_MEDIA, [staged, editor]);
+      expect({
+        refusedInUse,
+        refusedLive,
+        path,
+        audits: await count(
+          db,
+          "select count(*)::int as n from public.audit_log where action = 'media.delete' and entity_id = $1",
+          [staged],
+        ),
+      }).toEqual({
+        refusedInUse: "P0001 media_in_use",
+        refusedLive: "P0001 wrong_state",
+        path: `staging/${draft}/${staged}.jpg`,
+        audits: 1,
+      });
+    });
+  });
+
+  it("reorder_media puts the named order in place and refuses an order that leaves a photograph out", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const { id } = await draftOrPublished(db, 9993, "draft");
+      const first = await attach(db, id, editor);
+      const second = await attach(db, id, editor);
+      const partial = await attempt(db, REORDER, [id, [second], editor]);
+      await db.query(REORDER, [id, [second, first], editor]);
+      const order = await db.query<{ id: string }>(
+        "select id from public.property_media where property_id = $1 order by sort_order",
+        [id],
+      );
+      expect({ partial, order: order.rows.map((row) => row.id) }).toEqual({
+        partial: "22023 reorder_mismatch",
+        order: [second, first],
+      });
     });
   });
 });
