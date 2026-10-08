@@ -2989,5 +2989,23 @@
     "sql": "update public.email_templates set variables = '{subject,preheader}' where key = 'standalone';",
     "run": "bunx vitest run --project db tests/db/newsletter.db.test.ts -t \"the standalone row is enabled\"",
     "expect": "× .*the standalone row is enabled[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b11-c11t-swallow-unavailable-state",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "const site = await getSiteSettings(db);",
+    "replace": "const site = await getSiteSettings(db).catch(() => emptySiteSettings);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*stays retryable and sends nothing when the public state cannot be read"
+  },
+  {
+    "id": "b11-c11t-world-serves-no-state",
+    "test": "tests/unit/newsletter/send.test.ts",
+    "file": "tests/fixtures/newsletter-world.ts",
+    "find": "{ public_state: state, ...rpc }",
+    "replace": "{ ...rpc }",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/send.test.ts",
+    "expect": "FAIL.*sends an approved issue: sent, sent_at and metrics.recipients"
   }
 ]

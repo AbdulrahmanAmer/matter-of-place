@@ -420,6 +420,8 @@ interface SendWorld {
   properties?: Row[];
   /** The first `newsletter_mark_sent` calls fail, as a crash after Resend accepted the send would. */
   markSentFails?: number;
+  /** The public state cannot be read, as when the database does not answer. */
+  stateDown?: boolean;
 }
 
 function sendWorld(options: SendWorld = {}) {
@@ -452,6 +454,7 @@ function sendWorld(options: SendWorld = {}) {
       ],
     },
     {
+      ...(options.stateDown === true ? { public_state: () => new Error("down") } : {}),
       newsletter_recipient_count: () => options.recipients ?? 3,
       newsletter_audience_members: () => [],
       email_sent_today: () => options.sentToday ?? 0,
@@ -543,6 +546,25 @@ describe("newsletter_send", () => {
     const { db, issue } = sendWorld({ legal: { entity: LEGAL.entity, address: null } });
     expect(await outcomeOf(runSend(db))).toEqual({ dead: true, message: "footer_incomplete" });
     expect(issue).toMatchObject({ status: "approved", send_error: "footer_incomplete" });
+    expect(calls).toEqual([]);
+  });
+
+  it("stays retryable and sends nothing when the public state cannot be read (B8 invariant 3)", async () => {
+    // A fresh module has no last good state to fall back on, as an isolate that has just started.
+    vi.resetModules();
+    const { newsletterSend: fresh } =
+      await import("../../../src/server/jobs/system/newsletter-send");
+    const calls = provider(SEND_ROUTES);
+    const { db, issue } = sendWorld({ stateDown: true });
+    const ended = await outcomeOf(
+      fresh.run(
+        stepCtx(db, { type: "newsletter_send" }),
+        {},
+        { issue_id: ISSUE_ID, approval_count: 2 },
+      ),
+    );
+    expect(ended).toEqual({ dead: false, message: "The catalog is not available right now." });
+    expect(issue).toMatchObject({ status: "approved", send_error: null });
     expect(calls).toEqual([]);
   });
 
