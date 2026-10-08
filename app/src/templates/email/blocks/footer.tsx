@@ -15,6 +15,17 @@ const line: CSSProperties = {
   color: themeHex.mutedForeground,
 };
 
+/** The working unsubscribe link of commercial email, alone for a layout that already prints the legal lines. */
+export function Unsubscribe() {
+  return (
+    <Text style={line}>
+      <Link href={UNSUBSCRIBE_URL} style={{ color: themeHex.mutedForeground }}>
+        Unsubscribe
+      </Link>
+    </Text>
+  );
+}
+
 /** What commercial email must carry: the legal entity, the postal address and a working unsubscribe link. */
 export function Footer({ site }: { site: SiteContext }) {
   return (
@@ -24,11 +35,7 @@ export function Footer({ site }: { site: SiteContext }) {
           {text}
         </Text>
       ))}
-      <Text style={line}>
-        <Link href={UNSUBSCRIBE_URL} style={{ color: themeHex.mutedForeground }}>
-          Unsubscribe
-        </Link>
-      </Text>
+      <Unsubscribe />
     </>
   );
 }

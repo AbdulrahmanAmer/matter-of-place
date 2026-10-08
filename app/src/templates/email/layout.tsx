@@ -97,7 +97,12 @@ export function Layout({
   preheader,
   site,
   children,
-}: Pick<EmailProps, "title" | "preheader" | "site"> & { children: ReactNode }) {
+  afterFooter = null,
+}: Pick<EmailProps, "title" | "preheader" | "site"> & {
+  children: ReactNode;
+  /** Drawn below the legal lines: the unsubscribe link of a commercial email. */
+  afterFooter?: ReactNode;
+}) {
   return (
     <Html lang="en">
       <Head>
@@ -132,6 +137,7 @@ export function Layout({
               {line}
             </Text>
           ))}
+          {afterFooter}
         </Container>
       </Body>
     </Html>

@@ -102,7 +102,7 @@
    - Evidence: `grep -n 'format=csv' workspace/05-plans/B11.md` prints line 81; `grep -n 'newsletter' workspace/05-plans/trace.json` lists the 8 original route files only; service.ts:127 comment vs newsletter.issues.$id.send-test.ts:14.
 
 4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
-   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008065240 and 20261008065241, or on CI's e2e admin step for the PR.
+   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008102213 and 20261008102214, or on CI's e2e admin step for the PR.
    - Evidence: The mop-dev probe printed newsletter.% action_roles n=0 and newest migration 20261007043633; logs/B11.md:430.
 
 (Follow-ups 1 and 2 of the reviewer's list, two costs with no gotcha entry, are P-2420 and a hit-again line in P-1302 in GOTCHAS.md, not follow-ups.)
@@ -232,7 +232,7 @@
    - Evidence: I found this by reading the code; the unit test 'prints the status and exits 1 when the issue is not sent within five minutes' asserts toHaveBeenCalledTimes(61) for sleep and release last.
 
 3. File: `D:/mop-build/b11-review/app/scripts/newsletter-test-send.ts`. Blocking: no.
-   - What: UNPROVEN live path, which the author disclosed: on mop-dev today --to would confirm and commit the test subscribers and then fail at approve with 'forbidden', because the newsletter.approve row of action_roles is only in this branch's unpushed migration 20261008092913_action_roles.sql. The confirmed test rows would stay behind. The whole --to path (approve, poll, sent <id>) is UNPROVEN until main pushes the migration, B5 step 5 sets the secrets and B16 stores the legal entity and address.
+   - What: UNPROVEN live path, which the author disclosed: on mop-dev today --to would confirm and commit the test subscribers and then fail at approve with 'forbidden', because the newsletter.approve row of action_roles is only in this branch's unpushed migration 20261008102216_action_roles.sql. The confirmed test rows would stay behind. The whole --to path (approve, poll, sent <id>) is UNPROVEN until main pushes the migration, B5 step 5 sets the secrets and B16 stores the legal entity and address.
    - Evidence: Confirmed by running: a read-only query `select count(*) from action_roles where action='newsletter.approve'` returned 0 on mop-dev; in the rolled-back scratch transaction the approve raised 'forbidden' until the row was inserted.
 
 4. File: `D:/mop-build/b11-review/workspace/05-plans/logs/B11-followups.md`. Blocking: no.

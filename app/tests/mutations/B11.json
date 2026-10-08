@@ -2839,5 +2839,84 @@
     "replace": "    void 0;",
     "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
     "expect": "FAIL.*> newsletter-test-send --to > rolls back and approves nothing"
+  },
+  {
+    "id": "b11-c459-footer-link-render",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
+    "replace": "afterFooter={null}",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "FAIL.*unsubscribe link only when it is given a block"
+  },
+  {
+    "id": "b11-c459-footer-link-send",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
+    "replace": "afterFooter={null}",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*sends the real render with the unsubscribe variable"
+  },
+  {
+    "id": "b11-c459-text-link-lint",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "`Unsubscribe: ${UNSUBSCRIBE_URL}`",
+    "replace": "\"Unsubscribe\"",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "FAIL.*standalone has no finding"
+  },
+  {
+    "id": "b11-c459-text-link-send",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "`Unsubscribe: ${UNSUBSCRIBE_URL}`",
+    "replace": "\"Unsubscribe\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*sends the real render with the unsubscribe variable"
+  },
+  {
+    "id": "b11-c459-row-drift",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "subject: \"{{subject}}\",",
+    "replace": "subject: \"Matter of Place\",",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "FAIL.*equals the standalone row the B11 migration sets"
+  },
+  {
+    "id": "b11-c459-schema-min1",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/domain/email.ts",
+    "find": "body: z.array(emailBlockSchema).max(40),",
+    "replace": "body: z.array(emailBlockSchema).min(1).max(40),",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "FAIL.*takes a row with no blocks"
+  },
+  {
+    "id": "b11-c459-row-disabled",
+    "kind": "sql",
+    "test": "tests/db/email.db.test.ts",
+    "sql": "-- down: update public.email_templates set subject = 'Matter of Place', preheader = '', body = '[{\"type\": \"paragraph\", \"text\": \"The Campaign email of a property is written for that property before it is sent.\"}]', variables = '{}', enabled = false where key = 'standalone';\nset lock_timeout = '5s';\n\n-- B11 steps 4 and 9 (invariant 9): the final `standalone` row. The property block is drawn by\n-- src/templates/email/standalone.tsx from the variable `block`, so the row holds no blocks of its own. Applied only\n-- while the row is still B5's seed, so a row an admin has edited survives a replay. The revision carries the note B11.\ndo $$\nbegin\n  if exists (\n    select 1 from public.email_templates\n    where key = 'standalone' and enabled = false and subject = 'Matter of Place' and variables = '{}'\n  ) then\n    perform set_config('mop.note', 'B11', true);\n    update public.email_templates set variables = '{subject,preheader,block}' where key = 'standalone';\n    perform public.automation_put_template(\n      'standalone',\n      '{\"subject\": \"{{subject}}\", \"preheader\": \"{{preheader}}\", \"body\": [], \"enabled\": true}'::jsonb,\n      null, null, 'B11', 'B11'\n    );\n    perform set_config('mop.note', '', true);\n  end if;\nend;\n$$;\n\nupdate public.email_templates set enabled = false where key = 'standalone';",
+    "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"the standalone row is B11\"",
+    "expect": "× .*the standalone row is B11[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b11-c459-row-variables",
+    "kind": "sql",
+    "test": "tests/db/email.db.test.ts",
+    "sql": "-- down: update public.email_templates set subject = 'Matter of Place', preheader = '', body = '[{\"type\": \"paragraph\", \"text\": \"The Campaign email of a property is written for that property before it is sent.\"}]', variables = '{}', enabled = false where key = 'standalone';\nset lock_timeout = '5s';\n\n-- B11 steps 4 and 9 (invariant 9): the final `standalone` row. The property block is drawn by\n-- src/templates/email/standalone.tsx from the variable `block`, so the row holds no blocks of its own. Applied only\n-- while the row is still B5's seed, so a row an admin has edited survives a replay. The revision carries the note B11.\ndo $$\nbegin\n  if exists (\n    select 1 from public.email_templates\n    where key = 'standalone' and enabled = false and subject = 'Matter of Place' and variables = '{}'\n  ) then\n    perform set_config('mop.note', 'B11', true);\n    update public.email_templates set variables = '{subject,preheader,block}' where key = 'standalone';\n    perform public.automation_put_template(\n      'standalone',\n      '{\"subject\": \"{{subject}}\", \"preheader\": \"{{preheader}}\", \"body\": [], \"enabled\": true}'::jsonb,\n      null, null, 'B11', 'B11'\n    );\n    perform set_config('mop.note', '', true);\n  end if;\nend;\n$$;\n\nupdate public.email_templates set variables = '{}' where key = 'standalone';",
+    "run": "bunx vitest run --project db tests/db/email.db.test.ts -t \"the seeded keys equal\"",
+    "expect": "× .*the seeded keys equal emailTemplateKeys[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b11-c459-footer-link-templates",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
+    "replace": "afterFooter={null}",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "FAIL.*draws the property block it is given, from an empty body"
   }
 ]

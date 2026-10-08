@@ -246,7 +246,10 @@ async function deliver(
 }
 
 /** The plain-text part: the block's words and its link, then the footer lines and the unsubscribe address. */
-function standaloneText(block: { title: string; deck: string; link: string }, site: SiteContext) {
+export function standaloneText(
+  block: { title: string; deck: string; link: string },
+  site: SiteContext,
+) {
   const parts = [block.title, block.deck, block.link, ...footerLines(site)];
   return `${[...parts.filter((part) => part !== ""), `Unsubscribe: ${UNSUBSCRIBE_URL}`].join("\n\n")}\n`;
 }
@@ -284,13 +287,7 @@ export async function sendStandalone(ctx: StepContext, data: JsonObject): Promis
   const site = await loadSiteContext(db);
   const link = withUtm(content.data.block.link, `standalone-${property.slug}`, property.slug);
   const block = { ...content.data.block, link };
-  // STUB(B9 step 7): B9's `renderTemplate` takes `Readonly<Record<string, unknown>>` once its close-out is on main; until then the object variable `block` needs this widening
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- `renderTemplate` types its variables as strings only until B9's close-out (PR 211) lands
-  const variables = {
-    subject: content.data.subject,
-    preheader: content.data.preheader,
-    block,
-  } as unknown as Record<string, string>;
+  const variables = { subject: content.data.subject, preheader: content.data.preheader, block };
   const row = await templateRow(db, "standalone");
   const drawn = await renderTemplate(row, variables, site);
   if (site.entity === null || site.address === null || !drawn.html.includes(UNSUBSCRIBE_URL)) {

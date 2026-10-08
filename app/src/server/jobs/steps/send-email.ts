@@ -322,7 +322,7 @@ function testVariables(
   key: EmailTemplateKey,
   data: JsonObject,
   site: SiteContext,
-): Promise<Record<string, string>> {
+): Promise<Record<string, unknown>> {
   const kind = textOf(data, "entity");
   const id = textOf(data, "entity_id");
   if (kind === null || id === null || !isEntityKind(kind)) {
@@ -336,7 +336,7 @@ async function variablesFor(
   key: EmailTemplateKey,
   data: JsonObject,
   site: SiteContext,
-): Promise<Record<string, string>> {
+): Promise<Record<string, unknown>> {
   if (data["test"] === true) return testVariables(ctx.db, key, data, site);
   const eventType = key === "admin_notify" ? await eventTypeOf(ctx) : undefined;
   return resolveVariables(ctx.db, key, data, eventType, site);
@@ -366,7 +366,7 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
   );
   if (recipient.to.length === 0) return skipped("no_submitter");
   const site = await loadSiteContext(ctx.db);
-  let variables: Record<string, string>;
+  let variables: Record<string, unknown>;
   try {
     variables = await variablesFor(ctx, key, data, site);
   } catch (error) {

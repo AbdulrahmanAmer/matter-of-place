@@ -19,7 +19,7 @@ import { newsletterDb, propertyRow, uuid, type Row } from "../../fixtures/newsle
 
 // B11 step 9: the Campaign email of a property against a fake provider and a database whose asset function keeps the
 // one asset row, as `set_asset_text` does. `renderTemplate` is stubbed where a test needs the HTML to hold or lack the
-// unsubscribe variable; the footer of the real `standalone.tsx` waits for B9's close-out (PR 211).
+// unsubscribe variable, and restored where the footer of the real `standalone.tsx` is the point.
 vi.mock("../../../src/server/email/render", { spy: true });
 
 const PROPERTY = 1;
@@ -34,12 +34,16 @@ interface Reply {
   headers?: Record<string, string>;
 }
 
-function provider(routes: Record<string, Reply | (() => Reply)>): string[] {
+function provider(
+  routes: Record<string, Reply | (() => Reply)>,
+  bodies: Record<string, unknown> = {},
+): string[] {
   const keys: string[] = [];
   vi.stubGlobal("fetch", (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
     const key = `${init?.method ?? "GET"} ${url.pathname}`;
     keys.push(key);
+    if (typeof init?.body === "string") bodies[key] = JSON.parse(init.body);
     const route = routes[key];
     if (route === undefined) return Promise.reject(new Error(`unrouted ${key}`));
     const reply = typeof route === "function" ? route() : route;
@@ -318,6 +322,21 @@ describe("the footer gate", () => {
     expect(keys).toEqual([]);
   });
 
+  it("sends the real render with the unsubscribe variable and the legal address in the HTML and the text", async () => {
+    const bodies: Record<string, unknown> = {};
+    provider(ROUTES, bodies);
+    vi.mocked(renderTemplate).mockRestore();
+    const { db } = world();
+    await run(db);
+    const sent = z.object({ html: z.string(), text: z.string() }).parse(bodies["POST /broadcasts"]);
+    for (const part of [sent.html, sent.text]) {
+      expect(part).toContain("{{{RESEND_UNSUBSCRIBE_URL}}}");
+      expect(part).toContain(LEGAL.address);
+      expect(part).toContain(LEGAL.entity);
+    }
+    expect(sent.html).toContain("Oak Hill");
+  });
+
   it("throws footer_incomplete when the rendered HTML lacks the unsubscribe variable", async () => {
     const keys = provider({});
     stubRender("<p>Oak Hill</p>");
@@ -402,7 +421,7 @@ describe("a standalone test job", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0]?.body).toMatchObject({
       to: ["editor@gmail.com"],
-      subject: "[Test] Matter of Place",
+      subject: "[Test] Alder Court, Pasadena",
     });
     expect(db.calls.filter((call) => call.name === "newsletter_recipient_count")).toEqual([]);
   });
