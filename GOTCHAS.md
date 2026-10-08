@@ -965,6 +965,7 @@ Entry template
 - hit again: 2026-10-04, B3b g4: an empty `python - <<EOF` at the end of a file-writing command held the call until the 120 s timeout and moved it to the background; kill it with `taskkill //F //IM python.exe`, and never type `python` here.
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
+- hit again: 2026-10-08, B11 g6 resume: a `python3 - <<'EOF' ... || echo nopython` guard with an empty heredoc hung the shell for 120 seconds; the probe needed no python at all.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -4644,6 +4645,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the brief is built from the plan's step list, not from what main holds; after the park (11:45, 2026-10-07) the resumed run did not know g3 was accepted and merged by `mergeEach`.
 - rule: a builder first runs `grep -n "^## g<N> " workspace/05-plans/logs/<slice>.md` and, when a block exists, `git merge-base --is-ancestor <its work commit> origin/main`; if it is on main, the builder does not rebuild: it reports what of the group is still open (the log's NOT DONE and BLOCKED lines) and returns `blocked` on that, or `done` when nothing is open. The launcher checks the same before it sizes a resumed slice.
 - proof: `git merge-base --is-ancestor de18bb4 origin/main && echo on-main` → `on-main`; `gh pr view 200 --json state --jq .state` → `MERGED` (measured 2026-10-08).
+- added: 2026-10-08
+
+## P-2415 · `psql` is not on the PATH of this session, and a node one-off that imports `pg` by a `D:/` path fails
+- symptom: on 2026-10-08 a read of `select count(*) from action_roles` on mop-dev failed twice: `bun run db:psql` and `psql` gave `command not found`, and a scratch `.mjs` outside the tree that imported `pg` from `D:/mop-build/b11/app/node_modules/pg/lib/index.js` gave `ERR_UNSUPPORTED_ESM_URL_SCHEME` (node reads `D:` as a URL scheme).
+- cause: `scripts/psql-dev.mjs` spawns a `psql` that only some laptops have on the PATH (scoop); node's ESM loader on Windows takes an absolute import path only as a `file:///` URL.
+- rule: for a one-line read of mop-dev without `psql`, write the probe with `import pg from "file:///D:/.../app/node_modules/pg/lib/index.js"`, connect with `new pg.Client({ connectionString: process.env.DEV_DB_URL })` after `eval "$(node scripts/load-env.mjs --profile dev)"`, and run it under `env -u CLOUDFLARE_API_TOKEN`; keep the probe in the scratchpad, never in the tree (P-2413).
+- proof: `which psql` prints nothing on this session; the probe with the `file:///` import printed `{ n: 0 }` for the `newsletter.%` rows of `action_roles` (measured 2026-10-08).
 - added: 2026-10-08
 
 ## P-2200 · A B10 script cannot call the RPCs and tables of `social.sql` through the typed client before that migration merges
