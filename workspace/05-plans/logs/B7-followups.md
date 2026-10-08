@@ -759,3 +759,47 @@ what: The comment on withdraw says that inside the call `write_audit refuses the
 evidence: tests/db/gate.db.test.ts: both DL-04 cases call createStaffUser(db, ["admin"]); there is no managing_editor case that expects 42501
 
 blocking: false
+
+## g2 · steps 12
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The sixth follow-up of the review (GOTCHAS.md) is banked as a hit-again line on P-310 and is not repeated here.
+
+### 1. app/src/server/stories/service.ts
+
+what: saveStory calls sniffStaged(db, input.image_staging_path) at line 105 before anything checks that the path is under staging/story/<slug>/. Only save_story's SQL checks the prefix, and that check runs after the sniff. When an object's first bytes do not match its extension, sniffStaged (app/src/server/media/staging.ts:121-123) deletes it. So a stories writer (VE, ME, CE) can make the server read, and in that case delete, any object in the private bucket 'submissions' before the request is refused with invalid_key. The media service checks the name before the bytes (media/service.ts:96 and :190). Today every object in the bucket has an extension that matches its type (create_submission picks jpg/png/heic/webp, and reconcile already deletes mismatches), so I found no input that loses real data. That is why this is a follow-up and not blocking. Fix: refuse a path that does not start with `staging/story/<slug>/` in the service before sniffing, as attachMedia does.
+
+evidence: Confirmed by reading: service.ts:105 `if (input.image_staging_path !== undefined) await sniffStaged(db, input.image_staging_path);` against media/service.ts:96 `if (!input.staging_path.startsWith(...)) ... await sniffStaged(...)`. The domain schema imageStagingPath (admin-stories.ts:75) is only z.string().min(1).max(300).
+
+blocking: false
+
+### 2. app/src/domain/admin-stories.ts
+
+what: STANDARDS R22: the allowed story transitions are not declared in a domain file and not compared with the SQL guard. Publish is allowed from draft, review, agent_review and archived; unpublish only from published. Those rules live only in publish_story/unpublish_story and are restated by hand in StoryEditor.tsx's button conditions (`state !== "published"`). That differs from properties, where propertyEditorialTransitions in workflow.ts is compared by gate.db.test.ts. The two copies agree today, so nothing misbehaves now; the next change to either one can drift silently.
+
+evidence: Confirmed by reading: grep finds no story transition table in src/domain. publish_story.sql refuses only when editorial_state = 'published', and unpublish_story.sql only when <> 'published'. The author's log says 'these two functions are the whole state graph for stories'.
+
+blocking: false
+
+### 3. app/src/admin/stories/StoryEditor.tsx
+
+what: Plan screen 14 says the editor shows 'processing' while the render runs. After Save, `setStaged(null)` (line 114) clears the only indicator. What remains is a one-time toast, and a reload shows 'No image yet'. Suspected by reading, not run (the render leg is UNPROVEN): when B9's onResult writes the image, stories_set_updated_at moves updated_at, so an editor who still has the page open and presses Publish gets 409 stale with the banner 'Reload, someone saved'. Also, the upload is staged under the unsaved slug `values.slug` (line 87). An editor who uploads, then changes the draft's slug and saves, gets invalid_key from the SQL prefix check, shown as a raw error toast.
+
+evidence: Read: StoryEditor.tsx:83-124 and 66 (`hasImage` comes from the prop while `updatedAt` is local state); B2 trigger stories_set_updated_at in 20261001090300_catalog.sql:322; plan B7.md line 182 ('the editor shows "processing" meanwhile').
+
+blocking: false
+
+### 4. app/src/server/stories/service.ts
+
+what: STANDARDS C05 (no second copy of a helper): line 86 builds `/media/${row.image}` by hand, but `mediaUrl(key)` already exists in src/server/lib/media-store.ts (media/service.ts:143 has the same copy from an earlier group). story-values.ts adds a third copy of the market label map (PropertiesTable.tsx:18, email/variables.ts:350).
+
+evidence: grep -rn '`/media/${' src -> media-store.ts:29, media/service.ts:143, stories/service.ts:86; grep '"new-york": "New York"' -> three files
+
+blocking: false
+
+### 5. workspace/05-plans/logs/B7.md
+
+what: The g2 CI line (log line 1267) lists db/check/build/e2e success for 273f0fbb but leaves out that the deploy workflow's preview job failed at that head, and again at 23f71578. Earlier blocks of the same log did record the preview failure (P-2036). The line is incomplete, not false.
+
+evidence: gh run list --branch slice/b7 -> '273f0fbb deploy failure', '23f71578 deploy failure'; gh run view 37855598010 --log-failed -> 'the Worker did not answer ten times in a row in 180 s', 'observatory: ... status 422, error scan-failed'
+
+blocking: false
