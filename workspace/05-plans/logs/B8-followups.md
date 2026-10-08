@@ -233,7 +233,7 @@
 
 3. `workspace/05-plans/B8.md` (not blocking)
    - What: The plan text no longer matches what was built, and the log records each departure: (1) admin_retry_jobs takes (p_actor, p_actor_kind, p_request_id, p_type, p_error_like, p_since) with the filters last and defaulted (P-915), not the plan's order. The plan and the B10.md, B8.md and B8b.md review lines still show the old order. (2) listJobs makes two selects on a page after a cursor (ties, then older rows, because of R44), while plan line 90 says 'one supabase-js select'. (3) jobStatusLabels and the JobStatus re-export named for src/domain/jobs.ts were left out (knip, R04). Step 10 has to add them where it first uses them. The orchestrator should fold all three into the plan.
-   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008100910_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
+   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008135942_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
 
 (A fourth follow-up, the rework of `listJobs` after a jscpd clone that the bank did not hold, has GOTCHAS.md as its file and is banked as P-2600.)
 
@@ -252,7 +252,7 @@
    - Evidence: jobs.index.tsx lines 4-5 comment and validateSearch; JobsPage.tsx useOpenJob reads `new URLSearchParams(location.searchStr).get("job")`; use-url-filters.ts reads `location.searchStr`. No test mounts the real Route: jobs.test.tsx uses pageRoute from test-router, so validateSearch is never run.
 
 2. `tests/mutations/B8.json` (not blocking)
-   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008100910_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
+   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008135942_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
    - Evidence: Retry case on the built Worker against mop-dev, unmutated: admin-jobs.spec.ts:79 Expected: 200, Received: 500. pg_proc where proname like 'admin_%job%' returns [].
 
 3. `workspace/05-plans/B8.md` (not blocking)
@@ -295,7 +295,7 @@
 ## c8j · steps 10
 
 1. `app/tests/e2e/admin-jobs.spec.ts` (not blocking)
-   - What: UNPROVEN, not a defect of the code: the new Cancel case and both new watched-fails (c8j-e2e-cancel, c8j-e2e-no-delete) have never run green or red for the right reason. admin_retry_job and admin_cancel_job are in 20261008100910_jobs_admin.sql, which is not on mop-dev (ruling H57). C08 of STANDARDS stays open until someone replays both entries after main pushes the migration, and CI's e2e job (a fresh supabase start stack, ci.yml:265) passes on the PR.
+   - What: UNPROVEN, not a defect of the code: the new Cancel case and both new watched-fails (c8j-e2e-cancel, c8j-e2e-no-delete) have never run green or red for the right reason. admin_retry_job and admin_cancel_job are in 20261008135942_jobs_admin.sql, which is not on mop-dev (ruling H57). C08 of STANDARDS stays open until someone replays both entries after main pushes the migration, and CI's e2e job (a fresh supabase start stack, ci.yml:265) passes on the PR.
    - Evidence: pg_proc query on mop-dev returns []; the control run fails at :81:37 with 500, 3 did not run. Reading confirms the mutant logic: in c8j-e2e-cancel, cancelJob posting to /retry means no /cancel response arrives, so the test hits its 15 s timeout. The confirm dialog 'Cancel this job', the queued status in CANCELLABLE and the 'Cancelled' label all match JobDrawer.tsx:23,96 and JobStatus.tsx:11.
 
 2. `workspace/05-plans/B8.md` (not blocking)

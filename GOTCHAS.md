@@ -4893,6 +4893,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: on the Dell, `cd app && bun run db:psql -- -Atc "select 1"` → `Executable not found in $PATH: "psql"`; the node form with the step 7 migration printed `applied supabase/migrations/20261007223746_admin_properties.sql` and `[{"ca": "America/Los_Angeles", "fl": "America/New_York", "c": true}]` (measured 2026-10-07, B7 g1 step 7).
 - hit again: 2026-10-08, B7 g3 (step 7a): the brief's lane rules still name `db:psql` for a dry run; the node form (`pg.Client` on `DEV_DB_URL`, `begin`, the migration, a query, `rollback`) printed `applied supabase/migrations/20261008092407_admin_takedown.sql`.
 - hit again: 2026-10-08, B8 g2: the takedown migration's first dry run, `bun run db:psql -- -At -f <probe>`, stopped at `Executable not found in $PATH: "psql"`; the proof moved to the db vitest project with the migration as `MOP_MUTATION_SQL`.
+- hit again: 2026-10-08, B8 g1 (steps 9, 10a): `bun run db:psql -- -Atc "select proname ..."` stopped at `Executable not found in $PATH: "psql"` while checking what mop-dev holds; B7's `tests/db/admin.db.test.ts -t takedown` under the db vitest project answered the question instead (4 passed).
 - added: 2026-10-07
 
 ## P-2023 · B7 step 7 asks that a wrong preview signature cost no database call, and B2's token format cannot check a signature without the nonce
@@ -5016,6 +5017,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: renumber by `bank-merge.mjs` and write the old and new number in the log; regenerate `routeTree.gen.ts` with the build and keep both sides' lines in `index.css`; put a test helper two files need in `tests/fixtures/` before the merge (`admin-serve.ts`); cite the entry that holds a cost, and add one when none does.
 - proof: `grep -c "fixtures/admin-serve" app/src/admin/channels/channels.test.tsx app/src/admin/reports/reports.test.tsx` → `1` for each file.
 - added: 2026-10-08
+- hit again: 2026-10-08, B8 g1 (steps 9, 10a): the merge of main into slice/b8 conflicted in `GOTCHAS.md` (`bank-merge.mjs`, 0 lost), `routeTree.gen.ts` (took main's side, then `bun run build` regenerated the jobs routes, 83 lines mention jobs, no markers) and `admin/index.css` (both `@import` lines kept: `jobs.css` and `media.css`). It cost about ten minutes; the rule above was followed once it was found.
 
 ## P-2305 · A merge agent chased a moving main: three merges of origin/main in twenty minutes, each restarting CI, because the gate refused "rebase first" for every records commit
 - symptom: `merge-gate.mjs 185` printed `rebase first` three times; each answer was a merge of origin/main, a push and a 7 minute CI run, and main had moved again by the time the checks were green.
@@ -5260,10 +5262,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 
 ## P-2603 · The laptop e2e of a screen whose RPCs sit in an unmerged migration is red with a 500, by design
 - symptom: B8 g1 step 10: `admin-jobs.spec.ts` passed its navigation, banner, axe checkpoint, entity-filter and drawer cases against mop-dev, and failed at `Retry` with status 500 and a `{"event":"unhandled_error","route":"jobs.retry"}` line in the Worker log.
-- cause: `admin_retry_job` is in `supabase/migrations/20261008100910_jobs_admin.sql`, which main has not pushed to mop-dev yet (`select proname from pg_proc where proname like 'admin_%job%'` returns nothing; ruling H57 forbids pushing it from a lane). A missing function is not translated by `fromRpcError`, so the screen sees a 500.
+- cause: `admin_retry_job` is in `supabase/migrations/20261008135942_jobs_admin.sql`, which main has not pushed to mop-dev yet (`select proname from pg_proc where proname like 'admin_%job%'` returns nothing; ruling H57 forbids pushing it from a lane). A missing function is not translated by `fromRpcError`, so the screen sees a 500.
 - rule: before reading a laptop e2e failure as a UI bug, ask whether the screen's RPCs exist on mop-dev; if they sit in an unmerged migration the Retry, Cancel and Approve cases are UNPROVEN until main pushes it, and the CI live e2e job (built from the branch's migrations) is the proof. Run the cases that need no new function with `--grep`.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && node -e "const pg=require('pg');(async()=>{const c=new pg.Client({connectionString:process.env.DEV_DB_URL});await c.connect();console.log((await c.query(\"select proname from pg_proc where proname like 'admin_%job%'\")).rows);await c.end()})()"` -> `[]` until the migration is pushed (2026-10-08).
-- hit again: 2026-10-08, B8 c8j: the full `admin-jobs.spec.ts` failed at Retry with 500 on mop-dev, twice, because `20261008100910_jobs_admin.sql` is not on main; the Retry and Cancel cases of the spec are UNPROVEN on the laptop and the two cases that need no new function were run with `--grep`.
+- hit again: 2026-10-08, B8 c8j: the full `admin-jobs.spec.ts` failed at Retry with 500 on mop-dev, twice, because `20261008135942_jobs_admin.sql` is not on main; the Retry and Cancel cases of the spec are UNPROVEN on the laptop and the two cases that need no new function were run with `--grep`.
 - added: 2026-10-08
 
 ## P-2604 · Never run `bun run check` or a build in a tree while a `watchfail.mjs` replay with file entries is running there: the typecheck reads the mutant
