@@ -290,3 +290,24 @@
 6. `app/supabase/sql/functions/mark_social_post_posted.sql` (not blocking)
    - What: Follow-up for B10, suspected by reading. A post that is already past post-to-channel's editorial_state check when the takedown commits can land 'posted' after takedown_mark_posts has run. It is then never marked withdraw_required_at, and that live post never appears on screen 12. Fix: either mark_social_post_posted sets withdraw_required_at when properties.taken_down_at is not null, or the takedown re-marks once later.
    - Evidence: grep -n 'taken_down\|withdraw_required' mark_social_post_posted.sql set_social_post_inflight.sql finds nothing; post-to-channel.ts:427 checks editorial_state only before the call
+
+
+## c8j · steps 10
+
+1. `app/tests/e2e/admin-jobs.spec.ts` (not blocking)
+   - What: UNPROVEN, not a defect of the code: the new Cancel case and both new watched-fails (c8j-e2e-cancel, c8j-e2e-no-delete) have never run green or red for the right reason. admin_retry_job and admin_cancel_job are in 20261008100910_jobs_admin.sql, which is not on mop-dev (ruling H57). C08 of STANDARDS stays open until someone replays both entries after main pushes the migration, and CI's e2e job (a fresh supabase start stack, ci.yml:265) passes on the PR.
+   - Evidence: pg_proc query on mop-dev returns []; the control run fails at :81:37 with 500, 3 did not run. Reading confirms the mutant logic: in c8j-e2e-cancel, cancelJob posting to /retry means no /cancel response arrives, so the test hits its 15 s timeout. The confirm dialog 'Cancel this job', the queued status in CANCELLABLE and the 'Cancelled' label all match JobDrawer.tsx:23,96 and JobStatus.tsx:11.
+
+2. `workspace/05-plans/B8.md` (not blocking)
+   - What: Stale plan text (the orchestrator's to fold, as the author noted). Line 109 still says the spec inserts a job with key `test:<run id>` that is 'removed in afterAll'. The spec now uses key `e2e-jobs:<run id>` and deletes nothing. Line 176's `idempotency_key like 'test:%'` cleanup check no longer covers this spec's rows.
+   - Evidence: grep -n 'removed in .afterAll' workspace/05-plans/B8.md matches line 109
+
+3. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The proof commands in the log and the claim do not load the dev profile. Re-run exactly as written, the spec refuses in beforeAll with 'refusing: DEV_DB_URL is not set', so it never reaches the failure the log claims to show. The same is true of the `run` fields of the two c8j registry entries. This cost one wasted e2e run during review. The run lines should start with eval "$(node scripts/load-env.mjs --profile dev)" (G-901 convention).
+   - Evidence: E2E_TARGET=built E2E_PORT=8996 env -u CLOUDFLARE_API_TOKEN bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts -> 'Error: refusing: DEV_DB_URL is not set' at assert-not-production.mjs:50
+
+4. `app/tests/e2e/admin-jobs.spec.ts` (not blocking)
+   - What: Every laptop run before the migration is pushed leaves another dead e2e_jobs row on mop-dev, 14 now including the one from this review. The banner is newest first with a limit of 5 (service.ts:40, jobs-queries.ts:61), and the spec filters by its own run id, so these rows do not break the spec. They do fill the Dead jobs banner on mop-dev until the launch switch's db:reset, as P-2607 already says. Note only: avoid more laptop full-spec runs until the push.
+   - Evidence: select status,count(*) from public.jobs where type='e2e_jobs' -> dead 13 before my run
+
+(One further follow-up has GOTCHAS.md as its file: the laptop proof command copied from a log without the dev profile; banked as P-2608.)
