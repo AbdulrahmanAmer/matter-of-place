@@ -1831,8 +1831,8 @@
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
     "id": "b17-deploy-lighthouse-gate",
-    "find": "            if timeout 600 bun run lhci",
-    "replace": "            if bun run lhci",
+    "find": "&& timeout 600 bun run lhci",
+    "replace": "&& bun run lhci",
     "expect": "the Lighthouse step is a gate that survives a hung"
   },
   {
