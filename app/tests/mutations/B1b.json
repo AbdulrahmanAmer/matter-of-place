@@ -2146,8 +2146,8 @@
     "id": "hy-lint-warnings",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"lint\": \"eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
-    "replace": "\"lint\": \"eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
+    "find": "\"lint\": \"NODE_OPTIONS=--max-old-space-size=4096 eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
+    "replace": "\"lint\": \"NODE_OPTIONS=--max-old-space-size=4096 eslint . && cd .. && eslint --config app/eslint.config.js workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit\",",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "lint is type-aware, zero-warning and refuses the named rules"
   },
@@ -2155,8 +2155,8 @@
     "id": "hy-lint-warnings-app",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",
-    "find": "\"lint\": \"eslint . --max-warnings 0 && cd ..",
-    "replace": "\"lint\": \"eslint . && cd ..",
+    "find": "\"lint\": \"NODE_OPTIONS=--max-old-space-size=4096 eslint . --max-warnings 0 && cd ..",
+    "replace": "\"lint\": \"NODE_OPTIONS=--max-old-space-size=4096 eslint . && cd ..",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "× lint is type-aware, zero-warning and refuses the named rules"
   },

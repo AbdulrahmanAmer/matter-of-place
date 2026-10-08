@@ -1057,7 +1057,9 @@ describe("code gates (invariant 16; R01, R36, R48)", () => {
       throws: source.rules["@typescript-eslint/only-throw-error"],
       console: source.rules["no-console"],
       focused: test.rules["vitest/no-focused-tests"],
-      maxWarnings: packageJson.scripts["lint"]?.startsWith("eslint . --max-warnings 0 && "),
+      maxWarnings: packageJson.scripts["lint"]?.startsWith(
+        "NODE_OPTIONS=--max-old-space-size=4096 eslint . --max-warnings 0 && ",
+      ),
     }).toEqual({
       strictTypeChecked: true,
       projectService: true,
