@@ -20,7 +20,7 @@ const APP = fileURLToPath(new URL("../../", import.meta.url));
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const DEFAULT_CHECKLIST = fileURLToPath(new URL("./checklist.json", import.meta.url));
 const GIT_BASH = "C:\\Program Files\\Git\\bin\\bash.exe";
-const BASH = process.env["HARDEN_BASH"] ?? (existsSync(GIT_BASH) ? GIT_BASH : "bash");
+const BASH = existsSync(GIT_BASH) ? GIT_BASH : "bash";
 const ROW_TIMEOUT_MS = 30 * 60_000;
 const WORKER_WAIT_MS = 60_000;
 const OUTPUT_LINES = 40;
@@ -91,6 +91,19 @@ function usage(message) {
 }
 
 /**
+ * @param {number} pid
+ * @returns {boolean}
+ */
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Stops the process tree of a child this runner started, by its own process id.
  * @param {import("node:child_process").ChildProcess} child
  */
@@ -103,7 +116,7 @@ function killTree(child) {
   const result = spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
     windowsHide: true,
   });
-  if (result.status !== 0)
+  if (result.status !== 0 && alive(child.pid))
     console.error(`taskkill ${String(child.pid)} exited ${String(result.status)}`);
 }
 
@@ -260,22 +273,13 @@ function expand(command, urls, port) {
 }
 
 /**
- * Runs one command against the built Worker it starts and stops.
  * @param {string} command
  * @param {WorkerSpec} spec
  * @param {Urls} urls
+ * @param {number} port
  * @returns {Promise<Run>}
  */
-async function runWithWorker(command, spec, urls) {
-  const port = Number(process.env[`HARDEN_PORT_${String(spec.port)}`] ?? spec.port);
-  const built = await ensureBuilt();
-  if (built.code !== 0)
-    return { code: built.code, output: `bun run build failed\n${built.output}` };
-  if (await listening(port)) {
-    return { code: 1, output: `port ${String(port)} is in use; stop its owner and run again` };
-  }
-  const blocked = writeDevVars();
-  if (blocked !== "") return { code: 0, output: blocked };
+async function serve(command, spec, urls, port) {
   if (spec.mopEnv !== undefined) setDevVar("MOP_ENV", spec.mopEnv);
   copyFileSync(`${APP}.dev.vars`, `${APP}.output/server/.dev.vars`);
   const flags = spec.testScheduled === true ? " --test-scheduled" : "";
@@ -310,6 +314,35 @@ async function runWithWorker(command, spec, urls) {
 }
 
 /**
+ * Runs one command against the built Worker it starts and stops; `.dev.vars` is written again afterwards when the
+ * phase changed MOP_ENV in it.
+ * @param {string} command
+ * @param {WorkerSpec} spec
+ * @param {Urls} urls
+ * @returns {Promise<Run>}
+ */
+async function runWithWorker(command, spec, urls) {
+  const port = Number(process.env[`HARDEN_PORT_${String(spec.port)}`] ?? spec.port);
+  const built = await ensureBuilt();
+  if (built.code !== 0)
+    return { code: built.code, output: `bun run build failed\n${built.output}` };
+  if (await listening(port)) {
+    return { code: 1, output: `port ${String(port)} is in use; stop its owner and run again` };
+  }
+  const blocked = writeDevVars();
+  if (blocked !== "") return { code: 0, output: blocked };
+  let restored = "";
+  /** @type {Run} */
+  let result;
+  try {
+    result = await serve(command, spec, urls, port);
+  } finally {
+    if (spec.mopEnv !== undefined) restored = writeDevVars();
+  }
+  return restored === "" ? result : { code: 1, output: `${result.output}\n${restored}` };
+}
+
+/**
  * @param {RowSpec} row
  * @param {string} env
  * @returns {PhaseSpec[]}
@@ -330,13 +363,24 @@ function linesOf(output) {
 }
 
 /**
+ * A loader may print a notice before a row's own BLOCKED line, so the verdict looks at every line.
+ * @param {string} line
+ * @returns {boolean}
+ */
+function isBlockedLine(line) {
+  return line.startsWith("BLOCKED");
+}
+
+/**
  * @param {string} status
  * @param {string[]} lines
  * @returns {string}
  */
 function evidenceOf(status, lines) {
   const filled = lines.filter((line) => line.trim() !== "");
-  const picked = status.startsWith("blocked") ? filled[0] : filled.at(-1);
+  const picked = status.startsWith("blocked")
+    ? (filled.find(isBlockedLine) ?? filled[0])
+    : filled.at(-1);
   return (picked ?? "no output").trim().slice(0, 110);
 }
 
@@ -349,8 +393,7 @@ function evidenceOf(status, lines) {
 function classify(row, env, run) {
   const awaitsL1 = row.blockedOn === "L1" && env !== "prod";
   if (run.code !== 0) return { status: "fail", output: run.output };
-  const first = linesOf(run.output).find((line) => line.trim() !== "") ?? "";
-  if (first.startsWith("BLOCKED")) {
+  if (linesOf(run.output).some(isBlockedLine)) {
     return { status: awaitsL1 ? "blocked-on-L1" : "blocked", output: run.output };
   }
   const missing = (row.expectOutput ?? []).filter(
@@ -375,7 +418,7 @@ async function runPhases(row, env, phases, urls) {
     return { status: "blocked", output: row.blockedText ?? `BLOCKED ${needed}`, code: 0 };
   }
   if (phases.length === 0) {
-    const status = env === "prod" ? "blocked" : "blocked-on-L1";
+    const status = env === "prod" || row.blockedOn === undefined ? "blocked" : "blocked-on-L1";
     return { status, output: row.blockedText ?? "BLOCKED: the row has no command", code: 0 };
   }
   /** @type {Run} */
@@ -395,7 +438,6 @@ async function runPhases(row, env, phases, urls) {
     outputs.push(next.output);
     run = { code: next.code, output: outputs.join("\n") };
   }
-  if (phases.some((phase) => phase.worker?.mopEnv !== undefined)) writeDevVars();
   return { ...classify(row, env, run), code: run.code };
 }
 

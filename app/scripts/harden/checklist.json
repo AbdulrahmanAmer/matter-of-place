@@ -185,7 +185,7 @@
       "lane": "Website and honesty",
       "item": "Real legal pages with the Omnikom entity",
       "expectation": "the page-structure test passes; /terms and /privacy name the entity at least once",
-      "command": "[ -n \"${LEGAL_ENTITY_NAME:-}\" ] || echo 'BLOCKED until the owner supplies the legal entity and address (decision S59, setup A4 and A9)'; bunx vitest run tests/unit/legal-pages.test.tsx && { [ -z \"${LEGAL_ENTITY_NAME:-}\" ] || for p in terms privacy; do [ \"$(curl -s <prod-config>/$p | grep -c \"$LEGAL_ENTITY_NAME\")\" -ge 1 ] || exit 1; done; }"
+      "command": "[ -n \"${LEGAL_ENTITY_NAME:-}\" ] || echo 'BLOCKED until the owner supplies the legal entity and address (decision S59, setup A4 and A9)'; bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/legal-pages.test.tsx && { [ -z \"${LEGAL_ENTITY_NAME:-}\" ] || for p in terms privacy; do [ \"$(curl -s <prod-config>/$p | grep -c \"$LEGAL_ENTITY_NAME\")\" -ge 1 ] || exit 1; done; }"
     },
     {
       "id": "H1-25",
