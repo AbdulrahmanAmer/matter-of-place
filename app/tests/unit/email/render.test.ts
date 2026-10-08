@@ -363,6 +363,7 @@ describe("owner wording", () => {
     "awaiting_assets",
     "invoice",
     "inquiry_forward",
+    "campaign_report",
   ] as const;
 
   it.each(submitterKeys)("%s says nothing that depends on who submitted", async (key) => {

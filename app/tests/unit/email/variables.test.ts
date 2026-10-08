@@ -29,6 +29,7 @@ const INQUIRY = "33333333-3333-4333-8333-333333333333";
 const SUBSCRIBER = "44444444-4444-4444-8444-444444444444";
 const REQUEST = "55555555-5555-4555-8555-555555555555";
 const REASON = "66666666-6666-4666-8666-666666666666";
+const REPORT = "77777777-7777-4777-8777-777777777777";
 
 type Rows = NonNullable<FakeDbOptions["tables"]>;
 
@@ -302,6 +303,59 @@ describe("resolveVariables", () => {
 
   it("standalone has no variables", async () => {
     expect(await resolveVariables(dbWith({}), "standalone", {})).toEqual({});
+  });
+
+  it("campaign_report writes the week, the numbers with separators, a ratio as a percentage and a null as Not measured", async () => {
+    const report = (overrides: Record<string, unknown> = {}) =>
+      row<Tables<"campaign_reports"> & { campaigns: { properties: { title: string } } }>({
+        period_start: "2026-10-05",
+        period_end: "2026-10-11",
+        impressions: 3500,
+        reach: 1234567,
+        clicks: 42,
+        video_views: 1200,
+        ctr: 0.0123,
+        campaigns: { properties: { title: "Oak Hill" } },
+        ...overrides,
+      });
+    const given = await resolveVariables(
+      dbWith({ campaign_reports: [report()] }),
+      "campaign_report",
+      {
+        report_id: REPORT,
+      },
+    );
+    expect(Object.keys(given).sort()).toEqual([...variablesByKey.campaign_report].sort());
+    expect(given).toEqual({
+      property_name: "Oak Hill",
+      period: "October 5, 2026 to October 11, 2026",
+      impressions: "3,500",
+      reach: "1,234,567",
+      clicks: "42",
+      video_views: "1,200",
+      ctr: "1.2%",
+    });
+    const unmeasured = await resolveVariables(
+      dbWith({ campaign_reports: [report({ video_views: null, ctr: null })] }),
+      "campaign_report",
+      { report_id: REPORT },
+    );
+    expect(unmeasured).toMatchObject({ video_views: "Not measured", ctr: "Not measured" });
+  });
+
+  it("campaign_report names a missing report and goes to the submitter of its submission", async () => {
+    await expect(
+      resolveVariables(dbWith({ campaign_reports: [] }), "campaign_report", { report_id: REPORT }),
+    ).rejects.toThrow("report_missing");
+    const db = dbWith({ submissions: [submission({ submitter_email: "owner@example.com" })] });
+    expect(
+      await resolveRecipient(
+        db,
+        "campaign_report",
+        {},
+        { submission_id: SUBMISSION, report_id: REPORT },
+      ),
+    ).toEqual({ to: ["owner@example.com"], entity: "submission", entityId: SUBMISSION });
   });
 
   it("builds the data of an entity under the name its resolver reads", () => {
