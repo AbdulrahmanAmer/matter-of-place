@@ -829,33 +829,6 @@
     "expect": "× .*a reconcile that never ran and a late tick"
   },
   {
-    "id": "b8b-g3-sch-registered",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "getSystemJob(key) === undefined",
-    "replace": "getSystemJob(key) !== null",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*a due kpi_weekly enqueues"
-  },
-  {
-    "id": "b8b-g3-sch-advance-only",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "const advanced = await claim(db, key, old, old, next);",
-    "replace": "const advanced = await claim(db, key, old, now.toISOString(), next);",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*an unregistered kpi_weekly only moves"
-  },
-  {
-    "id": "b8b-g3-sch-not-impl-log",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "if (advanced === \"claimed\") logLine(",
-    "replace": "if (advanced === \"error\") logLine(",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*an unregistered newsletter_hygiene only moves"
-  },
-  {
     "id": "b8b-g3-sch-rollback",
     "test": "tests/unit/automation/scheduler.test.ts",
     "file": "src/server/jobs/scheduler.ts",

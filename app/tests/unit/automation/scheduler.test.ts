@@ -3,24 +3,6 @@ import type { Database, Json } from "../../../src/db";
 import { runDueSchedules } from "../../../src/server/jobs/scheduler";
 import { fakeDb, type FakeDb } from "../../fixtures/fake-db";
 
-// System job types a case registers; any other type falls through to B8's real registry, except the two clocks of
-// B11, which stay unregistered here so the branch that only moves `next_run_at` keeps its cases until it is deleted.
-const registered = vi.hoisted(() => new Set<string>());
-const CLOCKS = ["kpi_weekly", "newsletter_hygiene"];
-
-vi.mock(import("../../../src/server/jobs/system/index.ts"), async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    getSystemJob: (type: string) =>
-      registered.has(type)
-        ? actual.getSystemJob("prune")
-        : CLOCKS.includes(type)
-          ? undefined
-          : actual.getSystemJob(type),
-  };
-});
-
 type Row = Database["public"]["Tables"]["schedule_settings"]["Row"];
 type ClaimArgs = Database["public"]["Functions"]["claim_schedule"]["Args"];
 
@@ -105,7 +87,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  registered.clear();
   vi.restoreAllMocks();
 });
 
@@ -178,9 +159,8 @@ describe("runDueSchedules (invariant 11)", () => {
   });
 
   it.each(["kpi_weekly", "newsletter_hygiene"])(
-    "a due %s enqueues <key>:<UTC date> when registered",
+    "a due %s enqueues <key>:<UTC date>",
     async (key) => {
-      registered.add(key);
       const { db, jobs } = setup([schedule(key, { next_run_at: "2026-10-10T15:00:00.000Z" })]);
       await runDueSchedules(db, new Date("2026-10-10T15:00:10.000Z"));
       expect(jobs).toEqual([{ type: key, key: `${key}:2026-10-10`, data: {} }]);
@@ -188,25 +168,21 @@ describe("runDueSchedules (invariant 11)", () => {
   );
 
   it.each(["kpi_weekly", "newsletter_hygiene"])(
-    "an unregistered %s only moves next_run_at",
+    "a due %s fires once and moves both of its clocks",
     async (key) => {
-      const last = "2026-10-03T15:00:00.000Z";
       const now = new Date("2026-10-10T15:00:10.000Z");
       const { db, jobs, rows } = setup([
         schedule(key, {
           cron: "0 15 * * 6",
-          last_run_at: last,
+          last_run_at: "2026-10-03T15:00:00.000Z",
           next_run_at: "2026-10-10T15:00:00.000Z",
         }),
       ]);
       await runDueSchedules(db, now);
       await runDueSchedules(db, now);
-      expect(jobs).toEqual([]);
-      expect(rows[0]?.last_run_at).toBe(last);
+      expect(jobs.map((job) => job.key)).toEqual([`${key}:2026-10-10`]);
+      expect(rows[0]?.last_run_at).toBe(now.toISOString());
       expect(rows[0]?.next_run_at).toBe("2026-10-17T15:00:00.000Z");
-      expect(logged("schedule_not_implemented")).toEqual([
-        { level: "info", event: "schedule_not_implemented", key },
-      ]);
     },
   );
 

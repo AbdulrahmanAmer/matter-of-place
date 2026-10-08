@@ -21,7 +21,6 @@ export const LogEvent = [
   "fanout_failure_unrecorded",
   "schedule_cron_invalid",
   "schedule_claim_failed",
-  "schedule_not_implemented",
   "schedule_failed",
   "schedule_rollback_missed",
   "keepwarm_disabled",

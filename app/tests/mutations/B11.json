@@ -1315,8 +1315,8 @@
     "id": "b11-g5-mo-unregistered",
     "test": "tests/unit/newsletter/market-open-notice.test.ts",
     "file": "src/server/jobs/system/index.ts",
-    "find": "  marketOpenNotice,\n];",
-    "replace": "];",
+    "find": "  marketOpenNotice,\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/newsletter/market-open-notice.test.ts",
     "expect": "FAIL.*is registered with twelve attempts"
   },
@@ -2467,5 +2467,215 @@
     "sql": "drop trigger subscribers_engagement on public.subscribers;",
     "run": "bunx vitest run --project db tests/db/newsletter.db.test.ts -t \"hygiene leaves a subscriber who clicked\"",
     "expect": "× .*hygiene leaves a subscriber who clicked"
+  },
+  {
+    "id": "b11-g10-def-unit-blank",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": "unit: \"posts\",",
+    "replace": "unit: \" \",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*lists the eight KPIs, each with a label, a definition and a unit"
+  },
+  {
+    "id": "b11-g10-def-rate-denominator",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": "week.decisions.accepted + week.decisions.declined",
+    "replace": "week.decisions.declined",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*reads an acceptance rate of no decisions as 0 of 0"
+  },
+  {
+    "id": "b11-g10-def-no-published",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": "week.inquiries.published_properties === 0",
+    "replace": "week.inquiries.received === 0",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*reads inquiries per property as the sentence when nothing is published"
+  },
+  {
+    "id": "b11-g10-def-no-change",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": "if (difference === 0) return \"no change\";",
+    "replace": "if (difference === 0) return \"0\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*shows a count's change against the prior week as \\+n, -n or no change"
+  },
+  {
+    "id": "b11-g10-def-channel-order",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": ".sort(([a], [b]) => a.localeCompare(b))",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*reads each value in words with its unit"
+  },
+  {
+    "id": "b11-g10-def-zone",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/definitions.ts",
+    "find": "timeZone: KPI_ZONE,",
+    "replace": "timeZone: \"UTC\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*starts the last full week on the Monday before the last Sunday"
+  },
+  {
+    "id": "b11-g10-collect-prior-week",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/collect.ts",
+    "find": "readWeek(db, addDays(weekStart, -7))",
+    "replace": "readWeek(db, addDays(weekStart, -6))",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*reads the week and the week before from kpi_weekly"
+  },
+  {
+    "id": "b11-g10-collect-error-code",
+    "test": "tests/unit/kpi/definitions.test.ts",
+    "file": "src/server/kpi/collect.ts",
+    "find": "throw new Error(`kpi_weekly_failed:${error.code}`);",
+    "replace": "throw new Error(\"kpi_weekly_failed\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/definitions.test.ts",
+    "expect": "× .*fails the read when kpi_weekly answers an error"
+  },
+  {
+    "id": "b11-g10-ceo-text-change",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/templates/email/ceo-weekly.tsx",
+    "find": "`${line.label}: ${line.value} (${line.change})`",
+    "replace": "`${line.label}: ${line.value}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*lists all eight KPIs with a change against the prior week, with no em dash"
+  },
+  {
+    "id": "b11-g10-ceo-top-title",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/templates/email/ceo-weekly.tsx",
+    "find": "...top.map((property) => `${property.title}: ${String(property.count)}`),",
+    "replace": "...top.map((property) => property.slug),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*lists the properties asked about most and the footer lines"
+  },
+  {
+    "id": "b11-g10-ceo-em-dash",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/templates/email/ceo-weekly.tsx",
+    "find": "New York time. Each change is against the week before.",
+    "replace": "New York time — each change is against the week before.",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*lists all eight KPIs with a change against the prior week, with no em dash"
+  },
+  {
+    "id": "b11-g10-job-unregistered",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  kpiWeekly,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*is registered with twelve attempts"
+  },
+  {
+    "id": "b11-g10-job-kind",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/system/kpi-weekly.ts",
+    "find": "kind: \"alert\"",
+    "replace": "kind: \"transactional\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*mails the last full week to every admin recipient, one kpi_weekly alert row each"
+  },
+  {
+    "id": "b11-g10-job-ignores-to",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/system/kpi-weekly.ts",
+    "find": "const recipients = to === undefined ? await resolveAdminRecipients(ctx.db) : [to];",
+    "replace": "const recipients = await resolveAdminRecipients(ctx.db);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*sends the chosen week to the one address of data.to"
+  },
+  {
+    "id": "b11-g10-job-template-key",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/system/kpi-weekly.ts",
+    "find": "templateKey: \"kpi_weekly\"",
+    "replace": "templateKey: \"kpi\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*with EMAIL_DRY_RUN=1 ends with a skipped dry_run message row"
+  },
+  {
+    "id": "b11-g10-job-sends-twice",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "if (OUT.has(message.status)) return { status: \"already_sent\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*kpi_weekly runs twice without a second outside effect"
+  },
+  {
+    "id": "b11-g10-job-any-day",
+    "test": "tests/unit/kpi/ceo-weekly.test.ts",
+    "file": "src/server/jobs/system/kpi-weekly.ts",
+    "find": "    .refine(isMonday)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/kpi/ceo-weekly.test.ts",
+    "expect": "× .*ends dead on a week_start that is not a Monday"
+  },
+  {
+    "id": "b11-g10-sched-kpi-key",
+    "test": "tests/unit/automation/scheduler.test.ts",
+    "file": "src/server/jobs/scheduler.ts",
+    "find": "idempotencyKey: `kpi_weekly:${utcDate(now)}`",
+    "replace": "idempotencyKey: `kpi_weekly:${now.toISOString()}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
+    "expect": "× .*a due kpi_weekly fires once and moves both of its clocks"
+  },
+  {
+    "id": "b11-g10-db-void-counted",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null or extract(isodow from p_week_start) <> 1 then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(*)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(*) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select coalesce(jsonb_object_agg(c.channel, c.n), '{}'::jsonb)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"returns the hand-computed counts of every KPI on the fixture week\"",
+    "expect": "× .*returns the hand-computed counts of every KPI on the fixture week"
+  },
+  {
+    "id": "b11-g10-db-decision-per-request",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null or extract(isodow from p_week_start) <> 1 then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(*)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(distinct d.submission_id) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n        where pay.status <> 'void'\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select coalesce(jsonb_object_agg(c.channel, c.n), '{}'::jsonb)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"counts decisions from the accepted and declined events\"",
+    "expect": "× .*counts decisions from the accepted and declined events"
+  },
+  {
+    "id": "b11-g10-db-empty-posts-null",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null or extract(isodow from p_week_start) <> 1 then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(*)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(*) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n        where pay.status <> 'void'\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select jsonb_object_agg(c.channel, c.n)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"reads a week with no rows as 0 of 0 decisions\"",
+    "expect": "× .*reads a week with no rows as 0 of 0 decisions"
+  },
+  {
+    "id": "b11-g10-db-top-count",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null or extract(isodow from p_week_start) <> 1 then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(distinct i.subject_slug)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(*) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n        where pay.status <> 'void'\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select coalesce(jsonb_object_agg(c.channel, c.n), '{}'::jsonb)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"counts two inquiries about one published property as 2\"",
+    "expect": "× .*counts two inquiries about one published property as 2"
+  },
+  {
+    "id": "b11-g10-db-any-day",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(*)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(*) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n        where pay.status <> 'void'\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select coalesce(jsonb_object_agg(c.channel, c.n), '{}'::jsonb)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"refuses a week_start that is not a Monday\"",
+    "expect": "× .*refuses a week_start that is not a Monday"
+  },
+  {
+    "id": "b11-g10-db-grant-authenticated",
+    "kind": "sql",
+    "test": "tests/db/kpi.db.test.ts",
+    "sql": "create or replace function public.kpi_weekly(p_week_start date)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_start timestamptz;\n  v_end timestamptz;\nbegin\n  -- B11 invariant 12 (GG-03): the numbers of one ISO week, Monday to Sunday in the owner's zone (ASSUMED\n  -- America/New_York), for the CEO's Saturday email and B14's audit report. The words for each number are in\n  -- src/server/kpi/definitions.ts; this function is the only place they are counted.\n  if p_week_start is null or extract(isodow from p_week_start) <> 1 then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  v_start := p_week_start::timestamp at time zone 'America/New_York';\n  v_end := (p_week_start + 7)::timestamp at time zone 'America/New_York';\n\n  return (\n    with decisions as (\n      select e.type, e.at, e.payload ->> 'submission_id' as submission_id\n      from public.events e\n      where e.type in ('submission.accepted', 'submission.declined')\n    ),\n    first_decisions as (\n      select d.submission_id, min(d.at) as decided_at\n      from decisions d\n      group by d.submission_id\n    ),\n    week_inquiries as (\n      select i.subject_kind, i.subject_slug\n      from public.inquiries i\n      where i.received_at >= v_start and i.received_at < v_end\n    ),\n    top_properties as (\n      select p.slug, p.title, count(*)::int as n\n      from week_inquiries i\n      join public.properties p on p.slug = i.subject_slug\n      where i.subject_kind = 'property'\n      group by p.slug, p.title\n      order by n desc, p.slug\n      limit 5\n    )\n    select jsonb_build_object(\n      'week_start', p_week_start,\n      'week_end', p_week_start + 6,\n      'submissions_received', (\n        select count(*)::int from public.submissions s\n        where s.received_at >= v_start and s.received_at < v_end\n      ),\n      'decisions', (\n        select jsonb_build_object(\n          'accepted', count(*) filter (where d.type = 'submission.accepted')::int,\n          'declined', count(*) filter (where d.type = 'submission.declined')::int\n        )\n        from decisions d\n        where d.at >= v_start and d.at < v_end\n      ),\n      'time_to_decision_hours', (\n        select round(\n          (percentile_cont(0.5) within group (\n            order by extract(epoch from f.decided_at - s.received_at) / 3600\n          ))::numeric,\n          1\n        )\n        from first_decisions f\n        join public.submissions s on s.id::text = f.submission_id\n        where f.decided_at >= v_start and f.decided_at < v_end\n      ),\n      'invoices', (\n        select jsonb_build_object(\n          'issued', count(*) filter (where pay.issued_at >= v_start and pay.issued_at < v_end)::int,\n          'issued_amount', coalesce(sum(pay.amount) filter (where pay.issued_at >= v_start and pay.issued_at < v_end), 0),\n          'paid', count(*) filter (where pay.paid_at >= v_start and pay.paid_at < v_end)::int,\n          'paid_amount', coalesce(sum(pay.amount) filter (where pay.paid_at >= v_start and pay.paid_at < v_end), 0)\n        )\n        from public.payments pay\n        where pay.status <> 'void'\n      ),\n      'properties_published', (\n        select count(*)::int from public.properties p\n        where p.published_at >= v_start and p.published_at < v_end\n      ),\n      'posts_by_channel', (\n        select coalesce(jsonb_object_agg(c.channel, c.n), '{}'::jsonb)\n        from (\n          select sp.channel, count(*)::int as n\n          from public.social_posts sp\n          where sp.posted_at >= v_start and sp.posted_at < v_end\n          group by sp.channel\n        ) c\n      ),\n      'newsletter', (\n        select jsonb_build_object(\n          'confirmed', w.confirmed,\n          'unsubscribed', w.unsubscribed,\n          'net', w.confirmed - w.unsubscribed,\n          'total_confirmed', w.total_confirmed\n        )\n        from (\n          select\n            count(*) filter (where sub.confirmed_at >= v_start and sub.confirmed_at < v_end)::int as confirmed,\n            count(*) filter (where sub.unsubscribed_at >= v_start and sub.unsubscribed_at < v_end)::int\n              as unsubscribed,\n            count(*) filter (\n              where sub.confirmed_at < v_end and (sub.unsubscribed_at is null or sub.unsubscribed_at >= v_end)\n            )::int as total_confirmed\n          from public.subscribers sub\n        ) w\n      ),\n      'inquiries', jsonb_build_object(\n        'received', (select count(*)::int from week_inquiries),\n        'published_properties', (\n          select count(*)::int from public.properties p\n          where p.editorial_state = 'published' and p.published_at < v_end\n        ),\n        'top', (\n          select coalesce(\n            jsonb_agg(jsonb_build_object('slug', t.slug, 'title', t.title, 'count', t.n) order by t.n desc, t.slug),\n            '[]'::jsonb\n          )\n          from top_properties t\n        )\n      )\n    )\n  );\nend;\n$$;\n\nrevoke execute on function public.kpi_weekly(date) from public, anon, authenticated;\ngrant execute on function public.kpi_weekly(date) to service_role;\n\ngrant execute on function public.kpi_weekly(date) to authenticated;\n",
+    "run": "bunx vitest run --project db tests/db/kpi.db.test.ts -t \"is callable by the service role only\"",
+    "expect": "× .*is callable by the service role only"
   }
 ]

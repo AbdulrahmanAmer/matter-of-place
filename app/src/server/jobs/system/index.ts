@@ -1,6 +1,7 @@
 import type { SystemJobDefinition } from "../types.ts";
 import { copySubmissionMedia } from "./copy-submission-media.ts";
 import { health } from "./health.ts";
+import { kpiWeekly } from "./kpi-weekly.ts";
 import { marketOpenNotice } from "./market-open-notice.ts";
 import { metaTokenRefresh } from "./meta-token-refresh.ts";
 import { newsletterHygiene } from "./newsletter-hygiene.ts";
@@ -21,6 +22,7 @@ const systemJobs: readonly SystemJobDefinition[] = [
   newsletterSend,
   newsletterPreview,
   newsletterHygiene,
+  kpiWeekly,
   marketOpenNotice,
   copySubmissionMedia,
 ];
