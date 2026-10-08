@@ -177,3 +177,11 @@ Recorded in the bank, not here: none. No follow-up of c9's review has GOTCHAS.md
    Evidence: deploy.yml:169 vs 196; CI log 'preview essentials ... E2E_MODE: live'
 
 Recorded in the bank, not here: the follow-up whose file is GOTCHAS.md (a watched-fail replay in the same tree as `bun run check`, hit again in the g10 review) became a hit-again line of P-2018.
+
+## c8 · steps 8
+
+1. File `app/lighthouserc.local.json` (not blocking).
+   What: Lighthouse local did not reproduce in the reviewer's environment. Every run, on every page, stopped with NO_NAVSTART before producing a score. The author's medians (perf 0.72 to 0.91, LCP 2.86 to 3.27 s, bp 0.96 on / and /california, a11y 0.98 on /exposure, CLS 0) are UNPROVEN by this review. The outcome is the same red exit either way, and the author already marked this proof pass:false. Step 8's acceptance line ('all four category assertions and the budget pass on five pages', and performance, accessibility and best practices on the property page) is still NOT DONE. The step must not be counted as closed in the ledger until it goes green or a ruling waives it beyond H61.
+   Evidence: Confirmed by running, three times: bun run lhci:local -- --collect.url=http://127.0.0.1:8939/... -> 'Run #1...failed! ... (NO_NAVSTART)', exit 1. The same error appeared with a single URL and numberOfRuns=1, so it does not depend on the page. Two approaches failed, so this is BLOCKED. It would unblock with a Lighthouse run from the operator's normal shell, or a check of whether the agent shell's sandbox blocks Chrome tracing.
+
+Recorded in the bank, not here: three follow-ups whose file is GOTCHAS.md became P-1940 (Lighthouse NO_NAVSTART from an agent shell), a hit-again line of P-068 (a hand `git checkout` during a registry replay) and a rewording of the point-in-time count in P-1939.
