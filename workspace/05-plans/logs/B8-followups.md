@@ -264,3 +264,29 @@
    - Evidence: Reproduced the 500 at admin-jobs.spec.ts:79 on mop-dev. The CI e2e job (ci.yml line 337, E2E_STACK=1 bunx playwright test --project=admin) runs on a supabase start stack built from the branch's migrations, so it is the proof once the pull request runs.
 
 (One further follow-up has GOTCHAS.md as its file: the reviewer's cost of a shared scratchpad file name overwritten by another agent, recorded as a hit-again line on P-2136.)
+
+## g2 · steps 10a
+
+1. `app/supabase/sql/functions/takedown_media_keys.sql` (not blocking)
+   - What: Follow-up, suspected by reading, not run. The key list is built from the property's current rows. A public object whose row is gone or was replaced is never deleted or purged. Example: apply_media_variants (line 22) overwrites media_key when a photograph is rendered again with different content, and nothing in the repo deletes the old master or its sizes from the media bucket. The same happens to any photograph whose property_media row is removed before the takedown. In a rights takedown the disputed photograph is often the one an editor removed first, and it would stay at /media/o/<slug>/<n>-<sha8>.webp and its v/ sizes. The plan specifies this row-based design, so it is not this step's defect. Closing it needs either a Storage list by the property's o/<owner>/ and v/<owner>/ prefixes, or a delete of the objects whenever a row loses its key.
+   - Evidence: grep -ln 'delete from public.property_media' supabase/sql/functions/*.sql returns nothing; grep deleteObjects src scripts finds only takedown-media.ts; apply_media_variants.sql line 22 sets `variants = case when m.media_key = i.media_key then ... else i.variants end` together with `set media_key = i.media_key`
+
+2. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Follow-up, suspected by reading. purge() runs before markPosts(). purgeUrls throws NonRetryableError on any Cloudflare 4xx other than 429, for example a revoked token, a wrong zone, or file URLs outside CF_ZONE_ID's zone such as the workers.dev MEDIA_PUBLIC_BASE on dev. That kills the job, and takedown_mark_posts never runs, so live posts never reach the 'Withdraw by hand' list. The plan asks for this order (3 then 4), so it is not blocking here. Marking posts before the purge, or catching a final purge refusal into purge_skipped, would separate the human withdrawal list from cache housekeeping. The live proof waits for `done`, so on dev it will show whether Cloudflare refuses workers.dev URLs.
+   - Evidence: purge-cache.ts send(): `if (!response.ok) throw new NonRetryableError(...)`; takedown-media.ts lines: `const purged = await purge(ctx, keys); const postsMarked = await markPosts(...)`; the runner's fail() with dead=true for NonRetryableError
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Follow-up for the orchestrator to fold. Several plan lines no longer match main. Step 10a's Files line says 'each value of variants' and asks for to_regclass/execute guards. The log-events.ts Change line appends takedown_posts_unavailable. The db proof clause says 'takedown_mark_posts returns 0 while social_posts is absent'. The author deviated correctly and banked it as P-2605, but the plan still says the old thing.
+   - Evidence: git grep -n 'create table public.assets\|create table public.social_posts' -- app/supabase/migrations gives two lines; log-events.ts already holds runner_beat_failed (line 16) and has no takedown_posts_unavailable
+
+4. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: Follow-up. Checklist C22: the new job type takedown_media states no unit cost: Storage delete calls (1 per 1,000 keys), Cloudflare purge calls (1 per 30 keys), 2 RPCs per pass, 2 passes, and the P-009 line it draws on. The cost is small and the job is rare.
+   - Evidence: awk '/^## g2/,0' workspace/05-plans/logs/B8.md | grep -i 'cost\|P-009' returns nothing
+
+5. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Follow-up, suspected by reading. Suppose the runner dies after deleteObjects succeeds but before requeue_job stores deleted_at. The rerun deletes again, which is harmless, but records `deleted: 0` because the objects are already gone. The live proof's pass condition 'result.deleted at least 1' would then read as a failure even though the takedown worked. Worth one sentence in the runbook or the live-proof text.
+   - Evidence: run(): `if (done === null) { const { deleted } = await deleteObjects("media", keys); return { status: "retry_at", ... result: { deleted_at, deleted } } }`; media-store deleteBatch counts only what Storage reports it removed
+
+6. `app/supabase/sql/functions/mark_social_post_posted.sql` (not blocking)
+   - What: Follow-up for B10, suspected by reading. A post that is already past post-to-channel's editorial_state check when the takedown commits can land 'posted' after takedown_mark_posts has run. It is then never marked withdraw_required_at, and that live post never appears on screen 12. Fix: either mark_social_post_posted sets withdraw_required_at when properties.taken_down_at is not null, or the takedown re-marks once later.
+   - Evidence: grep -n 'taken_down\|withdraw_required' mark_social_post_posted.sql set_social_post_inflight.sql finds nothing; post-to-channel.ts:427 checks editorial_state only before the call
