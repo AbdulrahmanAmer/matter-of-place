@@ -215,3 +215,173 @@ Reviewer's follow-ups, none blocking, recorded word for word with their evidence
 - what: NOT DONE, and stated honestly: the putChannelSettings and restoreRevision assertMayEnable lines, their tests/unit/automation/service.test.ts cases, and B9's approveAsset passing evidence all wait for service files that origin/main does not have. Until they land, approve_asset's evidence path is only reached through auto_approve_asset.
 - evidence: git ls-tree origin/main app/src/server/automation/ app/src/server/assets/ lists no service.ts.
 - blocking: false
+
+## g2 · steps 1-3b
+
+Second review round of the group (a fresh reviewer on the frozen snapshot), recorded word for word with their evidence. The two that concern GOTCHAS.md are banked as P-2405 and P-2406. The reels-limits constants and the v23.0 text also appear in the first g2 block above.
+
+### app/tests/mutations/B10.json
+
+- what: Follow-up, not blocking. Five fields of reels-limits.json have no watched-fail entry: aspect.min/max, max_width_px, fps.min and audio_codecs. The four tests do assert them, and changing aspect.max to 0.5 would turn the test red, but no registry entry proves it. Separately, the REEL constants in the test copy render-reel.mjs's W, H, FPS and MAX_BYTES (the plan asks for constants in the test). If B12 changes FPS, this test stays green without noticing.
+- evidence: Read: the B10.json entries b10g2-* mutate only video_codecs, fps.max, duration_s.max, max_size_mb and source. scripts/render-reel.mjs:23-27 declares W=1080, H=1920, FPS=30 and exports MAX_BYTES=12_000_000.
+- blocking: false
+
+### workspace/05-plans/B10.md
+
+- what: Follow-up for the orchestrator, not blocking. Line 17 of the plan still says 'ASSUMED placeholder v23.0; step 3 replaces it with the newest version', but the runbook now records v26.0. The hint text in src/domain/channels.ts:57 ('Use a version such as v23.0', a g1 file) also still names v23.0. Neither line is false, but the plan line is stale.
+- evidence: git grep -n 'v23.0' gives only src/domain/channels.ts:57, tests/unit/channels/ids.test.ts and workspace/05-plans/B10.md:17
+- blocking: false
+
+## g3 · steps 4
+
+Second review of g3 (the resume run of 2026-10-08): no blocking defect, two follow-ups, recorded word for word with their evidence. None has GOTCHAS.md as its file, so no gotcha entry was added.
+
+### app/tests/unit/assets/service.test.ts (proof command of B10 step 4)
+
+- what: UNPROVEN (the author reports it as NOT DONE, waiting for B9): the step 4 proof command still passes with no B9 case, because vitest drops a path that does not exist when the other paths match. Once B9 lands, the same command stays green whether or not the human_approval_required case was added to service.test.ts. Whoever closes this part should replay a registry entry that mutates the mayApprove call in approveAsset. A green run of this command is not enough.
+- evidence: The command ran with tests/unit/assets/service.test.ts in its file list and printed 'Test Files 6 passed (6)', exit 0, while that file is not in the tree.
+- blocking: false
+
+### app/tests/unit/channels/meta-metrics.test.ts:28
+
+- what: The plan asks that 'every metric in the recorded fixtures maps to a normalised field'. The test first filters the fixture names down to those in META_METRICS, so a fixture name with no field (total_interactions in media-insights.json) is never checked. This is acceptable today: total_interactions has no normalised field and the plan accepts that it lands in raw. The fixture is documentation-sourced, not a live recording, so META_METRICS stays UNPROVEN against a real Graph answer until step 7 (the author says so, P-2205). Suspected by reading; not a code defect.
+- evidence: tests/fixtures/graph/media-insights.json lists reach, likes and total_interactions. The test asserts names.filter(name in META_METRICS) equals ['reach','likes'].
+- blocking: false
+
+## g4 · steps 5
+
+Reviewer's follow-ups of the resume run, none blocking, recorded word for word with their evidence. The two that concern GOTCHAS.md are banked as hit-again lines on P-152, P-066 and P-027 (see "## g4 · follow-ups recorded" in `logs/B10.md`).
+
+### app/tests/unit/channels/meta.test.ts
+
+- what: The 'newest' part of the PUBLISHED adoption is not proven. tests/fixtures/graph/media-list.json lists the newest media first, so deleting the sort in newestSince (meta.ts:278) leaves every test green. The code comment says 'the order Graph lists them in is not relied on', but no test checks that. The reversed-sort mutation b10g4-newest-first does go red, and the code is correct today. Fix: put the older media first in a list the test builds itself, or reorder the fixture.
+- evidence: Confirmed by running: watchfail --file src/server/channels/meta.ts --find '.sort((a, b) => b.time - a.time);' --replace ';' -> 'WATCHED-FAIL BAD: stayed green'.
+- blocking: false
+
+### app/src/server/channels/meta.ts
+
+- what: Suspected by reading, not run. graph() lines 172-177: 'catch { body = null; }'. A non-JSON body on a non-2xx answer is classified correctly by HTTP status. But a 2xx answer with a non-JSON body on the insights call makes metrics() return { status: 'fetched' } with every field null and raw null (normaliseMetaInsights(null)). Through set_social_post_metrics that would overwrite earlier numbers. Every other call fails safely with 'unexpected shape' via parsed(). This brushes against R10/C06 (a catch that turns a failure into success) on one path only. Graph normally answers JSON, so no realistic trigger was found. Fix: in metrics(), refuse a null or unparsed body before normalising.
+- evidence: meta.ts:172-179 (catch sets body = null, then returns body when response.ok); meta.ts:453-460 (metrics passes the result straight to normaliseMetaInsights); meta-metrics.ts:39-56 (null answer -> all-null Metrics with raw: null).
+- blocking: false
+
+- what: Suspected by reading. In publishInstagram (lines 360-367), a freshly created container that ends ERROR is always thrown as GraphError class non_retryable, and the row then fails at once (invariant 3b). It is never classified through meta-errors.ts. A container ERROR is often Meta failing to fetch the media, which can be transient (Risks: a Cloudflare rule or a slow /media URL). The plan only specifies ERROR for a stored marker: clear it and create a new container. The post-to-channel group (step 6) should decide whether a fresh-container ERROR retries inside the window. This is a plan fold, not a contract break.
+- evidence: meta.ts:360-367; plan invariant 2 ('ERROR or EXPIRED clears the marker ... and creates a new container in the same run') and invariant 5 ('Meta's own fetch failing comes back as a Graph media error and is classified by meta-errors.ts').
+- blocking: false
+
+## g5 · steps 5a
+
+Second review of g5 (the resume run of 2026-10-08): no blocking defect, two follow-ups, recorded word for word with their evidence. The one that concerns GOTCHAS.md is banked as P-2218.
+
+### app/src/server/channels/post-to-channel.ts
+
+- what: Follow-up, not this group's file (g6 or the orchestrator). Found by reading, not confirmed by running. The provider reset time that g5 computes is never used. x-errors.ts and linkedin-errors.ts fill ChannelFailure.retryAt from X's x-rate-limit-reset and 24-hour reset headers and from LinkedIn's Retry-After. No production code reads it: onFailure in post-to-channel.ts (lines 316-358) sends every retry_at failure to planRetry, which uses B8's backoff and the posting window. So a 429 that resets in 15 minutes gets retried at 30 s, 1 minute and 2 minutes before the reset, and the X monthly usage cap burns the 12 attempts and up to 3 window moves before the row fails. STANDARDS R34 says a quota or plan-limit answer maps to retry_at at the provider's own reset time, never a fixed guess. Plan invariant 3a treats retry_at like retryable, so the plan and R34 disagree. The orchestrator should settle which one rules. This does not block g5: the classification R34 asks of this group is there and tested.
+- evidence: grep -rn "retryAt" app/src --include=*.ts finds only the producers (oauth-tokens.ts:27, x-errors.ts, linkedin-errors.ts) plus resend.ts and window.ts, which have their own unrelated retryAt. platformFailure() in post-to-channel.ts:297-313 copies only class, message and code from ChannelApiError.detail.
+- blocking: false
+
+## g6 · steps 6
+
+Second review of group g6 (resume run). Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The two that name GOTCHAS.md are banked (P-2450, and a hit-again line on P-140); what stays here is the plan file and the fold request.
+
+### workspace/05-plans/B10.md
+
+- what: The plan's invariant-1 grep 'grep -rln "graph.facebook.com\|api.x.com\|api.linkedin.com" src/routes src/server/channels/service.ts src/server/reports' exits 2 until step 9 creates src/server/reports. Its 'prints nothing' pass condition is therefore met while the command errors. The author labels it UNPROVEN, which is correct. The re-run belongs to step 9's proof, with the exit code checked, not just the empty output.
+- evidence: In the snapshot: 'grep: src/server/reports: No such file or directory', rc2=2.
+- blocking: false
+
+### workspace/05-plans/B10.md (step 6 proof commands, tail of the follow-up banked on P-140)
+
+- what: The step 6 proof command, as both the plan and the author's report give it, is a bare 'bunx vitest run' without --testTimeout=60000. On a cold transform cache, admin-routes-parity.test.ts times out at the 5 s default. Pass the flag in the B10 proof commands (orchestrator to fold into B10.md step 6).
+- evidence: First run in the fresh snapshot: 'Tests 1 failed | 95 passed (96)', with 'FAIL tests/unit/admin-routes-parity.test.ts > ... Error: Test timed out in 5000ms.' The same command on a warm cache and with --testTimeout=60000 gave 96 passed (96).
+- blocking: false
+
+## g8 · steps 8
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The one that names GOTCHAS.md (the missing P-094 line) is banked as a hit-again line on P-094, so it is not repeated here.
+
+### app/src/routes/admin/index.tsx
+
+- what: Plan step 8 asks for an import and placement line for ChannelHealthTile on screen 2. That line is NOT DONE because B7's file is not on main. The tile, its test and its CSS are built. The tile carries @public and STUB(B10 step 8), so the stub ledger and preflight still track it. The placement is UNPROVEN until B7 step 9 creates the file. This needs a lane to own it once that file lands.
+- evidence: git ls-tree --name-only origin/main app/src/routes/admin/ lists no index.tsx (origin/main 3db85f9). grep STUB app/src/admin/dashboard/ChannelHealthTile.tsx shows line 15.
+- blocking: false
+
+### app/src/admin/channels/PostsTable.tsx
+
+- what: A failed write on screen 12 shows a toast with error.message and no request id. This covers Retry, Cancel and Refresh metrics (PostsTable.tsx:80), Done (WithdrawList.tsx:103) and Account ids save (AccountIdsForm.tsx:76). STANDARDS C17 asks for the request id on an error. The fix only added it to the list-load error. This matches B7's existing convention (requests/DecisionPanel.tsx:115 and RequestsPage.tsx:40 do the same), so it is a project-wide follow-up, not this group's regression.
+- evidence: grep -rn 'tone: "danger"' app/src/admin --include=*.tsx shows message-only toasts in channels and in B7's requests screens. No admin mutation toast carries requestId.
+- blocking: false
+
+### app/src/admin/channels/PostsTable.tsx
+
+- what: Refresh metrics fires on one click with no confirm (line 108). It enqueues refresh_social_post_metrics, which reads from the platforms. For X that read counts against settings.x.read_allowance (invariant 11). It is arguably an 'external action' under C17 and the ConfirmDialog doc ('every outward or destructive action'). The author flagged it. The plan does not settle it, so the orchestrator should rule.
+- evidence: Read app/src/admin/channels/PostsTable.tsx lines 102-111 and app/src/server/channels/service.ts refreshMetrics (lines 228-237).
+- blocking: false
+
+### app/src/admin/dashboard/ChannelHealthTile.test.tsx
+
+- what: The case 'shows amber at 14 days left and red at 6' passes the level in as fixture data (tokenAt(14, 'amber'), tokenAt(6, 'red')). It proves only how a given level is drawn, not the 14-day and 7-day thresholds, which the server's channelHealth/tokenHealth computes. The threshold proof has to come from the g3/g6 server tests. A reader of the step 8 proof should not take this case as threshold evidence.
+- evidence: Read lines 8-12 and 34-48 of the test. Mutating the threshold in the server code would leave this file green, by construction.
+- blocking: false
+
+### app/src/admin/channels/WithdrawList.tsx
+
+- what: The copy disagrees within one action. The dialog title and button say 'Mark as deleted', the body says 'is deleted on its platform', and the success toast says 'Marked as withdrawn.'
+- evidence: Read app/src/admin/channels/WithdrawList.tsx lines 87-111.
+- blocking: false
+
+### app/tests/e2e/admin-channels.spec.ts
+
+- what: In the dev server, the admin channels screen logs the React console.error 'Can't perform a React state update on a component that hasn't mounted yet'. Not traced to a component. It is unknown whether it predates this group.
+- evidence: My e2e re-run printed '[vite] (client) [console.error] Can't perform a React state update on a component that hasn't mounted yet' once.
+- blocking: false
+
+### workspace/05-plans/logs/B10.md
+
+- what: Line 625 says 'merged into slice/b10 at 7e046211'. The merge commit is 1c1baecb, and 7e046211 is its first parent. Earlier blocks name the merge commit itself (for example 32a0d86). The 'Started from origin/main b1005fc6' base is correct, so this is a wording slip, not a wrong diff base.
+- evidence: git log -1 --format='%H %P' 1c1baecb prints parents 7e046211 and b1005fc6.
+- blocking: false
+
+### app/scripts/bundle-check.mjs
+
+- what: The proofs include no bundle check (G16) for this commit. The WIP ran one on a live build, but the fix commit adds a ConfirmDialog import to admin-only files and was not re-checked. My local build without VITE_API_BASE_URL fails bundle-check on seed titles. That is expected for a non-live build, so it says nothing either way. The PR's CI build job is the judge: UNPROVEN until it runs.
+- evidence: cd app && node scripts/bundle-check.mjs after a plain bun run build prints 'FAIL ... holds the seed title ... of src/data/properties.ts', 'bundle-check: FAILED 7'. CI sets VITE_API_BASE_URL before its build (.github/workflows/ci.yml line 99).
+- blocking: false
+
+## g10 · steps 10
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The two that name GOTCHAS.md are banked as P-2457 and P-2458, so they are not repeated here.
+
+### app/tests/unit/scripts/auto-approve-rehearsal.test.ts
+
+- what: The group's main departure from the plan (keep the instagram row open until the Feature asset's social_posts row exists, then restore it; P-2452) is not pinned by any test. The stub's social_posts answer does not depend on channel_settings, and the events list records writes but not the poll, so moving the restore back before the poll (the plan's original order, which P-2452 shows cannot work) leaves all ten cases green. P-2452's proof is a grep for awaitInstagramPost, which cannot show the order either. Not blocking: the real mop-dev run (which I re-ran) proves the current order works, and a regression would show up as 'social_posts instagram none after 150 seconds' with exit 1, not as silent damage. Fix: make the stub's social_posts read return a row only while channel_settings instagram is enabled, and add a b10g10 entry that moves the restore.
+- evidence: watchfail.mjs --file scripts/auto-approve-rehearsal.ts --find '<the poll line, return exit, finally { await writeInstagram(db, before); }>' --replace '<await writeInstagram(db, before); then the poll; catch restores and rethrows>' --expect FAIL gave 'WATCHED-FAIL BAD: stayed green', exit 1
+- blocking: false
+
+- what: STANDARDS R50 (unit tests reach a database only through tests/fixtures/fake-db.ts, which throws on any unregistered table) and C05 (no second copy of a fixture helper): lines 42-105 build a second filter-honouring stub client next to tableDb in tests/fixtures/channel-db.ts. Unlike fakeDb/tableDb it answers [] for any table it does not know (line 83, `tables[this.table] ?? []`). Line 107 also adds a second cast labelled 'the one cast of the stub client (CS-12)'. The probable reason is that fakeDb and tableDb only support select, while the script needs update and insert. That should become one shared fixture extension, not a private stub. Not blocking: I could not name an input where this lets a wrong script pass, because readInstagram's zod parse would fail on an unknown table.
+- evidence: line 83 of the test: (tables[this.table] ?? []); grep -n 'unexpected table' tests/fixtures/fake-db.ts tests/fixtures/channel-db.ts shows that the shared fixtures throw
+- blocking: false
+
+### app/scripts/auto-approve-rehearsal.ts
+
+- what: UNPROVEN, as the author says: the SOCIAL_DRY_RUN branch (post-to-channel.ts line 444, social_dry_run) was never reached. Both real runs returned retry_at outside the posting window before the dry-run check, so 'dry run posts nothing' rests on reading the code. Each run also leaves a queued post_meta job for a fixture carousel with made-up media keys on the one database that becomes production (H35): 707e1b18 runs at 2026-10-08T13:00Z and edde7374 (from my re-run) at 2026-10-13T13:00Z. If step 7 or the launch switch has enabled instagram and unset the flag by then, the job gets past skipped_disabled. It is then stopped by stillApproved (human_approval_required) unless Feature has been set to auto. The orchestrator should have step 7 or L1 cancel the rehearsal's queued post jobs, or confirm they have finished, before the flag is unset.
+- evidence: pg: select type,status,result,run_after from jobs where payload::text like '%edde7374%' gives post_meta queued {instagram: retry_at} run_after 2026-10-13T13:00Z; the same query for 707e1b18 gives run_after 2026-10-08T13:00Z
+- blocking: false
+
+## g9 · steps 9
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The one that names GOTCHAS.md is banked as hit-again lines on P-094 and P-537, so it is not repeated here.
+
+### app/src/server/channels/reconcile-social.ts
+
+- what: Follow-up. The `.is("withdrawn_at", null)` added to the `params.post_ids` query in refreshNamed (around line 195) has no test and no registry entry. Only the daily query's filter is covered (by b10g9-rs-withdrawn). If you delete the refreshNamed filter, every test stays green. Nothing breaks today: a withdrawn post refreshed by hand now hits the counted PLATFORM_UNAVAILABLE path instead of throwing. Still, the line is unproven, which falls short of C08.
+- evidence: grep -n withdrawn tests/unit/channels/reconcile.test.ts finds only the daily-run case at line 267. The b10g9-rs-withdrawn find string is the daily query's '.is("withdrawn_at", null)\n      .gte("posted_at"'.
+- blocking: false
+
+- what: Follow-up (suspected from reading, already stated by the author). PLATFORM_UNAVAILABLE separates platform failures from database failures by message wording. A future adapter that words a database failure as '<OneWord> did not answer.' or 'answered an unexpected shape' would be counted instead of retried. The proper fix is a separate error class in the adapters (g4/g5 files), which is out of this group's scope.
+- evidence: Line 78: const PLATFORM_UNAVAILABLE = /^[A-Za-z]+ did not answer\.$|answered an unexpected shape/. Today every database wording in src/server/channels misses it.
+- blocking: false
+
+### app/src/server/jobs/system/reconcile.ts
+
+- what: Follow-up. Line 61 adds `timeoutMs: 40_000` to B8's job definition. The plan says this file gets one appended call and 'B8's own part is not changed' (C01). The value raises the runner's 20 s DEFAULT_TIMEOUT_MS to LIGHT_TIMEOUT_CAP_MS, so it is a sensible change. But no test pins it: removing the line leaves every test green. The author already marks the 40 s as unmeasured (UNPROVEN). The orchestrator should fold the plan line, or a test should pin the value.
+- evidence: grep -rn timeoutMs tests/unit/jobs/*.test.ts finds hits only in runner.test.ts and none for reconcile. runner.ts:32-33 has DEFAULT_TIMEOUT_MS = 20_000 and LIGHT_TIMEOUT_CAP_MS = 40_000.
+- blocking: false

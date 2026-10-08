@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import * as acceptedFile from "./accepted.tsx";
 import * as adminNotifyFile from "./admin-notify.tsx";
 import * as awaitingAssetsFile from "./awaiting-assets.tsx";
+import * as campaignReportFile from "./campaign-report.tsx";
 import * as declinedFile from "./declined.tsx";
 import * as inquiryAckFile from "./inquiry-ack.tsx";
 import * as inquiryForwardFile from "./inquiry-forward.tsx";
@@ -37,6 +38,7 @@ export const definitions: readonly EmailTemplateFile[] = [
   repermissionFile,
   subjectAckFile,
   marketOpenFile,
+  campaignReportFile,
 ];
 
 /** A definition as the row it seeds: the shape `renderTemplate` takes. */

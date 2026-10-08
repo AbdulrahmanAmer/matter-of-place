@@ -4,7 +4,10 @@
  */
 @import "../tokens.css";
 @import "./admin.css";
+@import "./assets.css";
+@import "./channels.css";
 @import "./invoices.css";
 @import "./properties.css";
+@import "./reports.css";
 @import "./requests.css";
 @import "./ui.css";

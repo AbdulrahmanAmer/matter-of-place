@@ -199,3 +199,61 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 7. `workspace/05-plans/B2.md:102` and the B9 Files entry for scripts/lib/media-store.mjs (not blocking)
    - What: Stale plan text. It says the media store is loaded only lazily through a non-literal specifier and that B2's code never imports it statically. variants.ts now imports it statically, which is correct now that the file exists (the old reason was that tsc could not resolve a missing file). No src/ or Deno file imports variants.ts: the src mentions are comments only.
    - Evidence: grep 'scripts/variants' in src finds only comment lines in spec.ts:94 and mappers.ts:194. bun run build exit 0.
+
+## c5n · steps 5
+
+1. `app/src/server/email/render.ts` (not blocking)
+   - What: The empty-body guard checks the key, not whether anything was drawn. An empty body passes whenever the key's Email is not Message. So a standalone row with body [] and no block variable renders a mail with only the layout (header and footer) and no content, and send_email would send it. src/server/email/variables.ts:598 resolves standalone to {} (no block) today. B5's stored placeholder body is not empty, so nothing breaks now. The risk arrives once B11 seeds the empty body the test comment describes, if any path sends without block. This is suspected from reading, not seen in a send.
+   - Evidence: render.ts line 133 reads 'if (parsed.data.length === 0 && Email === Message) throw ...'. The test 'draws no property block when it is given none' renders standalone with body [] and no block, and it resolves.
+
+2. `app/docs/runbooks/email.md` (not blocking)
+   - What: Lines 26-33 are stale. They say the template file only draws the row's blocks and that text and links take {{variable}}. They list the render failures without template_render_failed, and they do not mention that an object variable (block) is drawn by standalone.tsx without being interpolated or site-checked. Not this group's file; the author already named it as left over. The orchestrator should fold it in.
+   - Evidence: sed -n 20,40p app/docs/runbooks/email.md (read in the snapshot)
+
+3. `workspace/05-plans/B9.md` (not blocking)
+   - What: The group also changed three B5 files that B9.md's Files lines do not name: src/templates/email/layout.tsx (the required variables prop on EmailProps), src/templates/email/blocks.tsx (Blocks exported) and scripts/build-auth-templates.ts (passes variables: {}). Each is the smallest change that the plan's 'hands variables to the Email component as its prop' forces. The plan's Files list should name them so the one-writer accounting is accurate.
+   - Evidence: git diff origin/main...slice/b9 --stat lists app/scripts/build-auth-templates.ts, app/src/templates/email/blocks.tsx and app/src/templates/email/layout.tsx. grep -nE 'layout\.tsx|blocks\.tsx|build-auth-templates' workspace/05-plans/B9.md prints nothing.
+
+## g1 · steps 10
+
+1. `PR #211 (preview check)` (not blocking)
+   - What: The author's report says the preview check was 'still pending'. It has since finished red: the preview job was cancelled at the lighthouse step. Before that, the essentials and overflow steps failed with page.goto timeouts and net::ERR_ABORTED. Those two steps are advisory under ruling H67 until P-1936 closes. Nothing in this group touches public pages, so I suspect preview flakiness and not this diff, but I have not proven that. The UNPROVEN line in the report is now out of date: re-run the preview job before the merge and record the result.
+   - Evidence: gh pr checks 211 -> 'preview fail'; gh run view 37702056719 --json jobs -> preview conclusion cancelled, step lighthouse cancelled; the job log shows 'Error: page.goto: Test timeout of 120000ms exceeded' and '##[warning]advisory under ruling H67 until GOTCHAS P-1936 is closed'
+
+2. `app/src/domain/admin-page.ts` (not blocking)
+   - What: Two documents disagree on list paging. The comment on ADMIN_PAGE_MAX says 'Invariant 17c: every admin list is one keyset page ... Each list schema in the admin-*.ts domain files extends this one'. assetListSchema in app/src/domain/admin-assets.ts uses offset 'page' plus 'total' and does not extend adminPageSchema. The code follows the B9 plan text ('50 per page', '{ items, total }'), so this is a plan-versus-B7-invariant conflict for the orchestrator to settle, not a builder defect. Offset paging is also what exposed the PGRST103 trap (G-252).
+   - Evidence: sed -n 1,12p app/src/domain/admin-page.ts; grep -n assetListSchema -A4 app/src/domain/admin-assets.ts
+
+3. `app/tests/db/assets-service.db.test.ts` (not blocking)
+   - What: No test runs waitingProperties (the jobs query on 'payload->data->>property_id') or the first page of listAssets against real PostgREST. The four rolled-back cases go through the author's own pgDb adapter. The PostgREST case uses a random property and so only takes the PGRST103 branch. My read-only probe shows PostgREST accepts the filter today, but no test would catch a regression. UNPROVEN by any test; the probe was the only check.
+   - Evidence: Read of the test file. The probe output: 'jobs in-path: ok rows=0', 'assets page1: rows=8 count=8'.
+
+4. `app/src/server/channels/service.ts` (not blocking)
+   - What: The author's own follow-up, which I did not re-run: channels' listPosts pages with a counted .range() and probably answers 500 past its last page (G-252). This is suspected by reading, and it is not this group's file.
+   - Evidence: GOTCHAS.md G-252 rule line; B9.md log rework block
+
+5. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: These items remain open and are labelled correctly in the log. BLOCKED: the live end to end, confirmed by me as 0 objects and 5 of 5 empty variants on oak-hill-residence; render.yml is not on main. NOT DONE: the 40-photograph upload measurement. UNPROVEN: the Fonts present step and CHROME_PATH in Actions. UNPROVEN: that B1b rewrites the handlers' 'private, no-store' to exactly 'no-store'. Recorded here so none of them is dropped.
+   - Evidence: psql read on mop-dev -> 0 and 5|5; the B9.md rework block
+
+## g2 · steps 11
+
+1. `app/src/admin/properties/RerenderAssetsButton.tsx` (not blocking)
+   - What: Follow-up. Screen 8's button reads the property's assets through useAssets but never shows assets.error. If GET /api/admin/assets?property_id=<id> fails (a 5xx, a lost connection, a 403), `current` stays empty, the button stays disabled, and the 'No assets yet.' note is also hidden because assets.data is undefined. The person sees a grey button with no reason and no request id. C17 asks for an error state with the request id. I marked this non-blocking because the button is a widget inside screen 8, not a screen of its own, and screen 10 shows the same error with the request id.
+   - Evidence: Found by reading, not run. Lines 34-38 and 72-90: `assets.error` is never referenced, and the only states drawn are disabled/enabled and 'No assets yet.' when assets.data !== undefined.
+
+2. `app/src/admin/properties/PropertyEditor.tsx` (not blocking)
+   - What: Follow-up for the orchestrator (stale plan line). The group edited a B7 file the step does not name: one line, `propertyId={id}`. It also changed PublishBar's props, which goes past the step's 'one import and one render line'. The log (B9.md line 506) says why: PublishBar had no property id. The plan text for step 11 under Files Change should name both edits.
+   - Evidence: git diff origin/main...slice/b9 -- app/src/admin/properties/PropertyEditor.tsx shows +propertyId={id}; PublishBar.tsx shows +propertyId prop, type and render line (4 lines).
+
+3. `app/src/admin/assets/AssetCards.tsx` (not blocking)
+   - What: Follow-up, found by reading. Re-render is offered on a rejected card, including a revision that is already superseded. When a newer pending revision of that kind exists, rerender_asset returns that pending revision and its job and renders nothing new (`if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then return ...`). The dialog still says 'A new revision is rendered and this one is marked rejected as superseded', which is false for a card that is already rejected. The toast says 'sent to render again'. This copy misleads, but no data is at risk.
+   - Evidence: Found by reading, not run. AssetCards.tsx lines 89-95 (the confirmCopy.rerender body) and lines 192-205 (Re-render is shown for every status except published), compared with supabase/sql/functions/rerender_asset.sql lines 32-35.
+
+4. `app/src/admin/assets/assets-queries.ts` (not blocking)
+   - What: Follow-ups the author already listed, recorded here so none is dropped. (1) useRerenderAssets uses Promise.all, so if one asset's call fails, the jobs that did start are hidden; the button only shows the error toast. (2) RerenderAssetsButton reads only the first page of 50. listAssets orders by status before created_at, so after enough re-renders the rejected rows could crowd a current revision off page 1. (3) JobWatcher stays 'Queued' because no jobs read route exists. (4) Published assets count as current for the screen 8 button, while a published card offers no Re-render.
+   - Evidence: Found by reading. assets-queries.ts line 33 `Promise.all(ids.map(rerenderAsset))`; RerenderAssetsButton.tsx line 34 `useAssets({ property_id: propertyId })` with no page; service.ts lines 127-130 `.order("status").order("created_at", { ascending: false })`.
+
+5. `app/tests/e2e/admin-assets.spec.ts` (not blocking)
+   - What: UNPROVEN, not a defect of the code. Step 11's live whole path is NOT DONE: no property was published, no render jobs ran and no caption runner ran. The spec proves screen 10 on rows it seeds, with pictures served by page.route; in this snapshot .tmp/r is absent, so every picture fell back to tests/fixtures/photo.jpg. The spec has never run in CI's admin e2e job (there is no CI run for d2fbc5f). The axe checkpoint calls were not watched-fail. The six manual registry entries were not replayed after the merge, by the author or by me.
+   - Evidence: `ls app/.tmp/r` printed nothing in the snapshot. Log B9.md lines 467, 494 and 514. My e2e run passed 5/5 on the fallback photograph.
