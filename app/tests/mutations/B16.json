@@ -848,5 +848,95 @@
     "replace": "    description: siteConfig.description,\n    logo: absoluteUrl(\"/logo.png\"),\n    ...(legal.entity",
     "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
     "expect": "FAIL .*> organizationJsonLd > carries no logo"
+  },
+  {
+    "id": "b16-g8-prod-warn",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "status: lenient ? \"warn\" : \"fail\",",
+    "replace": "status: \"warn\",",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the missing required fields"
+  },
+  {
+    "id": "b16-g8-unset-lenient",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const lenient = ctx.env[\"MOP_ENV\"] === \"development\" || ctx.env[\"MOP_ENV\"] === \"preview\";",
+    "replace": "const lenient = ctx.env[\"MOP_ENV\"] !== \"production\";",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the missing required fields"
+  },
+  {
+    "id": "b16-g8-preview",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "ctx.env[\"MOP_ENV\"] === \"preview\"",
+    "replace": "ctx.env[\"MOP_ENV\"] === \"previews\"",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > warns when MOP_ENV is development or preview"
+  },
+  {
+    "id": "b16-g8-ok",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (missing.length === 0) return ok(\"every required identity field is set\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > is ok when every required field is set"
+  },
+  {
+    "id": "b16-g8-stale",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (stale) return fail(\"public_state_stale\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with public_state_stale"
+  },
+  {
+    "id": "b16-g8-no-reset",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "      resetPublicStateMemo();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > drops the memo once per run"
+  },
+  {
+    "id": "b16-g8-cold-code",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "fail(error instanceof AppError ? error.code : \"unavailable\")",
+    "replace": "fail(\"public_state_stale\")",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the error code when the database does not answer"
+  },
+  {
+    "id": "b16-g8-job-event",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const failed = checks.filter((check) => check.status === \"fail\");",
+    "replace": "const failed = checks.filter((check) => check.status === \"failed\");",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> the health job with a site that is not set > lists site_identity"
+  },
+  {
+    "id": "b16-g8-deno-workers",
+    "test": "tests/deno/site-context.smoke.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
+    "replace": "import \"cloudflare:workers\";\nimport { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
+    "run": "MOP_ENV=development deno run --config supabase/functions/job-runner/deno.json --allow-env tests/deno/site-context.smoke.ts",
+    "expect": "Unsupported scheme \"cloudflare\""
+  },
+  {
+    "id": "b16-g8-deno-ext",
+    "test": "tests/deno/site-context.smoke.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { getPublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState } from \"../public/state\";",
+    "run": "deno check --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "expect": "TS2307|Module not found"
   }
 ]
