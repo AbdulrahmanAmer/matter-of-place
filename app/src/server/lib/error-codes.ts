@@ -89,6 +89,9 @@ export const errorCodes = {
   issue_empty: 422,
   draft_open: 409,
   unknown_audience: 422,
+  // B7 step 8: a staged file that is not the image its name says, and a photograph a creative asset still uses.
+  invalid_image: 422,
+  media_in_use: 409,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

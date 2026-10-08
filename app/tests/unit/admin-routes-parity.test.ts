@@ -15,21 +15,10 @@ import { fakeDb } from "../fixtures/fake-db";
 // every matrix action has a route. The wrapper cases use stand-in guards: the real `requireActor`, `verifyCsrf`,
 // `assertSessionFresh` and `requireRecentAuth` arrive with step 2 and are tested there.
 
-// B7 actions whose route files later steps of this plan add, and B8b's `automation.*`, whose routes B8b step 6 adds;
-// each step removes its entries, and the B7 part is empty after step 15a.
+// B7 actions whose route files later steps of this plan add, and B8b's `automation.templates_send_test`, whose route
+// B8b step 8 adds; each step removes its entries, and the B7 part is empty after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
-  "properties.agent_preview",
-  "properties.revoke_previews",
-  "properties.unpublish",
-  "media.list",
-  "media.variants_status",
-  "media.upload_url",
-  "media.attach",
-  "media.reorder",
-  "media.alt",
-  "media.replace",
-  "media.delete",
   "inquiries.list",
   "inquiries.get",
   "inquiries.assignees",
@@ -69,27 +58,9 @@ const routesPending: readonly ActionId[] = [
   "audit.subject_opt_out",
   "audit.subject_status",
   "dashboard.get",
-  "automation.get",
-  "automation.recipes_put",
-  "automation.templates_put",
-  "automation.channels_put",
-  "automation.schedules_put",
-  "automation.dry_run",
-  "automation.reasons_put",
-  "automation.revisions_restore",
-  "automation.flags_put",
-  "automation.templates_preview",
   "automation.templates_send_test",
-  // B10: steps 8 and 9 add these routes. reports.export is the browser's print and never gets a route (G22).
-  "channels.health",
-  "channels.retry",
-  "channels.cancel",
-  "channels.metrics_refresh",
-  "channels.mark_withdrawn",
-  "reports.list",
-  "reports.get",
+  // B10: reports.export is the browser's print and never gets a route (G22).
   "reports.export",
-  "reports.email",
 ];
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");

@@ -555,3 +555,107 @@ what: Note for step 10, not this group's file. The e2e job's 'dev vars' step wri
 evidence: Lines 295-308 of ci.yml list the echoed names, and PREVIEW_TOKEN_SECRET is not among them. signPreview in src/server/lib/preview-token.ts throws preview_secret_missing when the key is undefined.
 
 blocking: false
+
+## g3 · steps 7a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups whose file is GOTCHAS.md are banked as P-2137 (new) and a hit-again line under P-2133, not listed here.
+
+### 1. app/supabase/migrations/20261008092407_admin_takedown.sql (a takedown audits both preview nonces)
+
+what: A takedown stores both preview nonces, the old one and the new one, in audit_log. rotate_preview_nonce in the same migration strips the nonce on purpose, with the comment 'staff read it, and a nonce is half of a link'. The two functions contradict each other. A leak would still need PREVIEW_TOKEN_SECRET before anyone could forge a link, so this is not exploitable alone.
+
+evidence: unpublish_property sets preview_nonce = gen_random_uuid() when p_takedown, then calls write_audit(..., to_jsonb(v_before), to_jsonb(v_after), ...) without '- preview_nonce'. write_audit keeps every changed key (write_audit.sql line 63, 'is distinct from'), so both nonces land in before/after. Found by reading, not run.
+
+blocking: false
+
+### 2. app/src/server/lib/permissions/properties.ts (properties.unpublish is neither humanOnly nor capped)
+
+what: properties.unpublish (which includes a takedown) is neither humanOnly nor counted by assert_agent_daily_cap. An agent key with an editor role can therefore take down any number of properties. A takedown is irreversible: the slug answers 410 forever and the takedown_media job deletes the media. R12 asks for humanOnly or a cap on an action that changes public visibility. The matrix is step 1's and the plan does not ask step 7a to add a cap, so this is a follow-up for the orchestrator (decide humanOnly on takedown, or count it under the cap).
+
+evidence: Matrix line 20: { action: "properties.unpublish", group: "properties", roles: editors } with no humanOnly. action_roles rows: ('properties.unpublish', array['chief_editor','managing_editor'], false). unpublish_property calls no assert_agent_daily_cap, while publish_property does. Found by reading.
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md (plan line 17 f is stale; the orchestrator folds it)
+
+what: Plan line 17 f says cachedResponse in cache.ts writes the bypass label for both preview params. A ?preview= page never reaches the cache hook; pipeline.ts now sets the label in the neverCached branch. The author already named this stale line as the orchestrator's to fold; it is recorded here so it is not dropped.
+
+evidence: src/server/lib/pipeline.ts:296 `if (framing === "self" && !headers.has("x-mop-cache")) headers.set("x-mop-cache", "bypass");`. Unit case 'labels a preview-token answer x-mop-cache bypass' and watched-fail b7-g3a-pipe-bypass OK.
+
+blocking: false
+
+### 4. app/src/admin/properties/UnpublishDialog.tsx (UNPROVEN: no component test, never run in a browser; the dialog keeps its state across cancel)
+
+what: UNPROVEN: UnpublishDialog, AgentPreviewButton and the PublishBar/PropertyEditor wiring have no component test and were never run in a browser (the author says so). Separately, by reading: the dialog keeps its reason, note and takedown state across cancel and reopen, so a cancelled takedown reopens with Takedown still ticked. The confirm label then says 'Take down', so the editor can see it.
+
+evidence: git diff origin/main...slice/b7 adds no *.test.tsx case for either component. The useState hooks in UnpublishDialog are never reset in onCancel.
+
+blocking: false
+
+### 5. app/tests/mutations/B7.json (nine of the ten g3a sql entries match only the test title)
+
+what: Nine of the ten g3a sql entries match only the test title (for example '× .*after rotate_preview_nonce...'), so a red for any reason counts as OK. Today the registry sql holds only the mutated function. Before main pushes the migration, a plain replay of an entry whose test also calls another 7a function goes red on assertStep7a, not on the mutation. The author replayed with the migration prepended, and so did I, so the current proofs hold. After the push the entries are correct as written.
+
+evidence: Without MOP_MUTATION_SQL, admin-cache.db.test.ts goes red on 'expected false to be true' (assertStep7a). That is the same red that would satisfy a title-only expect.
+
+blocking: false
+
+## g1 · steps 8
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. None has GOTCHAS.md as its file, so none is banked there.
+
+### 1. app/src/server/media/service.ts (attachMedia and attach_media check only a prefix; dot segments pass)
+
+what: SUSPECTED BY READING (Supabase Storage server side not exercised). attachMedia (line 96) and attach_media (migration line 82) check only a prefix: the path must start with staging/<property_id>/<media_id>. and nothing else is checked. A path with dot segments such as staging/<pid>/<mid>./../../../<other key>.jpg passes both checks. storage-js puts the path into the URL of /object/sign/<bucket>/<path> unencoded, and URL parsing collapses the dot segments. So sniffStaged signs and reads a different object, which can be another submission's private original or a key in another bucket, and attach_media stores that path for B9's render to publish. The concrete input is a POST to media/attach carrying that path from any actor holding media.attach (CE, ME, VE or an agent key). replaceMedia already uses a whole-name regex (replacePathOf). Attach should use the same anchored pattern, and so should the SQL guard. Staff can already open originals, so this is not an escalation, which is why it is a follow-up and not blocking.
+
+evidence: node -e "console.log(new URL('https://x.supabase.co/storage/v1/object/sign/submissions/staging/p/m./../../../../documents/inv.pdf').pathname)" prints /storage/v1/object/sign/documents/inv.pdf. storage-js createSignedUrl builds `${url}/object/sign/${bucketId}/${path}` with no encoding. A read-only probe on mop-dev found no object to sign, so the server side is unproven.
+
+blocking: false
+
+### 2. app/src/server/media/service.ts (stagedState maps job status 'failed' to the state 'failed')
+
+what: stagedState (line 231) maps job status 'failed' to the state 'failed'. In B8 'failed' is a runnable backoff state: the job is re-queued, and claim and resend select status in ('queued','failed'). The plan names only 'dead' as failed. A render that fails once (for example a Storage hiccup) shows 'Render failed' and the Retry or 'media ops can retry it' note while it is still retrying by itself. useVariantsStatus polls only while some row is 'processing', so the screen stays on 'Render failed' after the automatic retry succeeds, until something else refetches.
+
+evidence: grep -n "status in ('queued', 'failed')" app/supabase/migrations/20261003185349_jobs.sql (lines 81, 323, 589); service.ts line 231 `if (job.status === "failed" || job.status === "dead") return "failed"`; media-queries.ts refetchInterval polls only while an item is "processing"
+
+blocking: false
+
+### 3. app/tests/db/admin.db.test.ts (the reorder_media case trips only the cardinality condition)
+
+what: BY READING, not replayed. The reorder_media guard has three conditions: cardinality, distinct count, and p_order <@ v_before. The only db case trips the cardinality condition (it names one of two photographs). The rewritten mutation b7-g8-db-reorder ('if false then') proves the guard as a whole. It does not prove the other two conditions: an order such as [first, first], or one carrying another property's id, is not tested. A mutation that drops either condition would stay green. [first, first] would leave duplicate sort_order values.
+
+evidence: tests/db/admin.db.test.ts, case 'reorder_media puts the named order in place and refuses an order that leaves a photograph out': partial = REORDER [second] only
+
+blocking: false
+
+### 4. app/tests/unit/media.service.test.ts (replaceMedia, reorderMedia and setMediaAlt have no unit case)
+
+what: replaceMedia, reorderMedia and setMediaAlt have no unit case. Nothing tests replace's whole-name regex or its removal of the previous staged file when the paths differ, and no watched-fail covers them. The SQL side of replace is covered by db cases. The brief's listed unit cases do not require these, so this is a follow-up.
+
+evidence: grep -n "replaceMedia\|reorderMedia\|setMediaAlt" app/tests/unit/media.service.test.ts finds nothing (the imports are attachMedia, createUploadUrl, deleteMedia, listMedia and variantsStatus only)
+
+blocking: false
+
+### 5. app/src/admin/media/VariantStatus.tsx (the failed note shows to every role and links to a screen that does not exist)
+
+what: Until B8 step 9 adds jobs.retry to the matrix, every role sees the note 'Render failed, media ops can retry it in Jobs', media_ops and admin included. The note links to /admin/jobs?entity=<id>, and that screen does not exist yet (no src/routes/admin/jobs*). The author disclosed that no actor sees Retry. The note's dead link and its wrong audience were not disclosed.
+
+evidence: grep -rn "jobs.retry" app/src/server/lib/permissions/ finds nothing; ls app/src/routes/admin | grep -i job finds nothing; RoleGate takes a plain string, so tsc cannot catch it
+
+blocking: false
+
+### 6. app/src/server/jobs/steps/render-variants.ts (STUB(B7 step 8) at line 139, B9's file)
+
+what: B9's file still carries `STUB(B7 step 8)` at line 139: at 40 claimed rows, one request_property_render call should queue the next job for the rows beyond 40. B7 step 8 now provides that function but cannot edit B9's file (one writer per file). Until B9 replaces the stub, a property with more than 40 staged photographs leaves the extra rows staged with no job. The author recorded this. It is routed here so the orchestrator assigns it to B9.
+
+evidence: grep -rn "STUB(B7" app/src prints render-variants.ts:139
+
+blocking: false
+
+### 7. app/tests/fixtures/service.ts (stale docstring, file outside the group)
+
+what: Stale comment in a file outside the group. serviceClient's docstring says 'It never deletes; deletes go through removeFixtureRows over pg'. admin-smoke.ts's upload cleanup now removes Storage objects through serviceClient(): removeStaged(storage, ...) and storage.from("media").remove(...).
+
+evidence: app/tests/fixtures/service.ts docstring; git diff origin/main...slice/b7 -- app/scripts/admin-smoke.ts (cleanup block)
+
+blocking: false

@@ -12,8 +12,6 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   /** Public Cloudflare Turnstile site key. The secret key stays on the server. */
   readonly VITE_TURNSTILE_SITE_KEY?: string;
-  /** Public Instagram profile URL. The footer link renders only when set. */
-  readonly VITE_INSTAGRAM_URL?: string;
   /** Public Google Analytics 4 measurement id (G-...). Empty or unset: the loader does nothing. */
   readonly VITE_GA4_MEASUREMENT_ID?: string;
 }

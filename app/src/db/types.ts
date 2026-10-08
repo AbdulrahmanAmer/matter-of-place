@@ -1102,6 +1102,9 @@ isOneToOne: false
 "assets_received":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
                            },
+"attach_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt"?: string,"p_media_id": string,"p_property_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
+                           },
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
                            },
@@ -1112,7 +1115,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_channel": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
                            },
 "automation_put_reason":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id"?: string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
                            },
 "automation_put_recipe":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_patch": Json,"p_request_id": string,"p_trigger": string }; Returns: Json
@@ -1200,6 +1203,9 @@ isOneToOne: false
 "clear_media_staging":
 { Args: { "p_items": Json }; Returns: number
                            },
+"complete_distributed_submissions":
+{ Args: { "p_now": string }; Returns: number
+                           },
 "confirm_subscriber":
 { Args: { "p_token_hash": string }; Returns: string
                            },
@@ -1223,6 +1229,9 @@ isOneToOne: false
                            },
 "decline_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_reason_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"delete_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
@@ -1299,6 +1308,9 @@ isOneToOne: false
                            },
 "health_cron_failures":
 { Args: { "p_since": string }; Returns: number
+                           },
+"issue_agent_preview":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_request_id": string }; Returns: Json
                            },
 "issue_invoice":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_preferred_method": string,"p_product": Database["public"]['Enums']["exposure_package"],"p_request_id": string,"p_snapshot": Json,"p_submission_id": string }; Returns: {
@@ -1538,13 +1550,22 @@ isOneToOne: false
 "reject_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_note": string,"p_request_id"?: string }; Returns: string
                            },
+"reorder_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_order": (string)[],"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
 "repermission_candidates":
 { Args: { "p_limit"?: number }; Returns: {
               "id": string
             }[]
                            },
+"replace_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
+                           },
 "request_assets":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"request_property_render":
+{ Args: { "p_property_id": string }; Returns: string
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean
@@ -1591,6 +1612,9 @@ isOneToOne: false
                            },
 "rollup_analytics_daily":
 { Args: { "p_from": string,"p_to": string }; Returns: number
+                           },
+"rotate_preview_nonce":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_property_id": string,"p_request_id": string }; Returns: number
                            },
 "save_property":
 { Args: { "p_expected_version": number,"p_id": string,"p_patch": Json }; Returns: {
@@ -1696,6 +1720,9 @@ isOneToOne: false
 "set_invoice_key":
 { Args: { "p_key": string,"p_payment_id": string }; Returns: string
                            },
+"set_media_alt":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt": string,"p_media_id": string,"p_request_id": string }; Returns: undefined
+                           },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined
                            },
@@ -1716,6 +1743,9 @@ isOneToOne: false
                            },
 "set_vault_secret":
 { Args: { "p_name": string,"p_value": string }; Returns: undefined
+                           },
+"settings_put_flags":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_value": Json }; Returns: Json
                            },
 "settings_put_invoice":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
@@ -1745,6 +1775,9 @@ isOneToOne: false
                            },
 "touch_agent_key":
 { Args: { "p_key_id": string }; Returns: undefined
+                           },
+"unpublish_property":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_property_id": string,"p_reason": string,"p_request_id": string,"p_takedown": boolean }; Returns: Json
                            },
 "unsubscribe_email":
 { Args: { "p_email": string }; Returns: boolean

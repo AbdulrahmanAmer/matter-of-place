@@ -30,6 +30,7 @@ import type { env } from "../lib/env";
 import type { WaitUntil } from "../lib/wait-until";
 import * as previews from "../previews/service";
 import * as search from "../search/service";
+import { getPublicSite } from "../settings/service";
 import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
 import * as subscribers from "../subscribers/service";
@@ -138,6 +139,7 @@ export const routes: PublicRoute[] = [
   catalogRead("/api/public/markets/:slug", getMarket, { tag: "market" }),
   catalogRead("/api/public/stories", listStories),
   catalogRead("/api/public/stories/:slug", getStory, { tag: "story" }),
+  catalogRead("/api/public/site", getPublicSite),
   {
     path: "/api/public/inquiries",
     method: "POST",

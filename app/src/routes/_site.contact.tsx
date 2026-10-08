@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ContactForm } from "../components/forms/contact-form";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
-import { siteConfig } from "../config/site";
+import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
+import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
@@ -21,7 +22,9 @@ export const Route = createFileRoute("/_site/contact")({
 });
 
 function ContactPage() {
-  const { email, phone } = siteConfig.contact;
+  const { contact } = useSite();
+  const [email] = presentLines(contact.email);
+  const [phone] = presentLines(contact.phone);
   return (
     <main>
       <PageIntro
@@ -59,10 +62,10 @@ function ContactPage() {
             <p className="eyebrow">MARKETS</p>
             <h3>California, Florida and New York.</h3>
             <p>Three markets, read closely, each with its own guide.</p>
-            {(email || phone) && (
+            {(email !== undefined || phone !== undefined) && (
               <p className="contact-details">
-                {email && <a href={`mailto:${email}`}>{email}</a>}
-                {phone && <a href={`tel:${phone.replace(/\s+/g, "")}`}>{phone}</a>}
+                {email !== undefined && <a href={`mailto:${email}`}>{email}</a>}
+                {phone !== undefined && <a href={`tel:${phone.replace(/\s+/g, "")}`}>{phone}</a>}
               </p>
             )}
           </div>

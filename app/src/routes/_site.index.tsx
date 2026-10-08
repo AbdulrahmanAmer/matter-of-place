@@ -12,44 +12,39 @@ import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
 import { editorialQualities, offerings, programmatic } from "../data/exposure";
+import { emptySiteSettings } from "../domain/settings";
 import type { PropertyCard } from "../domain/property";
 import { featuredProperties, heroProperties } from "../lib/catalog";
 import { padIndex } from "../lib/format";
 import { websiteLd } from "../lib/jsonld";
-import { marketsQuery, propertiesQuery } from "../lib/queries";
+import { marketsQuery, propertiesQuery, siteQuery } from "../lib/queries";
 import { ogImageFor, ogStaticOf } from "../lib/og";
-import { pageHead } from "../lib/seo";
+import { organizationJsonLd, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/")({
   loader: async ({ context: { queryClient } }) => {
-    const [properties, markets] = await Promise.all([
+    const [properties, markets, site] = await Promise.all([
       queryClient.ensureQueryData(propertiesQuery()),
       queryClient.ensureQueryData(marketsQuery()),
+      queryClient.ensureQueryData(siteQuery()),
     ]);
     return {
       hero: heroProperties(properties),
       featured: featuredProperties(properties).slice(0, 6),
       preview: properties.filter((property) => property.status === "Illustrative").slice(0, 1),
       markets,
+      site,
     };
   },
-  head: ({ matches }) =>
+  head: ({ loaderData, matches }) =>
     pageHead({
       title: `${siteConfig.name} | Exceptional property. Properly considered.`,
       description: pageDescription("index"),
       path: "/",
       image: ogImageFor({ key: "home", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [
-        {
-          "@type": "Organization",
-          name: siteConfig.name,
-          url: siteConfig.url,
-          parentOrganization: { "@type": "Organization", name: siteConfig.parentCompany },
-        },
-        websiteLd(),
-      ],
+      jsonLd: [organizationJsonLd(loaderData?.site ?? emptySiteSettings), websiteLd()],
     }),
   component: HomePage,
 });

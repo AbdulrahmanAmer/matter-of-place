@@ -169,5 +169,774 @@
     "replace": "  } catch {\n    return true;\n  }",
     "run": "bunx vitest run --project unit tests/unit/settings.test.ts",
     "expect": "FAIL .*> siteSettingsSchema > takes an Instagram address only as https"
+  },
+  {
+    "id": "b16-g2-read-table",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "replace": "  await db.from(\"settings\").select(\"value\");\n  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> getSiteSettings > is the stored site, one public_state call in 200 reads"
+  },
+  {
+    "id": "b16-g2-public-illustrative",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "state.illustrativeContent && ctx.env",
+    "replace": "false && ctx.env",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> getPublicSite > is the site with illustrativeContent"
+  },
+  {
+    "id": "b16-g2-put-parsed",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    p_value: parsed.data,",
+    "replace": "    p_value: input,",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > sends the parsed value"
+  },
+  {
+    "id": "b16-g2-put-schema",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (!parsed.success) throw fromZod(parsed.error);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > refuses an invalid value"
+  },
+  {
+    "id": "b16-g2-put-error",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);",
+    "replace": "  if (error !== null) return;",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> applySiteSettings > throws the function's error code"
+  },
+  {
+    "id": "b16-g2-ready-required",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/readiness.ts",
+    "find": ".filter((spec) => spec.required && unset.has(spec.key))",
+    "replace": ".filter((spec) => unset.has(spec.key))",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> siteReadiness > lists the required fields still unset"
+  },
+  {
+    "id": "b16-g2-ready-unset",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/readiness.ts",
+    "find": "value === null ? [`${group}.${field}`] : [],",
+    "replace": "value !== undefined ? [`${group}.${field}`] : [],",
+    "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
+    "expect": "FAIL .*> siteReadiness > is empty when every required field is set"
+  },
+  {
+    "id": "b16-g2-deno-ext",
+    "test": "tests/unit/settings-service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { getPublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState } from \"../public/state\";",
+    "run": "bunx eslint --max-warnings 0 src/server/settings/service.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "b16-g2-guarded",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/set-site.ts",
+    "find": "  await assertNotProduction({ dbUrl });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "'scripts/set-site\\.ts'"
+  },
+  {
+    "id": "b16-g2-db-audit",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "create or replace function public.settings_put_site(\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before jsonb;\nbegin\n  select s.value into v_before from public.settings s where s.key = 'site' for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n\n  -- The version bump is B2's trigger on settings, in this same transaction (`site` is a public key).\n  update public.settings set value = p_value where key = 'site';\n\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"writes the value and one audit_log row\"",
+    "expect": "× .*writes the value and one audit_log row[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-bump",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "alter table public.settings disable trigger settings_bump_catalog_version;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"moves catalog_version by 1\"",
+    "expect": "× .*moves catalog_version by 1[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-grant",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "grant execute on function public.settings_put_site(jsonb, uuid, public.actor_kind, text, text) to authenticated;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"refuses the authenticated role\"",
+    "expect": "× .*refuses the authenticated role[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-grant-anon",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "grant execute on function public.settings_put_site(jsonb, uuid, public.actor_kind, text, text) to anon;",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"refuses the anon role\"",
+    "expect": "× .*refuses the anon role[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g2-db-parse",
+    "kind": "sql",
+    "test": "tests/db/settings-site.db.test.ts",
+    "sql": "update public.settings set value = jsonb_set(value, '{contact,email}', '\"not-an-email\"') where key = 'site';",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"the stored row parses\"",
+    "expect": "× .*the stored row parses with siteSettingsSchema[\\s\\S]*AssertionError"
+  },
+  {
+    "id": "b16-g3-whole-state",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== \"production\",\n  };",
+    "replace": "  return { ...state, ...siteSettingsSchema.parse(state.site) };",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > answers with the site and illustrativeContent and no other key"
+  },
+  {
+    "id": "b16-g3-production-illustrative",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": " && ctx.env.MOP_ENV !== \"production\",",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > answers illustrativeContent false in production"
+  },
+  {
+    "id": "b16-g3-read-table",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "replace": "  await db.from(\"settings\").select(\"value\");\n  return siteSettingsSchema.parse((await getPublicState(db)).site);",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > makes one public_state call"
+  },
+  {
+    "id": "b16-g3-no-row",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "  catalogRead(\"/api/public/site\", getPublicSite),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "FAIL .*> the public route table and its files > has a row for every file"
+  },
+  {
+    "id": "b16-g4-blank-lines",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/domain/settings.ts",
+    "find": "return trimmed === undefined || trimmed === \"\" ? [] : [trimmed];",
+    "replace": "return [trimmed ?? \"\"];",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-null site renders no null"
+  },
+  {
+    "id": "b16-g4-x-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "{ label: t.nav.x, href: social.x },",
+    "replace": "{ label: t.nav.x, href: social.x ?? \"https://x.com/\" },",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-null site renders no null"
+  },
+  {
+    "id": "b16-g4-linkedin-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "{ label: t.nav.linkedin, href: social.linkedin },",
+    "replace": "{ label: t.nav.linkedin, href: null },",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-footer-entity",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "presentLines(legal.entity)[0] ?? siteConfig.name",
+    "replace": "siteConfig.name",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-legal-address",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "presentLines(legal.entity, legal.address)",
+    "replace": "presentLines(legal.entity)",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-contact-email",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.contact.tsx",
+    "find": "{email !== undefined && <a href={`mailto:${email}`}>{email}</a>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
+  },
+  {
+    "id": "b16-g4-illustrative-always",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "{illustrativeContent && (",
+    "replace": "{(illustrativeContent || true) && (",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> /legal > leaves it out when illustrativeContent is false"
+  },
+  {
+    "id": "b16-g4-illustrative-never",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "{illustrativeContent && (",
+    "replace": "{(illustrativeContent && false) && (",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> /legal > shows the illustrative paragraph when illustrativeContent is true"
+  },
+  {
+    "id": "b16-g4-contact-note",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/contact-form.tsx",
+    "find": "      <p className=\"form-note\">{t.forms.sharedWithOmnikom}</p>\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the inquiry forms > the contact form renders forms.sharedWithOmnikom"
+  },
+  {
+    "id": "b16-g4-dialog-note",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/inquiry-dialog.tsx",
+    "find": "              <p className=\"form-note\">{t.forms.sharedWithOmnikom}</p>\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the inquiry forms > the inquiry dialog renders forms.sharedWithOmnikom"
+  },
+  {
+    "id": "b16-g4-footer-line",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/lib/strings.ts",
+    "find": "line: \"A product of Omnikom.\",",
+    "replace": "line: \"An Omnikom company.\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the parent company > t.footer.line names"
+  },
+  {
+    "id": "b16-g4-legal-product",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "is a product of {siteConfig.parentCompany}.",
+    "replace": "is a part of {siteConfig.parentCompany}.",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the parent company > t.footer.line names"
+  },
+  {
+    "id": "b16-g4-ctx-table",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "  const site = await getSiteSettings(db);",
+    "replace": "  const site = siteOf(await readSettings(db, [\"site\"]));",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an all-set site"
+  },
+  {
+    "id": "b16-g4-ctx-address",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "    address: site.legal.address,",
+    "replace": "    address: null,",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an all-set site"
+  },
+  {
+    "id": "b16-g4-ctx-empty",
+    "test": "tests/unit/email/site-context.test.ts",
+    "file": "src/server/email/context.ts",
+    "find": "    entity: site.legal.entity,",
+    "replace": "    entity: site.legal.entity ?? \"unset\",",
+    "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
+    "expect": "FAIL .*> loadSiteContext > maps an empty site to nulls"
+  },
+  {
+    "id": "b16-g5-sitemap-privacy",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "  \"/privacy\",\n  \"/terms\",",
+    "replace": "  \"/terms\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the sitemap > holds /privacy"
+  },
+  {
+    "id": "b16-g5-sitemap-terms",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "  \"/terms\",\n  \"/accessibility\",",
+    "replace": "  \"/accessibility\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the sitemap > holds /privacy"
+  },
+  {
+    "id": "b16-g5-do-not-sell-id",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<h2 id=\"do-not-sell\">",
+    "replace": "<h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has the do-not-sell anchor"
+  },
+  {
+    "id": "b16-g5-rights-id",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "<h2 id=\"rights-to-photographs\">",
+    "replace": "<h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has the do-not-sell anchor"
+  },
+  {
+    "id": "b16-g5-retention-number",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<td data-label=\"Kept for\">{keep(key)}</td>",
+    "replace": "<td data-label=\"Kept for\">{keep(key === \"analytics_daily\" ? \"analytics_events\" : key)}</td>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy prints each retention period"
+  },
+  {
+    "id": "b16-g5-terms-hash",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "Acceptance is not promised.",
+    "replace": "Acceptance is never promised.",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the terms text matches the hash"
+  },
+  {
+    "id": "b16-g5-h2-refunds",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "<h2>Refunds</h2>",
+    "replace": "<h2>Money back</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /terms has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-h2-privacy",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<h2>Children</h2>",
+    "replace": "<h2>Minors</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-h2-accessibility",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.accessibility.tsx",
+    "find": "<h2>Known limits</h2>",
+    "replace": "<h2>Limits</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /accessibility has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-rights-version",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/domain/contracts.ts",
+    "find": "currentRightsVersion = \"2026-10-08\";",
+    "replace": "currentRightsVersion = \"2026-10-01\";",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > currentRightsVersion equals legalVersions.terms"
+  },
+  {
+    "id": "b16-g5-rights-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/submit/steps.tsx",
+    "find": "hash=\"rights-to-photographs\"",
+    "replace": "hash=\"rights\"",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the submit wizard's rights step links"
+  },
+  {
+    "id": "b16-g5-cookies-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<Link to=\"/cookies\">{t.privacy.cookiesLink}</Link>",
+    "replace": "{t.privacy.cookiesLink}",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy links /cookies"
+  },
+  {
+    "id": "b16-g5-footer-do-not-sell",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "hash=\"do-not-sell\"",
+    "replace": "hash=\"privacy\"",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the footer links Privacy"
+  },
+  {
+    "id": "b16-g5-footer-terms",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/terms\">{t.nav.terms}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"terms\">{t.nav.terms}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the footer links Privacy"
+  },
+  {
+    "id": "b16-g5-consent-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "<Link to=\"/privacy\">{t.consent.link}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"privacy\">{t.consent.link}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the consent notice, mounted"
+  },
+  {
+    "id": "b16-g5-choices-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "<Link to=\"/privacy\">{t.consent.link}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"privacy\">{t.consent.link}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy-choices links /privacy"
+  },
+  {
+    "id": "b16-g5-legal-terms-branch",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "    else if (window.location.hash === \"#terms\") void navigate({ to: \"/terms\", replace: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #terms lands on /terms"
+  },
+  {
+    "id": "b16-g5-legal-privacy-branch",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "if (window.location.hash === \"#privacy\") void navigate({ to: \"/privacy\", replace: true });",
+    "replace": "if (window.location.hash === \"#privacy\") void navigate({ to: \"/terms\", replace: true });",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #privacy lands on /privacy"
+  },
+  {
+    "id": "b16-g5-legal-no-hash",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "if (window.location.hash === \"#privacy\")",
+    "replace": "if (window.location.hash !== \"#zz\")",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with no hash stays on /legal"
+  },
+  {
+    "id": "b16-g5-title-brand",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "title: t.nav.terms,",
+    "replace": "title: `${t.nav.terms} | Matter of Place | Matter of Place`,",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the page titles carry the brand once"
+  },
+  {
+    "id": "b16-g5-unset-null",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "presentLines(useSite().contact.email)[0]",
+    "replace": "String(useSite().contact.email)",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > an unset site leaves no null"
+  },
+  {
+    "id": "b16-g5-db-retention",
+    "test": "tests/db/settings-site.db.test.ts",
+    "file": "src/domain/retention.ts",
+    "find": "analytics_daily: { months: 13 },",
+    "replace": "analytics_daily: { months: 12 },",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"retention\"",
+    "expect": "FAIL .*> retention > retention_policies holds every period"
+  },
+  {
+    "id": "b16-g5-ip-hash-kept",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "; one stored with an inquiry, a privacy request or a rights confirmation stays with that record.",
+    "replace": ".",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy limits the hours"
+  },
+  {
+    "id": "b16-g5-legal-replace",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "void navigate({ to: \"/privacy\", replace: true });",
+    "replace": "void navigate({ to: \"/privacy\" });",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #privacy lands on /privacy"
+  },
+  {
+    "id": "b16-g6-kinds-four",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "{subjectRequestKinds.map((option) => (",
+    "replace": "{subjectRequestKinds.filter((kind) => kind !== \"correction\").map((option) => (",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the kinds offered > equal subjectRequestKinds"
+  },
+  {
+    "id": "b16-g6-honeypot",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "      <Honeypot />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the kinds offered > renders one honeypot input named website"
+  },
+  {
+    "id": "b16-g6-header",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/services/http/index.ts",
+    "find": "await api.post(\"/subjects/request\", body, receiptSchema, init);",
+    "replace": "await api.post(\"/subjects/request\", body, receiptSchema);",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the http adapter > posts to /subjects/request"
+  },
+  {
+    "id": "b16-g6-website",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/services/http/index.ts",
+    "find": "body: { website: \"\", ...input },",
+    "replace": "body: { ...input },",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the http adapter > sends an empty website"
+  },
+  {
+    "id": "b16-g6-preselect-search",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "return found === undefined ? {} : { kind: found };",
+    "replace": "return {};",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page > preselects opt out"
+  },
+  {
+    "id": "b16-g6-preselect-form",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "chosen ?? linked ?? subjectRequestKinds[0]",
+    "replace": "chosen ?? subjectRequestKinds[0]",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page > preselects opt out"
+  },
+  {
+    "id": "b16-g6-preselect-page",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "hydrated && kind !== undefined ? { kind } : {}",
+    "replace": "{}",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > stores the page without the kind"
+  },
+  {
+    "id": "b16-g6-stored-ignores-kind",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "    () => false,\n  );",
+    "replace": "    () => true,\n  );",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > stores the page without the kind"
+  },
+  {
+    "id": "b16-g6-click-wins",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "setChosen(option);",
+    "replace": "setChosen(linked ?? option);",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > submits the kind the visitor clicks"
+  },
+  {
+    "id": "b16-g6-track-always",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "if (answer) track(\"subject_request_submitted\");",
+    "replace": "track(\"subject_request_submitted\");",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> sending > keeps the typed values and tracks nothing after a 422"
+  },
+  {
+    "id": "b16-g6-keep-values",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "if (state.status === \"success\") return",
+    "replace": "if (state.status === \"success\" || state.status === \"error\") return",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> sending > keeps the typed values and tracks nothing after a 500"
+  },
+  {
+    "id": "b16-g6-event-listed",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"subject_request_submitted\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "FAIL .*> analyticsEvents > lists every event name that a track"
+  },
+  {
+    "id": "b16-g7-no-null-key",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(legal.entity === null ? {} : { legalName: legal.entity }),",
+    "replace": "legalName: legal.entity,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > with nothing set, holds the brand fields"
+  },
+  {
+    "id": "b16-g7-postal-address",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "{ \"@type\": \"PostalAddress\", streetAddress: legal.address }",
+    "replace": "{ \"@type\": \"Place\", streetAddress: legal.address }",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > adds legalName, email, telephone and the address"
+  },
+  {
+    "id": "b16-g7-phone-guard",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(contact.phone === null ? {} : { telephone: contact.phone }),",
+    "replace": "telephone: contact.phone,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > adds legalName alone when only the entity is set"
+  },
+  {
+    "id": "b16-g7-sameas-set-only",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "(value): value is string => value !== null,",
+    "replace": "(value): value is string => value !== undefined,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > holds in sameAs only the social addresses that are set"
+  },
+  {
+    "id": "b16-g7-sameas-absent",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(sameAs.length === 0 ? {} : { sameAs }),",
+    "replace": "sameAs,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > leaves sameAs out when no social address is set"
+  },
+  {
+    "id": "b16-g7-parent",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "parentOrganization: { \"@type\": \"Organization\", name: siteConfig.parentCompany },",
+    "replace": "parentOrganization: { \"@type\": \"Organization\", name: siteConfig.name },",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > names Omnikom as the parent whatever is set"
+  },
+  {
+    "id": "b16-g7-no-logo",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    description: siteConfig.description,\n    ...(legal.entity",
+    "replace": "    description: siteConfig.description,\n    logo: absoluteUrl(\"/logo.png\"),\n    ...(legal.entity",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > carries no logo"
+  },
+  {
+    "id": "b16-g8-prod-warn",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "status: lenient ? \"warn\" : \"fail\",",
+    "replace": "status: \"warn\",",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the missing required fields"
+  },
+  {
+    "id": "b16-g8-unset-lenient",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const lenient = ctx.env[\"MOP_ENV\"] === \"development\" || ctx.env[\"MOP_ENV\"] === \"preview\";",
+    "replace": "const lenient = ctx.env[\"MOP_ENV\"] !== \"production\";",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the missing required fields"
+  },
+  {
+    "id": "b16-g8-preview",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "ctx.env[\"MOP_ENV\"] === \"preview\"",
+    "replace": "ctx.env[\"MOP_ENV\"] === \"previews\"",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > warns when MOP_ENV is development or preview"
+  },
+  {
+    "id": "b16-g8-ok",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (missing.length === 0) return ok(\"every required identity field is set\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > is ok when every required field is set"
+  },
+  {
+    "id": "b16-g8-stale",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (stale) return fail(\"public_state_stale\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with public_state_stale"
+  },
+  {
+    "id": "b16-g8-no-reset",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "      resetPublicStateMemo();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > drops the memo once per run"
+  },
+  {
+    "id": "b16-g8-cold-code",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "fail(error instanceof AppError ? error.code : \"unavailable\")",
+    "replace": "fail(\"public_state_stale\")",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> site_identity > fails with the error code when the database does not answer"
+  },
+  {
+    "id": "b16-g8-job-event",
+    "test": "tests/unit/health-site.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "const failed = checks.filter((check) => check.status === \"fail\");",
+    "replace": "const failed = checks.filter((check) => check.status === \"failed\");",
+    "run": "bunx vitest run --project unit tests/unit/health-site.test.ts",
+    "expect": "FAIL .*> the health job with a site that is not set > lists site_identity"
+  },
+  {
+    "id": "b16-g8-deno-workers",
+    "test": "tests/deno/site-context.smoke.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
+    "replace": "import \"cloudflare:workers\";\nimport { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
+    "run": "MOP_ENV=development deno run --config supabase/functions/job-runner/deno.json --allow-env tests/deno/site-context.smoke.ts",
+    "expect": "Unsupported scheme \"cloudflare\""
+  },
+  {
+    "id": "b16-g8-deno-ext",
+    "test": "tests/deno/site-context.smoke.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "import { getPublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState } from \"../public/state\";",
+    "run": "deno check --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "expect": "TS2307|Module not found"
   }
 ]

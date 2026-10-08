@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   channelIdsSchema,
+  socialPostPageSize,
   socialPostSchema,
+  type ChannelHealth,
   type ChannelIdsKey,
   type SocialChannel,
   type SocialPost,
@@ -19,23 +21,19 @@ import { tokenHealth } from "./meta-token.ts";
 // Screen 12 (B10 Files, `service.ts`). Each function authorizes before it touches the database (SEC-04), and no
 // function here calls a platform (invariant 1): a write is one social.sql function that also writes its audit row.
 
-const PAGE_SIZE = 50;
 const AMBER_DAYS = 14;
 const RED_DAYS = 7;
 const X_READS_AMBER = 0.7;
 const HEALTH_CHANNELS = ["instagram", "facebook", "x", "linkedin"] as const;
 
-type Level = "ok" | "amber" | "red";
+type Level = ChannelHealth["level"];
 
-interface ChannelHealth {
-  channel: SocialChannel;
-  level: Level;
-  label: string | null;
-  lastPost: { at: string; permalink: string | null } | null;
-  lastError: { at: string; error: string } | null;
-  token: { expiresAt: string | null; daysLeft: number | null; level: Level };
-  reads?: { used: number; allowance: number; level: Level };
-}
+/** The account ids each settings row needs before its channel counts as connected (the list of `assertMayEnable`). */
+const CHANNEL_IDS: Record<"meta" | "x" | "linkedin", readonly string[]> = {
+  meta: ["page_id", "ig_user_id"],
+  x: ["user_id"],
+  linkedin: ["organization_urn"],
+};
 
 const rank: Record<Level, number> = { ok: 0, amber: 1, red: 2 };
 const worst = (...levels: Level[]): Level =>
@@ -62,8 +60,8 @@ export async function listPosts(
           .is("withdrawn_at", null)
           .order("withdraw_required_at", { ascending: true })
       : query.order("created_at", { ascending: false });
-  const from = (input.page - 1) * PAGE_SIZE;
-  const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+  const from = (input.page - 1) * socialPostPageSize;
+  const { data, error, count } = await query.range(from, from + socialPostPageSize - 1);
   if (error !== null) throw fromRpcError(error);
   return { items: z.array(socialPostSchema).parse(data), total: count ?? 0 };
 }
@@ -116,6 +114,14 @@ function xReads(value: unknown, now: Date): NonNullable<ChannelHealth["reads"]> 
   };
 }
 
+const hasIds = (value: unknown, key: keyof typeof CHANNEL_IDS) => {
+  const stored = z.record(z.string(), z.unknown()).safeParse(value).data ?? {};
+  return CHANNEL_IDS[key].every((id) => {
+    const field = stored[id];
+    return typeof field === "string" && field !== "";
+  });
+};
+
 async function newest(
   db: Db,
   channel: SocialChannel,
@@ -138,11 +144,10 @@ async function newest(
 }
 
 /**
- * @public `GET /api/admin/channels/health` for screens 2 and 12: per channel the last post, the last error and the token's
+ * `GET /api/admin/channels/health` for screens 2 and 12: per channel the last post, the last error and the token's
  * state from `settings` (GS-01, INT-06). A dead token is red whatever its expiry, and so is a channel whose newest
  * failure is `token_dead` until a later post goes out. Reads `settings` and `social_posts` only.
  */
-// STUB(B10 step 8): the health route and the screen 2 tile call it
 export async function channelHealth(
   actor: AdminActor,
   db: Db,
@@ -176,6 +181,7 @@ export async function channelHealth(
       const reads = channel === "x" ? xReads(settings.get("x") ?? null, now) : undefined;
       return {
         channel,
+        connected: hasIds(settings.get(key) ?? null, key),
         level: worst(token.level, deadRow ? "red" : "ok", reads?.level ?? "ok"),
         label,
         lastPost:
@@ -191,8 +197,7 @@ export async function channelHealth(
 
 const postAudit = (actor: AdminActor, id: string) => ({ p_id: id, ...auditContext(actor) });
 
-/** @public `POST /api/admin/channels/posts/:id/retry`: the failed row back to scheduled and one step job (DB-09). */
-// STUB(B10 step 8): channels.posts.$id.retry.ts calls it
+/** `POST /api/admin/channels/posts/:id/retry`: the failed row back to scheduled and one step job (DB-09). */
 export async function retryPost(
   actor: AdminActor,
   db: Db,
@@ -207,8 +212,7 @@ export async function retryPost(
   return { job_id: data };
 }
 
-/** @public `POST /api/admin/channels/posts/:id/cancel`: a scheduled row becomes failed with `cancelled`. */
-// STUB(B10 step 8): channels.posts.$id.cancel.ts calls it
+/** `POST /api/admin/channels/posts/:id/cancel`: a scheduled row becomes failed with `cancelled`. */
 export async function cancelPost(
   actor: AdminActor,
   db: Db,
@@ -220,8 +224,7 @@ export async function cancelPost(
   return { cancelled: true };
 }
 
-/** @public `POST /api/admin/channels/posts/:id/metrics-refresh`: the reconcile job reads it; answers 202 (invariant 1). */
-// STUB(B10 step 8): channels.posts.$id.metrics-refresh.ts calls it
+/** `POST /api/admin/channels/posts/:id/metrics-refresh`: the reconcile job reads it; answers 202 (invariant 1). */
 export async function refreshMetrics(
   actor: AdminActor,
   db: Db,
@@ -233,8 +236,7 @@ export async function refreshMetrics(
   return adminJson({ job_id: data }, { status: 202 });
 }
 
-/** @public `POST /api/admin/channels/posts/:id/withdrawn`: a person deleted the taken-down post by hand (invariant 10). */
-// STUB(B10 step 8): channels.posts.$id.withdrawn.ts calls it
+/** `POST /api/admin/channels/posts/:id/withdrawn`: a person deleted the taken-down post by hand (invariant 10). */
 export async function markWithdrawn(
   actor: AdminActor,
   db: Db,

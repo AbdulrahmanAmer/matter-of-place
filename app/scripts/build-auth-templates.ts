@@ -52,7 +52,13 @@ const rendered = await Promise.all(
       { type: "button", label: email.label, url },
     ];
     const html = await render(
-      createElement(Message, { title: email.title, preheader: "", blocks, site: SITE }),
+      createElement(Message, {
+        title: email.title,
+        preheader: "",
+        blocks,
+        site: SITE,
+        variables: {},
+      }),
     );
     const text = `${[email.title, email.paragraph, `${email.label}: ${url}`, ...footerLines(SITE)].join("\n\n")}\n`;
     const findings = lintEmail(html, text, email.key).map(

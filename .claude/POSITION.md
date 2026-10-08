@@ -1418,3 +1418,25 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Still owed by the orchestrator: the B11 step 4 and 5 remainder close-out after PR 211 (standalone row,
   variablesByKey sample, the two STUB(B11 step 4) casts); PR 163's illustrative smoke and gate; the 29 ledger
   re-runs; merge chores at each lane merge; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.
+
+## 2026-10-08 10:00 OVERNIGHT (operator asleep; standing order: run everything that can run in parallel, watch both machines and GitHub)
+- Rulings since the resume block: H69 strictExecutionOrder (PR 222), H70 full-stack e2e specs guard on E2E_FULL_STACK (PR 225),
+  H71 lighthouse two bounded attempts (PR 228) and H71a preview job 40 minutes (PR 234), H72 the e2e axe audit waits for
+  animations (PR 233). Workflow: `mergeOnly: true` relaunches a lane's merge alone (PR 235, parse fix PR 236). Tools: `watchfail
+  --changed` also replays entries the registry gained since the ref (PR 226, P-539); P-540 banked (a piped gate lets a red check push).
+- Merged lanes: B7 step 7 (PR 213), B6 complete (PR 231). Ledger: B1b step 7b accepted (PR 232, 15 of 16).
+- Live here (E:): B16 wf_3d33ed2c-a5d (task wuko2myh9; steps 3 to 6 accepted since the resume, 7 next); B17 wf_efb63621-4a0
+  (task wyeq4nbb0; relaunched 09:10 from lanes/B17.json after sitting paused since 2026-10-06, close-outs c8 and c9 then 11 and 12;
+  11 and 12 sized BLOCKED); a Sonnet builder merging main into slice/b13 by hand (five semantic conflicts with B7's preview path:
+  property route, public routes, http service, types, deploy.yml), after which `mergeOnly` reruns for PR 163.
+- Live on the Dell (D:, runner bridge:session_0157suheXQgoypjh3v6anmHw, journals c8fd54ed…): B7 wf_a6dbb8e9-c8f (task wc493wgrv;
+  step 7a merging on PR 230, steps 8 to 15a follow, 16 blocked on B6 screens); B8b wf_271c5d31-963 (task wwiy3w3jj, steps 6 to 10,
+  lane D:/mop-build/b8b, port 8978, bank 2500/1150); B8 wf_36ffb586-bd3 (task w3e4k5psg, steps 9, 10, 10a, lane D:/mop-build/b8,
+  port 8998, bank 2600/1200); B11 merge wf_19d36eba-8ac (task w1h38eiaj, PR 227); B10 merge wf_3531af8d-3f2 (task wjzkf1xgp,
+  PR 223). B6 lane idle.
+- PRs open: 211 (B9, synced with main, roles migration regenerated, CI running, orchestrator gates), 223, 227, 230 (merge agents),
+  163 (after the conflict builder). Board https://claude.ai/artifact/JPdTuyF34P9yaUwo8UdH8x version 31: 186 of 259, 73 to go.
+- Next when lanes free: B14 steps 4 and 5 here (lane E:/mop-build/audit, port 8858, bank 2700/1250) once PR 163 (B13) is on main;
+  B11 step 4-5 remainder close-out on the Dell's B6 lane once PR 211 is on main; H1 after the B merges of the next hours.
+- Operator items unchanged: Meta, X and LinkedIn apps (B10 1, 2, 3a, 3b, 7, 7a, 7b); invoice copy sign-off; legal entity and
+  postal address (B11 step 8, S59). Pause rule on the Dell: a real memory symptom only.

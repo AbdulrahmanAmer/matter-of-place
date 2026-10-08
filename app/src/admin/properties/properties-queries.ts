@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PropertyPatch, RepresentativePut } from "../../domain/admin-properties";
+import type {
+  PropertyPatch,
+  RepresentativePut,
+  UnpublishBody,
+} from "../../domain/admin-properties";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   createFromSubmission,
   fetchProperties,
   fetchProperty,
   fetchRepresentatives,
+  issueAgentPreview,
   issuePreviewToken,
   patchProperty,
   publishProperty,
@@ -13,6 +18,8 @@ import {
   putRanks,
   putRelated,
   putRepresentative,
+  revokePreviews,
+  unpublishProperty,
 } from "./properties-api";
 
 /** The filters of screen 7 that live in the address, beside the cursor. */
@@ -75,6 +82,20 @@ export function useSavePatch(id: string) {
 
 export function usePublish(id: string) {
   return usePropertyWrite(id, (version: number) => publishProperty(id, version));
+}
+
+export function useUnpublish(id: string) {
+  return usePropertyWrite(id, (body: UnpublishBody) => unpublishProperty(id, body));
+}
+
+/** The agent's 7 day link; the property moves to agent review. */
+export function useAgentPreview(id: string) {
+  return usePropertyWrite(id, (version: number) => issueAgentPreview(id, version));
+}
+
+/** A new nonce: every preview link of this property stops working. */
+export function useRevokePreviews(id: string) {
+  return usePropertyWrite(id, () => revokePreviews(id));
 }
 
 export function useRanks(id: string) {

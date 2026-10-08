@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PropertyDetail, PropertyListRow } from "../../domain/admin-properties";
 import type { SubmissionListRow } from "../../domain/admin-submissions";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
+import { AdminProviders } from "../ui/test-providers";
 import { mountRoutes } from "../ui/test-router";
 import { ToastProvider } from "../ui/Toast";
 import { NewFromRequest } from "./NewFromRequest";
@@ -56,6 +57,7 @@ const detail = (
     editorial_state: state,
     published_at: null,
     first_published_at: null,
+    taken_down_at: null,
     updated_at: "2026-10-07T12:00:00Z",
     version,
   },
@@ -192,17 +194,32 @@ describe("PropertyEditor", () => {
 });
 
 describe("SequenceTab", () => {
-  it("shows orientation as text with no control for it, and a row without one renders blank (G63)", () => {
-    render(<SequenceTab media={detail().media} />);
-    const rows = screen.getAllByRole("row").slice(1);
+  it("shows orientation as text with no control for it, and a row without one renders blank (G63)", async () => {
+    const items = detail().media.map((row) => ({ ...row, url: `/media/${row.media_key ?? ""}` }));
+    serve({
+      [`GET /api/admin/media?property_id=${ID}`]: { items },
+      [`GET /api/admin/media/variants-status?property_id=${ID}`]: { items: [] },
+    });
+    render(
+      <AdminProviders actions={["media.alt", "media.reorder", "media.replace"]}>
+        <SequenceTab propertyId={ID} />
+      </AdminProviders>,
+    );
+    const rows = (await screen.findAllByRole("row")).slice(1);
+    const column = screen
+      .getAllByRole("columnheader")
+      .findIndex((header) => header.textContent === "Orientation");
+    const cells = rows.map((row) => within(row).getAllByRole("cell")[column] ?? document.body);
     expect({
-      controls: screen.queryAllByRole("combobox").length + screen.queryAllByRole("textbox").length,
-      first: within(rows[0] ?? document.body)
-        .getAllByRole("cell")
-        .at(-1)?.textContent,
-      second: within(rows[1] ?? document.body)
-        .getAllByRole("cell")
-        .at(-1)?.textContent,
+      controls: cells.reduce(
+        (sum, cell) =>
+          sum +
+          within(cell).queryAllByRole("combobox").length +
+          within(cell).queryAllByRole("textbox").length,
+        0,
+      ),
+      first: cells[0]?.textContent,
+      second: cells[1]?.textContent,
     }).toEqual({ controls: 0, first: "", second: "landscape" });
   });
 });

@@ -227,9 +227,9 @@ jobs:
         timeout-minutes: 22
         if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
         run: |
-          urls=$(node scripts/lhci-urls.mjs "$PREVIEW_URL")
+          # The url list reads the preview's catalog, which hangs when the preview does (H71b): it sits inside the retry.
           for attempt in 1 2; do
-            if timeout 600 bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/'); then
+            if urls=$(node scripts/lhci-urls.mjs "$PREVIEW_URL") && timeout 600 bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/'); then
               exit 0
             fi
             if [ "$attempt" = 1 ]; then

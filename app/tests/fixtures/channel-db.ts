@@ -12,6 +12,16 @@ export type Handler = (args: Row) => unknown;
 const text = (value: unknown): string =>
   typeof value === "string" || typeof value === "number" ? String(value) : "";
 
+/** A column of a row, or the value at a JSON path such as `data->utm->>utm_source` (PostgREST spells it so). */
+function valueAt(row: Row, column: string): unknown {
+  const [head = "", ...path] = column.split(/->>?/);
+  return path.reduce<unknown>(
+    (value, key) =>
+      typeof value === "object" && value !== null ? Reflect.get(value, key) : undefined,
+    row[head],
+  );
+}
+
 /**
  * `tables` answer `from(name)` with the rows every filter of the query keeps, `handlers` answer `rpc(name)`; any
  * other table or function throws, and every call is recorded in `calls` as fakeDb does.
@@ -55,7 +65,7 @@ export function tableDb(
         return chain;
       },
       eq: (column: string, value: unknown) => {
-        checks.push((row) => row[column] === value);
+        checks.push((row) => valueAt(row, column) === value);
         return chain;
       },
       neq: (column: string, value: unknown) => {
@@ -76,6 +86,10 @@ export function tableDb(
       },
       gte: (column: string, value: string) => {
         checks.push((row) => row[column] != null && text(row[column]) >= value);
+        return chain;
+      },
+      lt: (column: string, value: string) => {
+        checks.push((row) => row[column] != null && text(row[column]) < value);
         return chain;
       },
       order: (column: string, options: { ascending: boolean }) => {

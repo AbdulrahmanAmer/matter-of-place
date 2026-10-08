@@ -147,7 +147,7 @@
     "id": "b8b-g1-reason-last",
     "kind": "sql",
     "test": "tests/db/automation.db.test.ts",
-    "sql": "create or replace function public.automation_put_reason(\n  p_id uuid,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.decline_reasons;\n  v_new public.decline_reasons;\nbegin\n  if exists (\n    select 1 from jsonb_object_keys(p_patch) k\n    where k <> all (array['code', 'label', 'email_paragraph', 'sort', 'enabled'])\n  ) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  if p_id is not null then\n    select * into v_old from public.decline_reasons where id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n  end if;\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  if p_id is null then\n    v_new := jsonb_populate_record(null::public.decline_reasons, p_patch);\n    -- A new reason goes last in the list of screen 19.\n    insert into public.decline_reasons (code, label, email_paragraph, sort, enabled)\n    values (\n      v_new.code, v_new.label, v_new.email_paragraph,\n      coalesce(v_new.sort, 0),\n      coalesce(v_new.enabled, true)\n    )\n    returning * into v_new;\n  else\n    v_new := jsonb_populate_record(v_old, p_patch);\n    update public.decline_reasons\n    set code = v_new.code, label = v_new.label, email_paragraph = v_new.email_paragraph, sort = v_new.sort,\n      enabled = v_new.enabled\n    where id = p_id\n    returning * into v_new;\n  end if;\n  -- STUB(B8b step 6): unconditional write_audit\n  if to_regproc('public.write_audit') is not null then\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', v_new.id,\n      case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id, p_note\n    );\n  end if;\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_reason(uuid, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_reason(uuid, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "sql": "create or replace function public.automation_put_reason(\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null,\n  p_id uuid default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.decline_reasons;\n  v_new public.decline_reasons;\nbegin\n  if exists (\n    select 1 from jsonb_object_keys(p_patch) k\n    where k <> all (array['code', 'label', 'email_paragraph', 'sort', 'enabled'])\n  ) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  -- A null p_id inserts a new reason; it is the last argument with a default, so a typed client leaves it out (P-721).\n  if p_id is not null then\n    select * into v_old from public.decline_reasons where id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n  end if;\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  if p_id is null then\n    v_new := jsonb_populate_record(null::public.decline_reasons, p_patch);\n    -- A new reason goes last in the list of screen 19.\n    insert into public.decline_reasons (code, label, email_paragraph, sort, enabled)\n    values (\n      v_new.code, v_new.label, v_new.email_paragraph,\n      coalesce(v_new.sort, 0),\n      coalesce(v_new.enabled, true)\n    )\n    returning * into v_new;\n  else\n    v_new := jsonb_populate_record(v_old, p_patch);\n    update public.decline_reasons\n    set code = v_new.code, label = v_new.label, email_paragraph = v_new.email_paragraph, sort = v_new.sort,\n      enabled = v_new.enabled\n    where id = p_id\n    returning * into v_new;\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', v_new.id,\n    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id, p_note\n  );\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_reason(jsonb, uuid, public.actor_kind, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_reason(jsonb, uuid, public.actor_kind, text, text, uuid)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"with a null id inserts the reason last\"",
     "expect": "× .*with a null id inserts the reason last[\\s\\S]*\"test_existing\""
   },
@@ -1721,5 +1721,361 @@
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
     "expect": "\\+\\s+\"scripts/automation-smoke.ts\""
+  },
+  {
+    "id": "b8b-g6-putrecipe-authorize",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  authorize(actor, \"automation.recipes_put\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "FAIL .*> putRecipe > commercial gets 403 and no database call"
+  },
+  {
+    "id": "b8b-g6-putrecipe-actor",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "p_trigger: trigger, p_patch: patch, ...auditContext(actor) }",
+    "replace": "p_trigger: trigger, p_patch: patch }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*makes one automation_put_recipe call with its actor"
+  },
+  {
+    "id": "b8b-g6-agent-kind",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "p_actor_kind: actor.kind,",
+    "replace": "p_actor_kind: \"human\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*passes with actor_kind agent"
+  },
+  {
+    "id": "b8b-g6-agent-scope",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "    if (!entry.scopeFree && !actor.scopes.includes(entry.group)) return \"out_of_scope\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*without the automation scope gets 403"
+  },
+  {
+    "id": "b8b-g6-dup-step",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "        if (seen.has(step.id)) {",
+    "replace": "        if (seen.has(step.id) && index < 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a duplicate step id"
+  },
+  {
+    "id": "b8b-g6-max-steps",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "    .max(maxSteps)\n",
+    "replace": "    .max(maxSteps + 1)\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses 21 steps"
+  },
+  {
+    "id": "b8b-g6-markets",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "    markets: z.array(z.enum(marketSlugs)).min(1).optional(),",
+    "replace": "    markets: z.array(z.string()).min(1).optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a market outside the three"
+  },
+  {
+    "id": "b8b-g6-template-key",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    if (template !== undefined && !emailTemplateKeys.some((key) => key === template)) {",
+    "replace": "    if (template === \"never-a-key\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses an unknown template"
+  },
+  {
+    "id": "b8b-g6-params-path",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "          path: [index, \"params\", ...issue.path],",
+    "replace": "          path: [index],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a param its step does not take"
+  },
+  {
+    "id": "b8b-g6-step-type",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "        path: [index, \"step_type\"],",
+    "replace": "        path: [index],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses an unknown step type"
+  },
+  {
+    "id": "b8b-g6-puttemplate-authorize",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  authorize(actor, \"automation.templates_put\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "FAIL .*> putTemplate > commercial gets 403 and no database call"
+  },
+  {
+    "id": "b8b-g6-puttemplate-call",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "\"automation_put_template\", { p_key: key, p_patch: patch,",
+    "replace": "\"automation_put_template\", { p_key: key, p_patch: { ...patch, enabled: true },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*chief_editor makes one automation_put_template call"
+  },
+  {
+    "id": "b8b-g6-daily-cap",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "    daily_cap: z.number().int().min(1).max(25).default(2),",
+    "replace": "    daily_cap: z.number().int().min(0).max(25).default(2),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a posting window with a daily_cap of 0"
+  },
+  {
+    "id": "b8b-g6-window-tz",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "    tz: z.string().refine(isTimeZone, \"Use an IANA time zone, such as America/New_York\"),",
+    "replace": "    tz: z.string().refine(isTimeZone, \"Use an IANA time zone, such as America/New_York\").optional(),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a posting window with no tz"
+  },
+  {
+    "id": "b8b-g6-zone-check",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": "    return false;",
+    "replace": "    return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a posting window with an unknown zone"
+  },
+  {
+    "id": "b8b-g6-window-order",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/automation.ts",
+    "find": ".refine((window) => window.from < window.to, {",
+    "replace": ".refine((window) => window.from < window.to || window.tz !== \"\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a posting window with from after to"
+  },
+  {
+    "id": "b8b-g6-approval-guard",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (raised || (next.auto_after !== undefined && next.auto_after !== current.auto_after)) {\n    throw humanOnly();\n  }\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*an agent that sets a tier to auto gets 403 human_only"
+  },
+  {
+    "id": "b8b-g6-approval-person",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    actor.kind === \"agent\" &&\n    (patch.approval_mode !== undefined || patch.auto_after !== undefined)",
+    "replace": "    (patch.approval_mode !== undefined || patch.auto_after !== undefined)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*a person may set a tier to auto"
+  },
+  {
+    "id": "b8b-g6-schedule-patch",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  const { key, ...patch } = parse(schedulePutInput, raw);",
+    "replace": "  const { key, ...rest } = parse(schedulePutInput, raw);\n  const patch = { ...rest, next_run_at: null };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*a PUT of last_run_at alone on digest"
+  },
+  {
+    "id": "b8b-g6-schedule-strict",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  .extend({ key: scheduleKey })\n",
+    "replace": "  .extend({ key: scheduleKey })\n  .passthrough()\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a key outside the four"
+  },
+  {
+    "id": "b8b-g6-rpc-errors",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);",
+    "replace": "  if (error !== null) throw new AppError(\"validation\", undefined, \"x\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*answers the function's external_clock for a cron change of audit"
+  },
+  {
+    "id": "b8b-g6-protected-off",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (next.enabled === false) throw humanOnly();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*an agent that switches backup off gets 403"
+  },
+  {
+    "id": "b8b-g6-protected-cron",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (next.cron !== undefined && next.cron !== (await storedCron())) throw humanOnly();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*an agent that re-times reconcile gets 403"
+  },
+  {
+    "id": "b8b-g6-restore-guard",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    if (actor.kind === \"agent\" && revision.table_name === \"channel_settings\") {",
+    "replace": "    if (actor.kind === \"service\" && revision.table_name === \"channel_settings\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*an agent restore whose before sets approval_mode\\.Feature to auto"
+  },
+  {
+    "id": "b8b-g6-restore-parse",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    const before = parse(beforeSchemas[revision.table_name], revision.before);",
+    "replace": "    const before = revision.before;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a before that no longer parses"
+  },
+  {
+    "id": "b8b-g6-restore-call",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "{ p_revision_id: id, ...auditContext(actor) }",
+    "replace": "{ p_revision_id: id }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*a person's restore makes one automation_restore_revision call"
+  },
+  {
+    "id": "b8b-g6-revisions-page",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  const items = page.slice(0, input.limit);",
+    "replace": "  const items = page.slice(0, input.limit + 1);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*answers one page of at most 50"
+  },
+  {
+    "id": "b8b-g6-revisions-cursor",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "const revisionCursor = z.tuple([z.string().datetime({ offset: true }), uuid]);",
+    "replace": "const revisionCursor = z.tuple([z.string(), z.string()]);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a limit over 50 and a cursor"
+  },
+  {
+    "id": "b8b-g6-flag-labels",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "  maintenance: \"Answers public pages with a short maintenance notice.\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*describes every flag in one line"
+  },
+  {
+    "id": "b8b-g6-flag-defaults",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "    ...defaultFlags,\n    ...(parsed.success",
+    "replace": "    ...(parsed.success",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*returns the defaults when the row is absent"
+  },
+  {
+    "id": "b8b-g6-flag-own-query",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "  const state = await getPublicState(db);\n  return mergeFlags",
+    "replace": "  await db.from(\"settings\").select(\"value\");\n  const state = await getPublicState(db);\n  return mergeFlags",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*issues no query of its own"
+  },
+  {
+    "id": "b8b-g6-flag-closed-set",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/domain/flags.ts",
+    "find": "export const flagsPutSchema = z.record(z.enum(featureFlags), z.boolean());",
+    "replace": "export const flagsPutSchema = z.record(z.string(), z.boolean());",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*refuses an unknown flag name"
+  },
+  {
+    "id": "b8b-g6-flag-human-only",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/permissions/automation.ts",
+    "find": "{ action: \"automation.flags_put\", group: \"automation\", roles: [\"admin\"], humanOnly: true },",
+    "replace": "{ action: \"automation.flags_put\", group: \"automation\", roles: [\"admin\"] },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*refuses an agent with 403 human_only"
+  },
+  {
+    "id": "b8b-g6-flag-admin-only",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/permissions/automation.ts",
+    "find": "{ action: \"automation.flags_put\", group: \"automation\", roles: [\"admin\"], humanOnly: true },",
+    "replace": "{ action: \"automation.flags_put\", group: \"automation\", roles: [\"admin\", \"chief_editor\"], humanOnly: true },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*refuses a person who is not an admin"
+  },
+  {
+    "id": "b8b-g6-flag-one-call",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "    p_value: parsed.data,",
+    "replace": "    p_value: { ...parsed.data, maintenance: false },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*an admin makes exactly one settings_put_flags call"
+  },
+  {
+    "id": "b8b-g6-flag-memo",
+    "test": "tests/unit/automation/flags-put.test.ts",
+    "file": "src/server/lib/flags.ts",
+    "find": "  resetPublicStateMemo();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/flags-put.test.ts",
+    "expect": "× .*drops the writing isolate's memo"
+  },
+  {
+    "id": "b8b-g6-sql-recipe-audit",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "create or replace function public.automation_put_recipe(\n  p_trigger text,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.automation_recipes;\n  v_new public.automation_recipes;\nbegin\n  -- Invariant 8: one row per event type comes from the seed; this function never inserts.\n  select * into v_old from public.automation_recipes where trigger = p_trigger for update;\n  if not found then\n    raise exception 'unknown_trigger' using errcode = 'P0002';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (array['name', 'enabled', 'steps'])) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  update public.automation_recipes\n  set name = v_new.name, enabled = v_new.enabled, steps = v_new.steps\n  where id = v_old.id\n  returning * into v_new;\n  -- SEC-11, ruling H23: an agent's change reaches a human in the same transaction.\n  if p_actor_kind = 'agent' then\n    perform public.enqueue_job(\n      'notify_admin',\n      jsonb_build_object(\n        'params', jsonb_build_object('headline', 'Agent changed automation'),\n        'data', jsonb_build_object('summary', 'recipe ' || p_trigger, 'link_path', '/admin/automation/revisions')\n      ),\n      'agent_automation:' || p_request_id,\n      p_max_attempts => 12\n    );\n  end if;\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"one call of each put function writes exactly one audit_log row\"",
+    "expect": "× .*one call of each put function writes exactly one audit_log row[\\s\\S]*\"automation_put_recipe\": \\[\\]"
+  },
+  {
+    "id": "b8b-g6-sql-flags-audit",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "create or replace function public.settings_put_flags(\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before jsonb;\n  v_after jsonb;\nbegin\n  -- Invariant 14: the closed set of names is checked in TS (`flagsPutSchema`); here every value is a boolean.\n  if jsonb_typeof(p_value) is distinct from 'object'\n    or exists (select 1 from jsonb_each(p_value) e where jsonb_typeof(e.value) <> 'boolean') then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = 'flags' for update;\n  -- A flag the request leaves out keeps its stored value.\n  v_after := coalesce(v_before, '{}'::jsonb) || p_value;\n  -- B2's trigger on settings bumps catalog_version in this same transaction (F25 a).\n  insert into public.settings (key, value) values ('flags', v_after)\n  on conflict (key) do update set value = excluded.value;\n  return v_after;\nend;\n$$;\n\nrevoke execute on function public.settings_put_flags(jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.settings_put_flags(jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"settings_put_flags writes the flags row\"",
+    "expect": "× .*settings_put_flags writes the flags row[\\s\\S]*\"audit\": \\[\\]"
+  },
+  {
+    "id": "b8b-g6-sql-guard-kept",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "create or replace function public.automation_put_template(\n  p_key text,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.email_templates;\n  v_new public.email_templates;\nbegin\n  -- Rows come from B5's seed; admins edit and never create them.\n  select * into v_old from public.email_templates where key = p_key for update;\n  if not found then\n    raise exception 'unknown_template' using errcode = 'P0002';\n  end if;\n  if exists (\n    select 1 from jsonb_object_keys(p_patch) k where k <> all (array['subject', 'preheader', 'body', 'enabled'])\n  ) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  update public.email_templates\n  set subject = v_new.subject, preheader = v_new.preheader, body = v_new.body, enabled = v_new.enabled\n  where id = v_old.id\n  returning * into v_new;\n  -- SEC-11, ruling H23: an agent's change reaches a human in the same transaction.\n  if p_actor_kind = 'agent' then\n    perform public.enqueue_job(\n      'notify_admin',\n      jsonb_build_object(\n        'params', jsonb_build_object('headline', 'Agent changed automation'),\n        'data', jsonb_build_object('summary', 'template ' || p_key, 'link_path', '/admin/automation/revisions')\n      ),\n      'agent_automation:' || p_request_id,\n      p_max_attempts => 12\n    );\n  end if;\n  -- STUB(B8b step 6): unconditional write_audit\n  if to_regproc('public.write_audit') is not null then\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'automation.templates_put', 'email_templates', v_old.id, to_jsonb(v_old),\n      to_jsonb(v_new), p_request_id, p_note\n    );\n  end if;\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_template(text, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_template(text, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"no put function still holds\"",
+    "expect": "× .*no put function still holds[\\s\\S]*\"guarded\": true"
+  },
+  {
+    "id": "b8b-g6-sql-actor-check",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "create or replace function public.automation_put_recipe(\n  p_trigger text,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.automation_recipes;\n  v_new public.automation_recipes;\nbegin\n  -- Invariant 8: one row per event type comes from the seed; this function never inserts.\n  select * into v_old from public.automation_recipes where trigger = p_trigger for update;\n  if not found then\n    raise exception 'unknown_trigger' using errcode = 'P0002';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (array['name', 'enabled', 'steps'])) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  update public.automation_recipes\n  set name = v_new.name, enabled = v_new.enabled, steps = v_new.steps\n  where id = v_old.id\n  returning * into v_new;\n  -- SEC-11, ruling H23: an agent's change reaches a human in the same transaction.\n  if p_actor_kind = 'agent' then\n    perform public.enqueue_job(\n      'notify_admin',\n      jsonb_build_object(\n        'params', jsonb_build_object('headline', 'Agent changed automation'),\n        'data', jsonb_build_object('summary', 'recipe ' || p_trigger, 'link_path', '/admin/automation/revisions')\n      ),\n      'agent_automation:' || p_request_id,\n      p_max_attempts => 12\n    );\n  end if;\n  perform public.write_audit(\n    null, p_actor_kind, 'automation.recipes_put', 'automation_recipes', v_old.id, to_jsonb(v_old),\n    to_jsonb(v_new), p_request_id, p_note\n  );\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"with an agent's id and p_actor_kind human raises 42501\"",
+    "expect": "× .*with an agent's id and p_actor_kind human raises 42501[\\s\\S]*\"outcome\": \"ok\""
   }
 ]

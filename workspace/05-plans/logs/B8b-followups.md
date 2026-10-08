@@ -197,3 +197,43 @@ Recorded from the g5 review (no blocking defect). Two further items concerned GO
 - what: Follow-up, not blocking. The deploy and clock paths changed but no runbook did. The 'Worker configuration' section (around line 106) does not say that wrangler.toml now holds `[triggers] crons = ["*/10 * * * *"]` or that matter-of-place and matter-of-place-dev carry it. The `preview` bullet (around line 225) does not say that pr-<n> is deployed from `.output/server/wrangler.preview.json` with no cron (scripts/preview-no-cron.mjs). STANDARDS C23 asks for a runbook update on a deploy or clock change, but step 5 names no runbook, so the orchestrator should fold this or assign it.
 - evidence: Seen by reading: `grep -rn "keepwarm\|crons\|preview-no-cron\|wrangler.preview" app/docs/runbooks/delivery.md` gives no match, and the only keepwarm runbook lines are jobs.md:45 and :48 (heartbeat only).
 - blocking: false
+
+## g6 · steps 6
+
+Recorded from the g6 review (no blocking defect). The seventh item concerned GOTCHAS.md and is banked there, not listed here: a hit-again line on P-154 and one on P-817.
+
+### 1. app/src/server/automation/service.ts
+
+- what: Line 185: the `auto_after` half of the agent approval guardrail has no test anywhere. The Contract says an agent gets 403 human_only when it changes `auto_after`. The code does that correctly today, but deleting the branch leaves every test green. automation.db.test.ts has no auto_after case for the database copy in automation_restore_revision either. The plan's proof list asks only for the `auto` case, so this is a follow-up, not a blocker.
+- evidence: Confirmed by running: a scratch registry entry replacing `if (raised || (next.auto_after !== undefined && next.auto_after !== current.auto_after)) {` with `if (raised) {` and running `bunx vitest run --project unit tests/unit/automation/service.test.ts` gave `WATCHED-FAIL BAD: stayed green (R:rev-auto-after)`. `grep -n auto_after tests/unit/automation/service.test.ts tests/db/automation.db.test.ts` finds only the fixture value `auto_after: null`.
+- blocking: false
+
+### 2. app/src/server/automation/service.ts
+
+- what: Lines 471-476: the agent PROTECTED_SCHEDULES check on the restore path is untested. This is the only layer that stops an agent key with chief_editor or admin and the automation scope from restoring a schedule revision that sets `enabled` false on backup, audit, prune, reconcile or keepwarm. automation_restore_revision has a database copy of the approval guard but none for schedules. The plan names only the approval guard for restore, so this is extra code that holds correctly but has no test.
+- evidence: Confirmed by running: a scratch entry changing `if (actor.kind === "agent" && revision.table_name === "schedule_settings") {` to `actor.kind === "nobody"` gave `WATCHED-FAIL BAD: stayed green (R:rev-restore-schedule)`. supabase/sql/functions/automation_restore_revision.sql lines 97-116 check only `external_clock` for schedule_settings.
+- blocking: false
+
+### 3. app/supabase/sql/functions/automation_restore_revision.sql
+
+- what: Suspected from reading, not run. An agent's restore of an automation_recipes or email_templates revision enqueues no notify_admin job. Only automation_put_recipe and automation_put_template do (SEC-11). An admin-role agent can therefore change a recipe through the restore route with no human notified. The plan's Contract names only the two put functions, so this is a note for the orchestrator or a later slice.
+- evidence: grep -n notify_admin on automation_restore_revision.sql: no hit; automation_put_recipe.sql line 36: `if p_actor_kind = 'agent' then perform public.enqueue_job('notify_admin', ...)`.
+- blocking: false
+
+### 4. workspace/05-plans/B8b.md
+
+- what: The plan text no longer matches the shipped code, which is the orchestrator's to fold. Line 103 (Audit) says put functions are followed only by an optional p_note, and Files line 110 says 'same signatures', but automation_put_reason now ends `p_note text default null, p_id uuid default null` (P-721). Line 162 still shows `automation_put_reason(p_id uuid, p_patch jsonb, ...)`. Revisions use B7's adminPageSchema `cursor=<at>~<id>`, not a `before` cursor. Invariant 14 calls flagsPutSchema the `.strict()` form of flagsSchema, but it is `z.record(z.enum(featureFlags), z.boolean())`; unknown keys are still refused, as tested. The author's log records every one of these deviations.
+- evidence: sed -n '103p;110p;162p' workspace/05-plans/B8b.md against supabase/sql/functions/automation_put_reason.sql lines 1-8 and src/domain/flags.ts line 44.
+- blocking: false
+
+### 5. app/tests/mutations/B8b.json
+
+- what: The committed entry b8b-g6-sql-recipe-audit replays BAD on mop-dev until main pushes 20261008065636_automation_audit.sql. Its test calls automation_put_reason with the new 4-argument form, which mop-dev does not have yet. It replays OK with the migration as prelude. Per H57 it is UNPROVEN in committed form until the push. Re-run it with --only after main pushes.
+- evidence: dev profile, `node scripts/watchfail.mjs --registry tests/mutations --only b8b-g6-sql-recipe-audit` gave `WATCHED-FAIL BAD: wrong reason ... function public.automation_put_reason(unknown, unknown, unknown, unknown) does not exist`. The same entry with the migration prepended in a fresh scratch folder gave `WATCHED-FAIL OK`.
+- blocking: false
+
+### 6. app/scripts/gen-action-roles.mjs
+
+- what: The step-6 proof names `bun run scripts/gen-action-roles.mjs`, and it was not run. The author says the matrix is unchanged and that the script writes a duplicate migration on every run. tests/unit/action-roles.sync.test.ts passes, so the seed equals the matrix. The proof line and the script's behaviour need an orchestrator ruling. Live HTTP calls to the 16 new routes are also UNPROVEN: they are covered only by the parity and authz sweep and by service unit tests against fakeDb.
+- evidence: bunx vitest run tests/unit/action-roles.sync.test.ts passes (inside the 67/67 run). The author's own unproven list.
+- blocking: false

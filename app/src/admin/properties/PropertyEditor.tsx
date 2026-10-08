@@ -13,11 +13,21 @@ import { FactsTab } from "./FactsTab";
 import { NarrativeTab } from "./NarrativeTab";
 import { PlacementTab } from "./PlacementTab";
 import { PreviewTab } from "./PreviewTab";
-import { useFeatures, usePublish, useRanks, useRelated, useSavePatch } from "./properties-queries";
+import {
+  useAgentPreview,
+  useFeatures,
+  usePublish,
+  useRanks,
+  useRelated,
+  useRevokePreviews,
+  useSavePatch,
+  useUnpublish,
+} from "./properties-queries";
 import { PublishBar } from "./PublishBar";
 import { RepresentationTab } from "./RepresentationTab";
 import { SequenceTab } from "./SequenceTab";
 import { StaleBanner } from "./StaleBanner";
+import { UnpublishDialog } from "./UnpublishDialog";
 import { useAutosave } from "./use-autosave";
 
 const tabs = [
@@ -42,6 +52,12 @@ function unsavedValues(
 }
 
 /**
+ * The version to keep after a write that takes no version (unpublish, revoke): the answer when it is exactly one after
+ * the version sent, else the version sent, so a save another session made in between still ends in a 409 here.
+ */
+const nextVersion = (sent: number, answered: number) => (answered === sent + 1 ? answered : sent);
+
+/**
  * Screen 8, the dossier editor. Fields save through the serial queue of `useAutosave` (invariant 7, FE-01); every
  * other write waits for it (`flush`) and sends the version it resolves, so a publish carries the last edits.
  */
@@ -56,6 +72,8 @@ export function PropertyEditor({
   const id = detail.property.id;
   const [values, setValues] = useState(() => valuesOf(detail.property));
   const [state, setState] = useState(detail.property.editorial_state);
+  const [takenDown, setTakenDown] = useState(detail.property.taken_down_at !== null);
+  const [unpublishing, setUnpublishing] = useState(false);
   const [tab, setTab] = useState<TabId>("narrative");
   const [jobs, setJobs] = useState<readonly WatchedJob[]>([]);
   const [busy, setBusy] = useState(false);
@@ -65,6 +83,9 @@ export function PropertyEditor({
   const ranks = useRanks(id);
   const related = useRelated(id);
   const features = useFeatures(id);
+  const unpublish = useUnpublish(id);
+  const agentPreview = useAgentPreview(id);
+  const revoke = useRevokePreviews(id);
   const autosave = useAutosave<PropertyPatch>({
     version: detail.property.version,
     save: (patch, version) => savePatch.mutateAsync({ patch, version }),
@@ -153,7 +174,7 @@ export function PropertyEditor({
         }}
       />
     ),
-    sequence: <SequenceTab media={detail.media} />,
+    sequence: <SequenceTab propertyId={id} />,
     representation: (
       <RepresentationTab
         propertyId={id}
@@ -214,7 +235,11 @@ export function PropertyEditor({
         </Tabs>
       </div>
       <PublishBar
+        propertyId={id}
         state={state}
+        takenDown={takenDown}
+        marketSlug={detail.property.market_slug}
+        previewReady={factsReady && heroReady}
         checklist={checklist}
         pending={busy || autosave.stale}
         jobs={jobs}
@@ -223,6 +248,41 @@ export function PropertyEditor({
           void afterFlush((version) => publish.mutateAsync(version)).then((answer) => {
             if (answer === null) return;
             setState("published");
+            setJobs(answer.jobs);
+          });
+        }}
+        onUnpublish={() => {
+          setUnpublishing(true);
+        }}
+        onSendAgent={() =>
+          afterFlush((version) => agentPreview.mutateAsync(version)).then((answer) => {
+            if (answer !== null) setState("agent_review");
+            return answer;
+          })
+        }
+        onRevokePreviews={() =>
+          afterFlush(async (version) => {
+            const answer = await revoke.mutateAsync(undefined);
+            return { version: nextVersion(version, answer.version) };
+          }).then((answer) => answer !== null)
+        }
+      />
+      <UnpublishDialog
+        open={unpublishing}
+        archived={state === "archived"}
+        pending={busy}
+        onCancel={() => {
+          setUnpublishing(false);
+        }}
+        onConfirm={(body) => {
+          void afterFlush(async (version) => {
+            const answer = await unpublish.mutateAsync(body);
+            return { ...answer, version: nextVersion(version, answer.version) };
+          }).then((answer) => {
+            if (answer === null) return;
+            setUnpublishing(false);
+            setState("archived");
+            if (body.takedown) setTakenDown(true);
             setJobs(answer.jobs);
           });
         }}

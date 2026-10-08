@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"properties.unpublish\",\n",
+    "find": "  \"inquiries.list\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
@@ -3237,9 +3237,9 @@
   {
     "id": "b7-g7-ui-orientation",
     "test": "src/admin/properties/properties.test.tsx",
-    "file": "src/admin/properties/SequenceTab.tsx",
-    "find": "<td>{row.orientation ?? \"\"}</td>",
-    "replace": "<td>{row.orientation ?? \"landscape\"}</td>",
+    "file": "src/admin/media/MediaGrid.tsx",
+    "find": "<td>{item.orientation ?? \"\"}</td>",
+    "replace": "<td><select aria-label=\"Orientation\" defaultValue={item.orientation ?? \"\"}><option value=\"\">None</option><option>landscape</option><option>portrait</option></select></td>",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
     "expect": "× .*shows orientation as text with no control for it"
   },
@@ -3396,5 +3396,427 @@
     "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;\ncreate trigger properties_bump_catalog_version_upd after update on public.properties\nfor each row execute function public.tg_bump_catalog_version();\n",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"an edit of a published row\"",
     "expect": "× .*an edit of a published row raises it by exactly one"
+  },
+  {
+    "id": "b7-g3a-svc-note",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    ...(input.note === undefined || input.note === \"\" ? {} : { p_note: input.note }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*sends the reason, the takedown and the note"
+  },
+  {
+    "id": "b7-g3a-schema-reason",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "    reason: z.enum(unpublishReasons),\n",
+    "replace": "    reason: z.enum(unpublishReasons).catch(\"owner_request\"),\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*unpublish without a reason is 422"
+  },
+  {
+    "id": "b7-g3a-svc-unpublish-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.unpublish\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses a visual editor an unpublish with 403"
+  },
+  {
+    "id": "b7-g3a-svc-agent-kind",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "signPreview(key, input.id, issued.preview_nonce, \"agent\")",
+    "replace": "signPreview(key, input.id, issued.preview_nonce, \"editor\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*answers a 7 day agent link"
+  },
+  {
+    "id": "b7-g3a-token-day8",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "agent: 7 * 24 * 60 * 60",
+    "replace": "agent: 9 * 24 * 60 * 60",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*is refused on day 8 with a faked clock"
+  },
+  {
+    "id": "b7-g3a-svc-agent-key-first",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  if (key === undefined) {\n    throw new AppError(\"preview_secret_missing\", undefined, \"Preview links are not set up here.\");\n  }\n  const { data, error } = await db.rpc(\"issue_agent_preview\", {",
+    "replace": "  const { data, error } = await db.rpc(\"issue_agent_preview\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*a Worker without the key answers 503 before the state moves"
+  },
+  {
+    "id": "b7-g3a-svc-agent-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.agent_preview\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses commercial an agent link with 403"
+  },
+  {
+    "id": "b7-g3a-svc-revoke-id",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    p_property_id: id,\n    ...auditContext(actor),\n",
+    "replace": "    p_property_id: \"00000000-0000-4000-8000-000000000000\",\n    ...auditContext(actor),\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*calls rotate_preview_nonce once and answers the new version"
+  },
+  {
+    "id": "b7-g3a-svc-revoke-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.revoke_previews\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses commercial a revocation with 403"
+  },
+  {
+    "id": "b7-g3a-db-reason",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses an empty reason, an unknown one and other without a note\"",
+    "expect": "× .*refuses an empty reason, an unknown one and other without a note"
+  },
+  {
+    "id": "b7-g3a-db-ordinary",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = now(),\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"an ordinary unpublish archives with its reason\"",
+    "expect": "× .*an ordinary unpublish archives with its reason"
+  },
+  {
+    "id": "b7-g3a-db-takedown-media",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a takedown sets taken_down_at, lists the slug under gone\"",
+    "expect": "× .*a takedown sets taken_down_at, lists the slug under gone"
+  },
+  {
+    "id": "b7-g3a-db-takedown-nonce",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a takedown sets taken_down_at, lists the slug under gone\"",
+    "expect": "× .*a takedown sets taken_down_at, lists the slug under gone[\\s\\S]*nonceRotated"
+  },
+  {
+    "id": "b7-g3a-db-archived",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"an archived property can still be taken down once\"",
+    "expect": "× .*an archived property can still be taken down once"
+  },
+  {
+    "id": "b7-g3a-db-event",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"writes one property.unpublished event with reason and takedown\"",
+    "expect": "× .*writes one property\\.unpublished event with reason and takedown"
+  },
+  {
+    "id": "b7-g3a-db-audit-action",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.list', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses a visual editor through write_audit with 42501 and leaves the property published\"",
+    "expect": "× .*refuses a visual editor through write_audit with 42501 and leaves the property published"
+  },
+  {
+    "id": "b7-g3a-db-slug-locked",
+    "test": "tests/db/admin.db.test.ts",
+    "file": "src/server/lib/admin-errors.ts",
+    "find": "  slug_immutable: \"slug_locked\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a slug change after publish is 422 slug_locked\"",
+    "expect": "× .*a slug change after publish is 422 slug_locked"
+  },
+  {
+    "id": "b7-g3a-db-agent-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.issue_agent_preview(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\nbegin\n  -- B7 invariant 14 (GG-07): the lock and the version the editor read (GD-01), then the move to agent review. The\n  -- Worker signs the 7 day link with the nonce this returns.\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before.version <> p_expected_version then\n    raise exception 'version_conflict' using errcode = '40001';\n  end if;\n  if v_before.editorial_state not in ('draft', 'review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n\n  if true then\n    v_after := v_before;\n  else\n    update public.properties p\n    set editorial_state = 'agent_review', updated_by = p_actor\n    where p.id = p_property_id\n    returning * into v_after;\n  end if;\n\n  -- Every link sent is audited, a second one to the same agent too.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.agent_preview', 'property', p_property_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return jsonb_build_object('slug', v_after.slug, 'preview_nonce', v_after.preview_nonce, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.issue_agent_preview(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.issue_agent_preview(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"issue_agent_preview moves a draft to agent_review\"",
+    "expect": "× .*issue_agent_preview moves a draft to agent_review"
+  },
+  {
+    "id": "b7-g3a-db-rotate",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.rotate_preview_nonce(\n  p_property_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\nbegin\n  -- B7 invariant 14: a new nonce voids every editor and agent link of this property, and of no other.\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  update public.properties p\n  set updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n  -- The nonces stay out of the audit row: staff read it, and a nonce is half of a link.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.revoke_previews', 'property', p_property_id,\n    to_jsonb(v_before) - 'preview_nonce', to_jsonb(v_after) - 'preview_nonce', p_request_id\n  );\n  return v_after.version;\nend;\n$$;\n\nrevoke execute on function public.rotate_preview_nonce(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rotate_preview_nonce(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"after rotate_preview_nonce the old agent token no longer verifies\"",
+    "expect": "× .*after rotate_preview_nonce the old agent token no longer verifies"
+  },
+  {
+    "id": "b7-g3a-cache-unpublish",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "create or replace function public.unpublish_property(\n  p_property_id uuid,\n  p_reason text,\n  p_takedown boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_job uuid;\n  v_event uuid;\nbegin\n  -- B7 invariant 13 (GP-03): a reason of unpublishReasons in src/domain/admin-properties.ts, and a note with `other`.\n  if p_reason is null or p_reason not in ('owner_request', 'rights_takedown', 'factual_error', 'other') then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose a reason.';\n  end if;\n  if p_reason = 'other' and btrim(coalesce(p_note, '')) = '' then\n    raise exception 'validation' using errcode = '22023', detail = 'Add a note for the reason.';\n  end if;\n\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A published property is unpublished; an archived one may still be taken down once.\n  if not (\n    v_before.editorial_state = 'published'\n    or (p_takedown and v_before.editorial_state = 'archived' and v_before.taken_down_at is null)\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- One update, so B2's trigger raises catalog_version once (F25 a); taken_down_at is the 410 marker of `gone`.\n  -- A takedown also takes a new preview_nonce, so no preview link issued before it still opens the dossier.\n  update public.properties p\n  set editorial_state = 'archived',\n    published_at = null,\n    archived_at = coalesce(p.archived_at, now()),\n    unpublish_reason = p_reason,\n    unpublished_at = now(),\n    taken_down_at = case when p_takedown then now() else p.taken_down_at end,\n    preview_nonce = case when p_takedown then gen_random_uuid() else p.preview_nonce end,\n    updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n  perform public.bump_catalog_version();\n\n  if p_takedown then\n    -- No social post of a taken down property goes out.\n    for v_job in\n      select j.id\n      from public.jobs j\n      where j.type in ('post_meta', 'post_x', 'post_linkedin')\n        and j.status in ('queued', 'waiting_approval')\n        and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n      order by j.id\n    loop\n      perform public.cancel_job(v_job, p_actor, 'takedown');\n    end loop;\n    -- E2E-01: the media leave the public bucket through B8's job (Storage and the purge API, so 12 attempts).\n    perform public.enqueue_job(\n      'takedown_media',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', p_property_id)),\n      'takedown_media:' || p_property_id,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.unpublish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id, p_note\n  );\n  v_event := public.emit_event(\n    'property.unpublished', 'property', p_property_id,\n    jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'market', v_after.market_slug,\n      'reason', p_reason,\n      'takedown', p_takedown\n    ),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.unpublish_property(uuid, text, boolean, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"an unpublish raises it by exactly one, and a takedown unpublish by exactly one\"",
+    "expect": "× .*an unpublish raises it by exactly one, and a takedown unpublish by exactly one"
+  },
+  {
+    "id": "b7-g3a-pipe-bypass",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (framing === \"self\" && !headers.has(\"x-mop-cache\")) headers.set(\"x-mop-cache\", \"bypass\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/pipeline.test.ts",
+    "expect": "× .*labels a preview-token answer x-mop-cache bypass"
+  },
+  {
+    "id": "b7-g3a-e2e-consent-bypass",
+    "kind": "manual",
+    "test": "tests/e2e/essentials.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (framing === \"self\" && !headers.has(\"x-mop-cache\")) headers.set(\"x-mop-cache\", \"bypass\");\n",
+    "replace": "",
+    "run": "E2E_TARGET=built E2E_PORT=8948 bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"consent-html\" --reporter=line",
+    "expect": "consent-html[\\s\\S]*Expected: \"bypass\"[\\s\\S]*Received: undefined"
+  },
+  {
+    "id": "b7-g8-stage-path",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/staging.ts",
+    "find": "        ? `staging/${input.target}/${mediaId}.${extension}`",
+    "replace": "        ? `staging/${mediaId}.${extension}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*stages a property's first upload"
+  },
+  {
+    "id": "b7-g8-replace-suffix",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/staging.ts",
+    "find": ".${toHex(crypto.getRandomValues(new Uint8Array(4)))}.${extension}`",
+    "replace": ".${extension}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*fresh 8 hex suffix"
+  },
+  {
+    "id": "b7-g8-scope-path",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/staging.ts",
+    "find": "`staging/${input.scope}/${input.target}/${crypto.randomUUID()}",
+    "replace": "`staging/${input.target}/${crypto.randomUUID()}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*stages a story image under"
+  },
+  {
+    "id": "b7-g8-sign-503",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/staging.ts",
+    "find": "  const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path);\n  if (error !== null) throw storageUnavailable();\n",
+    "replace": "  const { data } = await db.storage.from(BUCKET).createSignedUploadUrl(path);\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*answers 503 storage_unavailable when Storage refuses to sign"
+  },
+  {
+    "id": "b7-g8-sniff-text",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/staging.ts",
+    "find": "if (found === null || found !==",
+    "replace": "if (found !== null && found !==",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*refuses a text file renamed .jpg"
+  },
+  {
+    "id": "b7-g8-market-403",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  authorize(actor, SAVING_ACTION[input.scope]);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*refuses a visual editor a market image"
+  },
+  {
+    "id": "b7-g8-size-cap",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/domain/admin-media.ts",
+    "find": "size: z.number().int().positive().max(uploadLimits.maxBytes),",
+    "replace": "size: z.number().int().positive().max(uploadLimits.maxBytes * 2),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*takes its size cap and types from uploadLimits"
+  },
+  {
+    "id": "b7-g8-attach-prefix",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  if (!input.staging_path.startsWith(`staging/${input.property_id}/${input.media_id}.`)) {",
+    "replace": "  if (input.staging_path === \"\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*refuses a path outside staging"
+  },
+  {
+    "id": "b7-g8-attach-sniff",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  await sniffStaged(db, input.staging_path);\n  const { data, error } = await db.rpc(\"attach_media\", {",
+    "replace": "  const { data, error } = await db.rpc(\"attach_media\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*answers 503 storage_unavailable when Storage cannot sign the read"
+  },
+  {
+    "id": "b7-g8-delete-refused",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);\n  const staged = z.string().nullable().parse(data);",
+    "replace": "  const staged = z.string().nullable().parse(data);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*is refused on a published property"
+  },
+  {
+    "id": "b7-g8-delete-staged",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  if (staged !== null) await removeStaged(db, staged);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*removes the staged file delete_media hands back"
+  },
+  {
+    "id": "b7-g8-media-address",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": ": `/media/${row.media_key}`,",
+    "replace": ": `https://hbokkmpgpqhrnemgsqra.supabase.co/storage/v1/object/public/media/${row.media_key}`,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*media address"
+  },
+  {
+    "id": "b7-g8-list-signed",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "      if (entry.path !== null && entry.signedUrl !== null) signed.set(entry.path, entry.signedUrl);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*signs a staged row's file for the grid"
+  },
+  {
+    "id": "b7-g8-variants-failed",
+    "test": "tests/unit/media.service.test.ts",
+    "file": "src/server/media/service.ts",
+    "find": "  if (job.status === \"failed\" || job.status === \"dead\") return \"failed\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/media.service.test.ts",
+    "expect": "× .*answers ready for a stored row"
+  },
+  {
+    "id": "b7-g8-ui-retry-gate",
+    "test": "src/admin/media/media.test.tsx",
+    "file": "src/admin/media/VariantStatus.tsx",
+    "find": "          <RoleGate action=\"jobs.retry\">\n            <button",
+    "replace": "          <RoleGate action=\"media.alt\">\n            <button",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/media/media.test.tsx",
+    "expect": "× .*shows a visual editor no button"
+  },
+  {
+    "id": "b7-g8-ui-retry-note",
+    "test": "src/admin/media/media.test.tsx",
+    "file": "src/admin/media/VariantStatus.tsx",
+    "find": "{actions.includes(\"jobs.retry\") ? null : (",
+    "replace": "{actions.includes(\"never\") ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/media/media.test.tsx",
+    "expect": "× .*offers Retry on a failed render"
+  },
+  {
+    "id": "b7-g8-ui-upload-types",
+    "test": "src/admin/media/media.test.tsx",
+    "file": "src/admin/media/UploadZone.tsx",
+    "find": "      allowedType(file.type) && file.size <= uploadLimits.maxBytes",
+    "replace": "      file.size <= uploadLimits.maxBytes",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/media/media.test.tsx",
+    "expect": "× .*stages a picked JPEG"
+  },
+  {
+    "id": "b7-g8-db-attach-draft",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.attach_media(\n  p_media_id uuid,\n  p_property_id uuid,\n  p_staging_path text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_alt text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.property_media;\n  v_job uuid;\nbegin\n  -- The property row lock orders two attaches of one property, so each takes the next position.\n  perform 1 from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- The object name createStagingUpload made for this photograph (G42); the service refuses any other first.\n  if p_staging_path is null or left(p_staging_path, length('staging/' || p_property_id::text || '/' || p_media_id::text || '.'))\n      <> 'staging/' || p_property_id::text || '/' || p_media_id::text || '.' then\n    raise exception 'invalid_image' using errcode = '22023',\n      detail = 'The file is not the one this upload was made for.';\n  end if;\n  if exists (select 1 from public.property_media m where m.id = p_media_id) then\n    raise exception 'already_exists' using errcode = '23505';\n  end if;\n\n  -- Staged until B9's render_variants stores it: no media_key, no orientation (G63), no variants.\n  insert into public.property_media (id, property_id, staging_path, alt, sort_order)\n  select p_media_id, p_property_id, p_staging_path, nullif(btrim(p_alt), ''),\n    coalesce(max(m.sort_order) + 1, 0)\n  from public.property_media m\n  where m.property_id = p_property_id\n  returning * into v_row;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.attach', 'property_media', p_media_id, null, to_jsonb(v_row), p_request_id\n  );\n  -- G66: rendered when attached, on a draft as on a published property.\n  v_job := null;\n  return jsonb_build_object('media_id', p_media_id, 'sort_order', v_row.sort_order, 'render_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"attach_media on a draft stages a row\"",
+    "expect": "× .*attach_media on a draft stages a row"
+  },
+  {
+    "id": "b7-g8-db-attach-published",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.attach_media(\n  p_media_id uuid,\n  p_property_id uuid,\n  p_staging_path text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_alt text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.property_media;\n  v_job uuid;\nbegin\n  -- The property row lock orders two attaches of one property, so each takes the next position.\n  perform 1 from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- The object name createStagingUpload made for this photograph (G42); the service refuses any other first.\n  if p_staging_path is null or left(p_staging_path, length('staging/' || p_property_id::text || '/' || p_media_id::text || '.'))\n      <> 'staging/' || p_property_id::text || '/' || p_media_id::text || '.' then\n    raise exception 'invalid_image' using errcode = '22023',\n      detail = 'The file is not the one this upload was made for.';\n  end if;\n  if exists (select 1 from public.property_media m where m.id = p_media_id) then\n    raise exception 'already_exists' using errcode = '23505';\n  end if;\n\n  -- Staged until B9's render_variants stores it: no media_key, no orientation (G63), no variants.\n  insert into public.property_media (id, property_id, staging_path, alt, sort_order)\n  select p_media_id, p_property_id, p_staging_path, nullif(btrim(p_alt), ''),\n    coalesce(max(m.sort_order) + 1, 0)\n  from public.property_media m\n  where m.property_id = p_property_id\n  returning * into v_row;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.attach', 'property_media', p_media_id, null, to_jsonb(v_row), p_request_id\n  );\n  -- G66: rendered when attached, on a draft as on a published property.\n  v_job := null;\n  return jsonb_build_object('media_id', p_media_id, 'sort_order', v_row.sort_order, 'render_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"attach_media on a published property queues one\"",
+    "expect": "× .*attach_media on a published property queues one"
+  },
+  {
+    "id": "b7-g8-db-attach-path",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.attach_media(\n  p_media_id uuid,\n  p_property_id uuid,\n  p_staging_path text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_alt text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.property_media;\n  v_job uuid;\nbegin\n  -- The property row lock orders two attaches of one property, so each takes the next position.\n  perform 1 from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- The object name createStagingUpload made for this photograph (G42); the service refuses any other first.\n  if p_staging_path is null and left(p_staging_path, length('staging/' || p_property_id::text || '/' || p_media_id::text || '.'))\n      <> 'staging/' || p_property_id::text || '/' || p_media_id::text || '.' then\n    raise exception 'invalid_image' using errcode = '22023',\n      detail = 'The file is not the one this upload was made for.';\n  end if;\n  if exists (select 1 from public.property_media m where m.id = p_media_id) then\n    raise exception 'already_exists' using errcode = '23505';\n  end if;\n\n  -- Staged until B9's render_variants stores it: no media_key, no orientation (G63), no variants.\n  insert into public.property_media (id, property_id, staging_path, alt, sort_order)\n  select p_media_id, p_property_id, p_staging_path, nullif(btrim(p_alt), ''),\n    coalesce(max(m.sort_order) + 1, 0)\n  from public.property_media m\n  where m.property_id = p_property_id\n  returning * into v_row;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.attach', 'property_media', p_media_id, null, to_jsonb(v_row), p_request_id\n  );\n  -- G66: rendered when attached, on a draft as on a published property.\n  v_job := public.request_property_render(p_property_id);\n  return jsonb_build_object('media_id', p_media_id, 'sort_order', v_row.sort_order, 'render_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.attach_media(uuid, uuid, text, uuid, public.actor_kind, text, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"attach_media refuses the path of another photograph\"",
+    "expect": "× .*attach_media refuses the path of another photograph"
+  },
+  {
+    "id": "b7-g8-db-coalesce",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.request_property_render(p_property_id uuid)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_job uuid;\n  v_slug text;\nbegin\n  -- B7 invariant 21 (b), ruling H3: one pending render_variants job per property per upload burst. The lock makes two\n  -- transactions that attach at once meet one job; B9's claim_media_for_render gives it every staged row.\n  perform pg_advisory_xact_lock(hashtext('render_variants:' || p_property_id::text));\n  select j.id into v_job\n  from public.jobs j\n  where j.type = 'render_variants'\n    and j.status = 'queued'\n    and j.payload -> 'data' ->> 'property_id' = p_property_id::text\n  order by j.created_at, j.id\n  limit 1;\n  select p.slug into v_slug from public.properties p where p.id = p_property_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  return public.enqueue_job(\n    'render_variants',\n    jsonb_build_object(\n      'params', '{}'::jsonb,\n      'data', jsonb_build_object('property_id', p_property_id, 'slug', v_slug)\n    ),\n    'render_variants:' || p_property_id::text || ':' || gen_random_uuid()::text,\n    p_heavy => true,\n    p_run_after => now() + interval '90 seconds',\n    p_max_attempts => 12\n  );\nend;\n$$;\n\nrevoke execute on function public.request_property_render(uuid) from public, anon, authenticated;\ngrant execute on function public.request_property_render(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"coalesce\"",
+    "expect": "× .*coalesce"
+  },
+  {
+    "id": "b7-g8-db-replace-claim",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.replace_media(\n  p_media_id uuid,\n  p_staging_path text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.property_media;\n  v_after public.property_media;\n  v_job uuid;\nbegin\n  select * into v_before from public.property_media m where m.id = p_media_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if p_staging_path is null or left(p_staging_path, length('staging/' || v_before.property_id::text || '/' || p_media_id::text || '.'))\n      <> 'staging/' || v_before.property_id::text || '/' || p_media_id::text || '.' then\n    raise exception 'invalid_image' using errcode = '22023',\n      detail = 'The file is not the one this upload was made for.';\n  end if;\n\n  -- media_key, variants, sort_order and alt stay, so a published page shows the old image until B9's render stores\n  -- the new one. render_job_id is cleared so the next render_variants job claims the row (PERF-01).\n  update public.property_media m\n  set staging_path = p_staging_path\n  where m.id = p_media_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.replace', 'property_media', p_media_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_job := public.request_property_render(v_before.property_id);\n  return jsonb_build_object('previous_staging_path', v_before.staging_path, 'render_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.replace_media(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.replace_media(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"replace_media on a draft keeps order\"",
+    "expect": "× .*replace_media on a draft keeps order"
+  },
+  {
+    "id": "b7-g8-db-replace-published",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.replace_media(\n  p_media_id uuid,\n  p_staging_path text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.property_media;\n  v_after public.property_media;\n  v_job uuid;\nbegin\n  select * into v_before from public.property_media m where m.id = p_media_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if p_staging_path is null or left(p_staging_path, length('staging/' || v_before.property_id::text || '/' || p_media_id::text || '.'))\n      <> 'staging/' || v_before.property_id::text || '/' || p_media_id::text || '.' then\n    raise exception 'invalid_image' using errcode = '22023',\n      detail = 'The file is not the one this upload was made for.';\n  end if;\n\n  -- media_key, variants, sort_order and alt stay, so a published page shows the old image until B9's render stores\n  -- the new one. render_job_id is cleared so the next render_variants job claims the row (PERF-01).\n  update public.property_media m\n  set staging_path = p_staging_path, render_job_id = null\n  where m.id = p_media_id\n  returning * into v_after;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.replace', 'property_media', p_media_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_job := public.enqueue_job('render_variants', jsonb_build_object('data', jsonb_build_object('property_id', v_before.property_id)), 'render_variants:' || v_before.property_id::text || ':' || gen_random_uuid()::text);\n  return jsonb_build_object('previous_staging_path', v_before.staging_path, 'render_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.replace_media(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.replace_media(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"replace_media on a published property does the same\"",
+    "expect": "× .*replace_media on a published property does the same"
+  },
+  {
+    "id": "b7-g8-db-assets-absent",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.delete_media(\n  p_media_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.property_media;\n  v_state public.editorial_state;\n  v_used boolean := false;\nbegin\n  select * into v_row from public.property_media m where m.id = p_media_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  select p.editorial_state into v_state from public.properties p where p.id = v_row.property_id for update;\n  -- A live page never loses a photograph under a reader; unpublish first.\n  if v_state = 'published' then\n    raise exception 'wrong_state' using detail = 'Unpublish the property before removing a photograph.';\n  end if;\n  -- B9's assets table may not exist yet, so it is read through execute, never named in the body.\n  select exists (select 1 from public.assets a cross join lateral jsonb_array_elements(a.files) f\n    where a.property_id = v_row.property_id and f ->> 'media_key' = v_row.media_key) into v_used;\n  if v_used then\n    raise exception 'media_in_use' using detail = 'A creative asset still uses this photograph.';\n  end if;\n\n  delete from public.property_media m where m.id = p_media_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.delete', 'property_media', p_media_id, to_jsonb(v_row), null, p_request_id\n  );\n  -- The service removes the staged object, if any.\n  return v_row.staging_path;\nend;\n$$;\n\nrevoke execute on function public.delete_media(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.delete_media(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"delete_media succeeds while assets is absent\"",
+    "expect": "× .*delete_media succeeds while assets is absent"
+  },
+  {
+    "id": "b7-g8-db-reorder",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.reorder_media(\n  p_property_id uuid,\n  p_order uuid[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before uuid[];\nbegin\n  perform 1 from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  select coalesce(array_agg(m.id order by m.sort_order, m.id), '{}') into v_before\n  from public.property_media m\n  where m.property_id = p_property_id;\n  -- The new order names every photograph of the property once, and nothing else.\n  if false then\n    raise exception 'reorder_mismatch' using errcode = '22023', detail = 'Name every photograph once.';\n  end if;\n\n  -- One statement, so B2's statement trigger raises catalog_version once; the first photograph is the hero (G66).\n  update public.property_media m\n  set sort_order = (o.position - 1)::integer\n  from unnest(p_order) with ordinality as o (id, position)\n  where m.id = o.id and m.property_id = p_property_id and m.sort_order <> o.position - 1;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.reorder', 'property', p_property_id,\n    jsonb_build_object('id', p_property_id, 'media_order', to_jsonb(v_before)),\n    jsonb_build_object('id', p_property_id, 'media_order', to_jsonb(p_order)),\n    p_request_id\n  );\n  return cardinality(p_order);\nend;\n$$;\n\nrevoke execute on function public.reorder_media(uuid, uuid[], uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reorder_media(uuid, uuid[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"reorder_media puts the named order in place\"",
+    "expect": "× .*reorder_media puts the named order in place"
+  },
+  {
+    "id": "b7-g8-db16-hero-version",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.properties_version_bump()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- DB-16: the system columns, the two this trigger and set_updated_at write, and the generated search_text, which\n  -- a BEFORE trigger sees before it is computed.\n  v_ignored constant text[] := array['video', 'og_image_key', 'updated_at', 'version', 'search_text'];\nbegin\n  if (to_jsonb(new) - v_ignored) = (to_jsonb(old) - v_ignored) and new.version = old.version then\n    return new;\n  end if;\n  new.version := old.version + 1;\n  return new;\nend;\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a render storing the hero's key moves hero_image and not version\"",
+    "expect": "× .*a render storing the hero's key moves hero_image and not version"
+  },
+  {
+    "id": "b7-g8-cache-reorder",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "create or replace function public.reorder_media(\n  p_property_id uuid,\n  p_order uuid[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before uuid[];\nbegin\n  perform 1 from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  select coalesce(array_agg(m.id order by m.sort_order, m.id), '{}') into v_before\n  from public.property_media m\n  where m.property_id = p_property_id;\n  -- The new order names every photograph of the property once, and nothing else.\n  if cardinality(coalesce(p_order, '{}')) <> cardinality(v_before)\n    or (select count(distinct o) from unnest(p_order) o) <> cardinality(v_before)\n    or not (p_order <@ v_before) then\n    raise exception 'reorder_mismatch' using errcode = '22023', detail = 'Name every photograph once.';\n  end if;\n\n  -- One statement, so B2's statement trigger raises catalog_version once; the first photograph is the hero (G66).\n  update public.property_media m\n  set sort_order = (o.position - 1)::integer\n  from unnest(p_order) with ordinality as o (id, position)\n  where m.id = o.id and m.property_id = p_property_id and m.sort_order <> o.position - 1;\n\n  perform public.bump_catalog_version();\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'media.reorder', 'property', p_property_id,\n    jsonb_build_object('id', p_property_id, 'media_order', to_jsonb(v_before)),\n    jsonb_build_object('id', p_property_id, 'media_order', to_jsonb(p_order)),\n    p_request_id\n  );\n  return cardinality(p_order);\nend;\n$$;\n\nrevoke execute on function public.reorder_media(uuid, uuid[], uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reorder_media(uuid, uuid[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"a media reorder raises it by exactly one\"",
+    "expect": "× .*a media reorder raises it by exactly one"
   }
 ]

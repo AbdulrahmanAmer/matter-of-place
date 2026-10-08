@@ -59,7 +59,7 @@ function AboutPage() {
         </section>
 
         <section className="section-block">
-          <h2>An Omnikom company</h2>
+          <h2>A product of Omnikom</h2>
           <p>
             Omnikom provides the media and distribution infrastructure beneath the platform. Matter
             of Place owns the editorial point of view.
