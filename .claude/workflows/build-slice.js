@@ -1,7 +1,7 @@
 export const meta = {
   name: 'build-slice',
   description: 'Build one plan slice end to end: size it into groups, a Sonnet 5.5 builder at high effort builds each group (Opus 5.5 for critical groups), an Opus 5.5 reviewer at high effort tries to refute it in a fresh context, fix at most twice',
-  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } (or a list of them) first closes groups that were built and rejected; give them ids such as c6 and pass only: ["c6"] to close without building further. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from). Lanes side by side (ruling H45): previewPort: 8798 gives the lane its own port, bankBase: { P: 300, G: 100 } its own gotcha numbers, branch: "slice/b2" its branch. A review rejects only on a blocking defect; follow-ups are banked or listed by one agent and the group is accepted. When the slice is done the workflow merges it through the merge gate itself (ruling H50); mergeEach: true merges after every accepted group, noMerge: true never merges.',
+  whenToUse: 'Run a slice from workspace/05-plans (args: { slice: "B1b" }). Add dryRun: true to see the groups only, startAt: "g3" to resume, only: ["g2"] to run chosen groups. closeOut: { id, steps, title, critical, defects } (or a list of them) first closes groups that were built and rejected; give them ids such as c6 and pass only: ["c6"] to close without building further. maxFixRounds (default 3) bounds the fix rounds of each group. builderModel: "opus" builds every group on Opus, opusGroups: ["g4"] builds the named ones on Opus. It stops before building only when no group can run; strictDependencies: true also stops on any unmet dependency the sizing lists. For a lane (S54): root: "E:/mop-build/<lane>" (a git worktree with its own .env copy and bun install) and base: "origin/main" (the ref the slice branch starts from). Lanes side by side (ruling H45): previewPort: 8798 gives the lane its own port, bankBase: { P: 300, G: 100 } its own gotcha numbers, branch: "slice/b2" its branch. A review rejects only on a blocking defect; follow-ups are banked or listed by one agent and the group is accepted. When the slice is done the workflow merges it through the merge gate itself (ruling H50); mergeEach: true merges after every accepted group, noMerge: true never merges; mergeOnly: true runs only the merge agent for a lane whose groups are accepted.',
   phases: [
     { title: 'Size', detail: 'read the plan and split its steps into groups one builder session can finish; mark the critical ones', model: 'sonnet' },
     { title: 'Build', detail: 'mop-builder works one group on the slice branch and pastes proof into the slice log (Sonnet high; Opus high for a critical group)', model: 'sonnet' },
@@ -115,6 +115,28 @@ const callAgent = async (prompt, opts) => {
   const second = await agent(prompt, { ...opts, label: `${opts.label}:retry` })
   if (second === null || second === undefined) log(`${opts.label}: the retry died too`)
   return second
+}
+
+// One merge of the branch into main through the gate (ruling H50); used after an accepted schema group (P-512) and at the slice end.
+let acceptedAtLastMerge = 0
+let merged = null
+const mergeNow = (label) => callAgent(`${RULES}
+
+You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
+1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; a conflict in GOTCHAS.md is resolved by \`node workspace/05-plans/bank-merge.mjs\` from ${ROOT} (by entry; it proves no entry or hit-again line is lost and stages the file; if it refuses, return status "blocked" with its words); a conflict in a log file keeps both sides. A conflict where both sides appended to the same list (an import line in a stylesheet or an index file, a permission or job-type row, a test matrix row, a fixture export) is resolved by keeping both sides with main's part first; `src/routeTree.gen.ts` is never resolved by hand: take main's copy, run the live build (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build` from app) and commit the regenerated file. Any other conflict: stop and return status "blocked" naming the file. Then the migration order (ruling H57, P-511): \`cd "${ROOT}/app" && bun run migrations:restamp\` moves this branch's migrations past main's newest in their order and rewrites every reference (it prints "nothing to do" when the order holds), then \`bun run migrations:check\`. Commit the merge and push. If the pull request's db job later fails at "type drift", \`bun run types:from-ci -- <n>\` from the app folder takes the file CI generated; commit and push it. A lane never pushed a migration to the database, so a re-stamp is safe; main pushes it after the merge.
+2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one, not a draft (\`gh pr create --base main --head ${branch}\` with a title naming the slice and the steps it carries). Otherwise \`gh pr ready <n>\`.
+3. Wait for its checks: \`gh pr checks <n> --watch --interval 20\` (run it in the background and read its output file if it passes ten minutes). If a check fails, read the failing job's log (\`gh run view <id> --log-failed\`), fix nothing, and return status "blocked" with the failing step's output pasted.
+4. \`node workspace/05-plans/merge-gate.mjs <n>\` from ${ROOT}; paste its output. It must print the merge; if it refuses, return status "blocked" with its words.
+5. Record the merge commit (\`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid\`) in proofs, with the CI run id. Report status "done".`, { label, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+
+// A merge-only relaunch (P-535 gap, 2026-10-08): a run ended with every group accepted but its merge did not land (CI
+// red on a shared defect since fixed on main, or a resume that never saw the earlier groups), and a relaunch with the
+// accepted steps is refused by the P-516 check. `mergeOnly: true` skips the sizer and the groups: the merge agent
+// brings main in, waits for CI and runs the merge gate.
+if (a.mergeOnly) {
+  phase('Merge')
+  const merged = await mergeNow(`merge:${slice}:all:relaunch`)
+  return { slice, branch, root: ROOT, base: BASE, log: logPath, groups: [], merged, resumeWith: null, sizing: null }
 }
 
 // A group that was built and then stopped (rejected, or blocked on a ruling) is closed first: closeOut = { id, steps,
@@ -280,18 +302,6 @@ const settle = async () => {
 }
 const settleAll = async () => { while (pending.length) { await Promise.all(pending.map((x) => x.review)); await settle() } }
 const failed = () => out.some((o) => o.status === 'rejected' || o.status === 'failed' || (o.status === 'blocked' && o.built))
-
-// One merge of the branch into main through the gate (ruling H50); used after an accepted schema group (P-512) and at the slice end.
-let acceptedAtLastMerge = 0
-let merged = null
-const mergeNow = (label) => callAgent(`${RULES}
-
-You merge the work of slice ${slice} on branch ${branch} into main through the merge gate. Nothing else: no code change, no plan change.
-1. \`git -C "${ROOT}" status --short\` must be empty. \`git -C "${ROOT}" fetch -q origin && git -C "${ROOT}" merge origin/main\`; a conflict in GOTCHAS.md is resolved by \`node workspace/05-plans/bank-merge.mjs\` from ${ROOT} (by entry; it proves no entry or hit-again line is lost and stages the file; if it refuses, return status "blocked" with its words); a conflict in a log file keeps both sides. Any other conflict: stop and return status "blocked" naming the file. Then the migration order (ruling H57, P-511): \`cd "${ROOT}/app" && bun run migrations:restamp\` moves this branch's migrations past main's newest in their order and rewrites every reference (it prints "nothing to do" when the order holds), then \`bun run migrations:check\`. Commit the merge and push. If the pull request's db job later fails at "type drift", \`bun run types:from-ci -- <n>\` from the app folder takes the file CI generated; commit and push it. A lane never pushed a migration to the database, so a re-stamp is safe; main pushes it after the merge.
-2. Find the pull request: \`gh pr list --head ${branch} --state open --json number --jq '.[0].number'\`. If none, open one, not a draft (\`gh pr create --base main --head ${branch}\` with a title naming the slice and the steps it carries). Otherwise \`gh pr ready <n>\`.
-3. Wait for its checks: \`gh pr checks <n> --watch --interval 20\` (run it in the background and read its output file if it passes ten minutes). If a check fails, read the failing job's log (\`gh run view <id> --log-failed\`), fix nothing, and return status "blocked" with the failing step's output pasted.
-4. \`node workspace/05-plans/merge-gate.mjs <n>\` from ${ROOT}; paste its output. It must print the merge; if it refuses, return status "blocked" with its words.
-5. Record the merge commit (\`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid\`) in proofs, with the CI run id. Report status "done".`, { label, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
 
 for (const g of groups) {
   if (g.blocked) {
