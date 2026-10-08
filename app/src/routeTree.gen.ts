@@ -44,6 +44,7 @@ import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
+import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
@@ -270,6 +271,13 @@ const SiteStoriesSlugRoute = SiteStoriesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => SiteStoriesRoute,
 } as any)
+const AdminAssetsIndexRoute = AdminAssetsIndexRouteImport.update({
+  id: '/assets/',
+  path: '/assets/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/assets.index.lazy').then((d) => d.Route),
+)
 const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
@@ -576,6 +584,7 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -657,6 +666,7 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/assets': typeof AdminAssetsIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -743,6 +753,7 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
@@ -829,6 +840,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/assets/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
@@ -910,6 +922,7 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/assets'
     | '/admin/people'
     | '/admin/requests'
     | '/archive/$kind/$slug'
@@ -995,6 +1008,7 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/assets/'
     | '/admin/people/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
@@ -1316,6 +1330,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/stories/$slug'
       preLoaderRoute: typeof SiteStoriesSlugRouteImport
       parentRoute: typeof SiteStoriesRoute
+    }
+    '/admin/assets/': {
+      id: '/admin/assets/'
+      path: '/assets'
+      fullPath: '/admin/assets/'
+      preLoaderRoute: typeof AdminAssetsIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/auth/confirm': {
       id: '/admin/auth/confirm'
@@ -1749,6 +1770,7 @@ interface AdminRouteChildren {
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminAssetsIndexRoute: typeof AdminAssetsIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
@@ -1758,6 +1780,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminAssetsIndexRoute: AdminAssetsIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }

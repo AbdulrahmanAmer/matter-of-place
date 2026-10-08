@@ -2800,5 +2800,192 @@
     "replace": "  if (error?.code === \"PGRST999\") {",
     "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets-service.db.test.ts -t \"listAssets through PostgREST\"",
     "expect": "× .*listAssets through PostgREST[\\s\\S]*AppError: Something went wrong"
+  },
+  {
+    "id": "b9g2-carousel-end-guard",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/CarouselViewer.tsx",
+    "find": "disabled={current === slides.length - 1}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"stops at both ends\"",
+    "expect": "× steps the carousel through all eight slides and stops at both ends"
+  },
+  {
+    "id": "b9g2-swipe-threshold",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/CarouselViewer.tsx",
+    "find": ">= SWIPE_PX",
+    "replace": "> 0",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"by a swipe\"",
+    "expect": "expected \\{ short: 'Slide 2 of 8'"
+  },
+  {
+    "id": "b9g2-reject-needs-note",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/RejectDialog.tsx",
+    "find": "if (trimmed === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"refuses a reject without a note\"",
+    "expect": "Unable to find an accessible element with the role \"alert\""
+  },
+  {
+    "id": "b9g2-write-refreshes-list",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/assets-queries.ts",
+    "find": "onSettled: () => invalidateAfterWrite(queryClient, adminKeys.assets.all()),",
+    "replace": "onSettled: () => Promise.resolve(),",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"turns a pending card to approved\"",
+    "expect": "Unable to find an element with the text: Approved"
+  },
+  {
+    "id": "b9g2-waiting-for-runner",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.caption === null && asset.captions_waiting ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"shows a render error\"",
+    "expect": "Unable to find an element with the text: Waiting for the caption runner"
+  },
+  {
+    "id": "b9g2-render-error-shown",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.render_error === null ? null : (",
+    "replace": "{true ? null : (",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"shows a render error\"",
+    "expect": "Unable to find an accessible element with the role \"alert\""
+  },
+  {
+    "id": "b9g2-approve-only-pending",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.status === \"pending\" ? (",
+    "replace": "{asset.status !== \"published\" ? (",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"offers a rejected card\"",
+    "expect": "expected \\{ rejected: \\[ 'Approve', …\\(1\\) \\]"
+  },
+  {
+    "id": "b9g2-published-no-rerender",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.status === \"published\" ? null : (",
+    "replace": "{false ? null : (",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"offers a rejected card\"",
+    "expect": "\\+\\s+Re-render"
+  },
+  {
+    "id": "b9g2-caption-refusal-shown",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "error={caption.error?.message ?? null}",
+    "replace": "error={null}",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"saves the edited captions\"",
+    "expect": "Unable to find role=\"alert\""
+  },
+  {
+    "id": "b9g2-empty-alt-not-sent",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/CaptionEditor.tsx",
+    "find": "...(altText === \"\" ? {} : { alt_text: altText }),",
+    "replace": "...{ alt_text: altText },",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"saves the edited captions\"",
+    "expect": "\\+\\s+\"PUT .*alt_text"
+  },
+  {
+    "id": "b9g2-reel-player",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "if (asset.kind === \"reel\") return <ReelPlayer asset={asset} />;",
+    "replace": "if (asset.kind === \"reel\") return null;",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"draws a card for each kind\"",
+    "expect": "× draws a card for each kind with its picture, film or text"
+  },
+  {
+    "id": "b9g2-moves-need-actions",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "import { RoleGate } from \"../ui/RoleGate\";",
+    "replace": "import type { ReactNode } from \"react\";\nconst RoleGate = ({ children }: { action: string; children: ReactNode }) => children;",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"offers no move\"",
+    "expect": "expected \\[ <button …\\(2\\)></button>, …\\(3\\) \\] to deeply equal \\[\\]"
+  },
+  {
+    "id": "b9g2-button-role-gate",
+    "test": "src/admin/properties/RerenderAssetsButton.test.tsx",
+    "file": "src/admin/properties/RerenderAssetsButton.tsx",
+    "find": "<RoleGate action=\"assets.re_render\">",
+    "replace": "<RoleGate action=\"assets.list\">",
+    "run": "bunx vitest run --project component src/admin/properties/RerenderAssetsButton.test.tsx -t \"is not drawn\"",
+    "expect": "expected <button type=\"button\" …\\(2\\)></button> to be null"
+  },
+  {
+    "id": "b9g2-button-skips-rejected",
+    "test": "src/admin/properties/RerenderAssetsButton.test.tsx",
+    "file": "src/admin/properties/RerenderAssetsButton.tsx",
+    "find": "if (asset.status === \"rejected\") continue;",
+    "replace": "if (false) continue;",
+    "run": "bunx vitest run --project component src/admin/properties/RerenderAssetsButton.test.tsx -t \"one call for each current asset\"",
+    "expect": "expected \\[ …\\(3\\) \\] to deeply equal \\[ …\\(2\\) \\]"
+  },
+  {
+    "id": "b9g2-button-disabled-when-empty",
+    "test": "src/admin/properties/RerenderAssetsButton.test.tsx",
+    "file": "src/admin/properties/RerenderAssetsButton.tsx",
+    "find": "disabled={current.length === 0 || rerender.isPending}",
+    "replace": "disabled={rerender.isPending}",
+    "run": "bunx vitest run --project component src/admin/properties/RerenderAssetsButton.test.tsx -t \"no assets yet\"",
+    "expect": "to have property \"disabled\" with value true"
+  },
+  {
+    "id": "b9g2-e2e-slide-drag",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "file": "src/admin/assets/CarouselViewer.tsx",
+    "find": "\n        draggable={false}",
+    "replace": "",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"carousel goes\"",
+    "expect": "getByText\\('Slide 7 of 8'\\)",
+    "what": "by hand with the dev profile loaded: remove draggable={false} from the slide image, build, run the case; the mouse drag no longer reaches pointerup"
+  },
+  {
+    "id": "b9g2-e2e-approve-refresh",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "file": "src/admin/assets/assets-queries.ts",
+    "find": "onSettled: () => invalidateAfterWrite(queryClient, adminKeys.assets.all()),",
+    "replace": "onSettled: () => Promise.resolve(),",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"approving\"",
+    "expect": "getByText\\('Approved'\\)",
+    "what": "by hand with the dev profile loaded: the write no longer refreshes the list, so the card stays Pending after the approve answered"
+  },
+  {
+    "id": "b9g2-e2e-reject-note",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "file": "src/admin/assets/RejectDialog.tsx",
+    "find": "if (trimmed === \"\") {",
+    "replace": "if (false) {",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"a reject asks\"",
+    "expect": "getByRole\\('alert'\\)",
+    "what": "by hand with the dev profile loaded: the dialog no longer asks for a note, so no alert shows before the note is typed"
+  },
+  {
+    "id": "b9g2-e2e-picture-loaded",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "src={main.url}",
+    "replace": "src=\"\"",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"draws a card for each kind\"",
+    "expect": "Expected: > 0",
+    "what": "by hand with the dev profile loaded: the cover image has no address, so its natural width is 0"
+  },
+  {
+    "id": "b9g2-e2e-nav-link",
+    "kind": "manual",
+    "test": "tests/e2e/admin-assets.spec.ts",
+    "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"Work group\"",
+    "expect": "getByRole\\('link', \\{ name: 'Assets', exact: true \\}\\)",
+    "what": "by hand with the dev profile loaded: move src/routes/admin/assets.index.tsx and assets.index.lazy.tsx out of the folder, build, run the case; with no route the navigation draws no Assets link (restore the files and build again)"
   }
 ]
