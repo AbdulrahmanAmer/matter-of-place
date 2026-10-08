@@ -5041,3 +5041,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the step that changes a header, status or other behaviour a bank entry states as a rule searches the bank for the old behaviour (`grep -n "<header name>" GOTCHAS.md`) and corrects each rule it finds in the same commit, naming the entry that explains the change.
 - proof: `grep -c "neverCached[`]: no [`]x-mop-cache" GOTCHAS.md` → 0 (P-1917 now says "since B7 step 7a, `x-mop-cache: bypass`"); `grep -n "x-mop-cache.*toBe(.bypass.)" app/tests/e2e/essentials.spec.ts` → line 155 (measured 2026-10-08, B7 g3 follow-ups).
 - added: 2026-10-08
+
+## P-2501 · An axe scan taken while a dialog fades in reads the colours against the half-faded ground: red on CI, green on the laptop
+- symptom: `admin-assets.spec.ts:258` (PR 211) and `admin-newsletter.spec.ts:135` (PR 227) failed in CI, retry included, with `axe: new violations on <route> approve dialog` (`color-contrast` on both dialog buttons); the same specs passed on the laptops.
+- cause: `.admin-dialog[open]` animates opacity from 0 over 0.24 s and axe computes a colour with the element's opacity at that moment; a slower runner scans inside the window (measured with the fade stretched: opacity 0.0067, contrast 1.03 to 1.05).
+- rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
+- added: 2026-10-08

@@ -24,12 +24,46 @@ const baseline = baselineSchema.parse(
 const keyOf = (entry: { route: string; rule: string; target: string }) =>
   `${entry.route} | ${entry.rule} | ${entry.target}`;
 
+/** How long a scan waits for the page's own animations to end (ruling H72). */
+export const SETTLE_CAP_MS = 5000;
+
+/**
+ * Waits until every animation and transition on the page that ends has ended, then answers true; answers false
+ * when `capMs` runs out first. Animations that loop for ever (a skeleton's breathing, a scroll cue) and paused ones
+ * are not awaited, they never finish (P-1920). An animation started while waiting is awaited too. Axe computes a
+ * colour against the opacity the element has at that moment, so a scan taken while a dialog fades in sees text
+ * on a half-faded ground: a ratio of 1.01 on CI, where the same screen passes on a laptop after the fade (ruling H72).
+ */
+export function settleAnimations(page: Page, capMs: number = SETTLE_CAP_MS): Promise<boolean> {
+  return page.evaluate(async (cap) => {
+    const deadline = performance.now() + cap;
+    for (;;) {
+      const running = document.getAnimations().filter((animation) => {
+        const timing = animation.effect?.getComputedTiming();
+        return (
+          animation.playState === "running" &&
+          timing !== undefined &&
+          Number.isFinite(timing.endTime)
+        );
+      });
+      if (running.length === 0) return true;
+      const left = deadline - performance.now();
+      if (left <= 0) return false;
+      const ended = Promise.all(
+        running.map((animation) => animation.finished.catch(() => undefined)),
+      );
+      await Promise.race([ended, new Promise((resolve) => setTimeout(resolve, left))]);
+    }
+  }, capMs);
+}
+
 /**
  * Scans the page and compares serious and critical violations with `axe-baseline.json` under the key `route`: a
  * violation not in the baseline is a new problem, a baseline entry that no longer occurs is a fixed problem that
- * must leave the list, so the file can only shrink.
+ * must leave the list, so the file can only shrink. It scans after the page's animations have ended (ruling H72).
  */
 export async function runAxe(page: Page, route: string): Promise<void> {
+  const settled = await settleAnimations(page);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const found = results.violations
     .filter((violation) => violation.impact != null && BLOCKING.has(violation.impact))
@@ -41,7 +75,7 @@ export async function runAxe(page: Page, route: string): Promise<void> {
   const accepted = baseline.filter((entry) => entry.route === route).map(keyOf);
   expect(
     found.filter((key) => !accepted.includes(key)),
-    `axe: new violations on ${route}`,
+    `axe: new violations on ${route}${settled ? "" : ` (animations were still running after ${SETTLE_CAP_MS.toString()} ms, so a colour may be read mid-fade)`}`,
   ).toEqual([]);
   expect(
     accepted.filter((key) => !found.includes(key)),
