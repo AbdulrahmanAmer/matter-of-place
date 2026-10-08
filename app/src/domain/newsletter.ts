@@ -8,7 +8,16 @@ import { z } from "zod";
 export const issueStatuses = ["draft", "approved", "sending", "sent"] as const;
 
 const blockId = z.string().min(1);
-const words = z.string().min(1).max(300);
+const WORDS_MAX = 300;
+const withinCap = (text: string): boolean => Array.from(text).length <= WORDS_MAX;
+const words = z.string().min(1).refine(withinCap, { message: "title_too_long" });
+const deck = z.string().refine(withinCap, { message: "deck_too_long" });
+
+/**
+ * A title or deck cut to the cap of a block, counted in characters like the `left()` of `queue_digest_add`. A story
+ * deck and the first sentence of a place are not bounded where they are written, so whoever builds a block cuts them.
+ */
+export const clipWords = (text: string): string => Array.from(text).slice(0, WORDS_MAX).join("");
 
 /**
  * One block of an issue, in reading order. A property or story block carries the `title` and `deck` the subject and
@@ -23,7 +32,7 @@ const newsletterBlockSchema = z.discriminatedUnion("type", [
     property_id: z.string().uuid(),
     asset_id: z.string().uuid(),
     title: words,
-    deck: z.string().max(300),
+    deck,
     text: z.string().max(2000).optional(),
   }),
   z.object({
@@ -31,7 +40,7 @@ const newsletterBlockSchema = z.discriminatedUnion("type", [
     type: z.literal("story"),
     story_id: z.string().uuid(),
     title: words,
-    deck: z.string().max(300),
+    deck,
     text: z.string().max(2000).optional(),
   }),
 ]);

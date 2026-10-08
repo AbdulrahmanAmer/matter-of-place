@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { newsletterBlocksSchema } from "../../../src/domain/newsletter";
 import {
   assemble,
   collectCandidates,
@@ -36,6 +38,26 @@ describe("assemble", () => {
     const w = world({});
     expect(await assemble(w.db, JOB)).toEqual({ issue_id: null });
     expect(w.rpcCalls("newsletter_save_draft")).toEqual([]);
+  });
+
+  it("cuts a story deck and a property deck that are longer than a block holds, and still saves the issue", async () => {
+    const w = world({
+      stories: [storyRow(7, { deck: "a".repeat(320), title: "t".repeat(310) })],
+      assets: [assetRow(1, 1, { meta: { block: { title: "Oak Hill", deck: "🏠".repeat(301) } } })],
+      properties: [propertyRow(1)],
+    });
+    expect(await assemble(w.db, JOB)).toEqual({ issue_id: uuid(900), number: 1 });
+    const { p_blocks } = z.object({ p_blocks: newsletterBlocksSchema }).parse(saveArgs(w)[0]);
+    expect(
+      p_blocks.flatMap((block) =>
+        block.type === "intro"
+          ? []
+          : [[block.type, Array.from(block.title).length, Array.from(block.deck).length]],
+      ),
+    ).toEqual([
+      ["property", 8, 300],
+      ["story", 300, 300],
+    ]);
   });
 
   it("returns the open draft and keeps its add-mode block when no candidate is new", async () => {

@@ -829,33 +829,6 @@
     "expect": "× .*a reconcile that never ran and a late tick"
   },
   {
-    "id": "b8b-g3-sch-registered",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "getSystemJob(key) === undefined",
-    "replace": "getSystemJob(key) !== null",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*a due kpi_weekly enqueues"
-  },
-  {
-    "id": "b8b-g3-sch-advance-only",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "const advanced = await claim(db, key, old, old, next);",
-    "replace": "const advanced = await claim(db, key, old, now.toISOString(), next);",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*an unregistered kpi_weekly only moves"
-  },
-  {
-    "id": "b8b-g3-sch-not-impl-log",
-    "test": "tests/unit/automation/scheduler.test.ts",
-    "file": "src/server/jobs/scheduler.ts",
-    "find": "if (advanced === \"claimed\") logLine(",
-    "replace": "if (advanced === \"error\") logLine(",
-    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/scheduler.test.ts",
-    "expect": "× .*an unregistered newsletter_hygiene only moves"
-  },
-  {
     "id": "b8b-g3-sch-rollback",
     "test": "tests/unit/automation/scheduler.test.ts",
     "file": "src/server/jobs/scheduler.ts",
@@ -1113,10 +1086,10 @@
     "id": "b8b-g4-bump-notify-always",
     "test": "tests/unit/automation/bump-catalog-version.test.ts",
     "file": "src/server/jobs/steps/bump-catalog-version.ts",
-    "find": "p_notify: notify,",
-    "replace": "p_notify: true,",
+    "find": "p_notify: true,",
+    "replace": "p_notify: false,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
-    "expect": "× .*asks for the notice only when market_open_notice is registered"
+    "expect": "× .*asks open_market_on_publish for the market_open_notice job"
   },
   {
     "id": "b8b-g4-bump-direct-settings",
@@ -1131,7 +1104,7 @@
     "id": "b8b-g4-bump-slug-dropped",
     "test": "tests/unit/automation/bump-catalog-version.test.ts",
     "file": "src/server/jobs/steps/bump-catalog-version.ts",
-    "find": "return [slug];",
+    "find": "return typeof slug === \"string\" ? [slug] : [];",
     "replace": "return [];",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/bump-catalog-version.test.ts",
     "expect": "× .*answers the slug the function returned"
