@@ -10,7 +10,9 @@
 // entries only: for an entry both sides changed it takes main's body and inserts every line the lane added
 // (absent from main and from the base) before the entry's "- added:" line. It then proves the result:
 // every entry id from either side present exactly once, every body line from either side present, and
-// `check-gotchas.mjs` green from this checkout's root.
+// `check-gotchas.mjs` green from this checkout's root. A `- key:` line (not hit-again, not added) that one side
+// rewrote while the other still holds the merge base's copy is superseded by the rewrite, not "lost" (2026-10-08,
+// PR 230); fixtures name the merge base with --merge-base (default --base).
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -44,6 +46,59 @@ const oursById = new Map(parse(ours).entries.map((e) => [e.id, e.body]));
 const theirsById = new Map(parse(theirs).entries.map((e) => [e.id, e.body]));
 const baseById = new Map(parse(base).entries.map((e) => [e.id, e.body]));
 
+// The merge base for the supersede rule below: read from git the way the sides are read (`git merge-base HEAD
+// MERGE_HEAD`, then `git show <base>:GOTCHAS.md`); fixtures name it with --merge-base, else --base. Unreadable
+// means null, and then no line is superseded (the refusal of 2026-10-08 stays what it was).
+function readMergeBase() {
+  try {
+    if (fixtures) return readFileSync(opt("--merge-base") ?? opt("--base"), "utf8");
+    const sha = execFileSync("git", ["-C", root, "merge-base", "HEAD", "MERGE_HEAD"], {
+      encoding: "utf8",
+    }).trim();
+    return execFileSync("git", ["-C", root, "show", `${sha}:GOTCHAS.md`], {
+      encoding: "utf8",
+      maxBuffer: 1 << 26,
+    });
+  } catch {
+    return null;
+  }
+}
+const mergeBase = readMergeBase();
+const mergeBaseById =
+  mergeBase === null ? new Map() : new Map(parse(mergeBase).entries.map((e) => [e.id, e.body]));
+
+// A `- key: value` line of an entry whose key appears once in that body. Hit-again and added lines repeat or
+// carry their own rules, so they are never keyed.
+function keyedLines(body) {
+  const seen = new Map();
+  for (const l of body.split("\n")) {
+    const key = /^- ([a-z][a-z-]*(?: [a-z-]+)*):/.exec(l)?.[1];
+    if (key === undefined || key.startsWith("hit again") || key === "added") continue;
+    seen.set(key, seen.has(key) ? null : l);
+  }
+  return seen;
+}
+
+// A line of an entry on both sides that one side rewrote while the other still holds the merge base's copy was
+// changed on purpose: the rewrite supersedes the old copy, nothing is lost (git's own three-way merge agrees).
+// Both sides changing the same line differently is not listed here, so it is refused as before.
+/** @type {{ id: string, key: string, by: "lane" | "main", old: string, line: string }[]} */
+const superseded = [];
+for (const [id, mine] of oursById) {
+  const main = theirsById.get(id);
+  const was = mergeBaseById.get(id);
+  if (main === undefined || was === undefined) continue;
+  const mineKeyed = keyedLines(mine);
+  const mainKeyed = keyedLines(main);
+  for (const [key, b] of keyedLines(was)) {
+    const l = mineKeyed.get(key);
+    const m = mainKeyed.get(key);
+    if (b == null || l == null || m == null) continue;
+    if (m === b && l !== b) superseded.push({ id, key, by: "lane", old: m, line: l });
+    else if (l === b && m !== b) superseded.push({ id, key, by: "main", old: l, line: m });
+  }
+}
+
 // Two lanes that both took the same number for different entries are not one entry changed on both sides
 // (P-1831: B13's series ran past its hundred into B7's). Gluing them loses main's `added` line and the sense
 // of both; refuse, and the lane renumbers its entry.
@@ -66,6 +121,10 @@ for (const id of conflicts) {
   if (mine === undefined || main === undefined) throw new Error(`${id} missing on one side`);
   const was = (baseById.get(id) ?? "").split("\n");
   const mainLines = main.split("\n");
+  for (const s of superseded) {
+    const at = s.id === id && s.by === "lane" ? mainLines.indexOf(s.old) : -1;
+    if (at >= 0) mainLines[at] = s.line;
+  }
   const extra = mine.split("\n").filter((l) => !mainLines.includes(l) && !was.includes(l));
   const at = mainLines.findIndex((l) => l.startsWith("- added:"));
   mainLines.splice(at < 0 ? mainLines.length : at, 0, ...extra);
@@ -104,13 +163,14 @@ const missing = [...new Set([...oursById.keys(), ...theirsById.keys()])].filter(
     !resultIds.includes(id) && !retired(oursById).includes(id) && !retired(theirsById).includes(id),
 );
 const resultLines = new Set(result.split("\n"));
+const replaced = new Set(superseded.map((s) => `${s.by === "lane" ? "main" : "lane"}\n${s.id}\n${s.old}`));
 const lostLines = (byId, label) =>
   [...byId.entries()]
     .filter(([id]) => resultIds.includes(id))
     .flatMap(([id, body]) =>
       body
         .split("\n")
-        .filter((l) => l.trim() && !resultLines.has(l))
+        .filter((l) => l.trim() && !resultLines.has(l) && !replaced.has(`${label}\n${id}\n${l}`))
         .map((l) => `${label} ${id}: ${l.slice(0, 80)}`),
     );
 const lost = [...lostLines(oursById, "lane"), ...lostLines(theirsById, "main")];
@@ -125,6 +185,9 @@ if (problems.length > 0) {
 }
 
 writeFileSync(outPath, result);
+for (const s of superseded) {
+  process.stdout.write(`superseded 1 line (${s.by} rewrote ${s.id} ${s.key})\n`);
+}
 if (!fixtures) {
   const check = execFileSync("node", [join(here, "check-gotchas.mjs")], {
     cwd: root,
